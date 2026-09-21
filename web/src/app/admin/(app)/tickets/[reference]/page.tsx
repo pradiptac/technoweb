@@ -198,6 +198,11 @@ export default async function AdminTicketDetailPage({
             <span className="rounded-full bg-surface-2 px-2 py-0.5 text-10-5 font-semibold uppercase tracking-[.05em] text-muted">
               Original request
             </span>
+            {ticket.is_sensitive && (
+              <Badge tone="closed" dot={false}>
+                <span title="Marked sensitive: stored encrypted, never quoted in an email, redacted in a webhook.">Encrypted</span>
+              </Badge>
+            )}
             <time className="ml-auto font-mono text-11-5 text-muted" dateTime={ticket.created_at}>
               {dateTime(ticket.created_at)}
             </time>

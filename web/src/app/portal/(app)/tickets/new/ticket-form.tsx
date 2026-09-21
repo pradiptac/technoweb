@@ -116,6 +116,12 @@ export function TicketForm({
         />
       </Field>
 
+      {/* The same switch a reply carries: the description stored encrypted, announced but never quoted in the desk's email, redacted in the webhooks. */}
+      <label className="mb-[18px] flex items-center gap-2 text-13-5">
+        <input type="checkbox" name="is_sensitive" value="1" />
+        This ticket contains sensitive data — encrypt its contents
+      </label>
+
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <Button type="submit" pending={pending}>
           {pending ? "Submitting…" : "Submit ticket"}

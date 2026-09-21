@@ -13,7 +13,9 @@ use App\Models\TicketMessage;
 use App\Models\User;
 use App\Models\Webhook;
 use App\Models\WebhookDelivery;
+use App\Notifications\TicketCreated;
 use App\Notifications\TicketReplied;
+use App\Support\Webhooks\WebhookPayload;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Crypt;
@@ -24,8 +26,9 @@ use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
- * "This reply contains sensitive data, encrypt its contents", and the first
- * attachment posted through the reply endpoint in this suite.
+ * "This reply contains sensitive data, encrypt its contents" — on a reply
+ * and on the ticket's own description — and the first attachment posted
+ * through the reply endpoint in this suite.
  *
  * The sensitive switch is one column and three consequences: the body is
  * ciphertext in the table and plain text on both principals' reads, the
@@ -225,6 +228,91 @@ class TicketSensitiveMessageTest extends TestCase
             ->getJson("/api/v1/tickets/{$ticket->reference}")
             ->assertOk()
             ->assertJsonPath('data.messages.0.body', TicketMessage::UNREADABLE);
+    }
+
+    public function test_a_sensitive_ticket_s_description_is_sealed_and_read_plain_by_both_sides(): void
+    {
+        Notification::fake();
+        $customer = $this->customer();
+        $category = TicketCategory::firstOrCreate(['slug' => 'network'], ['name' => 'Network', 'is_active' => true]);
+        $request = self::SECRET.' Please rotate it once the engineer has finished.';
+
+        $reference = $this->actingAs($customer, 'sanctum')
+            ->postJson('/api/v1/tickets', [
+                'subject' => 'Firewall access',
+                'description' => $request,
+                'ticket_category_id' => $category->id,
+                'priority' => 'normal',
+                'is_sensitive' => true,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.is_sensitive', true)
+            ->json('data.reference');
+
+        $stored = DB::table('tickets')->where('reference', $reference)->value('description');
+        $this->assertStringNotContainsString('Hunter2', $stored);
+        $this->assertTrue(Ticket::isSealed($stored));
+
+        $this->actingAs($customer, 'sanctum')
+            ->getJson("/api/v1/tickets/{$reference}")
+            ->assertOk()
+            ->assertJsonPath('data.is_sensitive', true)
+            ->assertJsonPath('data.description', $request);
+
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($this->staff(), 'sanctum')
+            ->getJson("/api/v1/admin/tickets/{$reference}")
+            ->assertOk()
+            ->assertJsonPath('data.description', $request);
+    }
+
+    public function test_the_new_ticket_email_and_the_webhooks_announce_a_sensitive_ticket_without_its_request(): void
+    {
+        Queue::fake();
+        Webhook::create([
+            'name' => 'CRM', 'url' => 'https://crm.example.com/hooks/technoware',
+            'secret' => 'whsec_test', 'events' => ['ticket.created'], 'is_active' => true,
+        ]);
+        $customer = $this->customer();
+        $ticket = $this->ticket($customer);
+        $ticket->update(['description' => self::SECRET, 'is_sensitive' => true]);
+
+        $rendered = (new TicketCreated($ticket->fresh()))->toMail($customer)->render();
+        $this->assertStringContainsString(TicketCreated::SENSITIVE_LINE, $rendered);
+        $this->assertStringNotContainsString('Hunter2', $rendered);
+
+        // The webhook still says a ticket exists — reference, subject, customer —
+        // and carries the redaction where the request was. A message is withheld
+        // outright; a ticket is not, and the two rules are documented together.
+        $sensitive = Ticket::create([
+            'customer_id' => $customer->id, 'ticket_category_id' => $ticket->ticket_category_id,
+            'subject' => 'Console credentials', 'description' => self::SECRET, 'is_sensitive' => true,
+            'status' => TicketStatus::Open, 'priority' => 'normal',
+        ]);
+        $delivery = WebhookDelivery::where('event', 'ticket.created')->latest('id')->first();
+        $this->assertNotNull($delivery);
+        $this->assertSame($sensitive->reference, $delivery->payload['reference']);
+        $this->assertSame(WebhookPayload::REDACTED, $delivery->payload['description']);
+        $this->assertStringNotContainsString('Hunter2', json_encode($delivery->payload));
+    }
+
+    public function test_merging_a_sensitive_ticket_seals_the_note_that_quotes_it(): void
+    {
+        Notification::fake();
+        $customer = $this->customer();
+        $source = $this->ticket($customer);
+        $source->update(['description' => self::SECRET, 'is_sensitive' => true]);
+        $target = $this->ticket($customer);
+        $staff = $this->staff();
+
+        $this->actingAs($staff, 'sanctum')
+            ->postJson("/api/v1/admin/tickets/{$source->reference}/merge", ['into' => $target->reference])
+            ->assertOk();
+
+        $note = $target->messages()->where('is_internal', true)->sole();
+        $this->assertTrue((bool) $note->is_sensitive);
+        $this->assertStringContainsString('Hunter2', $note->body);
+        $this->assertStringNotContainsString('Hunter2', DB::table('ticket_messages')->where('id', $note->id)->value('body'));
     }
 
     /**

@@ -29,13 +29,15 @@ import type { TicketMessage } from "@/types/api";
  * both sides and is rendered escaped.
  */
 export function TicketThread({
-  reference, description, customerName, createdAt, messages, attachments,
+  reference, description, customerName, createdAt, messages, attachments, sensitive = false,
 }: {
   reference: string;
   description: string;
   customerName: string;
   createdAt: string;
   messages: TicketMessage[];
+  /** The ticket's own switch — the opening description stored encrypted. */
+  sensitive?: boolean;
   /**
    * The files sent with the ticket itself — the new-ticket form's — which
    * hang off the ticket rather than a message. They were on the API's
@@ -53,6 +55,7 @@ export function TicketThread({
         at={createdAt}
         body={description}
         attachments={attachments}
+        sensitive={sensitive}
       />
       {messages.map((m) => {
         const fromStaff = m.author.type === "staff";

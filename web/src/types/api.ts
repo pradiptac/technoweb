@@ -457,6 +457,8 @@ export type Ticket = {
   customer?: Customer;
   messages?: TicketMessage[];
   attachments?: TicketAttachment[];
+  /** The opening description is stored encrypted when set; `description` is already the plain text. */
+  is_sensitive: boolean;
   created_at: string;
   updated_at: string;
 };

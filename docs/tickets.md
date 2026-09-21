@@ -320,6 +320,25 @@ clear. And **no `ticket.replied` webhook is emitted** for a sensitive
 message, the way none is for an internal note: the payload is written to
 `webhook_deliveries` in clear and shown on the delivery screen, so redacting
 one field would not have been enough. `TicketSensitiveMessageTest` pins all
-three, the read-modify-write, and the undecryptable row. Out of scope and
-said so: the ticket's own `description` is a column on `tickets`, not a
-message, and is stored as written.
+three, the read-modify-write, and the undecryptable row.
+
+**The ticket's own description takes the same switch (0.85.0, the same
+day).** It is a column on `tickets`, not a message row, so it has its own
+`is_sensitive` and is sealed the same way — the sealing moved into
+`App\Models\Concerns\SealsSensitiveText`, one definition both models use
+(`sealSensitive('column')` on `saving`, `openSensitive()` from the
+accessor, `isSealed()`, `UNREADABLE`). The new-ticket form carries the
+switch, both resources carry the flag, both threads draw the lock on the
+original request, and the desk's `TicketCreated` email says
+`SENSITIVE_LINE` instead of the 400-character excerpt. **The webhook rule
+differs from a message's, deliberately**: a sensitive message emits no
+`ticket.replied` at all, because a message *is* its body; a sensitive ticket
+still emits `ticket.created` and every later `ticket.*` — "a ticket exists"
+is what an integration is told, and the reference, subject and customer are
+still that — with `description` **redacted** to `WebhookPayload::REDACTED`
+in `WebhookPayload::ticket()`, the one place every ticket payload is built.
+The merge note, which quotes the source's description, is sealed when the
+source was. The subject is never sealed: it is the line every list, email
+subject and webhook names the ticket by, and a sealed subject would be a
+ticket nobody can find. Pinned by three more cases in
+`TicketSensitiveMessageTest`.

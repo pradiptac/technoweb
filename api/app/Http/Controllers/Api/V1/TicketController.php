@@ -69,6 +69,7 @@ class TicketController extends Controller
             $ticket = $request->user()->tickets()->create([
                 'subject' => $request->string('subject'),
                 'description' => $request->string('description'),
+                'is_sensitive' => $request->boolean('is_sensitive'),
                 'ticket_category_id' => $request->integer('ticket_category_id') ?: null,
                 // ->string() returns a Stringable, which the enum cast cannot
                 // convert — it fataled here. The request already validated the

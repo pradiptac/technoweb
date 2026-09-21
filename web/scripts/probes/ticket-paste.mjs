@@ -8,8 +8,9 @@
  *      rather than replaces; remove takes one row out and the input's
  *      FileList with it; the pasted file is renamed `pasted-<stamp>.png`.
  *   2. A text paste still pastes text and adds no row.
- *   3. The ticket is created with the pasted screenshot attached, and the
- *      thread lists it.
+ *   3. The ticket is created with the pasted screenshot attached and its own
+ *      "sensitive" switch ticked: the thread lists the file and the original
+ *      request carries the lock.
  *   4. A reply with a pasted screenshot and "sensitive" ticked lands with
  *      the lock badge, the body in clear on screen and the attachment listed;
  *      the reply form's rows are gone after the send (the form reset).
@@ -89,6 +90,7 @@ await page.waitForFunction(() => document.querySelectorAll('ul[aria-label="Files
 check("remove takes the row and the file out", (await fileCount()) === 1, String(await fileCount()));
 
 await page.fill("#subject", "Paste probe: screenshot attached");
+await page.check('input[name="is_sensitive"]');
 await page.selectOption("#ticket_category_id", { index: 1 });
 await page.fill("#description", "The console shows the error in the attached screenshot. This ticket was raised by an automated probe and can be deleted.");
 await Promise.all([
@@ -102,6 +104,7 @@ await page.waitForLoadState("load");
 // as a link, so the thread's words and its images are both read.
 const thread = async () => (await page.locator("main").innerText()) + " " + (await page.locator("main img").evaluateAll((els) => els.map((e) => e.getAttribute("alt")).join(" ")));
 check("the ticket was created with the pasted screenshot attached", reference !== "" && /pasted-\d{8}-\d{6}\.png/.test(await thread()), reference);
+check("the original request carries the Encrypted badge", (await page.locator("li", { hasText: "Original request" }).locator("text=Encrypted").count()) === 1);
 
 // 4. A sensitive reply with a pasted screenshot.
 await hydrated();

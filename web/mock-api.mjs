@@ -61,6 +61,8 @@ const nextStatuses = (status) => (TRANSITIONS[status] || []).map((v) => ({ value
 const PRIORITY_LABELS = { low: 'Low', normal: 'Normal', high: 'High', critical: 'Critical' };
 
 const mk = (o) => ({
+  /* The opening description stored encrypted when set (`docs/tickets.md`); the mock has nothing to seal, the flag draws the lock. */
+  is_sensitive: false,
   is_overdue: false, due_at: '2026-08-19T09:00:00Z', assigned_to: null, merged_into: null,
   category: { id: 1, name: 'Network / connectivity' },
   created_at: '2026-08-17T09:12:00Z', updated_at: '2026-08-18T11:02:00Z', ...o,

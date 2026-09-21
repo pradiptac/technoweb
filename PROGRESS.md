@@ -1045,6 +1045,9 @@ The client's reference screenshots of another desk's reply box:
 - [x] "This reply contains sensitive data, encrypt its contents" on both
       reply forms: ciphertext in the table, plain on both reads, a lock in
       both threads, announced but never quoted in the email, no webhook
+- [x] The same switch on the new-ticket form for the opening description
+      (0.85.0): sealed the same way, the desk's email announces it, the
+      webhooks redact it, the merge note is sealed with it
 - [x] Files sent with the ticket itself drawn on both ticket pages (they
       never were)
 - [x] The console header fits a 320px screen (it never did)

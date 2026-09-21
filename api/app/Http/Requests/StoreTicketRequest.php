@@ -21,6 +21,9 @@ class StoreTicketRequest extends FormRequest
         return [
             'subject' => ['required', 'string', 'min:5', 'max:180'],
             'description' => ['required', 'string', 'min:20', 'max:20000'],
+            // "This contains sensitive data": the description stored encrypted,
+            // kept out of the desk's email and redacted in the webhooks.
+            'is_sensitive' => ['sometimes', 'boolean'],
             'ticket_category_id' => ['nullable', 'integer', Rule::exists('ticket_categories', 'id')->where('is_active', true)],
             'priority' => ['required', Rule::enum(TicketPriority::class)],
             'attachments' => ['nullable', 'array', 'max:'.AttachmentStore::MAX_FILES],

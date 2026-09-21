@@ -18,6 +18,8 @@ class TicketResource extends JsonResource
             'reference' => $this->reference,
             'subject' => $this->subject,
             'description' => $this->when($request->routeIs('*.show'), $this->description),
+            // Stored encrypted when set; `description` above is already the plain text.
+            'is_sensitive' => (bool) $this->is_sensitive,
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
             // Drives the admin queue's status <select> — the frontend never

@@ -108,6 +108,7 @@ export default async function TicketDetailPage({
         createdAt={ticket.created_at}
         messages={ticket.messages ?? []}
         attachments={ticket.attachments}
+        sensitive={ticket.is_sensitive}
       />
 
       {/* A merged source offers neither a reply box nor a reopen: the

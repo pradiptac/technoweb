@@ -21,6 +21,17 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.85.0 — 2026-09-21
+
+**The sensitive switch reaches the ticket's opening request.** "This ticket
+contains sensitive data — encrypt its contents" on the new-ticket form: the
+description is stored encrypted, shown in clear to the customer and the
+desk with the lock on the original request, announced but never quoted in
+the desk's new-ticket email, and redacted in the webhooks (which still say
+the ticket exists). A merge note that quotes a sensitive request is sealed
+with it. The sealing is now one piece of code shared by a ticket and a
+message.
+
 ## 0.84.0 — 2026-09-21
 
 **Paste a screenshot into a ticket, see the files as rows, mark a reply

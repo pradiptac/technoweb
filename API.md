@@ -1337,7 +1337,7 @@ authenticated customer — no code path here can reach another customer's data.
 | `PATCH` | `/auth/profile` | Name, email, company, phone, password, **billing/delivery address and GSTIN**. Changing the password revokes every other session |
 | `GET` | `/tickets` | `?status=`, `?per_page=` (max 50) |
 | `GET` | `/tickets/summary` | Counts by status for the dashboard |
-| `POST` | `/tickets` | multipart. `subject`, `description`, `ticket_category_id`, `priority`, `attachments[]` |
+| `POST` | `/tickets` | multipart. `subject`, `description`, `ticket_category_id`, `priority`, `attachments[]`, `is_sensitive` (the description stored encrypted; see the message rule below) |
 | `GET` | `/tickets/{reference}` | Bound by reference (`TW-2026-00001`), not id. Carries `events` — the trail of status and assignment changes, oldest first; never a note — and `merged_into`, the reference of the ticket this one was merged into, or null |
 | `POST` | `/tickets/{reference}/messages` | multipart. `body`, `attachments[]`, `is_sensitive` (stored encrypted, announced but never quoted in the email, never sent to a webhook — see below) |
 | `POST` | `/tickets/{reference}/messages/{id}/rating` | `rating` 1–5 on a staff reply. Changeable. 404 for anything that is not a visible staff reply on this ticket |
@@ -1389,7 +1389,12 @@ the lock is drawn from; the row in the table is ciphertext. The
 ticket to read it." in place of the excerpt, and **no `ticket.replied`
 webhook is emitted** — the delivery row would hold the body in clear. A row
 that will not decrypt answers "This message could not be decrypted." rather
-than a 500. The ticket's own `description` is not covered.
+than a 500. **The ticket's own `description` takes the same switch** on
+`POST /tickets`: sealed the same way, `is_sensitive` on the ticket resource,
+the `TicketCreated` email announcing it without quoting it — and, unlike a
+message, the ticket's webhooks are still emitted with `description` redacted
+to "Marked sensitive; open the ticket to read it.", because a ticket's
+existence is what an integration is told. The subject is never sealed.
 
 ---
 

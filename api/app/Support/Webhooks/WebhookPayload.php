@@ -42,12 +42,27 @@ use Illuminate\Routing\Route;
 class WebhookPayload
 {
     /** @return array<string, mixed> */
+    /** What a sensitive ticket's description reads as in a webhook payload. */
+    public const REDACTED = 'Marked sensitive; open the ticket to read it.';
+
     public static function ticket(Ticket $ticket): array
     {
         self::settled($ticket, 'status', 'priority');
         $ticket->loadMissing(['customer', 'category', 'assignee']);
 
-        return self::resolve(new TicketResource($ticket));
+        $data = self::resolve(new TicketResource($ticket));
+
+        // A ticket marked sensitive is announced without its request: the
+        // delivery row holds the payload in clear and the delivery screen
+        // shows it. Redacted rather than withheld, unlike a sensitive
+        // *message* (which emits nothing) — "a ticket exists" is what an
+        // integration is told, and the reference, subject and customer are
+        // still that; a message is its body, and there is nothing left.
+        if ($ticket->is_sensitive) {
+            $data['description'] = self::REDACTED;
+        }
+
+        return $data;
     }
 
     /**

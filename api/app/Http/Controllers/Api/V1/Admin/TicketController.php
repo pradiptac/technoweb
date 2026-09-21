@@ -161,6 +161,8 @@ class TicketController extends Controller
             $note = $target->messages()->make([
                 'body' => "Merged from {$ticket->reference} — {$ticket->subject}\n\nOriginal request on {$ticket->reference}:\n{$ticket->description}",
                 'is_internal' => true,
+                // The note quotes a description that may be sealed; it is sealed too.
+                'is_sensitive' => (bool) $ticket->is_sensitive,
             ]);
             $note->author()->associate($staff);
             $note->save();
