@@ -21,6 +21,31 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.83.0 — 2026-09-21
+
+**Answer-engine and generative-engine optimisation across the CMS and the
+store.** Every content record — pages, products, store products and
+categories, product categories, brands, services, solutions, posts,
+knowledge articles, industries — can now carry **answer blocks**: a
+definition, who it is for, why it is needed, key facts, features, use
+cases, comparisons, steps and questions, each drawn on the public page under
+its own heading and each a thing an answer engine can quote. FAQs reach the
+same eleven records. Every public page carries its **entity** block — the
+brand, category, solutions, services, industries and supporting articles it
+is related to — as a "Related" section and as `about`/`mentions` in its
+structured data, and the organisation says what it knows about and where
+it serves. Two new scores, **AEO** and **GEO**, sit beside the SEO score on
+the overview and on every record's new **AEO** tab, each with its failed
+checks and the hint that would earn them, band and per-check filters, sorts,
+and the site's averages with their own biggest wins. The assistant gains
+eight actions — analyses for both scores, question and answer-block drafts,
+a per-block rewrite, FAQ suggestions, entity links, product Q&A — that
+suggest and never write; a fact the model was not given is written as
+`[MISSING: …]`, never invented. **Improvement suggestions** under each score
+combine the rubric's hints with the assistant's reading, inline. Store
+products gain a warranty, applications and the services that install them.
+`/llms-full.txt` carries each record's definition and questions.
+
 ## 0.82.1 — 2026-09-21
 
 **A review pass over the whole project, thirteen small fixes.** Three

@@ -33,6 +33,10 @@ class CaseStudyResource extends JsonResource
             'cover_image_alt' => MediaMeta::alt($this->cover_image_path),
             'cover_image_focus' => MediaMeta::focus($this->cover_image_path),
             'industry' => new IndustryResource($this->whenLoaded('industry')),
+            // What this record is connected to, on the page only (`EntityLinks`).
+            'entity' => $this->entity(),
+            // An FAQPage over the FAQs and question blocks; absent under two entries.
+            'faq_schema' => $this->faqSchema(),
             'seo' => $this->seo(),
             /*
              * The page's JSON-LD, built server-side.

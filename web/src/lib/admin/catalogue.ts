@@ -2,7 +2,7 @@ import "server-only";
 import { apiFetch } from "@/lib/api";
 import { token } from "./_shared";
 import type {
-  AdminBrand, AdminIndustry, AdminProductCategory, AdminProduct, AdminService, AdminSolution, FaqItem, Paginated, PublishStatus, SeoOverride,
+  AdminBrand, AdminIndustry, AdminProductCategory, AdminProduct, AdminService, AdminSolution, AnswerBlock, FaqItem, Paginated, PublishStatus, SeoOverride,
 } from "@/types/api";
 
 /**
@@ -37,6 +37,8 @@ export type SolutionPayload = Partial<{
   product_ids: number[];
   industry_ids: number[];
   faqs: FaqItem[];
+  /** Replaced wholesale, like `faqs`; absent leaves them alone. `docs/aeo-geo-contract.md` §1. */
+  answer_blocks: AnswerBlock[];
   seo: Partial<SeoOverride>;
   show_in_menu: boolean;
 }>;
@@ -55,6 +57,12 @@ export async function getSolutions(params: SolutionQueryParams = {}) {
 export async function getSolution(id: number): Promise<AdminSolution> {
   const res = await apiFetch<{ data: AdminSolution }>(`/admin/solutions/${id}`, { token: await token() });
   return res.data;
+}
+
+/** Service options for the store product form's picker — the services that install or support a product. */
+export async function getServiceOptions(): Promise<{ id: number; name: string }[]> {
+  const res = await apiFetch<Paginated<AdminService>>("/admin/services?per_page=100", { token: await token() });
+  return res.data.map((s) => ({ id: s.id, name: s.title }));
 }
 
 /** Solution options for the industry form's picker. */
@@ -101,7 +109,7 @@ export async function deleteSolution(id: number): Promise<void> {
 export type ServicePayload = Partial<{
   title: string; slug: string | null; summary: string | null; body: string | null;
   icon: string | null; status: PublishStatus; sort_order: number | null;
-  faqs: FaqItem[]; seo: Partial<SeoOverride>;
+  faqs: FaqItem[]; answer_blocks: AnswerBlock[]; seo: Partial<SeoOverride>;
   show_in_menu: boolean;
 }>;
 
@@ -137,7 +145,7 @@ export async function deleteService(id: number): Promise<void> {
 export type IndustryPayload = Partial<{
   name: string; slug: string | null; summary: string | null; body: string | null;
   icon: string | null; sort_order: number | null;
-  solution_ids: number[]; seo: Partial<SeoOverride>;
+  solution_ids: number[]; faqs: FaqItem[]; answer_blocks: AnswerBlock[]; seo: Partial<SeoOverride>;
   show_in_menu: boolean;
 }>;
 
@@ -183,7 +191,7 @@ export type ProductPayload = Partial<{
   specifications: Record<string, string>;
   features: string[]; images: string[];
   solution_ids: number[]; related_product_ids: number[];
-  faqs: FaqItem[]; seo: Partial<SeoOverride>;
+  faqs: FaqItem[]; answer_blocks: AnswerBlock[]; seo: Partial<SeoOverride>;
 }>;
 
 export async function getProductList(params: ProductQueryParams = {}) {
@@ -223,6 +231,7 @@ export type BrandPayload = Partial<{
   name: string; slug: string | null; description: string | null;
   logo_path: string | null; sort_order: number | null; is_featured: boolean;
   partner_tier: string | null;
+  faqs: FaqItem[]; answer_blocks: AnswerBlock[];
 }>;
 
 export async function getBrandList(params: { q?: string; page?: number; per_page?: number } = {}) {
@@ -264,6 +273,7 @@ export type ProductCategoryPayload = Partial<{
   image_path: string | null;
   parent_id: number | null; sort_order: number | null; seo: Partial<SeoOverride>;
   show_in_menu: boolean;
+  faqs: FaqItem[]; answer_blocks: AnswerBlock[];
 }>;
 
 export async function getProductCategoryList(params: { q?: string; page?: number; per_page?: number } = {}) {

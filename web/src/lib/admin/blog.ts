@@ -2,7 +2,7 @@ import "server-only";
 import { apiFetch } from "@/lib/api";
 import { query, token } from "./_shared";
 import type {
-  AdminBlogPost, Paginated, PublishStatus, SeoOverride, AdminComment, CommentStatus,
+  AdminBlogPost, AnswerBlock, FaqItem, Paginated, PublishStatus, SeoOverride, AdminComment, CommentStatus,
 } from "@/types/api";
 
 export type BlogQueryParams = {
@@ -23,6 +23,8 @@ export type BlogPostPayload = Partial<{
   published_at: string | null;
   author_id: number | null;
   cover_image_path: string | null;
+  faqs: FaqItem[];
+  answer_blocks: AnswerBlock[];
   seo: Partial<SeoOverride>;
 }>;
 

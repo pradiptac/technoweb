@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\AnswerBlockKind;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePageRequest;
@@ -35,38 +36,46 @@ class PageController extends Controller
             ->paginate(min($request->integer('per_page', 30), 100))
             ->withQueryString();
 
-        return PageResource::collection($pages);
+        // Sent by the API, never listed in TypeScript: the console's kind
+        // select is built from this, the `meta.transitions` rule.
+        return PageResource::collection($pages)->additional(['meta' => [
+            'answer_block_kinds' => AnswerBlockKind::options(),
+        ]]);
     }
 
     public function show(Page $page): JsonResource
     {
-        return new PageResource($page->load('seo'));
+        return new PageResource($page->load(['faqs', 'answerBlocks', 'seo']));
     }
 
     public function store(StorePageRequest $request): JsonResponse
     {
         $page = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $content = $this->pullAnswerContent($attributes);
 
             $page = Page::create($this->withPublishedAt($attributes));
+            $this->saveAnswerContent($page, $content);
             $this->saveSeo($page, $seo);
 
             return $page;
         });
 
-        return response()->json(['data' => new PageResource($page->load('seo'))], 201);
+        return response()->json(['data' => new PageResource($page->load(['faqs', 'answerBlocks', 'seo']))], 201);
     }
 
     public function update(UpdatePageRequest $request, Page $page): JsonResource
     {
         DB::transaction(function () use ($request, $page) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $content = $this->pullAnswerContent($attributes);
 
             $page->update($this->withPublishedAt($attributes, $page));
+            $this->saveAnswerContent($page, $content);
             $this->saveSeo($page, $seo);
         });
 
-        return new PageResource($page->fresh('seo'));
+        return new PageResource($page->fresh(['faqs', 'answerBlocks', 'seo']));
     }
 
     public function destroy(Page $page): JsonResponse
@@ -74,6 +83,7 @@ class PageController extends Controller
         DB::transaction(function () use ($page) {
             $page->seo()->delete();
             $page->faqs()->delete();
+            $page->answerBlocks()->delete();
             $page->delete();
         });
 

@@ -2,11 +2,11 @@ import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { ApiError } from "@/lib/api";
-import { getIndustry, getSolutionOptions } from "@/lib/admin";
+import { getAnswerBlockKinds, getIndustry, getSolutionOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { IndustryForm } from "../industry-form";
-import type { AdminIndustry } from "@/types/api";
+import type { AdminIndustry, AnswerBlockKindOption } from "@/types/api";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -27,8 +27,9 @@ export default async function EditIndustryPage({
 
   let industry: AdminIndustry;
   let solutions: { id: number; name: string }[] = [];
+  let kinds: AnswerBlockKindOption[] = [];
   try {
-    [industry, solutions] = await Promise.all([getIndustry(numericId), getSolutionOptions()]);
+    [industry, solutions, kinds] = await Promise.all([getIndustry(numericId), getSolutionOptions(), getAnswerBlockKinds("/admin/industries")]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
     throw error;
@@ -46,7 +47,7 @@ export default async function EditIndustryPage({
         </Link>
       </PageHeader>
 
-      <IndustryForm industry={industry} solutions={solutions} saved={Boolean(saved)} />
+      <IndustryForm industry={industry} solutions={solutions} saved={Boolean(saved)} kinds={kinds} />
     </>
   );
 }

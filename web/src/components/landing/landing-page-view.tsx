@@ -6,6 +6,7 @@ import { PageHero, type Crumb } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { ProductGrid } from "@/components/product/product-grid";
 import { IconArrowRight } from "@/components/icons";
+import { JsonLd, jsonLd } from "@/lib/seo";
 import type { LandingPage } from "@/types/api";
 
 /**
@@ -151,6 +152,17 @@ export function LandingPageView({ page, crumbs }: { page: LandingPage; crumbs: C
           <section className="mt-14"><FaqList faqs={page.faqs ?? []} /></section>
         )}
       </Container>
+
+      {/*
+        The FAQPage, built here because a landing page is the one FAQ-bearing
+        record the API sends no `faq_schema` for (it is outside the answer-
+        block contract). `FaqList` stopped emitting its own on 2026-09-21 so
+        the pages that do get one from the API do not carry two; this keeps
+        the API's rule — never an FAQPage over one question.
+      */}
+      {(page.faqs?.length ?? 0) >= 2 && (
+        <JsonLd data={jsonLd.faqPage((page.faqs ?? []).map((f) => ({ question: f.question, answer: f.answer })))} />
+      )}
 
       <CtaBand
         title="Tell us what you have and what it has to do"

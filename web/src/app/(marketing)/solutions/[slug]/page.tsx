@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { ButtonLink } from "@/components/ui/button";
 import { CtaBand } from "@/components/ui/cta-band";
-import { FaqList } from "@/components/ui/faq";
+import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { RelatedEntities } from "@/components/content/related-entities";
 import { PageHero } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { IconArrowRight, IconCheck } from "@/components/icons";
@@ -123,7 +124,14 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
               </section>
             )}
 
-            {faqs.length > 0 && <section data-aos="fade-up" className="mb-4"><FaqList faqs={faqs} /></section>}
+            {/*
+              The answer blocks, with the FAQs merged into their questions
+              group, then what the record is connected to — after the body
+              and before the aside's related lists (`docs/seo.md`, "Answer
+              blocks on the page").
+            */}
+            <AnswerBlocks blocks={solution.answer_blocks} faqs={faqs} className="mb-12" />
+            <RelatedEntities entity={solution.entity} />
           </div>
 
           <aside className="grid content-start gap-5">
@@ -179,6 +187,8 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
       />
 
       {solution.schema && <JsonLd data={solution.schema} />}
+      {/* The FAQPage over the FAQs and question blocks — the API's, absent under two entries, and the only one on the page. */}
+      {solution.faq_schema && <JsonLd data={solution.faq_schema} />}
     </>
   );
 }

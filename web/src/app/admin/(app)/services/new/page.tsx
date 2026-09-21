@@ -1,11 +1,14 @@
 import { PageHeader } from "@/components/admin/page-header";
+import { getAnswerBlockKinds } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ServiceForm } from "../service-form";
 
 export const metadata = buildMetadata({ title: "New service", path: "/admin/services/new", seo: noIndex });
 
-export default function NewServicePage() {
+export default async function NewServicePage() {
+  const kinds = await getAnswerBlockKinds("/admin/services");
+
   return (
     <>
       <PageHeader
@@ -13,7 +16,7 @@ export default function NewServicePage() {
         title="New service"
       />
 
-      <ServiceForm />
+      <ServiceForm kinds={kinds} />
     </>
   );
 }

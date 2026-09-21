@@ -20,7 +20,7 @@ class StoreProductRequest extends FormRequest
      */
     protected function richTextFields(): array
     {
-        return ['description'];
+        return ['description', 'answer_blocks.*.detail'];
     }
 
     public function authorize(): bool
@@ -61,6 +61,7 @@ class StoreProductRequest extends FormRequest
             ...CmsFieldRules::ids('solution_ids', 'solutions'),
             ...CmsFieldRules::ids('related_product_ids', 'products'),
             ...CmsFieldRules::faqs(),
+            ...CmsFieldRules::answerBlocks(),
             ...SeoRules::rules(),
         ];
     }

@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import { createBlogPost, deleteBlogPost, updateBlogPost, type BlogPostPayload } from "@/lib/admin";
-import { seoFromFormData, str } from "@/lib/admin-form";
-import type { PublishStatus } from "@/types/api";
+import { jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
+import type { AnswerBlock, FaqItem, PublishStatus } from "@/types/api";
 
 export type PostFormState = { error?: string; fieldErrors?: Record<string, string[]> };
 
@@ -27,6 +27,8 @@ function payloadFrom(formData: FormData): BlogPostPayload {
     published_at: str(formData, "published_at"),
     author_id: authorId ? Number(authorId) : null,
     cover_image_path: str(formData, "cover_image_path"),
+    faqs: jsonListFromFormData<FaqItem>(formData, "faqs"),
+    answer_blocks: jsonListFromFormData<AnswerBlock>(formData, "answer_blocks"),
     ...(seo ? { seo: seo as BlogPostPayload["seo"] } : {}),
   };
 }

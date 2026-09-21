@@ -8,12 +8,15 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { EditorField } from "@/components/admin/editor-field";
+import { FaqField } from "@/components/admin/faq-field";
+import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
+import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import { CoverField } from "@/components/admin/cover-field";
 import { createPostAction, updatePostAction, deletePostAction, type PostFormState } from "./actions";
-import type { AdminBlogPost, StaffUser } from "@/types/api";
+import type { AdminBlogPost, StaffUser, AnswerBlockKindOption } from "@/types/api";
 
 const initial: PostFormState = {};
 
@@ -23,6 +26,8 @@ const GROUPS: TabGroup[] = [
     fields: ["title", "slug", "excerpt", "body", "status", "published_at", "author_id"] },
   { id: "media", label: "Media", fields: ["cover_image_path"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
+  // The AEO tab (docs/aeo-geo-contract.md §7). Last, so every tab above keeps its place.
+  { id: "aeo", label: "AEO", fields: ["answer_blocks", "faqs"] },
 ];
 
 /** datetime-local wants "YYYY-MM-DDTHH:mm"; the API sends ISO-8601. */
@@ -39,11 +44,13 @@ function toLocalInput(iso: string | null): string {
  * so it is the shape the remaining CMS entities should follow.
  */
 export function PostForm({
-  post, staff, saved,
+  post, staff, saved, kinds,
 }: {
   post?: AdminBlogPost;
   staff: StaffUser[];
   saved?: boolean;
+  /** `meta.answer_block_kinds` from this entity's admin index. */
+  kinds: AnswerBlockKindOption[];
 }) {
   const editing = Boolean(post);
   const [state, formAction, pending] = useActionState(
@@ -52,6 +59,9 @@ export function PostForm({
   );
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
   const seoErr = (f: string) => state.fieldErrors?.[`seo.${f}`]?.[0];
+  /** Per-row errors arrive as e.g. answer_blocks.0.answer; surface the first. */
+  const rowErr = (prefix: string) =>
+    err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
   const defaults = post?.seo_defaults;
   const seo = post?.seo;
 
@@ -132,6 +142,17 @@ export function PostForm({
         </div>
 
         <SeoPanel seo={seo} defaults={defaults} error={seoErr} embedded record={post ? { type: 'blog_post', id: post.id } : null} />
+
+        {/*
+          The AEO tab, one child: the readiness scores and the assistant on
+          top, the answer blocks under them, then the FAQs this record
+          gained with them. See docs/aeo-geo-contract.md §7.
+        */}
+        <div>
+          <AeoGeoPanel record={post ? { type: 'blog_post', id: post.id } : null} blocks={post?.answer_blocks} />
+          <AnswerBlocksField defaultValue={post?.answer_blocks ?? []} kinds={kinds} error={rowErr("answer_blocks")} />
+          <FaqField defaultValue={post?.faqs ?? []} error={rowErr("faqs")} />
+        </div>
       </Tabs>
 
       <FormActions>

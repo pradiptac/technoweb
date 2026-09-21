@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import { createIndustry, deleteIndustry, updateIndustry, type IndustryPayload } from "@/lib/admin";
-import { seoFromFormData, str } from "@/lib/admin-form";
+import { jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
+import type { AnswerBlock, FaqItem } from "@/types/api";
 
 export type IndustryFormState = { error?: string; fieldErrors?: Record<string, string[]> };
 
@@ -29,6 +30,8 @@ function payloadFrom(formData: FormData): IndustryPayload {
     solution_ids: formData.getAll("solution_ids")
       .map((v) => Number(v))
       .filter((n) => Number.isInteger(n) && n > 0),
+    faqs: jsonListFromFormData<FaqItem>(formData, "faqs"),
+    answer_blocks: jsonListFromFormData<AnswerBlock>(formData, "answer_blocks"),
     ...(seo ? { seo: seo as IndustryPayload["seo"] } : {}),
   };
 }

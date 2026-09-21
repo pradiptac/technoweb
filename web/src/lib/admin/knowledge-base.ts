@@ -2,7 +2,7 @@ import "server-only";
 import { apiFetch } from "@/lib/api";
 import { token } from "./_shared";
 import type {
-  AdminKnowledgeArticle, KnowledgeCategory, Paginated, PublishStatus, SeoOverride,
+  AdminKnowledgeArticle, AnswerBlock, FaqItem, KnowledgeCategory, Paginated, PublishStatus, SeoOverride,
 } from "@/types/api";
 
 export type KnowledgeQueryParams = {
@@ -22,6 +22,8 @@ export type KnowledgeArticlePayload = Partial<{
   status: PublishStatus;
   published_at: string | null;
   knowledge_category_id: number | null;
+  faqs: FaqItem[];
+  answer_blocks: AnswerBlock[];
   seo: Partial<SeoOverride>;
 }>;
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\AnswerBlockKind;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreServiceRequest;
@@ -33,52 +34,55 @@ class ServiceController extends Controller
             ->paginate(min($request->integer('per_page', 30), 100))
             ->withQueryString();
 
-        return ServiceResource::collection($services);
+        // Sent by the API, never listed in TypeScript: the console's kind
+        // select is built from this, the `meta.transitions` rule.
+        return ServiceResource::collection($services)->additional(['meta' => [
+            'answer_block_kinds' => AnswerBlockKind::options(),
+        ]]);
     }
 
     public function show(Service $service): JsonResource
     {
-        return new ServiceResource($service->load(['faqs', 'seo']));
+        return new ServiceResource($service->load(['faqs', 'answerBlocks', 'seo']));
     }
 
     public function store(StoreServiceRequest $request): JsonResponse
     {
         $service = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
-            $faqs = $attributes['faqs'] ?? null;
-            unset($attributes['faqs']);
+            $content = $this->pullAnswerContent($attributes);
 
             $service = Service::create($attributes);
 
-            $this->saveFaqs($service, $faqs);
+            $this->saveAnswerContent($service, $content);
             $this->saveSeo($service, $seo);
 
             return $service;
         });
 
-        return response()->json(['data' => new ServiceResource($service->load(['faqs', 'seo']))], 201);
+        return response()->json(['data' => new ServiceResource($service->load(['faqs', 'answerBlocks', 'seo']))], 201);
     }
 
     public function update(UpdateServiceRequest $request, Service $service): JsonResource
     {
         DB::transaction(function () use ($request, $service) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
-            $faqs = $attributes['faqs'] ?? null;
-            unset($attributes['faqs']);
+            $content = $this->pullAnswerContent($attributes);
 
             $service->update($attributes);
 
-            $this->saveFaqs($service, $faqs);
+            $this->saveAnswerContent($service, $content);
             $this->saveSeo($service, $seo);
         });
 
-        return new ServiceResource($service->fresh(['faqs', 'seo']));
+        return new ServiceResource($service->fresh(['faqs', 'answerBlocks', 'seo']));
     }
 
     public function destroy(Service $service): JsonResponse
     {
         DB::transaction(function () use ($service) {
             $service->faqs()->delete();
+            $service->answerBlocks()->delete();
             $service->seo()->delete();
             $service->delete();
         });

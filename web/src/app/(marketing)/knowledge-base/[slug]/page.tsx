@@ -7,6 +7,8 @@ import { Container } from "@/components/ui/container";
 import { Breadcrumbs } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { ArticleMeta } from "@/components/ui/article-meta";
+import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { RelatedEntities } from "@/components/content/related-entities";
 import { IconTicket } from "@/components/icons";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, buildMetadata } from "@/lib/seo";
@@ -103,6 +105,10 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
           <ArticleMap headings={headings} className="mb-8 rounded-xl border border-line bg-surface p-4" />
           {body && <ProseWithShortcodes html={body} className="max-w-none" />}
 
+          {/* The answer blocks and FAQs, then what the guide is about — after the body, before the vote. */}
+          <AnswerBlocks blocks={article.answer_blocks} faqs={article.faqs ?? []} className="mt-10" />
+          <RelatedEntities entity={article.entity} className="mt-10" />
+
           <HelpfulVote slug={article.slug} title={article.title} />
 
           {tags.length > 0 && (
@@ -146,6 +152,8 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
         `</script>` would otherwise close the block.
       */}
       {article.schema && <JsonLd data={article.schema} />}
+      {/* The FAQPage over the FAQs and question blocks — the API's, absent under two entries, and the only one on the page. */}
+      {article.faq_schema && <JsonLd data={article.faq_schema} />}
     </>
   );
 }

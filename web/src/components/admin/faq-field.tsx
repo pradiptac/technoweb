@@ -1,12 +1,19 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import type { FaqItem } from "@/types/api";
 
 const MAX = 20;
+
+/**
+ * The event the AEO/GEO panel's Apply announces on the form for a
+ * `faq_suggest` result, carrying `{ faqs: FaqItem[] }`. Appended as rows,
+ * unsaved, the way `AnswerBlocksField` takes `tw:answer-blocks-suggested`.
+ */
+export const FAQS_SUGGESTED = "tw:faqs-suggested";
 
 /**
  * FAQs for a solution, service or product.
@@ -27,6 +34,29 @@ export function FaqField({
   const [rows, setRows] = useState<FaqItem[]>(
     defaultValue.length ? defaultValue : [{ question: "", answer: "" }],
   );
+  const hidden = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const form = hidden.current?.closest("form");
+    if (!form) return;
+
+    const onSuggested = (e: Event) => {
+      const faqs = (e as CustomEvent<{ faqs?: FaqItem[] }>).detail?.faqs;
+      if (!Array.isArray(faqs) || faqs.length === 0) return;
+
+      setRows((r) => {
+        // The one blank starter row is replaced rather than kept above them.
+        const kept = r.filter((row) => row.question.trim() || row.answer.trim());
+        const fresh = faqs
+          .filter((f) => f && typeof f.question === "string" && typeof f.answer === "string" && f.question.trim() && f.answer.trim())
+          .map((f) => ({ question: f.question, answer: f.answer }));
+        return [...kept, ...fresh].slice(0, MAX);
+      });
+    };
+
+    form.addEventListener(FAQS_SUGGESTED, onSuggested);
+    return () => form.removeEventListener(FAQS_SUGGESTED, onSuggested);
+  }, []);
 
   const update = (i: number, key: keyof FaqItem, v: string) =>
     setRows((r) => r.map((row, n) => (n === i ? { ...row, [key]: v } : row)));
@@ -43,7 +73,7 @@ export function FaqField({
         appear directly in search results. Answer the question actually asked.
       </p>
 
-      <input type="hidden" name="faqs" value={JSON.stringify(complete)} />
+      <input ref={hidden} type="hidden" name="faqs" value={JSON.stringify(complete)} />
 
       <ul className="grid gap-4">
         {rows.map((row, i) => (

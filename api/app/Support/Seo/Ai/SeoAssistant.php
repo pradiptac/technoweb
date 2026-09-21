@@ -2,7 +2,12 @@
 
 namespace App\Support\Seo\Ai;
 
+use App\Enums\AnswerBlockKind;
 use App\Enums\SeoAiAction;
+use App\Models\BlogPost;
+use App\Models\Industry;
+use App\Models\KnowledgeArticle;
+use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\SeoSuggestion;
 use App\Models\Service;
@@ -49,7 +54,10 @@ class SeoAssistant
 {
     public function __construct(private AiProvider $provider) {}
 
-    public function run(SeoAiAction $action, Model $record, ?int $userId = null): SeoAiResult
+    /**
+     * @param  array<string, mixed>  $input  What the request carried beside the record — `block_id` for `improve_answer`
+     */
+    public function run(SeoAiAction $action, Model $record, ?int $userId = null, array $input = []): SeoAiResult
     {
         if (! SeoAiSettings::enabled()) {
             return SeoAiResult::failed('The AI SEO assistant is switched off. Turn it on in Settings → SEO defaults.');
@@ -65,11 +73,23 @@ class SeoAssistant
             );
         }
 
-        $candidates = $action === SeoAiAction::InternalLinks ? self::candidates($record) : [];
+        // A block to improve that is not this record's is refused by the
+        // controller before this; a run reached some other way with no such
+        // block has nothing to improve, and the model must not be asked to
+        // improve the first thing it sees.
+        if ($action->needsBlock() && SeoContext::blockFor($record, $input['block_id'] ?? null) === null) {
+            return SeoAiResult::failed('Choose which answer block to improve. It has to be one of this record\'s own.');
+        }
+
+        $candidates = match ($action) {
+            SeoAiAction::InternalLinks => self::candidates($record),
+            SeoAiAction::EntityLinks => self::entityCandidates($record),
+            default => [],
+        };
         $model = SeoAiSettings::model();
 
         $reply = $this->provider->complete(
-            $this->messages($action, $record, $candidates),
+            $this->messages($action, $record, $candidates, $input),
             $action->maxTokens(),
             [
                 'model' => $model,
@@ -124,16 +144,23 @@ class SeoAssistant
 
     // ---- the prompt ---------------------------------------------------------
 
-    /** @return array<int, array{role: string, content: string}> */
-    private function messages(SeoAiAction $action, Model $record, array $candidates): array
+    /**
+     * @param  array<string, mixed>  $input
+     * @return array<int, array{role: string, content: string}>
+     */
+    private function messages(SeoAiAction $action, Model $record, array $candidates, array $input = []): array
     {
-        $context = SeoContext::build($action, $record);
+        $context = SeoContext::build($action, $record, $input);
 
         if ($candidates !== []) {
-            $lines = ['', 'PAGES YOU MAY LINK TO. Refer to them by number. Do not invent any other page.'];
+            $lines = $action === SeoAiAction::EntityLinks
+                ? ['', 'RECORDS YOU MAY RELATE THIS ONE TO. Refer to them by number. Do not invent any other record.']
+                : ['', 'PAGES YOU MAY LINK TO. Refer to them by number. Do not invent any other page.'];
 
             foreach ($candidates as $i => $c) {
-                $lines[] = '['.($i + 1).'] '.$c['title'].' — '.$c['path'];
+                $lines[] = '['.($i + 1).'] '
+                    .(isset($c['relation']) ? '('.$c['relation'].') ' : '')
+                    .$c['title'].' — '.$c['path'];
             }
 
             $context .= implode("\n", $lines);
@@ -214,6 +241,81 @@ class SeoAssistant
                 'Choose the structured-data type for this page.',
                 'Shape: {"schema_type": string, "reason": string}',
                 'Choose only from the types listed as permitted. If none is better than the current one, repeat it.',
+            ]),
+
+            /*
+             * The AEO and GEO actions. Each is about what an assistant or an
+             * answer engine could *quote* from the page — a direct answer, a
+             * fact, a step — and about whether the page says what it is
+             * related to. None of them may add a fact: the answer-writing
+             * ones are told, in the context, to leave `[MISSING: …]` where
+             * one would go.
+             */
+            SeoAiAction::AeoAnalyze => implode("\n", [
+                'Assess whether an answer engine could quote this page as it stands.',
+                'Shape: {"summary": string, "strengths": string[], "gaps": string[], "suggestions": string[]}',
+                'Judge the direct answers: is there a one-paragraph definition, are the questions people ask answered',
+                'in under 600 characters each, are key facts, use cases, comparisons and steps stated plainly?',
+                '"gaps" is what is missing, each naming the kind of block that would fill it.',
+                '"suggestions" is what to write, one line each, specific to this page and not to any page.',
+                'Do not write the blocks here; name them.',
+            ]),
+            SeoAiAction::GeoAnalyze => implode("\n", [
+                'Assess whether an answer engine can tell what it is quoting when it quotes this page.',
+                'Shape: {"summary": string, "strengths": string[], "gaps": string[], "suggestions": string[]}',
+                'Judge the entity: does the page say what this is, who makes it, which category it is in,',
+                'which solutions, services and industries it relates to, whether any article supports it,',
+                'whether it says who it is for and why it matters, and whether the business behind it is identifiable.',
+                '"gaps" is what is missing, each naming the relationship or the signal.',
+                '"suggestions" is what to add, one line each. Never a word about ranking.',
+            ]),
+            SeoAiAction::Questions => implode("\n", [
+                'List the questions somebody asks before choosing what this page is about.',
+                'Shape: {"questions": [{"question": string, "intent": string}]}',
+                'At most 8. Questions the page could answer from its material, not questions that need facts it lacks.',
+                '"intent" is what the asker wants in a few words: to compare, to buy, to fix, to learn, to check a fit.',
+                'Do not repeat a question the page already answers in a block or an FAQ.',
+            ]),
+            SeoAiAction::AnswerBlocks => implode("\n", [
+                'Write answer blocks for this page from its material.',
+                'Shape: {"blocks": [{"kind": string, "question": string|null, "answer": string, "detail": string|null}]}',
+                'At most 8. "kind" must be one of the permitted block kinds listed. Do not repeat a block already on the page.',
+                '"answer" is the direct answer, plain text, under 600 characters — the sentence an assistant would quote.',
+                '"question" is required for kinds question and comparison and absent otherwise.',
+                '"detail" is the supporting explanation as plain paragraphs separated by blank lines, or null.',
+                'Start with one definition block if the page has none. Every fact must come from the material.',
+            ]),
+            SeoAiAction::ProductQa => implode("\n", [
+                'Write answer blocks for this product from its own facts.',
+                'Shape: {"blocks": [{"kind": string, "question": string|null, "answer": string, "detail": string|null}]}',
+                'At most 8. "kind" must be one of the permitted block kinds listed. Do not repeat a block already on the page.',
+                '"answer" is the direct answer, plain text, under 600 characters — the sentence an assistant would quote.',
+                '"question" is required for kinds question and comparison and absent otherwise.',
+                'Write from the product facts: what it is, who it is for, its key facts, what it is used for, how it is set up.',
+                'A fact marked "(not entered)" is unknown. Where an answer needs it, write [MISSING: what] in its place and move on.',
+                'Never take a specification, a price, a warranty or a compatibility claim from anywhere but the facts given.',
+            ]),
+            SeoAiAction::ImproveAnswer => implode("\n", [
+                'Rewrite one answer block, given under THE BLOCK TO IMPROVE.',
+                'Shape: {"answer": string, "detail": string}',
+                '"answer" is the direct answer, plain text, under 600 characters, leading with the answer itself.',
+                '"detail" is the supporting explanation as plain paragraphs separated by blank lines, or empty.',
+                'Keep every fact identical. Tighten, clarify and put the answer first. Keep any [MISSING: …] exactly as it is.',
+                'You may not add a claim, a figure, a name or a specification that is not in the block or the material.',
+            ]),
+            SeoAiAction::FaqSuggest => implode("\n", [
+                'Write questions this page leaves unanswered, with answers, as FAQ entries.',
+                'Shape: {"faqs": [{"question": string, "answer": string}]}',
+                'At most 6. Do not repeat an FAQ or a question block already on the page.',
+                'Answer only from the material. Where an answer needs a fact the material lacks, write [MISSING: what] in its place.',
+                'Ask what a buyer would actually ask, not what makes a tidy list.',
+            ]),
+            SeoAiAction::EntityLinks => implode("\n", [
+                'Choose records from the numbered list that this record is genuinely related to.',
+                'Shape: {"links": [{"n": number, "relation": string, "reason": string}]}',
+                '"n" is the number in the list. Never use a number that is not in it.',
+                '"relation" is the word in brackets beside that entry: solution, service, industry, article or product.',
+                '"reason" is one sentence on why the two belong together. At most 8, and fewer if fewer are genuinely related.',
             ]),
         };
     }
@@ -308,7 +410,185 @@ class SeoAssistant
                 'reason' => $str('reason', 300),
                 'secondary_keywords' => $list('secondary_keywords', 6, 120),
             ]),
+
+            SeoAiAction::AeoAnalyze, SeoAiAction::GeoAnalyze => self::nullIfEmpty([
+                'summary' => $str('summary', 600),
+                'strengths' => $list('strengths', 8, 300),
+                'gaps' => $list('gaps', 8, 300),
+                'suggestions' => $list('suggestions', 8, 300),
+            ]),
+
+            SeoAiAction::Questions => self::questions($data),
+
+            SeoAiAction::AnswerBlocks, SeoAiAction::ProductQa => self::blocks($data),
+
+            SeoAiAction::ImproveAnswer => self::improvedAnswer($data),
+
+            SeoAiAction::FaqSuggest => self::faqs($data),
+
+            SeoAiAction::EntityLinks => self::entityLinks($data, $candidates),
         };
+    }
+
+    /** `{questions: [{question, intent}]}`, at most eight, no question twice. */
+    private static function questions(array $data): ?array
+    {
+        $rows = is_array($data['questions'] ?? null) ? $data['questions'] : [];
+        $out = [];
+        $seen = [];
+
+        foreach ($rows as $row) {
+            // A bare string is a question with no intent; keep it rather
+            // than punish a model for a shorter shape.
+            if (is_string($row)) {
+                $row = ['question' => $row];
+            }
+
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $q = self::plain($row['question'] ?? '', 255);
+
+            if ($q === '' || isset($seen[mb_strtolower($q)])) {
+                continue;
+            }
+
+            $seen[mb_strtolower($q)] = true;
+            $out[] = ['question' => $q, 'intent' => self::plain($row['intent'] ?? '', 200)];
+        }
+
+        return $out === [] ? null : ['questions' => array_slice($out, 0, 8)];
+    }
+
+    /**
+     * `{blocks: [{kind, question?, answer, detail?}]}`, at most eight.
+     *
+     * `kind` is checked against `AnswerBlockKind` and a row with a kind the
+     * enum does not know is **dropped**, never mapped to the nearest one:
+     * the console's select would have nothing to show for it, and the
+     * record's own validation would refuse it on save anyway. A `question`
+     * or `comparison` block with no question is dropped for the same
+     * reason. `[MISSING: …]` inside an answer is kept exactly as written —
+     * it is the model saying it was not given the fact, and the whole point
+     * is that the editor sees it before pressing Apply.
+     */
+    private static function blocks(array $data): ?array
+    {
+        $rows = is_array($data['blocks'] ?? null) ? $data['blocks'] : [];
+        $out = [];
+
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $kind = AnswerBlockKind::tryFrom(mb_strtolower(trim((string) ($row['kind'] ?? ''))));
+            $answer = self::plain($row['answer'] ?? '', 600);
+            $question = self::plain($row['question'] ?? '', 255);
+
+            if ($kind === null || $answer === '' || ($kind->asksQuestion() && $question === '')) {
+                continue;
+            }
+
+            $out[] = [
+                'kind' => $kind->value,
+                'question' => $question === '' ? null : $question,
+                'answer' => $answer,
+                'detail' => self::paragraphs($row['detail'] ?? ''),
+            ];
+        }
+
+        return $out === [] ? null : ['blocks' => array_slice($out, 0, 8)];
+    }
+
+    /** `{answer, detail}` for the one block that was asked about. */
+    private static function improvedAnswer(array $data): ?array
+    {
+        $answer = self::plain($data['answer'] ?? '', 600);
+
+        if ($answer === '') {
+            return null;
+        }
+
+        return ['answer' => $answer, 'detail' => self::paragraphs($data['detail'] ?? '') ?? ''];
+    }
+
+    /**
+     * Only records that exist, and the relation the list says they are.
+     *
+     * The same rule as `links()`: an `n` outside the list is dropped rather
+     * than clamped. `relation` is read off the **candidate**, not the reply
+     * — the model is asked to repeat it so the shape is honest, but a
+     * solution the model calls a service is still a solution, and the
+     * console's "tick these on the Related tab" needs the true one.
+     */
+    private static function entityLinks(array $data, array $candidates): ?array
+    {
+        $rows = is_array($data['links'] ?? null) ? $data['links'] : [];
+        $out = [];
+        $seen = [];
+
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $n = (int) ($row['n'] ?? 0);
+            $candidate = $candidates[$n - 1] ?? null;
+
+            if ($candidate === null || isset($seen[$n])) {
+                continue;
+            }
+
+            $seen[$n] = true;
+            $out[] = [
+                'n' => $n,
+                'relation' => $candidate['relation'],
+                'title' => $candidate['title'],
+                'path' => $candidate['path'],
+                'reason' => self::plain($row['reason'] ?? '', 300),
+            ];
+        }
+
+        return $out === [] ? null : ['links' => array_slice($out, 0, 8)];
+    }
+
+    /** Plain text, trimmed and bounded. Tags are stripped: the model was asked for text. */
+    private static function plain(mixed $value, int $max): string
+    {
+        return mb_substr(trim(strip_tags((string) (is_scalar($value) ? $value : ''))), 0, $max);
+    }
+
+    /**
+     * Plain paragraphs as the simplest possible HTML, or null when there
+     * are none.
+     *
+     * A block's `detail` is rich text and lands in the editor, so it wants
+     * paragraphs the editor can show as paragraphs. Built here from escaped
+     * text — the `ArticleBrief` rule — rather than accepted as markup, and
+     * cleaned again by `HtmlSanitiser` on save like any typed body.
+     */
+    private static function paragraphs(mixed $value): ?string
+    {
+        $text = trim(strip_tags((string) (is_scalar($value) ? $value : '')));
+
+        if ($text === '') {
+            return null;
+        }
+
+        $parts = preg_split('/\R\s*\R/', mb_substr($text, 0, 4000)) ?: [];
+        $out = [];
+
+        foreach ($parts as $part) {
+            $part = trim(preg_replace('/\s+/', ' ', $part) ?? '');
+
+            if ($part !== '') {
+                $out[] = '<p>'.htmlspecialchars($part, ENT_QUOTES | ENT_HTML5, 'UTF-8').'</p>';
+            }
+        }
+
+        return $out === [] ? null : implode("\n", $out);
     }
 
     private static function faqs(array $data): ?array
@@ -450,6 +730,45 @@ class SeoAssistant
             'product_category' => '/products/'.$record->slug,
             default => null,
         };
+    }
+
+    /**
+     * Real records this one could be *related* to, each with the relation
+     * it would be — what `entity_links` chooses from.
+     *
+     * The five relations the `entity` block carries (`EntityLinks::for()`):
+     * solutions, services, industries, articles (published posts and
+     * knowledge articles) and catalogue products — the things the Related
+     * tab of an entity form can tick. Twelve of each at most, for the
+     * reason `candidates()` gives, and the record itself is never offered:
+     * `publicPath()` is what every indexable record answers, so the
+     * exclusion reaches every type rather than the three `pathFor()` names.
+     *
+     * @return array<int, array{relation: string, title: string, path: string}>
+     */
+    public static function entityCandidates(?Model $record = null): array
+    {
+        $rows = Cache::remember('seo:ai:entity-candidates', now()->addMinutes(5), function () {
+            $out = [];
+            $add = function (string $relation, iterable $records, string $column) use (&$out): void {
+                foreach ($records as $r) {
+                    $out[] = ['relation' => $relation, 'title' => (string) $r->getAttribute($column), 'path' => $r->publicPath()];
+                }
+            };
+
+            $add('solution', Solution::query()->published()->orderBy('sort_order')->limit(12)->get(), 'title');
+            $add('service', Service::query()->published()->orderBy('sort_order')->limit(12)->get(), 'title');
+            $add('industry', Industry::query()->orderBy('sort_order')->limit(12)->get(), 'name');
+            $add('article', BlogPost::query()->published()->orderByDesc('published_at')->limit(6)->get(), 'title');
+            $add('article', KnowledgeArticle::query()->published()->orderByDesc('published_at')->limit(6)->get(), 'title');
+            $add('product', Product::query()->published()->orderBy('sort_order')->limit(12)->get(), 'name');
+
+            return $out;
+        });
+
+        $self = $record !== null && method_exists($record, 'publicPath') ? $record->publicPath() : null;
+
+        return array_values(array_filter($rows, fn (array $r) => $r['path'] !== $self));
     }
 
     // ---- the daily ceiling --------------------------------------------------

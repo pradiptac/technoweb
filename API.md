@@ -836,7 +836,7 @@ here reads `products`.
 | Method | Path | Notes |
 |---|---|---|
 | `GET` | `/store/products` | Paginated. `?q=`, `?category=`, `?type=`, `?sort=`, `?page=` |
-| `GET` | `/store/products/{slug}` | |
+| `GET` | `/store/products/{slug}` | Detail only: `warranty`, `applications`, `services: [{id, title, slug}]`, `faqs`, `answer_blocks`, `entity`, `faq_schema`; the `Product` graph adds `category` as a `Thing`, `additionalProperty` from the spec sheet, `isRelatedTo` (the six the page lists beside it) and `offers.warranty` as a `WarrantyPromise` when one is set |
 | `GET` | `/store/categories` | Only categories with something published in them |
 | `GET` | `/store/categories/{slug}` | |
 | `GET` | `/store/feed` | The Google Merchant Center feed, as rows. Paginated. `/store/feed.xml` renders it |
@@ -1130,7 +1130,7 @@ somebody else is a 404 either way.
 | `GET` | `/admin/store/products/export` | The catalogue as a CSV: one row per product and one per variation (`parent_sku` filled), money as plain rupee decimals, every cell escaped. **Declared above `products/{id}`** |
 | `POST` | `/admin/store/products/import/analyse` | multipart `file` (CSV or `.xlsx`, 10MB) plus `mapping[<field>]=<column index>` once mapped. A dry run: writes nothing, answers `headers`, `fields`, the `mapping` (guessed, or as sent — a blank sent back beats a guess), `counts` per outcome, the first fifty `problems` and a `preview` |
 | `POST` | `/admin/store/products/import` | `file` (the path `analyse` handed back), `mapping`. Commits; 201 with the `store_product_imports` row: `counts`, `problems` |
-| `GET`/`PATCH`/`DELETE` | `/admin/store/products/{id}` | Bound by **id**. `gtin`, `mpn`, `condition`, `google_product_category`, `weight_grams`, `feed_include`, `notices_waiting`; `meta.conditions` on the index |
+| `GET`/`PATCH`/`DELETE` | `/admin/store/products/{id}` | Bound by **id**. `gtin`, `mpn`, `condition`, `google_product_category`, `weight_grams`, `feed_include`, `notices_waiting`; `warranty` (255), `applications` (text), `service_ids[]` (the services that install or support it, replaced wholesale; read back as `service_ids` and `services: [{id, title, slug}]`), `faqs[]`, `answer_blocks[]`; `meta.conditions` and `meta.answer_block_kinds` on the index |
 | `GET`/`POST` | `/admin/store/categories` | |
 | `GET`/`PATCH`/`DELETE` | `/admin/store/categories/{id}` | Deleting keeps the products |
 
@@ -1878,16 +1878,16 @@ mid-save.
 
 | Entity | Base path | Beyond the common fields |
 |---|---|---|
-| Blog posts | `/admin/blog-posts` | `author_id`, `published_at`, cover image. `reading_minutes` is derived on save and not accepted |
-| Knowledge articles | `/admin/knowledge-articles` | `tags[]`, `knowledge_category_id`, `published_at`. `view_count`/`helpful_count` are read-only telemetry |
+| Blog posts | `/admin/blog-posts` | `author_id`, `published_at`, cover image, `faqs[]`, `answer_blocks[]`. `reading_minutes` is derived on save and not accepted |
+| Knowledge articles | `/admin/knowledge-articles` | `tags[]`, `knowledge_category_id`, `published_at`, `faqs[]`, `answer_blocks[]`. `view_count`/`helpful_count` are read-only telemetry |
 | Case studies | `/admin/case-studies` | `client_name`, `industry_id`, `results[{value,label}]`, cover image. **No `published_at`** — status alone decides |
-| Solutions | `/admin/solutions` | `problem_statement`, `overview` (rich text), `benefits[]`, `technologies[]`, `icon`, `hero_image_path`, `sort_order`, `product_ids[]`, `industry_ids[]`, `faqs[{question,answer}]` |
-| Services | `/admin/services` | `icon`, `sort_order`, `faqs[{question,answer}]`. No `published_at` |
-| Industries | `/admin/industries` | `icon`, `sort_order`, `solution_ids[]`. Titled `name`, **not** `title`, and has **no `status`** — an industry is reference data the catalogue points at, not something you draft |
-| Pages | `/admin/pages` | `template`, `published_at`. No `summary`. `blocks` is deliberately not accepted — the column exists for block-assembled pages, which need a block editor; raw JSON here would let a typo corrupt a page invisibly |
-| Product categories | `/admin/product-categories` | `parent_id`, `icon`, `image_path`, `sort_order`. Titled `name`, and **no `status`** — taxonomy, like industries. `description` is plain text, not rich |
-| Products | `/admin/products` | `sku`, `brand_id`, `product_category_id`, `specifications`, `features[]`, `images[]`, `datasheet_path`, `is_featured`, `sort_order`, `solution_ids[]`, `related_product_ids[]`, `faqs[]`. Titled `name`. **No `published_at`** — status alone decides |
-| Brands | `/admin/brands` | `logo_path`, `sort_order`, `is_featured`, `partner_tier`. Titled `name`, and **no `status` and no `seo`** — a brand is a filter facet on the product listing, not a page |
+| Solutions | `/admin/solutions` | `problem_statement`, `overview` (rich text), `benefits[]`, `technologies[]`, `icon`, `hero_image_path`, `sort_order`, `product_ids[]`, `industry_ids[]`, `faqs[{question,answer}]`, `answer_blocks[]` |
+| Services | `/admin/services` | `icon`, `sort_order`, `faqs[{question,answer}]`, `answer_blocks[]`. No `published_at` |
+| Industries | `/admin/industries` | `icon`, `sort_order`, `solution_ids[]`, `faqs[]`, `answer_blocks[]`. Titled `name`, **not** `title`, and has **no `status`** — an industry is reference data the catalogue points at, not something you draft |
+| Pages | `/admin/pages` | `template`, `published_at`, `faqs[]`, `answer_blocks[]`. No `summary`. `blocks` is deliberately not accepted — the column exists for block-assembled pages, which need a block editor; raw JSON here would let a typo corrupt a page invisibly |
+| Product categories | `/admin/product-categories` | `parent_id`, `icon`, `image_path`, `sort_order`, `faqs[]`, `answer_blocks[]`. Titled `name`, and **no `status`** — taxonomy, like industries. `description` is plain text, not rich |
+| Products | `/admin/products` | `sku`, `brand_id`, `product_category_id`, `specifications`, `features[]`, `images[]`, `datasheet_path`, `is_featured`, `sort_order`, `solution_ids[]`, `related_product_ids[]`, `faqs[]`, `answer_blocks[]`. Titled `name`. **No `published_at`** — status alone decides |
+| Brands | `/admin/brands` | `logo_path`, `sort_order`, `is_featured`, `partner_tier`, `faqs[]`, `answer_blocks[]`. Titled `name`, and **no `status` and no `seo`** — a brand is a filter facet on the product listing, not a page; it takes FAQs and answer blocks because "is this brand's kit supported?" is a question the brand is the record to answer |
 | Certifications | `/admin/certifications` | `issuer`, `certificate_number`, `image_path` (the certificate itself, drawn 3:4 portrait), `file_path` (a media-library PDF), `issued_on`, `valid_until`, `description`. Titled `name`; **no slug, no `seo`** — listed on `/certifications`, no page of its own. `is_expired` on the admin resource |
 | Clients | `/admin/clients` | `logo_path`, `website_url` (http(s) only), `industry_id`, `note`, `is_featured`. Titled `name`; no slug, no `seo` |
 | Team members | `/admin/team-members` | `designation`, `department`, `photo_path`, `bio`, `email`, `linkedin_url`, `certifications[{name,issuer,credential_id,issued_on,expires_on}]` — **replaced wholesale**, `[]` clears. `meta.departments` on the index and the read. Titled `name`; no slug, no `seo`, **no phone** |
@@ -1909,6 +1909,39 @@ the binary log rather than from anything this application keeps.
 Common to all: `title`, `slug`, `summary`/`excerpt`, `body`, `status`
 (`draft`/`published`/`archived`) and a nested `seo` object — with the two
 exceptions called out above.
+
+**Answer blocks (2026-09-21).** Eleven entities — pages, products, store
+products, product categories, store categories, brands, services, solutions,
+blog posts, knowledge articles and industries — accept `answer_blocks[]`:
+`{kind, question?, answer, detail?, status?}`, replaced wholesale on save,
+`[]` clears, an absent key leaves them alone (the `faqs` rule). `kind` is
+`App\Enums\AnswerBlockKind` — `definition`, `who_for`, `why`, `key_fact`,
+`feature`, `use_case`, `comparison`, `step`, `question` — and decides which
+section of the public page draws the block; `question` is required for
+`question` and `comparison` and optional otherwise; `answer` is the direct
+answer, plain text, at most 600 characters; `detail` is rich text through the
+sanitiser; `status` is `draft` or `published` (the default). Every admin
+detail read carries `answer_blocks: [{id, kind, question, answer, detail,
+sort_order, status}]` and every admin index carries
+`meta.answer_block_kinds: [{value, label, heading, asks_question}]` — the
+console never retypes the list. Every public detail read carries the
+**published** blocks, in order, as `answer_blocks: [{kind, question, answer,
+detail, heading}]`; index rows carry no key. Validation errors arrive as
+`answer_blocks.N.field`.
+
+**Every public detail read also carries `entity` and, when earned,
+`faq_schema`.** `entity` is `{brand?, category?, solutions[], services[],
+industries[], articles[], faq_count}` — each link `{name, path}`, a path and
+never a URL — built by `App\Support\EntityLinks` from the relations the
+controller loaded, plus the published posts and knowledge articles whose body
+links to the page (`articles`). The record's graph mirrors it as `about` (the
+category and solutions) and `mentions` (the rest), `Thing` stubs with a name
+and a URL. `faq_schema` is an `FAQPage` over the record's FAQs and its
+`question` blocks, **absent under two entries**: never an FAQ page over one
+question. The `Organization` node's `knowsAbout` (published solution titles)
+and `areaServed` (active location names) reach the frontend as two
+JSON-encoded strings on the public `/settings` map,
+`organization_knows_about` and `organization_area_served`, absent when empty.
 
 | Method | Path |
 |---|---|
@@ -3139,7 +3172,7 @@ exactly the one somebody wants to check before switching it back on.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/faq-owners` | Grouped picker: solutions, services, products, pages |
+| `GET` | `/admin/faq-owners` | Grouped picker: solutions, services, products, pages — and, since 2026-09-21, product categories, store products, store categories, brands, blog posts, knowledge articles and industries |
 | `GET` | `/admin/faqs` | `?q=`, `?owner_type=`, `?owner_id=` |
 | `POST` | `/admin/faqs` | `question`, `answer` (rich text), `sort_order`, `owner_type`, `owner_id` |
 | `GET`/`PATCH`/`DELETE` | `/admin/faqs/{id}` | |
@@ -3148,13 +3181,20 @@ exactly the one somebody wants to check before switching it back on.
 public site renders an unattached one, so it would be written, saved and never
 seen. `owner_type` is the morph key (`solution`), not a class name.
 
+**Eleven owners, and each entity's own form takes `faqs[]` too.** The seven
+widened on 2026-09-21 each gained `faqs(): MorphMany` and accept
+`faqs[{question,answer}]` on their store/update requests, replaced wholesale.
+Their admin detail reads carry `faqs`; their public detail reads carry
+`faqs: [{id, question, answer}]`. The FAQPage gate reads them beside the
+`question` answer blocks — see "Answer blocks" under the CMS entities.
+
 ---
 
 ## Admin — SEO and redirects (`role:seo_manager`)
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/seo` | Indexable records, each with a score. `?type=`, `?q=`, `?issues=1`, `?check=`, `?page=`, `?per_page=` (max 200, default 50) |
+| `GET` | `/admin/seo` | Indexable records, each with a score. `?type=`, `?q=`, `?issues=1`, `?check=`, `?aeo=poor\|fair\|good`, `?geo=poor\|fair\|good`, `?aeo_check=<key>`, `?geo_check=<key>` (the records failing one named AEO or GEO check — the site card's biggest wins for each score), `?sort=aeo\|geo\|score` with `?dir=`, `?page=`, `?per_page=` (max 200, default 50) |
 | `PATCH` | `/admin/seo/sitemap` | `type`, `id`, `sitemap_include` |
 | `GET` | `/admin/redirects` | `?q=`, `?source=automatic\|manual`, `?active=` |
 | `POST` | `/admin/redirects` | `from_path`, `to_path`, `status_code`, `is_active` |
@@ -3165,6 +3205,26 @@ seen. `owner_type` is the morph key (`solution`), not a class name.
 **With Google Analytics connected, every row carries `analytics`** — `{views, users}` (`screenPageViews` and `totalUsers`) over the same 28 days, matched on the record's public path with any query string stripped, or null where nobody opened the page — and `?analytics=no_views` filters to the pages Google shows that nobody opens: rows with search figures and no analytics row, or, without Search Console, rows with no analytics row at all; with GA4 itself off it yields nothing rather than everything. `meta.analytics` is `{configured, days, error}`, the `meta.search` shape. One cached `runReport` an hour for the whole overview (`App\Support\Seo\GoogleAnalytics`), never a call per row.
 
 **With Search Console connected, every row carries `search`** — `{clicks, impressions, ctr, position}` over the last 28 days, matched on the record's public path, or null where the page had no impressions — and `?search=no_clicks` filters to the pages shown twenty or more times and never opened. `meta.search` says whether the property is configured, over how many days, and the last refusal in Google's words (`gsc_error`, the `mail_error` pattern). One cached read an hour for the whole overview (`App\Support\Seo\SearchConsole`), never a call per row; the assistant's context lists the queries a page already appears for.
+
+**Every row carries `aeo` and `geo` beside `score`** (2026-09-21): `{value,
+band}` on the list, the full `{value, band, passed, checked, failed[]}` from
+`GET /admin/seo/{type}/{id}`. `App\Support\AeoScore` asks whether the page
+can be quoted — a definition block, three questions counting FAQs, the FAQPage
+gate, key facts or a spec sheet, use cases, a comparison on products and
+solutions, steps on articles and services, direct answers under 600
+characters, internal links, structured data. `App\Support\GeoScore` asks
+whether an engine can tell what it is quoting — the organisation complete
+(name, address, phone, email, logo), the contact details consistent, a brand
+and a category on products, solutions/services/industries linked where the
+kind of record can link them, a supporting article, an author on posts, a
+certification on file, a `why`/`who_for` block, a definition. Both are the
+`SeoScore` shape, scored out of what applies, with the applicability rules in
+the class. `?aeo=` and `?geo=` filter by band, `?sort=aeo|geo` orders by the
+figure (ending on id), `meta.site_score.aeo` and `.geo` carry the site's two
+averages with their own `top_issues` and `groups` — each key a value for
+`?aeo_check=` / `?geo_check=`, their own parameters because the three rubrics
+share `internal_links` as a key and `?check=` names the SEO score's failure —
+and every row carries the `entity` block the public read publishes.
 
 **`GET /admin/seo/{type}/{id}` re-scores one record.** What the console's
 Recheck button calls: the edit form opens in a new tab so working down a
@@ -3265,11 +3325,11 @@ are telemetry it writes, and are read-only here.
 
 | Method | Path | Notes |
 |---|---|---|
-| `POST` | `/admin/seo/ai/{action}` | `generate`, `analyze`, `improve`, `faq`, `internal_links`, `schema`, `keywords`. Body `{type, id}`. Throttled 10/min. `keywords` answers `{focus_keyword, intent, reason, secondary_keywords}`; every action is told the record's stored focus and secondary keywords and to keep them |
-| `GET` | `/admin/seo/ai/suggestions?type=&id=` | This record's history, newest first, plus `meta` |
+| `POST` | `/admin/seo/ai/{action}` | The seven SEO actions — `generate`, `analyze`, `improve`, `faq`, `internal_links`, `schema`, `keywords` — and, since 2026-09-21, the eight AEO/GEO ones: `aeo_analyze`, `questions`, `answer_blocks`, `improve_answer`, `faq_suggest`, `geo_analyze`, `entity_links`, `product_qa`. Body `{type, id}`, plus **`block_id`** for `improve_answer` (required; 422 on `block_id` when absent or when the block is not this record's own). Throttled 10/min. `keywords` answers `{focus_keyword, intent, reason, secondary_keywords}`; every action is told the record's stored focus and secondary keywords and to keep them. The AEO/GEO shapes are below |
+| `GET` | `/admin/seo/ai/suggestions?type=&id=` | This record's history, newest first, plus `meta` — `meta.actions` is all fifteen with `label` and `description` |
 | `POST` | `/admin/seo/ai/suggestions/{id}/status` | `applied` or `rejected`. Reversible |
-| `GET` | `/admin/seo/ai/context?type=&id=` | Exactly what the model would be told, and its token count |
-| `POST` | `/admin/seo/ai/bulk` | `{action, type, ids[]}` (max 25). Queues one `RunSeoSuggestion` job per record; **202** with `queued`, `skipped_pending`, `skipped_cap`, `delivering`. The three refusals (off, no key, cap) are made before anything is queued; a record with a `pending` suggestion for that action is skipped; never queues past what is left of the day's cap. Throttled 10/min |
+| `GET` | `/admin/seo/ai/context?type=&id=` | Exactly what the model would be told, and its token count. `&action=` picks the action's own prompt, `&block_id=` names the block for `improve_answer` |
+| `POST` | `/admin/seo/ai/bulk` | `{action, type, ids[]}` (max 25). Queues one `RunSeoSuggestion` job per record; **202** with `queued`, `skipped_pending`, `skipped_cap`, `delivering`. The three refusals (off, no key, cap) are made before anything is queued; a record with a `pending` suggestion for that action is skipped; never queues past what is left of the day's cap. `improve_answer` is refused on `action` — it works on one block. Throttled 10/min |
 | `POST` | `/admin/seo/ai/test-model` | One real call, to prove a model id works. Throttled 6/min |
 
 **Declared above `seo/{type}/{id}`**, or `{type}` binds the literal `"ai"` and
@@ -3291,6 +3351,33 @@ deliberate exception, for the reason `/admin/settings/mail/test` is.
 **A suggestion cannot name a page that does not exist.** Internal links are
 chosen by index from a numbered list of real published records; anything outside
 it is dropped. Schema is constrained to `SchemaTypes::for()` for that record.
+
+**The AEO/GEO actions (`docs/aeo-geo-contract.md` §6) answer these shapes**,
+each whitelisted key by key like the seven before them:
+
+| Action | `result` |
+|---|---|
+| `aeo_analyze`, `geo_analyze` | `{summary, strengths[], gaps[], suggestions[]}` — up to 8 a list |
+| `questions` | `{questions: [{question, intent}]}` — up to 8, no question twice |
+| `answer_blocks`, `product_qa` | `{blocks: [{kind, question, answer, detail}]}` — up to 8; `kind` is an `AnswerBlockKind` value and **a row with a kind the enum does not know is dropped**, as is a `question`/`comparison` row with no `question`; `answer` is plain text ≤ 600; `detail` is `<p>` paragraphs built here from escaped text, or null |
+| `improve_answer` | `{answer, detail}` for the one block `block_id` named |
+| `faq_suggest` | `{faqs: [{question, answer}]}`, the `faq` shape |
+| `entity_links` | `{links: [{n, relation, title, path, reason}]}` — `n` into the numbered list of real solutions, services, industries, published posts and articles and catalogue products the model was shown; an `n` outside it is dropped, and `relation` (`solution`/`service`/`industry`/`article`/`product`) is **the list's**, never the model's word |
+
+**`[MISSING: what]` is kept verbatim.** The answer-writing actions are told —
+outside the fence, in the API's own words — that a fact the material does not
+give is written as `[MISSING: what is missing]`, never guessed; a store product
+is given its facts (brand, SKU, GTIN, MPN, category, price, availability,
+warranty, applications, specifications, features, the services that install it)
+with a blank one named `(not entered)`. The marker survives validation
+untouched so the editor sees it before pressing Apply. The context also carries
+the answer blocks (drafts included) and the FAQs already on the page, inside
+the fence, so a draft adds rather than repeats.
+
+**Apply never reaches this API.** The console adds the suggested blocks and
+FAQs to the record's own repeaters as unsaved drafts; Save goes through the
+record's update endpoint with `CmsFieldRules::answerBlocks()` and
+`HtmlSanitiser` as a typed row does.
 
 **Off by default** (`seo_ai_enabled`, private `seo` group). Switched off, these
 endpoints refuse before the provider is reached and the console renders no AI

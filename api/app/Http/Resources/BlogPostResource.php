@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\BlogPost;
@@ -14,7 +15,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin BlogPost */
 class BlogPostResource extends JsonResource
 {
-    use IncludesSchema, IncludesSeo;
+    use IncludesAnswerContent, IncludesSchema, IncludesSeo;
 
     public function toArray(Request $request): array
     {
@@ -59,6 +60,13 @@ class BlogPostResource extends JsonResource
              */
             'previous' => $this->whenLoaded('previous', fn () => $this->previous ? ['title' => $this->previous->title, 'slug' => $this->previous->slug] : null),
             'next' => $this->whenLoaded('next', fn () => $this->next ? ['title' => $this->next->title, 'slug' => $this->next->slug] : null),
+            'faqs' => $this->publicFaqs(),
+            // The published blocks, in order, with the heading each renders under.
+            'answer_blocks' => $this->publicAnswerBlocks(),
+            // What this record is connected to, on the page only (`EntityLinks`).
+            'entity' => $this->entity(),
+            // An FAQPage over the FAQs and question blocks; absent under two entries.
+            'faq_schema' => $this->faqSchema(),
             'seo' => $this->seo(),
             /*
              * The page's JSON-LD, built server-side.

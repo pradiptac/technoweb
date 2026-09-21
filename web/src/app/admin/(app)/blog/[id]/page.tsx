@@ -3,11 +3,11 @@ import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getBlogPost, getStaff } from "@/lib/admin";
+import { getAnswerBlockKinds, getBlogPost, getStaff } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { PostForm } from "../post-form";
-import type { AdminBlogPost, StaffUser } from "@/types/api";
+import type { AdminBlogPost, StaffUser, AnswerBlockKindOption } from "@/types/api";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -30,8 +30,9 @@ export default async function EditBlogPostPage({
 
   let post: AdminBlogPost;
   let staff: StaffUser[] = [];
+  let kinds: AnswerBlockKindOption[] = [];
   try {
-    [post, staff] = await Promise.all([getBlogPost(numericId), getStaff()]);
+    [post, staff, kinds] = await Promise.all([getBlogPost(numericId), getStaff(), getAnswerBlockKinds("/admin/blog-posts")]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
     throw error;
@@ -54,7 +55,7 @@ export default async function EditBlogPostPage({
         )}
       </PageHeader>
 
-      <PostForm post={post} staff={staff} saved={Boolean(saved)} />
+      <PostForm post={post} staff={staff} saved={Boolean(saved)} kinds={kinds} />
     </>
   );
 }

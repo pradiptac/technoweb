@@ -8,13 +8,16 @@ import { FormActions } from "@/components/admin/form-actions";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
+import { FaqField } from "@/components/admin/faq-field";
+import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
+import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import {
   createStoreCategoryAction, deleteStoreCategoryAction, updateStoreCategoryAction, type StoreFormState,
 } from "../actions";
-import type { AdminStoreCategory } from "@/types/api";
+import type { AdminStoreCategory, AnswerBlockKindOption } from "@/types/api";
 
 const initial: StoreFormState = {};
 
@@ -33,9 +36,11 @@ const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
     fields: ["name", "slug", "description", "google_product_category", "icon_path", "image_path", "is_active", "sort_order"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
+  // The AEO tab (docs/aeo-geo-contract.md §7). Last, so every tab above keeps its place.
+  { id: "aeo", label: "AEO", fields: ["answer_blocks", "faqs"] },
 ];
 
-export function StoreCategoryForm({ category }: { category?: AdminStoreCategory }) {
+export function StoreCategoryForm({ category, kinds }: { category?: AdminStoreCategory; kinds: AnswerBlockKindOption[] }) {
   const editing = Boolean(category);
   const [state, formAction, pending] = useActionState(
     editing ? updateStoreCategoryAction : createStoreCategoryAction, initial,
@@ -43,6 +48,9 @@ export function StoreCategoryForm({ category }: { category?: AdminStoreCategory 
 
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
   const seoErr = (f: string) => state.fieldErrors?.[`seo.${f}`]?.[0];
+  /** Per-row errors arrive as e.g. answer_blocks.0.answer; surface the first. */
+  const rowErr = (prefix: string) =>
+    err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
 
   const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
 
@@ -140,6 +148,17 @@ export function StoreCategoryForm({ category }: { category?: AdminStoreCategory 
         </div>
 
         <SeoPanel seo={category?.seo ?? undefined} defaults={category?.seo_defaults} error={seoErr} embedded record={category ? { type: 'store_category', id: category.id } : null} />
+
+        {/*
+          The AEO tab, one child: the readiness scores and the assistant on
+          top, the answer blocks under them, then the FAQs this record
+          gained with them. See docs/aeo-geo-contract.md §7.
+        */}
+        <div>
+          <AeoGeoPanel record={category ? { type: 'store_category', id: category.id } : null} blocks={category?.answer_blocks} />
+          <AnswerBlocksField defaultValue={category?.answer_blocks ?? []} kinds={kinds} error={rowErr("answer_blocks")} />
+          <FaqField defaultValue={category?.faqs ?? []} error={rowErr("faqs")} />
+        </div>
       </Tabs>
 
       <FormActions>

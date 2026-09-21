@@ -5,7 +5,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import { createService, deleteService, updateService, type ServicePayload } from "@/lib/admin";
 import { jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
-import type { FaqItem, PublishStatus } from "@/types/api";
+import type { AnswerBlock, FaqItem, PublishStatus } from "@/types/api";
 
 export type ServiceFormState = { error?: string; fieldErrors?: Record<string, string[]> };
 
@@ -25,6 +25,7 @@ function payloadFrom(formData: FormData): ServicePayload {
     // not a missing value to leave alone.
     show_in_menu: formData.get("show_in_menu") === "1",
     faqs: jsonListFromFormData<FaqItem>(formData, "faqs"),
+    answer_blocks: jsonListFromFormData<AnswerBlock>(formData, "answer_blocks"),
     ...(seo ? { seo: seo as ServicePayload["seo"] } : {}),
   };
 }

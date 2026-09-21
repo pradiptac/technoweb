@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Store;
 
 use App\Http\Resources\BrandResource;
+use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\SeoResource;
 use App\Models\StoreProduct;
@@ -27,7 +28,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin StoreProduct */
 class ProductResource extends JsonResource
 {
-    use IncludesSchema;
+    use IncludesAnswerContent, IncludesSchema;
 
     public function toArray(Request $request): array
     {
@@ -61,6 +62,15 @@ class ProductResource extends JsonResource
             'description' => $this->when($detail, $this->description),
             'specifications' => $this->when($detail, $this->specifications),
             'features' => $this->when($detail, $this->features),
+            // Two buyer's questions, stated where they are asked. Detail
+            // only, like the spec sheet; the graph quotes the same fields.
+            'warranty' => $this->when($detail, $this->warranty),
+            'applications' => $this->when($detail, $this->applications),
+            // The services that install or support it — loaded by the
+            // detail read alone, so a listing row carries no key.
+            'services' => $this->whenLoaded('services', fn () => $this->services->map(fn ($s) => [
+                'id' => $s->id, 'title' => $s->title, 'slug' => $s->slug,
+            ])->values()),
 
             'images' => collect($this->images ?? [])->map(fn ($p) => asset('storage/'.$p))->all(),
             // Parallel to `images`, index for index: a gallery needs the
@@ -117,6 +127,13 @@ class ProductResource extends JsonResource
             // relationLoaded, not whenLoaded: the latter short-circuits to null
             // when the relation is loaded but empty, and most records have no
             // override row — the derived defaults are still wanted for those.
+            'faqs' => $this->publicFaqs(),
+            // The published blocks, in order, with the heading each renders under.
+            'answer_blocks' => $this->publicAnswerBlocks(),
+            // What this record is connected to, on the page only (`EntityLinks`).
+            'entity' => $this->entity(),
+            // An FAQPage over the FAQs and question blocks; absent under two entries.
+            'faq_schema' => $this->faqSchema(),
             'seo' => $this->when(
                 $this->resource->relationLoaded('seo'),
                 fn () => new SeoResource($this->resolvedSeo()),

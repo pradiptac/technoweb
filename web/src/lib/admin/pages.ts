@@ -2,7 +2,7 @@ import "server-only";
 import { apiFetch } from "@/lib/api";
 import { token } from "./_shared";
 import type {
-  AdminPage, AdminFaq, FaqOwnerGroup, Paginated, PublishStatus, SeoOverride,
+  AdminPage, AdminFaq, AnswerBlock, FaqOwnerGroup, Paginated, PublishStatus, SeoOverride,
 } from "@/types/api";
 
 export type FaqPayload = Partial<{
@@ -54,6 +54,7 @@ export type CmsPagePayload = Partial<{
   template: string | null;
   status: PublishStatus;
   published_at: string | null;
+  answer_blocks: AnswerBlock[];
   seo: Partial<SeoOverride>;
 }>;
 

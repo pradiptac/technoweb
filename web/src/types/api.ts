@@ -49,10 +49,12 @@ export type Seo = {
   sitemap_include: boolean;
 };
 
-export type Brand = {
+export type Brand = AnswerContent & {
   id: number; name: string; slug: string; logo: string | null;
   /** "Gold Partner" or null — what `/certifications` prints under the logo. */
   partner_tier?: string | null;
+  /** Only when a detail read loaded them — nothing public does yet (`docs/aeo-geo-samples.md`). */
+  faqs?: Faq[];
 };
 
 /* ----------------------------------------------------- company profile */
@@ -110,13 +112,15 @@ export type TeamMember = {
   certifications: TeamMemberCertification[];
 };
 
-export type ProductCategory = {
+export type ProductCategory = AnswerContent & {
   id: number;
   name: string;
   slug: string;
   /** The record's last change, for the sitemap's `lastmod`. */
   updated_at?: string | null;
   description: string | null;
+  /** Detail only. */
+  faqs?: Faq[];
   icon: string | null;
   image: string | null;
   image_alt?: string | null;
@@ -131,7 +135,7 @@ export type ProductCategory = {
   seo?: Seo | null;
 };
 
-export type Product = {
+export type Product = AnswerContent & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -161,7 +165,7 @@ export type Product = {
   seo?: Seo | null;
 };
 
-export type Solution = {
+export type Solution = AnswerContent & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -187,7 +191,7 @@ export type Solution = {
   seo?: Seo | null;
 };
 
-export type Service = {
+export type Service = AnswerContent & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -204,7 +208,56 @@ export type Service = {
 
 export type Faq = { id: number; question: string; answer: string };
 
-export type Industry = {
+/**
+ * One answer block as a public detail read carries it (`docs/aeo-geo-contract.md`
+ * §1, §8): published only, in order, no `id` and no `status`, and `heading` —
+ * the section the page draws it under — sent by the API rather than looked up
+ * from a map here. The admin shape is `AnswerBlock`, further down.
+ */
+export type PublicAnswerBlock = {
+  kind: AnswerBlockKind;
+  question: string | null;
+  /** Plain text, at most 600 characters: the direct answer. */
+  answer: string;
+  /** Rich text, already sanitised: the supporting explanation. Rendered through `Prose`. */
+  detail: string | null;
+  heading: string;
+};
+
+/** One link in the `entity` block: a name and a **path**, never a URL. */
+export type EntityLink = { name: string; path: string };
+
+/**
+ * What a record is connected to (`docs/aeo-geo-contract.md` §4), on every
+ * public detail read: the brand and category where the record has one, and
+ * the solutions, services, industries and supporting articles it is linked
+ * to — `[]` where a relation is empty or was not loaded. Built by
+ * `App\Support\EntityLinks`; `RelatedEntities` draws it.
+ */
+export type EntityLinks = {
+  brand?: EntityLink;
+  category?: EntityLink;
+  solutions: EntityLink[];
+  services: EntityLink[];
+  industries: EntityLink[];
+  articles: EntityLink[];
+  faq_count: number;
+};
+
+/**
+ * The three keys every public detail read gained on 2026-09-21, spread into
+ * each entity type below. `faq_schema` is an `FAQPage` over the FAQs and the
+ * `question` blocks, **absent under two entries** and a sibling of `schema`
+ * rather than folded into it; the page renders both through `JsonLd`, which
+ * is why `FaqList` emits none of its own.
+ */
+export type AnswerContent = {
+  answer_blocks?: PublicAnswerBlock[];
+  entity?: EntityLinks;
+  faq_schema?: SchemaGraph;
+};
+
+export type Industry = AnswerContent & {
   id: number;
   name: string;
   slug: string;
@@ -214,10 +267,13 @@ export type Industry = {
   icon: string | null;
   body?: string | null;
   solutions?: Solution[];
+  /** Detail only. */
+  faqs?: Faq[];
   seo?: Seo | null;
 };
 
-export type CaseStudy = {
+/** A case study carries `entity` and `faq_schema` like the rest, and has no answer blocks or FAQs of its own. */
+export type CaseStudy = Pick<AnswerContent, "entity" | "faq_schema"> & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -237,7 +293,7 @@ export type CaseStudy = {
   seo?: Seo | null;
 };
 
-export type KnowledgeArticle = {
+export type KnowledgeArticle = AnswerContent & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -247,13 +303,15 @@ export type KnowledgeArticle = {
   updated_at?: string | null;
   excerpt: string | null;
   body?: string | null;
+  /** Detail only. */
+  faqs?: Faq[];
   tags: string[] | null;
   category?: { name: string; slug: string } | null;
   published_at: string | null;
   seo?: Seo | null;
 };
 
-export type BlogPost = {
+export type BlogPost = AnswerContent & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -264,6 +322,8 @@ export type BlogPost = {
   excerpt: string | null;
   /** Detail-only — the index endpoint omits the body. */
   body?: string | null;
+  /** Detail only. */
+  faqs?: Faq[];
   cover_image: string | null;
   cover_image_alt?: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
@@ -453,7 +513,7 @@ export type StaffUser = {
 
 export type AdminAuthResponse = { token: string; staff: StaffUser };
 
-export type CmsPage = {
+export type CmsPage = AnswerContent & {
   id: number;
   title: string;
   slug: string;
@@ -545,9 +605,74 @@ export type SeoOverride = {
   sitemap_include: boolean;
 };
 
-/** The six things the AI SEO assistant can be asked to do. */
+/**
+ * What the AI SEO assistant can be asked to do.
+ *
+ * The first seven are the SEO panel's; the rest are the AEO/GEO panel's
+ * (`docs/aeo-geo-contract.md` §6). The *keys* are the contract — which
+ * panel draws which button is `AEO_ACTIONS` in `ai-seo-panel.tsx` — and the
+ * labels, blurbs and whether an action exists at all come from
+ * `SeoAiMeta.actions`, so an action the API has not learnt yet simply does
+ * not appear.
+ */
 export type SeoAiActionKey =
-  | "generate" | "analyze" | "improve" | "faq" | "internal_links" | "schema" | "keywords";
+  | "generate" | "analyze" | "improve" | "faq" | "internal_links" | "schema" | "keywords"
+  | "aeo_analyze" | "questions" | "answer_blocks" | "improve_answer" | "faq_suggest"
+  | "geo_analyze" | "entity_links" | "product_qa";
+
+/**
+ * The kinds of answer block (`App\Enums\AnswerBlockKind`), `docs/aeo-geo-contract.md` §1.
+ *
+ * The union is here so a stored block can be typed; the labels, the section
+ * heading each renders under and whether one asks a question all arrive as
+ * `AnswerBlockKindOption`s on every admin index's `meta.answer_block_kinds`,
+ * and the console never retypes them.
+ */
+export type AnswerBlockKind =
+  | "definition" | "who_for" | "why" | "key_fact" | "feature" | "use_case"
+  | "comparison" | "step" | "question";
+
+export type AnswerBlockKindOption = {
+  value: AnswerBlockKind;
+  label: string;
+  /** The section heading the public page draws blocks of this kind under. */
+  heading: string;
+  /** True for `question` and `comparison`: the `question` column is required. */
+  asks_question: boolean;
+};
+
+/**
+ * One answer block, as the admin detail resources carry it and as the
+ * repeater posts it back (without `id` and `sort_order` — the set is replaced
+ * wholesale and the API stamps the order from the array, the `faqs` rule).
+ */
+export type AnswerBlock = {
+  id?: number;
+  kind: AnswerBlockKind;
+  question: string | null;
+  /** Plain text, at most 600 characters: the direct answer. */
+  answer: string;
+  /** Rich text: the supporting explanation. */
+  detail: string | null;
+  sort_order?: number;
+  status: "draft" | "published";
+};
+
+/**
+ * An AEO or GEO readiness score, the `SeoScore` shape.
+ *
+ * `/admin/seo` rows carry only `value` and `band`; the single-record read
+ * (`GET /admin/seo/{type}/{id}`) carries the whole thing with `failed`. Both
+ * are optional on the row until the API lands them, and absent reads as
+ * "not scored yet" everywhere rather than as zero.
+ */
+export type ReadinessScore = {
+  value: number;
+  band: SeoBand;
+  passed?: number;
+  checked?: number;
+  failed?: SeoFailedCheck[];
+};
 
 /**
  * One stored suggestion.
@@ -603,6 +728,9 @@ export type AdminBlogPost = {
   cover_image: string | null;
   author_id: number | null;
   author?: { id: number; name: string } | null;
+  /** Detail-only. Both gained on 2026-09-21 — see `docs/aeo-geo-contract.md`. */
+  faqs?: FaqItem[];
+  answer_blocks?: AnswerBlock[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
   created_at: string;
@@ -625,6 +753,9 @@ export type AdminKnowledgeArticle = {
   /** Read-only telemetry the site writes; never editable. */
   view_count: number;
   helpful_count: number;
+  /** Detail-only. */
+  faqs?: FaqItem[];
+  answer_blocks?: AnswerBlock[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
   created_at: string;
@@ -667,6 +798,8 @@ export type AdminPage = {
   status: PublishStatus;
   status_label: string;
   published_at: string | null;
+  /** Detail-only. */
+  answer_blocks?: AnswerBlock[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
   created_at: string;
@@ -688,6 +821,9 @@ export type AdminBrand = {
   is_featured?: boolean;
   partner_tier?: string | null;
   product_count?: number;
+  /** Detail-only. A brand has no SEO panel, but it does have an AEO tab. */
+  faqs?: FaqItem[];
+  answer_blocks?: AnswerBlock[];
 };
 
 export type AdminCertification = {
@@ -767,6 +903,9 @@ export type AdminProductCategory = {
   sort_order?: number;
   product_count?: number;
   child_count?: number;
+  /** Detail-only. */
+  faqs?: FaqItem[];
+  answer_blocks?: AnswerBlock[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
   /** Whether the mega menu may show it. Not the same as published. */
@@ -785,6 +924,9 @@ export type AdminIndustry = {
   sort_order?: number;
   solution_ids?: number[];
   case_study_count?: number;
+  /** Detail-only. */
+  faqs?: FaqItem[];
+  answer_blocks?: AnswerBlock[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
   /** Whether the mega menu may show it. Not the same as published. */
@@ -803,6 +945,8 @@ export type AdminService = {
   status_label: string;
   sort_order: number;
   faqs?: FaqItem[];
+  /** Detail-only. */
+  answer_blocks?: AnswerBlock[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
   created_at: string;
@@ -877,6 +1021,13 @@ export type SeoRow = {
   search: { clicks: number; impressions: number; ctr: number; position: number } | null;
   /** Google Analytics' figures over the same window, or null when unconfigured or nobody opened the page. */
   analytics: { views: number; users: number } | null;
+  /**
+   * Answer-engine and generative-engine readiness (`docs/aeo-geo-contract.md`
+   * §5). `{value, band}` on a list row, the whole score with `failed` on the
+   * single-record read. Absent until the API scores the record.
+   */
+  aeo?: ReadinessScore;
+  geo?: ReadinessScore;
 };
 
 export type SeoBand = "good" | "fair" | "poor";
@@ -900,6 +1051,9 @@ export type SeoScore = {
   failed: SeoFailedCheck[];
 };
 
+/** One check failing across the site, and on how many records — a "biggest win" on the overview. */
+export type SeoTopIssue = { key: string; label: string; group: string; weight: number; count: number };
+
 export type SeoMeta = {
   total: number;
   current_page: number;
@@ -920,8 +1074,16 @@ export type SeoMeta = {
     records: number;
     distribution: { good: number; fair: number; poor: number };
     /** Ranked by what each costs: how many records fail it × what it is worth. */
-    top_issues: { key: string; label: string; group: string; weight: number; count: number }[];
+    top_issues: SeoTopIssue[];
     groups: Record<string, string>;
+    /**
+     * The site-wide AEO and GEO averages, each with its own biggest wins —
+     * the checks failing on the most records, ranked the way `top_issues`
+     * is — opened through `?aeo_check=` / `?geo_check=` (their own
+     * parameters, because the three rubrics share a key: `internal_links`).
+     */
+    aeo?: { value: number; band: SeoBand; top_issues: SeoTopIssue[]; groups: Record<string, string> };
+    geo?: { value: number; band: SeoBand; top_issues: SeoTopIssue[]; groups: Record<string, string> };
   };
   types: { value: string; label: string }[];
 };
@@ -1250,6 +1412,8 @@ export type AdminProduct = {
   solution_ids?: number[];
   related_product_ids?: number[];
   faqs?: FaqItem[];
+  /** Detail-only. */
+  answer_blocks?: AnswerBlock[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
 };
@@ -1337,6 +1501,18 @@ export type AdminStoreProduct = {
   activation_pdf_path?: string | null;
   /** Resolved from the media row — the stored filename is a hash. */
   activation_pdf_name?: string | null;
+  /**
+   * Product AEO (`docs/aeo-geo-contract.md` §3). Detail only. `warranty` is
+   * one line and becomes the Offer's `WarrantyPromise`; `applications` is
+   * plain text; `services` are the site's services that install or support
+   * it, written back as `service_ids` (replaced wholesale).
+   */
+  warranty?: string | null;
+  applications?: string | null;
+  service_ids?: number[];
+  services?: { id: number; title: string; slug: string }[];
+  faqs?: FaqItem[];
+  answer_blocks?: AnswerBlock[];
 };
 
 /** Physical ships, digital issues a code, service is work somebody does. */
@@ -1387,11 +1563,13 @@ export type AdminStoreCategory = {
   /** Present on a detail response only -- see the API resource's `$detail` gate. */
   seo?: SeoOverride;
   seo_defaults?: Seo;
+  faqs?: FaqItem[];
+  answer_blocks?: AnswerBlock[];
   created_at?: string;
 };
 
 /** What the storefront reads. No stock count — see the API resource. */
-export type StoreProduct = {
+export type StoreProduct = AnswerContent & {
   id: number;
   name: string;
   slug: string;
@@ -1403,6 +1581,12 @@ export type StoreProduct = {
   description?: string | null;
   specifications?: Record<string, string>;
   features?: string[];
+  /* Detail only, since 2026-09-21 (`docs/aeo-geo-contract.md` §3). */
+  warranty?: string | null;
+  applications?: string | null;
+  /** The services that install or support it. */
+  services?: { id: number; title: string; slug: string }[];
+  faqs?: Faq[];
   images: string[];
   image_alts: (string | null)[];
   /** Parallel to `images` too: each file's focal point as `object-position` wants it, or null. */
@@ -1953,13 +2137,15 @@ export type CartLine = {
   problem?: string | null;
 };
 
-export type StoreCategory = {
+export type StoreCategory = AnswerContent & {
   id: number;
   name: string;
   slug: string;
   /** The record's last change, for the sitemap's `lastmod`. */
   updated_at?: string | null;
   description?: string | null;
+  /** Detail only. */
+  faqs?: Faq[];
   /** The small 3D mark the rail renders — see the migration's note. */
   icon_url?: string | null;
   image_url?: string | null;
@@ -1993,6 +2179,8 @@ export type AdminSolution = {
   product_ids?: number[];
   industry_ids?: number[];
   faqs?: FaqItem[];
+  /** Detail-only. */
+  answer_blocks?: AnswerBlock[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
   created_at: string;

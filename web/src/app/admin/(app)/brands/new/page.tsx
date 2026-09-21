@@ -1,11 +1,14 @@
 import { PageHeader } from "@/components/admin/page-header";
+import { getAnswerBlockKinds } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { BrandForm } from "../brand-form";
 
 export const metadata = buildMetadata({ title: "New brand", path: "/admin/brands/new", seo: noIndex });
 
-export default function NewBrandPage() {
+export default async function NewBrandPage() {
+  const kinds = await getAnswerBlockKinds("/admin/brands");
+
   return (
     <>
       <PageHeader
@@ -13,7 +16,7 @@ export default function NewBrandPage() {
         title="New brand"
       />
 
-      <BrandForm />
+      <BrandForm kinds={kinds} />
     </>
   );
 }

@@ -2,7 +2,7 @@ import "server-only";
 import { publicApi } from "@/lib/api";
 import { SITE } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
-import type { BlogPost, CaseStudy, KnowledgeArticle, Service, Solution } from "@/types/api";
+import type { BlogPost, CaseStudy, Faq, KnowledgeArticle, PublicAnswerBlock, Service, Solution } from "@/types/api";
 
 /**
  * `/llms.txt` and `/llms-full.txt` — the site, as an assistant reads it.
@@ -19,9 +19,12 @@ import type { BlogPost, CaseStudy, KnowledgeArticle, Service, Solution } from "@
  * would want it to know: the solutions and services with their summaries,
  * the product categories, the industries, the knowledge base (the part of
  * the site written to answer questions), the case studies with their
- * figures, and how to get in touch. Not the shop's price list — prices move
- * and a stale one quoted with confidence is worse than none — and nothing
- * behind a login.
+ * figures, and how to get in touch. Since 2026-09-21 the full text also
+ * carries each record's `definition` answer block and its questions — the
+ * FAQs and the `question` blocks (`docs/aeo-geo-contract.md` §8) — because
+ * those are the two parts written to be quoted. Not the shop's price list —
+ * prices move and a stale one quoted with confidence is worse than none —
+ * and nothing behind a login.
  *
  * `text()` turns a sanitised CMS body into Markdown-ish plain text: headings
  * to `##`, list items to `-`, paragraphs to blank lines, every other tag
@@ -174,11 +177,39 @@ export async function llmsFull(): Promise<string> {
     out.push(`# ${title}`, "", `Source: ${url(path)}`, "", body, "", "---", "");
   };
 
-  for (const s of solutions) if (s) doc(s.title, `/solutions/${s.slug}`, [s.summary, s.problem_statement, s.overview, (s.benefits ?? []).map((b) => `- ${b}`).join("\n")]);
-  for (const s of services) if (s) doc(s.title, `/services/${s.slug}`, [s.summary, s.body]);
-  for (const a of articles) if (a) doc(a.title, `/knowledge-base/${a.slug}`, [a.excerpt, a.body]);
+  // The definition goes straight after the summary — it is the one-sentence
+  // answer to "what is it", written to be quoted — and the questions close
+  // the record, the FAQs first and the `question` blocks after them, the
+  // order `faq_schema` lists them in. The other kinds are drawn on the page
+  // and left out here: an assistant wants the definition and the questions,
+  // and the body already carries the rest.
+  for (const s of solutions) if (s) doc(s.title, `/solutions/${s.slug}`, [s.summary, definition(s), s.problem_statement, s.overview, (s.benefits ?? []).map((b) => `- ${b}`).join("\n"), questions(s)]);
+  for (const s of services) if (s) doc(s.title, `/services/${s.slug}`, [s.summary, definition(s), s.body, questions(s)]);
+  for (const a of articles) if (a) doc(a.title, `/knowledge-base/${a.slug}`, [a.excerpt, definition(a), a.body, questions(a)]);
   for (const c of caseStudies) if (c) doc(c.title, `/case-studies/${c.slug}`, [c.summary, (c.results ?? []).map((r) => `- ${r.value} — ${r.label}`).join("\n"), c.body]);
-  for (const p of posts) if (p) doc(p.title, `/blog/${p.slug}`, [p.excerpt, p.body]);
+  for (const p of posts) if (p) doc(p.title, `/blog/${p.slug}`, [p.excerpt, definition(p), p.body, questions(p)]);
 
   return out.join("\n");
+}
+
+type Answering = { answer_blocks?: PublicAnswerBlock[]; faqs?: Faq[] };
+
+/** The record's `definition` blocks: the direct answer, then the explanation. */
+function definition(r: Answering): string {
+  return (r.answer_blocks ?? [])
+    .filter((b) => b.kind === "definition" && b.answer.trim())
+    .map((b) => [b.answer.trim(), text(b.detail)].filter(Boolean).join("\n\n"))
+    .join("\n\n");
+}
+
+/** The record's questions — the FAQs and the `question` blocks — as a section, or nothing. */
+function questions(r: Answering): string {
+  const rows = [
+    ...(r.faqs ?? []).map((f) => ({ q: f.question, a: text(f.answer) })),
+    ...(r.answer_blocks ?? [])
+      .filter((b) => b.kind === "question" && b.question?.trim() && b.answer.trim())
+      .map((b) => ({ q: b.question!.trim(), a: [b.answer.trim(), text(b.detail)].filter(Boolean).join(" ") })),
+  ].filter((row) => row.q.trim() && row.a.trim());
+  if (rows.length === 0) return "";
+  return ["## Questions", ...rows.map((row) => `**${row.q}**\n\n${row.a}`)].join("\n\n");
 }

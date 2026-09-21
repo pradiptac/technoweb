@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\AnswerBlockKind;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreBlogPostRequest;
@@ -43,12 +44,16 @@ class BlogPostController extends Controller
             ->paginate(min($request->integer('per_page', 20), 100))
             ->withQueryString();
 
-        return BlogPostResource::collection($posts);
+        // Sent by the API, never listed in TypeScript: the console's kind
+        // select is built from this, the `meta.transitions` rule.
+        return BlogPostResource::collection($posts)->additional(['meta' => [
+            'answer_block_kinds' => AnswerBlockKind::options(),
+        ]]);
     }
 
     public function show(BlogPost $blogPost): JsonResource
     {
-        return new BlogPostResource($blogPost->load(['author', 'seo', 'categories']));
+        return new BlogPostResource($blogPost->load(['author', 'seo', 'categories', 'faqs', 'answerBlocks']));
     }
 
     public function store(StoreBlogPostRequest $request): JsonResponse
@@ -62,17 +67,19 @@ class BlogPostController extends Controller
 
             $categories = $attributes['category_ids'] ?? null;
             unset($attributes['category_ids']);
+            $content = $this->pullAnswerContent($attributes);
 
             $post = BlogPost::create($attributes);
 
             $this->syncCategories($post, $categories);
+            $this->saveAnswerContent($post, $content);
             $this->saveSeo($post, $seo);
 
             return $post;
         });
 
         return response()->json(
-            ['data' => new BlogPostResource($post->load(['author', 'seo', 'categories']))],
+            ['data' => new BlogPostResource($post->load(['author', 'seo', 'categories', 'faqs', 'answerBlocks']))],
             201
         );
     }
@@ -86,14 +93,16 @@ class BlogPostController extends Controller
             // updating hook in the Sluggable trait.
             $categories = $attributes['category_ids'] ?? null;
             unset($attributes['category_ids']);
+            $content = $this->pullAnswerContent($attributes);
 
             $blogPost->update($this->withPublishedAt($attributes, $blogPost));
 
             $this->syncCategories($blogPost, $categories);
+            $this->saveAnswerContent($blogPost, $content);
             $this->saveSeo($blogPost, $seo);
         });
 
-        return new BlogPostResource($blogPost->fresh(['author', 'seo', 'categories']));
+        return new BlogPostResource($blogPost->fresh(['author', 'seo', 'categories', 'faqs', 'answerBlocks']));
     }
 
     /**
@@ -119,6 +128,8 @@ class BlogPostController extends Controller
         // The SEO row is polymorphic, so nothing cascades it for us.
         DB::transaction(function () use ($blogPost) {
             $blogPost->seo()->delete();
+            $blogPost->faqs()->delete();
+            $blogPost->answerBlocks()->delete();
             $blogPost->delete();
         });
 

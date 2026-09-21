@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\AnswerBlockKind;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSolutionRequest;
@@ -26,7 +27,7 @@ class SolutionController extends Controller
     use WritesCmsEntities;
 
     /** Relation keys that must be stripped before mass assignment. */
-    private const RELATIONS = ['product_ids', 'industry_ids', 'faqs'];
+    private const RELATIONS = ['product_ids', 'industry_ids', 'faqs', 'answer_blocks'];
 
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -42,12 +43,16 @@ class SolutionController extends Controller
             ->paginate(min($request->integer('per_page', 30), 100))
             ->withQueryString();
 
-        return SolutionResource::collection($solutions);
+        // Sent by the API, never listed in TypeScript: the console's kind
+        // select is built from this, the `meta.transitions` rule.
+        return SolutionResource::collection($solutions)->additional(['meta' => [
+            'answer_block_kinds' => AnswerBlockKind::options(),
+        ]]);
     }
 
     public function show(Solution $solution): JsonResource
     {
-        return new SolutionResource($solution->load(['products', 'industries', 'faqs', 'seo']));
+        return new SolutionResource($solution->load(['products', 'industries', 'faqs', 'answerBlocks', 'seo']));
     }
 
     public function store(StoreSolutionRequest $request): JsonResponse
@@ -65,7 +70,7 @@ class SolutionController extends Controller
         });
 
         return response()->json(
-            ['data' => new SolutionResource($solution->load(['products', 'industries', 'faqs', 'seo']))],
+            ['data' => new SolutionResource($solution->load(['products', 'industries', 'faqs', 'answerBlocks', 'seo']))],
             201
         );
     }
@@ -82,7 +87,7 @@ class SolutionController extends Controller
             $this->saveSeo($solution, $seo);
         });
 
-        return new SolutionResource($solution->fresh(['products', 'industries', 'faqs', 'seo']));
+        return new SolutionResource($solution->fresh(['products', 'industries', 'faqs', 'answerBlocks', 'seo']));
     }
 
     public function destroy(Solution $solution): JsonResponse
@@ -93,6 +98,7 @@ class SolutionController extends Controller
             $solution->products()->detach();
             $solution->industries()->detach();
             $solution->faqs()->delete();
+            $solution->answerBlocks()->delete();
             $solution->seo()->delete();
             $solution->delete();
         });
@@ -131,5 +137,6 @@ class SolutionController extends Controller
         }
 
         $this->saveFaqs($solution, $relations['faqs'] ?? null);
+        $this->saveAnswerBlocks($solution, $relations['answer_blocks'] ?? null);
     }
 }

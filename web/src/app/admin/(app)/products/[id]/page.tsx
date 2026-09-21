@@ -4,12 +4,12 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
 import {
-  getBrandOptions, getProduct, getProductCategoryOptions, getProductOptions, getSolutionOptions,
+  getBrandOptions, getProduct, getProductCategoryOptions, getProductOptions, getSolutionOptions, getAnswerBlockKinds,
 } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ProductForm } from "../product-form";
-import type { AdminProduct, PickerOption } from "@/types/api";
+import type { AdminProduct, PickerOption, AnswerBlockKindOption } from "@/types/api";
 
 const statusTone = { draft: "closed", published: "resolved", archived: "closed" } as const;
 
@@ -35,10 +35,12 @@ export default async function EditProductPage({
   let categories: PickerOption[] = [];
   let solutions: PickerOption[] = [];
   let products: PickerOption[] = [];
+  let kinds: AnswerBlockKindOption[] = [];
   try {
-    [product, brands, categories, solutions, products] = await Promise.all([
+    [product, brands, categories, solutions, products, kinds] = await Promise.all([
       getProduct(numericId),
       getBrandOptions(), getProductCategoryOptions(), getSolutionOptions(), getProductOptions(),
+      getAnswerBlockKinds("/admin/products"),
     ]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
@@ -57,7 +59,7 @@ export default async function EditProductPage({
         </Link>
       </PageHeader>
 
-      <ProductForm
+      <ProductForm kinds={kinds}
         product={product}
         brands={brands}
         categories={categories}

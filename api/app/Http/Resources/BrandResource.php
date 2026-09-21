@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\Concerns\IncludesAnswerContent;
+use App\Http\Resources\Concerns\IncludesSchema;
 use App\Models\Brand;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -9,6 +11,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Brand */
 class BrandResource extends JsonResource
 {
+    use IncludesAnswerContent, IncludesSchema;
+
     public function toArray(Request $request): array
     {
         return [
@@ -18,6 +22,13 @@ class BrandResource extends JsonResource
             'logo' => $this->logoUrl(),
             // "Gold Partner" or null. What `/certifications` prints under the logo.
             'partner_tier' => $this->partner_tier,
+            'faqs' => $this->publicFaqs(),
+            // The published blocks, in order, with the heading each renders under.
+            'answer_blocks' => $this->publicAnswerBlocks(),
+            // What this record is connected to, on the page only (`EntityLinks`).
+            'entity' => $this->entity(),
+            // An FAQPage over the FAQs and question blocks; absent under two entries.
+            'faq_schema' => $this->faqSchema(),
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\AnswerBlockKind;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreKnowledgeArticleRequest;
@@ -42,7 +43,11 @@ class KnowledgeArticleController extends Controller
             ->paginate(min($request->integer('per_page', 20), 100))
             ->withQueryString();
 
-        return KnowledgeArticleResource::collection($articles);
+        // Sent by the API, never listed in TypeScript: the console's kind
+        // select is built from this, the `meta.transitions` rule.
+        return KnowledgeArticleResource::collection($articles)->additional(['meta' => [
+            'answer_block_kinds' => AnswerBlockKind::options(),
+        ]]);
     }
 
     /** Categories for the picker. Small, fixed list — no pagination. */
@@ -56,23 +61,25 @@ class KnowledgeArticleController extends Controller
 
     public function show(KnowledgeArticle $knowledgeArticle): JsonResource
     {
-        return new KnowledgeArticleResource($knowledgeArticle->load(['category', 'seo']));
+        return new KnowledgeArticleResource($knowledgeArticle->load(['category', 'faqs', 'answerBlocks', 'seo']));
     }
 
     public function store(StoreKnowledgeArticleRequest $request): JsonResponse
     {
         $article = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $content = $this->pullAnswerContent($attributes);
 
             $article = KnowledgeArticle::create($this->withPublishedAt($attributes));
 
+            $this->saveAnswerContent($article, $content);
             $this->saveSeo($article, $seo);
 
             return $article;
         });
 
         return response()->json(
-            ['data' => new KnowledgeArticleResource($article->load(['category', 'seo']))],
+            ['data' => new KnowledgeArticleResource($article->load(['category', 'faqs', 'answerBlocks', 'seo']))],
             201
         );
     }
@@ -81,19 +88,23 @@ class KnowledgeArticleController extends Controller
     {
         DB::transaction(function () use ($request, $knowledgeArticle) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $content = $this->pullAnswerContent($attributes);
 
             $knowledgeArticle->update($this->withPublishedAt($attributes, $knowledgeArticle));
 
+            $this->saveAnswerContent($knowledgeArticle, $content);
             $this->saveSeo($knowledgeArticle, $seo);
         });
 
-        return new KnowledgeArticleResource($knowledgeArticle->fresh(['category', 'seo']));
+        return new KnowledgeArticleResource($knowledgeArticle->fresh(['category', 'faqs', 'answerBlocks', 'seo']));
     }
 
     public function destroy(KnowledgeArticle $knowledgeArticle): JsonResponse
     {
         DB::transaction(function () use ($knowledgeArticle) {
             $knowledgeArticle->seo()->delete();
+            $knowledgeArticle->faqs()->delete();
+            $knowledgeArticle->answerBlocks()->delete();
             $knowledgeArticle->delete();
         });
 

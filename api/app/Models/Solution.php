@@ -3,18 +3,21 @@
 namespace App\Models;
 
 use App\Enums\PublishStatus;
+use App\Models\Concerns\HasAnswerBlocks;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\RepathsLandingPages;
 use App\Models\Concerns\Sluggable;
+use App\Models\Contracts\Answerable;
+use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-class Solution extends Model
+class Solution extends Model implements Answerable, Faqable
 {
-    use HasSeo, RepathsLandingPages, Sluggable;
+    use HasAnswerBlocks, HasSeo, RepathsLandingPages, Sluggable;
 
     protected $fillable = [
         'title', 'slug', 'summary', 'problem_statement', 'overview',

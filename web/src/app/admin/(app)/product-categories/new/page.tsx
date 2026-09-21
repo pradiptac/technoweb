@@ -1,7 +1,8 @@
 import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
-import { getProductCategoryOptions } from "@/lib/admin";
+import { getAnswerBlockKinds, getProductCategoryOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
+import type { AnswerBlockKindOption } from "@/types/api";
 import { noIndex } from "@/lib/no-index";
 import { CategoryForm } from "../category-form";
 
@@ -11,8 +12,9 @@ export const metadata = buildMetadata({
 
 export default async function NewProductCategoryPage() {
   let parents: { id: number; name: string }[] = [];
+  let kinds: AnswerBlockKindOption[] = [];
   try {
-    parents = await getProductCategoryOptions();
+    [parents, kinds] = await Promise.all([getProductCategoryOptions(), getAnswerBlockKinds("/admin/product-categories")]);
   } catch {
     return (
       <ErrorState title="We could not open the editor">
@@ -28,7 +30,7 @@ export default async function NewProductCategoryPage() {
         title="New category"
       />
 
-      <CategoryForm parents={parents} />
+      <CategoryForm parents={parents} kinds={kinds} />
     </>
   );
 }

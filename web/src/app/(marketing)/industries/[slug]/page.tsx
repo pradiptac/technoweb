@@ -6,8 +6,10 @@ import { PageHero } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { ArrowLink } from "@/components/ui/button";
 import { Card, CardHead } from "@/components/ui/card";
+import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { RelatedEntities } from "@/components/content/related-entities";
 import { ApiError, publicApi } from "@/lib/api";
-import { buildMetadata } from "@/lib/seo";
+import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { Industry } from "@/types/api";
 
@@ -82,6 +84,10 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
       <Container data-aos="fade-up" className="section-y">
         {industry.body && <ProseWithShortcodes html={industry.body} className="mb-14" />}
 
+        {/* The answer blocks and FAQs, then what the record is connected to — before the solutions grid. */}
+        <AnswerBlocks blocks={industry.answer_blocks} faqs={industry.faqs ?? []} className="mb-14" />
+        <RelatedEntities entity={industry.entity} className="mb-14" />
+
         {solutions.length > 0 && (
           <section>
             <h2 className="display-3 mb-6">Where we usually start</h2>
@@ -109,6 +115,9 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
       </Container>
 
       <CtaBand />
+
+      {/* The FAQPage over the FAQs and question blocks — the API's, absent under two entries, and the only one on the page. */}
+      {industry.faq_schema && <JsonLd data={industry.faq_schema} />}
     </>
   );
 }

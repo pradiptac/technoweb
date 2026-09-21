@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import { createBrand, deleteBrand, updateBrand, type BrandPayload } from "@/lib/admin";
-import { str } from "@/lib/admin-form";
+import { jsonListFromFormData, str } from "@/lib/admin-form";
+import type { AnswerBlock, FaqItem } from "@/types/api";
 
 export type BrandFormState = { error?: string; fieldErrors?: Record<string, string[]> };
 
@@ -23,6 +24,8 @@ function payloadFrom(formData: FormData): BrandPayload {
     sort_order: sortOrder ? Number(sortOrder) : 0,
     is_featured: formData.get("is_featured") === "1",
     partner_tier: str(formData, "partner_tier"),
+    faqs: jsonListFromFormData<FaqItem>(formData, "faqs"),
+    answer_blocks: jsonListFromFormData<AnswerBlock>(formData, "answer_blocks"),
   };
 }
 

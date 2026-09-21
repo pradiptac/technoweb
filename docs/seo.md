@@ -268,3 +268,76 @@ page and nobody opens it: rows with search figures and no analytics row.
 Without Search Console there is no "shown" to test against, so it is every
 page with no views; with GA4 itself off it yields nothing, because a filter
 that returns everything when it knows nothing is a filter that lies.
+
+## Answer blocks on the page
+
+Every public detail read carries `answer_blocks`, `faqs`, `entity` and,
+under the gate, `faq_schema` (`docs/aeo-geo-contract.md` §1, §2, §4; the
+shapes in `docs/aeo-geo-samples.md`). Two components draw them, mounted on
+every detail page that has the trait — solutions, services, industries,
+posts, knowledge articles, catalogue products and categories, store products
+and categories, CMS pages, and `RelatedEntities` alone on a case study —
+after the body and before the page's own related sections.
+
+**`AnswerBlocks` (`components/content/answer-blocks.tsx`) groups the published
+blocks by kind, in the contract's order, under the `heading` the API sends.**
+The heading is never typed in TypeScript: a kind gets the heading that rides
+on its blocks, and a kind this file has not heard of is drawn last under its
+own heading rather than dropped. Each group is a `<section>` with an `<h2>`
+(one `h1` per page stays the page's) and the block's optional `question` is
+an `h3` inside it. The renderers: `definition` a `.lede` paragraph with the
+detail under it; `who_for`/`why` a short section; `key_fact`/`feature` the
+site's checklist (`Card as="li"`, `IconCheck`); `use_case` static `Card`s;
+`comparison` a two-column table (question | answer, detail under the answer);
+`step` the homepage process's numbered list, numbered by position; `question`
+the same native `<details>` the FAQs use (`QuestionAccordion` in
+`components/ui/faq.tsx`), the one thing allowed to be collapsed by default.
+`detail` is rich text and goes through `Prose` and nothing else. Nothing is
+`sr-only`, nothing hidden. An empty list renders nothing.
+
+**The FAQs are merged into the questions group, not drawn beside it.** The
+API's `faq_schema` is one list — the FAQs, then the `question` blocks — so
+the page shows that list under one heading: the `question` kind's when there
+are question blocks, `FaqList`'s "Common questions" when there are FAQs alone.
+`AnswerBlocks` takes `faqs` for that reason, and the eight pages that used to
+render `FaqList` beside the body pass their FAQs to it instead; `FaqList`
+itself is now the landing page's only.
+
+**One `FAQPage` per page, and it is the API's.** `faq_schema` is a sibling of
+`schema`, absent under two entries (never an FAQPage over one question), and
+the page renders it through `JsonLd` beside the record's graph. `FaqList`
+used to emit its own for any list, which would have put two on every page
+that carries both; it emits none since 2026-09-21. The landing page is the
+one FAQ-bearing record outside the contract, so `landing-page-view.tsx`
+builds its own with `jsonLd.faqPage()` under the same two-entry rule — that
+builder has exactly one caller now, and it is that.
+
+**`RelatedEntities` (`components/content/related-entities.tsx`) draws
+`entity` as "Related".** The brand and the category as chips, then
+`Collection`s of `Tile`s for the solutions, services, industries and
+supporting articles, each group only when it has entries and nothing when
+all are empty. Every link is the `path` the API composed from the record's
+slug, never a URL. The tiles are `b`-titled: the outline is the section's
+`h2` and one `h3` per group.
+
+**`knowsAbout` and `areaServed` on the `Organization` node come from two
+settings.** The node is built in `lib/seo.tsx`, so the API publishes
+`organization_knows_about` (published solution titles) and
+`organization_area_served` (active locations' names) as JSON-encoded strings
+on the public `/settings` map, absent when empty; `jsonNames()` decodes them
+the way `site_theme_options` is decoded, and a row that does not parse says
+nothing.
+
+**`/llms-full.txt` quotes the definition and the questions.** `lib/llms.ts`
+puts each record's `definition` block after the summary and closes it with
+the FAQs and the `question` blocks under "## Questions", the same order as
+`faq_schema`. The other kinds are left to the page.
+
+The mock (`web/mock-api.mjs`) mirrors all of it: the first solution, the
+store's first product and the first knowledge article carry every kind
+(the solution's last block is a draft, which the public read must not show),
+every other detail answers empty lists and an entity block, and `/settings`
+carries the two organisation strings. The mock also serves one pixel for
+every `/storage/` path, because `images.remotePatterns` admits nothing else
+on an asset origin and a fixture image that 404s comes out of `/_next/image`
+as a 4xx the audit fails on.

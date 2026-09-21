@@ -1,17 +1,18 @@
 import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
-import { getStaff } from "@/lib/admin";
+import { getAnswerBlockKinds, getStaff } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { PostForm } from "../post-form";
-import type { StaffUser } from "@/types/api";
+import type { StaffUser, AnswerBlockKindOption } from "@/types/api";
 
 export const metadata = buildMetadata({ title: "New post", path: "/admin/blog/new", seo: noIndex });
 
 export default async function NewBlogPostPage() {
   let staff: StaffUser[] = [];
+  let kinds: AnswerBlockKindOption[] = [];
   try {
-    staff = await getStaff();
+    [staff, kinds] = await Promise.all([getStaff(), getAnswerBlockKinds("/admin/blog-posts")]);
   } catch {
     return (
       <ErrorState title="We could not open the editor">
@@ -27,7 +28,7 @@ export default async function NewBlogPostPage() {
         title="New post"
       />
 
-      <PostForm staff={staff} />
+      <PostForm staff={staff} kinds={kinds} />
     </>
   );
 }

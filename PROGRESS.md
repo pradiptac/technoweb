@@ -1005,6 +1005,36 @@ Verified: `CustomerImpersonationTest` (11), `StorePromoTest` (9),
 real screens), `npm run audit` light and dark on every touched route, tsc,
 eslint, pint, Larastan.
 
+## AEO + GEO on the CMS and the store — done (0.83.0, 2026-09-21)
+
+`docs/aeo-geo-plan.md` and `docs/aeo-geo-contract.md`, implemented in three
+streams against the one contract and reconciled:
+
+- [x] Answer blocks — nine kinds, eleven entities, an **AEO** tab on every
+      form with the repeater, the readiness panel and the assistant
+- [x] FAQs widened to the same eleven owners; one `FAQPage` per page, the
+      API's, never under two entries
+- [x] Store product AEO: warranty, applications, the installing services,
+      the fuller `Product` graph
+- [x] The `entity` block and `about`/`mentions` on every public detail read;
+      `knowsAbout`/`areaServed` on the `Organization` node
+- [x] `AeoScore` and `GeoScore` on the overview and the single-record read,
+      with band filters, per-check filters, sorts and the site's two averages
+      with their own biggest wins
+- [x] Eight assistant actions, suggest-only; `[MISSING: …]` where the model
+      was not given a fact; `improve_answer` per saved block
+- [x] Improvement suggestions under each score — the rubric's hints always,
+      the assistant's inline when it is on
+- [x] The public rendering: `AnswerBlocks` grouped by kind under the API's
+      headings, `RelatedEntities`, `/llms-full.txt` carrying definitions and
+      questions
+
+Verified: `AnswerBlockTest`, `FaqOwnersTest`, `AeoGeoScoreTest` (11),
+`SeoAiAeoTest` (19), the full API suite (1446), Larastan, pint; a real
+solution given blocks through the console and read back on the public page;
+`npm run audit` light and dark on the overview, the AEO tab and the public
+detail pages, `audit:mobile` clean at 320–414; tsc and eslint.
+
 ## Decisions still owed by the client
 
 - **Privacy and terms copy.** The seeded pages are a structurally complete

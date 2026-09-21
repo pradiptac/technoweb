@@ -1,17 +1,18 @@
 import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
-import { getKnowledgeCategories } from "@/lib/admin";
+import { getAnswerBlockKinds, getKnowledgeCategories } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ArticleForm } from "../article-form";
-import type { KnowledgeCategory } from "@/types/api";
+import type { KnowledgeCategory, AnswerBlockKindOption } from "@/types/api";
 
 export const metadata = buildMetadata({ title: "New article", path: "/admin/knowledge-base/new", seo: noIndex });
 
 export default async function NewKnowledgeArticlePage() {
   let categories: KnowledgeCategory[] = [];
+  let kinds: AnswerBlockKindOption[] = [];
   try {
-    categories = await getKnowledgeCategories();
+    [categories, kinds] = await Promise.all([getKnowledgeCategories(), getAnswerBlockKinds("/admin/knowledge-articles")]);
   } catch {
     return (
       <ErrorState title="We could not open the editor">
@@ -27,7 +28,7 @@ export default async function NewKnowledgeArticlePage() {
         title="New article"
       />
 
-      <ArticleForm categories={categories} />
+      <ArticleForm categories={categories} kinds={kinds} />
     </>
   );
 }

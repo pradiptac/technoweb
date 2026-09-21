@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { ApiError } from "@/lib/api";
-import { getStoreCategory } from "@/lib/admin";
+import { getAnswerBlockKinds, getStoreCategory } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { StoreCategoryForm } from "../category-form";
-import type { AdminStoreCategory } from "@/types/api";
+import type { AdminStoreCategory, AnswerBlockKindOption } from "@/types/api";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -20,9 +20,10 @@ export default async function EditStoreCategoryPage({ params }: { params: Promis
   if (!Number.isInteger(numericId)) notFound();
 
   let category: AdminStoreCategory;
+  let kinds: AnswerBlockKindOption[] = [];
 
   try {
-    category = await getStoreCategory(numericId);
+    [category, kinds] = await Promise.all([getStoreCategory(numericId), getAnswerBlockKinds("/admin/store/categories")]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
     throw error;
@@ -32,7 +33,7 @@ export default async function EditStoreCategoryPage({ params }: { params: Promis
     <>
       <PageHeader back={{ href: "/admin/store/categories", label: "Store categories" }} title={category.name} />
 
-      <StoreCategoryForm category={category} />
+      <StoreCategoryForm category={category} kinds={kinds} />
     </>
   );
 }

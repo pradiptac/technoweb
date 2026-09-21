@@ -8,11 +8,14 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { EditorField } from "@/components/admin/editor-field";
+import { FaqField } from "@/components/admin/faq-field";
+import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
+import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import { createArticleAction, updateArticleAction, deleteArticleAction, type ArticleFormState } from "./actions";
-import type { AdminKnowledgeArticle, KnowledgeCategory } from "@/types/api";
+import type { AdminKnowledgeArticle, KnowledgeCategory, AnswerBlockKindOption } from "@/types/api";
 
 const initial: ArticleFormState = {};
 
@@ -22,6 +25,8 @@ const GROUPS: TabGroup[] = [
     fields: ["title", "slug", "excerpt", "body", "status", "published_at",
              "knowledge_category_id", "tags"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
+  // The AEO tab (docs/aeo-geo-contract.md §7). Last, so every tab above keeps its place.
+  { id: "aeo", label: "AEO", fields: ["answer_blocks", "faqs"] },
 ];
 
 /** datetime-local wants "YYYY-MM-DDTHH:mm"; the API sends ISO-8601. */
@@ -33,11 +38,13 @@ function toLocalInput(iso: string | null): string {
 }
 
 export function ArticleForm({
-  article, categories, saved,
+  article, categories, saved, kinds,
 }: {
   article?: AdminKnowledgeArticle;
   categories: KnowledgeCategory[];
   saved?: boolean;
+  /** `meta.answer_block_kinds` from this entity's admin index. */
+  kinds: AnswerBlockKindOption[];
 }) {
   const editing = Boolean(article);
   const [state, formAction, pending] = useActionState(
@@ -47,6 +54,9 @@ export function ArticleForm({
 
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
   const seoErr = (f: string) => state.fieldErrors?.[`seo.${f}`]?.[0];
+  /** Per-row errors arrive as e.g. answer_blocks.0.answer; surface the first. */
+  const rowErr = (prefix: string) =>
+    err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
 
   const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
 
@@ -129,6 +139,17 @@ export function ArticleForm({
         </div>
 
         <SeoPanel seo={article?.seo} defaults={article?.seo_defaults} error={seoErr} embedded record={article ? { type: 'knowledge_article', id: article.id } : null} />
+
+        {/*
+          The AEO tab, one child: the readiness scores and the assistant on
+          top, the answer blocks under them, then the FAQs this record
+          gained with them. See docs/aeo-geo-contract.md §7.
+        */}
+        <div>
+          <AeoGeoPanel record={article ? { type: 'knowledge_article', id: article.id } : null} blocks={article?.answer_blocks} />
+          <AnswerBlocksField defaultValue={article?.answer_blocks ?? []} kinds={kinds} error={rowErr("answer_blocks")} />
+          <FaqField defaultValue={article?.faqs ?? []} error={rowErr("faqs")} />
+        </div>
       </Tabs>
 
       <FormActions>

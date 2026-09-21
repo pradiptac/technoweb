@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Models\KnowledgeArticle;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -15,6 +16,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin KnowledgeArticle */
 class KnowledgeArticleResource extends JsonResource
 {
+    use IncludesAnswerContent;
+
     public function toArray(Request $request): array
     {
         $detail = $request->routeIs('*.show', '*.store', '*.update');
@@ -38,6 +41,9 @@ class KnowledgeArticleResource extends JsonResource
             // is actually being read; never accepted from the form.
             'view_count' => (int) $this->view_count,
             'helpful_count' => (int) $this->helpful_count,
+            'faqs' => $this->adminFaqs(),
+            // Every block, drafts included, for the AEO tab's repeater.
+            'answer_blocks' => $this->adminAnswerBlocks(),
             'seo' => $this->when($detail, fn () => SeoOverrideArray::from($this->seo)),
             'seo_defaults' => $this->when($detail, fn () => $this->resolvedSeo()),
             'created_at' => $this->created_at?->toIso8601String(),

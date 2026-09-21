@@ -12,6 +12,11 @@ use Illuminate\Database\Eloquent\Model;
  */
 trait WritesCmsEntities
 {
+    // `saveFaqs()`, `saveAnswerBlocks()` and the pull/save pair: shared with
+    // the one controller (brands) that has FAQs and answer blocks and
+    // nothing else here applies to.
+    use WritesAnswerContent;
+
     /**
      * Model attributes and the nested SEO override are validated together but
      * must be written separately: preventSilentlyDiscardingAttributes is on,
@@ -34,37 +39,6 @@ trait WritesCmsEntities
             // updateOrCreate through the relation, never a hand-set
             // seoable_type — the morph map stores "blog_post", not the FQCN.
             $model->seo()->updateOrCreate([], $seo);
-        }
-    }
-
-    /**
-     * Replaces an entity's FAQ set with what the form submitted.
-     *
-     * Replace rather than diff: the form has no stable identity for a row —
-     * an editor reorders, retypes and deletes freely — so trying to match
-     * submitted rows to existing ids would guess wrong. The set is small and
-     * owned entirely by its parent, so replacing it is both simpler and
-     * correct. sort_order comes from the submitted order.
-     *
-     * Null means "the form did not include FAQs at all", which must leave
-     * them alone; an empty array means "the editor removed them all".
-     */
-    protected function saveFaqs(Model $model, ?array $faqs): void
-    {
-        if ($faqs === null) {
-            return;
-        }
-
-        $model->faqs()->delete();
-
-        foreach (array_values($faqs) as $i => $faq) {
-            // create() through the relation so faqable_type comes from the
-            // morph map — never set by hand.
-            $model->faqs()->create([
-                'question' => $faq['question'],
-                'answer' => $faq['answer'],
-                'sort_order' => $i,
-            ]);
         }
     }
 

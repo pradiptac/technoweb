@@ -5,8 +5,11 @@ namespace App\Models;
 use App\Casts\SpecSheet;
 use App\Enums\ProductAvailability;
 use App\Enums\PublishStatus;
+use App\Models\Concerns\HasAnswerBlocks;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
+use App\Models\Contracts\Answerable;
+use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,9 +19,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Product extends Model
+class Product extends Model implements Answerable, Faqable
 {
-    use HasFactory, HasSeo, Sluggable, SoftDeletes;
+    use HasAnswerBlocks, HasFactory, HasSeo, Sluggable, SoftDeletes;
 
     protected $fillable = [
         'brand_id', 'product_category_id', 'name', 'slug', 'sku',

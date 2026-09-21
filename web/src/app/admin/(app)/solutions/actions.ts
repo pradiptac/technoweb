@@ -5,7 +5,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import { createSolution, deleteSolution, updateSolution, type SolutionPayload } from "@/lib/admin";
 import { jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
-import type { FaqItem, PublishStatus } from "@/types/api";
+import type { AnswerBlock, FaqItem, PublishStatus } from "@/types/api";
 
 export type SolutionFormState = { error?: string; fieldErrors?: Record<string, string[]> };
 
@@ -38,6 +38,7 @@ function payloadFrom(formData: FormData): SolutionPayload {
     product_ids: ids("product_ids"),
     industry_ids: ids("industry_ids"),
     faqs: jsonListFromFormData<FaqItem>(formData, "faqs"),
+    answer_blocks: jsonListFromFormData<AnswerBlock>(formData, "answer_blocks"),
     ...(seo ? { seo: seo as SolutionPayload["seo"] } : {}),
   };
 }

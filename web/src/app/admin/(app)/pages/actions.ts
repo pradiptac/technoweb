@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import { createPage, deletePage, updatePage, type CmsPagePayload } from "@/lib/admin";
-import { seoFromFormData, str } from "@/lib/admin-form";
-import type { PublishStatus } from "@/types/api";
+import { jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
+import type { AnswerBlock, PublishStatus } from "@/types/api";
 
 export type PageFormState = { error?: string; fieldErrors?: Record<string, string[]> };
 
@@ -19,6 +19,7 @@ function payloadFrom(formData: FormData): CmsPagePayload {
     template: str(formData, "template") ?? "default",
     status: (str(formData, "status") ?? "draft") as PublishStatus,
     published_at: str(formData, "published_at"),
+    answer_blocks: jsonListFromFormData<AnswerBlock>(formData, "answer_blocks"),
     ...(seo ? { seo: seo as CmsPagePayload["seo"] } : {}),
   };
 }

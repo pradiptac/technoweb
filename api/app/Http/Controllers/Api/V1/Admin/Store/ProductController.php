@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin\Store;
 
+use App\Enums\AnswerBlockKind;
 use App\Enums\ProductCondition;
 use App\Enums\ProductType;
 use App\Enums\PublishStatus;
@@ -28,7 +29,7 @@ class ProductController extends Controller
 {
     use WritesCmsEntities;
 
-    private const RELATIONS = ['variations'];
+    private const RELATIONS = ['variations', 'service_ids', 'faqs', 'answer_blocks'];
 
     /**
      * The people waiting to hear a product is back, as a `withCount`. One
@@ -82,6 +83,7 @@ class ProductController extends Controller
                 fn (PublishStatus $s) => ['value' => $s->value, 'label' => $s->label()],
                 PublishStatus::cases(),
             ),
+            'answer_block_kinds' => AnswerBlockKind::options(),
         ]]);
     }
 
@@ -99,6 +101,8 @@ class ProductController extends Controller
             $product = StoreProduct::create($attributes);
 
             $this->saveVariations($product, $variations['variations'] ?? null);
+            $this->syncServices($product, $variations);
+            $this->saveAnswerContent($product, $variations);
             $this->saveSeo($product, $seo);
 
             // Opening stock, so the ledger's first entry for a product is the
@@ -143,6 +147,8 @@ class ProductController extends Controller
             $storeProduct->update($attributes);
 
             $this->saveVariations($storeProduct, $variations['variations'] ?? null);
+            $this->syncServices($storeProduct, $variations);
+            $this->saveAnswerContent($storeProduct, $variations);
             $this->saveSeo($storeProduct, $seo);
 
             StockLedger::adjusted($storeProduct, $stockBefore, $variationsBefore);
@@ -153,7 +159,12 @@ class ProductController extends Controller
 
     public function destroy(StoreProduct $storeProduct): JsonResponse
     {
-        $storeProduct->delete();
+        DB::transaction(function () use ($storeProduct) {
+            // Polymorphic rows have nothing to cascade them; the pivot does.
+            $storeProduct->faqs()->delete();
+            $storeProduct->answerBlocks()->delete();
+            $storeProduct->delete();
+        });
 
         return response()->json(null, 204);
     }
@@ -161,7 +172,7 @@ class ProductController extends Controller
     /** @return array<int, string> */
     private function detailRelations(): array
     {
-        return ['category', 'brand', 'variations', 'seo'];
+        return ['category', 'brand', 'variations', 'services', 'faqs', 'answerBlocks', 'seo'];
     }
 
     /**
@@ -180,6 +191,14 @@ class ProductController extends Controller
         }
 
         return $pulled;
+    }
+
+    /** A key absent from the payload leaves the services alone; `[]` clears them. */
+    private function syncServices(StoreProduct $product, array $pulled): void
+    {
+        if (array_key_exists('service_ids', $pulled)) {
+            $product->services()->sync($pulled['service_ids'] ?? []);
+        }
     }
 
     /**

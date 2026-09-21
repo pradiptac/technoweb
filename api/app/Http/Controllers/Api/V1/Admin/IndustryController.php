@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\AnswerBlockKind;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreIndustryRequest;
@@ -39,12 +40,16 @@ class IndustryController extends Controller
             ->paginate(min($request->integer('per_page', 30), 100))
             ->withQueryString();
 
-        return IndustryResource::collection($industries);
+        // Sent by the API, never listed in TypeScript: the console's kind
+        // select is built from this, the `meta.transitions` rule.
+        return IndustryResource::collection($industries)->additional(['meta' => [
+            'answer_block_kinds' => AnswerBlockKind::options(),
+        ]]);
     }
 
     public function show(Industry $industry): JsonResource
     {
-        return new IndustryResource($industry->load(['solutions', 'seo']));
+        return new IndustryResource($industry->load(['solutions', 'faqs', 'answerBlocks', 'seo']));
     }
 
     public function store(StoreIndustryRequest $request): JsonResponse
@@ -53,8 +58,10 @@ class IndustryController extends Controller
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $solutionIds = $attributes['solution_ids'] ?? null;
             unset($attributes['solution_ids']);
+            $content = $this->pullAnswerContent($attributes);
 
             $industry = Industry::create($attributes);
+            $this->saveAnswerContent($industry, $content);
 
             if ($solutionIds !== null) {
                 $industry->solutions()->sync($solutionIds);
@@ -64,7 +71,7 @@ class IndustryController extends Controller
             return $industry;
         });
 
-        return response()->json(['data' => new IndustryResource($industry->load(['solutions', 'seo']))], 201);
+        return response()->json(['data' => new IndustryResource($industry->load(['solutions', 'faqs', 'answerBlocks', 'seo']))], 201);
     }
 
     public function update(UpdateIndustryRequest $request, Industry $industry): JsonResource
@@ -74,8 +81,10 @@ class IndustryController extends Controller
             $hasSolutions = array_key_exists('solution_ids', $attributes);
             $solutionIds = $attributes['solution_ids'] ?? [];
             unset($attributes['solution_ids']);
+            $content = $this->pullAnswerContent($attributes);
 
             $industry->update($attributes);
+            $this->saveAnswerContent($industry, $content);
 
             // An absent key leaves the relation alone; an empty array clears it.
             if ($hasSolutions) {
@@ -84,7 +93,7 @@ class IndustryController extends Controller
             $this->saveSeo($industry, $seo);
         });
 
-        return new IndustryResource($industry->fresh(['solutions', 'seo']));
+        return new IndustryResource($industry->fresh(['solutions', 'faqs', 'answerBlocks', 'seo']));
     }
 
     public function destroy(Industry $industry): JsonResponse
@@ -94,6 +103,8 @@ class IndustryController extends Controller
             // with no sector rather than disappearing with it.
             $industry->solutions()->detach();
             $industry->seo()->delete();
+            $industry->faqs()->delete();
+            $industry->answerBlocks()->delete();
             $industry->delete();
         });
 

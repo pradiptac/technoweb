@@ -7,8 +7,8 @@ import {
   createKnowledgeArticle, deleteKnowledgeArticle, updateKnowledgeArticle,
   type KnowledgeArticlePayload,
 } from "@/lib/admin";
-import { seoFromFormData, str, tagsFromFormData } from "@/lib/admin-form";
-import type { PublishStatus } from "@/types/api";
+import { jsonListFromFormData, seoFromFormData, str, tagsFromFormData } from "@/lib/admin-form";
+import type { AnswerBlock, FaqItem, PublishStatus } from "@/types/api";
 
 export type ArticleFormState = { error?: string; fieldErrors?: Record<string, string[]> };
 
@@ -25,6 +25,8 @@ function payloadFrom(formData: FormData): KnowledgeArticlePayload {
     status: (str(formData, "status") ?? "draft") as PublishStatus,
     published_at: str(formData, "published_at"),
     knowledge_category_id: categoryId ? Number(categoryId) : null,
+    faqs: jsonListFromFormData<FaqItem>(formData, "faqs"),
+    answer_blocks: jsonListFromFormData<AnswerBlock>(formData, "answer_blocks"),
     ...(seo ? { seo: seo as KnowledgeArticlePayload["seo"] } : {}),
   };
 }

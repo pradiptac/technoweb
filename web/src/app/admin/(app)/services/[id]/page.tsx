@@ -3,11 +3,11 @@ import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getService } from "@/lib/admin";
+import { getAnswerBlockKinds, getService } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ServiceForm } from "../service-form";
-import type { AdminService } from "@/types/api";
+import type { AdminService, AnswerBlockKindOption } from "@/types/api";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,8 +29,9 @@ export default async function EditServicePage({
   if (!Number.isInteger(numericId)) notFound();
 
   let service: AdminService;
+  let kinds: AnswerBlockKindOption[] = [];
   try {
-    service = await getService(numericId);
+    [service, kinds] = await Promise.all([getService(numericId), getAnswerBlockKinds("/admin/services")]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
     throw error;
@@ -50,7 +51,7 @@ export default async function EditServicePage({
         )}
       </PageHeader>
 
-      <ServiceForm service={service} saved={Boolean(saved)} />
+      <ServiceForm service={service} saved={Boolean(saved)} kinds={kinds} />
     </>
   );
 }

@@ -509,3 +509,91 @@ seven ad-hoc `en-GB` date formatters onto `lib/dates.ts` (`dateTimeShort` is
 new — a queue's timestamp without the year), eight `<section … bg-card>`
 panels onto `Card`, and three drifted helper copies into `lib/`
 (`format-bytes.ts`, `initials.ts`, `request-host.ts`).
+## The AEO tab (2026-09-21)
+
+Every entity form that carries answer blocks — pages, products, store
+products, product categories, store categories, brands, services, solutions,
+blog posts, knowledge articles, industries — ends on an **AEO** tab
+(`docs/aeo-geo-contract.md` §7). It is appended after SEO so every existing
+tab keeps its place, and the brand form, which had one pane, gained `Tabs`
+for it. The tab is one JSX child holding three things in order:
+
+- `AeoGeoPanel` (`components/admin/aeo-geo-panel.tsx`): the AEO and GEO
+  readiness scores with their failed checks, read on mount through a Server
+  Action from `GET /admin/seo/{type}/{id}` — the overview's own Recheck read
+  — and re-read by its Recheck button, so a save can be re-scored without a
+  reload that would cost the form. Either score the API has not sent is
+  "Not scored yet", never zero; a 404 there (a brand is not on the SEO
+  overview) is "not scored" too. Under the scores, the same `AiSeoPanel` the
+  SEO tab draws, with `scope="aeo"`: it renders the actions in
+  `AEO_ACTIONS` and the SEO tab's instance renders every other, so an action
+  the API has not learnt appears on neither and a button's label is always
+  the API's. Apply on `answer_blocks`, `product_qa` and `faq_suggest` hands
+  the rows to the repeaters below through two form events
+  (`tw:answer-blocks-suggested`, `tw:faqs-suggested`), as drafts, unsaved —
+  the SEO panel's "put into the form, never the record" rule.
+- `AnswerBlocksField` (`components/admin/answer-blocks-field.tsx`): the
+  repeater, `FaqField`'s shape — rows in state, one hidden JSON `answer_blocks`
+  the API replaces the set from. Its kind select is `meta.answer_block_kinds`
+  from the entity's own admin index (`getAnswerBlockKinds()` in
+  `lib/admin/aeo.ts`, one row's worth, so a store manager who cannot read
+  `/admin/solutions` still gets the list); with no list the existing rows
+  keep their raw kind and nothing can be added, said on the screen. The
+  question is required when the kind `asks_question` and offered as optional
+  otherwise; the answer counts against 600 in `Field`'s `hint`; the rich-text
+  `detail` mounts its editor on demand, since one Summernote per block on a
+  tab most records never open is a lot of editor. A row with nothing typed
+  is dropped; a `question` block missing its question is sent and refused by
+  the API onto this tab, never thrown away in silence. **The row key is never
+  in the markup**: a module-level counter that reached a DOM `id` hydrated
+  differently on the server, where the module lives across requests, and
+  that was a hydration error on the first audit run.
+- `FaqField`, for the seven entities that gained FAQs with the feature; the
+  four that had them keep them on Related, and the AEO tab's `fields` lists
+  only `answer_blocks` there.
+
+`/admin/seo` carries AEO and GEO as sortable columns (`SortTh`, `?sort=aeo|geo`)
+and two band filters (`?aeo=`/`?geo=` of `poor`/`fair`), a dash where a record
+is unscored. The store product form gained `warranty` and `applications` on
+Content and a Related tab with the `service_ids` picker, whose options fall
+back to the record's own `services` when `/admin/services` could not be read.
+
+**AEO and GEO improvement suggestions (2026-09-21).** Two layers under each
+readiness score on the AEO tab, and the difference is who wrote them. The
+first is the rubric's: every failed check with its weight and a hint saying
+what would earn it, from `AeoScore`/`GeoScore` through
+`GET /admin/seo/{type}/{id}` — always there, costs nothing, and is the
+honest floor of the feature. The second is the assistant's: "Suggest
+improvements" runs `aeo_analyze` or `geo_analyze` and draws the result
+inline — summary, gaps, what to do in order, what is already strong, and
+when it was asked — rather than in the AI panel's dialog, because the
+question was about *this* score and the answer belongs under it. Only while
+the assistant is on with a key: `AiSeoPanel` tells the readiness panel
+through `onReady`, and with it off the button is not drawn (the rule the
+panel follows everywhere).
+
+Two things about the plumbing that are decisions. **There is one run path.**
+The readiness panel does not call `runSeoAiAction` itself; it asks the AI
+panel through a handle (`ref.run(action, extra, {quiet: true})`) and hears
+back through `onSuggestion`, so the "N left today" counter and the history
+move once whichever button was pressed — the AI panel's own "Analyse for
+answers" lands under the score too. `onHistory` hands over the stored
+suggestions on load so a form reopened shows the newest analysis rather
+than a blank the editor has to pay for again. And **a quiet run opens no
+dialog**: the caller draws the words, and the dialog would show them twice.
+
+**"Improve an answer" names its block.** The API requires `block_id` (422
+with a sentence without one — it rewrites what is *stored*), so the button
+carries a `Select` of the record's saved blocks, labelled by kind and the
+question or the first words of the answer; a row added this session has no
+id and is not offered, and with nothing saved the button is disabled and
+its title says why. The forms pass `blocks={record?.answer_blocks}` to
+`AeoGeoPanel`, which filters to the ones with an id.
+
+**The overview's site card draws three "biggest wins" strips**, the SEO
+one it always had and one per readiness score, from `meta.site_score.aeo`
+and `.geo`'s own `top_issues`. Each chip opens the records failing that one
+check through `?aeo_check=` / `?geo_check=` — their own parameters rather
+than `?check=`, because the three rubrics share `internal_links` as a key
+and one parameter could not say whose failure is meant. The filtered list's
+banner names the score ("… is the AEO problem").

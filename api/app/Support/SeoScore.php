@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Support\Seo\ScoresChecks;
+
 /**
  * A per-record SEO score, and the checks it is made of.
  *
@@ -36,6 +38,8 @@ namespace App\Support;
  */
 final class SeoScore
 {
+    use ScoresChecks;
+
     public const GROUPS = [
         'metadata' => 'Title & description',
         'content' => 'Content',
@@ -65,6 +69,12 @@ final class SeoScore
      * meant, which is the five conditions this screen has always flagged.
      */
     private const ALWAYS_AN_ISSUE = ['title_present', 'description_present', 'description_length', 'indexable'];
+
+    /** @return array<int, string> */
+    protected static function alwaysAnIssue(): array
+    {
+        return self::ALWAYS_AN_ISSUE;
+    }
 
     /** Short enough for a badge; the hint carries the explanation. */
     public const LABELS = [
@@ -206,15 +216,6 @@ final class SeoScore
         return self::tally($checks);
     }
 
-    public static function band(int $value): string
-    {
-        return match (true) {
-            $value >= 80 => 'good',
-            $value >= 50 => 'fair',
-            default => 'poor',
-        };
-    }
-
     /** @param  array<int, string>  $images */
     private static function anyImageMissingAlt(array $images): bool
     {
@@ -232,48 +233,5 @@ final class SeoScore
         return $length < $min
             ? "{$what} is {$length} characters, under {$min}. There is room to say more and the space is free."
             : "{$what} is {$length} characters, over {$max}. Google will cut it off, and it chooses where.";
-    }
-
-    private static function check(
-        string $key, string $group, int $weight, bool $applicable, bool $passed, string $hint, ?bool $issue = null,
-    ): array {
-        $issue ??= in_array($key, self::ALWAYS_AN_ISSUE, true);
-
-        return compact('key', 'group', 'weight', 'applicable', 'passed', 'hint', 'issue');
-    }
-
-    /**
-     * Earned weight over applicable weight.
-     *
-     * A record with nothing applicable cannot arise — several checks always
-     * apply — but the guard is here rather than a division by zero waiting for
-     * the entity that manages it.
-     */
-    private static function tally(array $checks): array
-    {
-        $applicable = array_values(array_filter($checks, fn ($c) => $c['applicable']));
-        $possible = array_sum(array_column($applicable, 'weight'));
-        $earned = array_sum(array_map(fn ($c) => $c['passed'] ? $c['weight'] : 0, $applicable));
-
-        $value = $possible > 0 ? (int) round(100 * $earned / $possible) : 100;
-        $failed = array_values(array_filter($applicable, fn ($c) => ! $c['passed']));
-
-        return [
-            'value' => $value,
-            'band' => self::band($value),
-            'passed' => count($applicable) - count($failed),
-            'checked' => count($applicable),
-            'failed' => array_map(fn ($c) => [
-                'key' => $c['key'],
-                'group' => $c['group'],
-                'label' => self::LABELS[$c['key']],
-                'weight' => $c['weight'],
-                'hint' => $c['hint'],
-            ], $failed),
-            'issues' => array_values(array_map(
-                fn ($c) => self::LABELS[$c['key']],
-                array_filter($failed, fn ($c) => $c['issue']),
-            )),
-        ];
     }
 }

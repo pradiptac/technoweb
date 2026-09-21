@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\Concerns\IncludesAnswerContent;
+use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\Industry;
 use Illuminate\Http\Request;
@@ -10,7 +12,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Industry */
 class IndustryResource extends JsonResource
 {
-    use IncludesSeo;
+    use IncludesAnswerContent, IncludesSchema, IncludesSeo;
 
     public function toArray(Request $request): array
     {
@@ -26,6 +28,13 @@ class IndustryResource extends JsonResource
             'icon' => $this->icon,
             'body' => $this->when($detail, $this->body),
             'solutions' => SolutionResource::collection($this->whenLoaded('solutions')),
+            'faqs' => $this->publicFaqs(),
+            // The published blocks, in order, with the heading each renders under.
+            'answer_blocks' => $this->publicAnswerBlocks(),
+            // What this record is connected to, on the page only (`EntityLinks`).
+            'entity' => $this->entity(),
+            // An FAQPage over the FAQs and question blocks; absent under two entries.
+            'faq_schema' => $this->faqSchema(),
             'seo' => $this->seo(),
         ];
     }

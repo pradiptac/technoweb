@@ -5,6 +5,8 @@ import { PageHero } from "@/components/ui/page-hero";
 import { Badge } from "@/components/ui/badge";
 import { Prose, SpecTable } from "@/components/ui/prose";
 import { IconCheck } from "@/components/icons";
+import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { RelatedEntities } from "@/components/content/related-entities";
 import { AddToBasket } from "@/components/store/add-to-basket";
 import { StoreFilterBar } from "@/components/store/store-filter-bar";
 import { StoreProductCard } from "@/components/store/product-card";
@@ -107,6 +109,8 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
         which uses this block to keep a listing current between feed fetches.
       */}
       {product.schema && <JsonLd data={product.schema} />}
+      {/* The FAQPage over the FAQs and question blocks — the API's, absent under two entries, and the only one on the page. */}
+      {product.faq_schema && <JsonLd data={product.faq_schema} />}
       <PageHero
         section="store"
         kicker={product.brand?.name ?? "Store"}
@@ -275,6 +279,10 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
                 )}
                 <li className="flex gap-2"><span className="mt-0.5 shrink-0 text-brand-ink"><IconCheck /></span>Sourced from an authorised distributor.</li>
                 <li className="flex gap-2"><span className="mt-0.5 shrink-0 text-brand-ink"><IconCheck /></span>Backed by the engineers who install it.</li>
+                {/* The warranty as the seller states it — the same string the Offer's `WarrantyPromise` carries. */}
+                {product.warranty && (
+                  <li className="flex gap-2"><span className="mt-0.5 shrink-0 text-brand-ink"><IconCheck /></span>Warranty: {product.warranty}</li>
+                )}
               </ul>
 
               {product.sku && (
@@ -343,6 +351,22 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
               <Prose html={product.description} />
             </div>
           )}
+
+          {/*
+            Where it is used, in the seller's words (`applications`, plain
+            text — `docs/aeo-geo-contract.md` §3), then the answer blocks with
+            the FAQs merged into their questions, then what the product is
+            connected to: the brand, the category, the services that install
+            it. All after the reading and before "You may also like".
+          */}
+          {product.applications && (
+            <div className="mt-14">
+              <h2 className="display-3 mb-4">Applications</h2>
+              <p className="whitespace-pre-line text-[16px] leading-[1.72] text-ink-2">{product.applications}</p>
+            </div>
+          )}
+          <AnswerBlocks blocks={product.answer_blocks} faqs={product.faqs ?? []} className="mt-14" />
+          <RelatedEntities entity={product.entity} className="mt-14" />
           </div>
           </div>
 

@@ -10,6 +10,7 @@ use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Solution;
+use App\Support\EntityLinks;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -71,7 +72,8 @@ class CatalogueController extends Controller
     {
         abort_unless($product->status?->value === 'published', 404);
 
-        $product->load(['brand', 'category', 'solutions', 'relatedProducts.brand', 'faqs', 'seo']);
+        $product->load(['brand', 'category', 'solutions', 'relatedProducts.brand', 'faqs', 'publishedAnswerBlocks', 'seo']);
+        EntityLinks::attach($product);
 
         return (new ProductResource($product))->withSchema();
     }
@@ -93,7 +95,7 @@ class CatalogueController extends Controller
 
     public function category(ProductCategory $category): JsonResource
     {
-        $category->load(['children', 'seo']);
+        $category->load(['children', 'parent', 'faqs', 'publishedAnswerBlocks', 'seo']);
         $category->loadCount(['products' => fn ($q) => $q->published()]);
 
         // The solutions this category's hardware is actually deployed in.
@@ -112,8 +114,11 @@ class CatalogueController extends Controller
             ->orderBy('title')
             ->limit(6)
             ->get());
+        EntityLinks::attach($category);
 
-        return new ProductCategoryResource($category);
+        // `withSchema()` marks it as the page for `entity` and `faq_schema`;
+        // a category has no graph of its own. See the trait.
+        return (new ProductCategoryResource($category))->withSchema();
     }
 
     /**

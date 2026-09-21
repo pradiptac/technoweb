@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\AnswerBlock;
 use App\Models\BlogCategory;
 use App\Models\BlogComment;
 use App\Models\BlogPost;
@@ -190,6 +191,8 @@ class AppServiceProvider extends ServiceProvider
             'slider' => Slider::class,
             'form' => Form::class,
             'faq' => Faq::class,
+            // The `faqs` shape with a kind; owned by eleven models the way FAQs are.
+            'answer_block' => AnswerBlock::class,
             'media' => Media::class,
             'media_folder' => MediaFolder::class,
             'redirect' => Redirect::class,

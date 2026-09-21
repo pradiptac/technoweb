@@ -3,9 +3,12 @@
 namespace App\Support;
 
 use App\Enums\PaymentGateway;
+use App\Models\Location;
 use App\Models\Media;
 use App\Models\Setting;
+use App\Models\Solution;
 use App\Support\Chat\ChatSettings;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 /**
@@ -206,6 +209,37 @@ class PublicSettings
             }
         }
 
+        /*
+         * Two derived lists for the `Organization` node, which the frontend
+         * builds from this map (`lib/seo.tsx`): `knowsAbout` is the published
+         * solutions' titles and `areaServed` the active locations' names.
+         * JSON-encoded, because this is a flat map of strings and the
+         * frontend already decodes `site_theme_options` from it the same
+         * way. Absent rather than `[]` when there is nothing to say, so the
+         * node carries no empty claim. Held under the settings' own cache
+         * window; a solution renamed reaches the node when it turns over.
+         */
+        foreach (self::organizationFacts() as $key => $list) {
+            if ($list !== []) {
+                $values[$key] = json_encode($list, JSON_UNESCAPED_UNICODE) ?: '[]';
+            }
+        }
+
         return $values->all();
+    }
+
+    /**
+     * What the company knows about and where it works, from the records that
+     * say so. One cached read for both, on the same clock as the rest of
+     * the public map.
+     *
+     * @return array{organization_knows_about: array<int, string>, organization_area_served: array<int, string>}
+     */
+    public static function organizationFacts(): array
+    {
+        return Cache::remember('public-settings:organization-facts', 600, fn () => [
+            'organization_knows_about' => Solution::published()->orderBy('sort_order')->orderBy('title')->pluck('title')->values()->all(),
+            'organization_area_served' => Location::active()->orderBy('sort_order')->orderBy('name')->pluck('name')->values()->all(),
+        ]);
     }
 }

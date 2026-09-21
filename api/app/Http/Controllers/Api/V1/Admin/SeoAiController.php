@@ -51,13 +51,37 @@ class SeoAiController extends Controller
         $data = $request->validate([
             'type' => ['required', 'string', Rule::in(SeoController::types())],
             'id' => ['required', 'integer', 'min:1'],
+            /*
+             * The one block `improve_answer` is about. Required for that
+             * action alone, and checked below against the record rather
+             * than merely for existence: a block id is a small integer,
+             * and one from another record would put another page's
+             * answer into this record's prompt.
+             */
+            'block_id' => [Rule::requiredIf($case->needsBlock()), 'nullable', 'integer', 'min:1'],
+        ], [
+            'block_id.required' => 'Choose which answer block to improve.',
         ]);
 
         $record = SeoController::locate($data['type'], $data['id']);
 
         abort_if($record === null, 404, 'That record no longer exists.');
 
-        $result = $assistant->run($case, $record, $request->user()?->id);
+        $input = [];
+
+        if ($case->needsBlock()) {
+            $block = SeoContext::blockFor($record, $data['block_id']);
+
+            if ($block === null) {
+                $message = 'That answer block is not on this record. Reload the form and try again.';
+
+                return response()->json(['message' => $message, 'errors' => ['block_id' => [$message]]], 422);
+            }
+
+            $input['block_id'] = $block->id;
+        }
+
+        $result = $assistant->run($case, $record, $request->user()?->id, $input);
 
         if (! $result->ok) {
             return response()->json([
@@ -92,7 +116,17 @@ class SeoAiController extends Controller
     public function bulk(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'action' => ['required', 'string', Rule::enum(SeoAiAction::class)],
+            'action' => [
+                'required', 'string', Rule::enum(SeoAiAction::class),
+                // `improve_answer` is about one block, and a list of records
+                // names no block: refused here, in a sentence, rather than
+                // queued to refuse itself twenty-five times.
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if (SeoAiAction::tryFrom((string) $value)?->needsBlock()) {
+                        $fail('Improve an answer works on one block at a time. Run it from the record\'s AEO tab.');
+                    }
+                },
+            ],
             'type' => ['required', 'string', Rule::in(SeoController::types())],
             'ids' => ['required', 'array', 'min:1', 'max:25'],
             'ids.*' => ['integer', 'min:1'],
@@ -210,6 +244,7 @@ class SeoAiController extends Controller
             'type' => ['required', 'string', Rule::in(SeoController::types())],
             'id' => ['required', 'integer', 'min:1'],
             'action' => ['nullable', 'string', Rule::in(array_column(SeoAiAction::cases(), 'value'))],
+            'block_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $record = SeoController::locate($data['type'], $data['id']);
@@ -217,7 +252,7 @@ class SeoAiController extends Controller
         abort_if($record === null, 404, 'That record no longer exists.');
 
         $action = SeoAiAction::tryFrom((string) ($data['action'] ?? '')) ?? SeoAiAction::Generate;
-        $text = SeoContext::build($action, $record);
+        $text = SeoContext::build($action, $record, ['block_id' => $data['block_id'] ?? null]);
 
         return response()->json([
             'data' => [

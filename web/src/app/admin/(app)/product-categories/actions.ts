@@ -7,7 +7,8 @@ import {
   createProductCategory, deleteProductCategory, updateProductCategory,
   type ProductCategoryPayload,
 } from "@/lib/admin";
-import { seoFromFormData, str } from "@/lib/admin-form";
+import { jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
+import type { AnswerBlock, FaqItem } from "@/types/api";
 
 export type ProductCategoryFormState = { error?: string; fieldErrors?: Record<string, string[]> };
 
@@ -29,6 +30,8 @@ function payloadFrom(formData: FormData): ProductCategoryPayload {
     // An unticked checkbox submits nothing, so absence is the answer,
     // not a missing value to leave alone.
     show_in_menu: formData.get("show_in_menu") === "1",
+    faqs: jsonListFromFormData<FaqItem>(formData, "faqs"),
+    answer_blocks: jsonListFromFormData<AnswerBlock>(formData, "answer_blocks"),
     ...(seo ? { seo: seo as ProductCategoryPayload["seo"] } : {}),
   };
 }

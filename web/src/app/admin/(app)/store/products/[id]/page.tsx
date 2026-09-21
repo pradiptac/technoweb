@@ -2,11 +2,11 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getBrandOptions, getStoreCategories, getStoreProduct } from "@/lib/admin";
+import { getAnswerBlockKinds, getBrandOptions, getServiceOptions, getStoreCategories, getStoreProduct } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { StoreProductForm } from "../store-product-form";
-import type { AdminStoreCategory, AdminStoreProduct, PickerOption } from "@/types/api";
+import type { AdminStoreCategory, AdminStoreProduct, PickerOption, AnswerBlockKindOption } from "@/types/api";
 
 const statusTone = { draft: "closed", published: "resolved", archived: "closed" } as const;
 
@@ -31,10 +31,16 @@ export default async function EditStoreProductPage({
   let product: AdminStoreProduct;
   let brands: PickerOption[] = [];
   let categories: AdminStoreCategory[] = [];
+  let services: PickerOption[] = [];
+  let kinds: AnswerBlockKindOption[] = [];
 
   try {
-    [product, brands, categories] = await Promise.all([
+    [product, brands, categories, services, kinds] = await Promise.all([
       getStoreProduct(numericId), getBrandOptions(), getStoreCategories(),
+      // The services that install or support it (contract §3); a store
+      // manager who cannot read /admin/services still gets the form.
+      getServiceOptions().catch(() => []),
+      getAnswerBlockKinds("/admin/store/products"),
     ]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
@@ -54,7 +60,8 @@ export default async function EditStoreProductPage({
         product={product}
         brands={brands}
         categories={categories}
-        saved={saved === "1"}
+        services={services}
+        saved={saved === "1"} kinds={kinds}
       />
     </>
   );
