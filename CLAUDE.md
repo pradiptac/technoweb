@@ -166,9 +166,11 @@ milliseconds from the cache. **What that costs**: a request-time API —
 `cookies()`, `headers()`, `searchParams` — or a `cache: "no-store"` fetch in
 one of those renders is a 500 ("Page changed from static to dynamic at
 runtime"), not a fallback. `/products/[slug]` stays dynamic for exactly that
-reason (it awaits `searchParams` for the category listing's filters), and the
-CMS catch-all `[slug]` stays dynamic so a crawler's junk URLs do not each
-become a cached not-found on disk. `npm run perf` prints the header per route;
+reason (it awaits `searchParams` for the category listing's filters), so does
+`/blog/category/[slug]` (it awaits `searchParams` for `?page=` — the review of
+2026-09-21 found it as "the one `[slug]` route without the export", and it is
+the same case), and the CMS catch-all `[slug]` stays dynamic so a crawler's
+junk URLs do not each become a cached not-found on disk. `npm run perf` prints the header per route;
 a `-` there means rendered every time.
 
 **The store's basket count is a client component fed by `/api/store/basket`,
@@ -1289,6 +1291,11 @@ and the `query()` builder. Its *types* may cross into a client
 component; its functions may not. A client component that needs one calls a
 Server Action instead — the same rule `lib/settings.ts` documents for
 `telHref`.
+
+**A boolean setting is a `SettingSwitch`** (`components/admin/setting-switch.tsx`):
+the visible checkbox beside the controlled hidden `1`/`0` input every settings
+action posts, re-asserting its own state after a submit. The promo screen, the
+info bar and the ticket mailbox each carried a copy until 2026-09-21.
 
 **Admin form buttons go in `FormActions`.** It pins the row to the bottom of
 the viewport while the form is taller than the screen — on a populated product

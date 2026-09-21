@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useState } from "react";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
 import { FormActions } from "@/components/admin/form-actions";
+import { SettingSwitch } from "@/components/admin/setting-switch";
 import { LABELS } from "../../settings/settings-copy";
 import { savePromoAction, type PromoFormState } from "../actions";
 import type { SettingRow } from "@/lib/admin";
@@ -23,12 +24,10 @@ const initial: PromoFormState = {};
  * does not know by name, so a control added here without a seeded row is a
  * 422 rather than a silent no-op.
  *
- * Each switch is a visible checkbox beside a **controlled hidden input**
- * carrying `1`/`0` — an unchecked checkbox posts nothing, and the action
- * PATCHes only what it finds, so a bare checkbox could never turn a thing
- * off. Re-asserted after render the way the info bar's is, because React 19
- * resets a form's controls when its action completes. Written once, as
- * `Switch`, because there are three of them now.
+ * Each switch is a `SettingSwitch` — the visible checkbox beside the
+ * controlled hidden input that every settings screen posts — with its state
+ * held here, because a tile's switch says whether the rest of its panel is
+ * worth filling in.
  */
 export function PromoForm({ rows }: { rows: SettingRow[] }) {
   const [state, formAction, pending] = useActionState(savePromoAction, initial);
@@ -70,13 +69,7 @@ export function PromoForm({ rows }: { rows: SettingRow[] }) {
           return (
             <section key={n} aria-labelledby={`tile-${n}-title`} className="rounded-lg border border-line-strong bg-card p-5">
               <h3 id={`tile-${n}-title`} className="mb-3 text-14 font-semibold">Tile {n}</h3>
-              <Switch
-                id={`tile-${n}-enabled`}
-                name={`setting__${k("enabled")}`}
-                initial={value(k("enabled")) === "1"}
-                label={meta(k("enabled")).label}
-                note="Off until a heading or a picture is filled in."
-              />
+              <Switch id={`tile-${n}-enabled`} name={`setting__${k("enabled")}`} initial={value(k("enabled")) === "1"} label={meta(k("enabled")).label} note="Off until a heading or a picture is filled in." />
               {text(k("kicker"))}
               {text(k("heading"))}
               <Field label={meta(k("text")).label} htmlFor={`setting__${k("text")}`} hint={meta(k("text")).hint}>
@@ -97,13 +90,7 @@ export function PromoForm({ rows }: { rows: SettingRow[] }) {
         The dark band under the tiles — a headline, a price line and a picture bleeding off the right.
       </p>
 
-      <Switch
-        id="promo-enabled"
-        name="setting__store_promo_enabled"
-        initial={value("store_promo_enabled") === "1"}
-        label={meta("store_promo_enabled").label}
-        note="Off until the words and the picture below are filled in — a half-finished dark band is worse than none."
-      />
+      <Switch id="promo-enabled" name="setting__store_promo_enabled" initial={value("store_promo_enabled") === "1"} label={meta("store_promo_enabled").label} note="Off until the words and the picture below are filled in — a half-finished dark band is worse than none." />
 
       <div className="grid gap-x-6 sm:grid-cols-2">
         {(["store_promo_kicker", "store_promo_price_text", "store_promo_heading"] as const).map((key) => (
@@ -132,23 +119,12 @@ export function PromoForm({ rows }: { rows: SettingRow[] }) {
   );
 }
 
-/** A visible checkbox whose posted value is the `1`/`0` on the hidden input beside it. */
-function Switch({ id, name, initial, label, note }: {
-  id: string; name: string; initial: boolean; label: string; note: string;
-}) {
+/** The shared switch in a bordered strip, holding its own state — three of them on this screen. */
+function Switch({ id, name, initial, label, note }: { id: string; name: string; initial: boolean; label: string; note: string }) {
   const [on, setOn] = useState(initial);
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (ref.current && ref.current.checked !== on) ref.current.checked = on;
-  });
-
   return (
     <div className="mb-5 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-line-strong bg-surface px-4 py-3">
-      <label htmlFor={id} className="flex cursor-pointer items-center gap-2 text-13-5 font-semibold">
-        <input ref={ref} id={id} type="checkbox" checked={on} onChange={(e) => setOn(e.target.checked)} className="size-4 accent-brand-600" />
-        <input type="hidden" name={name} value={on ? "1" : "0"} />
-        {label}
-      </label>
+      <SettingSwitch id={id} name={name} checked={on} onChange={setOn}>{label}</SettingSwitch>
       <p className="min-w-0 basis-full text-12-5 text-muted">{note}</p>
     </div>
   );

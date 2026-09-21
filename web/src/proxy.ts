@@ -1,3 +1,4 @@
+import { requestHost } from "@/lib/request-host";
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 
 /**
@@ -85,22 +86,6 @@ const table: { map: Map<string, Target>; fetchedAt: number; refreshing: Promise<
 const CANONICAL_HOST = process.env.CANONICAL_HOST?.trim().toLowerCase() || null;
 
 /**
- * The host the *browser* asked for.
- *
- * Behind a reverse proxy — which is what Plesk is here — `host` is whatever the
- * proxy passed on and may be the internal one, so `x-forwarded-host` is read
- * first. Getting this backwards is how a canonical-host redirect becomes an
- * infinite loop: the check compares the internal host, never matches, and
- * redirects for ever.
- */
-function requestHost(request: NextRequest): string | null {
-  const raw = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-
-  // A forwarded header can carry a list; the first entry is the client's.
-  return raw?.split(",")[0]?.trim().toLowerCase() || null;
-}
-
-/**
  * A machine talking to itself, which is never redirected.
  *
  * `CANONICAL_HOST` is meant to be unset in development — but "meant to" is not
@@ -144,7 +129,7 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
    * cannot be lost in a hosting migration.
    */
   if (CANONICAL_HOST) {
-    const host = requestHost(request);
+    const host = requestHost(request.headers);
 
     if (host && !isLoopback(host) && host !== CANONICAL_HOST) {
       const target = new URL(request.url);

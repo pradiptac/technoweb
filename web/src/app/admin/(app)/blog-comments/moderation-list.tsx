@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate } from "@/lib/dates";
 import { useActionState, useState } from "react";
 import { Form } from "@/components/ui/form";
 import { Alert, Input } from "@/components/ui/input";
@@ -9,8 +10,6 @@ import type { AdminComment } from "@/types/api";
 
 const initial: ModerateState = {};
 
-const stamp = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
 
 /**
  * The moderation queue.
@@ -108,7 +107,7 @@ export function ModerationList({ comments }: { comments: AdminComment[] }) {
                     <Badge tone={c.status === "approved" ? "resolved" : c.status === "spam" ? "urgent" : "progress"}>
                       {c.status_label}
                     </Badge>
-                    <span className="text-faint">{stamp(c.created_at)}</span>
+                    <span className="text-faint">{formatDate(c.created_at, "dateTimeShort")}</span>
                     {/*
                       The id, because the delete control below asks for one and
                       nothing on this screen used to show it — a field nobody

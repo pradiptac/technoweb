@@ -43,6 +43,17 @@ class SendCampaignBatch implements ShouldQueue
      */
     public int $tries = 1;
 
+    /**
+     * Under the database queue's `retry_after` of 90, the rule every other job
+     * here follows — and this one had none (2026-09-21), so the worker's 60s
+     * default applied to a loop over up to a thousand sends. A batch killed
+     * at that limit left its remaining recipients `pending`, with `$tries` 1
+     * meaning nothing came back for them and nothing said so. Eighty gives
+     * the loop the room the scheduler's `--max-time=50` worker cannot, and
+     * the per-recipient status guard still bounds a re-run.
+     */
+    public int $timeout = 80;
+
     /** @param array<int, int> $recipientIds */
     public function __construct(
         public int $campaignId,

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatBytes } from "@/lib/format-bytes";
 import { useActionState, useCallback, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import type { UploadProgress } from "@/components/ui/file-drop";
@@ -119,9 +120,4 @@ export function useUploadForm<S extends Refusal>({
     progress,
     onSubmitCapture,
   };
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }

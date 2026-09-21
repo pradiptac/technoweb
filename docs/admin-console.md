@@ -494,3 +494,18 @@ every screen renders, the union of `setting__*` names across the ten is the
 a Ctrl+S save on Blog → Settings reads back after a reload, and Ctrl+K finds
 "close comments", "email to ticket" and "delivery service" at their new
 addresses.
+
+**A boolean setting is one component (2026-09-21).** `SettingSwitch` in
+`components/admin/setting-switch.tsx`: the visible checkbox beside a
+controlled hidden input carrying `1`/`0` — an unchecked checkbox posts
+nothing, and every settings action PATCHes only what it finds, so a bare
+checkbox could switch a thing on and never off — re-asserting its own checked
+state after every render, because React 19 resets a form's controls when its
+action completes. Three screens carried their own copy: the promo banners
+(state-owning), the info bar (stateless, with a panel-level loop re-asserting
+every checkbox) and the ticket mailbox (inline). Controlled, because the
+value usually drives something else on the screen. The same review pass moved
+seven ad-hoc `en-GB` date formatters onto `lib/dates.ts` (`dateTimeShort` is
+new — a queue's timestamp without the year), eight `<section … bg-card>`
+panels onto `Card`, and three drifted helper copies into `lib/`
+(`format-bytes.ts`, `initials.ts`, `request-host.ts`).

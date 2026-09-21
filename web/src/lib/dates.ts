@@ -19,6 +19,8 @@ const STYLES = {
   monthYear: { month: "short", year: "numeric" },
   /** 14 Sept 2026, 10:15 am */
   dateTime: { dateStyle: "medium", timeStyle: "short" },
+  /** 14 Sept, 10:15 am — a queue's timestamp, where the year is this one. */
+  dateTimeShort: { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" },
   /** 14/9/2026 — the compact numeric form for a column of hits. */
   numeric: {},
 } as const satisfies Record<string, Intl.DateTimeFormatOptions>;

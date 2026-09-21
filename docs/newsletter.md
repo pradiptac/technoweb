@@ -201,6 +201,12 @@ Measured as `rows=3 ids=3,3,4`, which is a person receiving one campaign twice.
 The audience is a `whereExists` predicate on the outer row, which cannot express
 the duplicate. Reverting it fails exactly its own test.
 
+**`SendCampaignBatch` carries a `$timeout` of 80** (2026-09-21). It had none,
+so the worker's 60s default bounded a loop over up to a thousand sends, and a
+batch killed at that limit left its remaining recipients `pending` with
+`$tries` 1 saying nothing would come back for them. Eighty is under the
+database queue's `retry_after` of 90, the rule every other job follows.
+
 **A campaign is claimed with a conditional UPDATE, not a read-then-write.** Two
 requests both reading `ready` both send, and there is no unsend — the same shape
 as `SignInCodes::consume()`. Recipients also carry a unique index per campaign,

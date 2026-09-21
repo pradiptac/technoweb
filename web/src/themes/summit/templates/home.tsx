@@ -140,8 +140,8 @@ export function Home({
 
   return (
     <>
-      {orderSections(SECTIONS, options).map((s) => (
-        <Bg key={s.id} id={s.id} {...bg}>{s.node}</Bg>
+      {orderSections(SECTIONS, options).map((s, i) => (
+        <Bg key={s.id} id={s.id} index={i} {...bg}>{s.node}</Bg>
       ))}
     </>
   );

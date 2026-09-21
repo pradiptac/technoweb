@@ -105,7 +105,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const [
       solutions, services, industries, categories, products,
       posts, articles, caseStudies, pages, careers,
-      storeProducts, storeCategories, taxonomy,
+      storeProducts, storeCategories, taxonomy, landing,
     ] = await Promise.all([
       publicApi.solutions().then((r) => r.data),
       publicApi.services().then((r) => r.data),
@@ -133,19 +133,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // Blog categories are real, indexable, linked-to pages with their own
       // canonical — `/blog/category/{slug}` — and were unlisted too.
       publicApi.blogTaxonomy().then((r) => r.data),
+      // Programmatic landing pages, in the same round as everything else —
+      // they were awaited on their own after it, one round trip more per
+      // build and per hourly revalidation, for nothing that depended on it.
+      publicApi.landingPages().then((r) => r.data).catch(() => []),
     ]);
 
     /*
-     * Programmatic landing pages.
-     *
-     * The endpoint returns published pages only, and a page is published only
-     * once it has cleared `LandingPageQuality` — so there is nothing to filter
-     * here and nothing thin can reach the sitemap. That is the point of putting
-     * the gate on publication rather than on the sitemap: two places deciding
-     * what is fit to index would eventually disagree, and the one that got it
-     * wrong would be this one.
+     * The landing-page endpoint returns published pages only, and a page is
+     * published only once it has cleared `LandingPageQuality` — so there is
+     * nothing to filter here and nothing thin can reach the sitemap. That is
+     * the point of putting the gate on publication rather than on the
+     * sitemap: two places deciding what is fit to index would eventually
+     * disagree, and the one that got it wrong would be this one.
      */
-    const landing = await publicApi.landingPages().then((r) => r.data).catch(() => []);
 
     // An index page changes when anything it lists does.
     const indexDates: Record<string, Date | undefined> = {

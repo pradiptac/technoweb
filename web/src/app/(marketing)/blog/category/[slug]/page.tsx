@@ -28,6 +28,12 @@ import type { BlogCategorySummary, BlogPost, BlogTaxonomy, Paginated } from "@/t
  * within a render — so a per-category endpoint would be a second way to ask a
  * question already being asked.
  */
+/*
+ * No `generateStaticParams`, deliberately: this route awaits `searchParams`
+ * for `?page=`, and a route that exports the one while reading the other is
+ * a 500 at runtime ("Page changed from static to dynamic"). It is rendered
+ * per request, the `/products/[slug]` case — CLAUDE.md names both.
+ */
 type Params = { params: Promise<{ slug: string }>; searchParams: Promise<{ page?: string }> };
 
 async function findCategory(slug: string): Promise<{

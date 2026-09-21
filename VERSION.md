@@ -21,7 +21,25 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
-## 0.82.0 — 2026-09-21
+## 0.82.1 — 2026-09-21
+
+**A review pass over the whole project, thirteen small fixes.** Three
+reviewers swept the code against this project's own rules and everything
+of consequence held; what they found was small and is fixed: one boolean
+switch component where three screens had their own; seven console dates in
+`en-GB` where the rest are `en-IN`, now through `lib/dates.ts`; eight
+hand-rolled panels now `Card`s; two hover animations that snapped instead of
+moving (Sentinel's arrow, the portal's tiles — the Tailwind v4 transform
+trap); the homepage's NOC diagram painted in a frozen olive under every
+palette, now the dark-band tokens; the sitemap fetching landing pages in a
+round trip of their own; three helper functions that had drifted between
+two copies (`formatBytes`, `initials`, `requestHost`), now one each; the
+campaign batch job with no timeout, so a batch killed at the worker's 60s
+default left recipients unmailed and unreported; `/blog/category/[slug]`
+documented as the second deliberately dynamic route; and a section-ground
+picture on one of the first two homepage sections now loads eagerly, since
+there it is the page's largest paint.
+
 
 **View the portal as a customer.** "View as" on the customer list and on a
 customer's record opens the portal in a new tab signed in as that customer —

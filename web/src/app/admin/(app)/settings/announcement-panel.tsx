@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { SettingSwitch } from "@/components/admin/setting-switch";
+import { useEffect, useRef, useState } from "react";
 import { EditorField } from "@/components/admin/editor-field";
 import { AnnouncementBar } from "@/components/layout/announcement-bar";
 import { Input } from "@/components/ui/input";
@@ -51,11 +52,6 @@ export function AnnouncementPanel({ rows }: { rows: SettingGroups[string] }) {
       const should = input.value === radios[input.name];
       if (input.checked !== should) input.checked = should;
     }
-    const boxes: Record<string, boolean> = { "announcement-enabled": enabled, "announcement-closable": closable };
-    for (const input of el.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')) {
-      const should = boxes[input.id];
-      if (should !== undefined && input.checked !== should) input.checked = should;
-    }
   });
 
   // The draft as the site would paint it — live forced on, so the preview
@@ -73,12 +69,12 @@ export function AnnouncementPanel({ rows }: { rows: SettingGroups[string] }) {
   return (
     <div ref={ref} className="space-y-6">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-lg border border-line-strong bg-surface px-4 py-3">
-        <Switch id="announcement-enabled" name="setting__announcement_enabled" checked={enabled} onChange={setEnabled}>
+        <SettingSwitch id="announcement-enabled" name="setting__announcement_enabled" checked={enabled} onChange={setEnabled}>
           Show the info bar
-        </Switch>
-        <Switch id="announcement-closable" name="setting__announcement_closable" checked={closable} onChange={setClosable}>
+        </SettingSwitch>
+        <SettingSwitch id="announcement-closable" name="setting__announcement_closable" checked={closable} onChange={setClosable}>
           Visitors can close it
-        </Switch>
+        </SettingSwitch>
         <p className="min-w-0 basis-full text-12-5 text-muted">
           Closed stays closed for that visitor&rsquo;s browser session; a changed message comes back.
         </p>
@@ -168,17 +164,6 @@ export function AnnouncementPanel({ rows }: { rows: SettingGroups[string] }) {
         )}
       </div>
     </div>
-  );
-}
-
-/** A visible checkbox whose value is posted by a controlled hidden input — see the panel's note. */
-function Switch({ id, name, checked, onChange, children }: { id: string; name: string; checked: boolean; onChange: (v: boolean) => void; children: ReactNode }) {
-  return (
-    <label htmlFor={id} className="flex cursor-pointer items-center gap-2 text-13-5 font-semibold">
-      <input id={id} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="size-4 accent-brand-600" />
-      <input type="hidden" name={name} value={checked ? "1" : "0"} />
-      {children}
-    </label>
   );
 }
 

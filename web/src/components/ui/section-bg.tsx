@@ -20,19 +20,27 @@ import type { SectionBackground, ThemeOptions } from "@/themes/options";
  * sets (`lib/section-background.ts`) are what those classes now resolve to.
  *
  * A picture is `next/image` filling the shell at the overlay's opacity,
- * lazy, `sizes="100vw"`, `alt=""` — decoration under words that already say
- * what the section is. The shell is `relative overflow-hidden` so the
- * picture clips to it, and the content sits on a `relative` layer above.
+ * `sizes="100vw"`, `alt=""` — decoration under words that already say what
+ * the section is. Lazy, **except on the first two sections of the page**:
+ * a ground picture under the section beneath the hero is the largest thing
+ * painted at every ordinary viewport, and lazy there is Next's LCP warning,
+ * which `npm run audit` fails on (found 2026-09-21 on a dev database with a
+ * picture on the second section). `eager`, never `priority` — the grids'
+ * rule; `HomeSection` decides from the section's position in the order.
+ * The shell is `relative overflow-hidden` so the picture clips to it, and
+ * the content sits on a `relative` layer above.
  * `seeds` are the three ramps' `600`s, which `ramp()` needs to derive the
  * coloured-text inks that read on the new ground.
  */
 export function SectionBg({
-  id, bg, seeds, className, children,
+  id, bg, seeds, className, eager = false, children,
 }: {
   id: string;
   bg: SectionBackground | undefined;
   seeds: Seeds;
   className?: string;
+  /** Load the picture eagerly — the first sections of a page, where it is the largest paint. */
+  eager?: boolean;
   children: ReactNode;
 }) {
   if (!bg) return <>{children}</>;
@@ -48,6 +56,7 @@ export function SectionBg({
           aria-hidden
           fill
           sizes="100vw"
+          loading={eager ? "eager" : undefined}
           className="object-cover"
           style={{ opacity: surface.imageOpacity, ...focalStyle(bg.image_focus) }}
         />
@@ -64,7 +73,12 @@ export function homeSeeds(settings: SiteSettings): Seeds {
   return { brand: palette.colors.brand600, secondary: companions.secondary[600], accent: companions.accent[600] };
 }
 
-/** One homepage section keyed into the options' `sections`; hoisted so a `Home` is not defining a component per render. */
-export function HomeSection({ id, sections, seeds, children }: { id: string; sections: ThemeOptions["sections"]; seeds: Seeds; children: ReactNode }) {
-  return <SectionBg id={id} bg={sections[id]?.bg} seeds={seeds}>{children}</SectionBg>;
+/**
+ * One homepage section keyed into the options' `sections`; hoisted so a
+ * `Home` is not defining a component per render. `index` is the section's
+ * position in the rendered order; the first two are above the fold and
+ * load their picture eagerly.
+ */
+export function HomeSection({ id, index, sections, seeds, children }: { id: string; index?: number; sections: ThemeOptions["sections"]; seeds: Seeds; children: ReactNode }) {
+  return <SectionBg id={id} bg={sections[id]?.bg} seeds={seeds} eager={index !== undefined && index <= 1}>{children}</SectionBg>;
 }

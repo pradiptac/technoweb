@@ -1,5 +1,6 @@
 "use client";
 
+import { Card } from "@/components/ui/card";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -35,7 +36,7 @@ export function FaqField({
     .filter((r) => r.question && r.answer);
 
   return (
-    <section className="mt-2 rounded-lg border border-line-strong bg-card p-5">
+    <Card as="section" interactive={false} padding="md" className="mt-2">
       <span className="block text-14-5 font-semibold">FAQs</span>
       <p className="mt-0.5 mb-4 text-13 text-muted">
         Shown on the page and emitted as FAQPage structured data, so these can
@@ -91,6 +92,6 @@ export function FaqField({
       )}
 
       {error && <p className="mt-1.5 text-12-5 text-err">{error}</p>}
-    </section>
+    </Card>
   );
 }

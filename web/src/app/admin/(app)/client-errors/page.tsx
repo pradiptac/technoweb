@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/dates";
 import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
@@ -17,12 +18,6 @@ export const metadata = buildMetadata({
 
 type SearchParams = { q?: string; area?: string; all?: string; page?: string; per_page?: string };
 
-const stamp = (iso: string | null) =>
-  iso
-    ? new Date(iso).toLocaleString("en-GB", {
-        day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-      })
-    : "—";
 
 /**
  * Which part of the product failed.
@@ -149,10 +144,10 @@ export default async function ClientErrorsPage({
                     {row.occurrences}
                   </td>
                   <td data-label="First seen" className="py-2.5 pr-3 whitespace-nowrap text-muted">
-                    {stamp(row.first_seen_at)}
+                    {formatDate(row.first_seen_at, "dateTimeShort")}
                   </td>
                   <td data-label="Last seen" className="py-2.5 pr-3 whitespace-nowrap text-muted">
-                    {stamp(row.last_seen_at)}
+                    {formatDate(row.last_seen_at, "dateTimeShort")}
                   </td>
                   <td data-label="" className="py-2.5 pr-4">
                     {row.resolved_at ? (

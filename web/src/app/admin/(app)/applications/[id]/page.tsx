@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/dates";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
@@ -12,12 +13,6 @@ import { StatusForm } from "./status-form";
 
 export const metadata = buildMetadata({ title: "Application", path: "/admin/applications", seo: noIndex });
 
-const stamp = (iso: string | null) =>
-  iso
-    ? new Date(iso).toLocaleString("en-GB", {
-        day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-      })
-    : "—";
 
 const size = (bytes: number | null) =>
   bytes === null ? "" : bytes < 1024 * 1024
@@ -159,8 +154,8 @@ export default async function ApplicationPage({
                   </a>
                 ) : "—"}
               </Row>
-              <Row label="Applied">{stamp(application.created_at)}</Row>
-              <Row label="Last reviewed">{stamp(application.reviewed_at)}</Row>
+              <Row label="Applied">{formatDate(application.created_at, "dateTime")}</Row>
+              <Row label="Last reviewed">{formatDate(application.reviewed_at, "dateTime")}</Row>
               <Row label="Reviewed by">{application.reviewed_by || "—"}</Row>
             </dl>
           </Card>

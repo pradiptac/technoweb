@@ -1,3 +1,4 @@
+import { formatTableDate } from "@/lib/dates";
 import { TONE_BAR, priorityTone } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { hueFor } from "@/lib/hues";
@@ -6,8 +7,6 @@ import { IconTicket, IconHeadset, IconClock, IconGauge } from "@/components/icon
 import type { DashboardMetrics, TicketPriority } from "@/types/api";
 
 /** "28 Jul". Short enough to sit under a 36px column without wrapping. */
-const dayLabel = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
 /**
  * The dashboard's charts.
@@ -217,12 +216,12 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
                         <span
                           className="block flex-1 rounded-t-sm bg-info"
                           style={{ height: `${(d.created / axisTop) * 100}%` }}
-                          title={`${dayLabel(d.date)}: ${d.created} opened`}
+                          title={`${formatTableDate(d.date)}: ${d.created} opened`}
                         />
                         <span
                           className="block flex-1 rounded-t-sm bg-ok"
                           style={{ height: `${(d.resolved / axisTop) * 100}%` }}
-                          title={`${dayLabel(d.date)}: ${d.resolved} resolved`}
+                          title={`${formatTableDate(d.date)}: ${d.resolved} resolved`}
                         />
                       </li>
                     ))}
@@ -247,7 +246,7 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
                     <span key={d.date} className="min-w-0 flex-1">
                       {show && (
                         <span className="-ml-3 block whitespace-nowrap">
-                          {dayLabel(d.date)}
+                          {formatTableDate(d.date)}
                         </span>
                       )}
                     </span>

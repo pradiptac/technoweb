@@ -4,6 +4,7 @@ import { ApiError } from "@/lib/api";
 import { impersonateCustomer } from "@/lib/admin";
 import { getToken } from "@/lib/admin-auth";
 import { IMPERSONATION_COOKIE } from "@/lib/auth";
+import { requestHost } from "@/lib/request-host";
 
 /**
  * "View as": open the customer portal as one customer, in a new tab.
@@ -31,7 +32,7 @@ import { IMPERSONATION_COOKIE } from "@/lib/auth";
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const origin = request.headers.get("origin");
-  if (origin && originHost(origin) !== requestHost(request)) {
+  if (origin && originHost(origin) !== requestHost(request.headers)) {
     return page(403, "This request did not come from the console.");
   }
 
@@ -57,11 +58,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const response = NextResponse.redirect(new URL("/portal", request.url), 303);
   response.cookies.set(IMPERSONATION_COOKIE.name, minted.token, IMPERSONATION_COOKIE.options());
   return response;
-}
-
-function requestHost(request: NextRequest): string | null {
-  const raw = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-  return raw?.split(",")[0]?.trim().toLowerCase() || null;
 }
 
 function originHost(origin: string): string | null {

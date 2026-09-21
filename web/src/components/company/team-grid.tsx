@@ -1,3 +1,4 @@
+import { initials } from "@/lib/initials";
 import { IconCheck, IconLinkedin, IconMail } from "@/components/icons";
 import { hueFor } from "@/lib/hues";
 import { cn } from "@/lib/utils";
@@ -197,9 +198,6 @@ function group(members: TeamMember[]): { name: string | null; members: TeamMembe
   return [...out.filter((g) => g.name !== null), ...out.filter((g) => g.name === null)];
 }
 
-function initials(name: string): string {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
-}
 
 /** The section is named by its visible heading rather than a second copy of the text. */
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");

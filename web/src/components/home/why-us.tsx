@@ -1,3 +1,4 @@
+import { initials } from "@/lib/initials";
 import { ArrowLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { IconCheck } from "@/components/icons";
@@ -126,15 +127,4 @@ export function WhyUs({ settings = {} }: { settings?: SiteSettings }) {
       </Container>
     </section>
   );
-}
-
-/** "R. Kulkarni" → "RK": the first letter of each of the first two words, dots dropped. */
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .map((w) => w.replace(/[^\p{L}\p{N}]/gu, ""))
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("");
 }

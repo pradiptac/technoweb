@@ -1,3 +1,4 @@
+import { formatTableDate } from "@/lib/dates";
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { Card } from "@/components/ui/card";
@@ -20,8 +21,6 @@ export const metadata = buildMetadata({ title: "Store", path: "/admin/store", se
 const WINDOWS = [7, 30, 90] as const;
 
 /** "28 Jul" — short enough to sit under a narrow column without wrapping. */
-const dayLabel = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
 /**
  * A round number at or above the peak, in paise.
@@ -245,12 +244,12 @@ function RevenueChart({ series, days }: { series: StoreDashboard["series"]; days
             {series.map((d) => (
               <li key={d.day} className="flex h-full flex-1 items-end">
                 <span className="sr-only">
-                  {dayLabel(d.day)}: {formatPaise(d.revenue_paise)} from {d.orders} order
+                  {formatTableDate(d.day)}: {formatPaise(d.revenue_paise)} from {d.orders} order
                   {d.orders === 1 ? "" : "s"}
                 </span>
                 <span
                   aria-hidden
-                  title={`${dayLabel(d.day)} — ${formatPaise(d.revenue_paise)}`}
+                  title={`${formatTableDate(d.day)} — ${formatPaise(d.revenue_paise)}`}
                   className="block w-full rounded-t-[2px] bg-brand-500 transition-colors hover:bg-brand-600"
                   /* A day with revenue too small to see still gets a pixel and a
                      half: a bar of zero height and a day that sold nothing must
@@ -291,7 +290,7 @@ function RevenueChart({ series, days }: { series: StoreDashboard["series"]; days
                   : { left: `${((i + 0.5) / series.length) * 100}%` }
               }
             >
-              {dayLabel(d.day)}
+              {formatTableDate(d.day)}
             </span>
           ) : null,
         )}
