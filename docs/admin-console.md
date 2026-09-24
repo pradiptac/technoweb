@@ -139,6 +139,27 @@ authenticated to authenticate. A *failed* sign-in is recorded too, and
 `user_id` stays null even when the address matches a real account: the row is
 about an attempt, not about that person.
 
+**The ticket volume is two curves, and this is the one chart here that is SVG
+(the client, 2026-09-23).** Opened and resolved as smooth lines with a gradient
+fading under each, in the `--color-info` and `--color-ok` the legend already
+used — referenced as `var(...)` inside the gradient stops, so a scheme change
+repaints the chart and no hex reaches the file.
+
+The rule at the top of `metrics.tsx` says bars are divs because SVG text is in
+user units and the hero's diagram once rendered a label set at 8.5 as 5.4px.
+That rule is about **text**, and it is unchanged: every label on this card is
+still HTML. What changed is the shape — a curve through thirty points cannot be
+built out of block elements, where a bar is a rectangle and could.
+
+Three things make the drawing honest. `preserveAspectRatio="none"` stretches
+the plot to the card's box and `vector-effect="non-scaling-stroke"` stops that
+turning a 2px line into a smear. The smoothing is a Catmull-Rom spline at the
+standard sixth-of-the-span tension, so the line passes through every measured
+day and never bows into a value nobody recorded — a chart that dips below zero
+between two quiet days is drawing tickets that were never opened. And the hover
+targets stay one transparent HTML column per day, because a `<title>` inside a
+stretched path is a target the width of the stroke.
+
 **A bar sized against the peak is a shape, not a quantity.** The dashboard's
 volume chart drew its tallest bar at full height whether it stood for two
 tickets or two hundred, with no axis, no baseline and dates only at the two
@@ -149,6 +170,43 @@ side, not stacked**: an opened ticket and a resolved one are different events,
 so a stack implies a total that means nothing — and each was sized against the
 peak independently before being stacked, which would have drawn a column of
 twice the plot height on a day that peaked in both.
+
+**And it is two curves now, not sixty bars (the client, 2026-09-23).** The
+axis, the even ceiling, the weekly dates and the side-by-side argument above
+all still hold — what changed is the mark: an opened and a resolved curve with
+a gradient fading out under each, which is what makes two overlapping series
+readable where two overlapping opaque areas are not. Four things it is bound
+by. It is **SVG**, which every other chart here is not, and the rule that kept
+them as divs is about *text*: a label inside a viewBox is in user units and the
+hero's diagram once rendered an 8.5 as 5.4px — so the shape is SVG and every
+label on the card stays HTML. `preserveAspectRatio="none"` lets the plot take
+whatever box the card gives it and `vector-effect="non-scaling-stroke"` is what
+stops that turning a 2px line into a 60px smear. The colours are
+`var(--color-info)` and `var(--color-ok)` **in the gradient stops** — the two
+the legend already used, referenced as tokens, so a scheme change repaints the
+chart with everything else. And the smoothing is a Catmull-Rom spline at a
+sixth-of-the-neighbouring-span tension, which keeps every control point inside
+the span it belongs to: a curve that dips below zero between two quiet days is
+drawing tickets nobody opened. The per-day figures stay as an HTML overlay of
+transparent columns carrying the same `title` the bars carried, because a
+`<title>` inside a stretched path is a target the width of the stroke.
+
+**The tiles step one rung down below `sm`, and the console keeps its desktop
+density everywhere else (the client, 2026-09-23).** `StatTile`'s figure was
+26px and the metrics tile's corner glyph 32px, both sized for six tiles across
+a desk monitor; on a phone each tile is the width of the screen and the number
+shouts across an empty card. `text-22 sm:text-[26px]` and `size-6 sm:size-8`.
+Nothing goes under 12px, and the density that the rest of the console buys with
+its small type is the point of a tool worked at a desk for hours — this is the
+one place the phone gets a different number.
+
+**"Sign out" is a glyph below `sm`.** Two words in a row that has already given
+up the account link and "View site" to fit 320px, so it wrapped and made the
+header a row taller than anything in it. `IconSignOut` under `sm`, the words
+from `sm`, and `aria-label="Sign out"` on the button at both widths — the name
+is on the control rather than in it, so nothing reading the page ever meets a
+button called nothing. A 16px glyph in `px-2.5 py-1.5` is 36x28, both past the
+24px floor the phone audit enforces.
 
 **`resolved_at` is stamped on arrival and cleared only by a reopen.** It was a
 pair of ternaries reading "now() if we are moving to this status, null

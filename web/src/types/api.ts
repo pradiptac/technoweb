@@ -1763,6 +1763,8 @@ export type Order = {
   customer_name: string;
   customer_email: string;
   customer_phone?: string | null;
+  /** What the buyer asked for at checkout, in their own words. */
+  customer_note?: string | null;
   billing_address?: PostalAddress | null;
   /** Null when nothing in the order travels. */
   shipping_address?: PostalAddress | null;
@@ -2017,6 +2019,8 @@ export type AdminOrder = {
   customer_name: string;
   customer_email: string;
   customer_phone?: string | null;
+  /** The buyer's own note. On the detail read only, like the addresses. */
+  customer_note?: string | null;
   customer_id?: number | null;
   subtotal_paise: number;
   discount_paise: number;

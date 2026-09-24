@@ -1015,6 +1015,24 @@ that.
 **It is never published.** `allow_oversell` is admin only; the storefront says
 `in_stock` and nothing else, the same reason no exact count is published.
 
+**`phone` is a mobile number and is checked for shape.** Ten digits opening
+6–9, with an optional `+91`, `91` or leading `0` and separators anywhere, so
+`9876543210`, `+91 98765 43210` and `+91-98765-43210` are one number and a
+landline is not. Indian mobiles only, deliberately: this shop prices in rupees,
+extracts GST, asks for a PIN code and offers cash on delivery. Shape only and
+never a lookup — an uncontrolled network call on the request path is the cost
+this project has measured at 12.5s, which is why `email:dns` is absent too. The
+**key stays `phone`** while the checkout screen says Mobile: it is what the
+column, both order resources, the console, the mock and the customer's own
+account call it.
+
+**`customer_note` is the buyer's own note, and it is optional.** Up to 1,000
+characters, stored as typed with its line breaks, returned on
+`GET /orders/{number}?token=` and on the admin **detail** read (never the
+list — it is prose, and a queue is scanned). It is `customer_note` rather than
+`notes` because `Order::notes()` is the desk's staff-only relation and an
+attribute of that name would shadow it.
+
 **`/checkout` prices the order itself.** The request carries a name, a phone
 number and an address; the basket is re-read, every line re-priced from the
 product under a row lock, and the total worked out again. Nothing supplied can

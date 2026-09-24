@@ -160,7 +160,7 @@ export default async function StoreCategoryPage({ params }: { params: Promise<{ 
                 This category has no products on sale at the moment.
               </EmptyState>
             ) : (
-              <ul data-collection="products" data-cols="6" className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              <ul data-collection="products" data-cols="6" className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {products.data.map((p, i) => (
                   <li key={p.id}>
                     {/*

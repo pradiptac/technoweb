@@ -27,7 +27,7 @@ class Order extends Model
         'order_number', 'customer_id', 'status', 'payment_method',
         'subtotal_paise', 'discount_paise', 'taxable_paise', 'gst_paise', 'total_paise',
         'coupon_id', 'coupon_code',
-        'customer_name', 'customer_email', 'customer_phone',
+        'customer_name', 'customer_email', 'customer_phone', 'customer_note',
         'billing_address', 'shipping_address',
         'gst_required', 'gstin', 'company_name',
         'invoice_number', 'invoice_date', 'invoice_path',

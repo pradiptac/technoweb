@@ -162,6 +162,19 @@ error about `items.3.group`, a field they never touched, is not a usable form.
 Deleting a tab does the opposite and sets them to null: the pictures fall back
 to "All", which is the same call `media.folder_id` makes with `nullOnDelete`.
 
+**The phone gutter on a caption is about the arrows, and only the middle row
+has to clear them (2026-09-23).** Every anchor carried `px-14` — 56px each
+side — so that a caption could not run under the previous/next buttons, which
+are 40px inset 8px from each edge and sit at **half height**: six of the nine
+anchors can never touch them. On a 390px screen that left a 198px text column,
+which wraps a heading after two words, clamps the summary mid-sentence and
+breaks a three-word button across three lines. It is `px-12` for the middle
+row — 48px, exactly where the arrows end — and `px-4` for the rest, and the
+caption block is `w-full` below `sm` instead of shrink-to-fit, because a box
+that sizes to its text is a column inside a wide scene and simply narrower
+lines on a phone. Measured 198px → 262px at 390. `slide-caption.tsx`, so every
+slider that draws a caption gets it.
+
 **A caption over a photograph cannot be made safe, so the gallery puts it
 underneath.** The background is a picture nobody has seen yet: white text on a
 gradient is legible over a dark image and invisible over a pale one, and

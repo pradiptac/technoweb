@@ -2514,6 +2514,7 @@ createServer(async (req, res) => {
       customer_name: body?.name ?? 'Someone',
       customer_email: body?.email ?? 'someone@example.test',
       customer_phone: body?.phone ?? null,
+      customer_note: body?.customer_note ?? null,
       billing_address: body?.address ?? null,
       shipping_address: shipped ? (body?.address ?? null) : null,
       gst_required: Boolean(body?.gst_required),

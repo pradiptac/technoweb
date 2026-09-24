@@ -1942,6 +1942,9 @@ A separate catalogue with prices; baskets, checkout, payment, stock, coupons, di
 - The shop's search suggestions are a listbox, and the two datalists are not the precedent for them.
 - A card's hover images mount on the first hover, not with the grid.
 - The basket strip is the shop's own chrome, not an addition to the site header.
+- A sticky element is held by its **own parent's** box and by nothing further up, so the shop's filter strip is a direct child of the wrapper spanning the shop and carries the container's gutter itself (2026-09-23) — nested one `Container` deep inside the first section it released at the pagination and slid behind the header, which the wrapper added in September could never have fixed.
+- The two promo tiles sit directly above the trust strip; the checkout says **Mobile** while the wire key stays `phone`, checked for shape as an Indian mobile; `orders.customer_note` is the buyer's optional note and is never `notes`, which is `Order::notes()`, the desk's own.
+- The strip sticks at **every** width from 2026-09-23 (the client's ask), and the store grids are two-up on a phone with the card's type one rung smaller below `sm` — which is what `product-card.tsx`'s own note already described while every grid said `sm:grid-cols-2`.
 - Place order fires Velora's confetti from the press, only when the form passes the browser's own validation; the order page's larger burst on arrival stays.
 - A refund is a `payments` row with status `refunded` (`ManualRefund`, `POST …/orders/{number}/refunds`): an amount, a reference, who confirmed it; partial refunds add up, the amount completing what was paid makes the order `refunded`, and nothing calls a gateway (2026-09-20).
 - The catalogue imports and exports (2026-09-20, `CatalogueExport`/`CatalogueImport`): one CSV row per product and per variation with `parent_sku`, money as plain decimals; the import is a dry run then a commit, matched by SKU — a variation's SKU updates the variation, a product's the product, an unknown one creates a product, and nothing ever creates a variation; a blank cell leaves a column alone; stock moves through `StockLedger::adjusted` with the import named; a store-specific column guesser, because the newsletter's reads "name" as a first name.
@@ -2311,6 +2314,7 @@ Transitions, layouts, captions, the crossfade rules, the lightbox.
 - A gallery's tabs are a table, and an item names one by slug.
 - Renaming a tab has to carry its pictures with it.
 - A caption over a photograph cannot be made safe, so the gallery puts it underneath.
+- A caption's phone gutter clears the arrows, which only the **middle** row can touch: `px-12` there and `px-4` elsewhere, and the block is `w-full` below `sm` — a flat `px-14` on all nine anchors left a 198px text column at 390px (2026-09-23).
 - The gallery renders no heading of its own.
 - Its lightbox does not go through `Modal`, and that is a decision.
 - The lightbox's autoplay is an override, not a copy.
@@ -2399,10 +2403,14 @@ Role-filtered sidebar, the settings strip, the activity log, dashboard charts, c
 - An activity subject must be in the morph map.
 - Sign-in is recorded at the call site, not by the middleware.
 - A bar sized against the peak is a shape, not a quantity.
+- The ticket volume is two smooth curves with a gradient under each (2026-09-23): SVG with `preserveAspectRatio="none"` and `vector-effect="non-scaling-stroke"`, colours as `var(--color-info)`/`var(--color-ok)` in the gradient stops, a Catmull-Rom tension that never bows past the days it joins, and every label still HTML — the rule about SVG text is about **text**, and a curve cannot be drawn out of divs.
+- The console's tile figure and its corner glyph step down one rung below `sm` (26→22px, 32→24px), and "Sign out" is `IconSignOut` there with `aria-label` carrying the name — the words wrapped to two lines in a row that had already given up the account link and "View site" to fit 320px.
 - `resolved_at` is stamped on arrival and cleared only by a reopen.
 - A chart bar and a badge for the same word share one map.
 - Client errors are grouped by fingerprint, and resolving one is a tick that re-opens itself.
 - A dashboard tile is a link to the list that produced its number, filtered the way the API counted it.
+- Ticket volume is two smooth curves rather than sixty bars (the client, 2026-09-23): SVG with `preserveAspectRatio="none"` and `vector-effect="non-scaling-stroke"`, `var(--color-info)`/`var(--color-ok)` in the gradient stops so nothing is a hex, and a Catmull-Rom spline at a sixth-of-the-span tension so the line never bows past a value nobody recorded. **The labels stay HTML** — the hero diagram's rule: SVG text scales with the viewBox.
+- The console keeps its dense desktop scale and steps one rung down below `sm` (the client, 2026-09-23): the stat tiles' 26px figure and 32px corner glyph, sized for six across, shout across a card the width of a 390px screen. "Sign out" is `IconSignOut` below `sm` with the words from `sm`, `aria-label` on the button either way — two words wrapped the header to a second row at 320px.
 - A column heading sorts, and it is a link — `SortTh`, `?sort=`/`?dir=`, allowlisted per list by `ListSort`.
 - The ticket queue has a selection bar, and the selection is a module-level store read through `useSyncExternalStore`.
 - Ctrl/⌘ K opens a command palette, and its pages are the sidebar's rows plus every settings tab and every setting (`settingsPages()`, from `settings-copy.ts`; `?tab=` opens the panel and `#setting__<key>` scrolls to the field, with `scroll-margin-top` for the sticky header); records come through `/api/admin/search`.
@@ -2430,6 +2438,9 @@ Header, footer, banners, the logo cap, phone-width reversals.
 - Info bar is a screen of its own, `/admin/info-bar` under Site beside Popups, and the `announcement` group is filtered out of the settings strip: it was a sidebar row *and* a settings tab for a day, and two doors to one form is one too many.
 - Its stops paint the same in both schemes and one ink is pushed until it clears 4.5:1 on every stop — `announcementBand()`, gated by `npm run themes`.
 - Its ticker is the brand marquee's CSS with the gap on the item; only the first copy is real, every repeat is `inert`, and the fade mask sits on a wrapper so it cannot fade the buttons.
+- Its third style is `vertical` (2026-09-23): one line at a time rising from the bottom, split on `<br>` and `</p><p>` by `announcementLines()`, held `1.4s + chars/15` (3–9s), paused on hover, focus and a hidden tab. It is a **client island** because each line's in/hold/out are percentages of one keyframe and those depend on how many lines there are, which CSS cannot take as a parameter; the stack is `aria-hidden` with the whole message rendered once `sr-only` beside it. The rise is `--duration-drift` (900ms), the fifth duration token and the only one that times motion nobody asked for.
+- The band is 24px on a phone and 27px from `sm` (the client, 2026-09-23), with 12px type below `sm` and both discs at 24px — the tap-target floor, which is what stops it going slimmer.
+- **Every style is one line**, and the two that are not the rotator join the lines with a middot: a `<br>` breaks a line even under `white-space: nowrap`, so one message drew 66/33/24px across the three styles until they shared `announcementFor()`'s split.
 - Closing it is a fingerprint in `sessionStorage`, hidden before paint by the root layout's script and removed by `useSyncExternalStore`.
 - `embeds` is the one settings group stored raw: `reviews_embed` (read for its Elfsight app id and drawn as the `reviews` homepage section) and `body_code` (`custom-code.tsx`, scripts rebuilt so they run), public so the site renders them, `role:admin` to write, never sanitised by design.
 - Moving between two dropdowns is a swap with no transition either way: the nav carries `data-panel-swap` while a panel is open (stamped by `releasePanel`, cleared 300ms after `markPanelSwap`), and the two `panel-drop` rules at the end of `globals.css` key on it and on `nav:has([data-panel-host]:hover)`. The stamp has to precede the hover recalc — Blink creates the transitions before it dispatches `pointerleave`.

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AutoApplyForm } from "@/components/ui/auto-apply-form";
 import { Select } from "@/components/ui/input";
 import { StoreSearch } from "@/components/store/store-search";
+import { cn } from "@/lib/utils";
 import { BasketIndicator } from "@/components/store/basket-bar";
 import type { StoreCategory } from "@/types/api";
 
@@ -29,7 +30,7 @@ import type { StoreCategory } from "@/types/api";
  * a basket cannot be cached.
  */
 export async function StoreFilterBar({
-  categories, q, category, sort, sticky = true,
+  categories, q, category, sort, sticky = true, className,
 }: {
   categories: StoreCategory[];
   q?: string;
@@ -49,6 +50,19 @@ export async function StoreFilterBar({
    * reason to opt out.
    */
   sticky?: boolean;
+  /**
+   * Layout for a host that renders this bar as a **direct child** of the block
+   * it should follow, rather than inside that block's `Container`.
+   *
+   * That distinction is the whole of whether sticking works, so it is a prop
+   * rather than a class somebody remembers to pass: a sticky box is held by its
+   * **parent's** box and by nothing further up, so a bar nested one `Container`
+   * deep inside a section is released the moment that section ends, however
+   * tall an ancestor around it happens to be. `/store` supplies its own gutter
+   * here so the bar can sit directly under the wrapper that spans the shop;
+   * merged last, so `mx-auto` beats the base `-mx-1`.
+   */
+  className?: string;
 }) {
   const filtered = Boolean(q || category);
 
@@ -59,12 +73,18 @@ export async function StoreFilterBar({
       Searching a catalogue means scrolling a grid and then wanting to narrow
       it, and the control that narrows it was at the top of a page somebody had
       scrolled away from — so refining a search meant scrolling back up, which
-      is also where the basket lives. It sticks from `lg` up only, and that is a
-      measurement rather than caution: below that the strip is three rows and
-      174px tall, so on a 360x640 phone it and the header together would hold
-      38% of the screen open permanently over the grid it exists to filter. A
-      phone gets the strip at the top of the page, where the whole screen is the
-      list.
+      is also where the basket lives.
+
+      **It sticks at every width from 2026-09-23**, at the client's request. It
+      was `lg` and up on a measurement: below that the strip is three rows and
+      174px tall, so on a 360x640 phone it and the header together hold 38% of
+      the screen open over the grid it exists to filter. That figure has not
+      changed and is the cost of this; what the client weighed against it is
+      that the basket lives in this strip, and on a phone — where the header
+      carries no basket at all — letting it scroll away leaves somebody halfway
+      down a listing with no way to see the basket or search without going back
+      to the top. The band's padding is trimmed to `py-2` below `lg` so the
+      stuck height is the strip and not a frame around it.
 
       It sticks for exactly as long as its **parent** is on screen — that is
       what `position: sticky` means — so the page hosting it decides how far
@@ -91,10 +111,11 @@ export async function StoreFilterBar({
     */
     <div
       data-store-filter
-      className={[
+      className={cn(
         "-mx-1 mb-5 px-1",
-        sticky ? "lg:sticky lg:top-[var(--h-site-header)] lg:z-30 lg:bg-page lg:py-3" : "",
-      ].join(" ")}
+        sticky && "sticky top-[var(--h-site-header)] z-30 bg-page py-2 lg:py-3",
+        className,
+      )}
     >
       {/*
         One height for everything in it — `h-11` on the input, both selects and

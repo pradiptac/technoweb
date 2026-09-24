@@ -96,6 +96,7 @@ class CheckoutController extends Controller
             'name' => $request->string('name')->value(),
             'email' => $request->string('email')->value(),
             'phone' => $request->string('phone')->value(),
+            'customer_note' => $request->input('customer_note'),
             'billing_address' => $needsShipping || filled($address) ? $this->address($address) : null,
             // Null when it is the same, which is what `Checkout::shippingAddress`
             // already falls back on — the order stores one address rather than

@@ -663,8 +663,8 @@ class SettingController extends Controller
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'The background is solid or gradient.']);
             }
 
-            if ($key === 'announcement_mode' && filled($value) && ! in_array((string) $value, ['fixed', 'ticker'], true)) {
-                throw ValidationException::withMessages(["settings.{$i}.value" => 'The message is fixed or a ticker.']);
+            if ($key === 'announcement_mode' && filled($value) && ! in_array((string) $value, ['fixed', 'ticker', 'vertical'], true)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'The message is fixed, a ticker or one line at a time.']);
             }
 
             if (in_array($key, ['announcement_enabled', 'announcement_closable'], true) && filled($value)

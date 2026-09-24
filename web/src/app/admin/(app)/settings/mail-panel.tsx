@@ -338,15 +338,28 @@ export function MailPanel({ status, rows }: { status: MailStatus; rows: SettingG
             press, and it should not survive it.
           */}
           <div className="min-w-0 flex-1 sm:max-w-[22rem]">
-            <Field
-              label="Send the test to"
-              htmlFor="mail_test_to"
-              hint="Leave blank for your own address. An outside inbox — a Gmail account, say — is the better test: it is the one that proves the mail is not being filed as spam."
-            >
+            {/*
+              The guidance is **below the row**, not in this field's `hint`
+              slot (2026-09-23).
+
+              As a hint it rendered inside the field's own column — 22rem at
+              most — so three lines of prose were set in a third of the panel
+              with the Send button stranded to the right of them and the rest of
+              the row empty. It is the same words in the same order; what
+              changed is that they run the width of the panel, where they read
+              as one paragraph rather than a caption.
+
+              `aria-describedby` is what keeps that from being a downgrade:
+              `Field` wires it for a hint, and a paragraph moved out of that
+              slot without it is text a screen reader never associates with the
+              box it is about.
+            */}
+            <Field label="Send the test to" htmlFor="mail_test_to">
               <Input
                 id="mail_test_to"
                 type="email"
                 autoComplete="off"
+                aria-describedby="mail_test_to-help"
                 value={testTo}
                 onChange={(e) => setTestTo(e.target.value)}
                 placeholder="you@example.com"
@@ -373,11 +386,20 @@ export function MailPanel({ status, rows }: { status: MailStatus; rows: SettingG
             className="mb-[18px]"
             onClick={() => run(() => testMailAction(testTo))}
           >
-            {busy ? "Working…" : "Send a test message"}
+            {/*
+              "Send". The row already says what is being sent and where to —
+              the heading above it, the field beside it — so the verb is the
+              only word the button has to carry, and a three-word label on a
+              small secondary button was what pushed it away from the field it
+              belongs to.
+            */}
+            {busy ? "Working…" : "Send"}
           </Button>
         </div>
 
-        <p className="measure text-12-5 text-muted">
+        <p id="mail_test_to-help" className="measure text-12-5 text-muted">
+          Leave blank for your own address. An outside inbox — a Gmail account, say — is
+          the better test: it is the one that proves the mail is not being filed as spam.
           It uses whatever is <em>saved</em>, not what is on screen — so save first. The
           message is the same fixed sentence every time and is recorded in the activity
           log with the address it went to.

@@ -162,6 +162,18 @@ export default async function OrderPage({
                 </div>
               )}
 
+              {/*
+                Read back, because an order page that does not repeat what was
+                asked for is one nobody can check. It is what they typed, with
+                their own line breaks.
+              */}
+              {order.customer_note && (
+                <div className="mt-4 rounded-lg border border-line-strong bg-card p-5">
+                  <h2 className="mb-2 text-15 font-semibold">Your notes</h2>
+                  <p className="whitespace-pre-line text-14 text-muted">{order.customer_note}</p>
+                </div>
+              )}
+
               {order.shipping_address && (
                 <div className="mt-4 rounded-lg border border-line-strong bg-card p-5">
                   <h2 className="mb-2 text-15 font-semibold">Delivering to</h2>

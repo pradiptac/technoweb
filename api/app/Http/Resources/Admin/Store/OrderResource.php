@@ -47,6 +47,13 @@ class OrderResource extends JsonResource
             'customer_name' => $this->customer_name,
             'customer_email' => $this->customer_email,
             'customer_phone' => $this->customer_phone,
+            /*
+             * On the **detail** only, like the addresses. It is prose somebody
+             * typed rather than a field to scan a list by, and a queue is read
+             * a row at a time — but it has to be on the screen the parcel is
+             * packed from, or "leave it at reception" was written for nobody.
+             */
+            'customer_note' => $this->when($detail, $this->customer_note),
             'customer_id' => $this->customer_id,
 
             'subtotal_paise' => $this->subtotal_paise,

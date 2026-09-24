@@ -640,6 +640,65 @@ header.** That row is at its measured limit — both flanking groups are
 reopen the 320px overflow the logo cap exists for. `store/layout.tsx`, the same
 answer `NewsletterNav` gives for the newsletter's screens.
 
+**A sticky element is held by its own parent, so the filter strip has to be a
+direct child of the block it follows (2026-09-23).** The strip is
+`lg:sticky lg:top-[var(--h-site-header)]` and it was released at the
+pagination — it docked for the products grid and then slid up behind the
+header while the promo band, the latest products and the trust strip were
+still to come. A wrapper `<div>` spanning the shop had been added for exactly
+this in September and did nothing, because the strip sat one `Container` deep
+inside the first `<section>` and `position: sticky` never looks past the
+element's own parent box: measured at 1707px, it released at an absolute top
+of 1979 inside a wrapper running to 3714. `/store` renders `StoreFilterBar` as
+a direct child of that wrapper now and passes the container's gutter through
+the new `className` prop — `mx-auto w-[calc(90%+0.5rem)]`, the extra 0.5rem
+being what `px-1` spends, so the *card* lines up with the grid to the pixel
+(84.6 and 1607.4 on both, measured) while the opaque band still clears its
+rounded corners. The space above it is a **margin**, because padding would sit
+inside the stuck box as a permanent band. The category and product pages
+already held it in one page-length `Container`, which is why only the shop
+front was wrong.
+
+**The strip sticks at every width from 2026-09-23, at the client's request.**
+It was `lg` and up on a measurement that still stands: the strip is three rows
+and 201px tall at 390px, so it and the header hold about a third of the
+screen. What the client weighed against it is that the basket lives in this
+strip and the phone header carries none, so a strip that scrolls away leaves
+somebody halfway down a listing with no way to reach the basket or the search
+without going back to the top. The band is `py-2` below `lg` so the stuck
+height is the strip and not a frame around it.
+
+**Two products to a row on a phone (the client, 2026-09-23), which is what the
+card was already written for.** `product-card.tsx`'s own note describes a grid
+running "from two columns on a phone to six on a wide screen" — every store
+grid said `sm:grid-cols-2`, so a phone got one. The grids are `grid-cols-2`
+from the base width now, `sizes` moves from `100vw` to `50vw`, and the card's
+type steps down one rung below `sm`: a 16px title and a 20px price in a 170px
+cell wrap the name to three lines and shout the price. Nothing goes under
+12px, which the public site's floor would lift back anyway.
+
+**The two promo tiles sit directly above the trust strip (the client,
+2026-09-23).** They were between the products grid and the promo band, where
+two editor-set pictures interrupt the shop between what is for sale and the
+rest of it.
+
+**The checkout asks for a Mobile, and the wire key is still `phone`.** The
+label is the word this audience uses for the number a courier rings; the key is
+what `orders.customer_phone`, both order resources, the console, the mock and
+the customer's account all call it, and renaming it to match a label is a
+migration across five files a buyer never sees. The number is checked for shape
+in `CheckoutRequest` — ten digits opening 6–9, optional `+91`/`91`/`0`,
+separators anywhere — never against a lookup.
+
+**`orders.customer_note` is the buyer's own note, and it is not `notes`.**
+`Order::notes()` is the desk's staff-only relation, so an attribute of that
+name would shadow it — an `$order->notes` that is sometimes a collection and
+sometimes a string is a collision nothing reports. Optional, stored as typed
+with its line breaks, read back on the buyer's order page and drawn on the
+console's order screen beside the address, which is the screen the parcel is
+packed from. On the admin **detail** only, like the addresses: it is prose, and
+a queue is scanned a row at a time.
+
 **The order page's alert reads `paid_at`, not the status.** It said "Payment
 received" for every order past `pending_payment` — which is a
 cash-on-delivery order, born `confirmed` with nothing paid, the moment it was

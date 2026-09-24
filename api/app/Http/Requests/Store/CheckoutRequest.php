@@ -32,7 +32,38 @@ class CheckoutRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'string', 'email:rfc', 'max:190'],
-            'phone' => ['required', 'string', 'max:32'],
+            /*
+             * A mobile number, checked for shape.
+             *
+             * The key stays `phone`. It is what the column, the order resource,
+             * the console, the mock and the customer's own account all call it,
+             * and renaming a wire key to match a label is a migration across
+             * five files that buys a visitor nothing — the *screen* says
+             * Mobile, which is the part anybody reads.
+             *
+             * Indian mobiles only, and deliberately: this shop prices in
+             * rupees, extracts GST, asks for a PIN code and offers cash on
+             * delivery, so a number nobody here can ring is not a number worth
+             * storing. Ten digits opening 6–9, with an optional +91, 91 or 0 in
+             * front, and separators anywhere — people type `98765 43210` and
+             * `+91-98765-43210` in equal measure and neither is a mistake.
+             *
+             * Shape only, never a lookup: an uncontrolled network call on the
+             * request path is what took a contact-form submission from 0.2s to
+             * 12.5s here, which is the same reason `email:dns` is absent above.
+             */
+            'phone' => [
+                'required', 'string', 'max:32',
+                'regex:/^(?:\+?91[-\s]?)?0?[6-9](?:[-\s]?\d){9}$/',
+            ],
+
+            /*
+             * Anything the buyer wants the desk to know — a delivery window, a
+             * gate code, a purchase-order number. Optional, and it has to stay
+             * optional: a required box here is a question asked of every order
+             * for the sake of the few that have an answer.
+             */
+            'customer_note' => ['nullable', 'string', 'max:1000'],
 
             /*
              * The address is required whenever anything is shipped, and that is
@@ -90,7 +121,8 @@ class CheckoutRequest extends FormRequest
         return [
             'name.required' => 'We need a name for the order.',
             'email.required' => 'We need an email address to send the confirmation to.',
-            'phone.required' => 'A phone number, in case there is a problem with the delivery.',
+            'phone.required' => 'A mobile number, in case there is a problem with the delivery.',
+            'phone.regex' => 'That does not look like a mobile number. Ten digits starting 6 to 9, with or without +91.',
             'gstin.regex' => 'That does not look like a GSTIN. It is 15 characters, like 27AAPFU0939F1ZV.',
             'gstin.required_if' => 'Enter the GSTIN, or untick the GST option.',
             'company_name.required_if' => 'Enter the business name for the invoice.',
@@ -99,6 +131,13 @@ class CheckoutRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        if ($this->filled('phone')) {
+            // Collapsed, never reformatted. Runs of spaces come from pasting a
+            // number out of a contacts app and mean nothing; rewriting the
+            // number itself would store something the buyer did not type.
+            $this->merge(['phone' => preg_replace('/\s+/', ' ', trim((string) $this->input('phone')))]);
+        }
+
         if ($this->filled('gstin')) {
             // Typed in lower case as often as not, and the format is upper.
             $this->merge(['gstin' => strtoupper(trim((string) $this->input('gstin')))]);

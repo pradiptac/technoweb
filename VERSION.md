@@ -21,6 +21,133 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.86.0 — 2026-09-23
+
+**Sixteen things the client asked for while looking at the site**, most of
+them on a phone.
+
+**The checkout asks for a Mobile, and checks it.** The field says Mobile
+rather than Phone, and the API refuses anything that is not an Indian mobile
+number — ten digits opening 6 to 9, with or without `+91`, `91` or a leading
+zero, and separators wherever somebody typed them. A refusal names the field
+and says what the format is; the wire key stays `phone`, which is what the
+column, the order resource, the console and the customer's own account all
+call it. `CheckoutRequest`.
+
+**Order notes.** An optional box at the foot of the checkout for a delivery
+window, a gate code or a purchase-order number: `orders.customer_note`, stored
+as typed with its line breaks, read back on the buyer's own order page and
+drawn on the console's order screen where the parcel is packed from. It is
+`customer_note` and not `notes` because `Order::notes()` is already the desk's
+staff-only relation.
+
+**The shop's filter strip stays docked for the whole shop.** It had been
+releasing at the pagination and sliding up behind the header with the promo
+band, the latest products and the trust strip still to come — measured at
+1707px, released at an absolute top of 1979 inside a wrapper running to 3714.
+A sticky box is held by its **own parent's** box and by nothing further up, so
+the wrapper added in September never applied to a strip nested one `Container`
+deep inside a section. It is hoisted out and carries the container's gutter
+itself, so its edges still line up with the grid below it.
+
+**The two promo tiles moved to sit directly above the trust strip**, closing
+the shop with the banner and the strip instead of interrupting it between the
+grid and the promo band.
+
+**The shop's filter strip sticks on a phone too**, at the client's request.
+It was `lg` and up on a measurement that has not changed — the strip is three
+rows and 201px tall at 390px, so it and the header hold about a third of the
+screen. What is weighed against it is that the basket lives in this strip and
+the phone header carries no basket at all, so letting it scroll away leaves
+somebody halfway down a listing with no way to reach either. The band's
+padding is trimmed below `lg` so the stuck height is the strip rather than a
+frame around it.
+
+**Slide captions fit a phone.** Every caption was padded `px-14` — 56px each
+side on all nine anchors — to clear the previous/next buttons, which only the
+middle row can collide with. At 390px that left a 198px text column: headings
+wrapping after two words, the summary clamped mid-sentence and "Shop the
+store" broken across three lines. The gutter is now `px-12` for the middle row
+(exactly where the arrows end) and `px-4` everywhere else, and the caption
+block is full width on a phone rather than shrink-to-fit — 262px of text, and
+the summary reads to its end. `slide-caption.tsx`, so every slider that draws
+a caption gets it.
+
+**Two products to a row on a phone**, which is what the card was written for —
+its own note already described "two columns on a phone to six on a wide
+screen" while every store grid said one. The card's type steps down one rung
+below `sm` and back above it, because a 16px title and a 20px price in a 170px
+cell wrap the name to three lines and make the price the loudest thing on the
+screen. The image `sizes` hint moves from `100vw` to `50vw` to match.
+
+**A bigger logo on a phone.** Raising the height alone did nothing: the mark
+is a wide wordmark, so the width cap binds first. The room is a real number
+and it differs by device — the flanking group is a fixed 150px and the
+container is 90%, leaving 130px at 320, 174px at 360 and 201px at 390 — so the
+cap follows it: 128px below 360, 164px from 360, 190px from 390.
+
+**A third info-bar message style: one line at a time.** Each line rises from
+the bottom and holds long enough to read it — `1.4s + chars/15`, floored at 3s
+and capped at 9s — pausing under the pointer, while something inside has focus
+and while the tab is hidden. A line is what the editor pressed Enter to make,
+since the `inline` purifier keeps `<br>` and wraps runs in `<p>`, and those are
+the only separators there can be. The rise is 900ms on a new
+`--duration-drift` token: the four durations in the scale all time a reaction
+to something somebody did, and at `slow` an ambient loop reads as a flick. The
+stack is `aria-hidden` with the whole message rendered once beside it, because
+a rotator read aloud is either a live region interrupting somebody every few
+seconds or a message of which one line is ever in the accessibility tree.
+
+**The info bar is slimmer.** 24px on a phone against 49, and 27px on a desktop
+against 36 — the halving and the three-quarters the client asked for. The type
+steps to 12px below `sm`, the padding goes, both discs are 24px (the tap-target
+floor, not below it), and the line is centred in the band rather than sitting
+on its top edge.
+
+**All three info-bar styles are the same height.** Fixed, ticker and one
+line at a time drew 66px, 33px and 24px on a phone from one message, because a
+`<br>` breaks a line even under `white-space: nowrap` — so a message an editor
+wrote as three lines was three heights on a strip whose whole job is to be the
+same thin line. The two one-line styles join the lines with a middot, using the
+split the vertical style already needs, and every style clamps to one line.
+
+**"Sign out" is a glyph on a phone.** It wrapped to two lines in a row that has
+already given up the account link and "View site" to fit 320px, so the console
+header stood a row taller than anything in it. `IconSignOut` below `sm`, the
+words from `sm`, and `aria-label` on the button either way so nothing reading it
+gets a control called nothing.
+
+**The dashboard's ticket volume is two curves.** Sixty bars became a smooth
+opened-and-resolved pair with a gradient under each, drawn as SVG with
+`preserveAspectRatio="none"` and a non-scaling stroke. The colours are the
+`--color-info` and `--color-ok` the legend already used, referenced as tokens in
+the gradient stops rather than as hexes; the smoothing is a Catmull-Rom spline
+whose control points are clamped into the plot, because at the standard tension
+a drop from a busy day into two quiet ones put one at 108 in a 0-100 box — and
+a curve bowing under the baseline is drawing fewer than no tickets. Measured on
+the dashboard, not assumed. The labels stay HTML, which is the rule the
+hero diagram taught — SVG text scales with the viewBox.
+
+**The volume chart says what it measured when it has nothing to draw.** It
+read "No tickets in this window" under a dashboard reporting four open tickets,
+which is two correct figures and one that looks broken: the chart counts
+tickets *opened* over thirty days and the tiles count tickets *open* now, and
+on an install whose newest ticket is thirty-two days old both are right. It
+names the window and the measure now, and says where the open ones are.
+
+**The console's tiles step down on a phone.** A 26px figure and a 32px corner
+glyph were sized for a six-across dashboard and shout across a card the width of
+a 390px screen. One rung smaller below `sm`, back above it. The console keeps
+its dense desktop scale, which is the point of a tool worked at a desk.
+
+**The mail test row reads.** The button says "Send", and the paragraph
+explaining what the test proves runs the width of the panel instead of being
+set in the field's own 22rem column with the button stranded beside it. It
+keeps its `aria-describedby`, so moving it out of the field's hint slot is not
+an accessibility downgrade.
+
+---
+
 ## 0.85.0 — 2026-09-21
 
 **The sensitive switch reaches the ticket's opening request.** "This ticket

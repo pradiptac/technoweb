@@ -230,6 +230,9 @@ class Checkout
                 'customer_name' => $details['name'],
                 'customer_email' => $details['email'],
                 'customer_phone' => $details['phone'] ?? null,
+                // The buyer's own words, optional and stored as typed. Never
+                // confused with `notes()`, which is the desk's and staff-only.
+                'customer_note' => $details['customer_note'] ?? null,
                 'billing_address' => $details['billing_address'] ?? null,
                 /*
                  * Null when nothing travels, rather than a copy of the billing
