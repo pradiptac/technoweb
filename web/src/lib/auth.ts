@@ -32,32 +32,76 @@ export async function getToken(): Promise<string | undefined> {
  */
 async function setToken(token: string, remember = true) {
   const jar = await cookies();
-  jar.set(COOKIE, token, {
+  jar.set(COOKIE, token, cookieOptions(remember ? 60 * 60 * 24 * 14 : undefined)); // 14 days, or this session
+}
+
+/**
+ * One options object for every write of the cookie, so the two ways it is set
+ * — a sign-in and a staff member's "View as" — cannot drift on `httpOnly`,
+ * `sameSite` or the path. `sameSite: "lax"` is load-bearing for the second:
+ * the route handler that mints an impersonation is reachable only by a POST
+ * carrying the *admin* cookie, and lax is what keeps a cross-site form from
+ * sending it.
+ */
+function cookieOptions(maxAge?: number) {
+  return {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "lax" as const,
     path: "/",
-    ...(remember ? { maxAge: 60 * 60 * 24 * 14 } : {}), // 14 days, or this session
-  });
+    ...(maxAge ? { maxAge } : {}),
+  };
 }
+
+/**
+ * The cookie a staff member's "View as" tab holds, and how long.
+ *
+ * The API's impersonation token lives an hour (`Customer::IMPERSONATION_MINUTES`);
+ * the cookie is given the same life so a tab does not go on sending a token
+ * the API stopped honouring. Written onto a *response* rather than the
+ * request's jar, because the route handler that calls this answers with a
+ * redirect and the cookie has to ride on that answer.
+ */
+export const IMPERSONATION_COOKIE = {
+  name: COOKIE,
+  options: () => cookieOptions(60 * 60),
+};
 
 export async function clearToken() {
   const jar = await cookies();
   jar.delete(COOKIE);
 }
 
-/** Deduped per-request lookup of the signed-in customer, or null. */
-export const getCurrentCustomer = cache(async (): Promise<Customer | null> => {
+/**
+ * The session as the API describes it, once per request.
+ *
+ * Kept as the whole envelope rather than the record: `meta.impersonated` is
+ * a claim about *this session* — a staff member holding a "View as" token —
+ * and the portal layout reads it to draw the banner. A 401 is "signed out";
+ * so is a 403, which is what a customer suspended mid-session gets on every
+ * request (`EnsureUserIsCustomer`) and which used to throw the whole portal
+ * to its error boundary rather than back to the sign-in form.
+ */
+const getSession = cache(async (): Promise<{ data: Customer; meta?: { impersonated?: boolean } } | null> => {
   const token = await getToken();
   if (!token) return null;
   try {
-    const res = await apiFetch<{ data: Customer }>("/auth/me", { token });
-    return res.data;
+    return await apiFetch<{ data: Customer; meta?: { impersonated?: boolean } }>("/auth/me", { token });
   } catch (error) {
-    if (error instanceof ApiError && error.status === 401) return null;
+    if (error instanceof ApiError && (error.status === 401 || error.status === 403)) return null;
     throw error;
   }
 });
+
+/** Deduped per-request lookup of the signed-in customer, or null. */
+export async function getCurrentCustomer(): Promise<Customer | null> {
+  return (await getSession())?.data ?? null;
+}
+
+/** Whether the session in hand is a staff member viewing the portal as the customer. */
+export async function isImpersonated(): Promise<boolean> {
+  return (await getSession())?.meta?.impersonated === true;
+}
 
 export async function login(email: string, password: string, remember = true): Promise<Customer> {
   const res = await apiFetch<AuthResponse>("/auth/login", {

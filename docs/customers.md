@@ -132,3 +132,43 @@ is unsupported, which is the right failure for a convenience. Same call the PIN
 code's city suggestions make. Debounced at 250ms and the in-flight request
 aborted, or a slow answer for "me" lands after the answer for "meridian" and
 replaces it.
+
+**A staff member can open the portal as an active customer, and it is a token
+of its own.** "View as" on the customer list and the customer's record
+(2026-09-21): `POST /admin/customers/{id}/impersonate`, `role:support_engineer`,
+mints a Sanctum token named `impersonation` with the `impersonation` ability
+and an hour to live, and the console's route handler puts it in the new tab's
+`tw_session` cookie. Never a `portal` token, because `AuthController::issueToken()`
+deletes every `portal` token before minting one — an impersonation issued that
+way would sign the customer out of their own browser while somebody is trying
+to help them — and never through `issueToken()` at all, since it stamps
+`last_login_at`, which the console shows as "Last signed in". Only an active
+account, refused with a sentence otherwise: `EnsureUserIsCustomer` 403s every
+portal request for any other status, and a tab that opens on a refusal is
+worse than a button that does not appear. `GET /auth/me` carries
+`meta.impersonated` (a claim about the session, so it rides beside the record
+rather than on it), read through `Customer::isImpersonated()` — an ability
+check that is sound for a `Customer` only because Sanctum's stateful path asks
+the `web` guard alone, whose provider is the `users` table, so a customer is
+never a `TransientToken` whose `can()` answers true to everything. The one
+thing the session may not do is change the email address: the portal path
+changes one without re-verification. `CustomerImpersonationTest` pins all of
+it with **real bearer headers**, which turned up two stickinesses worth
+knowing — `actingAs()` authenticates every later request in the same test,
+and the guard object keeps the first user it resolved until
+`auth()->forgetGuards()`.
+
+**The console reaches it through a POST-only route handler, and the method is
+the CSRF defence.** Both session cookies are `sameSite: "lax"`, which a browser
+withholds on a cross-site POST and sends on a cross-site top-level GET — so as a
+GET, a link in a phishing mail opened by a signed-in engineer would arrive with
+the admin cookie and mint a portal token for whichever customer the URL named.
+The button is a `<form method="post" target="_blank">` (`view-as-form.tsx`): a
+native new tab, no JavaScript, never a `Link` (a `next/link` at a route handler
+prefetches it) and never an `<a>` (a GET). The handler also refuses an
+`Origin` naming another host, read `x-forwarded-host` first so Plesk's
+internal address does not fail every legitimate press. Two consequences to
+know: the new tab overwrites whatever portal session that browser held, and
+"End" (or Sign out) revokes the impersonation token and lands the tab on the
+customer's record in the console — a redirect, never `window.close()`, which
+only closes a tab whose history holds one entry.

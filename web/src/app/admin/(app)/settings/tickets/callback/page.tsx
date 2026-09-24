@@ -35,7 +35,7 @@ export default async function TicketsCallbackPage({
 
   return (
     <>
-      <PageHeader title="Connecting the support mailbox" back={{ href: "/admin/settings?tab=tickets", label: "Settings" }} />
+      <PageHeader title="Connecting the support mailbox" back={{ href: "/admin/tickets/settings", label: "Email to ticket" }} />
 
       {declined ? (
         <Alert tone="info" title="Nothing was connected">
@@ -58,7 +58,7 @@ export default async function TicketsCallbackPage({
       ) : result?.ok ? (
         <Alert tone="ok" title="Mailbox connected">
           Tickets will be read from <strong>{result.ok}</strong> once email piping is
-          switched on. Check the connection from Settings → Ticketing to confirm it reads.
+          switched on. Check the connection from Tickets → Email to ticket to confirm it reads.
         </Alert>
       ) : (
         <Alert tone="warn" title="Nothing to do">
@@ -68,7 +68,7 @@ export default async function TicketsCallbackPage({
       )}
 
       <div className="mt-4 flex flex-wrap gap-3">
-        <ButtonLink href="/admin/settings?tab=tickets" size="sm">Back to Settings</ButtonLink>
+        <ButtonLink href="/admin/tickets/settings" size="sm">Back to Email to ticket</ButtonLink>
         <Link href="/admin/tickets" className="text-13 font-semibold text-brand-ink hover:underline">
           Open the ticket queue
         </Link>

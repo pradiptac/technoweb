@@ -15,7 +15,7 @@ class UpdateSolutionRequest extends FormRequest
     /** `overview` is the rich-text body here, not `body`. */
     protected function richTextFields(): array
     {
-        return ['overview'];
+        return ['overview', 'answer_blocks.*.detail'];
     }
 
     public function authorize(): bool
@@ -44,6 +44,7 @@ class UpdateSolutionRequest extends FormRequest
             ...CmsFieldRules::ids('product_ids', 'products'),
             ...CmsFieldRules::ids('industry_ids', 'industries'),
             ...CmsFieldRules::faqs(),
+            ...CmsFieldRules::answerBlocks(),
             ...SeoRules::rules(),
         ];
     }
@@ -56,6 +57,10 @@ class UpdateSolutionRequest extends FormRequest
             'summary.max' => 'The summary is limited to 500 characters.',
             'faqs.*.question.required' => 'Every FAQ needs a question.',
             'faqs.*.answer.required' => 'Every FAQ needs an answer.',
+            'answer_blocks.*.kind.required' => 'Every answer block needs a kind.',
+            'answer_blocks.*.answer.required' => 'Every answer block needs its direct answer.',
+            'answer_blocks.*.answer.max' => 'The direct answer is limited to 600 characters. Put the rest in the detail.',
+            'answer_blocks.*.question.required_if' => 'A question or comparison block needs its question.',
         ];
     }
 }

@@ -130,3 +130,15 @@
 [data-theme="summit"] .btn.bg-brand-600:hover {
   background-image: linear-gradient(135deg, var(--color-brand-700), var(--color-accent-700));
 }
+
+/*
+  The resources hub's colour (2026-09-21). Every tile on `/resources` carries a
+  `--tile-hue` — the four routes by position, a post by its category, a guide
+  by its category, a project by its industry — and this is how Summit shows
+  it. Grounds and edges only, never a text colour: the neon set is graded for
+  a glyph at 3:1, not for words, and `npm run audit` grades the words against
+  whatever opaque ground is under them.
+*/
+[data-theme="summit"] [data-collection="routes"] [data-tile] {
+  border-top: 3px solid var(--tile-hue, var(--color-line-strong));
+}

@@ -1,7 +1,9 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { formatBytes } from "@/lib/format-bytes";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { IconClose } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
 
 /**
@@ -26,6 +28,26 @@ import { cn } from "@/lib/utils";
  *
  * A bar with nothing behind it would be theatre, so it is drawn only from a
  * measurement — a `progress` the caller can vouch for.
+ *
+ * Form mode keeps its own list of what will be sent (2026-09-21): a row per
+ * file with a thumbnail for a picture, the name, the size and a remove
+ * button. Three rules behind it. **Adding appends** — a pick, a drop and a
+ * paste each join what is already chosen, where a drop used to replace the
+ * pick before it. **Every file gets an id when it arrives**, because two
+ * pasted screenshots are both `image.png` and a key built from the name and
+ * the size collided. And **the hidden input is rebuilt from the list**, never
+ * the other way round: `DataTransfer` is the only way to write a `FileList`,
+ * so removing a row is building a new one without it.
+ *
+ * `paste` listens on the surrounding form rather than on this control, so
+ * Ctrl+V into the reply's textarea lands the screenshot here without every
+ * form wiring `onPaste`. Only `kind === "file"` items are taken and the
+ * event is cancelled only when something was — pasting text still pastes
+ * text. A clipboard image arrives as `image.png` from every browser, so it
+ * is renamed to `pasted-<stamp>.png` on the way in: the thread would
+ * otherwise list five identical names. That is the *file's* name, and the
+ * rule in `docs/media.md` that a form-mode FileDrop renames nothing is about
+ * the *field* (`attachments` → `attachments[]`), which stays the form's job.
  */
 
 export type UploadProgress = {
@@ -45,10 +67,36 @@ export type UploadProgress = {
   percent?: number | null;
 };
 
+/** A chosen file in form mode, with the id its row is keyed on. */
+type Chosen = { id: string; file: File };
+
+let nextId = 0;
+const chosenId = () => `f${++nextId}`;
+
+/** The clipboard's `image.png`, named by the moment it was pasted. */
+function pastedName(file: File): string {
+  const ext = file.type.split("/")[1]?.replace("jpeg", "jpg") || "png";
+  const d = new Date();
+  const two = (n: number) => String(n).padStart(2, "0");
+  return `pasted-${d.getFullYear()}${two(d.getMonth() + 1)}${two(d.getDate())}-${two(d.getHours())}${two(d.getMinutes())}${two(d.getSeconds())}.${ext}`;
+}
+
+/** Whether a file matches an `accept` list of `.ext` and `type/*` entries; no list accepts everything. */
+function accepted(file: File, accept?: string): boolean {
+  if (!accept) return true;
+  const ext = file.name.includes(".") ? `.${file.name.split(".").pop()!.toLowerCase()}` : "";
+  return accept.split(",").map((s) => s.trim().toLowerCase()).some((rule) =>
+    rule.startsWith(".") ? rule === ext
+      : rule.endsWith("/*") ? file.type.startsWith(rule.slice(0, -1))
+      : rule === file.type,
+  );
+}
+
 export function FileDrop({
   accept, multiple = false, onFiles, name, progress = null, hint, disabled = false,
   label = multiple ? "Select files…" : "Select a file…", className, children,
   id, required = false, directory = false, "aria-describedby": describedBy,
+  paste = false, max, maxBytes,
 }: {
   accept?: string;
   multiple?: boolean;
@@ -96,12 +144,26 @@ export function FileDrop({
    * clone leaves both as text a screen reader never connects to the field.
    */
   "aria-describedby"?: string;
+  /**
+   * Form mode: take files pasted anywhere in the surrounding form — a
+   * screenshot on the clipboard, Ctrl+V in the message box. See the docblock.
+   */
+  paste?: boolean;
+  /**
+   * Form mode: the most files the list may hold, and the largest one. Both
+   * are the API's rules restated here so a refusal is a sentence under the
+   * list rather than a 422 after the upload — the API's own limits stay the
+   * rule (`AttachmentStore::MAX_FILES`, `support.attachment_max_kb`).
+   */
+  max?: number;
+  maxBytes?: number;
 }) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
-  const [chosen, setChosen] = useState<File[]>([]);
+  const [chosen, setChosen] = useState<Chosen[]>([]);
+  const [refused, setRefused] = useState<string | null>(null);
 
   /*
     Drag enter and leave fire again for every child element crossed, so a naive
@@ -113,20 +175,108 @@ export function FileDrop({
 
   const busy = progress !== null;
 
-  const take = (list: FileList | null) => {
-    const files = Array.from(list ?? []);
+  /*
+    Form mode: the list is the truth and the hidden input is rebuilt from it,
+    because `DataTransfer` is the one way to write a `FileList`. `list` is the
+    same array as `chosen`, held in a ref so `add` and `remove` read the
+    current one without a state updater — an updater with a side effect on
+    the input runs twice under StrictMode.
+  */
+  const list = useRef<Chosen[]>([]);
+  const commit = (next: Chosen[]) => {
+    list.current = next;
+    setChosen(next);
+    if (!input.current) return;
+    const dt = new DataTransfer();
+    for (const c of next) dt.items.add(c.file);
+    input.current.files = dt.files;
+  };
+
+  /*
+    Add to what is chosen — never replace, whichever door the files came
+    through. A single-file control (`multiple` off) keeps the newest, which
+    is what picking again has always meant. The caps refuse with a sentence
+    and take what fits.
+  */
+  const add = (files: File[]) => {
     if (!files.length) return;
 
+    let next = multiple ? [...list.current] : [];
+    const notes: string[] = [];
+
+    for (const file of files) {
+      if (maxBytes !== undefined && file.size > maxBytes) {
+        notes.push(`${file.name} is over ${formatBytes(maxBytes)}.`);
+        continue;
+      }
+      if (max !== undefined && next.length >= max) {
+        notes.push(`Up to ${max} files.`);
+        break;
+      }
+      next.push({ id: chosenId(), file });
+    }
+
+    if (!multiple) next = next.slice(-1);
+    setRefused(notes.length ? Array.from(new Set(notes)).join(" ") : null);
+    commit(next);
+  };
+
+  const remove = (id: string) => {
+    setRefused(null);
+    commit(list.current.filter((c) => c.id !== id));
+  };
+
+  const take = (files: FileList | null) => {
+    const picked = Array.from(files ?? []);
+    if (!picked.length) return;
+
     if (onFiles) {
-      onFiles(files);
+      onFiles(picked);
       // Cleared so the same file can be picked again after a failure —
       // otherwise `change` does not fire for an identical selection.
       if (input.current) input.current.value = "";
     } else {
-      // Form mode: the input keeps the files, because it is what posts them.
-      setChosen(files);
+      add(picked);
     }
   };
+
+  /*
+    Form mode's two listeners on the surrounding form: `reset` empties the
+    list (the portal reply resets its form after a send, and the rows used to
+    stay behind), and `paste` — when asked for — takes the clipboard's files.
+    Bound to the form so a paste into the textarea counts; the form is found
+    from the input, which is inside it by construction.
+  */
+  useEffect(() => {
+    const form = input.current?.form;
+    if (!form || onFiles) return;
+
+    const onReset = () => { list.current = []; setChosen([]); setRefused(null); };
+    const onPaste = (e: ClipboardEvent) => {
+      if (!paste || disabled || progress !== null) return;
+      const files = Array.from(e.clipboardData?.items ?? [])
+        .filter((item) => item.kind === "file")
+        .map((item) => item.getAsFile())
+        .filter((f): f is File => f !== null)
+        .filter((f) => accepted(f, accept))
+        .map((f) => (/^image\.(png|jpe?g|gif|webp)$/i.test(f.name)
+          ? new File([f], pastedName(f), { type: f.type, lastModified: f.lastModified })
+          : f));
+      if (!files.length) return;
+      e.preventDefault();
+      add(files);
+    };
+
+    form.addEventListener("reset", onReset);
+    form.addEventListener("paste", onPaste);
+    return () => {
+      form.removeEventListener("reset", onReset);
+      form.removeEventListener("paste", onPaste);
+    };
+    // `add` reads the caps through its closure; the listener is rebound when
+    // anything it reads changes, and `progress` only as "busy or not".
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paste, disabled, progress === null, accept, onFiles, multiple, max, maxBytes]);
 
   return (
     <div className={className}>
@@ -168,16 +318,9 @@ export function FileDrop({
           setOver(false);
           if (disabled || busy) return;
 
-          if (name && input.current) {
-            /*
-              Form mode has to put the dropped files *into* the input, or they
-              are not what gets posted. `DataTransfer` is the only way to build
-              a FileList, and assigning `.files` is the only way to set one.
-            */
-            const dt = new DataTransfer();
-            for (const f of Array.from(e.dataTransfer.files)) dt.items.add(f);
-            input.current.files = dt.files;
-          }
+          // Form mode puts the dropped files into the input through `add`,
+          // which rebuilds it from the whole list — a drop joins a pick
+          // rather than replacing it.
           take(e.dataTransfer.files);
         }}
         /*
@@ -237,24 +380,68 @@ export function FileDrop({
         {children}
 
         {/* Form mode: say what will be sent. Nothing has been uploaded yet, so
-            this is a list rather than a result. */}
+            this is a list rather than a result — one row per file, a
+            thumbnail where it is a picture, and a way to take one out. */}
         {!busy && chosen.length > 0 && (
-          <ul className="mx-auto mt-3 max-w-[46ch] space-y-1 text-left">
-            {chosen.map((f) => (
+          <ul className="mt-3 space-y-1.5 text-left" aria-label="Files to send">
+            {chosen.map((c) => (
               <li
-                key={`${f.name}-${f.size}`}
-                className="flex items-center justify-between gap-3 rounded border border-line bg-card px-2.5 py-1.5 text-12-5"
+                key={c.id}
+                className="flex items-center gap-3 rounded border border-line bg-card px-2.5 py-1.5 text-12-5"
               >
-                <span className="min-w-0 truncate" title={f.name}>{f.name}</span>
-                <span className="shrink-0 text-faint tabular-nums">{formatBytes(f.size)}</span>
+                <Thumb file={c.file} />
+                <span className="min-w-0 flex-1 truncate" title={c.file.name}>{c.file.name}</span>
+                <span className="shrink-0 text-faint tabular-nums">{formatBytes(c.file.size)}</span>
+                <button
+                  type="button"
+                  onClick={() => remove(c.id)}
+                  aria-label={`Remove ${c.file.name}`}
+                  title="Remove"
+                  className="grid size-6 shrink-0 place-items-center rounded border border-line-strong bg-surface-2 text-muted transition-colors hover:border-err hover:text-err"
+                >
+                  <IconClose width={12} height={12} />
+                </button>
               </li>
             ))}
           </ul>
         )}
+
+        {refused && <p className="mt-2 text-12-5 text-err" role="status">{refused}</p>}
       </div>
 
       {busy && <ProgressBar progress={progress} />}
     </div>
+  );
+}
+
+/**
+ * A 40px preview of a picture in the list, or a plain slot for anything
+ * else so the names line up. The object URL is revoked when the row goes
+ * — it holds the file's bytes in memory until it is.
+ */
+function Thumb({ file }: { file: File }) {
+  const picture = file.type.startsWith("image/");
+  const img = useRef<HTMLImageElement>(null);
+
+  // The object URL is made and revoked in one effect and written straight
+  // to the element: no state (the `set-state-in-effect` rule) and nothing
+  // memoised across StrictMode's simulated unmount, which revoked a
+  // memoised URL and left the second mount pointing at a dead blob.
+  useEffect(() => {
+    if (!picture || !img.current) return;
+    const u = URL.createObjectURL(file);
+    img.current.src = u;
+    return () => URL.revokeObjectURL(u);
+  }, [file, picture]);
+
+  return (
+    <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded border border-line bg-surface-2">
+      {picture
+        // A preview of bytes still on this machine: `next/image` has nothing to optimise here.
+        // eslint-disable-next-line @next/next/no-img-element
+        ? <img ref={img} alt="" className="size-full object-cover" />
+        : <span className="text-10-5 font-semibold uppercase text-faint">{file.name.split(".").pop()?.slice(0, 4) || "file"}</span>}
+    </span>
   );
 }
 
@@ -324,10 +511,4 @@ export function ProgressBar({ progress }: { progress: UploadProgress }) {
       </div>
     </div>
   );
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }

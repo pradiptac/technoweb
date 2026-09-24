@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/dates";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
@@ -27,6 +28,7 @@ const ACTION_TONE: Record<string, "urgent" | "progress" | "open"> = {
   reject: "urgent",
   approve: "progress",
   status: "progress",
+  impersonate: "progress",
   store: "open",
   login: "open",
   logout: "open",
@@ -46,14 +48,11 @@ const WORDING: Record<string, string> = {
   reject: "rejected",
   status: "changed status",
   "resend-verification": "resent verification",
+  impersonate: "signed in as",
   "clear-secret": "cleared a credential",
   sitemap: "changed sitemap flag",
 };
 
-const stamp = (iso: string) =>
-  new Date(iso).toLocaleString("en-GB", {
-    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-  });
 
 export default async function AdminActivityPage({
   searchParams,
@@ -141,7 +140,7 @@ export default async function AdminActivityPage({
               {rows.map((r) => (
                 <tr key={r.id} className="border-b border-line last:border-b-0 align-top">
                   <td data-label="When" className="px-3 py-2 whitespace-nowrap text-12-5 text-muted">
-                    {stamp(r.created_at)}
+                    {formatDate(r.created_at, "dateTime")}
                   </td>
                   <td data-label="Who" className="px-3 py-2">
                     <span className="text-13-5 font-medium text-ink">{r.actor.name}</span>

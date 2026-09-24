@@ -3,16 +3,19 @@
 namespace App\Models;
 
 use App\Enums\PublishStatus;
+use App\Models\Concerns\HasAnswerBlocks;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
+use App\Models\Contracts\Answerable;
+use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-class Page extends Model
+class Page extends Model implements Answerable, Faqable
 {
-    use HasSeo, Sluggable;
+    use HasAnswerBlocks, HasSeo, Sluggable;
 
     protected $fillable = ['title', 'slug', 'body', 'blocks', 'template', 'status', 'published_at'];
 

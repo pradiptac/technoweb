@@ -21,7 +21,7 @@ export const metadata = buildMetadata({ title: "Store products", path: "/admin/s
 const statusTone = { draft: "closed", published: "resolved", archived: "closed" } as const;
 
 type SearchParams = {
-  q?: string; status?: PublishStatus; type?: string; out_of_stock?: string;
+  q?: string; status?: PublishStatus; type?: string; out_of_stock?: string; notices?: string;
   page?: string; per_page?: string;
 };
 
@@ -40,6 +40,7 @@ export default async function StoreProductsPage({
       status: params.status,
       type: params.type,
       out_of_stock: params.out_of_stock === "1",
+      notices: params.notices === "1",
       page: Number(params.page) || 1,
       per_page: Number(params.per_page) || undefined,
     });
@@ -52,7 +53,7 @@ export default async function StoreProductsPage({
   }
 
   const products = result.data;
-  const filtered = Boolean(params.q || params.status || params.type || params.out_of_stock);
+  const filtered = Boolean(params.q || params.status || params.type || params.out_of_stock || params.notices);
   const feedUrl = `${SITE.url.replace(/\/$/, "")}/google-shopping-feed.xml`;
 
   return (
@@ -64,8 +65,9 @@ export default async function StoreProductsPage({
           here has a price and can be bought — there is no “for sale” tick to forget.
         </>}
       >
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex flex-wrap gap-2">
           <ButtonLink href="/admin/store/categories" variant="secondary" size="sm">Categories</ButtonLink>
+          <ButtonLink href="/admin/store/products/import" variant="secondary" size="sm">Import</ButtonLink>
           <ButtonLink href="/admin/store/products/new" size="sm">New product</ButtonLink>
         </div>
       </PageHeader>
@@ -86,8 +88,18 @@ export default async function StoreProductsPage({
         <a href="/google-shopping-feed.xml" download className="ml-auto text-12-5 font-medium text-brand-ink underline-offset-2 hover:underline">
           Download the XML
         </a>
+        {/*
+          The catalogue as a spreadsheet — every product and variation in
+          the columns the import reads back, so "change forty prices" is
+          export, edit, import. The same plain `<a download>` as the feed,
+          for the same reason: this route handler builds the whole file.
+        */}
+        <a href="/api/admin/store/products/export" download className="text-12-5 font-medium text-brand-ink underline-offset-2 hover:underline">
+          Export the catalogue (CSV)
+        </a>
         <span className="basis-full text-12-5 text-muted">
           Paste the address into Merchant Center as a scheduled fetch; it is rebuilt on every request from what is published here.
+          The CSV export is the file to edit and <Link href="/admin/store/products/import" className="underline">import</Link> back.
         </span>
       </Card>
 
@@ -122,6 +134,14 @@ export default async function StoreProductsPage({
           </Select>
         </FilterField>
 
+        {/* Somebody is waiting: the shelf worth reordering first. The dashboard's tile links here. */}
+        <FilterField label="Waiting" htmlFor="notices">
+          <Select id="notices" name="notices" defaultValue={params.notices ?? ""}>
+            <option value="">Any</option>
+            <option value="1">Someone waiting</option>
+          </Select>
+        </FilterField>
+
         <div className="flex gap-2">
           <Button type="submit" size="sm">Apply</Button>
           {filtered && <ButtonLink href="/admin/store/products" variant="ghost" size="sm">Clear</ButtonLink>}
@@ -143,6 +163,7 @@ export default async function StoreProductsPage({
                 <th scope="col" className="px-3 py-1.5">Type</th>
                 <th scope="col" className="px-3 py-1.5">Price</th>
                 <th scope="col" className="px-3 py-1.5">Stock</th>
+                <th scope="col" className="px-3 py-1.5">Waiting</th>
                 <th scope="col" className="px-3 py-1.5">Status</th>
               </tr>
             </thead>
@@ -206,6 +227,17 @@ export default async function StoreProductsPage({
                     {!p.in_stock && <Badge tone="urgent" className="ml-1.5">Out of stock</Badge>}
                   </td>
 
+                  {/*
+                    People who asked to be emailed when this is back and have
+                    not been. A dash rather than a zero, so the column reads
+                    at a glance for the one row that matters.
+                  */}
+                  <td data-label="Waiting" className="px-3 py-2 tabular-nums">
+                    {p.notices_waiting
+                      ? <span title={`${p.notices_waiting} waiting to hear this is back`}>{p.notices_waiting}</span>
+                      : <span className="text-faint">—</span>}
+                  </td>
+
                   <td data-label="Status" className="px-3 py-2">
                     <Badge tone={statusTone[p.status]}>{p.status_label ?? p.status}</Badge>
                   </td>
@@ -219,7 +251,7 @@ export default async function StoreProductsPage({
       <Pagination
         meta={result.meta}
         basePath="/admin/store/products"
-        params={{ q: params.q, status: params.status, type: params.type, per_page: params.per_page }}
+        params={{ q: params.q, status: params.status, type: params.type, out_of_stock: params.out_of_stock, notices: params.notices, per_page: params.per_page }}
       />
     </>
   );

@@ -167,7 +167,7 @@ export default async function StoreReportsPage({
       </section>
 
       <div className="mt-3 grid gap-3 xl:grid-cols-[1fr_360px]">
-        <section className="min-w-0 rounded-lg border border-line-strong bg-card p-4">
+        <Card as="section" interactive={false} padding="sm" className="min-w-0">
           <h2 className="mb-3 text-13 font-semibold">
             By {report.group === "day" ? "day" : report.group === "week" ? "week" : "month"}
           </h2>
@@ -213,9 +213,9 @@ export default async function StoreReportsPage({
               </table>
             </div>
           )}
-        </section>
+        </Card>
 
-        <section className="min-w-0 rounded-lg border border-line-strong bg-card p-4">
+        <Card as="section" interactive={false} padding="sm" className="min-w-0">
           <h2 className="mb-3 text-13 font-semibold">Every order in the range</h2>
 
           {statuses.length === 0 ? (
@@ -241,10 +241,10 @@ export default async function StoreReportsPage({
               </p>
             </>
           )}
-        </section>
+        </Card>
       </div>
 
-      <section className="mt-3 min-w-0 rounded-lg border border-line-strong bg-card p-4">
+      <Card as="section" interactive={false} padding="sm" className="mt-3 min-w-0">
         <div className="mb-3 flex items-baseline justify-between gap-3">
           <h2 className="text-13 font-semibold">What sold</h2>
           <Link href="/admin/store/products" className="shrink-0 text-12 text-brand-ink hover:underline">
@@ -289,7 +289,7 @@ export default async function StoreReportsPage({
             </table>
           </div>
         )}
-      </section>
+      </Card>
     </>
   );
 }

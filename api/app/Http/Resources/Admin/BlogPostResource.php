@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Models\BlogPost;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -23,6 +24,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin BlogPost */
 class BlogPostResource extends JsonResource
 {
+    use IncludesAnswerContent;
+
     public function toArray(Request $request): array
     {
         $detail = $request->routeIs('*.show', '*.store', '*.update');
@@ -57,6 +60,9 @@ class BlogPostResource extends JsonResource
                 'id' => $this->author->id,
                 'name' => $this->author->name,
             ] : null),
+            'faqs' => $this->adminFaqs(),
+            // Every block, drafts included, for the AEO tab's repeater.
+            'answer_blocks' => $this->adminAnswerBlocks(),
             'seo' => $this->when($detail, fn () => SeoOverrideArray::from($this->seo)),
             'seo_defaults' => $this->when($detail, fn () => $this->resolvedSeo()),
             'created_at' => $this->created_at?->toIso8601String(),

@@ -51,6 +51,9 @@ class OrderResource extends JsonResource
             'customer_name' => $this->customer_name,
             'customer_email' => $this->customer_email,
             'customer_phone' => $this->customer_phone,
+            // Read back to whoever holds the link, because an order page that
+            // does not repeat what was asked for is one nobody can check.
+            'customer_note' => $this->customer_note,
             'billing_address' => $this->billing_address,
             'shipping_address' => $this->shipping_address,
 

@@ -9,6 +9,7 @@ import { ToastProvider } from "@/components/ui/toast";
 import { AlertsAsToastsProvider } from "@/components/ui/alert-mode";
 import { ToastFromParams } from "@/components/ui/toast-from-params";
 import { Logo } from "@/components/layout/logo";
+import { IconSignOut } from "@/components/icons-ui";
 import { getCurrentStaff } from "@/lib/admin-auth";
 import { landingFor } from "@/lib/admin-landing";
 import { getSiteSettings } from "@/lib/settings";
@@ -172,11 +173,29 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               </Link>
 
               <form action={logoutAction}>
+                {/*
+                  The mark below `sm`, the words from `sm` (the client,
+                  2026-09-23).
+
+                  "Sign out" is two words in a row that has already given up
+                  the account link and "View site" to fit 320px, so it wrapped
+                  to two lines and made the header a row taller than everything
+                  in it. The glyph is the one this control has everywhere, and
+                  the name is on the button rather than in it — `aria-label`
+                  holds for both breakpoints, so nothing reading this ever gets
+                  a button called nothing.
+
+                  The box stays a tap target at the smaller size: a 16px glyph
+                  inside `px-2.5 py-1.5` is 36x28, both past the 24px floor the
+                  phone audit enforces.
+                */}
                 <button
                   type="submit"
-                  className="rounded border border-line-strong bg-card px-2.5 py-1.5 text-13 font-semibold transition-colors hover:border-faint"
+                  aria-label="Sign out"
+                  className="flex items-center gap-1.5 rounded border border-line-strong bg-card px-2.5 py-1.5 text-13 font-semibold transition-colors hover:border-faint"
                 >
-                  Sign out
+                  <IconSignOut className="size-4 sm:hidden" aria-hidden="true" />
+                  <span className="hidden sm:inline">Sign out</span>
                 </button>
               </form>
             </div>

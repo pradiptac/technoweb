@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
-import { FIELD_ORDER, GROUP_TITLES, HIDDEN, LABELS, ORDER, STANDALONE_GROUPS, sectionFor } from "./settings/settings-copy";
+import { FIELD_ORDER, GROUP_TITLES, HIDDEN, LABELS, SCREENS } from "./settings/settings-copy";
+import { bestRow } from "./nav-match";
 import {
   IconAlert,
   IconArrows, IconBook, IconBox, IconBuilding, IconCert, IconChart,   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
   IconClock, IconHeadset, IconMegaphone, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
-  IconWrench, IconNewspaper, IconBriefcase, IconShield,
+  IconWrench, IconNewspaper, IconBriefcase, IconShield, IconPlug,
 } from "@/components/icons";
 
 /**
@@ -63,10 +64,31 @@ export type NavItem =
  */
 export const NAV: NavItem[] = [
   { kind: "link", href: "/admin", label: "Dashboard", icon: IconGauge, exact: true, role: "support_engineer" },
-  { kind: "link", href: "/admin/tickets", label: "Tickets", icon: IconTicket, role: "support_engineer" },
+  /*
+    Tickets, Customers, Leads and Campaign were single links until 2026-09-20
+    and are groups now, each ending in the settings its module owns — the
+    client's rule that Settings holds only what the whole console shares.
+    A role that can open one row still gets one link: `navFor` flattens a
+    group with a single visible child, so a support engineer's sidebar is
+    unchanged. An administrator gets the group, and the "new since" count a
+    collapsed group hides is summed onto its header (admin-nav.tsx).
+  */
+  {
+    kind: "group", id: "tickets", label: "Tickets", icon: IconTicket,
+    links: [
+      { role: "support_engineer", href: "/admin/tickets", label: "Tickets", icon: IconLifebuoy },
+      { role: "admin", href: "/admin/tickets/settings", label: "Email to ticket", icon: IconSliders },
+    ],
+  },
   // Alongside Tickets rather than beside Staff: approving a registration is
   // support-desk work, and the two screens are worked in the same sitting.
-  { kind: "link", href: "/admin/customers", label: "Customers", icon: IconTeam, role: "support_engineer" },
+  {
+    kind: "group", id: "customers", label: "Customers", icon: IconTeam,
+    links: [
+      { role: "support_engineer", href: "/admin/customers", label: "Customers", icon: IconUsers },
+      { role: "admin", href: "/admin/customers/settings", label: "Portal", icon: IconSliders },
+    ],
+  },
   /*
     Top level, beside Tickets and Customers, because it is the same *kind* of
     thing: a queue somebody opens every morning and works down.
@@ -77,7 +99,13 @@ export const NAV: NavItem[] = [
     those become two people is the day a conflated role has to be split with
     the permission already granted to everyone who had the other job.
   */
-  { kind: "link", href: "/admin/leads", label: "Leads", icon: IconChart, role: "sales_manager" },
+  {
+    kind: "group", id: "leads", label: "Leads", icon: IconChart,
+    links: [
+      { role: "sales_manager", href: "/admin/leads", label: "Leads", icon: IconSearchChart },
+      { role: "admin", href: "/admin/leads/settings", label: "Scoring", icon: IconSliders },
+    ],
+  },
   /*
     Top level, and called Campaign rather than Newsletter.
 
@@ -88,7 +116,13 @@ export const NAV: NavItem[] = [
     beside Sliders and Redirects it read as configuration, and the six screens
     under it were reached by nobody.
   */
-  { kind: "link", href: "/admin/newsletter", label: "Campaign", icon: IconMail, role: "campaign_manager" },
+  {
+    kind: "group", id: "newsletter", label: "Campaign", icon: IconMail,
+    links: [
+      { role: "campaign_manager", href: "/admin/newsletter", label: "Campaign", icon: IconMegaphone },
+      { role: "admin", href: "/admin/newsletter/settings", label: "Settings", icon: IconSliders },
+    ],
+  },
 
   /*
     Top level, beside Campaign, for the same reason.
@@ -115,8 +149,13 @@ export const NAV: NavItem[] = [
       { role: "store_manager", href: "/admin/store/products", label: "Products", icon: IconBox },
       { role: "store_manager", href: "/admin/store/categories", label: "Categories", icon: IconGrid },
       { role: "store_manager", href: "/admin/store/coupons", label: "Discount codes", icon: IconTag },
+      // The shop front's promo band: eight settings rows behind a store-manager
+      // endpoint of their own, so the person running a promotion does not
+      // need Settings — which they cannot open. The info bar's shape.
+      { role: "store_manager", href: "/admin/store/promo", label: "Promo banners", icon: IconMegaphone },
       { role: "store_manager", href: "/admin/store/stock", label: "Stock", icon: IconBox },
       { role: "store_manager", href: "/admin/store/reports", label: "Reports", icon: IconSearchChart },
+      { role: "admin", href: "/admin/store/settings", label: "Settings", icon: IconSliders },
     ],
   },
   {
@@ -133,6 +172,7 @@ export const NAV: NavItem[] = [
       { role: "admin", href: "/admin/chat", label: "Overview", icon: IconChart, exact: true },
       { role: "admin", href: "/admin/chat/unanswered", label: "Unanswered", icon: IconSearchChart },
       { role: "admin", href: "/admin/chat/conversations", label: "Conversations", icon: IconTicket },
+      { role: "admin", href: "/admin/chat/settings", label: "Settings", icon: IconSliders },
     ],
   },
   {
@@ -169,6 +209,7 @@ export const NAV: NavItem[] = [
         places costs more than the inconsistency does.
       */
       { role: "content_manager", href: "/admin/blog-comments", label: "Comments", icon: IconHeadset },
+      { role: "admin", href: "/admin/blog/settings", label: "Settings", icon: IconSliders },
     ],
   },
   {
@@ -179,6 +220,7 @@ export const NAV: NavItem[] = [
       { role: "content_manager", href: "/admin/pages", label: "Pages", icon: IconLayers },
       { role: "content_manager", href: "/admin/faqs", label: "FAQs", icon: IconLifebuoy },
       { role: "content_manager", href: "/admin/media", label: "Media", icon: IconImage },
+      { role: "admin", href: "/admin/media/settings", label: "Media settings", icon: IconSliders },
       // The company profile. `IconShield` rather than `IconCert`, which Case
       // studies already wears in this group — two rows, one mark, reads as a
       // duplicate entry.
@@ -285,6 +327,7 @@ export const NAV: NavItem[] = [
       */
       { role: "admin", href: "/admin/info-bar", label: "Info bar", icon: IconMegaphone },
       { role: "admin", href: "/admin/themes", label: "Themes", icon: IconLayers },
+      { role: "admin", href: "/admin/site/settings", label: "Settings", icon: IconSliders },
       { role: "content_manager", href: "/admin/forms", label: "Forms", icon: IconMail },
     ],
   },
@@ -308,6 +351,7 @@ export const NAV: NavItem[] = [
       { role: "seo_manager", href: "/admin/landing-pages", label: "Landing pages", icon: IconLayers },
       { role: "seo_manager", href: "/admin/locations", label: "Places", icon: IconGlobe },
       { role: "seo_manager", href: "/admin/redirects", label: "Redirects", icon: IconArrows },
+      { role: "admin", href: "/admin/seo/settings", label: "Settings", icon: IconSliders },
     ],
   },
   {
@@ -342,6 +386,14 @@ export const NAV: NavItem[] = [
       */
       { role: "admin", href: "/admin/settings/email-templates", label: "Email templates", icon: IconMail },
       { role: "admin", href: "/admin/users", label: "Staff", icon: IconUsers },
+      /*
+        Outgoing webhooks, beside Staff and behind the same role: a hook is
+        handed every lead's telephone number and every order's address at an
+        address somebody typed, which is the same class of decision as the
+        SMTP settings above it. The console path is the API's, so
+        `AdminNavRolesTest` maps this row to `admin/webhooks` directly.
+      */
+      { role: "admin", href: "/admin/webhooks", label: "Webhooks", icon: IconPlug },
       // Beside Staff: both answer questions about people rather than content.
       { role: "admin", href: "/admin/activity", label: "Activity", icon: IconClock },
       /*
@@ -427,15 +479,7 @@ export function permits(roles: string[], role?: RoleSlug): boolean {
  * has the last word on every one.
  */
 export function screenRole(pathname: string): RoleSlug | undefined {
-  const rows = NAV.flatMap((item) => (item.kind === "link" ? [item] : item.links));
-  let best: { href: string; role?: RoleSlug } | undefined;
-
-  for (const row of rows) {
-    const matches = row.exact ? pathname === row.href : pathname === row.href || pathname.startsWith(`${row.href}/`);
-    if (matches && (best === undefined || row.href.length > best.href.length)) best = row;
-  }
-
-  return best?.role;
+  return bestRow(NAV.flatMap((item) => (item.kind === "link" ? [item] : item.links)), pathname)?.role;
 }
 
 export function navFor(roles: string[]): NavItem[] {
@@ -509,7 +553,8 @@ export type NavEntry =
 /**
  * The same rows as `{label, href, group}` for the command palette — the
  * screens this role may open, with no icons, so the palette's client bundle
- * carries none of the map either.
+ * carries none of the map either — plus, for each settings screen the role
+ * may open, its tabs and its fields.
  */
 export function palettePages(roles: string[]): { label: string; href: string; group?: string }[] {
   const screens = navFor(roles).flatMap((item) =>
@@ -517,33 +562,40 @@ export function palettePages(roles: string[]): { label: string; href: string; gr
       ? [{ label: item.label, href: item.href }]
       : item.links.map((l) => ({ label: l.label, href: l.href, group: item.label })),
   );
-  return screens.some((s) => s.href === "/admin/settings") ? [...screens, ...settingsPages()] : screens;
+  const open = new Set(screens.map((s) => s.href));
+  return [...screens, ...settingsPages().filter((r) => open.has(r.href.split(/[?#]/)[0]))];
 }
 
 /**
- * The settings screen, one row per tab and one per setting.
+ * The settings screens, one row per tab and one per setting.
  *
  * Asked for on 2026-09-17: "Ctrl+K cannot find this level — it should find
  * the last level of the settings options, otherwise it is not useful". The
- * sidebar has one row, Settings, and twenty tabs behind it, each holding
+ * sidebar had one row, Settings, and twenty tabs behind it, each holding
  * five to fifteen fields: "Social profiles" and "Assistant colour" were
  * unreachable from the palette. A tab opens through `?tab=`, which `Tabs`
  * reads once as its starting panel; a field adds `#setting__<key>`, the id
  * every generated control carries, so the browser scrolls to it. Built
- * from `settings-copy.ts` — the one list — so a setting added there is in
- * the palette without anybody remembering it. Only for a role that can
- * open Settings, which is the same check the sidebar makes.
+ * from `SCREENS` in `settings-copy.ts` — the one list — so a setting added
+ * there is in the palette without anybody remembering it, at whichever
+ * screen draws its group. A screen with one group gets no tab row: its
+ * sidebar row is already that door. `palettePages` keeps only the screens
+ * the role's sidebar names, which is the same check the sidebar makes.
  */
 function settingsPages(): { label: string; href: string; group: string }[] {
   const rows: { label: string; href: string; group: string }[] = [];
-  for (const group of ORDER) {
-    if (STANDALONE_GROUPS.has(group)) continue;
-    const title = (GROUP_TITLES[group] ?? { title: group }).title;
-    rows.push({ label: title, href: `/admin/settings?tab=${group}`, group: `Settings · ${sectionFor(group)}` });
-    for (const key of FIELD_ORDER[group] ?? []) {
-      if (HIDDEN.has(key)) continue;
-      const label = LABELS[key]?.label;
-      if (label) rows.push({ label, href: `/admin/settings?tab=${group}#setting__${key}`, group: `Settings · ${title}` });
+  for (const screen of SCREENS) {
+    const groups = screen.sections.flatMap((x) => x.groups);
+    for (const group of groups) {
+      const title = (GROUP_TITLES[group] ?? { title: group }).title;
+      if (groups.length > 1) {
+        rows.push({ label: title, href: `${screen.path}?tab=${group}`, group: `${screen.area} · ${screen.title}` });
+      }
+      for (const key of FIELD_ORDER[group] ?? []) {
+        if (HIDDEN.has(key)) continue;
+        const label = LABELS[key]?.label;
+        if (label) rows.push({ label, href: `${screen.path}?tab=${group}#setting__${key}`, group: `${screen.area} · ${title}` });
+      }
     }
   }
   return rows;

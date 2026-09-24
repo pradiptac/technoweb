@@ -7,6 +7,7 @@ use App\Http\Resources\Store\CategoryResource;
 use App\Http\Resources\Store\ProductResource;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
+use App\Support\EntityLinks;
 use App\Support\Store\ProductFeed;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -137,7 +138,20 @@ class StoreController extends Controller
     {
         abort_unless($storeProduct->status?->value === 'published', 404);
 
-        $storeProduct->load(['category', 'brand', 'variations', 'seo']);
+        $storeProduct->load(['category', 'brand', 'variations', 'services', 'faqs', 'publishedAnswerBlocks', 'seo']);
+
+        // What the page lists beside it: up to six others from the same
+        // category, the storefront's own query. Set as a relation so the
+        // graph's `isRelatedTo` reads it through `relationLoaded` like
+        // everything else, and names what the page actually shows.
+        $storeProduct->setRelation('relatedProducts', $storeProduct->store_category_id
+            ? StoreProduct::query()->published()
+                ->where('store_category_id', $storeProduct->store_category_id)
+                ->whereKeyNot($storeProduct->getKey())
+                ->orderByDesc('is_featured')->orderBy('sort_order')->orderBy('name')
+                ->limit(6)->get()
+            : $storeProduct->newCollection());
+        EntityLinks::attach($storeProduct);
 
         return (new ProductResource($storeProduct))->withSchema();
     }
@@ -170,8 +184,11 @@ class StoreController extends Controller
     {
         abort_unless($storeCategory->is_active, 404);
 
-        return new CategoryResource(
-            $storeCategory->loadCount(['products' => fn ($q) => $q->published()])->load('seo'),
-        );
+        $storeCategory->loadCount(['products' => fn ($q) => $q->published()])
+            ->load(['faqs', 'publishedAnswerBlocks', 'seo']);
+        EntityLinks::attach($storeCategory);
+
+        // `withSchema()` marks it as the page for `entity` and `faq_schema`.
+        return (new CategoryResource($storeCategory))->withSchema();
     }
 }

@@ -2,10 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\Solution;
-use App\Support\MediaAlt;
+use App\Support\MediaMeta;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -13,7 +14,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Solution */
 class SolutionResource extends JsonResource
 {
-    use IncludesSchema, IncludesSeo;
+    use IncludesAnswerContent, IncludesSchema, IncludesSeo;
 
     public function toArray(Request $request): array
     {
@@ -28,7 +29,8 @@ class SolutionResource extends JsonResource
             'summary' => $this->summary,
             'icon' => $this->icon,
             'hero_image' => $this->hero_image_path ? asset('storage/'.$this->hero_image_path) : null,
-            'hero_image_alt' => MediaAlt::for($this->hero_image_path),
+            'hero_image_alt' => MediaMeta::alt($this->hero_image_path),
+            'hero_image_focus' => MediaMeta::focus($this->hero_image_path),
             'problem_statement' => $this->when($detail, $this->problem_statement),
             'overview' => $this->when($detail, $this->overview),
             'benefits' => $this->when($detail, $this->benefits),
@@ -37,6 +39,12 @@ class SolutionResource extends JsonResource
             'products' => ProductResource::collection($this->whenLoaded('products')),
             'industries' => IndustryResource::collection($this->whenLoaded('industries')),
             'faqs' => FaqResource::collection($this->whenLoaded('faqs')),
+            // The published blocks, in order, with the heading each renders under.
+            'answer_blocks' => $this->publicAnswerBlocks(),
+            // What this record is connected to, on the page only (`EntityLinks`).
+            'entity' => $this->entity(),
+            // An FAQPage over the FAQs and question blocks; absent under two entries.
+            'faq_schema' => $this->faqSchema(),
             'seo' => $this->seo(),
             /*
              * The page's JSON-LD, built server-side.

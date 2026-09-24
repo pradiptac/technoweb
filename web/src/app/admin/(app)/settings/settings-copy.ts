@@ -5,7 +5,7 @@
  *
  * Copy and configuration, in a module of their own so `settings-form.tsx`
  * is the form — 530 lines of tables inside a `"use client"` component were
- * the largest file in the console. `SECTIONS` is the only list and `ORDER`
+ * the largest file in the console. `SCREENS` is the only list and `ORDER`
  * is derived from it; see CLAUDE.md for the tab that rendered as its raw
  * lowercase key when the two drifted.
  */
@@ -244,19 +244,36 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     hint: "Counted from delivery. Shown on every returnable product and declared to Google as the return policy; a product marked non-returnable ignores it.",
     placeholder: "7",
   },
-  store_promo_enabled: {
-    label: "Show the promo banner",
-    hint: "1 to enable, 0 to disable. Off by default until the copy and image below are filled in.",
-  },
-  store_promo_kicker: { label: "Promo kicker" },
-  store_promo_heading: { label: "Promo heading", placeholder: "Save Up To 60%" },
-  store_promo_price_text: { label: "Promo price line", placeholder: "Starting At Just ₹9,999" },
-  store_promo_subheading: { label: "Promo subheading" },
-  store_promo_cta_label: { label: "Promo button label" },
-  store_promo_cta_href: { label: "Promo button link", placeholder: "/store/categories/laptops" },
+  store_promo_enabled: { label: "Show the promo banner" },
+  store_promo_kicker: { label: "Kicker", hint: "The short line above the heading — a category, an offer, a season.", placeholder: "Business laptops, in stock" },
+  store_promo_heading: { label: "Heading", placeholder: "Save Up To 60%" },
+  store_promo_price_text: { label: "Price line", placeholder: "Starting At Just ₹9,999" },
+  store_promo_subheading: { label: "Subheading", hint: "A sentence under the heading. Leave blank for none." },
+  store_promo_cta_label: { label: "Button label" },
+  store_promo_cta_href: { label: "Button link", hint: "A path on this site, or a full address.", placeholder: "/store/categories/laptops" },
   store_promo_image_path: {
-    label: "Promo image",
+    label: "Picture",
     hint: "PNG, JPG or WebP. A product photo on a plain or transparent background works best against the dark band.",
+  },
+  store_tile_1_enabled: { label: "Show this tile" },
+  store_tile_1_kicker: { label: "Kicker", hint: "The short line above the heading.", placeholder: "Networking" },
+  store_tile_1_heading: { label: "Heading", placeholder: "Switches from ₹4,990" },
+  store_tile_1_text: { label: "One line", hint: "A sentence under the heading. Leave blank for none." },
+  store_tile_1_cta_label: { label: "Button label" },
+  store_tile_1_cta_href: { label: "Button link", hint: "A path on this site, or a full address.", placeholder: "/store/categories/switches" },
+  store_tile_1_image_path: {
+    label: "Picture",
+    hint: "Drawn 2:1 beside its neighbour, cropped to fit; the words sit over the picture's left half, so keep the subject to the right.",
+  },
+  store_tile_2_enabled: { label: "Show this tile" },
+  store_tile_2_kicker: { label: "Kicker", hint: "The short line above the heading.", placeholder: "Networking" },
+  store_tile_2_heading: { label: "Heading", placeholder: "Switches from ₹4,990" },
+  store_tile_2_text: { label: "One line", hint: "A sentence under the heading. Leave blank for none." },
+  store_tile_2_cta_label: { label: "Button label" },
+  store_tile_2_cta_href: { label: "Button link", hint: "A path on this site, or a full address.", placeholder: "/store/categories/switches" },
+  store_tile_2_image_path: {
+    label: "Picture",
+    hint: "Drawn 2:1 beside its neighbour, cropped to fit; the words sit over the picture's left half, so keep the subject to the right.",
   },
   // The hint here comes from the chosen option's own description, which the
   // API sends — see ChoiceField. Only the label is needed.
@@ -334,6 +351,23 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     hint: "Path to an image in the media library. 1200 x 630 px — the size every social network crops its preview to.",
   },
   portal_enabled: { label: "Customer portal enabled", hint: "1 to enable, 0 to disable." },
+  registration_enabled: { label: "Self-registration enabled", hint: "1 lets anybody register through the portal; 0 means accounts are created by staff or by paying." },
+  /*
+    Labelled on 2026-09-20. These fields drew under their raw keys —
+    `comments_closed_after_days` as a label — and a field with no label is
+    also left out of the command palette, which lists only what it can name.
+  */
+  blog_video_url: { label: "Sidebar video", hint: "A YouTube link. The widget is absent while this is blank." },
+  comments_enabled: { label: "Comments enabled", hint: "1 puts a comment form on every article and a moderation queue on somebody's desk; 0 (the default) keeps both off." },
+  comments_closed_after_days: { label: "Close comments after (days)", hint: "Counted from publication. An old article is where spam collects; 0 never closes them." },
+  store_enabled: { label: "Store open", hint: "1 to open the shop, 0 to close it. A closed shop keeps its catalogue and refuses the basket." },
+  digital_auto_fulfil: { label: "Issue activation codes automatically", hint: "1 hands a code over the moment payment lands; 0 waits for somebody to press Fulfil on the order." },
+  landing_page_cap: { label: "Published landing pages, at most", hint: "The ceiling on how many programmatic pages may be live at once — the one rule about the set rather than the page.", placeholder: "40" },
+  newsletter_webhook_secret: { label: "Bounce webhook secret", hint: "What a provider's bounce webhook must prove. With none set, nothing is accepted." },
+  activity_retention_days: { label: "Keep the activity log for (days)", hint: "A floor of 30 days applies whatever is set." },
+  application_retention_days: { label: "Keep job applications for (days)", hint: "The CV is deleted with the row. A floor of 30 days applies whatever is set." },
+  client_error_retention_days: { label: "Keep JavaScript errors for (days)", hint: "Ranged on when the error was last seen, so a bug that keeps recurring stays." },
+  comment_retention_days: { label: "Keep spam and binned comments for (days)", hint: "Published and waiting comments never age out." },
   customer_approval_required: {
     label: "Customer account activation required",
     hint: "1 to require staff approval before a self-registered account can sign in, 0 to activate it automatically the moment its email address is confirmed.",
@@ -410,6 +444,11 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     hint: "As Search Console names it: sc-domain:technoware.in for a domain property, or the exact URL prefix for a URL property. Leave blank to use the site's own domain.",
     placeholder: "sc-domain:technoware.in",
   },
+  ga4_property_id: {
+    label: "Google Analytics 4 property id",
+    hint: "Optional. The number under Admin → Property details in GA4 (not the G- measurement id). Uses the Search Console service account above — add its email to the property as a Viewer. With one saved, the SEO overview shows each page's views and users for the last 28 days and can list the pages search shows that nobody opens, and the store dashboard shows product views against orders. Read only; nothing is written to Google.",
+    placeholder: "123456789",
+  },
   hunter_api_key: {
     label: "Hunter.io API key",
     hint: "Optional. With one saved, new subscriber addresses are checked a few at a time overnight and tagged Verified, Risky, Invalid or Disposable. Invalid and disposable addresses are left off every campaign; nothing is added to the do-not-mail list.",
@@ -442,9 +481,22 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Figure size",
     hint: "How large the figures are drawn.",
   },
-  testimonial_quote: { label: "Testimonial", hint: "Leave blank to hide the testimonial block entirely." },
-  testimonial_author: { label: "Testimonial author" },
+  why_kicker: { label: "Why block kicker", hint: "The small line above the heading of the \"Why Technoware\" block, lower down the homepage." },
+  why_heading: { label: "Why block heading" },
+  why_lede: { label: "Why block paragraph" },
+  why_steps: {
+    label: "The steps",
+    hint: "Numbered in the order shown here — assess, design, deploy, support, or whatever the process is. Four fit the column.",
+  },
+  testimonial_enabled: { label: "Show the testimonial", hint: "1 shows the pull-quote beside the steps; 0 hides the block. A blank quote with it on shows the built-in one." },
+  testimonial_quote: { label: "Testimonial", hint: "The pull-quote beside the steps." },
+  testimonial_author: { label: "Testimonial author", hint: "The initials on the disc are taken from this name." },
   testimonial_role: { label: "Testimonial role", placeholder: "IT Manager, Company" },
+  amc_heading: { label: "AMC card heading" },
+  amc_enabled: { label: "Show the AMC card", hint: "1 shows the card under the testimonial; 0 hides it." },
+  amc_inclusions: { label: "AMC card list", hint: "One line each." },
+  amc_link_label: { label: "AMC card link text" },
+  amc_link_href: { label: "AMC card link", hint: "A path on this site, or a full address.", placeholder: "/solutions/amc" },
 };
 
 export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
@@ -600,7 +652,9 @@ export const FIELD_ORDER: Record<string, string[]> = {
             "chatbot_model", "chatbot_max_message_chars", "chatbot_max_messages",
             "chatbot_context_messages", "chatbot_daily_reply_cap", "chat_retention_days"],
   homepage: ["hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats", "stats_colour", "stats_size", "stats_animation",
-             "testimonial_quote", "testimonial_author", "testimonial_role"],
+             "why_kicker", "why_heading", "why_lede", "why_steps",
+             "testimonial_enabled", "testimonial_quote", "testimonial_author", "testimonial_role",
+             "amc_enabled", "amc_heading", "amc_inclusions", "amc_link_label", "amc_link_href"],
   mail: ["smtp_host", "smtp_port", "smtp_username", "smtp_password", "smtp_encryption",
          "mail_from_address", "mail_from_name"],
   integrations: ["openai_api_key", "hunter_api_key"],
@@ -617,6 +671,25 @@ export const FIELD_ORDER: Record<string, string[]> = {
                "newsletter_webhook_secret"],
   consent: ["cookie_consent_enabled", "cookie_consent_title", "cookie_consent_message",
             "cookie_consent_accept_label", "cookie_consent_reject_label", "cookie_consent_policy_url"],
+  /*
+    The plain-grid groups below were unlisted until 2026-09-20 and drew in
+    the API's alphabetical order — which also kept every one of their fields
+    out of the command palette, since `settingsPages()` lists fields from
+    here. The seeder's own order, which is the order somebody wrote them in.
+  */
+  social: ["social_linkedin", "social_facebook", "social_x", "social_instagram", "social_youtube", "social_whatsapp"],
+  blog: ["blog_video_url", "comments_enabled", "comments_closed_after_days"],
+  indexnow: ["indexnow_enabled", "indexnow_key"],
+  media: ["image_quality", "media_max_kb", "media_max_video_kb", "media_max_megapixels"],
+  store: ["store_enabled", "digital_auto_fulfil", "activation_procedure", "activation_pdf_path", "store_shipping_paise",
+          "store_handling_days", "store_shipping_service", "store_transit_days_min", "store_transit_days_max", "store_return_days"],
+  leads: ["lead_intent_words"],
+  embeds: ["reviews_embed", "reviews_kicker", "reviews_heading", "reviews_lede", "body_code"],
+  portal: ["portal_enabled", "registration_enabled", "customer_approval_required"],
+  auth: ["default_login_method", "otp_login_enabled", "otp_admin_login_enabled", "password_login_enabled"],
+  analytics: ["google_analytics_id", "google_tag_manager_id", "google_site_verification", "meta_pixel_id", "meta_domain_verification"],
+  security: ["activity_retention_days", "application_retention_days", "chat_retention_days", "client_error_retention_days",
+             "comment_retention_days", "seo_ai_retention_days"],
 };
 
 /**
@@ -629,84 +702,211 @@ export const FIELD_ORDER: Record<string, string[]> = {
  * "correct"; the Verification screen is where they are read.
  */
 export const HIDDEN = new Set([
-  "newsletter_verify_error", "newsletter_verify_last_run", "gsc_error", "inbound_mail_error", "inbound_mail_last_run",
+  "newsletter_verify_error", "newsletter_verify_last_run", "gsc_error", "ga4_error", "inbound_mail_error", "inbound_mail_last_run",
   // The consent a mailbox scan spends, written by the import screen and forgotten by the job.
   "newsletter_oauth_provider", "newsletter_oauth_refresh_token", "newsletter_oauth_account", "newsletter_oauth_connected_at", "newsletter_oauth_error",
 ]);
 
 /**
- * The sections the tab strip is grouped into, and the order of everything.
+ * Which screen draws each settings group, and the order of everything.
  *
- * **One list, because the alternative is two that have to agree.** `ORDER` and
- * the section map are both derived from this, so a group cannot be sorted into
- * one place and filed under another — the drift that gave this project
- * `admin_path` in the API's resource names and `schema_type_options` written
- * out twice.
+ * **One list, because the alternative is two that have to agree.** The
+ * sidebar's Settings rows, each screen's tabs, the command palette's entries
+ * and `sectionFor()` are all derived from this, so a group cannot be filed
+ * under one screen and linked from another — the drift that gave this
+ * project `admin_path` in the API's resource names and `schema_type_options`
+ * written out twice.
  *
- * It exists because the strip had grown to twenty tabs. They do not overflow,
- * they wrap, so nothing failed and nothing said so: measured at two rows at
- * 1440px, three at 1024px and **six rows — 230px — at 390px**, which put the
- * first field 528px down a phone screen.
+ * **Settings holds only what is common to the whole console** (the client's
+ * rule, 2026-09-20): identity, the two sign-in doors, the infrastructure that
+ * every module shares, retention. Everything a module owns is a "Settings"
+ * screen at the end of that module's sidebar section — Store → Settings holds
+ * shipping and the gateway, SEO → Settings the defaults and IndexNow. Before
+ * this the one screen held twenty-six tabs behind seven chips, and the
+ * shipping charge sat beside the SMTP password.
  *
- * **What it bought, measured the same way, is scanning rather than space.**
- * One row of tabs at every width now, but there are two strips instead of one,
- * so at 1440px the first field is 276px down against 275px — a wash. The gain
- * is at narrow widths (528px to 449px on a phone) and in what the row asks of
- * a reader: six headings, then at most six tabs under the one they chose,
- * instead of twenty labels of four different kinds in one wrapped block.
+ * Every screen is the same component, `SettingsForm`, over the same
+ * `GET /admin/settings` payload and the same save; only the groups drawn
+ * differ. Keep each `path:` and each `groups: [...]` on one line —
+ * `SettingsScreensTest` in `api/tests` reads them by regex, the way
+ * `AdminNavRolesTest` reads the sidebar, and checks that every group the
+ * seeder creates is drawn on exactly one screen.
  *
- * **A group named here that the API does not return simply does not appear**,
- * and a group the API returns that is named nowhere here falls into "Other"
- * rather than vanishing into a tab labelled with its own raw key. That second
- * rule is not hypothetical: `blog`, `portal` and `security` had all arrived in
- * the settings table since this list was last touched, and all three were
- * rendering as lowercase keys at the end of the strip.
+ * A screen with one group renders no tab strip; one with several renders
+ * tabs, and `sections[].label` groups those tabs under a heading — only the
+ * System screen uses it. Seven flat tabs measured one row at every width;
+ * headings buy scanning, not space, and under ten tabs there is nothing to
+ * scan for.
+ *
+ * **A group the API returns that is named nowhere here falls into "Other"**
+ * on the System screen rather than vanishing into a tab labelled with its own
+ * raw key — and `SettingsScreensTest` fails it by name, so the Other tab is a
+ * safety net rather than a home. That rule is not hypothetical: `blog`,
+ * `portal` and `security` had all arrived in the settings table since the
+ * old list was last touched, and all three were rendering as lowercase keys
+ * at the end of the strip.
  */
-export const SECTIONS: { label: string; groups: string[] }[] = [
-  { label: "Site", groups: ["general", "appearance", "motion", "login", "banners", "homepage", "contact", "social"] },
-  { label: "Content", groups: ["blog", "seo", "indexnow", "media"] },
-  { label: "Shop", groups: ["store", "payments"] },
-  /*
-    `integrations` is one key — the OpenAI credential — and it sits beside the
-    assistant because that is what spends it. The SEO assistant reuses the same
-    provider deliberately ("one credential for one provider, so it cannot be
-    half-rotated"), which is why it is not filed under Content with SEO.
-  */
-  { label: "Messaging", groups: ["mail", "newsletter", "leads", "chatbot", "integrations", "embeds"] },
-  /*
-    One group today. The client asked for the mailbox "in the ticketing
-    section", and a heading with one tab under it is the price of the tab
-    being where somebody will look for it rather than filed under Messaging
-    beside the transport that sends the acknowledgement.
-  */
-  { label: "Ticketing", groups: ["tickets"] },
-  { label: "Access", groups: ["portal", "auth"] },
-  /*
-    One word, like the five above it. It was "Privacy and data", and the reason
-    for shortening it is consistency rather than layout: measured at both
-    lengths, the strip is one row at 1440px and two at 390px either way, so the
-    longer name cost nothing and the change bought nothing but a tidier row.
-    Retention belongs here on its own merits — how long personal data is kept
-    is the same question analytics and consent are asking.
-  */
-  { label: "Privacy", groups: ["analytics", "consent", "security"] },
+export type SettingsScreen = {
+  /** The console path — the sidebar row's href and what the page looks up. */
+  path: string;
+  /** The `PageHeader` title and the tab's `<title>`. */
+  title: string;
+  /** The sidebar section it sits in, for the palette's group column. */
+  area: string;
+  lede: string;
+  saveLabel: string;
+  /** Status reads beyond `getSettings()` that a panel on this screen needs. */
+  needs?: ("mail" | "inbound")[];
+  /** The groups drawn, in order. A `label` puts a heading over those tabs. */
+  sections: { label?: string; groups: string[] }[];
+};
+
+export const SCREENS: SettingsScreen[] = [
+  {
+    path: "/admin/settings",
+    title: "Settings",
+    area: "System",
+    lede: "What the whole console shares: who the company is, how people sign in, how mail leaves, which keys the modules spend, and how long records are kept. Each module's own settings are at the end of its section in the sidebar.",
+    saveLabel: "Save settings",
+    needs: ["mail"],
+    sections: [
+      { label: "Identity", groups: ["general", "contact", "social"] },
+      /*
+        Both doors. The sign-in screen's picture and the code-or-password
+        choice serve staff and customers alike, which is what keeps them
+        here rather than under Customers.
+      */
+      { label: "Sign-in", groups: ["login", "auth"] },
+      /*
+        `integrations` holds the OpenAI, Hunter, Search Console and GA4
+        credentials, spent by four modules between them — one credential for
+        one provider, so it cannot be half-rotated — which is why it is not
+        filed under SEO or the assistant.
+      */
+      { label: "Infrastructure", groups: ["mail", "integrations"] },
+      { label: "Privacy", groups: ["security"] },
+    ],
+  },
+  {
+    path: "/admin/site/settings",
+    title: "Site settings",
+    area: "Site",
+    lede: "How the public site looks and what it says on the front page: the homepage copy and figures, the palette, motion, the page banners, embedded code, and the analytics tags with the consent banner that gates them.",
+    saveLabel: "Save site settings",
+    sections: [
+      { groups: ["homepage", "appearance", "motion", "banners", "embeds", "analytics", "consent"] },
+    ],
+  },
+  {
+    path: "/admin/blog/settings",
+    title: "Blog settings",
+    area: "Blog",
+    lede: "The sidebar video and whether readers may comment.",
+    saveLabel: "Save blog settings",
+    sections: [{ groups: ["blog"] }],
+  },
+  {
+    path: "/admin/media/settings",
+    title: "Media settings",
+    area: "Content",
+    lede: "How hard the library compresses the images it makes, and how large an upload may be — read against what this server's PHP will actually accept.",
+    saveLabel: "Save media settings",
+    sections: [{ groups: ["media"] }],
+  },
+  {
+    path: "/admin/seo/settings",
+    title: "SEO settings",
+    area: "SEO",
+    lede: "The fallbacks a page without its own metadata uses, the AI assistant and its daily ceiling, and IndexNow.",
+    saveLabel: "Save SEO settings",
+    sections: [{ groups: ["seo", "indexnow"] }],
+  },
+  {
+    path: "/admin/store/settings",
+    title: "Store settings",
+    area: "Store",
+    lede: "Whether the shop is open, what delivery costs and how long it takes, how licences are handed over, and how the shop takes money.",
+    saveLabel: "Save store settings",
+    sections: [{ groups: ["store", "payments"] }],
+  },
+  {
+    path: "/admin/newsletter/settings",
+    title: "Newsletter settings",
+    area: "Campaign",
+    lede: "Who campaigns come from, what the footer says, how fast they go out, and the Hunter allowance.",
+    saveLabel: "Save newsletter settings",
+    sections: [{ groups: ["newsletter"] }],
+  },
+  {
+    path: "/admin/leads/settings",
+    title: "Scoring",
+    area: "Leads",
+    lede: "How an enquiry is scored on arrival — the buying words that mark a lead as hot.",
+    saveLabel: "Save scoring",
+    sections: [{ groups: ["leads"] }],
+  },
+  {
+    path: "/admin/tickets/settings",
+    title: "Email to ticket",
+    area: "Tickets",
+    lede: "A support mailbox read once a minute, every new message becoming a ticket. Off by default.",
+    saveLabel: "Save mailbox settings",
+    needs: ["inbound"],
+    sections: [{ groups: ["tickets"] }],
+  },
+  {
+    path: "/admin/customers/settings",
+    title: "Portal",
+    area: "Customers",
+    lede: "Whether the customer portal is open, whether anybody may register through it, and whether a new account waits for approval.",
+    saveLabel: "Save portal settings",
+    sections: [{ groups: ["portal"] }],
+  },
+  {
+    path: "/admin/chat/settings",
+    title: "Assistant settings",
+    area: "Assistant",
+    lede: "What the website assistant is called, how it looks, what it asks before it answers, which model it uses and the ceilings that bound the bill.",
+    saveLabel: "Save assistant settings",
+    sections: [{ groups: ["chatbot"] }],
+  },
 ];
 
-export const ORDER = SECTIONS.flatMap((s) => s.groups);
+/** Every group a screen draws, in screen order — the palette's order too. */
+export const ORDER = SCREENS.flatMap((s) => s.sections.flatMap((x) => x.groups));
+
+/** The System screen, where a group nothing claims is drawn under "Other". */
+export const SYSTEM_SCREEN = "/admin/settings";
 
 /**
- * Groups drawn on a screen of their own rather than in the settings strip:
- * the info bar (`/admin/info-bar`) and the themes (`/admin/themes`). Both
- * are fetched with the rest — one `GET /admin/settings` — and saved through
- * the same action; only the strip leaves them out, because a sidebar row
- * *and* a tab is two doors to one form, which the client called a duplicate
- * the first time it happened.
+ * Groups with a form of their own that is *not* `SettingsForm`: the info bar
+ * (`/admin/info-bar`), the themes (`/admin/themes`) and the store's promo
+ * band (`/admin/store/promo`). The first two are fetched with the rest — one
+ * `GET /admin/settings` — and saved through the same action; the promo band
+ * has an endpoint of its own so a store manager can reach it. Explicit rather
+ * than "whatever no screen names", because a group somebody forgot would
+ * then be silently standalone with nowhere to be edited.
  */
-export const STANDALONE_GROUPS = new Set(["announcement", "themes"]);
+export const STANDALONE_GROUPS = new Set(["announcement", "themes", "store_promo", "store_tiles"]);
 
-/** The heading a group sits under, or "Other" for one nothing claims. */
-export function sectionFor(group: string): string {
-  return SECTIONS.find((s) => s.groups.includes(group))?.label ?? "Other";
+export function screenAt(path: string): SettingsScreen {
+  const screen = SCREENS.find((s) => s.path === path);
+  if (!screen) throw new Error(`No settings screen at ${path}`);
+  return screen;
+}
+
+/** The screen a group is drawn on, or undefined for one nothing claims. */
+export function screenFor(group: string): SettingsScreen | undefined {
+  return SCREENS.find((s) => s.sections.some((x) => x.groups.includes(group)));
+}
+
+/** The heading a group's tab sits under on its screen, if the screen uses them. */
+export function sectionFor(group: string): string | undefined {
+  for (const screen of SCREENS) {
+    const section = screen.sections.find((x) => x.groups.includes(group));
+    if (section) return section.label;
+  }
+  return undefined;
 }
 
 /** Applies FIELD_ORDER, leaving unlisted keys in their API order at the end. */

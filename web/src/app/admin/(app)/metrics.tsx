@@ -1,3 +1,4 @@
+import { formatTableDate } from "@/lib/dates";
 import { TONE_BAR, priorityTone } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { hueFor } from "@/lib/hues";
@@ -6,8 +7,6 @@ import { IconTicket, IconHeadset, IconClock, IconGauge } from "@/components/icon
 import type { DashboardMetrics, TicketPriority } from "@/types/api";
 
 /** "28 Jul". Short enough to sit under a 36px column without wrapping. */
-const dayLabel = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
 /**
  * The dashboard's charts.
@@ -59,10 +58,13 @@ function Tile({
         is missed, and a red mark beside it would double the alarm without
         adding anything to it.
       */}
-      <Icon aria-hidden className="absolute top-4 right-4 size-8 text-faint opacity-40" />
+      {/* 24px on a phone, 32 from `sm`: the glyph is decoration in the corner
+          of a card, and at 32 it competes with the figure it sits beside once
+          the card is the width of the screen. */}
+      <Icon aria-hidden className="absolute top-4 right-4 size-6 text-faint opacity-40 sm:size-8" />
       <p className="pr-10 text-12 text-muted">{label}</p>
       <p className={cn(
-        "mt-1 font-display text-24 leading-none font-semibold tracking-[-.02em]",
+        "mt-1 font-display text-22 leading-none font-semibold tracking-[-.02em] sm:text-24",
         tone === "ok" && "text-ok",
         tone === "warn" && "text-warn",
         tone === "err" && "text-err",
@@ -163,9 +165,29 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
           </div>
 
           {totalCreated === 0 ? (
-            <p className="grid flex-1 place-items-center text-13 text-muted">
-              No tickets in this window.
-            </p>
+            /*
+              It says what was measured, not "no tickets" (the client,
+              2026-09-24).
+
+              This chart counts tickets **opened** per day over the last
+              `window_days`, and the queue beside it counts tickets **open**
+              right now — two different words for two different questions. On
+              an install whose newest ticket is 32 days old both are correct
+              and the card read as broken: four open tickets on the tiles above
+              and "No tickets in this window" under them. Naming the window and
+              the measure is the whole fix; the second line says where the open
+              ones are, so nobody goes looking for a fault.
+            */
+            <div className="grid flex-1 place-items-center text-center">
+              <div>
+                <p className="text-13 text-muted">
+                  No tickets opened or resolved in the last {metrics.window_days} days.
+                </p>
+                <p className="mt-1 text-12-5 text-faint">
+                  Anything still open was raised before that, and is counted above.
+                </p>
+              </div>
+            </div>
           ) : (
             <>
               <div className="flex min-h-32 flex-1 gap-2">
@@ -185,9 +207,9 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
 
                 <div className="relative flex-1">
                   {/*
-                    Gridlines behind the bars, and the one at zero is the
+                    Gridlines behind the curves, and the one at zero is the
                     baseline — solid where the others are faint, because it is
-                    the line every bar is measured from and the only one that
+                    the line every value is measured from and the only one that
                     is not a guess at where a value sits.
                   */}
                   <div aria-hidden className="absolute inset-0 flex flex-col justify-between">
@@ -196,37 +218,7 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
                     <span className="block border-t border-line-strong" />
                   </div>
 
-                  {/* A table, described for a screen reader, drawn as bars. The
-                      numbers are the content; the bars are how they look. */}
-                  <ul className="absolute inset-0 flex items-end gap-px" aria-hidden>
-                    {volume.map((d) => (
-                      <li key={d.date} className="flex h-full flex-1 items-end gap-px">
-                        {/*
-                          Side by side, not stacked. A ticket opened and a
-                          ticket resolved are separate events, so stacking them
-                          implies a total that means nothing.
-
-                          It also removes a latent overflow rather than a
-                          reproduced one: the two were sized against the peak
-                          independently and then stacked, so a day at the peak
-                          in *both* series would have drawn a column of twice
-                          the plot height and run out of the card. It has never
-                          happened on this data, which is exactly the kind of
-                          bug that waits for a busy week to appear.
-                        */}
-                        <span
-                          className="block flex-1 rounded-t-sm bg-info"
-                          style={{ height: `${(d.created / axisTop) * 100}%` }}
-                          title={`${dayLabel(d.date)}: ${d.created} opened`}
-                        />
-                        <span
-                          className="block flex-1 rounded-t-sm bg-ok"
-                          style={{ height: `${(d.resolved / axisTop) * 100}%` }}
-                          title={`${dayLabel(d.date)}: ${d.resolved} resolved`}
-                        />
-                      </li>
-                    ))}
-                  </ul>
+                  <VolumeCurves volume={volume} axisTop={axisTop} />
                 </div>
               </div>
 
@@ -247,7 +239,7 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
                     <span key={d.date} className="min-w-0 flex-1">
                       {show && (
                         <span className="-ml-3 block whitespace-nowrap">
-                          {dayLabel(d.date)}
+                          {formatTableDate(d.date)}
                         </span>
                       )}
                     </span>
@@ -296,6 +288,152 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * The ticket volume, as two curves rather than sixty bars (the client,
+ * 2026-09-23).
+ *
+ * ## Why this one is SVG when every other chart here is divs
+ *
+ * The rule at the top of this file still holds and is the reason nothing here
+ * has an `<svg><text>`: a label inside a viewBox is in user units, so it
+ * scales with the container and the hero's diagram once rendered a label set
+ * at 8.5 as 5.4px. That rule is about **text**. A curve is a line through
+ * thirty points, and there is no way to draw one out of block elements — the
+ * bars were divs precisely because a bar is a rectangle. So the shape is SVG
+ * and every label on the card stays HTML, which is the same division the rule
+ * was written to protect.
+ *
+ * `preserveAspectRatio="none"` stretches the plot to whatever box the card
+ * gives it, and `vector-effect="non-scaling-stroke"` is what keeps that from
+ * turning the stroke into a smear: without it a 2px line drawn in a 30x10
+ * viewBox comes out 2px tall and 60px wide.
+ *
+ * ## The colours are tokens, and a gradient stop can hold one
+ *
+ * `--color-info` for opened and `--color-ok` for resolved, the two the legend
+ * and the old bars already used, referenced as `var(...)` in the stop rather
+ * than as a hex — the file's own rule, and the reason a scheme change repaints
+ * this chart with everything else. The fill under each curve is the same
+ * colour fading to nothing, which is what makes two overlapping series
+ * readable where two overlapping opaque areas would not be.
+ *
+ * ## What the curve must not invent
+ *
+ * The smoothing is a Catmull-Rom spline converted to cubic Béziers, with the
+ * control points clamped into the plot, so the line passes through every
+ * measured day and never leaves the box on the way between two of them — a
+ * chart that dips below the baseline is drawing fewer than no tickets. The
+ * clamp is not belt and braces: at the standard tension a drop from a busy
+ * day into two quiet ones put a control point at 108 in a 0–100 box, measured
+ * on this dashboard. Days are a fixed step apart and the
+ * API fills empty days with zeroes, so there is no gap to interpolate across.
+ *
+ * The hover targets stay HTML: one transparent column per day over the top,
+ * carrying the same `title` the bars carried, because a `<title>` inside a
+ * stretched SVG path is a target the size of the stroke.
+ */
+function VolumeCurves({ volume, axisTop }: {
+  volume: DashboardMetrics["volume"];
+  axisTop: number;
+}) {
+  const last = Math.max(1, volume.length - 1);
+  // A 0..100 box in both axes: the aspect is thrown away by
+  // `preserveAspectRatio`, so the numbers only have to be convenient.
+  const x = (i: number) => (i / last) * 100;
+  const y = (v: number) => 100 - Math.min(100, (v / axisTop) * 100);
+
+  const curve = (pick: (d: DashboardMetrics["volume"][number]) => number): string => {
+    const pts = volume.map((d, i) => [x(i), y(pick(d))] as const);
+    if (pts.length === 0) return "";
+    if (pts.length === 1) return `M ${pts[0][0]} ${pts[0][1]}`;
+
+    let path = `M ${pts[0][0]} ${pts[0][1]}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] ?? pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[i + 2] ?? p2;
+      /*
+       * Sixth of the neighbouring span, the standard Catmull-Rom tension —
+       * and the control points are **clamped to the plot**, which the first
+       * cut was not: measured on this dashboard, a drop from a busy day to
+       * two quiet ones put a control point at y=108 in a box that ends at
+       * 100, and a curve bowing under the baseline is drawing fewer than no
+       * tickets. Clamping flattens exactly those corners and leaves every
+       * other one alone.
+       */
+      const clamp = (v: number) => Math.min(100, Math.max(0, v));
+      const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+      const c1y = clamp(p1[1] + (p2[1] - p0[1]) / 6);
+      const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+      const c2y = clamp(p2[1] - (p3[1] - p1[1]) / 6);
+      path += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${p2[0].toFixed(2)} ${p2[1].toFixed(2)}`;
+    }
+    return path;
+  };
+
+  const opened = curve((d) => d.created);
+  const resolved = curve((d) => d.resolved);
+  const under = (d: string) => `${d} L 100 100 L 0 100 Z`;
+
+  return (
+    <>
+      <svg
+        aria-hidden
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        className="absolute inset-0 size-full overflow-visible"
+      >
+        <defs>
+          <linearGradient id="tw-volume-opened" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-info)" stopOpacity="0.38" />
+            <stop offset="100%" stopColor="var(--color-info)" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="tw-volume-resolved" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-ok)" stopOpacity="0.34" />
+            <stop offset="100%" stopColor="var(--color-ok)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Resolved underneath: it is the quieter series on most weeks, and the
+            one drawn second is the one whose fill dulls the other. */}
+        <path d={under(resolved)} fill="url(#tw-volume-resolved)" />
+        <path d={under(opened)} fill="url(#tw-volume-opened)" />
+
+        <path
+          d={resolved}
+          fill="none"
+          stroke="var(--color-ok)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d={opened}
+          fill="none"
+          stroke="var(--color-info)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+
+      {/* The day-by-day figures, as targets rather than as shapes. */}
+      <ul className="absolute inset-0 flex" aria-hidden>
+        {volume.map((d) => (
+          <li
+            key={d.date}
+            className="min-w-0 flex-1"
+            title={`${formatTableDate(d.date)}: ${d.created} opened, ${d.resolved} resolved`}
+          />
+        ))}
+      </ul>
+    </>
   );
 }
 

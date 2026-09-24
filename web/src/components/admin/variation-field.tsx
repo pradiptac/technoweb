@@ -1,5 +1,6 @@
 "use client";
 
+import { Card } from "@/components/ui/card";
 import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -148,7 +149,7 @@ export function VariationField({
   const names = Array.from(new Set(rows.flatMap((r) => r.options.map(([k]) => k.trim()).filter(Boolean))));
 
   return (
-    <section className="mt-2 rounded-lg border border-line-strong bg-card p-5">
+    <Card as="section" interactive={false} padding="md" className="mt-2">
       <span className="block text-14-5 font-semibold">Variations</span>
       <p className="measure mt-0.5 mb-4 text-13 text-muted">
         One row per thing somebody can actually buy — 24-port and 48-port, not
@@ -335,6 +336,6 @@ export function VariationField({
       )}
 
       {error && <p className="mt-1.5 text-12-5 text-err">{error}</p>}
-    </section>
+    </Card>
   );
 }

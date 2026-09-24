@@ -21,6 +21,398 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.86.0 — 2026-09-23
+
+**Sixteen things the client asked for while looking at the site**, most of
+them on a phone.
+
+**The checkout asks for a Mobile, and checks it.** The field says Mobile
+rather than Phone, and the API refuses anything that is not an Indian mobile
+number — ten digits opening 6 to 9, with or without `+91`, `91` or a leading
+zero, and separators wherever somebody typed them. A refusal names the field
+and says what the format is; the wire key stays `phone`, which is what the
+column, the order resource, the console and the customer's own account all
+call it. `CheckoutRequest`.
+
+**Order notes.** An optional box at the foot of the checkout for a delivery
+window, a gate code or a purchase-order number: `orders.customer_note`, stored
+as typed with its line breaks, read back on the buyer's own order page and
+drawn on the console's order screen where the parcel is packed from. It is
+`customer_note` and not `notes` because `Order::notes()` is already the desk's
+staff-only relation.
+
+**The shop's filter strip stays docked for the whole shop.** It had been
+releasing at the pagination and sliding up behind the header with the promo
+band, the latest products and the trust strip still to come — measured at
+1707px, released at an absolute top of 1979 inside a wrapper running to 3714.
+A sticky box is held by its **own parent's** box and by nothing further up, so
+the wrapper added in September never applied to a strip nested one `Container`
+deep inside a section. It is hoisted out and carries the container's gutter
+itself, so its edges still line up with the grid below it.
+
+**The two promo tiles moved to sit directly above the trust strip**, closing
+the shop with the banner and the strip instead of interrupting it between the
+grid and the promo band.
+
+**The shop's filter strip sticks on a phone too**, at the client's request.
+It was `lg` and up on a measurement that has not changed — the strip is three
+rows and 201px tall at 390px, so it and the header hold about a third of the
+screen. What is weighed against it is that the basket lives in this strip and
+the phone header carries no basket at all, so letting it scroll away leaves
+somebody halfway down a listing with no way to reach either. The band's
+padding is trimmed below `lg` so the stuck height is the strip rather than a
+frame around it.
+
+**Slide captions fit a phone.** Every caption was padded `px-14` — 56px each
+side on all nine anchors — to clear the previous/next buttons, which only the
+middle row can collide with. At 390px that left a 198px text column: headings
+wrapping after two words, the summary clamped mid-sentence and "Shop the
+store" broken across three lines. The gutter is now `px-12` for the middle row
+(exactly where the arrows end) and `px-4` everywhere else, and the caption
+block is full width on a phone rather than shrink-to-fit — 262px of text, and
+the summary reads to its end. `slide-caption.tsx`, so every slider that draws
+a caption gets it.
+
+**Two products to a row on a phone**, which is what the card was written for —
+its own note already described "two columns on a phone to six on a wide
+screen" while every store grid said one. The card's type steps down one rung
+below `sm` and back above it, because a 16px title and a 20px price in a 170px
+cell wrap the name to three lines and make the price the loudest thing on the
+screen. The image `sizes` hint moves from `100vw` to `50vw` to match.
+
+**A bigger logo on a phone.** Raising the height alone did nothing: the mark
+is a wide wordmark, so the width cap binds first. The room is a real number
+and it differs by device — the flanking group is a fixed 150px and the
+container is 90%, leaving 130px at 320, 174px at 360 and 201px at 390 — so the
+cap follows it: 128px below 360, 164px from 360, 190px from 390.
+
+**A third info-bar message style: one line at a time.** Each line rises from
+the bottom and holds long enough to read it — `1.4s + chars/15`, floored at 3s
+and capped at 9s — pausing under the pointer, while something inside has focus
+and while the tab is hidden. A line is what the editor pressed Enter to make,
+since the `inline` purifier keeps `<br>` and wraps runs in `<p>`, and those are
+the only separators there can be. The rise is 900ms on a new
+`--duration-drift` token: the four durations in the scale all time a reaction
+to something somebody did, and at `slow` an ambient loop reads as a flick. The
+stack is `aria-hidden` with the whole message rendered once beside it, because
+a rotator read aloud is either a live region interrupting somebody every few
+seconds or a message of which one line is ever in the accessibility tree.
+
+**The info bar is slimmer.** 24px on a phone against 49, and 27px on a desktop
+against 36 — the halving and the three-quarters the client asked for. The type
+steps to 12px below `sm`, the padding goes, both discs are 24px (the tap-target
+floor, not below it), and the line is centred in the band rather than sitting
+on its top edge.
+
+**All three info-bar styles are the same height.** Fixed, ticker and one
+line at a time drew 66px, 33px and 24px on a phone from one message, because a
+`<br>` breaks a line even under `white-space: nowrap` — so a message an editor
+wrote as three lines was three heights on a strip whose whole job is to be the
+same thin line. The two one-line styles join the lines with a middot, using the
+split the vertical style already needs, and every style clamps to one line.
+
+**"Sign out" is a glyph on a phone.** It wrapped to two lines in a row that has
+already given up the account link and "View site" to fit 320px, so the console
+header stood a row taller than anything in it. `IconSignOut` below `sm`, the
+words from `sm`, and `aria-label` on the button either way so nothing reading it
+gets a control called nothing.
+
+**The dashboard's ticket volume is two curves.** Sixty bars became a smooth
+opened-and-resolved pair with a gradient under each, drawn as SVG with
+`preserveAspectRatio="none"` and a non-scaling stroke. The colours are the
+`--color-info` and `--color-ok` the legend already used, referenced as tokens in
+the gradient stops rather than as hexes; the smoothing is a Catmull-Rom spline
+whose control points are clamped into the plot, because at the standard tension
+a drop from a busy day into two quiet ones put one at 108 in a 0-100 box — and
+a curve bowing under the baseline is drawing fewer than no tickets. Measured on
+the dashboard, not assumed. The labels stay HTML, which is the rule the
+hero diagram taught — SVG text scales with the viewBox.
+
+**The volume chart says what it measured when it has nothing to draw.** It
+read "No tickets in this window" under a dashboard reporting four open tickets,
+which is two correct figures and one that looks broken: the chart counts
+tickets *opened* over thirty days and the tiles count tickets *open* now, and
+on an install whose newest ticket is thirty-two days old both are right. It
+names the window and the measure now, and says where the open ones are.
+
+**The console's tiles step down on a phone.** A 26px figure and a 32px corner
+glyph were sized for a six-across dashboard and shout across a card the width of
+a 390px screen. One rung smaller below `sm`, back above it. The console keeps
+its dense desktop scale, which is the point of a tool worked at a desk.
+
+**The mail test row reads.** The button says "Send", and the paragraph
+explaining what the test proves runs the width of the panel instead of being
+set in the field's own 22rem column with the button stranded beside it. It
+keeps its `aria-describedby`, so moving it out of the field's hint slot is not
+an accessibility downgrade.
+
+---
+
+## 0.85.0 — 2026-09-21
+
+**The sensitive switch reaches the ticket's opening request.** "This ticket
+contains sensitive data — encrypt its contents" on the new-ticket form: the
+description is stored encrypted, shown in clear to the customer and the
+desk with the lock on the original request, announced but never quoted in
+the desk's new-ticket email, and redacted in the webhooks (which still say
+the ticket exists). A merge note that quotes a sensitive request is sealed
+with it. The sealing is now one piece of code shared by a ticket and a
+message.
+
+## 0.84.0 — 2026-09-21
+
+**Paste a screenshot into a ticket, see the files as rows, mark a reply
+sensitive.** Ctrl+V with a screenshot on the clipboard — in the portal's
+reply box, the console's, or the new-ticket form — and it is attached: a row
+with a thumbnail, its name, its size and a delete button, pasted files
+appending to picked ones rather than replacing them (a drop used to replace
+a pick). A reply can be marked **sensitive**: its body is stored encrypted,
+shown in clear to the customer and the desk with a lock beside it, announced
+but never quoted in the notification email, and never sent to a webhook.
+Two things fixed on the way that the feature made visible: files sent with
+the ticket itself were on the API and drawn on neither ticket page, and the
+console's header overflowed a 320px screen by 8px on every route.
+
+## 0.83.0 — 2026-09-21
+
+**Answer-engine and generative-engine optimisation across the CMS and the
+store.** Every content record — pages, products, store products and
+categories, product categories, brands, services, solutions, posts,
+knowledge articles, industries — can now carry **answer blocks**: a
+definition, who it is for, why it is needed, key facts, features, use
+cases, comparisons, steps and questions, each drawn on the public page under
+its own heading and each a thing an answer engine can quote. FAQs reach the
+same eleven records. Every public page carries its **entity** block — the
+brand, category, solutions, services, industries and supporting articles it
+is related to — as a "Related" section and as `about`/`mentions` in its
+structured data, and the organisation says what it knows about and where
+it serves. Two new scores, **AEO** and **GEO**, sit beside the SEO score on
+the overview and on every record's new **AEO** tab, each with its failed
+checks and the hint that would earn them, band and per-check filters, sorts,
+and the site's averages with their own biggest wins. The assistant gains
+eight actions — analyses for both scores, question and answer-block drafts,
+a per-block rewrite, FAQ suggestions, entity links, product Q&A — that
+suggest and never write; a fact the model was not given is written as
+`[MISSING: …]`, never invented. **Improvement suggestions** under each score
+combine the rubric's hints with the assistant's reading, inline. Store
+products gain a warranty, applications and the services that install them.
+`/llms-full.txt` carries each record's definition and questions.
+
+## 0.82.1 — 2026-09-21
+
+**A review pass over the whole project, thirteen small fixes.** Three
+reviewers swept the code against this project's own rules and everything
+of consequence held; what they found was small and is fixed: one boolean
+switch component where three screens had their own; seven console dates in
+`en-GB` where the rest are `en-IN`, now through `lib/dates.ts`; eight
+hand-rolled panels now `Card`s; two hover animations that snapped instead of
+moving (Sentinel's arrow, the portal's tiles — the Tailwind v4 transform
+trap); the homepage's NOC diagram painted in a frozen olive under every
+palette, now the dark-band tokens; the sitemap fetching landing pages in a
+round trip of their own; three helper functions that had drifted between
+two copies (`formatBytes`, `initials`, `requestHost`), now one each; the
+campaign batch job with no timeout, so a batch killed at the worker's 60s
+default left recipients unmailed and unreported; `/blog/category/[slug]`
+documented as the second deliberately dynamic route; and a section-ground
+picture on one of the first two homepage sections now loads eagerly, since
+there it is the page's largest paint.
+
+
+**View the portal as a customer.** "View as" on the customer list and on a
+customer's record opens the portal in a new tab signed in as that customer —
+the fastest way to see what they are looking at when they say a page is
+wrong. Support engineers and administrators; active accounts only; an hour,
+with a banner across the top of the portal and an End button that lands
+back on the record. The customer's own session is untouched (the token is
+its own, never a `portal` one), nothing about them is forged (`last_login_at`
+stays), the visit is in the activity log, and the one thing the session may
+not do is change their email address. The button is a POST form in a new
+tab rather than a link, because both session cookies are `sameSite: lax`
+and that is the CSRF defence.
+
+**Two promo tiles above the shop's band.** Store → Promo banners now edits
+the wide band and two tiles side by side above it — picture, kicker,
+heading, a line and a button each — through the same store-manager door.
+One tile on takes the whole row; neither, and nothing is drawn.
+
+**The homepage's "Why Technoware" block is editable.** Site → Settings →
+Homepage holds the heading, the paragraph, the steps as rows, the
+pull-quote (whose three settings had existed with nothing reading them) and
+the AMC card's list and link. Seeded with the copy the page already had.
+
+**`/resources` is colourful under every theme.** Every tile carries a
+colour — the four routes in sequence, a post by its category, a guide by
+its category, a project by its industry — and each theme shows it in its
+own idiom: a wash and an edge, a rule down the left, a coloured block in
+the listing, an orb in the bento's corner.
+
+**The vacancy page and the team cards, redesigned.** A role opens on a
+glance strip, a pair of tinted cards for what it does and needs, a sticky
+aside with the Apply button, and the application as a band beside what
+happens next and the other open roles. The team is portrait cards with a
+colour per person, labelled contact pills and a four-line bio.
+
+**Sample client logos.** The six seeded clients carry colourful marks from
+Freepik's free catalogue instead of six identical grey tiles — placeholders
+still, and replaced through the console like any upload.
+
+**Add to basket, in four stages.** The product page's button is a pill
+that nudges its arrow on hover, glides its cart to the centre and fills it
+while the basket is being written, then turns green with a check and
+"Added to basket" for three seconds as a link to the basket — every stage
+flowing into the next, still under reduced motion, a plain submit with
+JavaScript off.
+
+**Share icons in their own colours, a larger logo on phones.** Under the
+pointer each share mark takes its network's colour; the logo is a little
+larger below the tablet breakpoint.
+
+**The first blog row now really loads eagerly.** 0.81.0 added the `priority`
+prop to `PostRow` and never handed it to the picture; the row stayed lazy
+under a docblock saying otherwise.
+
+**The shop's control strip follows the whole page.** It stopped docking under
+the header the moment the product grid scrolled away — `position: sticky`
+holds only while the element's parent is on screen, and the strip's parent
+was the grid's section. `/store` wraps its sections in one block now.
+
+---
+
+## 0.81.0 — 2026-09-20
+
+**Settings by section.** System → Settings keeps only what the whole console
+shares — identity, the two sign-in doors, outgoing mail, API keys, retention
+— and every module's own settings are a "Settings" row at the end of its
+sidebar section: Site, Blog, Content (Media settings), SEO, Store, Campaign,
+Leads (Scoring), Tickets (Email to ticket), Customers (Portal), Assistant.
+Ten screens over one form and one endpoint, administrators only. Tickets,
+Customers, Leads and Campaign are groups now, with the "new since" count on
+the collapsed header; the sidebar lights the longest matching row. Eleven
+settings groups gained a field order and thirteen fields a label, so Ctrl+K
+reaches them.
+
+---
+
+## 0.80.0 — 2026-09-20
+
+**The store's promo banner is a Store screen.** `/admin/store/promo` under
+Store beside Discount codes, for a store manager, through an endpoint of its
+own that reaches the eight `store_promo_*` rows and refuses any other key by
+name. The rows moved to a `store_promo` settings group and left the settings
+strip, the info bar's rule; Settings → Store keeps shipping, the COD
+ceiling and the return window. The settings section is labelled **Store**,
+not Shop.
+
+---
+
+## 0.79.0 — 2026-09-20
+
+**Automation sequences.** A welcome series: `newsletter_sequences` with a
+trigger group (or none, for every new subscriber) and steps that are
+**campaign rows** — `sequence_id`, `sequence_position`, `delay_days`, status
+`automation` — so a step has the block editor, health checks, tracking,
+unsubscribe and a report already, and a step send is an ordinary recipient
+row. Enrolment is once per subscriber per sequence, ever (a unique index):
+on joining the group, on becoming active, or by hand from the sequence's
+Enrolments tab. `technoware:run-sequences` every ten minutes sends what is
+due, advances the cursor, completes, or cancels a subscriber who left. The
+campaigns index never lists a step; `queue()` refuses one. Item 18 of
+`docs/feature-ideas-2026-09-20.md`.
+
+## 0.78.0 — 2026-09-20
+
+**Resend to non-openers.** On a sent campaign's report: a new subject and
+one press. The copy carries `resend_of_id` (unique, so the guard is the
+index), its audience is the original's `sent`-and-never-opened recipients
+re-filtered through the same eligibility (`AudienceResolver::freezeFrom`),
+and it passes the health gate before anything is written. On the way,
+`TrackingRewriter::unprepare()`: a duplicate used to carry the original's
+tracked links and pixel, counting its clicks against the original. Item 17.
+
+## 0.77.0 — 2026-09-20
+
+**Outgoing webhooks.** `/admin/webhooks` (`role:admin`): a URL, a secret
+shown once, a list of events — `lead.created`, `ticket.created`,
+`ticket.replied`, `ticket.status_changed`, `order.placed`, `order.paid`,
+`order.status_changed`, `customer.registered`, `form.submitted`,
+`subscriber.joined` — and a delivery log with Redeliver and a ping.
+`Webhooks::emit()` is guarded like `Notifier` and never fails the request;
+`DeliverWebhook` retries five times through the queue and signs
+`timestamp.body` with HMAC-SHA256 (the bounce and Cashfree precedent). The
+emitters are model hooks, dispatched after commit, so a rolled-back checkout
+announces nothing. https only, no private hosts. Item 20 of
+`docs/feature-ideas-2026-09-20.md`.
+
+## 0.76.0 — 2026-09-20
+
+**Back-in-stock notices.** A product that is out of stock offers an email
+field instead of a dead Buy button; `POST /store/products/{slug}/notify`
+answers 202 whatever happens (the register rule), and `StockLedger` — the one
+place stock ever rises — dispatches `SendStockNotices`, which re-checks the
+shelf when it runs, skips the newsletter's suppression list, sends
+`BackInStock` (the catalogue's twenty-seventh message, with a one-click
+cancel) and stamps each row once. The console shows how many are waiting per
+product, filters on it, and the store dashboard counts products people are
+waiting for. Item 13.
+
+## 0.75.0 — 2026-09-20
+
+**The store's catalogue imports and exports.** `GET
+/admin/store/products/export` is one CSV row per product and per variation,
+money as plain decimals; `/admin/store/products/import` is a dry run over a
+CSV or `.xlsx` (`Spreadsheet`, the newsletter's reader) and then a commit,
+matching by SKU — a variation's SKU updates the variation, a product's the
+product, an unknown one creates a product, and nothing ever creates a
+variation. Stock changes go through `StockLedger` with the import named in
+the note. A store-specific column guesser, because the newsletter's reads
+"name" as a first name. Item 10.
+
+## 0.74.0 — 2026-09-20
+
+**Ticket merge.** `POST /admin/tickets/{ref}/merge {into}`: one customer's
+two threads about one problem become one — messages and attachments move,
+the source closes with `merged_into`, both tickets get an event, the target
+an internal note, and the customer one `TicketMerged` (the twenty-sixth
+catalogue message). Refused across customers, on a merged source, and into
+a ticket that is not open. A merged source reads 200 with `merged_into` on
+the console and the portal, takes no reply and no status change, and
+email-to-ticket follows the chain when a reply quotes the old reference.
+Item 2.
+
+## 0.73.0 — 2026-09-20
+
+**Canned replies.** `/admin/tickets/saved-replies`, shared across the desk,
+and "Insert saved reply" above the reply box, which inserts the body with
+`{{customer_name}}`, `{{first_name}}`, `{{company}}`, `{{reference}}`,
+`{{subject}}` and `{{agent_name}}` already filled for that ticket by the
+API through `Placeholders::fillText` — the console never learns the
+placeholder rules. Item 1.
+
+## 0.72.0 — 2026-09-20
+
+**Google Analytics 4, read only, beside Search Console.** The same service
+account (`gsc_service_account`, added to the property as a Viewer) and one
+more setting, `ga4_property_id`; `App\Support\Seo\GoogleAnalytics` mirrors
+`SearchConsole` rule for rule — one `runReport` an hour for the whole
+overview, never a call per row; a refusal in Google's words to `ga4_error`;
+null, never zero, for what was not measured. The JWT exchange the two share
+moved to `GoogleServiceAccount`. `/admin/seo` rows carry `analytics`
+(views, users) beside `search` and `?analytics=no_views` lists the pages
+Google shows that nobody opens; the store dashboard's funnel gains product
+views and a views → orders rate; Settings → Integrations gains the field
+and a Test button. Item 19 of `docs/feature-ideas-2026-09-20.md`.
+
+## 0.71.0 — 2026-09-20
+
+**Every picture has a focal point.** `media.focal_x`/`focal_y`, set by
+clicking the preview in the media library's Edit dialog beside the alt
+text — a property of the file, like the alt, so a 4:3 tile, a 16:9 hero and
+a 1:1 thumbnail all keep the same subject in frame. `MediaAlt` became
+`MediaMeta`; every resource that carried a `*_alt` carries a `*_focus`
+beside it; `lib/focal.ts` turns it into `object-position` at every cover
+site, and `Tile` takes it as `--tile-focus`. Unset is the centre, byte for
+byte what rendered before. Item 11 of `docs/feature-ideas-2026-09-20.md`.
+
 ## 0.70.0 — 2026-09-20
 
 The pending list, worked through. Of the thirteen open items in

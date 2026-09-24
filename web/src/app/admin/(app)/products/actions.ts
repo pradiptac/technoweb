@@ -5,7 +5,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import { createProduct, deleteProduct, updateProduct, type ProductPayload } from "@/lib/admin";
 import { jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
-import type { FaqItem, PublishStatus } from "@/types/api";
+import type { AnswerBlock, FaqItem, PublishStatus } from "@/types/api";
 
 export type ProductFormState = { error?: string; fieldErrors?: Record<string, string[]> };
 
@@ -51,6 +51,7 @@ function payloadFrom(formData: FormData): ProductPayload {
     solution_ids: ids(formData, "solution_ids"),
     related_product_ids: ids(formData, "related_product_ids"),
     faqs: jsonListFromFormData<FaqItem>(formData, "faqs"),
+    answer_blocks: jsonListFromFormData<AnswerBlock>(formData, "answer_blocks"),
     ...(seo ? { seo: seo as ProductPayload["seo"] } : {}),
   };
 }

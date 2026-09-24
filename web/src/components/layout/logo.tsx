@@ -71,15 +71,37 @@ export function Logo({
           the bug arrived with the client's first upload rather than with any
           commit. `object-contain` is what makes the cap scale the whole mark
           down rather than crop it.
+
+          A little larger on a phone (2026-09-21, the client's ask): 31px tall
+          under `sm` against 28 above it, where the bar is taller and the mark
+          sits beside a full navigation. The width cap moves 120 → 128, which
+          is still inside the 130px the flanking group leaves at 320px.
+
+          **Bigger again on a phone (2026-09-23), and the cap is what moves.**
+          Raising the height alone does nothing for the mark this client
+          uploaded: it is a wide wordmark, so `max-w` binds first and a taller
+          box just leaves more empty space above and below a 128px-wide image.
+          The room is a real number and it is not the same at every phone
+          width — the flanking group (the consultation button and the menu
+          toggle) is a fixed 150px of `shrink-0`, and the container is 90%, so
+          what is left for the logo is 130px at 320, 174px at 360 and 201px at
+          390. The cap now follows that: 128px below 360, 164px from 360 and
+          190px from 390, each inside its own budget with room for the gap. The
+          height ceiling goes to 36px so a square or stacked mark can use the
+          extra width too, and the console — whose bar is 52px — is unaffected,
+          because a 36px box only fills when the mark is tall rather than wide.
         */
-        className={cn("h-[28px] w-auto max-w-[120px] object-contain sm:max-w-none", className)}
+        className={cn(
+          "h-[36px] w-auto max-w-[128px] object-contain min-[360px]:max-w-[164px] min-[390px]:max-w-[190px] sm:h-[28px] sm:max-w-none",
+          className,
+        )}
         priority
       />
     );
   }
 
   return (
-    <span className={cn("font-display text-[23px] font-bold leading-none tracking-[-.045em]", className)}>
+    <span className={cn("font-display text-[25px] font-bold leading-none tracking-[-.045em] sm:text-[23px]", className)}>
       <span className={onDark ? "text-white" : "text-ink"}>TECHNO</span>
       <span className={onDark ? "text-brand-400" : "text-brand-ink"}>WARE</span>
     </span>

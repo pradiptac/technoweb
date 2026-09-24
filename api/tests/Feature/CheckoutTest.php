@@ -435,6 +435,65 @@ class CheckoutTest extends TestCase
         $this->assertSame('700091', $order->shipping_address['pin']);
     }
 
+    // ------------------------------------------------ the mobile number
+
+    /**
+     * Every way an Indian mobile is written is accepted, and a landline is not.
+     *
+     * The separators are the point: people paste `+91-98765-43210` out of a
+     * contacts app and type `98765 43210` by hand, and a rule that takes one
+     * and refuses the other is a rule that reads as an outage to whoever typed
+     * the other one. `1234567890` opens with a digit no Indian mobile starts
+     * with, and `98765 4321` is nine digits — both are the mistakes this exists
+     * to catch.
+     */
+    public function test_a_mobile_number_is_accepted_however_it_is_written(): void
+    {
+        foreach (['9876543210', '+91 98765 43210', '+91-98765-43210', '919876543210'] as $number) {
+            $this->checkout($this->basketWith($this->product()), ['phone' => $number])
+                ->assertCreated();
+        }
+    }
+
+    /**
+     * Split from the case above rather than written as one table, because
+     * `/checkout` is throttled at 10 a minute and nine orders in one method
+     * spend the allowance — which fails as a 429 and reads as a rule that
+     * rejects a number it actually accepts.
+     */
+    public function test_a_number_that_is_not_a_mobile_is_refused(): void
+    {
+        foreach (['1234567890', '98765 4321', '5551234567', 'call me'] as $number) {
+            $this->checkout($this->basketWith($this->product()), ['phone' => $number])
+                ->assertStatus(422)
+                ->assertJsonValidationErrors('phone');
+        }
+    }
+
+    // ------------------------------------------------ the buyer's own note
+
+    /** Optional, kept as typed, and never confused with the desk's own notes. */
+    public function test_an_order_note_is_stored_and_is_optional(): void
+    {
+        $number = $this->checkout($this->basketWith($this->product()), [
+            'customer_note' => "Gate code 4821.\nDeliver after 2pm.",
+        ])->assertCreated()->json('data.order_number');
+
+        $order = Order::where('order_number', $number)->firstOrFail();
+
+        $this->assertSame("Gate code 4821.\nDeliver after 2pm.", $order->customer_note);
+        // `notes()` is the desk's staff-only relation and must stay untouched
+        // by anything a buyer can type.
+        $this->assertCount(0, $order->notes);
+
+        $plainNumber = $this->checkout($this->basketWith($this->product()))
+            ->assertCreated()->json('data.order_number');
+
+        $plain = Order::where('order_number', $plainNumber)->firstOrFail();
+
+        $this->assertNull($plain->customer_note);
+    }
+
     /**
      * With a separate delivery address, it is *that* one that has to be
      * complete — and the error lands on the field the person left blank

@@ -4,6 +4,7 @@ import { formatDate } from "@/components/ui/article-meta";
 import { CategoryChips } from "@/components/blog/category-chips";
 import type { BlogPost } from "@/types/api";
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 
 /**
  * One article in the listing: picture left, everything else right.
@@ -19,7 +20,15 @@ import Image from "next/image";
  * href and put a link inside a link, which is invalid and which a screen
  * reader announces as one enormous target.
  */
-export function PostRow({ post }: { post: BlogPost }) {
+export function PostRow({ post, priority = false }: {
+  post: BlogPost;
+  /**
+   * The first row of a listing is the page's largest paint below the
+   * header, so it loads eagerly; every other row stays lazy. Without this the
+   * category page logged next/image's LCP warning, which the audit fails on.
+   */
+  priority?: boolean;
+}) {
   return (
     <article className="grid gap-0 overflow-hidden rounded-lg border-2 border-line-strong bg-card transition-colors duration-(--duration-base) hover:border-brand-300 sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)] sm:items-center">
       {/*
@@ -50,7 +59,12 @@ export function PostRow({ post }: { post: BlogPost }) {
             alt={post.cover_image_alt ?? ""}
             fill
             sizes="(min-width: 1024px) 22vw, 40vw"
+            // Eager, never `priority`: the team and case-study grids' rule. The
+            // prop arrived in 0.81.0 and was never handed on, so the first row
+            // stayed lazy under a docblock saying it was not (2026-09-21).
+            loading={priority ? "eager" : undefined}
             className="object-cover"
+            style={focalStyle(post.cover_image_focus)}
           />
         ) : (
           <span className="grid size-full place-items-center bg-linear-135 from-brand-800 to-brand-600">

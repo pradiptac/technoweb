@@ -5,13 +5,14 @@ import { redirect } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { ToastProvider } from "@/components/ui/toast";
 import { ToastFromParams } from "@/components/ui/toast-from-params";
-import { getCurrentCustomer } from "@/lib/auth";
+import { getCurrentCustomer, isImpersonated } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/settings";
 import { motionAttrs, motionFor } from "@/lib/motion-choices";
 import { PageEnter } from "@/components/ui/page-enter";
 import { RouteProgress } from "@/components/ui/route-progress";
 import { logoutAction } from "../actions";
 import { PortalNav } from "./portal-nav";
+import { ImpersonationBanner } from "./impersonation-banner";
 import { knowledgeBaseIcon, portalLinks } from "./portal-links";
 import { Button } from "@/components/ui/button";
 
@@ -24,6 +25,9 @@ export default async function PortalLayout({ children }: { children: React.React
   const customer = await getCurrentCustomer();
 
   if (!customer) redirect("/portal/login");
+
+  // A staff member's "View as" session — the same cached `/auth/me` read.
+  const impersonated = await isImpersonated();
 
   // For the footer's company name. ISR-cached and shared with every other
   // read of it, so this costs a revalidation rather than a round trip.
@@ -49,6 +53,7 @@ export default async function PortalLayout({ children }: { children: React.React
             <RouteProgress style={motion.loader as "bar" | "pulse"} />
           </Suspense>
         )}
+        {impersonated && <ImpersonationBanner customer={customer} />}
         <div className="border-b border-line bg-card">
           <Container className="flex flex-wrap items-center gap-3 py-5">
             <div className="min-w-0">

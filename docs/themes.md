@@ -3,7 +3,7 @@
 One folder per theme under `web/src/themes/`, each filling a fixed set of
 template slots; the active one is the `site_theme` setting (Site → Themes in
 the console), `classic` by default. The colour palette (`appearance.theme`,
-Settings → Colour palette) is a different thing and paints every theme. The
+Site → Settings → Colour palette) is a different thing and paints every theme. The
 proposal this grew from is `docs/themes-plan.md`.
 
 **A theme is code and choosing one is data.** `themes.site_theme` is a public
@@ -239,7 +239,7 @@ editorial rule.
 
 **The header is two dark rows, and both are the dark-ground tokens.**
 `themes/datacenter/header.tsx` (`ConsoleHeader`, a client component): a
-status strip built from the site's own statistics (Settings → Homepage,
+status strip built from the site's own statistics (Site → Settings → Homepage,
 the first two `value|label` rows, each with a steady dot), the telephone
 number, the search field, the utility links rendered as `[Label]`, and
 the support address; then the header proper — the logo on dark, the
@@ -540,7 +540,7 @@ hover; section headings carry the two-colour rule under them.
 
 Five Freepik photographs under `public/themes/{enterprise,summit,horizon}/`,
 resized to 1800px before they were committed. Every theme lists the
-`reviews` section (Settings → Embeds) beside the others.
+`reviews` section (Site → Settings → Embeds) beside the others.
 
 ## Canvas — the client's design document as a palette and a theme (step 8, 2026-09-17)
 
@@ -799,3 +799,48 @@ on each item), so a numbered idiom numbers by position and nothing stores an
 index. The count's parentheses are `::before`/`::after` content, so a chip
 idiom drops them. `--tile-hue` is the identity hue of the tile's icon, set
 inline, and the base wash mixes it at 9% — `hueForIcon`'s ceiling is 14%.
+
+**The resources hub carries a colour per tile, and every theme states how it
+shows it (2026-09-21).** `/resources` was the same grey hub under every theme:
+four route tiles and three lists, none passing a hue, so the base wash had
+nothing to mix. Now every tile has one — the four routes by *position*
+(`neon-8/6/4/5`, the support hub's exception: a set laid out in a fixed order),
+a post by its category through the same `tagIndex()` its chips use so the
+colour is the one the blog already gave it, a guide by `hueFor(category.slug)`,
+a project by `hueForIcon(industry.icon)` — on both the `Tile` and its
+`IconTile`, so the wash and the glyph agree; each list's heading has a rule of
+the list's lead colour beside it and each row a rule down its left in its own
+(`RULED`, a class, so it holds under every idiom). Then one block per
+`theme.css` keyed `[data-collection="routes"] [data-tile]`: the classic
+family a 14% wash and the hue as the top edge, Editorial and Datacenter the
+rule down the left, Terminal an `ls --color` block before the entry name
+(generated content), Launch an orb of the colour in the tile's corner over
+the card gradient, Summit, Sentinel and Vantage the seam along the top,
+Keystone the colour into the accent along its masked edge. **Grounds and
+edges only, never a word's colour**: the neon set is graded for a glyph at
+3:1, and `npm run audit` grades the words against whatever opaque ground is
+under them — which is why Launch's orb keeps the opaque card gradient as
+its second layer.
+
+**The team card is a portrait with a colour per person (2026-09-21).** 4:5
+rather than 4:3 — people are portraits, and the old well cropped every
+head-and-shoulders picture at the chin; the themes that round the photograph
+(Launch, Canvas, Vantage) pin `aspect-ratio: 1` themselves, so nothing became
+an oval. `--member-hue` is `hueFor(name)` on the card and reaches the
+initials tile, a 3px rule between photo and body, and the chips' edges —
+every use a class, so a theme's own rule on the same part still wins, and
+never the words. The two glyph-only 40px squares became pill links that say
+"Email" and "LinkedIn"; the bio clamps at four lines with the whole text in
+`title`; a grouped department heading shows its count. The attributes are
+unchanged, so every theme's existing rules on `data-team-*` still apply.
+
+**A decorative bar is a pseudo-element, never a background layer wider than
+2px (Horizon, 2026-09-21).** Horizon drew its tiles' slate→blue left bar as
+a `4px 100%` background layer; the first run of `/resources` under
+`SITE_THEME=horizon` reported 42 contrast failures at 1.43:1, every word on
+the posts, guides and case-study tiles graded against a bar nothing sits on.
+`gradientStops()` drops a layer of 2px or under (Sentinel's seam) and this
+one was 4. Widening the audit's threshold would widen a loophole; the bar is
+a `::before` now — a box no text is inside — and the theme grades clean on
+`/resources` and `/` in both schemes. The theme matrix for `/resources` and
+`/team` under all twelve themes is otherwise clean, light and dark.

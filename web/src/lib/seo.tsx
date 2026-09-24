@@ -152,6 +152,26 @@ function sameAs(settings: Record<string, string | undefined>): string[] {
 }
 
 /**
+ * A list of names the API publishes as one JSON-encoded string on the
+ * public `/settings` map — `organization_knows_about` (published solution
+ * titles) and `organization_area_served` (active locations' names), absent
+ * when empty (`docs/aeo-geo-samples.md`). Decoded the way `site_theme_options`
+ * is: a row that does not parse, or is not a list of strings, is nothing,
+ * and nothing is said. Never a literal list here — the catalogue is the API's.
+ */
+function jsonNames(raw: string | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((v): v is string => typeof v === "string" && v.trim() !== "").map((v) => v.trim())
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
  * A `PostalAddress` from the one line-broken address setting. The last
  * line that ends in a six-digit PIN gives the locality and the postcode;
  * everything above it is the street address; the country is India, where
@@ -218,6 +238,14 @@ export const jsonLd = {
     ...(settings.logo_url ? { logo: { "@type": "ImageObject", url: settings.logo_url } } : {}),
     ...(settings.address ? { address: postalAddress(settings.address) } : {}),
     ...(sameAs(settings).length ? { sameAs: sameAs(settings) } : {}),
+    // What the company knows and where it works, so an assistant resolving
+    // the entity has the subjects and the places beside the name. Both are
+    // derived server-side from the catalogue (`docs/aeo-geo-contract.md` §4)
+    // and arrive as JSON strings; nothing is typed here.
+    ...(jsonNames(settings.organization_knows_about).length ? { knowsAbout: jsonNames(settings.organization_knows_about) } : {}),
+    ...(jsonNames(settings.organization_area_served).length
+      ? { areaServed: jsonNames(settings.organization_area_served).map((name) => ({ "@type": "Place", name })) }
+      : {}),
     contactPoint: {
       "@type": "ContactPoint",
       telephone: settings.phone || SITE.telephone,
@@ -252,6 +280,13 @@ export const jsonLd = {
 
 
 
+  /*
+    One caller since 2026-09-21: the landing page view, the one FAQ-bearing
+    record the API sends no `faq_schema` for. Every other detail read carries
+    the API's own `FAQPage` (over the FAQs and the `question` answer blocks,
+    absent under two entries), and `FaqList` emits none — a page must never
+    carry two.
+  */
   faqPage: (faqs: { question: string; answer: string }[]): Json => ({
     "@context": "https://schema.org",
     "@type": "FAQPage",

@@ -11,10 +11,13 @@ import {
   duplicateNewsletterCampaign, getCampaignAudience, getCampaignHealth,
   getNewsletterQueue, getNewsletterTemplate,
   liftNewsletterSuppression, pasteNewsletterAddresses, previewNewsletterBlocks,
+  resendNewsletterCampaign,
   runNewsletterImport,
   sendCampaign,
   sendCampaignTest, unsubscribeSubscriber, updateNewsletterCampaign, verifySubscriber,
   updateNewsletterGroup,
+  addSequenceStep, cancelSequenceEnrolment, createNewsletterSequence, deleteNewsletterSequence,
+  deleteSequenceStep, enrolInSequence, reorderSequenceSteps, updateNewsletterSequence, updateSequenceStep,
 } from "@/lib/admin";
 import type {
   NewsletterAudience, NewsletterHealth, NewsletterImportAnalysis, NewsletterTemplate,
@@ -254,6 +257,32 @@ export async function deleteCampaignAction(id: number): Promise<void> {
   redirect("/admin/newsletter/campaigns?done=campaign-deleted");
 }
 
+/**
+ * Resend a sent campaign to whoever did not open it.
+ *
+ * The API answers with the new campaign, already sending, and the screen
+ * moves to *its* report — the figures on the original do not change, and a
+ * confirmation left on the original's screen would be a toast about a
+ * different campaign. The redirect stays outside the `try`, as every
+ * redirecting action here does, or the catch swallows it.
+ */
+export async function resendCampaignAction(_prev: Result, form: FormData): Promise<Result> {
+  const id = Number(form.get("id") ?? 0);
+  let copyId: number;
+
+  try {
+    const copy = await resendNewsletterCampaign(id, String(form.get("subject") ?? "").trim());
+    copyId = copy.id;
+    revalidatePath(`/admin/newsletter/campaigns/${id}/report`);
+    revalidatePath(`/admin/newsletter/campaigns/${id}`);
+    revalidatePath("/admin/newsletter/campaigns");
+  } catch (error) {
+    return refusal(error, "That campaign could not be resent.");
+  }
+
+  redirect(`/admin/newsletter/campaigns/${copyId}/report?done=campaign-resent`);
+}
+
 // ------------------------------------------------------------ suppressions
 
 export async function suppressAction(_prev: Result, form: FormData): Promise<Result> {
@@ -369,5 +398,181 @@ export async function pasteAddressesAction(_prev: Result, form: FormData): Promi
     return { ok: parts.join(", ") + "." };
   } catch (error) {
     return refusal(error, "Those addresses could not be added.");
+  }
+}
+
+// -------------------------------------------------------------- sequences
+
+/**
+ * A sequence's own screens revalidate the sequence and the list. The step
+ * campaigns' editor is the campaign editor, which revalidates itself.
+ */
+function revalidateSequence(id: number): void {
+  revalidatePath(`/admin/newsletter/sequences/${id}`);
+  revalidatePath("/admin/newsletter/sequences");
+}
+
+export async function createSequenceAction(_prev: Result, form: FormData): Promise<Result> {
+  let id: number;
+
+  // The redirect stays outside the try — see `createCampaignAction`.
+  try {
+    const sequence = await createNewsletterSequence({
+      name: String(form.get("name") ?? ""),
+      newsletter_group_id: Number(form.get("newsletter_group_id") ?? 0) || null,
+      from_name: String(form.get("from_name") ?? "") || null,
+      from_email: String(form.get("from_email") ?? "") || null,
+      reply_to: String(form.get("reply_to") ?? "") || null,
+      // Born paused: a sequence with no steps yet has nothing to run, and
+      // switching it on is the moment the steps are checked.
+      status: "paused",
+    });
+    id = sequence.id;
+  } catch (error) {
+    return refusal(error, "That sequence could not be created.");
+  }
+
+  redirect(`/admin/newsletter/sequences/${id}?tab=steps`);
+}
+
+export async function saveSequenceAction(_prev: Result, form: FormData): Promise<Result> {
+  const id = Number(form.get("id") ?? 0);
+
+  try {
+    await updateNewsletterSequence(id, {
+      name: String(form.get("name") ?? ""),
+      newsletter_group_id: Number(form.get("newsletter_group_id") ?? 0) || null,
+      from_name: String(form.get("from_name") ?? "") || null,
+      from_email: String(form.get("from_email") ?? "") || null,
+      reply_to: String(form.get("reply_to") ?? "") || null,
+    });
+    revalidateSequence(id);
+
+    return { ok: "Saved." };
+  } catch (error) {
+    return refusal(error, "That sequence could not be saved.");
+  }
+}
+
+/**
+ * Switch a sequence on or off. Switching on runs the blocking checks on
+ * every step, and the refusal names the step — that sentence is the one
+ * worth showing, so it comes back rather than a generic one.
+ */
+export async function setSequenceStatusAction(id: number, status: "active" | "paused"): Promise<Result> {
+  try {
+    await updateNewsletterSequence(id, { status });
+    revalidateSequence(id);
+
+    return { ok: status === "active" ? "The sequence is running." : "The sequence is paused. Nobody receives a step until it is switched on again." };
+  } catch (error) {
+    return refusal(error, "The sequence's status could not be changed.");
+  }
+}
+
+export async function deleteSequenceAction(id: number): Promise<Result> {
+  try {
+    await deleteNewsletterSequence(id);
+  } catch (error) {
+    // Refused while anybody is still enrolled, and the API says how many.
+    return refusal(error, "That sequence could not be deleted.");
+  }
+
+  redirect("/admin/newsletter/sequences?done=sequence-deleted");
+}
+
+export async function addStepAction(_prev: Result, form: FormData): Promise<Result> {
+  const id = Number(form.get("id") ?? 0);
+
+  try {
+    const sequence = await addSequenceStep(id, {
+      subject: String(form.get("subject") ?? ""),
+      delay_days: Number(form.get("delay_days") ?? 0),
+      newsletter_template_id: Number(form.get("template_id") ?? 0) || null,
+    });
+    revalidateSequence(id);
+
+    const step = sequence.steps?.[sequence.steps.length - 1];
+
+    return { ok: step ? `Step ${step.position} added. Open it to write the message.` : "Step added." };
+  } catch (error) {
+    return refusal(error, "That step could not be added.");
+  }
+}
+
+export async function reorderStepsAction(id: number, ids: number[]): Promise<Result> {
+  try {
+    await reorderSequenceSteps(id, ids);
+    revalidateSequence(id);
+
+    return { ok: "Reordered." };
+  } catch (error) {
+    return refusal(error, "The steps could not be reordered.");
+  }
+}
+
+export async function setStepDelayAction(id: number, stepId: number, delayDays: number): Promise<Result> {
+  try {
+    await updateSequenceStep(id, stepId, delayDays);
+    revalidateSequence(id);
+
+    return { ok: "Saved." };
+  } catch (error) {
+    return refusal(error, "That delay could not be saved.");
+  }
+}
+
+export async function removeStepAction(id: number, stepId: number): Promise<Result> {
+  try {
+    await deleteSequenceStep(id, stepId);
+    revalidateSequence(id);
+
+    return { ok: "Step removed. The rest were renumbered." };
+  } catch (error) {
+    return refusal(error, "That step could not be removed.");
+  }
+}
+
+/**
+ * Enrol by hand. The tally comes back as a sentence that names the refused
+ * ones — the interesting ones, as with every import here.
+ */
+export async function enrolAction(_prev: Result, form: FormData): Promise<Result> {
+  const id = Number(form.get("id") ?? 0);
+  const groupId = Number(form.get("group_id") ?? 0) || null;
+  const emails = String(form.get("emails") ?? "")
+    .split(/[\s,;]+/)
+    .map((e) => e.trim())
+    .filter(Boolean);
+
+  if (!groupId && emails.length === 0) {
+    return { error: "Choose a group or paste some addresses." };
+  }
+
+  try {
+    const tally = await enrolInSequence(id, { group_id: groupId, emails });
+    revalidateSequence(id);
+
+    const parts = [`${tally.enrolled} enrolled`];
+    if (tally.already_enrolled) parts.push(`${tally.already_enrolled} already in it`);
+    if (tally.not_active) parts.push(`${tally.not_active} not active`);
+    if (tally.suppressed) parts.push(`${tally.suppressed} on the do-not-mail list`);
+    if (tally.unknown) parts.push(`${tally.unknown} not on the subscriber list`);
+    if (tally.no_steps) parts.push("nobody, because the sequence has no steps");
+
+    return { ok: parts.join(", ") + "." };
+  } catch (error) {
+    return refusal(error, "Nobody could be enrolled.");
+  }
+}
+
+export async function cancelEnrolmentAction(id: number, enrolmentId: number): Promise<Result> {
+  try {
+    await cancelSequenceEnrolment(id, enrolmentId);
+    revalidateSequence(id);
+
+    return { ok: "Cancelled. Nothing more goes to them from this sequence." };
+  } catch (error) {
+    return refusal(error, "That enrolment could not be cancelled.");
   }
 }

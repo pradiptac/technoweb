@@ -1,7 +1,8 @@
 import Image from "next/image";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Container } from "@/components/ui/container";
-import { bannerFor } from "@/lib/site-settings";
+import { focalStyle } from "@/lib/focal";
+import { bannerFocusFor, bannerFor } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import type { PageHeroProps } from "@/themes/contract";
 
@@ -18,6 +19,7 @@ import type { PageHeroProps } from "@/themes/contract";
  */
 export function PageHero({ kicker, title, lede, crumbs, children, section, settings }: PageHeroProps) {
   const picture = section ? bannerFor(settings, section) : null;
+  const focus = focalStyle(bannerFocusFor(settings, section));
 
   return (
     <section className="page-hero pt-4 pb-6 lg:pt-6 lg:pb-8">
@@ -47,7 +49,7 @@ export function PageHero({ kicker, title, lede, crumbs, children, section, setti
           </div>
           {picture && (
             <div className="relative aspect-[16/9] overflow-hidden rounded-2xl border border-line-strong shadow-2 lg:aspect-[4/3]">
-              <Image src={picture} alt="" aria-hidden fill sizes="(min-width: 1024px) 40vw, 100vw" priority className="object-cover" />
+              <Image src={picture} alt="" aria-hidden fill sizes="(min-width: 1024px) 40vw, 100vw" priority className="object-cover" style={focus} />
             </div>
           )}
         </div>

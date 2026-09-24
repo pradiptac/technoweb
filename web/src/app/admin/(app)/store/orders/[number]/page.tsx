@@ -163,6 +163,20 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
             <p className="text-13 text-muted">{order.customer_email}</p>
             {order.customer_phone && <p className="text-13 text-muted">{order.customer_phone}</p>}
 
+            {/*
+              What the buyer asked for, on the screen the parcel is packed
+              from. Quoted rather than run into the muted lines above it: it is
+              somebody's sentence, and a delivery instruction that reads as one
+              more contact detail is one that gets skimmed past.
+              `whitespace-pre-line` keeps the line breaks they typed.
+            */}
+            {order.customer_note && (
+              <div className="mt-3 border-l-2 border-line-strong pl-3">
+                <p className="text-12-5 font-medium text-muted">Note from the customer</p>
+                <p className="whitespace-pre-line text-13">{order.customer_note}</p>
+              </div>
+            )}
+
             {address && (
               <address className="mt-3 text-13 not-italic text-muted">
                 {address.line1}<br />

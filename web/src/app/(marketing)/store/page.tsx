@@ -6,6 +6,7 @@ import { IconBox } from "@/components/icons";
 import { StoreProductCard } from "@/components/store/product-card";
 import { CategoryRail } from "@/components/store/category-rail";
 import { PromoBanner } from "@/components/store/promo-banner";
+import { PromoTiles } from "@/components/store/promo-tiles";
 import { TrustStrip } from "@/components/store/trust-strip";
 import { RecentlyViewed } from "@/components/store/recently-viewed";
 import { StoreHero } from "@/components/store/store-hero";
@@ -179,8 +180,55 @@ export default async function StorePage({
         A `pb-*` utility beats `.section-y` on its own: those live in
         `@layer components` precisely so a section that needs its own spacing
         can say so, which is what the no-hero branch does here.
+
+        The `<div>` around this section and the three after it is the filter
+        strip's containing block, and nothing else. `position: sticky` holds
+        only while the element's parent is on screen, and the strip's parent
+        used to be this one section — so it docked under the header for the
+        length of the grid and left with it the moment the promo band scrolled
+        into view, which reads as the strip "not being sticky" (2026-09-20).
+        The wrapper spans the shop — the grid, the promo band, the latest
+        products and the trust strip — and stops before the CTA band, which the
+        strip has no business floating over.
+
+        **And the strip has to be a direct child of it** (2026-09-23). A sticky
+        box is held by its own parent's box and by nothing further up, so while
+        the strip sat inside this section's `Container` the wrapper did nothing
+        for it: measured at 1707px, it released at the pagination — absolute top
+        1979 against a wrapper running to 3714 — and slid up behind the header
+        with the promo band, the latest products and the trust strip still to
+        come. That is the position the client reported, and the fix written down
+        in September never applied to the element it was written for. It is
+        hoisted out of the section now and carries the container's own gutter
+        instead, so its edges still line up with the grid below it.
       */}
-      <section className={heroSlider ? "pb-8 pt-5 lg:pb-10" : "section-y pb-8 lg:pb-10"}>
+      <div>
+      <StoreFilterBar
+        categories={categories}
+        q={sp.q}
+        category={sp.category}
+        sort={sp.sort}
+        /*
+          The `Container` gutter, applied to the strip itself because the strip
+          is the sticky element. `mx-auto` beats the base `-mx-1` through
+          tailwind-merge; the width carries the extra 0.5rem that `px-1` spends,
+          so the *card* lines up with the 90% grid while its opaque band still
+          clears the card's rounded corners.
+
+          The space above it is a **margin**, and the section below has lost the
+          top padding that used to supply it. Margin rather than padding because
+          padding is inside the sticky box and would sit there as a permanent
+          band once the strip docks; a margin gives the gap while the strip is
+          in the flow and costs nothing once it is stuck. The two figures are
+          the ones the section had: the hero branch's `pt-5`, and `.section-y`'s
+          3rem/4rem where there is no hero.
+        */
+        className={`mx-auto w-[calc(90%+0.5rem)] max-w-[calc(1920px+0.5rem)] ${
+          heroSlider ? "mt-5" : "mt-12 lg:mt-16"
+        }`}
+      />
+
+      <section className="pb-8 lg:pb-10">
         <Container>
           {failed || !products ? (
             <ErrorState title="We could not load the store">
@@ -188,13 +236,6 @@ export default async function StorePage({
             </ErrorState>
           ) : (
             <>
-              <StoreFilterBar
-                categories={categories}
-                q={sp.q}
-                category={sp.category}
-                sort={sp.sort}
-              />
-
               {categories.length > 0 && (
                 <div className="mb-6">
                   <h2 className="mb-3 text-22 font-semibold tracking-tight">Shop by Categories</h2>
@@ -211,7 +252,7 @@ export default async function StorePage({
                     : "There is nothing on sale online yet. Get in touch and we will quote."}
                 </EmptyState>
               ) : (
-                <ul data-collection="products" data-cols="6" className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+                <ul data-collection="products" data-cols="6" className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
                   {products.data.map((p, i) => (
                     <li key={p.id}>
                       {/* h3: "Top Picks For You" above the grid is the h2. */}
@@ -247,7 +288,7 @@ export default async function StorePage({
         <section className="section-y pt-8 lg:pt-10">
           <Container>
             <h2 className="mb-4 text-22 font-semibold tracking-tight">Latest Products</h2>
-            <ul data-collection="products" data-cols="6" className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+            <ul data-collection="products" data-cols="6" className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
               {latestProducts.map((p) => (
                 <li key={p.id}>
                   <StoreProductCard product={p} headingLevel={3} />
@@ -257,6 +298,16 @@ export default async function StorePage({
           </Container>
         </section>
       )}
+
+      {/*
+        The two promo tiles sit directly above the trust strip (the client,
+        2026-09-23). They were between the products grid and the promo band,
+        where two editor-set pictures interrupted the shop on the way from what
+        is for sale to the rest of it; down here they close the page with the
+        banner and the strip as one run of shop furniture, and the grid runs
+        into Latest Products uninterrupted.
+      */}
+      <PromoTiles settings={settings} />
 
       {/*
         A quarter of `section-y`, and that is a judgement about what this band
@@ -277,6 +328,7 @@ export default async function StorePage({
           <TrustStrip />
         </Container>
       </section>
+      </div>
 
       <CtaBand
         title="Need something that is not listed?"

@@ -36,7 +36,7 @@ class TicketController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $tickets = $request->user()->tickets()
-            ->with(['category', 'assignee'])
+            ->with(['category', 'assignee', 'mergedInto'])
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->latest()
             ->paginate(min($request->integer('per_page', 20), 50));
@@ -69,6 +69,7 @@ class TicketController extends Controller
             $ticket = $request->user()->tickets()->create([
                 'subject' => $request->string('subject'),
                 'description' => $request->string('description'),
+                'is_sensitive' => $request->boolean('is_sensitive'),
                 'ticket_category_id' => $request->integer('ticket_category_id') ?: null,
                 // ->string() returns a Stringable, which the enum cast cannot
                 // convert — it fataled here. The request already validated the
@@ -106,7 +107,7 @@ class TicketController extends Controller
         // event is a state change, not a message, and `logEvent()` writes no
         // words of anybody's.
         $ticket->load([
-            'category', 'assignee', 'attachments',
+            'category', 'assignee', 'attachments', 'mergedInto',
             'publicMessages.author', 'publicMessages.attachments', 'events.user',
         ]);
         $ticket->setRelation('messages', $ticket->publicMessages);
@@ -130,6 +131,7 @@ class TicketController extends Controller
             $message = $ticket->messages()->make([
                 'body' => $request->string('body'),
                 'is_internal' => false,   // customers can never write internal notes
+                'is_sensitive' => $request->boolean('is_sensitive'),
             ]);
             $message->author()->associate($request->user());
             $message->save();
@@ -175,6 +177,14 @@ class TicketController extends Controller
     public function reopen(Request $request, Ticket $ticket): JsonResource
     {
         $this->authorizeTicket($request, $ticket);
+
+        // The conversation is on the target now; a reopened source would be
+        // a live ticket with nothing on it. The screen links to the target
+        // instead of offering this, so the sentence is for a stale tab.
+        if ($ticket->isMerged()) {
+            $ticket->loadMissing('mergedInto');
+            abort(422, "This ticket was merged into {$ticket->mergedInto?->reference}. Reply on that ticket instead.");
+        }
 
         abort_unless(
             $ticket->status->canTransitionTo(TicketStatus::InProgress),

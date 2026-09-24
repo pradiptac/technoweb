@@ -66,3 +66,36 @@ export async function verifyPayment(
 
   return res.data;
 }
+
+/**
+ * "Email me when this is back."
+ *
+ * The API answers 202 and one sentence whatever happened, so there is
+ * nothing to branch on here and nothing to return but the sentence. The
+ * portal token is forwarded when there is one: the endpoint is public, and
+ * the token is the only thing that can say a signed-in customer is asking —
+ * the API reads it by guard name, because `$request->user()` on a public
+ * route is always null and reads as working.
+ */
+export async function requestStockNotice(
+  slug: string,
+  body: { email: string; variation_id?: number | null; website?: string },
+  portalToken?: string,
+): Promise<string> {
+  const res = await apiFetch<{ message: string }>(
+    `/store/products/${encodeURIComponent(slug)}/notify`,
+    { method: "POST", body, cache: "no-store", ...(portalToken ? { token: portalToken } : {}) },
+  );
+
+  return res.message;
+}
+
+/** The cancel link in the email. Idempotent on the API's side; the page shows the sentence. */
+export async function cancelStockNotice(token: string): Promise<string> {
+  const res = await apiFetch<{ message: string }>(
+    `/store/stock-notices/${encodeURIComponent(token)}/cancel`,
+    { cache: "no-store" },
+  );
+
+  return res.message;
+}

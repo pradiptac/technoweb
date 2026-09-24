@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 import Link from "next/link";
 import {
   CaseStudies, Credentials, Industries, Partners, ProductCategories,
@@ -92,7 +93,7 @@ export function Home({
           {solutions.data.slice(0, 3).map((s, i) => (
             <article key={s.slug} data-card className="flex flex-col overflow-hidden rounded-sm border border-line-strong bg-card">
               <div className="relative aspect-[16/10] bg-surface-2">
-                <Image src={s.hero_image ?? pictures[i % pictures.length]} alt={s.hero_image ? s.hero_image_alt ?? "" : ""} aria-hidden={!s.hero_image || undefined} fill sizes="(min-width: 768px) 33vw, 100vw" loading="eager" className="object-cover" />
+                <Image src={s.hero_image ?? pictures[i % pictures.length]} alt={s.hero_image ? s.hero_image_alt ?? "" : ""} aria-hidden={!s.hero_image || undefined} fill sizes="(min-width: 768px) 33vw, 100vw" loading="eager" className="object-cover" style={s.hero_image ? focalStyle(s.hero_image_focus) : undefined} />
               </div>
               <div className="flex flex-1 flex-col p-6">
                 <h3 className="text-19 font-semibold">{s.title}</h3>
@@ -125,7 +126,7 @@ export function Home({
     { id: "web", node: tabs },
     { id: "partners", node: <Partners items={brands.data} mode="ring" /> },
     { id: "categories", node: <ProductCategories items={categories.data.slice(0, 12)} /> },
-    { id: "why", node: <WhyUs /> },
+    { id: "why", node: <WhyUs settings={settings} /> },
     { id: "clients", node: <TrustedBy items={clients.data} mode="cascade" /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
     { id: "industries", node: <Industries items={industries.data.slice(0, 6)} /> },
@@ -137,8 +138,8 @@ export function Home({
 
   return (
     <>
-      {orderSections(SECTIONS, options).map((s) => (
-        <Bg key={s.id} id={s.id} {...bg}>{s.node}</Bg>
+      {orderSections(SECTIONS, options).map((s, i) => (
+        <Bg key={s.id} id={s.id} index={i} {...bg}>{s.node}</Bg>
       ))}
     </>
   );

@@ -166,9 +166,11 @@ milliseconds from the cache. **What that costs**: a request-time API —
 `cookies()`, `headers()`, `searchParams` — or a `cache: "no-store"` fetch in
 one of those renders is a 500 ("Page changed from static to dynamic at
 runtime"), not a fallback. `/products/[slug]` stays dynamic for exactly that
-reason (it awaits `searchParams` for the category listing's filters), and the
-CMS catch-all `[slug]` stays dynamic so a crawler's junk URLs do not each
-become a cached not-found on disk. `npm run perf` prints the header per route;
+reason (it awaits `searchParams` for the category listing's filters), so does
+`/blog/category/[slug]` (it awaits `searchParams` for `?page=` — the review of
+2026-09-21 found it as "the one `[slug]` route without the export", and it is
+the same case), and the CMS catch-all `[slug]` stays dynamic so a crawler's
+junk URLs do not each become a cached not-found on disk. `npm run perf` prints the header per route;
 a `-` there means rendered every time.
 
 **The store's basket count is a client component fed by `/api/store/basket`,
@@ -304,8 +306,15 @@ targets it.
 industries, case studies and posts are fetched like every other index page —
 they were static, so renaming a solution changed every page except the one
 people land on first. What remains in `content/site.ts` is genuinely static
-page furniture: partner logos, the process diagram, AMC inclusions, the
-web-services grid.
+page furniture — partner logos, the web-services grid — and the **fallbacks**
+for the "Why Technoware" block, whose words moved into settings on
+2026-09-21 (`why_*`, `testimonial_*`, `amc_*` in the `homepage` group):
+the steps as `title|body` lines, the AMC list one per line, both edited as
+rows through `settings/lines-field.tsx`. The testimonial and the AMC card
+have switches of their own (`testimonial_enabled`, `amc_enabled`) — never
+"leave blank to hide": the public `/settings` map drops a blank, so the site
+cannot tell cleared from never-set, and a blank falls back to the constants
+like every other row.
 
 **Homepage hero copy and the statistics are settings, not code.** Group
 `homepage` in the settings table, editable at `/admin/settings`. Stat rows are
@@ -1283,6 +1292,11 @@ component; its functions may not. A client component that needs one calls a
 Server Action instead — the same rule `lib/settings.ts` documents for
 `telHref`.
 
+**A boolean setting is a `SettingSwitch`** (`components/admin/setting-switch.tsx`):
+the visible checkbox beside the controlled hidden `1`/`0` input every settings
+action posts, re-asserting its own state after a submit. The promo screen, the
+info bar and the ticket mailbox each carried a copy until 2026-09-21.
+
 **Admin form buttons go in `FormActions`.** It pins the row to the bottom of
 the viewport while the form is taller than the screen — on a populated product
 the buttons sat below the editor and two repeaters — and warns before a
@@ -1900,6 +1914,8 @@ A separate catalogue with prices; baskets, checkout, payment, stock, coupons, di
 - Delivery, handling and the return window are three settings read from one place.
 - `/returns` and `/shipping` are seeded placeholders, and `PageSeeder` overwrites all four policy pages on re-run.
 - `AggregateRating` and `Review` are absent from every graph, deliberately.
+- The promo band on the shop front is `/admin/store/promo` under Store, a store manager's screen, not a run of fields at the foot of Settings → Store (2026-09-20): its rows are the `store_promo` settings group, left out of the settings strip like the info bar, written through `PATCH /admin/store/promo`, which refuses any key outside the eight by name — settings as a whole stay `role:admin`.
+- Two tiles sit above the band (2026-09-21): seven `store_tile_{1,2}_*` rows each in a `store_tiles` group, the same screen and the same endpoint, whose per-key checks run by suffix; a tile draws only when switched on with a heading or a picture, one alone takes the whole row, the ratio applies from `lg` only.
 - The store products screen shows the feed's production address with a copy button and a plain `<a download>` at the path (never a `Link` — it prefetches, and this handler builds the whole feed).
 - `/google-shopping-feed.xml` is the feed at a second address; shipping declares `store_shipping_service` and a transit window (`store_transit_days_min/max`, never backwards); `PolicyRedirectSeeder` answers `/refund-policy`, `/terms-and-conditions` and the rest as 301 rows.
 - The store's catalogue is not the site's catalogue, and that is the whole shape of the module.
@@ -1926,8 +1942,13 @@ A separate catalogue with prices; baskets, checkout, payment, stock, coupons, di
 - The shop's search suggestions are a listbox, and the two datalists are not the precedent for them.
 - A card's hover images mount on the first hover, not with the grid.
 - The basket strip is the shop's own chrome, not an addition to the site header.
+- A sticky element is held by its **own parent's** box and by nothing further up, so the shop's filter strip is a direct child of the wrapper spanning the shop and carries the container's gutter itself (2026-09-23) — nested one `Container` deep inside the first section it released at the pagination and slid behind the header, which the wrapper added in September could never have fixed.
+- The two promo tiles sit directly above the trust strip; the checkout says **Mobile** while the wire key stays `phone`, checked for shape as an Indian mobile; `orders.customer_note` is the buyer's optional note and is never `notes`, which is `Order::notes()`, the desk's own.
+- The strip sticks at **every** width from 2026-09-23 (the client's ask), and the store grids are two-up on a phone with the card's type one rung smaller below `sm` — which is what `product-card.tsx`'s own note already described while every grid said `sm:grid-cols-2`.
 - Place order fires Velora's confetti from the press, only when the form passes the browser's own validation; the order page's larger burst on arrival stays.
 - A refund is a `payments` row with status `refunded` (`ManualRefund`, `POST …/orders/{number}/refunds`): an amount, a reference, who confirmed it; partial refunds add up, the amount completing what was paid makes the order `refunded`, and nothing calls a gateway (2026-09-20).
+- The catalogue imports and exports (2026-09-20, `CatalogueExport`/`CatalogueImport`): one CSV row per product and per variation with `parent_sku`, money as plain decimals; the import is a dry run then a commit, matched by SKU — a variation's SKU updates the variation, a product's the product, an unknown one creates a product, and nothing ever creates a variation; a blank cell leaves a column alone; stock moves through `StockLedger::adjusted` with the import named; a store-specific column guesser, because the newsletter's reads "name" as a first name.
+- A back-in-stock notice is a row that is stamped once (2026-09-20, `stock_notices`): `POST /store/products/{slug}/notify` answers 202 whatever happened, `StockLedger::record()` on a positive delta dispatches `SendStockNotices` after commit, and the job re-checks `inStock()` when it runs, skips the suppression list, sends `back_in_stock` and stamps `notified_at`; a repeat request re-arms. `notices_waiting` on the admin product, `?notices=1`, `attention.awaiting_stock`.
 
 ### Customers and addresses — `docs/customers.md`
 
@@ -1949,6 +1970,7 @@ Account lifecycle, registration, the one address definition, company suggestions
 - A company name is suggested from the ones already on file, and that is the one endpoint here that answers a question about the customer list.
 - If that stops being true the fix is one line.
 - It is a `<datalist>`, not a combobox.
+- "View as" (2026-09-21) mints an `impersonation` token of its own for an hour, never a `portal` one and never through `issueToken()`; `/auth/me` reports `meta.impersonated`; the console reaches it through a POST-only route handler because both cookies are `sameSite: lax`.
 
 ### Sign-in — `docs/auth.md`
 
@@ -1982,7 +2004,7 @@ Every contact form lands in one pipeline; the scoring rubric; the status machine
 - `LeadIntake` runs before the notification and can never fail the submission.
 - A lead is `role:sales_manager`.
 - `enquiries.source` is a *kind* of page and often carries a slug.
-- The buying words are the constant plus `lead_intent_words` (Settings → Leads), and `technoware:rescore-leads` restates the table on them — report only until `--write` (2026-09-20).
+- The buying words are the constant plus `lead_intent_words` (Leads → Scoring), and `technoware:rescore-leads` restates the table on them — report only until `--write` (2026-09-20).
 
 ### Editor-built forms and embeds — `docs/forms.md`
 
@@ -2038,6 +2060,8 @@ Subscribers, groups, imports, campaigns, tracking, Hunter verification, bounces.
 - The newsletter's consent is its own `OAuthConnection::newsletter()` slot borrowing the Ticketing app registration (`credentialsPrefix`), spent by one scan and forgotten when it ends; one-off IMAP credentials are `Crypt`-sealed in the cache under a key only the job chain carries (`ScanCredentials`), never a settings row and never a job payload.
 - The review is the reviewer's: per-domain counts with our own domains (minus freemail) and sending infrastructure unticked, role addresses (`AddressKinds`, machine senders — never `info@`) behind a switch, and what is unticked counted as `excluded` rather than written as rows.
 - A subject test (`subject_b`, `ab_test_percent`, `ab_wait_hours`) sends a slice under each line and holds the rest as recipient status `held`; `CampaignSender::decide()` picks by opens (tie to A) with a conditional update, from `technoware:decide-subject-tests` every ten minutes or the Send tab's "Decide now"; a campaign under test is still `sending` (2026-09-20).
+- A resend is a copy whose audience is the original's non-openers (2026-09-20): `POST …/campaigns/{id}/resend {subject}`, `resend_of_id` unique so the one-resend rule is the index, the set re-filtered through `AudienceResolver::freezeFrom` and the health gate run before anything is written; `TrackingRewriter::unprepare()` puts a copy's links and pixel back, which `duplicate` had never done.
+- A sequence step is a campaign row (2026-09-20, `docs/newsletter.md` "Sequences"): `sequence_id`/`sequence_position`/`delay_days` and status `automation`, hidden from the campaigns index and refused by `queue()`, so it has the editor, tracking, unsubscribe and a report for nothing; enrolment is once per subscriber per sequence (a unique index) from `SubscriberIntake`, the group screen or by hand; `technoware:run-sequences` every ten minutes sends, advances, completes or cancels — the scheduler, not a listener, because a delay is a date.
 
 ### Outgoing mail — `docs/mail.md`
 
@@ -2144,8 +2168,13 @@ Retrieval, grounding, intake, the console. `docs/chatbot-architecture.md` is the
 - `StoreCategory` had no SEO capability at all, and the reasoning for that was wrong.
 - The sitemap's `included()` filter had a real gap, under a comment that explained why it didn't need one and was wrong.
 - A category's public index has to eager-load `seo` for `included()` to see it.
+- Google Analytics 4 is read the same way (`App\Support\Seo\GoogleAnalytics`, 2026-09-20): the same service account through `GoogleServiceAccount`, `ga4_property_id` the one setting of its own, one report an hour for the overview's `analytics` column and `?analytics=no_views`, the store funnel's product views per window, `ga4_error` in Google's words, null never zero.
 - Search Console is read, never written (`App\Support\Seo\SearchConsole`, 2026-09-18): a service-account JSON key in `integrations`, the account signs its own RS256 JWT (no SDK), one cached read an hour keyed by path for the overview's Search column and `?search=no_clicks`, one per page per hour for the assistant's "queries this page already appears for"; a Google refusal goes to `gsc_error` in Google's words and the column is absent, never a failed screen. `speakable` on every article and service graph names `h1` and `.lede`, so the lede every theme's hero renders is what an assistant may quote.
 - A paginated listing carries a self-referencing canonical (`listingMetadata()` in `lib/seo.tsx`, `?page=N` on the canonical, "— page N" on the title) and a filtered view — a search term, a facet, a month — is `noindex, follow`; the sitemap's `lastmod` is each record's `updated_at` (every public resource carries it) and an index page's is the newest it lists, never the build time; `robots.txt` disallows every `noindex` route and names the AI crawlers as allowed on purpose; `/llms.txt` and `/llms-full.txt` are built from the API like the sitemap (`lib/llms.ts`); the `Organization` node carries `@id`, `sameAs` from Settings → Social and a `PostalAddress` parsed off the address's last line, and the API's `publisher` nodes point at it; IndexNow pings ride on `HasSeo`'s `saved`/`deleted` (`App\Support\IndexNow`, off until launch); the AI assistant runs in bulk from the overview (`POST seo/ai/bulk`, one queued job per record, `?ai=pending` the review queue). `docs/seo-audit-2026-09-18.md` is the audit these came from.
+- Every content record can carry **answer blocks** (2026-09-21, `docs/aeo-geo-contract.md`, `docs/aeo-geo-samples.md`): `answer_blocks` on eleven entities through `HasAnswerBlocks`, nine kinds in `App\Enums\AnswerBlockKind` whose `heading()` is what the page draws them under, replaced wholesale like `faqs`, a draft never on the public read; FAQs widened to the same eleven owners; `EntityLinks::for()` builds the public `entity` block from *loaded* relations only, and `StructuredData::answerFaqs()` is the one `FAQPage` gate (never under two entries).
+- `AeoScore` and `GeoScore` are the `SeoScore` shape — scored out of what applies, `failed[]` with a hint each — on every `/admin/seo` row as `{value, band}` and in full from the single-record read; `?aeo=`/`?geo=` filter by band, `?aeo_check=`/`?geo_check=` by one failed check (their own parameters: the three rubrics share `internal_links` as a key), `meta.site_score.aeo/.geo` carry the averages with their own `top_issues`, and the assistant's eight AEO/GEO actions (`docs/seo-ai.md`) suggest and never write — `improve_answer` needs a `block_id`, refused by bulk.
+- Answer blocks are drawn on the page (2026-09-21, `docs/seo.md` "Answer blocks on the page"): `AnswerBlocks` groups the published blocks by kind under the API's `heading` — never a heading typed in TypeScript — as `h2` sections (definition a lede, `who_for`/`why` short sections, facts and features the checklist, use cases cards, comparison a two-column table, steps the numbered list, questions the FAQs' own `<details>`), with the FAQs **merged** into the questions group; `RelatedEntities` draws `entity` as "Related" collections; both mounted after the body on every detail page with the trait.
+- **One `FAQPage` per page, and it is the API's** `faq_schema` (a sibling of `schema`, absent under two entries): `FaqList` emits none since 2026-09-21, and the landing page — the one FAQ-bearing record outside the contract — builds its own under the same two-entry rule; `knowsAbout`/`areaServed` on the `Organization` node come from `organization_knows_about`/`organization_area_served`, two JSON strings on the public `/settings` map; `/llms-full.txt` quotes each record's definition and its questions.
 
 ### Programmatic landing pages and places — `docs/landing-pages.md`
 
@@ -2181,6 +2210,7 @@ Vacancies, applications and the one unauthenticated upload.
 - Job qualifications and experience levels are lookup tables, not enums.
 - A vacancy emits `JobPosting` structured data.
 - A blank `location` means remote.
+- The vacancy page (2026-09-21): a glance strip under the hero, the two lists as a pair of tinted cards, a sticky aside with the Apply button, and the application as a band beside "What happens next" and the other open roles; the summary stands in for an empty body.
 
 ### The blog — `docs/blog.md`
 
@@ -2203,6 +2233,7 @@ Real logos, the refresh discriminator, category images, and the three index-page
 - HPE Aruba's colour was one `<style>` block away from being lost.
 - `BrandResource`'s `logo` carries `?v=<updated_at>` because a real logo replaces a placeholder at the same path.
 - New brands need a product before they are visible on the public site.
+- The six seeded clients carry sample logos from Freepik (2026-09-21): `resources/client-logos/{slug}.png`, filed by `applyClientLogo()` on the brand-logo rule — written only while the stored path is still the seeder's own — with the Freepik attribution in the docblock.
 - A product category carries an `image_path`, the same shape as a solution's `hero_image_path`.
 - A brand logo's real colours only read against a light ground, so dark scheme turns every one of them into a flat white silhouette rather than pinning the strip's background to always be light.
 - Hardware is compared side by side, and the tray lives in `sessionStorage`; `COMPARE_MAX` sits in a directive-less module because a client module's constant reaches a server component as a reference.
@@ -2283,6 +2314,7 @@ Transitions, layouts, captions, the crossfade rules, the lightbox.
 - A gallery's tabs are a table, and an item names one by slug.
 - Renaming a tab has to carry its pictures with it.
 - A caption over a photograph cannot be made safe, so the gallery puts it underneath.
+- A caption's phone gutter clears the arrows, which only the **middle** row can touch: `px-12` there and `px-4` elsewhere, and the block is `w-full` below `sm` — a flat `px-14` on all nine anchors left a 198px text column at 390px (2026-09-23).
 - The gallery renders no heading of its own.
 - Its lightbox does not go through `Modal`, and that is a decision.
 - The lightbox's autoplay is an override, not a copy.
@@ -2320,10 +2352,13 @@ Upload paths, limits, the SVG sanitiser, in-place edits, the bin, alt text.
 - Uploads are multi-file and drag-and-drop, and both go through one `UploadProvider`.
 - Resize is raster-only, and the UI says so before the request.
 - Image alt text is a property of the file, not of the page using it.
+- So is the focal point (2026-09-20): `media.focal_x`/`focal_y`, both or neither, null is the centre; `MediaMeta` (was `MediaAlt`) hands every resource a `*_focus` beside its `*_alt`, and `lib/focal.ts` makes it `object-position` — it only ever moves the crop, and an unset point renders byte-identically to before.
 - And the assistant can propose it: "Suggest alt text" in the Edit dialog (`App\Support\Seo\Ai\AltText`, `POST media/{id}/alt-suggest`) sends the picture as a `data:` URL to a vision-capable model and puts one sentence in the field for the editor to edit; raster only, under 4MB, suggest-only.
 - Deleting a media folder does not delete its files.
 - Every image preview is the same control, and it has no options.
 - A `CoverField` needs the URL, not just the path.
+- A form-mode `FileDrop` takes a paste, lists rows and appends (2026-09-21): `paste` listens on the surrounding form for `kind === "file"` items and renames the clipboard's `image.png` to `pasted-<stamp>.png` (the file's name, not the field's); every file is a row with a thumbnail, the size and a 24px remove, keyed by an id given on arrival; a pick, a drop and a paste each *append* and the hidden input is rebuilt through `DataTransfer`; `max`/`maxBytes` restate the API's caps from `lib/ticket-attachments.ts`; the list empties on the form's `reset`. A thumbnail's object URL is made and revoked in one effect and written straight to the `<img>`. `scripts/probes/ticket-paste.mjs`.
+- Files sent with the ticket itself hang off `tickets`, not a message, and were drawn on neither ticket page until 2026-09-21.
 
 ### The rich-text editor and CMS pages — `docs/editor.md`
 
@@ -2353,11 +2388,14 @@ Role-filtered sidebar, the settings strip, the activity log, dashboard charts, c
 - Filtering the sidebar forced the landing to be decided too.
 - A section that mixes roles is a section that cannot be ordered, and "Site" was the only one.
 - `scripts/probes/nav.mjs` prints the sidebar per role — measure it, do not reason about it.
-- Below `lg` that sidebar is a horizontal strip, so adding a group is an overflow risk and not a free change.
+- Below `lg` the sidebar is a full-width block behind a drawer toggle (it was a horizontal strip once, and seventeen unlabelled slivers); `npm run audit:mobile` still says whether a new section fits.
 - Blog and Careers are sections too, and Careers is the one that spans two roles.
 - A group with exactly one visible child renders as that child.
 - The settings screen had the same disease one level down, and a wrapping strip is why nobody noticed.
-- `SECTIONS` is the only list, and `ORDER` is derived from it.
+- Settings holds only what the whole console shares; every module's own groups are a "Settings" row at the end of its sidebar section (2026-09-20) — ten screens, one `SettingsForm`, one `GET/PATCH /admin/settings`, all `role:admin`. `SCREENS` in `settings-copy.ts` is the only list: the sidebar rows, each screen's tabs, the palette's entries and `ORDER` are derived from it, and `SettingsScreensTest` reads it against the seeder so every group is drawn on exactly one screen.
+- Tickets, Customers, Leads and Campaign are groups for that reason; a role that sees one row still gets one link (`navFor` flattens), and an administrator's collapsed group carries the summed "new since" count.
+- The sidebar lights the **longest** matching row, the rule `screenRole` already used (`nav-match.ts`, shared by both) — never add `exact` to a section's root row to fix a double highlight: `screenRole` would then match no row on that section's detail pages and drop their role gate.
+- `revalidateSettingsScreens()` is what a settings action calls, never `revalidatePath("/admin/settings")` by name — the mailbox panel lives on `/admin/tickets/settings` now and the old line refreshed a screen nobody was looking at.
 - Every panel still stays mounted, and grouping the strip must never change that.
 - The activity log records by rule, not by a list of routes.
 - Nothing writes a credential into it.
@@ -2365,16 +2403,24 @@ Role-filtered sidebar, the settings strip, the activity log, dashboard charts, c
 - An activity subject must be in the morph map.
 - Sign-in is recorded at the call site, not by the middleware.
 - A bar sized against the peak is a shape, not a quantity.
+- The ticket volume is two smooth curves with a gradient under each (2026-09-23): SVG with `preserveAspectRatio="none"` and `vector-effect="non-scaling-stroke"`, colours as `var(--color-info)`/`var(--color-ok)` in the gradient stops, a Catmull-Rom tension that never bows past the days it joins, and every label still HTML — the rule about SVG text is about **text**, and a curve cannot be drawn out of divs.
+- The console's tile figure and its corner glyph step down one rung below `sm` (26→22px, 32→24px), and "Sign out" is `IconSignOut` there with `aria-label` carrying the name — the words wrapped to two lines in a row that had already given up the account link and "View site" to fit 320px.
 - `resolved_at` is stamped on arrival and cleared only by a reopen.
 - A chart bar and a badge for the same word share one map.
 - Client errors are grouped by fingerprint, and resolving one is a tick that re-opens itself.
 - A dashboard tile is a link to the list that produced its number, filtered the way the API counted it.
+- Ticket volume is two smooth curves rather than sixty bars (the client, 2026-09-23): SVG with `preserveAspectRatio="none"` and `vector-effect="non-scaling-stroke"`, `var(--color-info)`/`var(--color-ok)` in the gradient stops so nothing is a hex, and a Catmull-Rom spline at a sixth-of-the-span tension so the line never bows past a value nobody recorded. **The labels stay HTML** — the hero diagram's rule: SVG text scales with the viewBox.
+- The console keeps its dense desktop scale and steps one rung down below `sm` (the client, 2026-09-23): the stat tiles' 26px figure and 32px corner glyph, sized for six across, shout across a card the width of a 390px screen. "Sign out" is `IconSignOut` below `sm` with the words from `sm`, `aria-label` on the button either way — two words wrapped the header to a second row at 320px.
 - A column heading sorts, and it is a link — `SortTh`, `?sort=`/`?dir=`, allowlisted per list by `ListSort`.
 - The ticket queue has a selection bar, and the selection is a module-level store read through `useSyncExternalStore`.
 - Ctrl/⌘ K opens a command palette, and its pages are the sidebar's rows plus every settings tab and every setting (`settingsPages()`, from `settings-copy.ts`; `?tab=` opens the panel and `#setting__<key>` scrolls to the field, with `scroll-margin-top` for the sticky header); records come through `/api/admin/search`.
 - The sidebar and the tab's title say what arrived while the console was open — `new-since.tsx`, one poll a minute, null for a role that cannot open the screen.
 - The screens are guarded by role too: `proxy.ts` forwards `x-pathname` under `/admin`, the layout asks `screenRole()` (the sidebar's own map) and sends `/admin` to `landingFor()` or answers 404; the API still refuses the data regardless (2026-09-20).
+- Outgoing webhooks (2026-09-20, `docs/admin-console.md` "Webhooks"): `Webhooks::emit()` is guarded like `Notifier` and never fails the request, takes a closure so the payload is built only when a hook is subscribed, writes one delivery per hook and dispatches `DeliverWebhook` after commit; five attempts with backoff, `X-Technoware-Signature: sha256=` HMAC over `timestamp.body` on the exact bytes sent; the secret is shown once on create and on rotate and never read back; https only and no private host; emitters are model hooks except `order.placed` (from `Checkout`, after the lines exist) and `customer.registered`; deliveries pruned at 30 days.
+- The header's palette trigger is hidden below 360px (2026-09-21): the account row is 332px in a 320px screen's 304, and every console screen scrolled by 8px.
 - The Bin tab is `IconBin` with a lid that lifts on hover and stays open on the bin view (`.bin-tab`, `transform-box: fill-box`); deleting a folder asks for `YES` typed (2026-09-20).
+- Every entity form that carries answer blocks ends on an **AEO** tab (2026-09-21, `docs/aeo-geo-contract.md` §7): `AeoGeoPanel` (the two readiness scores from `GET /admin/seo/{type}/{id}`, "Not scored yet" when absent, plus the assistant scoped to `AEO_ACTIONS` — the keys are the contract, the labels the API's, an unknown action is drawn nowhere), then `AnswerBlocksField` (kinds from the entity's own index's `meta.answer_block_kinds`, hidden JSON `answer_blocks` replaced wholesale like `faqs`, the row key never in the markup or it is a hydration error), then `FaqField` where FAQs are new; Apply reaches the repeaters through `tw:answer-blocks-suggested`/`tw:faqs-suggested` on the form, as drafts. `/admin/seo` sorts and filters on `aeo`/`geo`. `docs/admin-console.md`.
+- **Improvement suggestions** sit under each readiness score, in two layers (2026-09-21): the rubric's own — every failed check with its weight and the hint that would earn it, always — and the assistant's "Suggest improvements" (`aeo_analyze`/`geo_analyze`, drawn inline as summary, gaps, what to do, what is already strong; the newest stored analysis on load), only while the assistant is on with a key. The run goes through `AiSeoPanel`'s handle (`ref.run`, `onReady`/`onHistory`/`onSuggestion`) so there is one run, one cap counter and one history, and a quiet run opens no dialog. "Improve an answer" carries a picker of the record's *saved* blocks and posts `block_id`; a row added this session has no id and is not offered. The overview's site card draws "AEO — biggest wins" and "GEO — biggest wins" beside the SEO strip, each chip `?aeo_check=`/`?geo_check=`.
 - The portal's ticket thread is a chat (`components/portal/ticket-thread.tsx`): staff on the left with an initials disc, the customer on the right, stacked below `sm`; a staff reply carries five radio-button stars and a report form (`reply-verdict.tsx`, optimistic value with no prop-to-state effect), and a quote glyph that announces `tw:quote` for the reply form to prepend `> ` lines. The verdict lives on the message row (`rating`, `report_reason`, timestamps); only a visible staff reply on the customer's own ticket may be judged, 404 otherwise; the queue filters `?reported=1` and the console shows the stars and the reason under the reply.
 
 ### The public site's chrome — `docs/site-chrome.md`
@@ -2392,15 +2438,19 @@ Header, footer, banners, the logo cap, phone-width reversals.
 - Info bar is a screen of its own, `/admin/info-bar` under Site beside Popups, and the `announcement` group is filtered out of the settings strip: it was a sidebar row *and* a settings tab for a day, and two doors to one form is one too many.
 - Its stops paint the same in both schemes and one ink is pushed until it clears 4.5:1 on every stop — `announcementBand()`, gated by `npm run themes`.
 - Its ticker is the brand marquee's CSS with the gap on the item; only the first copy is real, every repeat is `inert`, and the fade mask sits on a wrapper so it cannot fade the buttons.
+- Its third style is `vertical` (2026-09-23): one line at a time rising from the bottom, split on `<br>` and `</p><p>` by `announcementLines()`, held `1.4s + chars/15` (3–9s), paused on hover, focus and a hidden tab. It is a **client island** because each line's in/hold/out are percentages of one keyframe and those depend on how many lines there are, which CSS cannot take as a parameter; the stack is `aria-hidden` with the whole message rendered once `sr-only` beside it. The rise is `--duration-drift` (900ms), the fifth duration token and the only one that times motion nobody asked for.
+- The band is 24px on a phone and 27px from `sm` (the client, 2026-09-23), with 12px type below `sm` and both discs at 24px — the tap-target floor, which is what stops it going slimmer.
+- **Every style is one line**, and the two that are not the rotator join the lines with a middot: a `<br>` breaks a line even under `white-space: nowrap`, so one message drew 66/33/24px across the three styles until they shared `announcementFor()`'s split.
 - Closing it is a fingerprint in `sessionStorage`, hidden before paint by the root layout's script and removed by `useSyncExternalStore`.
 - `embeds` is the one settings group stored raw: `reviews_embed` (read for its Elfsight app id and drawn as the `reviews` homepage section) and `body_code` (`custom-code.tsx`, scripts rebuilt so they run), public so the site renders them, `role:admin` to write, never sanitised by design.
 - Moving between two dropdowns is a swap with no transition either way: the nav carries `data-panel-swap` while a panel is open (stamped by `releasePanel`, cleared 300ms after `markPanelSwap`), and the two `panel-drop` rules at the end of `globals.css` key on it and on `nav:has([data-panel-host]:hover)`. The stamp has to precede the hover recalc — Blink creates the transitions before it dispatches `pointerleave`.
 - Every paragraph on the public site runs to its container (the client's decision, 2026-09-16): `.public-site .measure` is uncapped and `Prose` has no cap; the console keeps 92ch, and centred bands, footer columns and captions are layout widths that stay.
-- The homepage figures take `stats_colour`/`stats_size`/`stats_animation` (Settings → Homepage) through `lib/stat-look.ts` and `components/ui/stat.tsx`; the chosen hex is pushed to 4.5:1 per ground, the fallback is the palette's brand, a stat line's third column names an icon, and `SupportBand` reads `support_stats` at last. The two stat rows are edited as inputs per figure (`stats-field.tsx`) composed back into the same `value|label|icon` lines, so the wire format never changed; the figure is `StatValue`, which reads `data-stat-animation` off the row's container and counts up, rises or flips once on first view, server-rendered final, still under reduced motion.
+- The homepage figures take `stats_colour`/`stats_size`/`stats_animation` (Site → Settings → Homepage) through `lib/stat-look.ts` and `components/ui/stat.tsx`; the chosen hex is pushed to 4.5:1 per ground, the fallback is the palette's brand, a stat line's third column names an icon, and `SupportBand` reads `support_stats` at last. The "Why Technoware" block's words are `why_*`/`testimonial_*`/`amc_*` in the same group (2026-09-21); the three `testimonial_*` rows had been seeded and labelled with nothing reading them. The two stat rows are edited as inputs per figure (`stats-field.tsx`) composed back into the same `value|label|icon` lines, so the wire format never changed; the figure is `StatValue`, which reads `data-stat-animation` off the row's container and counts up, rises or flips once on first view, server-rendered final, still under reduced motion.
 - Every figure that stands for something counts up on first view through `components/ui/count-up.tsx` — case-study results, category product counts, the catalogue and search totals, blog category and comment counts, reading times, the theme readouts — written to `textContent` over the server-rendered final figure, once, still under reduced motion; never a price, a date, a phone number, a reference or a slide counter. `stats_animation` ships as `count` for the same reason (2026-09-18).
 - The classic hero fits the first screen from `lg` on any viewport under 820px tall: its padding halves there (`lg:[@media(max-height:820px)]:pt-10 …pb-12`), measured from 75px past a 1280×720 to 13px inside it. A stacked phone hero is not asked to fit.
 - The shop's category discs are 88px with 58px icons so a corner-filling 3D icon stays inside the ring, with the launcher's glow in the brand colour on hover; the rail's `overflow-x-auto` clips on the cross axis too, so it carries `py-8 -my-8` or the ring and glow are cut flat along the top.
 - Its message goes through the `inline` purifier profile — no colours, no headings — and `activation_procedure` now goes through `cms`, which it never had.
+- The share row's marks take `--color-social-*` under the pointer only, through `--share-hue` per link (2026-09-21); at rest they stay `text-muted`, where the audit reads. The logo is 31px/128px under `sm`.
 
 ### Motion — `docs/motion.md`
 
@@ -2421,6 +2471,7 @@ Reveals, page transitions, the loader, the splash, the aurora, the beam, the mar
 - A raw coordinate jumping at a loop boundary is not itself the defect.
 - The cart badge bursts every eight seconds until it has done its job, and the stop lives in `sessionStorage`.
 - Nothing arrives at full opacity in the frame it was asked for (2026-09-20, `docs/animation-audit-2026-09-20.md`): four arrival classes in `globals.css` — `settle-in` (inline Alert, tab panels), `rise-in` (compare tray, new-reply pill, cookie banner), `popover-motion` (both search listboxes), `unfold` (the drawer's section) — plus `::details-content` on the FAQ and a `.98` press on `.btn`; arrival is `@starting-style`, leaving is `[data-leaving]` stamped by `usePresence()` (`lib/hooks/use-presence.ts`), which keeps a conditional render mounted for `--duration-exit`; the console is untouched by design, and the command palette, the sidebar accordion and count-ups on figures were rejected, not forgotten.
+- The product page's "Add to basket" is four stages that flow (2026-09-21, `components/store/add-to-basket-button.tsx`, `.add-basket` in `globals.css`): the cart rides an absolute track as wide as the run between the outer slots so `translate: 50%`/`100%` are the centre and the right slot, the pill's `overflow: hidden` keeps that track out of `scrollWidth`; the success stage is a `<Link>` and the swap between the two elements is `@starting-style`, gated on `data-from="added"` so a cold load never fades from green; the stage looks sit outside the reduced-motion guard and every transition, keyframe and starting style inside it. `scripts/probes/add-to-basket-motion.mjs`.
 
 ### Theme generation — `docs/theming.md`
 
@@ -2471,6 +2522,8 @@ One folder per theme under `web/src/themes/`; four template slots; `site_theme` 
 - A theme's `templates/chrome.tsx` is `themeChrome({ Header, footer, between? })` from `themes/chrome.tsx` — one line naming its header and its footer layout; eight files were the same twenty lines around those two. Classic keeps its own, since it picks the footer per inheriting theme.
 - Theme headers share `components/layout/header-parts.tsx` — `useHeaderNav`, `PrimaryNavItems`, `UtilityLinks`, the width gates — and a theme writes only its bar; the five migrated headers render byte-identical markup, measured on every preview.
 - Every list of like things is a `Collection` of `Tile`s (`components/ui/collection.tsx`, 2026-09-18) — the home's Products/Certified/Industries/Web services/Case studies/Resources sections, the seven index pages, the hubs, the trust strip and the shop's grids — one anatomy of named parts (`data-collection`, `data-tile`, `-media`, `-body`, `-kicker`, `-head`, `-icon`, `-title`, `-count`, `-summary`, `-meta`, `-cta`), and each `theme.css` carries an idiom block keyed on `[data-collection]` that redraws it: Editorial's ruled index, Datacenter's numbered rack, Terminal's `ls` listing, Launch's bento, Vantage's photo mosaic, Canvas's cream cards, Keystone's gradient edge. Until then those sections and `/store` were classic's markup under every theme. The tile's ground is `.public-site [data-tile]` in `globals.css`, not `bg-card` — the card-ground rule's specificity is one no theme selector reaches — and an idiom selector always carries three attributes; the closing "Learn more" is real markup hidden by the base and shown by the idioms that end on a text link.
+- `/resources` gives every tile a hue (2026-09-21) — the routes by position, a post by `tagIndex(category)`, a guide by `hueFor(category)`, a project by its industry's icon — and each `theme.css` states how `[data-collection="routes"]` shows it: grounds and edges only, never a word's colour. The team card is 4:5 with `--member-hue` on the initials tile, the rule and the chips' edges, and pill links that say "Email"/"LinkedIn".
+- A decorative bar on a tile is a `::before`, never a background layer wider than 2px: Horizon's 4px bar was graded as the ground under every word on the resources hub (2026-09-21).
 - A tile never says how many products a category holds, and an icon and its heading share one line in every theme (the client, 2026-09-19): `Tile` has no `count`, no idiom sets `flex-direction: column` on a `[data-tile-head]`, and Sentinel's hand-rolled category cards, Canvas's and Horizon's solution cards put the icon beside the name. Sentinel offers `heading_align` — the name beside the icon or at the card's far edge — a theme's *own* option: a manifest lists it under `offers`, the Themes screen draws it for that theme alone (the inverse of `ignores`, because a greyed control under every other theme would promise a feature they do not have).
 - A section background of "None" (`kind: page`) is the page's own ground and inks in both schemes — the only way a dark band follows the scheme, which no chosen colour can. And a custom colour re-derives the brand *tints* the dark bands write in (`brand-200/300` → the derived brand ink) and clears the derived card for the muted ink too; a slide caption's shade is `--color-scrim`, the theme's dark that no section re-derives, so white words over a photograph keep their ground inside a section painted slate blue (measured 1.6:1 and 3.4:1 before, 2026-09-19).
 - Every theme has its own footer through one `layout` on `SiteFooter` (`FooterLayout`, nine of them, the same brand/columns/policy/signup data composed differently, so an assigned footer menu reaches all of them); the chrome contract carries `themeId` so classic's chrome, which Enterprise, Horizon and Canvas inherit, picks theirs through `footerLayoutFor()`. The light-ground layouts use the page's inverting tokens; the dark ones keep `dark-*`.
@@ -2493,6 +2546,9 @@ The support mailbox read into the ticket system (2026-09-19): IMAP, Gmail and Mi
 - A refusal is a banner (`inbound_mail_error`, the server's own words), the command always exits 0, and "Check the connection" is the same probe, read-only.
 - `ImapMailbox` is the one part not unit-tested; `Mailbox` is an interface and `InboundMailTest` drives every decision through `FakeMailbox` and the real command.
 - Not in v1, written down: no SPF/DKIM verdict on a spoofed From, no Microsoft shared mailboxes; Google Testing-mode consents expire in seven days; the ledger is pruned after 180 days.
+- A reply may be marked sensitive (2026-09-21, `is_sensitive`): the body is sealed with `Crypt` in `TicketMessage::sealBody()` on `saving` and opened by the `body` accessor (`withoutObjectCaching()`, or Eloquent re-applies the setter on save over the ciphertext); `TicketReplied` says `SENSITIVE_LINE` instead of the excerpt, no `ticket.replied` webhook is emitted, an undecryptable row answers `UNREADABLE`. The ticket's own `description` takes the same switch (0.85.0): `SealsSensitiveText` is the one definition both models use, `TicketCreated` says its `SENSITIVE_LINE`, the merge note is sealed when the source was, and the ticket's webhooks are still emitted with `description` **redacted** (`WebhookPayload::REDACTED`) — a ticket's existence is what an integration is told, a message is its body. The subject is never sealed.
+- Canned replies (2026-09-20): `canned_replies`, shared across the desk, `role:support_engineer`; `GET /admin/tickets/{ref}/canned-replies` hands the console every body with its placeholders already filled for that ticket through `Placeholders::fillText` — never `EmailRenderer::personalise`, whose docblock says why — so the console inserts text and learns no placeholder rule.
+- A merge is one transaction and one notification (2026-09-20): `POST /admin/tickets/{ref}/merge {into}` moves the messages and attachments, closes the source past `canTransitionTo()` with `merged_into_id`, writes `merged_into`/`merged_from` events and an internal note, and sends one `TicketMerged`; refused across customers, on a merged source, and into a ticket that is not open. A merged source reads 200 with `merged_into` on both principals, takes no reply, no reopen and no status change, and `TicketPiper` follows the chain when a reply quotes the old reference.
 
 ### Icon packs — `docs/icons.md`
 
@@ -2629,11 +2685,19 @@ finished.
 
 ---
 
-## Scope limits (from the client brief — do not exceed)
+## Scope limits (from the client brief, as amended — do not exceed)
 
-No cart, checkout, payments, quotations, invoices, renewals, subscriptions,
-domain or hosting control panels, or CRM. Products are a **catalogue** with
-"Request Information" CTAs only.
+The original brief excluded any transaction. The client then asked for the
+store (`docs/store.md`), so the line is now this: **the shop sells, the
+catalogue does not.** `/store` carries a basket, checkout, payment through a
+gateway or offline, coupons, stock and digital codes, and a manually
+uploaded invoice; the marketing catalogue at `/products` stays a **catalogue**
+with "Request Information" CTAs and no price. Still excluded, and not to be
+built: quotations, renewals, subscriptions, domain or hosting control panels,
+and a CRM beyond the lead pipeline (`docs/feature-ideas-2026-09-20.md`, "Not
+suggested, and why"). The invoice is uploaded, not generated — a decision
+about GST compliance rather than about scope, and one the feature-ideas
+document reopens.
 
 ---
 

@@ -42,6 +42,37 @@ final class ListSort
         return $query->orderBy($query->getModel()->getQualifiedKeyName(), $dir);
     }
 
+    /**
+     * The same `?sort=`/`?dir=` contract for a list that is an array rather
+     * than a query — the SEO overview, which scores every record in PHP and
+     * cannot sort in SQL on a figure SQL never sees.
+     *
+     * Each column is a closure from a row to a sortable value; an
+     * unrecognised key leaves the rows in the order they came, the rule
+     * above. Every ordering ends on `id`, as above, so two rows with one
+     * score cannot swap places between two loads.
+     *
+     * @param  array<int, array<string, mixed>>  $rows
+     * @param  array<string, Closure(array): mixed>  $columns
+     * @return array<int, array<string, mixed>>
+     */
+    public static function applyToRows(array $rows, Request $request, array $columns): array
+    {
+        $key = $request->string('sort')->value();
+
+        if ($key === '' || ! array_key_exists($key, $columns)) {
+            return array_values($rows);
+        }
+
+        $dir = strtolower($request->string('dir')->value()) === 'asc' ? 1 : -1;
+        $value = $columns[$key];
+
+        usort($rows, fn ($a, $b) => ($value($a) <=> $value($b)) * $dir
+            ?: (($a['id'] ?? 0) <=> ($b['id'] ?? 0)) * $dir);
+
+        return $rows;
+    }
+
     /** What a list may sort by, for `meta` — so the console offers what the API takes. */
     public static function keys(array $columns): array
     {

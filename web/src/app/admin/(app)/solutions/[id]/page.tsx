@@ -3,11 +3,11 @@ import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getIndustries, getProductOptions, getSolution } from "@/lib/admin";
+import { getAnswerBlockKinds, getIndustries, getProductOptions, getSolution } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { SolutionForm } from "../solution-form";
-import type { AdminIndustry, PickerOption, AdminSolution } from "@/types/api";
+import type { AdminIndustry, PickerOption, AdminSolution, AnswerBlockKindOption } from "@/types/api";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -31,9 +31,10 @@ export default async function EditSolutionPage({
   let solution: AdminSolution;
   let products: PickerOption[] = [];
   let industries: AdminIndustry[] = [];
+  let kinds: AnswerBlockKindOption[] = [];
   try {
-    [solution, products, industries] = await Promise.all([
-      getSolution(numericId), getProductOptions(), getIndustries(),
+    [solution, products, industries, kinds] = await Promise.all([
+      getSolution(numericId), getProductOptions(), getIndustries(), getAnswerBlockKinds("/admin/solutions"),
     ]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
@@ -57,7 +58,7 @@ export default async function EditSolutionPage({
         )}
       </PageHeader>
 
-      <SolutionForm solution={solution} products={products} industries={industries} saved={Boolean(saved)} />
+      <SolutionForm solution={solution} products={products} industries={industries} saved={Boolean(saved)} kinds={kinds} />
     </>
   );
 }

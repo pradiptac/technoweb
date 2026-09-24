@@ -51,6 +51,16 @@ const OUTCOMES: Record<string, Message> = {
     // destroy the record of something a person actually sent.
     body: "The enquiry it came from was kept.",
   },
+  "ticket-merged": {
+    tone: "ok",
+    title: "Tickets merged.",
+    body: "The other ticket is closed and points here. The customer has been told which reference to quote.",
+  },
+  "saved-reply-deleted": {
+    tone: "ok",
+    title: "Saved reply deleted",
+    body: "It is off every ticket's picker. Replies already sent with it are unchanged.",
+  },
   "vacancy-deleted": {
     tone: "ok",
     title: "Vacancy deleted",
@@ -98,6 +108,21 @@ const OUTCOMES: Record<string, Message> = {
     // something that did not happen is a toast people stop reading.
     body: "Any report went with it. Unsubscribes are unaffected.",
   },
+  "sequence-deleted": {
+    tone: "ok",
+    title: "Sequence deleted",
+    // What went with it, and what did not: the steps were campaign rows
+    // nobody could send by hand, and the subscribers are untouched.
+    body: "Its steps and their reports went with it. Nobody was unsubscribed.",
+  },
+  "campaign-resent": {
+    tone: "ok",
+    title: "Resending to the people who did not open",
+    // The screen has moved to the resend's own report, so say where the
+    // reader is: the original's figures are untouched, and this campaign's
+    // fill in as the queue works through it.
+    body: "This is the resend's own report. The original campaign's figures are unchanged.",
+  },
   "certification-deleted": {
     tone: "ok",
     title: "Certification deleted",
@@ -120,6 +145,35 @@ const OUTCOMES: Record<string, Message> = {
     // library. A popup is very often built from artwork a page uses as well,
     // and nothing in this product tracks what references a path.
     body: "The picture is still in the media library.",
+  },
+  "webhook-deleted": {
+    tone: "ok",
+    title: "Webhook deleted",
+    // Its delivery log went with it: a record of attempts against an address
+    // nobody is sent to any more is nobody's to read.
+    body: "Its delivery log went with it. Nothing else changed.",
+  },
+  "webhook-not-deleted": {
+    tone: "err",
+    title: "That webhook could not be deleted",
+    body: "The API refused it. Try again shortly.",
+  },
+  "webhook-pinged": {
+    tone: "ok",
+    title: "Ping queued",
+    // The send is a queued job, so the answer lands in the log below rather
+    // than in this toast; saying so stops somebody waiting on the toast.
+    body: "The result will appear in the deliveries as soon as the queue runs it.",
+  },
+  "webhook-ping-failed": {
+    tone: "err",
+    title: "Nothing was queued",
+    body: "The API refused the request. Try again shortly.",
+  },
+  "delivery-resent": {
+    tone: "ok",
+    title: "Delivery queued again",
+    body: "A fresh delivery with the same payload. The original row is kept as it was.",
   },
   "template-reset": {
     tone: "ok",
@@ -163,6 +217,11 @@ const OUTCOMES: Record<string, Message> = {
     tone: "ok",
     title: "Confirmation link sent",
     body: "A fresh link is on its way to them. It expires in 24 hours.",
+  },
+  "impersonation-ended": {
+    tone: "ok",
+    title: "Stopped viewing as the customer",
+    body: "Their own session was not affected.",
   },
 };
 

@@ -85,8 +85,8 @@ for a brand with nothing behind it.
 `CoverField` was never wired into `category-form.tsx` at all — so the
 homepage's product grid had no photograph to show, only the icon tile.
 `image_path` is nullable and resolved the same way everywhere else in the
-product: `image` (a URL) and `image_alt` (via `App\Support\MediaAlt`, keyed
-on the stored path) on the public resource, `image_path` plus the resolved
+product: `image` (a URL), `image_alt` and `image_focus` (via
+`App\Support\MediaMeta`, keyed on the stored path) on the public resource, `image_path` plus the resolved
 `image` on the admin one. It also backs the category's own `og_image` in
 `defaultSeo()`, which had been hard-coded `null` — a category page had never
 had anything to offer a social share preview.
@@ -123,3 +123,22 @@ reference rather than a number, `.slice(0, ref)` was `.slice(0, NaN)`, and
 the page compared nothing while reporting no error. `scripts/probes/compare.mjs`
 measures the tick, the tray and the table; the tray is 180px tall with three
 items at 320px and widens nothing.
+
+**The six seeded clients carry sample logos from Freepik, on the brand-logo
+rule (2026-09-21).** The wall and the "Trusted by" strip were six identical
+grey tiles from `tileImage()`. `resources/client-logos/{slug}.png` holds six
+colourful single marks fetched from Freepik's free catalogue through the
+Magnific connector — fetched, never generated — each cropped to its mark by
+saturation, lifted onto a transparent 800px square, and filed at
+`media/seed/clients/{slug}.png` by `CompanyProfileSeeder::applyClientLogo()`,
+which runs on every seed for every client and writes only while the stored
+path is empty or still `media/seed/clients/{slug}.*` — `CatalogueSeeder::applyRealLogo()`'s
+discriminator — so an editor's upload, which lands at a hashed name under
+another path, is never touched. PNG rather than SVG because the source is a
+rendered vector; the media row records the width and height. In dark the
+wall's `.brand-logo` rule turns them into white silhouettes, the same as
+every manufacturer mark. **Licence**: Freepik's free licence with
+attribution — "Designed by Freepik", www.freepik.com — carried in the
+seeder's docblock; the marks are placeholder clients on the must-not-ship
+list like the names beside them, and a real client's logo replaces one
+through the console.

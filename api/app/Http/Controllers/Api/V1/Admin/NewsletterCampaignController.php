@@ -18,6 +18,8 @@ use App\Support\Newsletter\Branding;
 use App\Support\Newsletter\CampaignSender;
 use App\Support\Newsletter\EmailRenderer;
 use App\Support\Newsletter\HealthCheck;
+use App\Support\Newsletter\Sequences;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -59,6 +61,10 @@ class NewsletterCampaignController extends Controller
                 'recipients as clicked_count' => fn ($q) => $q->whereNotNull('clicked_at'),
                 'recipients as bounced_count' => fn ($q) => $q->whereNotNull('bounced_at'),
             ])
+            // A sequence's steps are campaign rows, and they are listed on the
+            // sequence's own screen: here they would read as campaigns that
+            // never send and never finish.
+            ->where('status', '!=', CampaignStatus::Automation->value)
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w
                 ->where('name', 'like', '%'.$request->string('q').'%')
@@ -68,7 +74,13 @@ class NewsletterCampaignController extends Controller
             ->withQueryString();
 
         return NewsletterCampaignResource::collection($campaigns)->additional([
-            'meta' => ['statuses' => CampaignStatus::options()],
+            'meta' => [
+                // The filter offers what the list can hold; a step is not in it.
+                'statuses' => array_values(array_filter(
+                    CampaignStatus::options(),
+                    fn (array $o) => $o['value'] !== CampaignStatus::Automation->value,
+                )),
+            ],
         ]);
     }
 
@@ -123,7 +135,7 @@ class NewsletterCampaignController extends Controller
 
     public function show(NewsletterCampaign $campaign): JsonResource
     {
-        return new NewsletterCampaignResource($campaign->load(['groups', 'author']));
+        return new NewsletterCampaignResource($campaign->load(['groups', 'author', 'resend', 'resendOf', 'sequence']));
     }
 
     public function update(Request $request, NewsletterCampaign $campaign): JsonResponse
@@ -143,18 +155,43 @@ class NewsletterCampaignController extends Controller
             ], 422);
         }
 
+        /*
+         * A sequence step is edited here for its content and nothing else.
+         * Its status is `automation` for as long as it is a step, its
+         * audience is whoever the sequence enrols, and its delay lives on the
+         * sequence's own screen — a step made `ready` through this endpoint
+         * would be a campaign the sender could then send to nobody.
+         */
+        if ($campaign->isStep() && $request->hasAny(['status', 'group_ids', 'scheduled_at', 'subject_b', 'ab_test_percent', 'ab_wait_hours'])) {
+            return response()->json([
+                'message' => 'This is a step of an automation sequence: its content can be edited here, but not its status, audience or schedule.',
+            ], 422);
+        }
+
         $data = $this->validated($request);
 
         $campaign->update($this->prepare($data));
         $this->syncGroups($campaign, $data);
 
-        return (new NewsletterCampaignResource($campaign->fresh()->load('groups')))->response();
+        // A step's stored HTML is what the runner sends, a person at a time,
+        // so it is prepared on every save rather than once at a send.
+        if ($campaign->isStep()) {
+            Sequences::prepare($campaign->fresh());
+        }
+
+        return (new NewsletterCampaignResource($campaign->fresh()->load(['groups', 'sequence'])))->response();
     }
 
     public function destroy(NewsletterCampaign $campaign): JsonResponse
     {
         if ($campaign->status === CampaignStatus::Sending) {
             return response()->json(['message' => 'This campaign is being sent. Wait for it to finish.'], 422);
+        }
+
+        // A step is removed from its sequence, which renumbers the rest;
+        // deleted here it would leave a gap the enrolments walk into.
+        if ($campaign->isStep()) {
+            return response()->json(['message' => 'This is a step of an automation sequence. Remove it from the sequence instead.'], 422);
         }
 
         $campaign->delete();
@@ -171,18 +208,107 @@ class NewsletterCampaignController extends Controller
      */
     public function duplicate(NewsletterCampaign $campaign): JsonResponse
     {
-        $copy = $campaign->replicate([
-            'status', 'scheduled_at', 'started_at', 'completed_at',
-            'recipient_count', 'health_score', 'test_sent_at',
-        ]);
-
-        $copy->name = mb_substr($campaign->name.' (copy)', 0, 190);
-        $copy->status = CampaignStatus::Draft;
+        $copy = $campaign->replicateAsDraft($campaign->name.' (copy)');
         $copy->save();
 
         $copy->groups()->sync($campaign->groups->pluck('id'));
 
         return (new NewsletterCampaignResource($copy->load('groups')))->response()->setStatusCode(201);
+    }
+
+    /**
+     * Resend a sent campaign to the people who did not open it.
+     *
+     * A copy through the same mechanics as `duplicate()`, with a new subject
+     * and `resend_of_id` pointing home, whose audience is the original's
+     * recipients at status `sent` with no open — put through the same
+     * eligibility rule as any send (`AudienceResolver::freezeFrom()`), so
+     * somebody who unsubscribed since the first send is not mailed a second
+     * time. Then queued through `CampaignSender` behind the same health gate
+     * `send()` runs: a resend cannot skip the unsubscribe-link and
+     * postal-address rules the first send had to pass.
+     *
+     * Not a subject test — `subject_b` is cleared — because a resend is a
+     * second attempt with a line written for the people who ignored the
+     * first, not an experiment. Once per campaign, ever: `resend_of_id` is
+     * unique, so a second press is refused by the database whatever this
+     * method read a moment earlier. Nothing is written until every refusal
+     * has had its chance; the copy is checked in memory first.
+     */
+    public function resend(Request $request, NewsletterCampaign $campaign): JsonResponse
+    {
+        $data = $request->validate([
+            'subject' => ['required', 'string', 'max:190'],
+        ]);
+
+        if ($campaign->status !== CampaignStatus::Sent) {
+            return response()->json(['message' => 'Only a campaign that has been sent can be resent.'], 422);
+        }
+
+        if ($campaign->resend()->exists()) {
+            return response()->json(['message' => 'This campaign has already been resent once.'], 422);
+        }
+
+        $nonOpeners = $campaign->recipients()
+            ->where('status', 'sent')
+            ->whereNull('opened_at')
+            ->pluck('newsletter_subscriber_id')
+            ->all();
+
+        if ($nonOpeners === []) {
+            return response()->json([
+                'message' => 'Everybody who received this campaign opened it, so there is nobody to resend to.',
+            ], 422);
+        }
+
+        $copy = $campaign->replicateAsDraft($campaign->name.' — resend');
+        $copy->subject = $data['subject'];
+        $copy->subject_b = null;
+        $copy->ab_test_percent = null;
+        $copy->ab_wait_hours = null;
+        $copy->resend_of_id = $campaign->id;
+        $copy->created_by = $request->user()?->id;
+
+        $health = HealthCheck::run($copy);
+
+        if ($health['blocking'] !== []) {
+            return response()->json([
+                'message' => 'This campaign is not ready to send.',
+                'errors' => ['health' => $health['blocking']],
+            ], 422);
+        }
+
+        $copy->health_score = $health['score'];
+        $copy->status = CampaignStatus::Ready;
+
+        try {
+            $copy->save();
+        } catch (UniqueConstraintViolationException) {
+            // Two presses at once: the second lost the unique index on
+            // `resend_of_id`, which is the guard, and reads the same as the
+            // check above.
+            return response()->json(['message' => 'This campaign has already been resent once.'], 422);
+        }
+
+        $copy->groups()->sync($campaign->groups()->pluck('newsletter_groups.id'));
+
+        if (AudienceResolver::freezeFrom($copy, $nonOpeners) === 0) {
+            $copy->delete();
+
+            return response()->json([
+                'message' => 'Nobody who did not open this campaign can still be sent to — they have unsubscribed, bounced or been suppressed since.',
+            ], 422);
+        }
+
+        $result = CampaignSender::queue($copy->fresh(), recipientsFrozen: true);
+
+        if (! $result['queued']) {
+            return response()->json(['message' => $result['reason']], 422);
+        }
+
+        return (new NewsletterCampaignResource($copy->fresh()->load(['groups', 'resendOf', 'resend'])))
+            ->response()
+            ->setStatusCode(201);
     }
 
     /** Who this would go to, and what was removed on the way. */
@@ -295,6 +421,12 @@ class NewsletterCampaignController extends Controller
 
         if ($campaign->status->hasStarted()) {
             return response()->json(['message' => 'This campaign has already been sent.'], 422);
+        }
+
+        if ($campaign->isStep()) {
+            return response()->json([
+                'message' => 'This is a step of an automation sequence. It is sent to each subscriber by the sequence, not as a campaign.',
+            ], 422);
         }
 
         if ($campaign->groups()->count() === 0) {

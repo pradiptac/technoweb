@@ -6,13 +6,18 @@ use App\Casts\SpecSheet;
 use App\Enums\ProductCondition;
 use App\Enums\ProductType;
 use App\Enums\PublishStatus;
+use App\Models\Concerns\HasAnswerBlocks;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
+use App\Models\Contracts\Answerable;
+use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
  * Something the store sells.
@@ -26,13 +31,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * has its own categories, because how a listing is arranged is precisely the
  * thing being maintained separately.
  */
-class StoreProduct extends Model
+class StoreProduct extends Model implements Answerable, Faqable
 {
-    use HasSeo, Sluggable;
+    use HasAnswerBlocks, HasSeo, Sluggable;
 
     protected $fillable = [
         'store_category_id', 'brand_id', 'name', 'slug', 'sku', 'gtin', 'mpn', 'type',
         'short_description', 'description', 'images', 'specifications', 'features',
+        'warranty', 'applications',
         'activation_procedure', 'activation_pdf_path',
         'price_paise', 'compare_at_paise', 'track_stock', 'stock', 'allow_oversell', 'returnable',
         'condition', 'google_product_category', 'weight_grams', 'feed_include',
@@ -140,6 +146,21 @@ class StoreProduct extends Model
         return $this->belongsTo(Brand::class);
     }
 
+    /**
+     * The services that install, configure or support this product.
+     *
+     * A pivot of its own (`store_product_service`) rather than a reuse of
+     * the catalogue's `product_solution`: the store's catalogue is not the
+     * site's, and a product page that can point at "we install this" is the
+     * one cross-link a shop listing can offer that is not more hardware.
+     *
+     * @return BelongsToMany<Service, $this>
+     */
+    public function services(): BelongsToMany
+    {
+        return $this->belongsToMany(Service::class, 'store_product_service')->orderBy('sort_order');
+    }
+
     /** @return HasMany<StoreProductVariation, $this> */
     public function variations(): HasMany
     {
@@ -157,6 +178,18 @@ class StoreProduct extends Model
     public function digitalCodes(): HasMany
     {
         return $this->hasMany(DigitalCode::class);
+    }
+
+    /**
+     * The people waiting to hear this is back — every row, told or not.
+     * `StockNotice::scopeWaiting()` narrows it, and is the one definition
+     * of "waiting" the count, the filter and the dashboard share.
+     *
+     * @return HasMany<StockNotice, $this>
+     */
+    public function stockNotices(): HasMany
+    {
+        return $this->hasMany(StockNotice::class);
     }
 
     /**
@@ -367,5 +400,18 @@ class StoreProduct extends Model
             'canonical_url' => rtrim((string) config('app.frontend_url'), '/').'/store/products/'.$this->slug,
             'og_image' => filled($this->images) ? asset('storage/'.$this->images[0]) : null,
         ];
+    }
+
+    /**
+     * Questions answered on this record's page, in order. Widened to this
+     * model on 2026-09-21 (`docs/aeo-geo-contract.md`, section 2): the
+     * FAQPage gate in `StructuredData::answerFaqs()` reads these beside the
+     * `question` answer blocks.
+     *
+     * @return MorphMany<Faq, $this>
+     */
+    public function faqs(): MorphMany
+    {
+        return $this->morphMany(Faq::class, 'faqable')->orderBy('sort_order');
     }
 }

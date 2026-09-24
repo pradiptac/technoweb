@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasAnswerBlocks;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
+use App\Models\Contracts\Answerable;
+use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
  * How the store's own listing is arranged.
@@ -21,9 +25,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * three levels of hardware taxonomy; a shop with a few dozen lines does not,
  * and a tree nobody uses is a parent selector on every form for ever.
  */
-class StoreCategory extends Model
+class StoreCategory extends Model implements Answerable, Faqable
 {
-    use HasSeo, Sluggable;
+    use HasAnswerBlocks, HasSeo, Sluggable;
 
     protected $fillable = ['name', 'slug', 'description', 'google_product_category', 'icon_path', 'image_path', 'is_active', 'sort_order'];
 
@@ -70,5 +74,18 @@ class StoreCategory extends Model
             'og_image' => $this->image_path ? asset('storage/'.$this->image_path) : null,
             'schema_type' => 'CollectionPage',
         ];
+    }
+
+    /**
+     * Questions answered on this record's page, in order. Widened to this
+     * model on 2026-09-21 (`docs/aeo-geo-contract.md`, section 2): the
+     * FAQPage gate in `StructuredData::answerFaqs()` reads these beside the
+     * `question` answer blocks.
+     *
+     * @return MorphMany<Faq, $this>
+     */
+    public function faqs(): MorphMany
+    {
+        return $this->morphMany(Faq::class, 'faqable')->orderBy('sort_order');
     }
 }

@@ -4,7 +4,7 @@ import { themeFor } from "./presets.ts";
 import type { SiteSettings } from "./site-settings.ts";
 
 /**
- * How the homepage's statistic figures look — Settings → Homepage.
+ * How the homepage's statistic figures look — Site → Settings → Homepage.
  *
  * Two settings shared by every statistic row (the hero's, the support
  * band's, a theme's readout strip): `stats_colour`, a hex or blank, and

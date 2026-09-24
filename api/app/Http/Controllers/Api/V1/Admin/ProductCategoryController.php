@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\AnswerBlockKind;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreProductCategoryRequest;
@@ -43,13 +44,17 @@ class ProductCategoryController extends Controller
             ->paginate(min($request->integer('per_page', 50), 100))
             ->withQueryString();
 
-        return ProductCategoryResource::collection($categories);
+        // Sent by the API, never listed in TypeScript: the console's kind
+        // select is built from this, the `meta.transitions` rule.
+        return ProductCategoryResource::collection($categories)->additional(['meta' => [
+            'answer_block_kinds' => AnswerBlockKind::options(),
+        ]]);
     }
 
     public function show(ProductCategory $productCategory): JsonResource
     {
         return new ProductCategoryResource(
-            $productCategory->load(['parent', 'seo'])->loadCount(['products', 'children'])
+            $productCategory->load(['parent', 'faqs', 'answerBlocks', 'seo'])->loadCount(['products', 'children'])
         );
     }
 
@@ -57,8 +62,10 @@ class ProductCategoryController extends Controller
     {
         $category = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $content = $this->pullAnswerContent($attributes);
 
             $category = ProductCategory::create($attributes);
+            $this->saveAnswerContent($category, $content);
             $this->saveSeo($category, $seo);
 
             return $category;
@@ -66,7 +73,7 @@ class ProductCategoryController extends Controller
 
         return response()->json([
             'data' => new ProductCategoryResource(
-                $category->load(['parent', 'seo'])->loadCount(['products', 'children'])
+                $category->load(['parent', 'faqs', 'answerBlocks', 'seo'])->loadCount(['products', 'children'])
             ),
         ], 201);
     }
@@ -75,13 +82,15 @@ class ProductCategoryController extends Controller
     {
         DB::transaction(function () use ($request, $productCategory) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $content = $this->pullAnswerContent($attributes);
 
             $productCategory->update($attributes);
+            $this->saveAnswerContent($productCategory, $content);
             $this->saveSeo($productCategory, $seo);
         });
 
         return new ProductCategoryResource(
-            $productCategory->fresh(['parent', 'seo'])->loadCount(['products', 'children'])
+            $productCategory->fresh(['parent', 'faqs', 'answerBlocks', 'seo'])->loadCount(['products', 'children'])
         );
     }
 
@@ -95,6 +104,8 @@ class ProductCategoryController extends Controller
             $productCategory->children()->update(['parent_id' => $productCategory->parent_id]);
 
             $productCategory->seo()->delete();
+            $productCategory->faqs()->delete();
+            $productCategory->answerBlocks()->delete();
             $productCategory->delete();
         });
 

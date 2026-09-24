@@ -10,13 +10,16 @@ import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { EditorField } from "@/components/admin/editor-field";
 import { IconField } from "@/components/admin/icon-field-lazy";
 import { RelationPicker } from "@/components/admin/relation-picker";
+import { FaqField } from "@/components/admin/faq-field";
+import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
+import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import {
   createIndustryAction, updateIndustryAction, deleteIndustryAction, type IndustryFormState,
 } from "./actions";
-import type { AdminIndustry } from "@/types/api";
+import type { AdminIndustry, AnswerBlockKindOption } from "@/types/api";
 
 const initial: IndustryFormState = {};
 
@@ -27,14 +30,18 @@ const GROUPS: TabGroup[] = [
   { id: "media", label: "Media", fields: ["icon"] },
   { id: "related", label: "Related", fields: ["solution_ids"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
+  // The AEO tab (docs/aeo-geo-contract.md §7). Last, so every tab above keeps its place.
+  { id: "aeo", label: "AEO", fields: ["answer_blocks", "faqs"] },
 ];
 
 export function IndustryForm({
-  industry, solutions, saved,
+  industry, solutions, saved, kinds,
 }: {
   industry?: AdminIndustry;
   solutions: { id: number; name: string }[];
   saved?: boolean;
+  /** `meta.answer_block_kinds` from this entity's admin index. */
+  kinds: AnswerBlockKindOption[];
 }) {
   const editing = Boolean(industry);
   const [state, formAction, pending] = useActionState(
@@ -126,6 +133,17 @@ export function IndustryForm({
         </div>
 
         <SeoPanel seo={industry?.seo} defaults={industry?.seo_defaults} error={seoErr} embedded record={industry ? { type: 'industry', id: industry.id } : null} />
+
+        {/*
+          The AEO tab, one child: the readiness scores and the assistant on
+          top, the answer blocks under them, then the FAQs this record
+          gained with them. See docs/aeo-geo-contract.md §7.
+        */}
+        <div>
+          <AeoGeoPanel record={industry ? { type: 'industry', id: industry.id } : null} blocks={industry?.answer_blocks} />
+          <AnswerBlocksField defaultValue={industry?.answer_blocks ?? []} kinds={kinds} error={rowErr("answer_blocks")} />
+          <FaqField defaultValue={industry?.faqs ?? []} error={rowErr("faqs")} />
+        </div>
       </Tabs>
 
       <FormActions>

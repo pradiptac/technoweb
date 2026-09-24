@@ -1,52 +1,8 @@
-import { ErrorState } from "@/components/ui/empty";
-import { PageHeader } from "@/components/admin/page-header";
-import { ApiError } from "@/lib/api";
-import { getInboundMailStatus, getMailStatus, getSettings, type SettingsPayload } from "@/lib/admin";
-import type { InboundMailStatus, MailStatus } from "@/types/api";
-import { buildMetadata } from "@/lib/seo";
-import { noIndex } from "@/lib/no-index";
-import { SettingsForm } from "./settings-form";
+import { SettingsScreen, settingsMetadata } from "./settings-screen";
 
-export const metadata = buildMetadata({ title: "Settings", path: "/admin/settings", seo: noIndex });
+export const metadata = settingsMetadata("/admin/settings");
 
-export default async function AdminSettingsPage() {
-  let settings: SettingsPayload;
-  let mail: MailStatus;
-  let inbound: InboundMailStatus;
-  try {
-    // Together: all three are administrator-only and one screen renders
-    // them, so a sequential chain would spend three round trips to draw one page.
-    [settings, mail, inbound] = await Promise.all([getSettings(), getMailStatus(), getInboundMailStatus()]);
-  } catch (error) {
-    // Settings are administrator-only, so a content manager landing here gets
-    // told why rather than a generic failure.
-    if (error instanceof ApiError && error.status === 403) {
-      return (
-        <ErrorState title="Administrators only">
-          Site settings are restricted to administrator accounts. Ask one to make
-          the change, or to grant you the role.
-        </ErrorState>
-      );
-    }
-
-    return (
-      <ErrorState title="We could not load the settings">
-        The admin API is not responding. Try again shortly.
-      </ErrorState>
-    );
-  }
-
-  return (
-    <>
-      <PageHeader
-        title="Settings"
-        lede={<>
-          Site-wide values used across the public site. Changes take effect
-          immediately.
-        </>}
-      />
-
-      <SettingsForm groups={settings.groups} uploads={settings.uploads} mail={mail} inbound={inbound} payments={settings.payments} />
-    </>
-  );
+/** See `SCREENS` in settings-copy.ts — the groups this screen draws and why live there. */
+export default function AdminSettingsPage() {
+  return <SettingsScreen path="/admin/settings" />;
 }

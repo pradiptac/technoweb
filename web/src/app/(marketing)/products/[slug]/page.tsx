@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { ButtonLink } from "@/components/ui/button";
 import { CtaBand } from "@/components/ui/cta-band";
-import { FaqList } from "@/components/ui/faq";
+import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { RelatedEntities } from "@/components/content/related-entities";
 import { PageHero } from "@/components/ui/page-hero";
 import { ProductGallery } from "@/components/product/product-gallery";
 import { SpecTable } from "@/components/ui/prose";
@@ -124,6 +125,10 @@ export default async function ProductOrCategoryPage({
             </EmptyState>
           )}
 
+          {/* The category's answer blocks and FAQs, then what it is connected to, before the solutions grid. */}
+          <AnswerBlocks blocks={category.answer_blocks} faqs={category.faqs ?? []} className="mt-14" />
+          <RelatedEntities entity={category.entity} className="mt-14" />
+
           {solutions.length > 0 && (
             <section data-aos="fade-up" className="mt-14 border-t border-line pt-11">
               <h2 className="display-3 mb-2">Where this hardware goes</h2>
@@ -148,6 +153,9 @@ export default async function ProductOrCategoryPage({
         </Container>
 
         <CtaBand />
+
+        {/* The FAQPage over the FAQs and question blocks — the API's, absent under two entries, and the only one on the page. */}
+        {category.faq_schema && <JsonLd data={category.faq_schema} />}
       </>
     );
   }
@@ -179,7 +187,14 @@ export default async function ProductOrCategoryPage({
           {p.datasheet_url && (
             <ButtonLink href={p.datasheet_url} variant="secondary">Download datasheet</ButtonLink>
           )}
-          {p.sku && <span className="font-mono text-13 text-dark-muted">SKU {p.sku}</span>}
+          {/*
+            No colour of its own: it inherits the hero's ink, which is
+            `dark-ink` over a banner and the page's ink on the light ground a
+            section with no banner renders. It was `text-dark-muted`, which
+            is 2.2:1 on that light ground — the audit found it on 2026-09-21
+            the first time this route was run with no banner uploaded.
+          */}
+          {p.sku && <span className="font-mono text-13">SKU {p.sku}</span>}
         </div>
       </PageHero>
 
@@ -196,6 +211,7 @@ export default async function ProductOrCategoryPage({
           <ProductGallery
             images={p.images ?? []}
             alts={p.image_alts}
+            focuses={p.image_focuses}
             name={fullName}
             priority
           />
@@ -295,7 +311,9 @@ export default async function ProductOrCategoryPage({
             </section>
           )}
 
-          {faqs.length > 0 && <section data-aos="fade-up"><FaqList faqs={faqs} /></section>}
+          {/* The answer blocks with the FAQs merged into their questions, then what the product is connected to. */}
+          <AnswerBlocks blocks={p.answer_blocks} faqs={faqs} />
+          <RelatedEntities entity={p.entity} />
 
           {/*
             The form is a destination now rather than a sidebar widget — the
@@ -336,6 +354,8 @@ export default async function ProductOrCategoryPage({
       <CtaBand />
 
       {p.schema && <JsonLd data={p.schema} />}
+      {/* The FAQPage over the FAQs and question blocks — the API's, absent under two entries, and the only one on the page. */}
+      {p.faq_schema && <JsonLd data={p.faq_schema} />}
     </>
   );
 }

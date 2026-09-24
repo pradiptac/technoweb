@@ -56,6 +56,7 @@ export default async function CaseStudiesIndex() {
                 kicker={c.industry?.name}
                 title={c.title}
                 summary={c.summary}
+                focus={c.cover_image_focus}
                 media={c.cover_image ? (
                   <Image
                     src={c.cover_image}

@@ -10,6 +10,7 @@ import { renameMediaAction, resizeMediaAction, suggestAltAction, type RenameStat
 import { FileDrop, type UploadProgress } from "@/components/ui/file-drop";
 import { refusalMessage, uploadWithProgress } from "@/lib/upload-client";
 import { Dialog } from "./item-menu";
+import { FocalPicker } from "./focal-picker";
 import { cn } from "@/lib/utils";
 import { THUMBNAIL_SIZES, type MediaItem, type ThumbnailSize } from "@/types/api";
 import { formatDate } from "@/lib/dates";
@@ -115,6 +116,13 @@ export function RenameDialog({ item, onClose }: { item: MediaItem; onClose: () =
             {suggestError && <p className="basis-full text-12 text-err" role="status">{suggestError}</p>}
           </div>
         )}
+
+        {/*
+          Beside the alt text because it is the same kind of fact — a property
+          of the file that every page rendering it reads. Raster and SVG alike:
+          a focal point is a rule about cropping, not about pixels.
+        */}
+        {item.is_image && <FocalPicker item={item} />}
 
         {/*
           A working note, and explicitly not a second alt text.

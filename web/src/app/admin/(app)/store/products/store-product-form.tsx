@@ -8,9 +8,13 @@ import { useActionState } from "react";
 import { FormActions } from "@/components/admin/form-actions";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
+import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
+import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { EditorField } from "@/components/admin/editor-field";
 import { DocumentField } from "@/components/admin/document-field";
+import { FaqField } from "@/components/admin/faq-field";
 import { GalleryField } from "@/components/admin/gallery-field";
+import { RelationPicker } from "@/components/admin/relation-picker";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { SpecField } from "@/components/admin/spec-field";
 import { StringListField } from "@/components/admin/string-list-field";
@@ -21,7 +25,7 @@ import { paiseToRupeeInput } from "@/lib/money";
 import {
   createStoreProductAction, deleteStoreProductAction, updateStoreProductAction, type StoreFormState,
 } from "../actions";
-import type { AdminStoreCategory, AdminStoreProduct, PickerOption } from "@/types/api";
+import type { AdminStoreCategory, AdminStoreProduct, AnswerBlockKindOption, PickerOption } from "@/types/api";
 
 const initial: StoreFormState = {};
 
@@ -40,7 +44,7 @@ const initial: StoreFormState = {};
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
     fields: ["name", "slug", "sku", "type", "short_description", "description",
-             "specifications", "features", "status", "store_category_id", "brand_id",
+             "specifications", "features", "warranty", "applications", "status", "store_category_id", "brand_id",
              "sort_order", "is_featured"] },
   { id: "selling", label: "Selling",
     fields: ["price_paise", "compare_at_paise", "track_stock", "stock", "returnable", "variations"] },
@@ -59,16 +63,25 @@ const GROUPS: TabGroup[] = [
   */
   { id: "activation", label: "Activation", fields: ["activation_procedure", "activation_pdf_path"] },
   { id: "media", label: "Media", fields: ["images"] },
+  // The services that install or support it (docs/aeo-geo-contract.md §3),
+  // before SEO the way every other form's Related tab sits.
+  { id: "related", label: "Related", fields: ["service_ids"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
+  // The AEO tab (contract §7). Last, so every tab above keeps its place.
+  { id: "aeo", label: "AEO", fields: ["answer_blocks", "faqs"] },
 ];
 
 export function StoreProductForm({
-  product, categories, brands, saved,
+  product, categories, brands, services, saved, kinds,
 }: {
   product?: AdminStoreProduct;
   categories: AdminStoreCategory[];
   brands: PickerOption[];
+  /** The site's services, for the Related tab. Empty when the caller could not read them. */
+  services: PickerOption[];
   saved?: boolean;
+  /** `meta.answer_block_kinds` from this entity's admin index. */
+  kinds: AnswerBlockKindOption[];
 }) {
   const editing = Boolean(product);
   const [state, formAction, pending] = useActionState(
@@ -158,6 +171,22 @@ export function StoreProductForm({
               defaultValue={product?.features ?? []}
               error={rowErr("features")}
             />
+
+            {/*
+              Product AEO (docs/aeo-geo-contract.md §3): two facts an answer
+              engine asks for and a spec sheet rarely states. The warranty
+              becomes the Offer's WarrantyPromise in the page's graph, only
+              when set — nothing is invented for a blank.
+            */}
+            <Field label="Warranty" htmlFor="warranty" error={err("warranty")}
+              hint="One line, as the manufacturer states it — “Limited lifetime hardware warranty”. Declared in the page's structured data when filled in.">
+              <Input id="warranty" name="warranty" defaultValue={product?.warranty ?? ""} maxLength={255} />
+            </Field>
+
+            <Field label="Applications" htmlFor="applications" error={err("applications")}
+              hint="Where it is used and for what — the sentence a buyer checks before the specs. Plain text.">
+              <Textarea id="applications" name="applications" rows={3} defaultValue={product?.applications ?? ""} />
+            </Field>
           </div>
 
           <aside className="grid content-start gap-0">
@@ -454,7 +483,34 @@ export function StoreProductForm({
           />
         </div>
 
+        {/*
+          Related, one child. The options come from /admin/services; a caller
+          that could not read them passes none, so the ones already assigned
+          are offered from the record itself rather than lost on save.
+        */}
+        <div className="grid gap-x-8 md:grid-cols-2">
+          <RelationPicker
+            name="service_ids"
+            label="Services"
+            hint="The site's services that install, configure or support this product. Listed on the product page and in its structured data."
+            options={services.length ? services : (product?.services ?? []).map((s) => ({ id: s.id, name: s.title }))}
+            defaultValue={product?.service_ids ?? (product?.services ?? []).map((s) => s.id)}
+            error={rowErr("service_ids")}
+          />
+        </div>
+
         <SeoPanel seo={product?.seo} defaults={product?.seo_defaults} error={seoErr} embedded record={product ? { type: 'store_product', id: product.id } : null} />
+
+        {/*
+          The AEO tab, one child: the readiness scores and the assistant on
+          top (Product Q&A among its actions), the answer blocks, then the
+          FAQs a store product gained with them. See docs/aeo-geo-contract.md §7.
+        */}
+        <div>
+          <AeoGeoPanel record={product ? { type: 'store_product', id: product.id } : null} blocks={product?.answer_blocks} />
+          <AnswerBlocksField defaultValue={product?.answer_blocks ?? []} kinds={kinds} error={rowErr("answer_blocks")} />
+          <FaqField defaultValue={product?.faqs ?? []} error={rowErr("faqs")} />
+        </div>
       </Tabs>
 
       <FormActions>

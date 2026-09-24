@@ -29,13 +29,22 @@ import type { TicketMessage } from "@/types/api";
  * both sides and is rendered escaped.
  */
 export function TicketThread({
-  reference, description, customerName, createdAt, messages,
+  reference, description, customerName, createdAt, messages, attachments, sensitive = false,
 }: {
   reference: string;
   description: string;
   customerName: string;
   createdAt: string;
   messages: TicketMessage[];
+  /** The ticket's own switch — the opening description stored encrypted. */
+  sensitive?: boolean;
+  /**
+   * The files sent with the ticket itself — the new-ticket form's — which
+   * hang off the ticket rather than a message. They were on the API's
+   * response and drawn nowhere until 2026-09-21: a screenshot pasted into
+   * the new-ticket form vanished from the thread the moment it was sent.
+   */
+  attachments?: TicketMessage["attachments"];
 }) {
   return (
     <ul id="thread" className="grid gap-5">
@@ -45,6 +54,8 @@ export function TicketThread({
         badge="Original request"
         at={createdAt}
         body={description}
+        attachments={attachments}
+        sensitive={sensitive}
       />
       {messages.map((m) => {
         const fromStaff = m.author.type === "staff";
@@ -55,6 +66,7 @@ export function TicketThread({
             mine={!fromStaff}
             at={m.created_at}
             body={m.body}
+            sensitive={m.is_sensitive}
             attachments={m.attachments}
             footer={fromStaff ? (
               <ReplyVerdict
@@ -73,13 +85,15 @@ export function TicketThread({
 }
 
 function Bubble({
-  who, mine, badge, at, body, attachments, footer,
+  who, mine, badge, at, body, sensitive = false, attachments, footer,
 }: {
   who: string;
   mine: boolean;
   badge?: string;
   at: string;
   body: string;
+  /** Marked sensitive when written: stored encrypted, and the lock says so. */
+  sensitive?: boolean;
   attachments?: TicketMessage["attachments"];
   footer?: React.ReactNode;
 }) {
@@ -93,6 +107,15 @@ function Bubble({
         <span className="text-13-5 font-semibold leading-tight text-ink">{who}</span>
         {badge && <span className="text-10-5 font-semibold uppercase tracking-[.06em] text-muted">{badge}</span>}
         {!mine && !badge && <span className="text-10-5 font-semibold uppercase tracking-[.06em] text-brand-ink">Support</span>}
+        {sensitive && (
+          <span
+            className="inline-flex items-center gap-1 rounded-full border border-line-strong bg-surface-2 px-2 py-0.5 text-10-5 font-semibold uppercase tracking-[.06em] text-muted"
+            title="Marked sensitive: stored encrypted, and never quoted in an email or sent to an integration."
+          >
+            <LockGlyph />
+            Encrypted
+          </span>
+        )}
       </div>
       <div
         className={cn(
@@ -155,3 +178,17 @@ const fileSize = (bytes: number) =>
   bytes < 1024 * 1024
     ? `${Math.max(1, Math.round(bytes / 1024))} KB`
     : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+
+/**
+ * A padlock drawn here rather than imported: `IconLock` lives in the full
+ * icon map, which a client module must not pull in (the Turbopack rule in
+ * CLAUDE.md), and `icons-ui` has no lock.
+ */
+function LockGlyph() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="4" y="10.5" width="16" height="11" rx="2" />
+      <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
+    </svg>
+  );
+}

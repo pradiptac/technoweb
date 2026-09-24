@@ -2,7 +2,7 @@ import "server-only";
 import { apiFetch } from "@/lib/api";
 import { query, token } from "./_shared";
 import type {
-  ActivityEntry, AdminCustomer, AdminStaff, RoleOption, Paginated, ClientErrorRow,
+  ActivityEntry, AdminCustomer, AdminStaff, RoleOption, Paginated, ClientErrorRow, ImpersonationResponse,
 } from "@/types/api";
 
 /**
@@ -94,6 +94,20 @@ export async function resendCustomerVerificationEmail(id: number): Promise<Admin
     method: "POST", token: await token(),
   });
   return res.data;
+}
+
+/**
+ * A one-hour portal token for this customer — the console's "View as".
+ *
+ * Called from a route handler, never a Server Action: the token has to become
+ * a cookie on a response that opens in a new tab, and an action returns a
+ * value rather than a response. The API refuses with a sentence for any
+ * account that is not active.
+ */
+export async function impersonateCustomer(id: number): Promise<ImpersonationResponse> {
+  return apiFetch<ImpersonationResponse>(`/admin/customers/${id}/impersonate`, {
+    method: "POST", token: await token(),
+  });
 }
 
 export type StaffPayload = Partial<{

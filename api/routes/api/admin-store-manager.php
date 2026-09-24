@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\V1\Admin\Store\CouponController as AdminStoreCoupon
 use App\Http\Controllers\Api\V1\Admin\Store\DashboardController as AdminStoreDashboardController;
 use App\Http\Controllers\Api\V1\Admin\Store\OrderController as AdminStoreOrderController;
 use App\Http\Controllers\Api\V1\Admin\Store\ProductController as AdminStoreProductController;
+use App\Http\Controllers\Api\V1\Admin\Store\ProductImportController as AdminStoreProductImportController;
+use App\Http\Controllers\Api\V1\Admin\Store\PromoController as AdminStorePromoController;
 use App\Http\Controllers\Api\V1\Admin\Store\ReportController as AdminStoreReportController;
 use App\Http\Controllers\Api\V1\Admin\Store\StockController as AdminStoreStockController;
 use Illuminate\Support\Facades\Route;
@@ -20,6 +22,11 @@ Route::middleware('role:store_manager')->group(function () {
     // the parameterised store routes for the same reason
     // `media/move` is: Laravel matches in declaration order.
     Route::get('store/dashboard', AdminStoreDashboardController::class)->name('store.dashboard');
+
+    // The shop front's promo band: the eight `store_promo_*` settings rows,
+    // and no other key — see PromoController. Above `store/{anything}` too.
+    Route::get('store/promo', [AdminStorePromoController::class, 'index'])->name('store.promo');
+    Route::patch('store/promo', [AdminStorePromoController::class, 'update'])->name('store.promo.update');
 
     // Above `store/{anything}` for the same reason `media/move` is:
     // Laravel matches in declaration order.
@@ -45,6 +52,17 @@ Route::middleware('role:store_manager')->group(function () {
 
     Route::get('store/products', [AdminStoreProductController::class, 'index'])->name('store.products.index');
     Route::post('store/products', [AdminStoreProductController::class, 'store'])->name('store.products.store');
+
+    /*
+     * The catalogue as a spreadsheet, both ways. Declared above
+     * `store/products/{storeProduct:id}` — Laravel matches in declaration
+     * order, so underneath it "export" and "import" would bind `{id}` and
+     * answer 404 from model binding, the `media/move` trap.
+     */
+    Route::get('store/products/export', [AdminStoreProductImportController::class, 'export'])->name('store.products.export');
+    Route::post('store/products/import/analyse', [AdminStoreProductImportController::class, 'analyse'])->name('store.products.import.analyse');
+    Route::post('store/products/import', [AdminStoreProductImportController::class, 'store'])->name('store.products.import');
+
     Route::get('store/products/{storeProduct:id}', [AdminStoreProductController::class, 'show'])->name('store.products.show');
     Route::patch('store/products/{storeProduct:id}', [AdminStoreProductController::class, 'update'])->name('store.products.update');
     Route::delete('store/products/{storeProduct:id}', [AdminStoreProductController::class, 'destroy'])->name('store.products.destroy');

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { SettingSwitch } from "@/components/admin/setting-switch";
+import { useEffect, useRef, useState } from "react";
 import { EditorField } from "@/components/admin/editor-field";
 import { AnnouncementBar } from "@/components/layout/announcement-bar";
 import { Input } from "@/components/ui/input";
 import type { SettingGroups } from "@/lib/admin";
-import { ANNOUNCEMENT_DEFAULTS, announcementFor } from "@/lib/announcement";
+import { ANNOUNCEMENT_DEFAULTS, announcementFor, type AnnouncementMode } from "@/lib/announcement";
 import { isHex } from "@/lib/presets";
 import { cn } from "@/lib/utils";
 import { ColourField } from "./settings-fields";
@@ -37,7 +38,11 @@ export function AnnouncementPanel({ rows }: { rows: SettingGroups[string] }) {
   const [enabled, setEnabled] = useState(stored.announcement_enabled === "1");
   const [closable, setClosable] = useState(stored.announcement_closable !== "0");
   const [style, setStyle] = useState<"solid" | "gradient">(stored.announcement_style === "gradient" ? "gradient" : "solid");
-  const [mode, setMode] = useState<"fixed" | "ticker">(stored.announcement_mode === "ticker" ? "ticker" : "fixed");
+  const [mode, setMode] = useState<AnnouncementMode>(
+    stored.announcement_mode === "ticker" || stored.announcement_mode === "vertical"
+      ? stored.announcement_mode
+      : "fixed",
+  );
   const [colour, setColour] = useState(stored.announcement_colour || ANNOUNCEMENT_DEFAULTS.colour);
   const [colour2, setColour2] = useState(stored.announcement_colour_2 || ANNOUNCEMENT_DEFAULTS.colour2);
   const [html, setHtml] = useState(stored.announcement_message ?? "");
@@ -50,11 +55,6 @@ export function AnnouncementPanel({ rows }: { rows: SettingGroups[string] }) {
     for (const input of el.querySelectorAll<HTMLInputElement>('input[type="radio"]')) {
       const should = input.value === radios[input.name];
       if (input.checked !== should) input.checked = should;
-    }
-    const boxes: Record<string, boolean> = { "announcement-enabled": enabled, "announcement-closable": closable };
-    for (const input of el.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')) {
-      const should = boxes[input.id];
-      if (should !== undefined && input.checked !== should) input.checked = should;
     }
   });
 
@@ -73,12 +73,12 @@ export function AnnouncementPanel({ rows }: { rows: SettingGroups[string] }) {
   return (
     <div ref={ref} className="space-y-6">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-lg border border-line-strong bg-surface px-4 py-3">
-        <Switch id="announcement-enabled" name="setting__announcement_enabled" checked={enabled} onChange={setEnabled}>
+        <SettingSwitch id="announcement-enabled" name="setting__announcement_enabled" checked={enabled} onChange={setEnabled}>
           Show the info bar
-        </Switch>
-        <Switch id="announcement-closable" name="setting__announcement_closable" checked={closable} onChange={setClosable}>
+        </SettingSwitch>
+        <SettingSwitch id="announcement-closable" name="setting__announcement_closable" checked={closable} onChange={setClosable}>
           Visitors can close it
-        </Switch>
+        </SettingSwitch>
         <p className="min-w-0 basis-full text-12-5 text-muted">
           Closed stays closed for that visitor&rsquo;s browser session; a changed message comes back.
         </p>
@@ -99,10 +99,18 @@ export function AnnouncementPanel({ rows }: { rows: SettingGroups[string] }) {
           name="setting__announcement_mode"
           legend="Message"
           value={mode}
-          onChange={(v) => setMode(v as "fixed" | "ticker")}
+          onChange={(v) => setMode(v as AnnouncementMode)}
           choices={[
-            { id: "fixed", label: "Fixed", note: "Centred and still." },
+            { id: "fixed", label: "Fixed", note: "Centred and still. One line — anything longer is cut, so use a ticker or one line at a time." },
             { id: "ticker", label: "Ticker", note: "Scrolls across; pauses under the pointer, and has a pause button." },
+            {
+              id: "vertical",
+              label: "One line at a time",
+              // What makes a line is the thing an editor cannot guess, so it
+              // is said here rather than left to be discovered by pressing
+              // Enter and watching the preview.
+              note: "Each line rises from the bottom and holds long enough to read. Press Enter in the message for a new line.",
+            },
           ]}
         />
       </div>
@@ -168,17 +176,6 @@ export function AnnouncementPanel({ rows }: { rows: SettingGroups[string] }) {
         )}
       </div>
     </div>
-  );
-}
-
-/** A visible checkbox whose value is posted by a controlled hidden input — see the panel's note. */
-function Switch({ id, name, checked, onChange, children }: { id: string; name: string; checked: boolean; onChange: (v: boolean) => void; children: ReactNode }) {
-  return (
-    <label htmlFor={id} className="flex cursor-pointer items-center gap-2 text-13-5 font-semibold">
-      <input id={id} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="size-4 accent-brand-600" />
-      <input type="hidden" name={name} value={checked ? "1" : "0"} />
-      {children}
-    </label>
   );
 }
 

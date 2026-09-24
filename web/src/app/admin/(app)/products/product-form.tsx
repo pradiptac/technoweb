@@ -11,6 +11,8 @@ import { EditorField } from "@/components/admin/editor-field";
 import { FaqField } from "@/components/admin/faq-field";
 import { GalleryField } from "@/components/admin/gallery-field";
 import { RelationPicker } from "@/components/admin/relation-picker";
+import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
+import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
@@ -19,7 +21,7 @@ import { StringListField } from "@/components/admin/string-list-field";
 import {
   createProductAction, updateProductAction, deleteProductAction, type ProductFormState,
 } from "./actions";
-import type { AdminProduct, PickerOption } from "@/types/api";
+import type { AdminProduct, PickerOption, AnswerBlockKindOption } from "@/types/api";
 
 const initial: ProductFormState = {};
 
@@ -36,10 +38,12 @@ const GROUPS: TabGroup[] = [
   { id: "related", label: "Related",
     fields: ["solution_ids", "related_product_ids", "faqs"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
+  // The AEO tab (docs/aeo-geo-contract.md §7). Last, so every tab above keeps its place.
+  { id: "aeo", label: "AEO", fields: ["answer_blocks"] },
 ];
 
 export function ProductForm({
-  product, brands, categories, solutions, products, saved,
+  product, brands, categories, solutions, products, saved, kinds,
 }: {
   product?: AdminProduct;
   brands: PickerOption[];
@@ -47,6 +51,8 @@ export function ProductForm({
   solutions: PickerOption[];
   products: PickerOption[];
   saved?: boolean;
+  /** `meta.answer_block_kinds` from this entity's admin index. */
+  kinds: AnswerBlockKindOption[];
 }) {
   const editing = Boolean(product);
   const [state, formAction, pending] = useActionState(
@@ -213,6 +219,15 @@ export function ProductForm({
         </div>
 
         <SeoPanel seo={product?.seo} defaults={product?.seo_defaults} error={seoErr} embedded record={product ? { type: 'product', id: product.id } : null} />
+
+        {/*
+          The AEO tab, one child: the readiness scores and the assistant on
+          top, the answer blocks under them. See docs/aeo-geo-contract.md §7.
+        */}
+        <div>
+          <AeoGeoPanel record={product ? { type: 'product', id: product.id } : null} blocks={product?.answer_blocks} />
+          <AnswerBlocksField defaultValue={product?.answer_blocks ?? []} kinds={kinds} error={rowErr("answer_blocks")} />
+        </div>
       </Tabs>
 
       <FormActions>

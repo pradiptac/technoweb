@@ -3,6 +3,9 @@
 namespace App\Models;
 
 use App\Enums\OrderStatus;
+use App\Enums\WebhookEvent;
+use App\Support\Webhooks\WebhookPayload;
+use App\Support\Webhooks\Webhooks;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,7 +27,7 @@ class Order extends Model
         'order_number', 'customer_id', 'status', 'payment_method',
         'subtotal_paise', 'discount_paise', 'taxable_paise', 'gst_paise', 'total_paise',
         'coupon_id', 'coupon_code',
-        'customer_name', 'customer_email', 'customer_phone',
+        'customer_name', 'customer_email', 'customer_phone', 'customer_note',
         'billing_address', 'shipping_address',
         'gst_required', 'gstin', 'company_name',
         'invoice_number', 'invoice_date', 'invoice_path',
@@ -60,6 +63,30 @@ class Order extends Model
         static::creating(function (self $order) {
             $order->order_number ??= self::nextNumber();
             $order->access_token ??= bin2hex(random_bytes(32));
+        });
+
+        /*
+         * Outgoing webhooks for the two changes an order makes after it is
+         * placed. `order.placed` is not here: at `created` the lines do not
+         * exist yet, so it is emitted by `Checkout` once the items are in,
+         * beside the `OrderPlaced` email. `order.paid` reads `paid_at` going
+         * from null to set — the one definition of paid, whether the gateway
+         * settled it or `ManualPayment` recorded it — and `order.status_changed`
+         * reads the column; `moveTo(Paid)` changes both and sends both.
+         */
+        static::updated(function (self $order) {
+            if ($order->wasChanged('paid_at') && $order->getOriginal('paid_at') === null && $order->paid_at !== null) {
+                Webhooks::emit(WebhookEvent::OrderPaid, fn () => WebhookPayload::order($order));
+            }
+
+            if ($order->wasChanged('status')) {
+                $from = $order->getOriginal('status');
+
+                Webhooks::emit(WebhookEvent::OrderStatusChanged, fn () => WebhookPayload::order($order, [
+                    'from' => $from instanceof OrderStatus ? $from->value : $from,
+                    'to' => $order->status->value,
+                ]));
+            }
         });
     }
 

@@ -42,7 +42,7 @@ export function Home({
     { id: "solutions", node: <Solutions items={solutions.data.slice(0, 6)} /> },
     // xl:grid-cols-4 — 12 is three full rows; nine left the last row one short.
     { id: "categories", node: <ProductCategories items={categories.data.slice(0, 12)} /> },
-    { id: "why", node: <WhyUs /> },
+    { id: "why", node: <WhyUs settings={settings} /> },
     { id: "clients", node: <TrustedBy items={clients.data} /> },
     { id: "credentials", node: <Credentials items={certifications.data} /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
@@ -57,8 +57,8 @@ export function Home({
 
   return (
     <>
-      {orderSections(SECTIONS, options).map((s) => (
-        <Bg key={s.id} id={s.id} {...bg}>{s.node}</Bg>
+      {orderSections(SECTIONS, options).map((s, i) => (
+        <Bg key={s.id} id={s.id} index={i} {...bg}>{s.node}</Bg>
       ))}
     </>
   );

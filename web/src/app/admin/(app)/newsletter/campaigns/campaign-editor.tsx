@@ -100,6 +100,9 @@ export function CampaignEditor({
   const [schedule, setSchedule] = useState("");
 
   const editable = campaign.is_editable;
+  // A step of an automation sequence: content and checks only, sender fields
+  // owned by the sequence, and no delete — it is removed from the sequence.
+  const step = campaign.sequence ?? null;
 
   /*
     The preview is debounced and last-write-wins.
@@ -132,14 +135,20 @@ export function CampaignEditor({
 
   const save = () => run(() => saveCampaignAction(campaign.id, {
     name, subject, preheader: preheader || null,
-    subject_b: copy.subject_b.trim() || null,
-    ab_test_percent: copy.subject_b.trim() ? abPercent : null,
-    ab_wait_hours: copy.subject_b.trim() ? abWait : null,
-    from_name: copy.from_name || null,
-    from_email: copy.from_email || null,
-    reply_to: copy.reply_to || null,
-    blocks, group_ids: groupIds,
+    blocks,
     attachment_path: attachment?.path ?? null,
+    // A step's audience is the sequence's enrolments, its sender the
+    // sequence's, and it is never a subject test; the API refuses those
+    // keys on a step, so they are not sent.
+    ...(step ? {} : {
+      subject_b: copy.subject_b.trim() || null,
+      ab_test_percent: copy.subject_b.trim() ? abPercent : null,
+      ab_wait_hours: copy.subject_b.trim() ? abWait : null,
+      from_name: copy.from_name || null,
+      from_email: copy.from_email || null,
+      reply_to: copy.reply_to || null,
+      group_ids: groupIds,
+    }),
   }), "Saved.");
 
   const refreshAudience = async () => setAudience(await audienceAction(campaign.id));
@@ -214,15 +223,25 @@ export function CampaignEditor({
           </Alert>
         )}
 
+        {/*
+          A sequence step has no audience and no send: the sequence enrols
+          the people and the runner sends it. Both tabs go, and so do their
+          panels — `Tabs` reads its children by position, so the list and
+          the panels are filtered by the same flag or the third tab would
+          show the second panel.
+        */}
         <Tabs
-          tabs={[
+          tabs={step ? [
+            { id: "content", label: "Content" },
+            { id: "checks", label: "Checks" },
+          ] : [
             { id: "content", label: "Content" },
             { id: "audience", label: "Audience" },
             { id: "checks", label: "Checks" },
             { id: "send", label: "Send" },
           ]}
         >
-          <div id="content" className="grid gap-2.5">
+          {[<div key="content" id="content" className="grid gap-2.5">
             <Field label="Campaign name" htmlFor="name" variant="float"
               hint="For you, not for readers — it never appears in the email.">
               <Input id="name" value={name} disabled={!editable}
@@ -247,8 +266,8 @@ export function CampaignEditor({
               waits the given hours, and the better-opened line goes to
               everyone else. Blank means the campaign it always was.
             */}
-            <section className="border-t border-line pt-3">
-              <h3 className="mb-2 text-13 font-semibold">Test a second subject line</h3>
+            {!step && <section className="border-t border-line pt-3">
+              <h2 className="mb-2 text-13 font-semibold">Test a second subject line</h2>
               <Field label="Alternative subject" htmlFor="subject_b" variant="float"
                 hint={copy.subject_b
                   ? `${copy.subject_b.length} characters. ${abPercent}% of the list tests both lines; after ${abWait} hour${abWait === 1 ? "" : "s"} the better-opened one goes to the rest.`
@@ -273,7 +292,7 @@ export function CampaignEditor({
                   </Field>
                 </div>
               )}
-            </section>
+            </section>}
 
             <section className="border-t border-line pt-3">
               <h2 className="mb-1 text-13 font-semibold">Who it comes from</h2>
@@ -290,29 +309,35 @@ export function CampaignEditor({
                 rather than a fixed value or a free-for-all.
               */}
               <p className="measure mb-2 text-12-5 text-muted">
-                Leave these blank to use the site&rsquo;s configured sender. If you set one, it must be an
-                address your mail provider is authorised to send as — SPF and DKIM are checked against
-                the domain, and an unverified sender authenticates fine and then lands in spam, with
-                nothing to say so.
+                {step ? (
+                  <>Set on the sequence&rsquo;s Settings tab and applied to every step, so a series does not change its sender halfway through.</>
+                ) : (
+                  <>
+                    Leave these blank to use the site&rsquo;s configured sender. If you set one, it must be an
+                    address your mail provider is authorised to send as — SPF and DKIM are checked against
+                    the domain, and an unverified sender authenticates fine and then lands in spam, with
+                    nothing to say so.
+                  </>
+                )}
               </p>
 
               <div className="grid gap-2.5 sm:grid-cols-2">
                 <Field label="From name" htmlFor="from_name" variant="float"
                   hint="What the reader sees instead of the address.">
-                  <Input id="from_name" value={copy.from_name} disabled={!editable}
+                  <Input id="from_name" value={copy.from_name} disabled={!editable || !!step}
                     onChange={edit} />
                 </Field>
 
                 <Field label="From address" htmlFor="from_email" variant="float"
                   hint="Must be authorised at your mail provider.">
-                  <Input id="from_email" type="email" value={copy.from_email} disabled={!editable}
+                  <Input id="from_email" type="email" value={copy.from_email} disabled={!editable || !!step}
                     onChange={edit} />
                 </Field>
               </div>
 
               <Field label="Reply-to" htmlFor="reply_to" variant="float"
                 hint="Where replies go, if that is not the From address. A campaign nobody can reply to is one people report as spam instead.">
-                <Input id="reply_to" type="email" value={copy.reply_to} disabled={!editable}
+                <Input id="reply_to" type="email" value={copy.reply_to} disabled={!editable || !!step}
                   onChange={edit} />
               </Field>
             </section>
@@ -380,9 +405,9 @@ export function CampaignEditor({
                 }}
               />
             </section>
-          </div>
+          </div>,
 
-          <div id="audience" className="grid gap-3">
+          ...(step ? [] : [<div key="audience" id="audience" className="grid gap-3">
             <fieldset>
               <legend className="mb-1.5 text-13 font-semibold">Send to</legend>
               {groups.length === 0 ? (
@@ -439,9 +464,9 @@ export function CampaignEditor({
                 </div>
               </dl>
             )}
-          </div>
+          </div>]),
 
-          <div id="checks" className="grid gap-3">
+          <div key="checks" id="checks" className="grid gap-3">
             <div>
               <Button type="button" size="sm" variant="secondary" onClick={refreshHealth}>
                 Check this campaign
@@ -487,9 +512,9 @@ export function CampaignEditor({
                 </ul>
               </>
             )}
-          </div>
+          </div>,
 
-          <div id="send" className="grid gap-4">
+          ...(step ? [] : [<div key="send" id="send" className="grid gap-4">
             <section>
               <h2 className="mb-1.5 text-13 font-semibold">Send yourself a test</h2>
               <p className="measure mb-2 text-12-5 text-muted">
@@ -554,7 +579,7 @@ export function CampaignEditor({
                 </p>
               )}
             </section>
-          </div>
+          </div>])]}
         </Tabs>
 
         <FormActions dirty={dirty} onSave={save}>
@@ -591,7 +616,7 @@ export function CampaignEditor({
             trusting it: a half-sent campaign whose rows vanish underneath the
             worker is the one case that cannot be reasoned about afterwards.
           */}
-          {campaign.status !== "sending" && (
+          {campaign.status !== "sending" && !step && (
             <Button
               type="button"
               variant="ghost"

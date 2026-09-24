@@ -18,7 +18,7 @@ import { CountUp } from "@/components/ui/count-up";
  * Datacenter's header: an operations console's top bar.
  *
  * Two dark rows. The status strip — a readout built from the site's own
- * statistics (Settings → Homepage), each with a steady dot, the telephone
+ * statistics (Site → Settings → Homepage), each with a steady dot, the telephone
  * number, the utility links and the search field, all in the mono face at
  * 12px. Then the header proper: the logo on dark, the sections as small
  * tracked labels with a brand underline that lights on hover, the cart

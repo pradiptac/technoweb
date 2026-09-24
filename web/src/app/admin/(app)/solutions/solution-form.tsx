@@ -12,6 +12,8 @@ import { EditorField } from "@/components/admin/editor-field";
 import { FaqField } from "@/components/admin/faq-field";
 import { IconField } from "@/components/admin/icon-field-lazy";
 import { RelationPicker } from "@/components/admin/relation-picker";
+import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
+import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { StringListField } from "@/components/admin/string-list-field";
 import { Tabs } from "@/components/admin/tabs";
@@ -20,7 +22,7 @@ import {
   createSolutionAction, updateSolutionAction, deleteSolutionAction,
   type SolutionFormState,
 } from "./actions";
-import type { AdminIndustry, PickerOption, AdminSolution } from "@/types/api";
+import type { AdminIndustry, PickerOption, AdminSolution, AnswerBlockKindOption } from "@/types/api";
 
 const initial: SolutionFormState = {};
 
@@ -35,15 +37,19 @@ const GROUPS: TabGroup[] = [
   { id: "media", label: "Media", fields: ["icon", "hero_image_path"] },
   { id: "related", label: "Related", fields: ["product_ids", "industry_ids", "faqs"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
+  // The AEO tab (docs/aeo-geo-contract.md §7). Last, so every tab above keeps its place.
+  { id: "aeo", label: "AEO", fields: ["answer_blocks"] },
 ];
 
 export function SolutionForm({
-  solution, products, industries, saved,
+  solution, products, industries, saved, kinds,
 }: {
   solution?: AdminSolution;
   products: PickerOption[];
   industries: AdminIndustry[];
   saved?: boolean;
+  /** `meta.answer_block_kinds` from this entity's admin index. */
+  kinds: AnswerBlockKindOption[];
 }) {
   const editing = Boolean(solution);
   const [state, formAction, pending] = useActionState(
@@ -198,6 +204,15 @@ export function SolutionForm({
         </div>
 
         <SeoPanel seo={solution?.seo} defaults={solution?.seo_defaults} error={seoErr} embedded record={solution ? { type: 'solution', id: solution.id } : null} />
+
+        {/*
+          The AEO tab, one child: the readiness scores and the assistant on
+          top, the answer blocks under them. See docs/aeo-geo-contract.md §7.
+        */}
+        <div>
+          <AeoGeoPanel record={solution ? { type: 'solution', id: solution.id } : null} blocks={solution?.answer_blocks} />
+          <AnswerBlocksField defaultValue={solution?.answer_blocks ?? []} kinds={kinds} error={rowErr("answer_blocks")} />
+        </div>
       </Tabs>
 
       <FormActions>

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\CannedReplyController;
 use App\Http\Controllers\Api\V1\Admin\CustomerAdminController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\JobApplicationController;
@@ -22,6 +23,21 @@ Route::middleware('role:support_engineer')->group(function () {
     Route::get('tickets/{ticket}', [AdminTicketController::class, 'show'])->name('tickets.show');
     Route::patch('tickets/{ticket}', [AdminTicketController::class, 'update'])->name('tickets.update');
     Route::post('tickets/{ticket}/reply', [AdminTicketController::class, 'reply'])->name('tickets.reply');
+    Route::post('tickets/{ticket}/merge', [AdminTicketController::class, 'merge'])->name('tickets.merge');
+    // The saved replies, filled for this ticket — what the reply form's
+    // picker inserts. The console never sees a placeholder.
+    Route::get('tickets/{ticket}/canned-replies', [CannedReplyController::class, 'forTicket'])
+        ->name('tickets.canned-replies');
+
+    /*
+     * Saved replies: the desk's shared library of wording. Support-desk
+     * work, so the same role as the queue they are pasted into.
+     */
+    Route::get('canned-replies', [CannedReplyController::class, 'index'])->name('canned-replies.index');
+    Route::post('canned-replies', [CannedReplyController::class, 'store'])->name('canned-replies.store');
+    Route::get('canned-replies/{canned_reply}', [CannedReplyController::class, 'show'])->name('canned-replies.show');
+    Route::patch('canned-replies/{canned_reply}', [CannedReplyController::class, 'update'])->name('canned-replies.update');
+    Route::delete('canned-replies/{canned_reply}', [CannedReplyController::class, 'destroy'])->name('canned-replies.destroy');
     Route::get('ticket-attachments/{attachment}', [AdminTicketController::class, 'downloadAttachment'])
         ->name('ticket-attachments.download');
 
@@ -43,6 +59,11 @@ Route::middleware('role:support_engineer')->group(function () {
     Route::post('customers/{customer}/status', [CustomerAdminController::class, 'status'])->name('customers.status');
     Route::post('customers/{customer}/resend-verification', [CustomerAdminController::class, 'resendVerification'])
         ->name('customers.resend-verification');
+    // "View as": a one-hour portal token for this customer, recorded in the
+    // activity log by the group it sits in. A POST, never a GET — the console
+    // opens it from a form so a cross-site link cannot mint one.
+    Route::post('customers/{customer}/impersonate', [CustomerAdminController::class, 'impersonate'])
+        ->name('customers.impersonate');
 
     /*
      * Applications carry a CV and an employment history, so they

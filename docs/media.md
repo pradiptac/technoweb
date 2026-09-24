@@ -127,7 +127,45 @@ the staff one deliberately does neither.
 caught it**: no attachment exists in the seeded data, so the audit renders no
 link to press, and `TicketAttachment` appeared nowhere in the test suite. A
 feature with no fixture and no test is one whose interface is unexercised
-however green the suite is.
+however green the suite is. Since 2026-09-21 `TicketSensitiveMessageTest`
+posts one through `POST /tickets/{ref}/messages` and reads it back, and
+`scripts/probes/ticket-paste.mjs` sends two through the real screens.
+
+**A form-mode `FileDrop` takes a paste, lists rows, and appends
+(2026-09-21).** Three things the ticket forms asked for, one component.
+`paste` makes the control listen for `paste` on the *surrounding form* — so
+Ctrl+V into the reply's textarea lands the screenshot in the attachment
+list without each form wiring `onPaste` — taking only `kind === "file"`
+items, matching them against `accept`, and cancelling the event only when
+something was taken, so pasting text still pastes text. A clipboard image
+arrives as `image.png` from every browser and is renamed
+`pasted-YYYYMMDD-HHMMSS.png` on the way in, or a thread lists five identical
+names; that is the *file's* name, and the "renames nothing" rule above is
+about the *field*. Every chosen file is a row — a 40px thumbnail for a
+picture (an object URL made and revoked in one effect, written straight to
+the `<img>`; a memoised URL was revoked by StrictMode's simulated unmount
+and the second mount pointed at a dead blob), the name, the size and a 24px
+remove button — keyed by an id given on arrival, because two pasted
+screenshots share a name and a size. **Adding appends**: a pick, a drop and
+a paste each join what is chosen, where a drop used to *replace* a pick,
+and the hidden input is rebuilt from the list through `DataTransfer` on
+every change, remove included. `max` and `maxBytes` restate the API's caps
+so a refusal is a sentence under the rows rather than a 422 after the
+upload; the three ticket forms read them from `lib/ticket-attachments.ts`,
+one statement rather than three. The list empties on the form's `reset`,
+which the portal reply fires after a send and which used to leave the rows
+behind. The probe's paste is a synthetic `ClipboardEvent` with a `File` in
+its `DataTransfer` — Playwright cannot put an image on the clipboard — which
+is the event a real Ctrl+V dispatches; and `page.evaluate` must be given a
+*function*, a string is evaluated as an expression and never called, which
+cost an hour.
+
+**Files sent with the ticket itself were drawn nowhere** until 2026-09-21:
+they hang off `tickets`, not a message, and both ticket pages listed only a
+message's. The new-ticket form has offered attachments since Phase 1; a
+screenshot pasted into it vanished the moment it was sent. `TicketThread`
+takes the ticket's `attachments` for the "Original request" bubble and the
+console's page draws them under its own through one `AttachmentList`.
 
 **A media URL carries `?v=<updated_at>`; a path never does.** Resize, crop,
 rotate and replace all rewrite the file **in place**, because the path is the
@@ -197,13 +235,51 @@ is the common case here, not the corner one.
 
 **Image alt text is a property of the file, not of the page using it.**
 It is written once in the media library ("Edit details") and resolved by path
-through `App\Support\MediaAlt`, which memoises one `path => alt_text` map per
-request. Four public resources expose it — `cover_image_alt`, `hero_image_alt`,
+through `App\Support\MediaMeta`, which memoises one `path => {alt, focus}` map
+per request. Four public resources expose it — `cover_image_alt`, `hero_image_alt`,
 `image_alts` — and the frontend falls back to a derived name only where one
 would actually help a reader. **A new `<img>` on a CMS-driven image should read
 that field, not invent a string from the record's title**: a name is not a
 description of the picture, and every duplicate of it is one more place to
 change when the real photography lands.
+
+**The focal point is a property of the file too, and it is set in the same
+dialog.** `media.focal_x` / `media.focal_y` say where the subject is, as a
+percentage of the width and of the height, and are chosen by clicking the
+preview in "Edit details" — a crosshair marks the point, the percentages are
+read out, arrow keys nudge it, and "Reset to centre" clears it. It is on the
+file for the reason alt text is: a record stores a path, and the subject of a
+photograph is in the same place whichever box crops it — the 4:3 tile, the
+300px banner, the 1:1 thumbnail all want one answer. Raster and SVG alike,
+because a focal point is a rule about cropping, not about pixels. Four rules,
+each pinned by `FocalPointTest`:
+
+- **Both or neither.** A point is two numbers, so `PATCH /admin/media/{id}`
+  refuses one without the other with a 422 naming the missing half — half a
+  pair stored would draw a crosshair somewhere nobody chose. The console
+  always posts the pair, both blank for the centre.
+- **Null is the centre.** `object-position: 50% 50%` is the browser's own
+  default, so a file with no point renders exactly as it did before the
+  columns existed, which is what makes the feature additive. The public
+  resources publish `*_focus` beside every `*_alt` as the string
+  `object-position` wants (`"30% 20%"`) or **null when unset — never a
+  centre string**, so the frontend can tell unset from chosen and
+  `focalStyle()` (`web/src/lib/focal.ts`) returns no style at all for it.
+- **`object-position` only ever moves the crop.** `object-cover` still
+  decides how the picture fills its box; the point decides which part is
+  kept. Nothing is resized, padded or letterboxed by it, and a picture
+  drawn whole (`object-contain`, the popup's `h-auto w-full`) is unaffected
+  by design — there is nothing to keep in frame.
+- **The map is one query and it no longer keeps only rows with alt text.**
+  `MediaMeta` loads every row that says something — an alt, or a point — so a
+  file with a point and no description is in it. `Tile` takes a `focus` prop
+  and hands it to the picture through `--tile-focus` and one rule in
+  `globals.css`, so a caller passes the point beside the picture and never
+  reaches into the element it handed over; everywhere else the style goes on
+  the `<Image>` itself. The public settings carry `<prefix>_focus` beside
+  `<prefix>_url` for the banners, the logo and the login picture, and
+  `bannerFocusFor()` follows the same section-then-default chain as
+  `bannerFor()` so the point always belongs to the picture that won.
 
 **Deleting a media folder does not delete its files** — `folder_id` is
 `nullOnDelete` and they move to Unfiled. The confirmation dialog says so,

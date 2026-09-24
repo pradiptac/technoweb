@@ -88,7 +88,7 @@ export function Collection({
 }
 
 export function Tile({
-  href, as, title, titleAs: Heading = "h3", kicker, summary, icon, media, meta, cta, hue,
+  href, as, title, titleAs: Heading = "h3", kicker, summary, icon, media, focus, meta, cta, hue,
   padding = "md", beam = false, className, style, children, ...rest
 }: {
   /** The whole tile navigates. */
@@ -104,6 +104,14 @@ export function Tile({
   icon?: ReactNode;
   /** A picture in a 4:3 well, or an icon well of the tile's own hue. */
   media?: ReactNode;
+  /**
+   * The picture's focal point, the record's `*_focus` — `"30% 20%"` or
+   * null. Set on the media well as `--tile-focus`, which the rule in
+   * `globals.css` hands to the `<img>` inside as `object-position`, so a
+   * caller passes the point once beside the picture and never reaches into
+   * the element it handed over. Unset is the centre, as it always was.
+   */
+  focus?: string | null;
   meta?: ReactNode;
   /**
    * The closing line — "Learn more". Hidden by the base rule in
@@ -135,7 +143,15 @@ export function Tile({
   const body = (
     <>
       {beam && <BorderBeam ring={2} size={120} />}
-      {media && <span data-tile-media className="relative block aspect-[4/3] overflow-hidden bg-surface-2">{media}</span>}
+      {media && (
+        <span
+          data-tile-media
+          className="relative block aspect-[4/3] overflow-hidden bg-surface-2"
+          style={focus ? ({ "--tile-focus": focus } as CSSProperties) : undefined}
+        >
+          {media}
+        </span>
+      )}
       <div data-tile-body className={cn("flex min-w-0 flex-1 flex-col", padding === "sm" ? "p-4" : "p-5")}>
         {kicker && (
           <span data-tile-kicker className="mb-1.5 text-11 font-semibold uppercase tracking-[.1em] text-secondary-ink">

@@ -7,8 +7,10 @@ import { CategorySidebar } from "@/components/store/category-sidebar";
 import { CategoryRail } from "@/components/store/category-rail";
 import { CompactProductCard } from "@/components/store/compact-product-card";
 import { StoreFilterBar } from "@/components/store/store-filter-bar";
+import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { RelatedEntities } from "@/components/content/related-entities";
 import { publicApi } from "@/lib/api";
-import { buildMetadata } from "@/lib/seo";
+import { JsonLd, buildMetadata } from "@/lib/seo";
 import type { Paginated, StoreCategory, StoreProduct } from "@/types/api";
 
 async function load(slug: string): Promise<StoreCategory | null> {
@@ -158,7 +160,7 @@ export default async function StoreCategoryPage({ params }: { params: Promise<{ 
                 This category has no products on sale at the moment.
               </EmptyState>
             ) : (
-              <ul data-collection="products" data-cols="6" className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              <ul data-collection="products" data-cols="6" className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {products.data.map((p, i) => (
                   <li key={p.id}>
                     {/*
@@ -175,7 +177,14 @@ export default async function StoreCategoryPage({ params }: { params: Promise<{ 
             )}
           </div>
         </div>
+
+        {/* The category's answer blocks and FAQs, then what it is connected to — under the listing, full width. */}
+        <AnswerBlocks blocks={category.answer_blocks} faqs={category.faqs ?? []} className="mt-14" />
+        <RelatedEntities entity={category.entity} className="mt-14" />
       </Container>
+
+      {/* The FAQPage over the FAQs and question blocks — the API's, absent under two entries, and the only one on the page. */}
+      {category.faq_schema && <JsonLd data={category.faq_schema} />}
     </>
   );
 }

@@ -2,14 +2,18 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasAnswerBlocks;
 use App\Models\Concerns\RepathsLandingPages;
 use App\Models\Concerns\Sluggable;
+use App\Models\Contracts\Answerable;
+use App\Models\Contracts\Faqable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-class Brand extends Model
+class Brand extends Model implements Answerable, Faqable
 {
-    use RepathsLandingPages, Sluggable;
+    use HasAnswerBlocks, RepathsLandingPages, Sluggable;
 
     protected $fillable = ['name', 'slug', 'logo_path', 'description', 'sort_order', 'is_featured', 'partner_tier'];
 
@@ -38,5 +42,18 @@ class Brand extends Model
     public static function landingPageKeyColumn(): string
     {
         return 'brand_id';
+    }
+
+    /**
+     * Questions answered on this record's page, in order. Widened to this
+     * model on 2026-09-21 (`docs/aeo-geo-contract.md`, section 2): the
+     * FAQPage gate in `StructuredData::answerFaqs()` reads these beside the
+     * `question` answer blocks.
+     *
+     * @return MorphMany<Faq, $this>
+     */
+    public function faqs(): MorphMany
+    {
+        return $this->morphMany(Faq::class, 'faqable')->orderBy('sort_order');
     }
 }

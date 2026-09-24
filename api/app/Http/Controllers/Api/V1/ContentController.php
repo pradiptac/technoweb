@@ -22,6 +22,7 @@ use App\Models\Page;
 use App\Models\Service;
 use App\Models\Solution;
 use App\Models\TicketCategory;
+use App\Support\EntityLinks;
 use App\Support\MenuTree;
 use App\Support\PublicSettings;
 use Carbon\Carbon;
@@ -59,7 +60,8 @@ class ContentController extends Controller
         // `locations` feeds `areaServed` in the structured data. Named here
         // because preventLazyLoading is on outside production, so a relation
         // the resource reads and the controller forgot is a 500, not a query.
-        $solution->load(['products.brand', 'industries', 'faqs', 'seo', 'locations']);
+        $solution->load(['products.brand', 'industries', 'faqs', 'publishedAnswerBlocks', 'seo', 'locations']);
+        EntityLinks::attach($solution);
 
         return (new SolutionResource($solution))->withSchema();
     }
@@ -77,7 +79,8 @@ class ContentController extends Controller
     {
         abort_unless($service->status?->value === 'published', 404);
 
-        $service->load(['faqs', 'seo', 'locations']);
+        $service->load(['faqs', 'publishedAnswerBlocks', 'seo', 'locations']);
+        EntityLinks::attach($service);
 
         return (new ServiceResource($service))->withSchema();
     }
@@ -93,9 +96,12 @@ class ContentController extends Controller
 
     public function industry(Industry $industry): JsonResource
     {
-        $industry->load(['solutions', 'seo']);
+        $industry->load(['solutions', 'faqs', 'publishedAnswerBlocks', 'seo']);
+        EntityLinks::attach($industry);
 
-        return new IndustryResource($industry);
+        // `withSchema()` marks it as the page for `entity` and `faq_schema`;
+        // an industry has no graph of its own. See the trait.
+        return (new IndustryResource($industry))->withSchema();
     }
 
     /**
@@ -255,7 +261,8 @@ class ContentController extends Controller
     {
         abort_unless($post->status?->value === 'published', 404);
 
-        $post->load(['author', 'seo', 'categories']);
+        $post->load(['author', 'seo', 'categories', 'faqs', 'publishedAnswerBlocks']);
+        EntityLinks::attach($post);
 
         // The older and the newer post, for the foot of the article. Set as
         // relations so the resource's `whenLoaded` gates them the way it
@@ -279,6 +286,7 @@ class ContentController extends Controller
         abort_unless($caseStudy->status?->value === 'published', 404);
 
         $caseStudy->load(['industry', 'seo']);
+        EntityLinks::attach($caseStudy);
 
         return (new CaseStudyResource($caseStudy))->withSchema();
     }
@@ -383,9 +391,10 @@ class ContentController extends Controller
     {
         abort_unless($page->status?->value === 'published', 404);
 
-        $page->load(['faqs', 'seo']);
+        $page->load(['faqs', 'publishedAnswerBlocks', 'seo']);
+        EntityLinks::attach($page);
 
-        return new PageResource($page);
+        return (new PageResource($page))->withSchema();
     }
 
     public function knowledgeArticle(KnowledgeArticle $article): JsonResource
@@ -393,7 +402,8 @@ class ContentController extends Controller
         abort_unless($article->status?->value === 'published', 404);
 
         $article->increment('view_count');
-        $article->load(['category', 'seo']);
+        $article->load(['category', 'faqs', 'publishedAnswerBlocks', 'seo']);
+        EntityLinks::attach($article);
 
         return (new KnowledgeArticleResource($article))->withSchema();
     }

@@ -91,7 +91,7 @@ export function Home({
                 <span className="font-display text-24 font-light text-dark-ink lg:text-[28px]">{a.title}</span>
                 <span className="mt-2 max-w-[44ch] text-14-5 leading-relaxed text-dark-muted">{a.body}</span>
                 <span className="mt-6 inline-flex items-center gap-1.5 text-13-5 font-semibold text-brand-300">
-                  {a.cta} <IconArrowRight className="size-3.5 transition-transform duration-(--duration-base) group-hover:translate-x-0.5" />
+                  {a.cta} <IconArrowRight className="size-3.5 transition-[translate] duration-(--duration-base) group-hover:translate-x-0.5" />
                 </span>
               </Link>
             </li>
@@ -155,7 +155,7 @@ export function Home({
     { id: "partners", node: <Partners items={brands.data} mode="pulse" /> },
     { id: "categories", node: catalogue },
     { id: "credentials", node: <>{quote}<Credentials items={certifications.data} /></> },
-    { id: "why", node: <WhyUs /> },
+    { id: "why", node: <WhyUs settings={settings} /> },
     { id: "solutions", node: <Solutions items={solutions.data.slice(0, 6)} /> },
     { id: "clients", node: <TrustedBy items={clients.data} mode="ring" /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
@@ -169,8 +169,8 @@ export function Home({
 
   return (
     <>
-      {orderSections(SECTIONS, options).map((s) => (
-        <Bg key={s.id} id={s.id} {...bg}>{s.node}</Bg>
+      {orderSections(SECTIONS, options).map((s, i) => (
+        <Bg key={s.id} id={s.id} index={i} {...bg}>{s.node}</Bg>
       ))}
     </>
   );

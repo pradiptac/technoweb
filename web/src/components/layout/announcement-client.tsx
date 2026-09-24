@@ -63,7 +63,7 @@ export function AnnouncementClose({ id, preview = false }: { id: string; preview
       tabIndex={preview ? -1 : undefined}
       aria-label="Close this announcement"
       className={cn(
-        "absolute top-1/2 right-2 z-10 grid size-7 -translate-y-1/2 place-items-center rounded-full border border-current",
+        "absolute top-1/2 right-2 z-10 grid size-6 -translate-y-1/2 place-items-center rounded-full border border-current",
         "opacity-70 transition-opacity duration-(--duration-fast) hover:opacity-100 focus-visible:opacity-100",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current",
       )}

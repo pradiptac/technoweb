@@ -5,6 +5,9 @@ import { createServer } from 'node:http';
    the real backend cannot be booted in this sandbox. */
 
 const TOKEN = 'mock-token-abc123';
+// What `/admin/customers/:id/impersonate` mints: a staff member's "View as"
+// session. `/auth/me` reports `meta.impersonated` by which bearer arrived.
+const IMPERSONATION_TOKEN = 'mock-impersonation-token-456';
 /* Two rows so the queue screen has both states in it: one waiting, one live. */
 const adminCustomers = [
   {
@@ -58,7 +61,9 @@ const nextStatuses = (status) => (TRANSITIONS[status] || []).map((v) => ({ value
 const PRIORITY_LABELS = { low: 'Low', normal: 'Normal', high: 'High', critical: 'Critical' };
 
 const mk = (o) => ({
-  is_overdue: false, due_at: '2026-08-19T09:00:00Z', assigned_to: null,
+  /* The opening description stored encrypted when set (`docs/tickets.md`); the mock has nothing to seal, the flag draws the lock. */
+  is_sensitive: false,
+  is_overdue: false, due_at: '2026-08-19T09:00:00Z', assigned_to: null, merged_into: null,
   category: { id: 1, name: 'Network / connectivity' },
   created_at: '2026-08-17T09:12:00Z', updated_at: '2026-08-18T11:02:00Z', ...o,
   allowed_transitions: nextStatuses(o.status),
@@ -104,6 +109,33 @@ function buildAdminDashboard() {
   };
 }
 
+
+/*
+  Saved replies for the support desk. The management list carries the
+  stored text with its {{placeholders}}; the per-ticket read fills them the
+  way the API does, because the reply form pastes what it is given.
+*/
+const CANNED_PLACEHOLDERS = [
+  { name: 'customer_name', about: "The customer's full name." },
+  { name: 'first_name', about: 'Their first name — the first word of it.' },
+  { name: 'company', about: 'Their company, or blank.' },
+  { name: 'reference', about: 'The ticket reference.' },
+  { name: 'subject', about: 'The ticket subject.' },
+  { name: 'agent_name', about: 'Your own name, as the signed-in staff member.' },
+];
+const cannedReplies = [
+  { id: 1, title: 'Looking into it', body: 'Hello {{first_name}},\n\nThanks for raising {{reference}}. An engineer is looking at it now and will update you here.\n\n— {{agent_name}}', sort_order: 1, created_by: { id: 1, name: 'Priya Sharma' }, created_at: '2026-09-01T09:00:00+05:30', updated_at: '2026-09-01T09:00:00+05:30' },
+  { id: 2, title: 'Firmware rolled back', body: 'Hello {{first_name}},\n\nWe have rolled the switch back a firmware version. Please watch it this afternoon and reply on {{reference}} if it drops again.\n\n— {{agent_name}}', sort_order: 2, created_by: { id: 1, name: 'Priya Sharma' }, created_at: '2026-09-02T09:00:00+05:30', updated_at: '2026-09-02T09:00:00+05:30' },
+];
+function fillCannedReply(body, t) {
+  const values = {
+    customer_name: customer.name, first_name: customer.name.split(/\s+/)[0], company: customer.company || '',
+    reference: t.reference, subject: t.subject, agent_name: staff.name,
+  };
+  return body
+    .replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (_, k) => (k in values ? values[k] : ''));
+}
+
 const tickets = [
   mk({ id: 1, reference: 'TW-2026-00021', subject: 'AP-04 dropping clients in the warehouse',
     status: 'in_progress', status_label: 'In progress', priority: 'high', priority_label: 'High',
@@ -126,15 +158,15 @@ const tickets = [
 
 const messages = {
   'TW-2026-00021': [
-    { id: 11, body: 'Thanks — I can see AP-04 flapping in the controller logs. Could you confirm whether the racking in aisle 3 was moved during the power cut work?', is_internal: false,
+    { id: 11, body: 'Thanks — I can see AP-04 flapping in the controller logs. Could you confirm whether the racking in aisle 3 was moved during the power cut work?', is_internal: false, is_sensitive: false,
       author: { id: 3, name: 'S. Rao', type: 'staff' }, attachments: [], rating: 4, rated_at: '2026-08-17T12:00:00Z', report_reason: null, reported_at: null, created_at: '2026-08-17T11:40:00Z' },
-    { id: 12, body: 'Yes — the contractors moved two pallet racks closer to that corner on Tuesday afternoon.', is_internal: false,
+    { id: 12, body: 'Yes — the contractors moved two pallet racks closer to that corner on Tuesday afternoon.', is_internal: false, is_sensitive: false,
       author: { id: 1, name: 'Neil Basu', type: 'customer' },
       attachments: [{ id: 5, filename: 'warehouse-layout.pdf', url: '#', size: 284000, mime: 'application/pdf' }],
       rating: null, rated_at: null, report_reason: null, reported_at: null, created_at: '2026-08-17T14:02:00Z' },
-    { id: 14, body: 'Checked the install photos — the AP is mounted on a steel purlin, not the ceiling grid. Flagging in case the resurvey needs a bracket swap too.', is_internal: true,
+    { id: 14, body: 'Checked the install photos — the AP is mounted on a steel purlin, not the ceiling grid. Flagging in case the resurvey needs a bracket swap too.', is_internal: true, is_sensitive: false,
       author: { id: 5, name: 'M. Iyer', type: 'staff' }, attachments: [], rating: null, rated_at: null, report_reason: null, reported_at: null, created_at: '2026-08-17T15:20:00Z' },
-    { id: 13, body: 'That will be it. Metal racking that close to an AP kills the 5 GHz coverage. I am scheduling a site visit Thursday to reposition AP-04 and re-survey that aisle.', is_internal: false,
+    { id: 13, body: 'That will be it. Metal racking that close to an AP kills the 5 GHz coverage. I am scheduling a site visit Thursday to reposition AP-04 and re-survey that aisle.', is_internal: false, is_sensitive: true,
       author: { id: 3, name: 'S. Rao', type: 'staff' }, attachments: [], rating: null, rated_at: null, report_reason: 'A site visit on Thursday leaves the aisle without Wi-Fi for three more days.', reported_at: '2026-08-18T10:00:00Z', created_at: '2026-08-18T09:15:00Z' },
   ],
 };
@@ -156,7 +188,7 @@ const solutions = [
     summary:'Physical and virtualised compute sized to the workload.' },
   { id:3, title:'Firewall & UTM', slug:'firewall', icon:'firewall',
     summary:'Next-gen firewall deployment, policy tuning and site-to-site VPN.' },
-].map(s => ({ ...s, hero_image:null, hero_image_alt:null, status:'published' }));
+].map(s => ({ ...s, hero_image:null, hero_image_alt:null, hero_image_focus:null, status:'published' }));
 
 const solutionDetail = {
   ...solutions[0],
@@ -185,8 +217,8 @@ const industries = [
 ];
 
 const productCategories = [
-  { id:1, name:'Switches', slug:'switches', description:'Access, core and PoE', icon:'switch', parent_id:null, product_count:1 },
-  { id:2, name:'Firewalls', slug:'firewalls', description:'NGFW & UTM appliances', icon:'firewall', parent_id:null, product_count:0 },
+  { id:1, name:'Switches', slug:'switches', description:'Access, core and PoE', icon:'switch', parent_id:null, image:null, image_alt:null, image_focus:null, product_count:1 },
+  { id:2, name:'Firewalls', slug:'firewalls', description:'NGFW & UTM appliances', icon:'firewall', parent_id:null, image:null, image_alt:null, image_focus:null, product_count:0 },
 ];
 
 /* Brands that have a published product — the same restriction Laravel applies,
@@ -201,17 +233,17 @@ const certifications = [
   { id:1, name:'ISO 9001:2015', issuer:'TÜV SÜD', certificate_number:'QM 09 1234 567',
     issued_on:'2024-03-14', valid_until:'2027-03-13',
     description:'Quality management for the supply, installation and support of IT infrastructure.',
-    image:null, image_alt:'ISO 9001:2015', file:null },
+    image:null, image_alt:'ISO 9001:2015', image_focus:null, file:null },
 ];
 const clients = [
-  { id:1, name:'Meridian Foods', logo:null, logo_alt:'Meridian Foods', website_url:'https://meridian.example',
+  { id:1, name:'Meridian Foods', logo:null, logo_alt:'Meridian Foods', logo_focus:null, website_url:'https://meridian.example',
     note:'Plant-wide network and CCTV across two sites.', is_featured:true,
     industry:{ id:1, name:'Manufacturing', slug:'manufacturing' } },
 ];
 const team = [
   { id:1, name:'Priya Nair', designation:'Network Engineer', department:'Engineering',
     bio:'Wi-Fi surveys, VLAN design and the as-built documentation that goes with them.',
-    photo:null, photo_alt:'Priya Nair', email:null, linkedin_url:null,
+    photo:null, photo_alt:'Priya Nair', photo_focus:null, email:null, linkedin_url:null,
     certifications:[ { name:'CCNA', issuer:'Cisco', issued_on:'2023-08-01', expires_on:'2027-08-01' } ] },
 ];
 
@@ -321,8 +353,8 @@ const storeCategories = [
   // photograph a share preview uses. One category carries both and one carries
   // neither, because the rail draws an empty tile for the second and a fixture
   // that never sends null would hide that branch.
-  { id: 1, name: 'Switches', slug: 'switches', description: 'Managed and unmanaged access switches.', icon_url: 'http://127.0.0.1:8899/mock/switch-icon.png', image_url: null, product_count: 2 },
-  { id: 2, name: 'Licences', slug: 'licences', description: 'Software and security licences, delivered by activation code.', icon_url: null, image_url: null, product_count: 1 },
+  { id: 1, name: 'Switches', slug: 'switches', description: 'Managed and unmanaged access switches.', icon_url: 'http://127.0.0.1:8899/storage/mock/switch-icon.png', image_url: null, image_focus: null, product_count: 2 },
+  { id: 2, name: 'Licences', slug: 'licences', description: 'Software and security licences, delivered by activation code.', icon_url: null, image_url: null, image_focus: null, product_count: 1 },
 ];
 
 const storeProducts = [
@@ -332,20 +364,20 @@ const storeProducts = [
     description: '<p>A managed access switch for wiring closets that need proper VLAN support.</p>',
     specifications: { Ports: '24 x 1G', Uplinks: '4 x SFP', 'Rack units': '1U' },
     features: ['Layer 3 lite static routing', 'Fanless', 'Limited lifetime warranty'],
-    images: [], image_alts: [],
+    images: [], image_alts: [], image_focuses: [],
     price_paise: 4720000, compare_at_paise: 5310000,
     in_stock: true, availability: 'in_stock', handling_days: 2, returnable: true, is_featured: true,
     created_at: '2026-01-15T00:00:00Z',
     category: storeCategories[0], brand: { id: 1, name: 'Cisco', slug: 'cisco', logo: null },
     variations: [
-      { id: 11, name: '24-Port', sku: 'CBS350-24T', options: { Ports: '24' }, price_paise: 4720000, in_stock: true, image_url: null, image_alt: null },
-      { id: 12, name: '48-Port', sku: 'CBS350-48T', options: { Ports: '48' }, price_paise: 7080000, in_stock: true, image_url: null, image_alt: null },
+      { id: 11, name: '24-Port', sku: 'CBS350-24T', options: { Ports: '24' }, price_paise: 4720000, in_stock: true, image_url: null, image_alt: null, image_focus: null },
+      { id: 12, name: '48-Port', sku: 'CBS350-48T', options: { Ports: '48' }, price_paise: 7080000, in_stock: true, image_url: null, image_alt: null, image_focus: null },
     ] },
   { id: 2, name: 'Unmanaged 8-Port Switch', slug: 'unmanaged-8-port-switch', sku: 'SG108',
     type: 'physical',
     short_description: 'Eight Gigabit ports, no configuration, metal case.',
     description: null, specifications: {}, features: [],
-    images: [], image_alts: [],
+    images: [], image_alts: [], image_focuses: [],
     price_paise: 129900, in_stock: false, returnable: true,
     created_at: '2026-01-15T00:00:00Z',
     category: storeCategories[0], brand: null, variations: [] },
@@ -353,7 +385,7 @@ const storeProducts = [
     type: 'digital',
     short_description: 'One year of endpoint protection, delivered as an activation code.',
     description: null, specifications: {}, features: [],
-    images: [], image_alts: [],
+    images: [], image_alts: [], image_focuses: [],
     price_paise: 236000, in_stock: true, returnable: false,
     // Deliberately recent, computed rather than a fixed date, so the "New"
     // ribbon (isNewProduct, 30-day window) has something to render against
@@ -419,10 +451,10 @@ const products = [
     description:'<p>A managed access switch for wiring closets that need Layer 3 lite, static routing and proper VLAN support without a full enterprise licence.</p>',
     specifications:{ 'Ports':'24 × 10/100/1000', 'Uplinks':'4 × 1G SFP', 'Switching capacity':'56 Gbps', 'Rack units':'1U' },
     features:['Layer 3 lite static routing','802.1X port authentication','Rack-mount, fanless','Limited lifetime warranty'],
-    images:[], image_alts:[], datasheet_url:null, status:'published',
+    images:[], image_alts:[], image_focuses:[], datasheet_url:null, status:'published',
     brand:{ id:1, name:'Cisco', slug:'cisco', logo:null },
     category:{ id:1, name:'Switches', slug:'switches', description:'Access, core and PoE', icon:'switch', parent_id:null },
-    related_products:[], related_solutions:[{ id:1, title:'Enterprise networking', slug:'networking', icon:'network', summary:'', hero_image:null, hero_image_alt:null, status:'published' }],
+    related_products:[], related_solutions:[{ id:1, title:'Enterprise networking', slug:'networking', icon:'network', summary:'', hero_image:null, hero_image_alt:null, hero_image_focus:null, status:'published' }],
     faqs:[{ id:9, question:'Does this support PoE?', answer:'No — this is the non-PoE variant. Ask us about the CBS350-24P if you need to power access points or phones.' }],
     seo:null },
 ];
@@ -457,6 +489,7 @@ const popups = [
     id: 1,
     image: 'http://127.0.0.1:8899/storage/media/popups/offer.jpg',
     image_alt: 'Ten per cent off network switches until the end of the month',
+    image_focus: null,
     image_width: 1120,
     image_height: 840,
     body: null,
@@ -482,10 +515,10 @@ const sliders = [
     autoplay: true, interval_ms: 6000,
     slides: [
       { id: 1, kind: 'image', url: null, poster_url: null, youtube_id: null,
-        alt: 'A rack of network switches', heading: null, caption: null,
+        alt: 'A rack of network switches', focus: null, heading: null, caption: null,
         link_url: null, link_label: null, caption_position: 'bottom-left' },
       { id: 2, kind: 'youtube', url: null, poster_url: null, youtube_id: 'dQw4w9WgXcQ',
-        alt: 'Product overview', heading: 'Watch the walkthrough', caption: null,
+        alt: 'Product overview', focus: null, heading: 'Watch the walkthrough', caption: null,
         link_url: null, link_label: null, caption_position: 'middle-centre' },
     ],
   },
@@ -499,13 +532,13 @@ const sliders = [
     autoplay: false, interval_ms: 6000,
     slides: [
       { id: 3, kind: 'image', url: null, poster_url: null, youtube_id: null,
-        alt: 'A server room', heading: 'Built to be lived in', caption: 'Racks, power and cooling designed together.',
+        alt: 'A server room', focus: null, heading: 'Built to be lived in', caption: 'Racks, power and cooling designed together.',
         link_url: '/solutions', link_label: 'See the solutions', caption_position: 'bottom-left' },
       { id: 4, kind: 'image', url: null, poster_url: null, youtube_id: null,
-        alt: 'An engineer at a patch panel', heading: 'Structured cabling', caption: null,
+        alt: 'An engineer at a patch panel', focus: null, heading: 'Structured cabling', caption: null,
         link_url: null, link_label: null, caption_position: 'top-left' },
       { id: 5, kind: 'image', url: null, poster_url: null, youtube_id: null,
-        alt: 'A wireless access point', heading: 'Enterprise Wi-Fi', caption: 'Surveyed, then installed.',
+        alt: 'A wireless access point', focus: null, heading: 'Enterprise Wi-Fi', caption: 'Surveyed, then installed.',
         link_url: null, link_label: null, caption_position: 'middle-left' },
     ],
   },
@@ -563,6 +596,45 @@ const leads = [
   },
 ];
 
+/* Outgoing webhooks: `meta.events` on the index is the enum's subscribable
+   list, and `secret` appears on no read. */
+const webhookEvents = [
+  { value: 'lead.created', label: 'A lead arrived', blurb: 'Every enquiry, editor-built form and chatbot callback, as the lead it became.' },
+  { value: 'ticket.created', label: 'A ticket was opened', blurb: 'A new support ticket, from the portal or the mailbox.' },
+  { value: 'ticket.replied', label: 'A ticket was replied to', blurb: 'A customer-visible message from either side. Never an internal note.' },
+  { value: 'ticket.status_changed', label: 'A ticket changed status', blurb: 'The ticket, with the status it moved from and to.' },
+  { value: 'order.placed', label: 'An order was placed', blurb: 'The order as placed, before any payment.' },
+  { value: 'order.paid', label: 'An order was paid', blurb: 'The moment an order is paid — by the gateway or recorded by hand.' },
+  { value: 'order.status_changed', label: 'An order changed status', blurb: 'The order, with the status it moved from and to.' },
+  { value: 'customer.registered', label: 'A customer confirmed their address', blurb: 'A portal account whose address has just been confirmed.' },
+  { value: 'form.submitted', label: 'A form was submitted', blurb: 'The raw answers to an editor-built form.' },
+  { value: 'subscriber.joined', label: 'A newsletter subscriber joined', blurb: 'A newsletter subscriber row being created, however it arrived.' },
+];
+const webhooks = [
+  { id: 1, name: 'CRM', url: 'https://crm.example.com/hooks/technoware', events: ['lead.created', 'ticket.created'],
+    event_labels: ['A lead arrived', 'A ticket was opened'], is_active: true, has_secret: true, created_by: 'P. Nair',
+    last_delivered_at: '2026-09-19T10:12:00+05:30', last_error: null, deliveries_count: 2,
+    created_at: '2026-09-18T09:00:00+05:30', updated_at: '2026-09-19T10:12:00+05:30' },
+  { id: 2, name: 'Slack orders channel', url: 'https://hooks.example.com/services/T000/B000/x', events: ['order.placed', 'order.paid'],
+    event_labels: ['An order was placed', 'An order was paid'], is_active: false, has_secret: true, created_by: 'P. Nair',
+    last_delivered_at: null, last_error: 'order.placed: https://hooks.example.com/services/T000/B000/x answered 404.', deliveries_count: 1,
+    created_at: '2026-09-18T09:30:00+05:30', updated_at: '2026-09-19T08:00:00+05:30' },
+];
+const webhookDeliveries = [
+  { id: 12, webhook_id: 1, event: 'ticket.created', event_label: 'A ticket was opened', status: 'delivered', attempts: 1,
+    response_status: 200, response_excerpt: 'ok', next_attempt_at: null, delivered_at: '2026-09-19T10:12:00+05:30',
+    created_at: '2026-09-19T10:11:58+05:30', updated_at: '2026-09-19T10:12:00+05:30' },
+  { id: 11, webhook_id: 1, event: 'lead.created', event_label: 'A lead arrived', status: 'failed', attempts: 5,
+    response_status: 503, response_excerpt: 'Service Unavailable', next_attempt_at: null, delivered_at: null,
+    created_at: '2026-09-18T15:40:00+05:30', updated_at: '2026-09-19T05:40:00+05:30' },
+  { id: 10, webhook_id: 1, event: 'ping', event_label: 'Ping', status: 'pending', attempts: 1,
+    response_status: null, response_excerpt: 'cURL error 7: Failed to connect', next_attempt_at: '2026-09-20T12:00:00+05:30', delivered_at: null,
+    created_at: '2026-09-20T11:59:00+05:30', updated_at: '2026-09-20T11:59:00+05:30' },
+  { id: 9, webhook_id: 2, event: 'order.placed', event_label: 'An order was placed', status: 'failed', attempts: 5,
+    response_status: 404, response_excerpt: 'no_service', next_attempt_at: null, delivered_at: null,
+    created_at: '2026-09-18T15:40:00+05:30', updated_at: '2026-09-19T05:40:00+05:30' },
+];
+
 const leadMeta = {
   statuses: [
     { value: 'new', label: 'New', open: true },
@@ -593,15 +665,15 @@ const galleries = [
       { id: 2, name: 'Surveillance', slug: 'surveillance' },
     ],
     items: [
-      { id: 1, url: null, alt: 'A core switch stack in a wall-mounted rack',
+      { id: 1, url: null, alt: 'A core switch stack in a wall-mounted rack', focus: null,
         title: 'Core switch stack', subtitle: 'Salt Lake, 2026', link_url: null, group: 'networking' },
-      { id: 2, url: null, alt: 'Fibre patching in a comms room',
+      { id: 2, url: null, alt: 'Fibre patching in a comms room', focus: null,
         title: 'Fibre patching', subtitle: 'Howrah', link_url: null, group: 'networking' },
-      { id: 3, url: null, alt: 'A camera on a warehouse gantry',
+      { id: 3, url: null, alt: 'A camera on a warehouse gantry', focus: null,
         title: 'Gantry camera run', subtitle: 'New Town', link_url: null, group: 'surveillance' },
       // Ungrouped on purpose: it must appear under All and under no tab, which
       // is the case the tab filter is easiest to get wrong.
-      { id: 4, url: null, alt: 'A UPS cabinet', title: 'UPS cabinet', subtitle: null,
+      { id: 4, url: null, alt: 'A UPS cabinet', focus: null, title: 'UPS cabinet', subtitle: null,
         link_url: null, group: null },
     ],
   },
@@ -628,12 +700,12 @@ const posts = [
   { id:1, title:'Firewall rules that quietly stop working', slug:'firewall-rules-that-stop-working',
     excerpt:'Five policy patterns that pass review but fail in production, and how to catch them early.',
     body:'<p>A firewall policy is not a static document. It describes a network that keeps changing underneath it.</p><h2>The stale object problem</h2><p>An address object pointing at a host that was decommissioned two years ago still matches nothing — until DHCP hands that address to a printer.</p><ul><li>Audit address objects quarterly</li><li>Prefer FQDN objects where the vendor supports them</li></ul>',
-    cover_image:null, cover_image_alt:null, published_at:'2026-08-12T09:00:00Z', reading_minutes:7, author:{ name:'S. Rao' }, seo:null,
+    cover_image:null, cover_image_alt:null, cover_image_focus:null, published_at:'2026-08-12T09:00:00Z', reading_minutes:7, author:{ name:'S. Rao' }, seo:null,
     is_featured:true, categories:[blogCategories[1], blogCategories[0]] },
   { id:2, title:'Sizing a UPS for a small server room', slug:'sizing-a-ups',
     excerpt:'Load calculation, runtime targets and the mistake almost everyone makes with power factor.',
     body:'<p>Most undersized UPS installations come from reading the wrong number off the label.</p>',
-    cover_image:null, cover_image_alt:null, published_at:'2026-08-04T09:00:00Z', reading_minutes:5, author:{ name:'A. Fernandes' }, seo:null,
+    cover_image:null, cover_image_alt:null, cover_image_focus:null, published_at:'2026-08-04T09:00:00Z', reading_minutes:5, author:{ name:'A. Fernandes' }, seo:null,
     is_featured:false, categories:[blogCategories[2]] },
 ];
 
@@ -642,12 +714,12 @@ const caseStudies = [
     client_name:'Meridian Foods', summary:'Replaced six independently-built site networks with one standardised design, central firewall policy and site-to-site VPN.',
     body:'<p>Each plant had been wired by whichever local contractor was available at the time.</p><h2>What we changed</h2><p>One switching standard, one addressing plan, one firewall policy pushed from the centre.</p>',
     results:[{value:'-71%',label:'Network tickets'},{value:'6 wks',label:'Cutover'},{value:'6',label:'Sites standardised'},{value:'Zero',label:'Production stoppages'}],
-    cover_image:null, cover_image_alt:null, industry:{ id:4, name:'Manufacturing', slug:'manufacturing', summary:null, icon:'factory' }, seo:null },
+    cover_image:null, cover_image_alt:null, cover_image_focus:null, industry:{ id:4, name:'Manufacturing', slug:'manufacturing', summary:null, icon:'factory' }, seo:null },
   { id:2, title:'Hospital Wi-Fi & device segmentation', slug:'hospital-wifi',
     client_name:null, summary:'High-density wireless across four floors with clinical devices, staff and guest traffic properly separated.',
     body:'<p>Clinical devices cannot share a broadcast domain with guest phones.</p>',
     results:[{value:'180',label:'Access points'},{value:'Zero',label:'Clinical downtime'}],
-    cover_image:null, cover_image_alt:null, industry:{ id:2, name:'Healthcare', slug:'healthcare', summary:null, icon:'health' }, seo:null },
+    cover_image:null, cover_image_alt:null, cover_image_focus:null, industry:{ id:2, name:'Healthcare', slug:'healthcare', summary:null, icon:'health' }, seo:null },
 ];
 
 /*
@@ -697,6 +769,345 @@ const paginate = (rows) => ({
   links:{ first:null, last:null, prev:null, next:null },
   meta:{ current_page:1, last_page:1, per_page:24, total:rows.length },
 });
+
+/* ---------------- AEO + GEO (docs/aeo-geo-contract.md) ----------------
+ *
+ * The nine answer-block kinds, in the enum's own order, on every admin
+ * index's `meta.answer_block_kinds` — the console builds the repeater's kind
+ * select from these and never retypes them, so a mock that omitted the list
+ * would render a select with no options and no error. `asks_question` is
+ * what makes the question field required for `question` and `comparison`. */
+const ANSWER_BLOCK_KINDS = [
+  { value: 'definition', label: 'Definition', heading: 'What is it?', asks_question: false },
+  { value: 'who_for', label: 'Who it is for', heading: 'Who is it for?', asks_question: false },
+  { value: 'why', label: 'Why it is needed', heading: 'Why is it needed?', asks_question: false },
+  { value: 'key_fact', label: 'Key fact', heading: 'Key facts', asks_question: false },
+  { value: 'feature', label: 'Feature', heading: 'Key features', asks_question: false },
+  { value: 'use_case', label: 'Use case', heading: 'Use cases', asks_question: false },
+  { value: 'comparison', label: 'Comparison', heading: 'Comparisons', asks_question: true },
+  { value: 'step', label: 'Step', heading: 'How it works', asks_question: false },
+  { value: 'question', label: 'Question', heading: 'Questions people ask', asks_question: true },
+];
+
+/* The first solution's blocks \u2014 every kind once, so the AEO tab and every
+   renderer branch on the public page (`components/content/answer-blocks.tsx`)
+   have something to draw; the store's first product and the first knowledge
+   article carry a full set too, below. The last row is a draft, which the
+   admin read carries and the public read must not. Every other detail
+   answers `answer_blocks: []`. */
+const SOLUTION_ANSWER_BLOCKS = [
+  { id: 1, kind: 'definition', question: null,
+    answer: 'Enterprise networking is the design and installation of the switching, cabling and routing that carries an organisation\u2019s data between its devices, servers and the internet.',
+    detail: '<p>It covers structured cabling, core and access switching, VLAN design and inter-VLAN routing \u2014 planned from a survey of what is installed rather than added a switch at a time.</p>',
+    sort_order: 0, status: 'published' },
+  { id: 2, kind: 'question', question: 'How long does a network cutover take?',
+    answer: 'A single site is usually cut over in one evening or weekend, in stages, with a documented rollback at every step.',
+    detail: null, sort_order: 1, status: 'published' },
+  { id: 3, kind: 'who_for', question: null,
+    answer: 'Any organisation with more than a couple of dozen devices on one site \u2014 the point at which an unmanaged network stops being cheap and starts being the reason things are slow.',
+    detail: '<p>Offices, plants, clinics and schools: anywhere a network was built one switch at a time and nobody can now say why.</p>',
+    sort_order: 2, status: 'published' },
+  { id: 4, kind: 'why', question: null,
+    answer: 'A network that accreted has no diagram, no segmentation and no headroom, so every fault is a hunt and every growth step is a surprise.',
+    detail: null, sort_order: 3, status: 'published' },
+  { id: 5, kind: 'key_fact', question: 'Documentation', answer: 'Every installation ends with a diagram that matches the racks and a cable schedule labelled at both ends.', detail: null, sort_order: 4, status: 'published' },
+  { id: 6, kind: 'key_fact', question: 'Headroom', answer: 'Core links are sized for three to five years of growth, not for today.', detail: null, sort_order: 5, status: 'published' },
+  { id: 7, kind: 'feature', question: null, answer: 'VLAN segmentation with inter-VLAN routing and ACLs between them.', detail: null, sort_order: 6, status: 'published' },
+  { id: 8, kind: 'feature', question: null, answer: '802.1X port authentication on every access port.', detail: '<p>A device that is not known does not get a network.</p>', sort_order: 7, status: 'published' },
+  { id: 9, kind: 'use_case', question: 'A plant with OT on the office LAN',
+    answer: 'The PLCs and the payroll server shared one broadcast domain; segmentation put them on separate VLANs with a firewall between.',
+    detail: '<p>Nothing on the shop floor changed except its address.</p>', sort_order: 8, status: 'published' },
+  { id: 10, kind: 'use_case', question: 'A clinic outgrowing its cabling',
+    answer: 'Forty new devices on a network cabled for twelve: a survey, a new core and a staged cutover over two weekends.',
+    detail: null, sort_order: 9, status: 'published' },
+  { id: 11, kind: 'comparison', question: 'Managed versus unmanaged switches',
+    answer: 'Unmanaged switches are cheaper per port and cannot segment, prioritise or authenticate anything; managed switches can, and are what every site past a few dozen devices needs.',
+    detail: '<p>The difference is not speed. It is whether a fault can be found.</p>', sort_order: 10, status: 'published' },
+  { id: 12, kind: 'comparison', question: 'Cisco Catalyst versus HPE Aruba CX',
+    answer: 'Both are enterprise-grade; the choice usually follows what the site already runs and who will support it.',
+    detail: null, sort_order: 11, status: 'published' },
+  { id: 13, kind: 'step', question: 'Survey', answer: 'We record what is physically installed \u2014 every switch, every run, every patch.', detail: null, sort_order: 12, status: 'published' },
+  { id: 14, kind: 'step', question: 'Design', answer: 'An addressing plan, a switching topology and a cable schedule, agreed before anything is bought.', detail: null, sort_order: 13, status: 'published' },
+  { id: 15, kind: 'step', question: 'Cutover', answer: 'Out of hours, in stages, with a rollback point at every step.', detail: '<p>The old core stays powered until the new one has carried a full working day.</p>', sort_order: 14, status: 'published' },
+  { id: 16, kind: 'question', question: 'Do you supply the switches too?',
+    answer: 'Yes. We quote the hardware with the work, from the manufacturers we are partnered with, and we support what we install.',
+    detail: '<p>Bringing your own hardware is fine as well; we say up front what we can and cannot support.</p>', sort_order: 15, status: 'published' },
+  { id: 17, kind: 'question', question: 'Is this a draft?',
+    answer: 'A draft block, which the admin read carries and the public page must never show.',
+    detail: null, sort_order: 16, status: 'draft' },
+];
+
+/* The store's first product: the product-flavoured set \u2014 a definition, the
+   facts a buyer checks, where it is used, the comparison with the next model
+   up, and the questions people ask before adding it to a basket. */
+const STORE_PRODUCT_ANSWER_BLOCKS = [
+  { id: 21, kind: 'definition', question: null,
+    answer: 'The CBS350-24T-4G is a 24-port Gigabit managed access switch with four SFP uplinks, for wiring closets that need VLANs and static routing without a full enterprise licence.',
+    detail: null, sort_order: 0, status: 'published' },
+  { id: 22, kind: 'who_for', question: null,
+    answer: 'Offices and small plants with up to a few hundred devices, where each closet needs its own managed switch and the core is elsewhere.',
+    detail: null, sort_order: 1, status: 'published' },
+  { id: 23, kind: 'key_fact', question: 'Ports', answer: '24 \u00d7 10/100/1000 plus 4 \u00d7 1G SFP uplinks.', detail: null, sort_order: 2, status: 'published' },
+  { id: 24, kind: 'key_fact', question: 'Noise', answer: 'Fanless, so it can sit in an office rather than a rack room.', detail: null, sort_order: 3, status: 'published' },
+  { id: 25, kind: 'feature', question: null, answer: 'Layer 3 lite static routing between VLANs.', detail: null, sort_order: 4, status: 'published' },
+  { id: 26, kind: 'use_case', question: 'A floor closet feeding 20 desks', answer: 'Two dozen desks, a printer and two access points on one switch, uplinked to the core over SFP.', detail: null, sort_order: 5, status: 'published' },
+  { id: 27, kind: 'comparison', question: 'CBS350-24T versus CBS350-24P',
+    answer: 'The 24P adds PoE+ on every port for phones and access points; the 24T does not power anything and costs less. Choose by what will be plugged in.',
+    detail: null, sort_order: 6, status: 'published' },
+  { id: 28, kind: 'step', question: 'Rack it', answer: 'One rack unit, brackets in the box.', detail: null, sort_order: 7, status: 'published' },
+  { id: 29, kind: 'step', question: 'Set the management address', answer: 'Through the console port or the default web address, before it goes on the network.', detail: null, sort_order: 8, status: 'published' },
+  { id: 30, kind: 'question', question: 'Does it support PoE?',
+    answer: 'No \u2014 this is the non-PoE variant. The CBS350-24P powers phones and access points.',
+    detail: null, sort_order: 9, status: 'published' },
+  { id: 31, kind: 'question', question: 'What warranty does it carry?',
+    answer: 'Cisco\u2019s limited lifetime warranty, and our own support for what we install.',
+    detail: null, sort_order: 10, status: 'published' },
+];
+
+/* The first knowledge article: the guide-flavoured set \u2014 a definition, the
+   steps, a comparison of the two protocols and the questions that end up as
+   tickets when the guide does not answer them. */
+const KB_ANSWER_BLOCKS = [
+  { id: 41, kind: 'definition', question: null,
+    answer: 'Business email on a phone is the same mailbox as on the desktop, reached over IMAP or Exchange; the settings below are the ports and security options that actually matter.',
+    detail: '<p>Most failures are one wrong port or a security setting left on the default.</p>', sort_order: 0, status: 'published' },
+  { id: 42, kind: 'why', question: null,
+    answer: 'A phone set up with the wrong incoming port syncs once and then silently stops, which is the fault most often reported as "email is down".',
+    detail: null, sort_order: 1, status: 'published' },
+  { id: 43, kind: 'key_fact', question: 'IMAP incoming', answer: 'Port 993, SSL/TLS.', detail: null, sort_order: 2, status: 'published' },
+  { id: 44, kind: 'key_fact', question: 'SMTP outgoing', answer: 'Port 587, STARTTLS, authentication on.', detail: null, sort_order: 3, status: 'published' },
+  { id: 45, kind: 'comparison', question: 'IMAP versus Exchange ActiveSync',
+    answer: 'IMAP syncs mail only; Exchange syncs mail, calendar and contacts together. Use Exchange where the mailbox offers it.',
+    detail: null, sort_order: 4, status: 'published' },
+  { id: 46, kind: 'step', question: 'Add the account', answer: 'Settings \u2192 Mail \u2192 Accounts \u2192 Add account \u2192 Other.', detail: null, sort_order: 5, status: 'published' },
+  { id: 47, kind: 'step', question: 'Enter the servers', answer: 'Incoming and outgoing host names exactly as on your welcome sheet, with the ports above.', detail: null, sort_order: 6, status: 'published' },
+  { id: 48, kind: 'step', question: 'Send a test', answer: 'Send yourself a message and confirm it arrives on the desktop too.', detail: null, sort_order: 7, status: 'published' },
+  { id: 49, kind: 'question', question: 'Why does sending fail while receiving works?',
+    answer: 'Outgoing authentication is off. Turn it on and use the same login as incoming.',
+    detail: null, sort_order: 8, status: 'published' },
+  { id: 50, kind: 'question', question: 'Can I use the same settings on Android?',
+    answer: 'Yes \u2014 the ports and security options are the same; only the menus differ.',
+    detail: null, sort_order: 9, status: 'published' },
+];
+
+/* The public shape of a block set (`docs/aeo-geo-contract.md` \u00a71, read):
+   published only, in order, no `id`/`sort_order`/`status`, and the kind's
+   `heading` beside it \u2014 the page draws a group under the API's heading and
+   never keeps a map of its own. */
+const publicBlocks = (blocks) => blocks
+  .filter((b) => b.status === 'published')
+  .sort((a, b) => a.sort_order - b.sort_order)
+  .map(({ kind, question, answer, detail }) => ({
+    kind, question, answer, detail,
+    heading: ANSWER_BLOCK_KINDS.find((k) => k.value === kind)?.heading ?? kind,
+  }));
+
+/* Mirrors StructuredData::answerFaqs(): one FAQPage over the FAQs and the
+   published `question` blocks, in that order, and **nothing under two
+   entries** \u2014 a key that is absent, never null. */
+const faqSchemaOf = (faqs = [], blocks = []) => {
+  const entries = [
+    ...faqs.map((f) => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer.replace(/<[^>]+>/g, '') } })),
+    ...publicBlocks(blocks).filter((b) => b.kind === 'question' && b.question).map((b) => ({
+      '@type': 'Question', name: b.question,
+      acceptedAnswer: { '@type': 'Answer', text: [b.answer, (b.detail || '').replace(/<[^>]+>/g, '')].filter(Boolean).join(' ') },
+    })),
+  ];
+  return entries.length < 2 ? {} : { faq_schema: { '@context': SCHEMA_ORG, '@type': 'FAQPage', mainEntity: entries } };
+};
+
+/* Mirrors App\Support\EntityLinks::for(): `{name, path}` links, paths never
+   URLs, `[]` for a relation that is empty. */
+const entityOf = ({ brand = null, category = null, solutions = [], services = [], industries = [], articles = [], faq_count = 0 } = {}) => ({
+  ...(brand ? { brand } : {}), ...(category ? { category } : {}),
+  solutions, services, industries, articles, faq_count,
+});
+
+/* What every public detail read carries since 2026-09-21: the published
+   blocks, the FAQs, the entity block and \u2014 under the gate \u2014 the FAQPage. */
+const answerContent = (blocks, faqs, entity) => ({
+  answer_blocks: publicBlocks(blocks),
+  faqs,
+  entity: entityOf(entity),
+  ...faqSchemaOf(faqs, blocks),
+});
+
+/* The AI SEO assistant's `meta`, **switched on** so the console's two
+   panels draw their buttons. The fifteen actions are the API's own list
+   (`SeoAiAction::options()`), labels and blurbs included, because the
+   console draws only what this list carries. */
+const SEO_AI_META = {
+  enabled: true, configured: true, model: 'gpt-4o-mini',
+  models: [{ value: 'gpt-4o-mini', label: 'GPT-4o mini', description: 'Cheapest and quickest.' }],
+  actions: [
+    { value: 'generate', label: 'Generate SEO', description: 'A title, a description and keywords for this record.' },
+    { value: 'analyze', label: 'Analyse SEO', description: 'Strengths, weaknesses and what the page does not cover.' },
+    { value: 'improve', label: 'Improve content', description: 'Suggested edits to the copy, keeping what it says true.' },
+    { value: 'faq', label: 'Generate FAQs', description: 'Questions this page leaves unanswered, with answers.' },
+    { value: 'internal_links', label: 'Suggest internal links', description: 'Existing pages worth linking to from this one.' },
+    { value: 'schema', label: 'Suggest schema', description: 'Which structured-data type suits this page.' },
+    { value: 'keywords', label: 'Suggest keywords', description: 'The one phrase this page should win, the intent behind it, and the phrases around it.' },
+    { value: 'aeo_analyze', label: 'Analyse for answers', description: 'What an assistant could quote from this page as it stands, and what it cannot.' },
+    { value: 'questions', label: 'Suggest questions', description: 'What people ask before choosing this, with the intent behind each question.' },
+    { value: 'answer_blocks', label: 'Draft answer blocks', description: 'A definition, key facts, use cases and steps written from the material, as draft blocks.' },
+    { value: 'improve_answer', label: 'Improve an answer', description: 'A tighter direct answer and supporting detail for one block.' },
+    { value: 'faq_suggest', label: 'Suggest FAQs', description: 'Questions the page leaves unanswered, with answers, as FAQ rows.' },
+    { value: 'geo_analyze', label: 'Analyse for engines', description: 'Whether an engine can tell what it is quoting: the entity, its relationships, its authority.' },
+    { value: 'entity_links', label: 'Suggest related records', description: 'Solutions, services, industries, articles and products worth relating to this record.' },
+    { value: 'product_qa', label: 'Draft product answers', description: 'Answers written from the product’s own facts — a missing one is marked, never invented.' },
+  ],
+  today: { runs: 0, cap: 100, remaining: 100, reached: false },
+  usage: [],
+};
+
+/* One canned result per AEO/GEO action, in the exact shape `SeoAssistant`
+   validates it into (`docs/aeo-geo-contract.md` §6). The `[MISSING: …]`
+   in the product answers is deliberate: it is what the real assistant
+   writes for a fact it was not given, and what the console must show
+   rather than tidy away. `entity_links` carries `n` into a list nobody
+   sees here plus the `title`/`path` the real reply carries beside it. */
+const SEO_AI_CANNED = {
+  aeo_analyze: {
+    summary: 'The page explains the solution well but offers little an assistant could lift as a one-line answer.',
+    strengths: ['States plainly what the solution covers', 'Names the technologies involved'],
+    gaps: ['No block says who it is for', 'No use case with a measurable outcome', 'No steps for how a project runs'],
+    suggestions: ['Add a who_for block naming the size and kind of organisation', 'Add one use_case block from a real project', 'Add three step blocks: survey, design, cutover'],
+  },
+  geo_analyze: {
+    summary: 'An engine can tell what this is, but not who it is for or which industries it serves.',
+    strengths: ['A definition block exists', 'The business behind it is named'],
+    gaps: ['No industries are related', 'No supporting article links here', 'No why block'],
+    suggestions: ['Tick the industries this solution is sold into', 'Publish or link one knowledge article about it', 'Add a why block'],
+  },
+  questions: {
+    questions: [
+      { question: 'How many users can a single core switch serve?', intent: 'to check a fit' },
+      { question: 'Does the design include Wi-Fi?', intent: 'to compare' },
+      { question: 'What happens to the old switches?', intent: 'to learn' },
+      { question: 'Is the network managed after installation?', intent: 'to buy' },
+    ],
+  },
+  answer_blocks: {
+    blocks: [
+      { kind: 'who_for', question: null, answer: 'Offices and sites of 50 to 2,000 users that have outgrown unmanaged switches and need VLANs, redundancy and documentation.', detail: '<p>Typically a head office with branch links, or a campus with several buildings.</p>' },
+      { kind: 'use_case', question: null, answer: 'A distribution warehouse moved from flat, unmanaged switching to a segmented core with redundant uplinks in one weekend.', detail: null },
+      { kind: 'step', question: null, answer: 'Survey what is installed and how it is used.', detail: null },
+      { kind: 'step', question: null, answer: 'Design the VLANs, the core and the uplinks, and document the cutover.', detail: null },
+      { kind: 'step', question: null, answer: 'Cut over in stages, with a rollback at every step.', detail: null },
+    ],
+  },
+  product_qa: {
+    blocks: [
+      { kind: 'definition', question: null, answer: 'The Cisco CBS350-24T-4G is a 24-port Gigabit managed switch with four SFP uplinks for small and medium offices.', detail: null },
+      { kind: 'key_fact', question: null, answer: 'It carries a [MISSING: warranty term] warranty from Cisco.', detail: null },
+      { kind: 'question', question: 'Does it support PoE?', answer: 'No — the 24T is the non-PoE model; [MISSING: the PoE model number] is the PoE variant.', detail: null },
+      { kind: 'use_case', question: null, answer: 'Access switching for a branch office of up to 24 wired devices with fibre uplinks to the core.', detail: null },
+    ],
+  },
+  improve_answer: {
+    answer: 'A single site is cut over in one evening or weekend, in stages, each with a documented rollback.',
+    detail: '<p>The core is moved first, then each access switch in turn, so no floor is down for longer than one stage.</p>',
+  },
+  faq_suggest: {
+    faqs: [
+      { question: 'Does the design include structured cabling?', answer: 'Yes. Cabling is surveyed and, where needed, replaced as part of the same project.' },
+      { question: 'Can the old switches be reused?', answer: 'Where they are managed and in support, yes; unmanaged switches are replaced.' },
+    ],
+  },
+  entity_links: {
+    links: [
+      { n: 1, relation: 'service', title: 'Network installation', path: '/services/network-installation', reason: 'This service installs the solution.' },
+      { n: 4, relation: 'industry', title: 'Manufacturing', path: '/industries/manufacturing', reason: 'Most projects of this kind are on plant floors.' },
+      { n: 7, relation: 'article', title: 'VLANs explained', path: '/knowledge-base/vlans-explained', reason: 'The article walks through the segmentation the page describes.' },
+    ],
+  },
+};
+
+/* AEO and GEO readiness in the `SeoScore` shape: `{value, band}` on a list
+   row, the whole thing with `failed` on the single-record read. Absent on
+   every record but the first solution, which is what "not scored yet" is
+   drawn from. */
+const AEO_SCORES = {
+  'solution:1': {
+    value: 62, band: 'fair', passed: 6, checked: 9,
+    failed: [
+      { key: 'questions', group: 'answer', label: 'Three questions answered', weight: 10, hint: 'Add question blocks or FAQs until the page answers at least three questions people ask.' },
+      { key: 'use_cases', group: 'answer', label: 'A use case', weight: 8, hint: 'Add a use-case block: who used it, for what, and what changed.' },
+      { key: 'comparison', group: 'answer', label: 'A comparison', weight: 6, hint: 'Compare it with the obvious alternative in a comparison block.' },
+    ],
+  },
+};
+/** The checks failing across the fixtures, ranked by count × weight — Laravel's `averageOf()`. */
+function topIssues(scores) {
+  const seen = {};
+  for (const s of Object.values(scores)) for (const f of s.failed) {
+    seen[f.key] ??= { key: f.key, label: f.label, group: f.group, weight: f.weight, count: 0 };
+    seen[f.key].count++;
+  }
+  return Object.values(seen).sort((a, c) => c.count * c.weight - a.count * a.weight).slice(0, 6);
+}
+const GEO_SCORES = {
+  'solution:1': {
+    value: 48, band: 'poor', passed: 4, checked: 8,
+    failed: [
+      { key: 'articles_link', group: 'authority', label: 'A supporting article', weight: 8, hint: 'Publish or link a blog post or knowledge article about this subject.' },
+      { key: 'first_hand', group: 'content', label: 'First-hand content', weight: 10, hint: 'Add a "who it is for" or "why it is needed" block written from experience.' },
+      { key: 'certifications', group: 'authority', label: 'Certifications on file', weight: 6, hint: 'Add the company\u2019s certifications under Company \u2192 Certifications.' },
+      { key: 'nap_consistent', group: 'entity', label: 'Consistent name, address and phone', weight: 8, hint: 'Fill in the address and phone number under Settings \u2192 Contact.' },
+    ],
+  },
+};
+const readiness = (table, type, id, full) => {
+  const s = table[`${type}:${id}`];
+  if (!s) return null;
+  return full ? s : { value: s.value, band: s.band };
+};
+
+/* The admin CMS: one index and one detail per entity that carries answer
+   blocks (and FAQs), in the admin resource shapes the edit forms read.
+   Enough to open every AEO tab against the mock; a PATCH echoes the row.
+   Every index carries `meta.answer_block_kinds`. */
+const adminOf = (r, extra = {}) => ({
+  status: 'published', status_label: 'Published', sort_order: 0, show_in_menu: true,
+  seo: null, seo_defaults: null, faqs: [], answer_blocks: [],
+  created_at: '2026-01-15T00:00:00Z', updated_at: '2026-01-15T00:00:00Z',
+  ...r, ...extra,
+});
+const ADMIN_CMS = [
+  { base: '/admin/solutions', rows: solutions, detail: (r) => adminOf(r, r.id === 1
+    ? { problem_statement: solutionDetail.problem_statement, overview: solutionDetail.overview,
+        benefits: solutionDetail.benefits, technologies: solutionDetail.technologies,
+        hero_image_path: null, product_ids: [1], industry_ids: [4],
+        faqs: solutionDetail.faqs.map(({ question, answer }) => ({ question, answer })),
+        answer_blocks: SOLUTION_ANSWER_BLOCKS }
+    : { problem_statement: null, overview: null, benefits: [], technologies: [], hero_image_path: null, product_ids: [], industry_ids: [] }) },
+  { base: '/admin/services', rows: services, detail: (r) => adminOf(r, { body: null }) },
+  { base: '/admin/industries', rows: industries, detail: (r) => adminOf(r, { body: null, solution_ids: [] }) },
+  { base: '/admin/product-categories', rows: productCategories, detail: (r) => adminOf(r, { image_path: null, parent_name: null }) },
+  { base: '/admin/brands', rows: brands, detail: (r) => adminOf(r, { logo_path: null, is_featured: false, product_count: 1 }) },
+  { base: '/admin/products', rows: products, detail: (r) => adminOf(r, {
+      brand_id: r.brand?.id ?? null, brand_name: r.brand?.name ?? null,
+      product_category_id: r.category?.id ?? null, category_name: r.category?.name ?? null,
+      image_urls: [], datasheet_path: null, is_featured: false, solution_ids: [1], related_product_ids: [],
+      faqs: (r.faqs || []).map(({ question, answer }) => ({ question, answer })) }) },
+  { base: '/admin/pages', rows: cmsPages, detail: (r) => adminOf(r) },
+  { base: '/admin/blog-posts', rows: posts, detail: (r) => adminOf(r, { cover_image_path: null, author_id: 3 }) },
+  { base: '/admin/knowledge-articles', rows: kbArticles, detail: (r) => adminOf(r, { knowledge_category_id: 1, view_count: 0, helpful_count: 0 }) },
+  { base: '/admin/store/categories', rows: storeCategories, detail: (r) => adminOf(r, { is_active: true, icon_path: null, image_path: null }) },
+  { base: '/admin/store/products', rows: storeProducts, detail: (r) => adminOf(r, {
+      store_category_id: r.category?.id ?? null, category_name: r.category?.name ?? null,
+      brand_id: r.brand?.id ?? null, brand_name: r.brand?.name ?? null,
+      track_stock: true, stock: r.in_stock ? 12 : 0, stock_on_hand: r.in_stock ? 12 : 0, allow_oversell: false,
+      condition: 'new', feed_include: true, feed_problem: null, gtin: null, mpn: null, google_product_category: null, weight_grams: null,
+      image_urls: [], activation_procedure: null, activation_pdf_path: null, activation_pdf_name: null,
+      variations: (r.variations || []).map((v) => ({ ...v, stock: 4, allow_oversell: false, is_active: true, image_path: null })),
+      /* Product AEO (contract \u00a73): the first product carries all three,
+         the rest none, so both the filled and the blank state render. */
+      warranty: r.id === 1 ? 'Limited lifetime hardware warranty' : null,
+      applications: r.id === 1 ? 'Wiring closets and small server rooms that need VLANs without an enterprise licence.' : null,
+      services: r.id === 1 ? [{ id: 1, title: 'Domain registration', slug: 'domains' }] : [],
+      service_ids: r.id === 1 ? [1] : [] }) },
+];
 
 const json = (res, code, body) => {
   res.writeHead(code, { 'Content-Type': 'application/json' });
@@ -749,8 +1160,27 @@ createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname.replace('/api/v1', '');
   const bearer = (req.headers.authorization || '').replace('Bearer ', '');
-  const auth = bearer === TOKEN;
+  const auth = bearer === TOKEN || bearer === IMPERSONATION_TOKEN;
   const isStaff = bearer === STAFF_TOKEN;
+
+  /*
+   * Every picture this mock names is one pixel, served here.
+   *
+   * `/storage/` is the only path prefix `images.remotePatterns` admits on an
+   * asset origin (`next.config.ts`, `assetPatterns()`), so a fixture's image
+   * has to live under it — the store rail's icon used to be a URL under
+   * `/mock/` that nothing answered, which `next/image` refused with
+   * "hostname is not configured" and every store route 500'd against the
+   * mock. And the optimiser has to get bytes back: a popup's `offer.jpg`
+   * that 404'd here came out of `/_next/image` as a 401, which is what the
+   * audit fails a route on. One 1x1 PNG answers for every path; the
+   * optimiser reads the format from the bytes, not the extension.
+   */
+  if (url.pathname.startsWith('/storage/')) {
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+    res.writeHead(200, { 'content-type': 'image/png', 'content-length': png.length, 'cache-control': 'public, max-age=3600' });
+    return res.end(png);
+  }
 
   if (p === '/auth/login' && req.method === 'POST') return json(res, 200, { token: TOKEN, customer });
   if (p === '/admin/auth/login' && req.method === 'POST') return json(res, 200, { token: STAFF_TOKEN, staff });
@@ -938,6 +1368,10 @@ createServer(async (req, res) => {
   if (p === '/settings') return json(res, 200, { data: {
     company_name: 'Technoware',
     tagline: 'Technology infrastructure that keeps your business connected.',
+    // The `Organization` node's `knowsAbout` and `areaServed`, as two
+    // JSON-encoded strings the frontend decodes (`docs/aeo-geo-samples.md`).
+    organization_knows_about: JSON.stringify(solutions.map((s) => s.title)),
+    organization_area_served: JSON.stringify(['Kolkata', 'Howrah']),
     phone: '+91 00000 00000',
     support_email: 'support@example.test',
     sales_email: 'sales@example.test',
@@ -985,6 +1419,17 @@ createServer(async (req, res) => {
     store_promo_cta_label: 'Shop Now',
     store_promo_cta_href: '/store',
     store_promo_image_url: null,
+    // The two tiles above the band: one on, one off, so `/store` shows the
+    // lone-tile layout the component documents.
+    store_tile_1_enabled: '1',
+    store_tile_1_kicker: 'Networking',
+    store_tile_1_heading: 'Switches from ₹4,990',
+    store_tile_1_text: 'Managed and unmanaged, in stock.',
+    store_tile_1_cta_label: 'Shop switches',
+    store_tile_1_cta_href: '/store',
+    store_tile_2_enabled: '0',
+    store_tile_2_cta_label: 'Shop now',
+    store_tile_2_cta_href: '/store',
 
     /* Page banners.
      *
@@ -1028,6 +1473,41 @@ createServer(async (req, res) => {
         meta: { ...leadMeta, current_page: 1, last_page: 1, per_page: 20, total: leads.length },
         links: {},
       });
+    }
+    /* The store's catalogue as a spreadsheet, both ways. The export is one
+       product and its variation in the columns the import reads back; the
+       dry run answers the shape the wizard maps against, and the commit the
+       summary its done screen draws. Answered from a fixture rather than by
+       reading the upload: the mock is a contract. */
+    if (p === '/admin/store/products/export') {
+      res.writeHead(200, { 'Content-Type': 'text/csv; charset=UTF-8', 'Content-Disposition': 'attachment; filename="technoware-store-catalogue-2026-09-20.csv"' });
+      return res.end('\uFEFFsku,parent_sku,name,slug,type,category,brand,price,compare_at,stock,track_stock,allow_oversell,gtin,mpn,condition,weight_grams,status,feed_include,short_description\n'
+        + 'SW-24,,"Cisco CBS350-24T-4G",cisco-cbs350-24t-4g,physical,switches,cisco,11800.00,,12,1,0,,,new,,published,1,"24-port managed switch"\n'
+        + 'SW-24-POE,SW-24,"PoE model",,,,,14160.00,,4,,0,,,,,,,\n');
+    }
+    if (p === '/admin/store/products/import/analyse' && req.method === 'POST') {
+      return json(res, 200, { data: {
+        file: 'store-imports/mock.csv', original_name: 'catalogue.csv',
+        headers: ['sku', 'parent_sku', 'name', 'price', 'stock', 'category'],
+        fields: ['sku', 'parent_sku', 'name', 'slug', 'type', 'category', 'brand', 'price', 'compare_at', 'stock', 'track_stock', 'allow_oversell', 'gtin', 'mpn', 'condition', 'weight_grams', 'status', 'feed_include', 'short_description'],
+        mapping: { sku: 0, parent_sku: 1, name: 2, slug: null, type: null, category: 5, brand: null, price: 3, compare_at: null, stock: 4, track_stock: null, allow_oversell: null, gtin: null, mpn: null, condition: null, weight_grams: null, status: null, feed_include: null, short_description: null },
+        counts: { total: 3, create: 1, update_product: 1, update_variation: 0, invalid: 1 },
+        problems: [{ line: 4, sku: 'SW-BAD', outcome: 'invalid', reason: 'No store category has the slug "swtiches".' }],
+        preview: [
+          { line: 2, outcome: 'update_product', sku: 'SW-24', parent_sku: null, name: null, price: '11800.00', stock: '12', category: null },
+          { line: 3, outcome: 'create', sku: 'SW-48', parent_sku: null, name: '48-port switch', price: '23600.00', stock: '3', category: 'switches' },
+          { line: 4, outcome: 'invalid', sku: 'SW-BAD', parent_sku: null, name: 'Mis-shelved', price: '10.00', stock: null, category: 'swtiches' },
+        ],
+      } });
+    }
+    if (p === '/admin/store/products/import' && req.method === 'POST') {
+      return json(res, 201, { data: {
+        id: 1, status: 'completed', filename: 'catalogue.csv',
+        mapping: { sku: 0, parent_sku: 1, name: 2, price: 3, stock: 4, category: 5 },
+        counts: { total: 3, create: 1, update_product: 1, update_variation: 0, invalid: 1 },
+        problems: [{ line: 4, sku: 'SW-BAD', outcome: 'invalid', reason: 'No store category has the slug "swtiches".' }],
+        created_at: '2026-09-20T10:00:00+05:30',
+      } });
     }
     if (p === '/admin/leads/export') {
       res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8' });
@@ -1092,23 +1572,215 @@ createServer(async (req, res) => {
        plain string would let it be got wrong here and only fail in production. */
     /* The AI SEO assistant.
      *
-     * Mocked as **switched off**, which is the state a fresh install ships in
-     * and the one a build has to keep working: the panel renders nothing, and
-     * every entity edit screen is exactly what it was before the feature
-     * existed. A mock that answered `enabled: true` would have CI auditing a
-     * panel no new install has, and — worse — would be describing a shape
-     * nobody has verified against the real thing.
-     *
-     * The action endpoint is deliberately absent rather than faked. There is
-     * no honest mock of a language model, and a canned suggestion would make a
-     * build pass while proving nothing about the part that can actually fail. */
-    if (p === '/admin/seo/ai/suggestions') {
-      return json(res, 200, { data: [], meta: {
-        enabled: false, configured: false, model: 'gpt-4o-mini',
-        models: [{ value: 'gpt-4o-mini', label: 'GPT-4o mini', description: 'Cheapest and quickest.' }],
-        actions: [],
-        today: { runs: 0, cap: 100, remaining: 100, reached: false },
+     * Mocked as **switched on** since 2026-09-21 (it was off, as a fresh
+     * install ships): the AEO tab's panel and its Apply path — draft
+     * blocks into the repeater, FAQ rows, the `[MISSING: …]` marker — are
+     * console code that has to be exercisable without a key, and a panel
+     * that renders nothing exercises none of it. The eight AEO/GEO actions
+     * answer canned results in their exact shapes (`SEO_AI_CANNED`, below
+     * the ai handlers); the seven SEO actions still answer 422, because a
+     * language model has no honest mock and a canned title would make a
+     * build pass while proving nothing about the part that can fail. */
+    /* The SEO overview and the store dashboard, in the shapes Laravel sends
+     * them — with Search Console and Google Analytics both **unconfigured**,
+     * which is a fresh install's state: `search` and `analytics` are null on
+     * every row, `meta.search`/`meta.analytics` say so, and the dashboard's
+     * `funnel.product_views`/`views_to_orders` are null rather than zero
+     * because nothing has been measured. A mock that answered figures would
+     * be describing an integration no build has connected. */
+    /* The single-record score the AEO/GEO panel and the overview's Recheck
+       read. `aeo`/`geo` carry `failed` here and only here; a record the
+       fixture has not scored answers without them, which the panel draws as
+       "Not scored yet". Matched by shape, and `ai` excluded, so
+       `/admin/seo/ai/...` cannot bind here. */
+    {
+      const m = p.match(/^\/admin\/seo\/([a-z_]+)\/(\d+)$/);
+      if (m && m[1] !== 'ai' && req.method === 'GET') {
+        const type = m[1]; const id = Number(m[2]);
+        const s = solutions.find((x) => x.id === id);
+        if (type !== 'solution' || !s) return json(res, 404, { message: 'Not found.' });
+        const aeo = readiness(AEO_SCORES, type, id, true);
+        const geo = readiness(GEO_SCORES, type, id, true);
+        return json(res, 200, { data: {
+          type, type_label: 'Solutions', id, name: s.title, slug: s.slug,
+          admin_path: `/admin/solutions/${id}`, url: `https://www.technoware.in/solutions/${s.slug}`,
+          public_path: `/solutions/${s.slug}`, title: `${s.title} | Technoware`, description: s.summary || null,
+          focus_keyword: null, has_override: false, overridden: [], sitemap_include: true, issues: [],
+          score: { value: 80, band: 'good', passed: 8, checked: 10, failed: [] },
+          ai_pending: 0, search: null, analytics: null,
+          ...(aeo ? { aeo } : {}), ...(geo ? { geo } : {}),
+        } });
+      }
+    }
+
+    /* The admin CMS indexes and details, from `ADMIN_CMS`. */
+    for (const entity of ADMIN_CMS) {
+      if (p === entity.base && req.method === 'GET') {
+        const q = (url.searchParams.get('q') || '').toLowerCase();
+        const rows = q ? entity.rows.filter((r) => (r.title || r.name || '').toLowerCase().includes(q)) : entity.rows;
+        const page = paginate(rows.map((r) => entity.detail(r)));
+        page.meta.answer_block_kinds = ANSWER_BLOCK_KINDS;
+        if (entity.base === '/admin/store/products') {
+          page.meta.types = [{ value: 'physical', label: 'Physical', description: 'Shipped.' }, { value: 'digital', label: 'Digital', description: 'A code.' }, { value: 'service', label: 'Service', description: 'Work.' }];
+          page.meta.statuses = [{ value: 'draft', label: 'Draft' }, { value: 'published', label: 'Published' }, { value: 'archived', label: 'Archived' }];
+          page.meta.conditions = [{ value: 'new', label: 'New' }, { value: 'refurbished', label: 'Refurbished' }, { value: 'used', label: 'Used' }];
+        }
+        return json(res, 200, page);
+      }
+      if (p === entity.base && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const row = entity.detail({ id: entity.rows.length + 100, title: body.title, name: body.name, slug: body.slug || 'new' });
+        return json(res, 201, { data: { ...row, ...body } });
+      }
+      const m = p.match(new RegExp(`^${entity.base.replace(/\//g, '\\/')}\\/(\\d+)$`));
+      if (m) {
+        const r = entity.rows.find((x) => x.id === Number(m[1]));
+        if (!r) return json(res, 404, { message: 'Not found.' });
+        if (req.method === 'DELETE') return json(res, 200, { message: 'Deleted.' });
+        if (req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          /* Echoed the way Laravel would store it: the blocks come back
+             numbered, with an id, in the order they were sent. */
+          const blocks = Array.isArray(body.answer_blocks)
+            ? body.answer_blocks.map((b, i) => ({ id: i + 1, question: null, detail: null, status: 'published', ...b, sort_order: i }))
+            : entity.detail(r).answer_blocks;
+          return json(res, 200, { data: { ...entity.detail(r), ...body, answer_blocks: blocks } });
+        }
+        return json(res, 200, { data: entity.detail(r) });
+      }
+    }
+
+    if (p === '/admin/seo' && req.method === 'GET') {
+      const score = { value: 80, band: 'good', passed: 8, checked: 10, failed: [] };
+      const rows = solutions.slice(0, 2).map((s) => ({
+        type: 'solution', type_label: 'Solutions', id: s.id, name: s.title, slug: s.slug,
+        admin_path: `/admin/solutions/${s.id}`, url: `https://www.technoware.in/solutions/${s.slug}`,
+        public_path: `/solutions/${s.slug}`, title: `${s.title} | Technoware`, description: s.summary || null,
+        focus_keyword: null, has_override: false, overridden: [], sitemap_include: true, issues: [], score,
+        ai_pending: 0, search: null, analytics: null,
+        /* `{value, band}` only on a row; the detail read carries `failed`. Absent on an unscored record. */
+        ...(readiness(AEO_SCORES, 'solution', s.id) ? { aeo: readiness(AEO_SCORES, 'solution', s.id) } : {}),
+        ...(readiness(GEO_SCORES, 'solution', s.id) ? { geo: readiness(GEO_SCORES, 'solution', s.id) } : {}),
+      }))
+        /* `?aeo=poor|fair` and `?geo=poor|fair` filter by band, the way Laravel does; `?sort=aeo|geo` orders by the value. */
+        .filter((r) => !url.searchParams.get('aeo') || r.aeo?.band === url.searchParams.get('aeo'))
+        .filter((r) => !url.searchParams.get('geo') || r.geo?.band === url.searchParams.get('geo'))
+        /* `?aeo_check=` / `?geo_check=`: the records failing one named check of that score — the site card's biggest wins. */
+        .filter((r) => !url.searchParams.get('aeo_check') || (AEO_SCORES[`solution:${r.id}`]?.failed ?? []).some((f) => f.key === url.searchParams.get('aeo_check')))
+        .filter((r) => !url.searchParams.get('geo_check') || (GEO_SCORES[`solution:${r.id}`]?.failed ?? []).some((f) => f.key === url.searchParams.get('geo_check')))
+        .sort((a, b) => {
+          const key = url.searchParams.get('sort');
+          if (key !== 'aeo' && key !== 'geo') return 0;
+          const d = (a[key]?.value ?? -1) - (b[key]?.value ?? -1);
+          return url.searchParams.get('dir') === 'desc' ? -d : d;
+        });
+      return json(res, 200, { data: rows, meta: {
+        total: rows.length, current_page: 1, last_page: 1, per_page: 50, with_issues: 0,
+        site_score: { value: 80, band: 'good', records: rows.length, distribution: { good: rows.length, fair: 0, poor: 0 }, top_issues: [], groups: {},
+          /* Each average carries its own biggest wins, ranked the way `top_issues` is, opened through `?aeo_check=` / `?geo_check=`. */
+          aeo: { value: 62, band: 'fair', top_issues: topIssues(AEO_SCORES), groups: { answer: 'Answers', structure: 'Structure', links: 'Links' } },
+          geo: { value: 48, band: 'poor', top_issues: topIssues(GEO_SCORES), groups: { entity: 'Entity', authority: 'Authority', content: 'Content' } } },
+        ai: { enabled: false, configured: false, model: 'gpt-4o-mini', models: [], actions: [], today: { runs: 0, cap: 100, remaining: 100, reached: false } },
+        search: { configured: false, days: 28, error: null },
+        analytics: { configured: false, days: 28, error: null },
+        types: [{ value: 'solution', label: 'Solutions' }],
       } });
+    }
+
+    // The promo band's own door: its eight rows and the two tiles' seven each, in the settings row shape.
+    if (p === '/admin/store/promo') {
+      const row = (key, value, type = 'string') => ({ key, value, type, is_secret: false, is_set: value !== null && value !== '', url: null, options: null });
+      const rows = [
+        row('store_promo_enabled', '0', 'boolean'), row('store_promo_kicker', null), row('store_promo_heading', null),
+        row('store_promo_price_text', null), row('store_promo_subheading', null, 'text'), row('store_promo_cta_label', 'Shop Now'),
+        row('store_promo_cta_href', '/store'), row('store_promo_image_path', null),
+        ...[1, 2].flatMap((n) => [
+          row(`store_tile_${n}_enabled`, '0', 'boolean'), row(`store_tile_${n}_kicker`, null), row(`store_tile_${n}_heading`, null),
+          row(`store_tile_${n}_text`, null, 'text'), row(`store_tile_${n}_cta_label`, 'Shop now'), row(`store_tile_${n}_cta_href`, '/store'),
+          row(`store_tile_${n}_image_path`, null),
+        ]),
+      ];
+      if (req.method === 'PATCH') return json(res, 200, { message: 'Promo banner saved.', data: rows });
+      return json(res, 200, { data: rows });
+    }
+
+    if (p === '/admin/store/dashboard' && req.method === 'GET') {
+      const days = [7, 30, 90].includes(Number(url.searchParams.get('days'))) ? Number(url.searchParams.get('days')) : 30;
+      const series = Array.from({ length: days }, (_, i) => {
+        const d = new Date(); d.setDate(d.getDate() - (days - 1 - i));
+        return { day: d.toISOString().slice(0, 10), revenue_paise: 0, orders: 0 };
+      });
+      return json(res, 200, { data: {
+        days, low_stock_threshold: 5,
+        orders: { total: 0, paid: 0, pending_payment: 0, cancelled: 0, period: 0, with_physical: 0, with_digital: 0 },
+        revenue: { total_paise: 0, period_paise: 0, gst_paise: 0, discount_paise: 0, refunded_paise: 0, average_paise: null, sample: 0 },
+        catalogue: { products: 0, published: 0, out_of_stock: 0 },
+        attention: { awaiting_payment: 0, awaiting_dispatch: 0, awaiting_codes: 0, refund_requested: 0, out_of_stock: 0, codes_exhausted: 0, failed_payments: 0 },
+        funnel: { product_views: null, paid_orders: 0, views_to_orders: null },
+        series, recent: [], low_stock: [], codes_low: [],
+      } });
+    }
+
+    if (p === '/admin/seo/ai/suggestions' && req.method === 'GET') {
+      return json(res, 200, { data: [], meta: SEO_AI_META });
+    }
+
+    /* A decision on a suggestion: echoed back decided, the way Laravel
+       answers, so Apply in the console completes against the mock. */
+    {
+      const m = p.match(/^\/admin\/seo\/ai\/suggestions\/(\d+)\/status$/);
+      if (m && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        return json(res, 200, { data: {
+          id: Number(m[1]), action: 'answer_blocks', action_label: 'Draft answer blocks', model: 'mock',
+          status: body.status, status_label: body.status === 'applied' ? 'Applied' : 'Rejected',
+          result: {}, tokens: 0, decided_by: 'Mock', decided_at: new Date().toISOString(), created_at: new Date().toISOString(),
+        } });
+      }
+    }
+
+    if (p === '/admin/seo/ai/context' && req.method === 'GET') {
+      const action = url.searchParams.get('action') || 'generate';
+      const context = [
+        'ABOUT THE BUSINESS', '', 'Name: Technoware', '', 'RULES YOU MUST FOLLOW', '- Never invent a fact.', '',
+        'THE PAGE', '', 'Type: solution',
+        ...(['answer_blocks', 'product_qa', 'improve_answer', 'faq_suggest'].includes(action)
+          ? ['Where a fact is needed and the material does not give it, write [MISSING: what is missing] in its place.'] : []),
+        '---WEBSITE COPY---', 'Name: Enterprise networking', '', 'Answer blocks already on the page:', '(none yet)', '',
+        'FAQs already on the page:', '(none yet)', '---WEBSITE COPY---',
+      ].join('\n');
+      return json(res, 200, { data: { action, context, characters: context.length, approximate_tokens: Math.ceil(context.length / 4) } });
+    }
+
+    /* The eight AEO/GEO actions (`docs/aeo-geo-contract.md` §6), answered
+       with a canned suggestion in each one's exact result shape, so the
+       console's AEO tab — the Apply that turns `blocks` into repeater rows,
+       the `[MISSING: …]` an editor is meant to see, the numbered
+       `entity_links` — can be exercised here. The seven SEO actions keep
+       the earlier decision: a language model has no honest mock, and those
+       answer 422 with the sentence below. `improve_answer` refuses without
+       a `block_id`, as the real API does. */
+    {
+      const m = p.match(/^\/admin\/seo\/ai\/([a-z_]+)$/);
+      if (m && req.method === 'POST' && !['bulk', 'test-model', 'suggestions', 'context'].includes(m[1])) {
+        const action = m[1];
+        const body = await readJsonBody(req);
+        const canned = SEO_AI_CANNED[action];
+        if (!SEO_AI_META.actions.some((a) => a.value === action)) return json(res, 404, { message: 'No such AI action.' });
+        if (!canned) {
+          const message = 'The mock API does not fake a language model for this action. Run it against the real API.';
+          return json(res, 422, { message, errors: { ai: [message] } });
+        }
+        if (action === 'improve_answer' && !body.block_id) {
+          const message = 'Choose which answer block to improve.';
+          return json(res, 422, { message, errors: { block_id: [message] } });
+        }
+        return json(res, 201, { data: {
+          id: Date.now() % 100000, action, action_label: SEO_AI_META.actions.find((a) => a.value === action).label,
+          model: 'mock', status: 'pending', status_label: 'Pending', result: canned, tokens: 0,
+          asked_by: 'Mock', decided_by: null, decided_at: null, created_at: new Date().toISOString(),
+        } });
+      }
     }
 
     if (p === '/admin/settings' && req.method === 'GET') {
@@ -1261,6 +1933,98 @@ createServer(async (req, res) => {
       return json(res, 422, { message: 'No transport is configured, so there was nothing to send through.', transport: 'SMTP server' });
     }
 
+    /* Resending a sent campaign to its non-openers: a new campaign, already
+       sending, pointing home through `resend_of`. The one refusal the screen
+       has to draw is the second press. */
+    {
+      const m = p.match(/^\/admin\/newsletter\/campaigns\/(\d+)\/resend$/);
+      if (m && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        if (Number(m[1]) === 12) return json(res, 422, { message: 'This campaign has already been resent once.' });
+        return json(res, 201, { data: {
+          id: 12, name: 'September news — resend', subject: body.subject ?? 'In case you missed it', subject_b: null,
+          ab_test_percent: null, ab_wait_hours: null, preheader: null, from_name: 'Technoware', from_email: 'news@example.test',
+          reply_to: null, status: 'sending', status_label: 'Sending', is_editable: false, template_id: null, blocks: [],
+          recipient_count: 4, health_score: 91, scheduled_at: null, started_at: '2026-09-20T09:00:00+05:30',
+          completed_at: null, test_sent_at: null, created_at: '2026-09-20T09:00:00+05:30',
+          resend: null, resend_of: { id: Number(m[1]), name: 'September news' }, group_ids: [1], groups: [{ id: 1, name: 'Everyone' }],
+        } });
+      }
+    }
+
+    /* Automation sequences: one fixture with two steps, one active enrolment,
+       and a report, so every panel of the sequence screen renders in CI. The
+       write endpoints answer from the fixture rather than mutating it — the
+       mock is a contract, and a stateful one answers differently on the
+       second run. */
+    if (p.startsWith('/admin/newsletter/sequences')) {
+      const steps = [
+        { id: 31, position: 1, subject: 'Welcome to Technoware', name: 'Welcome series — step 1', delay_days: 0, health_score: 88, sent_count: 42, updated_at: '2026-09-18T09:00:00+05:30' },
+        { id: 32, position: 2, subject: 'Three things to set up first', name: 'Welcome series — step 2', delay_days: 3, health_score: 84, sent_count: 30, updated_at: '2026-09-18T09:00:00+05:30' },
+      ];
+      const counts = { active: 12, completed: 30, cancelled: 2 };
+      const sequence = {
+        id: 1, name: 'Welcome series', status: 'active', status_label: 'Active', newsletter_group_id: 1,
+        group: { id: 1, name: 'Everyone' }, from_name: 'Technoware', from_email: 'news@example.test', reply_to: null,
+        author: staff.name, created_at: '2026-09-18T09:00:00+05:30', updated_at: '2026-09-18T09:00:00+05:30',
+        steps, enrolments: counts,
+      };
+      const statuses = [{ value: 'active', label: 'Active' }, { value: 'paused', label: 'Paused' }];
+
+      if (p === '/admin/newsletter/sequences' && req.method === 'GET') {
+        return json(res, 200, { data: [{ ...sequence, steps: undefined, enrolments: undefined, steps_count: 2, active_enrolments: 12 }], meta: { statuses } });
+      }
+      if (p === '/admin/newsletter/sequences' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        return json(res, 201, { data: { ...sequence, id: 2, name: body.name ?? 'New sequence', status: 'paused', status_label: 'Paused', steps: [], enrolments: { active: 0, completed: 0, cancelled: 0 } } });
+      }
+      if (/^\/admin\/newsletter\/sequences\/\d+\/report$/.test(p)) {
+        return json(res, 200, { data: {
+          sequence: { id: 1, name: sequence.name, status: 'active' },
+          steps: [
+            { id: 31, position: 1, subject: steps[0].subject, delay_days: 0, sent: 42, opened: 20, clicked: 6 },
+            { id: 32, position: 2, subject: steps[1].subject, delay_days: 3, sent: 30, opened: 11, clicked: 2 },
+          ],
+          enrolments: counts,
+        } });
+      }
+      if (/^\/admin\/newsletter\/sequences\/\d+\/enrolments$/.test(p) && req.method === 'GET') {
+        const rows = [
+          { id: 501, subscriber: { id: 7, email: 'priya@meridian.example', name: 'Priya Nair', status: 'active' }, status: 'active', status_label: 'Active',
+            next_position: 2, next_at: '2026-09-23T09:00:00+05:30', enrolled_at: '2026-09-20T09:00:00+05:30', completed_at: null, cancelled_reason: null },
+          { id: 500, subscriber: { id: 6, email: 'arjun@meridian.example', name: 'Arjun Rao', status: 'unsubscribed' }, status: 'cancelled', status_label: 'Cancelled',
+            next_position: 2, next_at: null, enrolled_at: '2026-09-10T09:00:00+05:30', completed_at: null, cancelled_reason: 'The subscriber is Unsubscribed.' },
+        ];
+        const status = url.searchParams.get('status');
+        const shown = status ? rows.filter((r) => r.status === status) : rows;
+        return json(res, 200, {
+          data: shown,
+          meta: { current_page: 1, last_page: 1, per_page: 25, total: shown.length,
+            statuses: [{ value: 'active', label: 'Active' }, { value: 'completed', label: 'Completed' }, { value: 'cancelled', label: 'Cancelled' }] },
+          links: {},
+        });
+      }
+      if (/^\/admin\/newsletter\/sequences\/\d+\/enrolments\/\d+\/cancel$/.test(p)) {
+        return json(res, 200, { data: { id: 501, subscriber: { id: 7, email: 'priya@meridian.example', name: 'Priya Nair', status: 'active' },
+          status: 'cancelled', status_label: 'Cancelled', next_position: 2, next_at: null, enrolled_at: '2026-09-20T09:00:00+05:30', completed_at: null, cancelled_reason: 'Cancelled by staff.' } });
+      }
+      if (/^\/admin\/newsletter\/sequences\/\d+\/enrol$/.test(p)) {
+        return json(res, 200, { data: { enrolled: 3, already_enrolled: 1, not_active: 0, suppressed: 1, no_steps: 0, unknown: 0 } });
+      }
+      if (/^\/admin\/newsletter\/sequences\/\d+\/steps(\/reorder|\/\d+)?$/.test(p)) {
+        if (req.method === 'DELETE') { res.writeHead(204); return res.end(); }
+        return json(res, req.method === 'POST' ? 201 : 200, { data: sequence });
+      }
+      if (/^\/admin\/newsletter\/sequences\/\d+$/.test(p)) {
+        if (req.method === 'DELETE') return json(res, 422, { message: '12 people are still enrolled in this sequence. Pause it or cancel their enrolments before deleting it.' });
+        if (req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          return json(res, 200, { data: { ...sequence, ...body, status_label: body.status === 'paused' ? 'Paused' : 'Active' } });
+        }
+        return json(res, 200, { data: sequence });
+      }
+    }
+
     /* The activity log. Read-only in the real API too -- there is no store,
        update or destroy, and a mock that offered one would have the console
        built against a write path that does not exist. */
@@ -1308,6 +2072,52 @@ createServer(async (req, res) => {
       } });
     }
 
+    /*
+     * Outgoing webhooks. Answered from the fixture rather than mutated, the
+     * rule the customers block below keeps — except that the secret rides on
+     * the 201 and on a rotate and on nothing else, which is the contract.
+     */
+    if (p === '/admin/webhooks') {
+      if (req.method === 'POST') {
+        const body = await readJsonBody(req);
+        return json(res, 201, { data: {
+          ...webhooks[0], id: 3, name: body.name || 'New webhook', url: body.url || webhooks[0].url,
+          events: body.events || [], event_labels: (body.events || []).map((e) => (webhookEvents.find((o) => o.value === e) || { label: e }).label),
+          deliveries_count: 0, last_delivered_at: null, last_error: null, secret: 'whsec_mock000000000000000000000000000000000000',
+        } });
+      }
+      return json(res, 200, {
+        ...paginate(webhooks),
+        meta: { current_page: 1, last_page: 1, per_page: 40, total: webhooks.length, events: webhookEvents },
+      });
+    }
+    {
+      const m = p.match(/^\/admin\/webhooks\/(\d+)(\/ping|\/deliveries(\/(\d+)(\/redeliver)?)?)?$/);
+      if (m) {
+        const hook = webhooks.find((h) => h.id === Number(m[1]));
+        if (!hook) return json(res, 404, { message: 'Not found.' });
+        if (m[2] === '/ping') return json(res, 202, { data: { delivery_id: 99 } });
+        if (m[2] && m[2].startsWith('/deliveries')) {
+          const rows = webhookDeliveries.filter((d) => d.webhook_id === hook.id);
+          if (m[4]) {
+            const row = rows.find((d) => d.id === Number(m[4]));
+            if (!row) return json(res, 404, { message: 'Not found.' });
+            if (m[5]) return json(res, 202, { data: { ...row, id: 99, status: 'pending', attempts: 0, response_status: null, response_excerpt: null, delivered_at: null } });
+            return json(res, 200, { data: { ...row, payload: { reference: 'TW-2026-00007', subject: 'Wi-Fi drops in the warehouse', status: 'open' } } });
+          }
+          const status = url.searchParams.get('status');
+          const shown = status ? rows.filter((d) => d.status === status) : rows;
+          return json(res, 200, { ...paginate(shown), meta: { current_page: 1, last_page: 1, per_page: 25, total: shown.length, statuses: ['pending', 'delivered', 'failed'] } });
+        }
+        if (req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          return json(res, 200, { data: { ...hook, ...(body.name ? { name: body.name } : {}), ...(body.rotate_secret ? { secret: 'whsec_mock111111111111111111111111111111111111', last_error: null } : {}) } });
+        }
+        if (req.method === 'DELETE') return json(res, 200, { message: 'Webhook deleted.' });
+        return json(res, 200, { data: hook });
+      }
+    }
+
     if (p === '/admin/activity') {
       const rows = [
         { id: 3, action: 'login', actor: { id: 1, name: staff.name, email: staff.email, exists: true },
@@ -1342,7 +2152,7 @@ createServer(async (req, res) => {
       });
     }
     {
-      const m = p.match(/^\/admin\/customers\/(\d+)(\/(approve|reject|status|resend-verification))?$/);
+      const m = p.match(/^\/admin\/customers\/(\d+)(\/(approve|reject|status|resend-verification|impersonate))?$/);
       if (m) {
         const row = adminCustomers.find((c) => c.id === Number(m[1]));
         if (!row) return json(res, 404, { message: 'Not found.' });
@@ -1359,6 +2169,12 @@ createServer(async (req, res) => {
           return json(res, 200, { data: { ...row, status: body.status, status_label: body.status === 'active' ? 'Active' : 'Suspended' } });
         }
         if (m[3] === 'resend-verification') return json(res, 200, { data: row });
+        if (m[3] === 'impersonate') {
+          if (row.status !== 'active') {
+            return json(res, 422, { message: `Only an active account can be viewed as. This one is ${row.status}.` });
+          }
+          return json(res, 200, { token: IMPERSONATION_TOKEN, customer, expires_at: new Date(Date.now() + 3600e3).toISOString() });
+        }
         return json(res, 200, { data: row });
       }
     }
@@ -1384,6 +2200,54 @@ createServer(async (req, res) => {
         data: rows, links: { first: null, last: null, prev: null, next: null },
         meta: { current_page: 1, last_page: 1, per_page: 25, total: rows.length },
       });
+    }
+
+    // ---- saved replies ----
+    if (p === '/admin/canned-replies' && req.method === 'GET') {
+      const q = (url.searchParams.get('q') || '').toLowerCase();
+      const rows = q ? cannedReplies.filter((r) => (r.title + ' ' + r.body).toLowerCase().includes(q)) : cannedReplies;
+      return json(res, 200, {
+        data: rows, links: { first: null, last: null, prev: null, next: null },
+        meta: { current_page: 1, last_page: 1, per_page: 50, total: rows.length, placeholders: CANNED_PLACEHOLDERS },
+      });
+    }
+    if (p === '/admin/canned-replies' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      if (!body.title || !body.body) {
+        return json(res, 422, { message: 'Check the highlighted fields.', errors: {
+          ...(body.title ? {} : { title: ['Give the reply a title — it is what the picker lists.'] }),
+          ...(body.body ? {} : { body: ['Write the reply.'] }),
+        } });
+      }
+      const row = { id: cannedReplies.length + 1, title: body.title, body: body.body, sort_order: Number(body.sort_order) || 0,
+        created_by: { id: staff.id, name: staff.name }, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      cannedReplies.push(row);
+      return json(res, 201, { data: row });
+    }
+    {
+      const m = p.match(/^\/admin\/canned-replies\/(\d+)$/);
+      if (m) {
+        const row = cannedReplies.find((r) => r.id === Number(m[1]));
+        if (!row) return json(res, 404, { message: 'Not found.' });
+        if (req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          Object.assign(row, body, { updated_at: new Date().toISOString() });
+          return json(res, 200, { data: row });
+        }
+        if (req.method === 'DELETE') {
+          cannedReplies.splice(cannedReplies.indexOf(row), 1);
+          return json(res, 200, { message: 'Saved reply deleted.' });
+        }
+        return json(res, 200, { data: row });
+      }
+    }
+    {
+      const m = p.match(/^\/admin\/tickets\/([\w-]+)\/canned-replies$/);
+      if (m && req.method === 'GET') {
+        const t = tickets.find((x) => x.reference === m[1]);
+        if (!t) return json(res, 404, { message: 'Not found.' });
+        return json(res, 200, { data: cannedReplies.map((r) => ({ ...r, body: fillCannedReply(r.body, t) })) });
+      }
     }
 
     const am = p.match(/^\/admin\/tickets\/([\w-]+)$/);
@@ -1414,6 +2278,29 @@ createServer(async (req, res) => {
       return json(res, 200, { data: { ...t, customer, messages: messages[t.reference] || [] } });
     }
 
+    // Merge: the same refusals as Laravel's, as 422s on `into`, and the
+    // target back on success. Answered from the fixture rather than mutated
+    // for the moved rows; the source is marked so its read shows the alert.
+    const mg = p.match(/^\/admin\/tickets\/([\w-]+)\/merge$/);
+    if (mg && req.method === 'POST') {
+      const source = tickets.find((x) => x.reference === mg[1]);
+      if (!source) return json(res, 404, { message: 'Not found.' });
+      const body = await readJsonBody(req);
+      const into = String(body.into || '').trim().toUpperCase();
+      const refuse = (why) => json(res, 422, { message: why, errors: { into: [why] } });
+      const target = tickets.find((x) => x.reference === into);
+      if (!target) return refuse(`There is no ticket ${into}.`);
+      if (target === source) return refuse('A ticket cannot be merged into itself.');
+      if (source.merged_into) return refuse(`${source.reference} has already been merged into ${source.merged_into}.`);
+      if (!['open', 'assigned', 'in_progress', 'pending_customer'].includes(target.status)) {
+        return refuse(`${target.reference} is ${STATUS_LABELS[target.status]}. Merge into a ticket that is still open, or reopen that one first.`);
+      }
+      (messages[target.reference] ||= []).push(...(messages[source.reference] || []));
+      messages[source.reference] = [];
+      Object.assign(source, { merged_into: target.reference, status: 'closed', status_label: 'Closed', allowed_transitions: [] });
+      return json(res, 200, { data: { ...target, customer, messages: messages[target.reference] } });
+    }
+
     const rm = p.match(/^\/admin\/tickets\/([\w-]+)\/reply$/);
     if (rm && req.method === 'POST') {
       const t = tickets.find((x) => x.reference === rm[1]);
@@ -1426,11 +2313,14 @@ createServer(async (req, res) => {
       for await (const chunk of req) body += chunk;
       const bodyMatch = body.match(/name="body"\r?\n\r?\n([\s\S]*?)\r?\n--/);
       const internalMatch = body.match(/name="is_internal"\r?\n\r?\n([\s\S]*?)\r?\n--/);
+      const sensitiveMatch = body.match(/name="is_sensitive"\r?\n\r?\n([\s\S]*?)\r?\n--/);
 
       const message = {
         id: Date.now(),
         body: bodyMatch ? bodyMatch[1].trim() : '',
         is_internal: Boolean(internalMatch && internalMatch[1].trim() === '1'),
+        /* Laravel stores a sensitive body encrypted and answers the plain text; the mock has nothing to seal. */
+        is_sensitive: Boolean(sensitiveMatch && sensitiveMatch[1].trim() === '1'),
         author: { id: staff.id, name: staff.name, type: 'staff' },
         attachments: [],
         created_at: new Date().toISOString(),
@@ -1464,24 +2354,41 @@ createServer(async (req, res) => {
   }
 
   if (p === '/solutions') return json(res, 200, { data: menuOnly(solutions) });
-  if (p === '/solutions/networking') return json(res, 200, { data: solutionDetail });
+  /*
+   * Every public detail read below carries `answer_blocks`, `faqs`, `entity`
+   * and — with two or more questions — `faq_schema` (`docs/aeo-geo-contract.md`
+   * §1, §2, §4; `answerContent()` above). The first solution, the store's
+   * first product and the first knowledge article carry a full set of block
+   * kinds; the rest answer empty lists and an entity block of whatever the
+   * fixture links, so a page with nothing to draw renders nothing.
+   */
+  if (p === '/solutions/networking') {
+    return json(res, 200, { data: { ...solutionDetail, ...answerContent(SOLUTION_ANSWER_BLOCKS, solutionDetail.faqs, {
+      solutions: [], services: services.slice(0, 2).map((s) => ({ name: s.title, path: `/services/${s.slug}` })),
+      industries: solutionDetail.industries.map((i) => ({ name: i.name, path: `/industries/${i.slug}` })),
+      articles: [{ name: kbArticles[1].title, path: `/knowledge-base/${kbArticles[1].slug}` }, { name: posts[0].title, path: `/blog/${posts[0].slug}` }],
+      faq_count: solutionDetail.faqs.length,
+    }) } });
+  }
   if (p.startsWith('/solutions/')) {
     const s2 = solutions.find(x => x.slug === p.split('/')[2]);
     return s2
-      ? json(res, 200, { data: { ...s2, faqs: [], seo: null, schema: serviceSchema(s2, '/solutions/') } })
+      ? json(res, 200, { data: { ...s2, seo: null, schema: serviceSchema(s2, '/solutions/'), ...answerContent([], [], {}) } })
       : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/services') return json(res, 200, { data: menuOnly(services) });
   if (p.startsWith('/services/')) {
     const s2 = services.find(x => x.slug === p.split('/')[2]);
     return s2
-      ? json(res, 200, { data: { ...s2, body: '<p>Managed properly, with the migration handled out of hours.</p>', faqs: [], seo: null, schema: serviceSchema(s2, '/services/') } })
+      ? json(res, 200, { data: { ...s2, body: '<p>Managed properly, with the migration handled out of hours.</p>', seo: null, schema: serviceSchema(s2, '/services/'),
+          ...answerContent([], [], { solutions: [{ name: solutions[0].title, path: `/solutions/${solutions[0].slug}` }] }) } })
       : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/industries') return json(res, 200, { data: menuOnly(industries) });
   if (p.startsWith('/industries/')) {
     const i2 = industries.find(x => x.slug === p.split('/')[2]);
-    return i2 ? json(res, 200, { data: { ...i2, body: '<p>Sector-specific notes.</p>', solutions, seo: null } })
+    return i2 ? json(res, 200, { data: { ...i2, body: '<p>Sector-specific notes.</p>', solutions, seo: null,
+          ...answerContent([], [], { solutions: solutions.map((s) => ({ name: s.title, path: `/solutions/${s.slug}` })) }) } })
               : json(res, 404, { message: 'Not found.' });
   }
   // `?partners=1` lists the brands with a tier, products or none.
@@ -1536,7 +2443,8 @@ createServer(async (req, res) => {
   if (p.startsWith('/product-categories/')) {
     const c2 = productCategories.find(x => x.slug === p.split('/')[2]);
     // Detail carries the solutions this category's hardware is deployed in.
-    return c2 ? json(res, 200, { data: { ...c2, related_solutions: solutions.slice(0, 2) } })
+    return c2 ? json(res, 200, { data: { ...c2, related_solutions: solutions.slice(0, 2),
+          ...answerContent([], [], { solutions: solutions.slice(0, 2).map((s) => ({ name: s.title, path: `/solutions/${s.slug}` })) }) } })
               : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/products') {
@@ -1559,7 +2467,12 @@ createServer(async (req, res) => {
     // `schema` on the detail response only, the same rule the API follows: an
     // index of twenty products has no use for twenty graphs.
     return pr
-      ? json(res, 200, { data: { ...pr, schema: productSchema(pr) } })
+      ? json(res, 200, { data: { ...pr, schema: productSchema(pr), ...answerContent([], pr.faqs || [], {
+          brand: pr.brand ? { name: pr.brand.name, path: `/products?brand=${pr.brand.slug}` } : null,
+          category: pr.category ? { name: pr.category.name, path: `/products/${pr.category.slug}` } : null,
+          solutions: (pr.related_solutions || []).map((s) => ({ name: s.title, path: `/solutions/${s.slug}` })),
+          faq_count: (pr.faqs || []).length,
+        }) } })
       : json(res, 404, { message: 'Not found.' });
   }
   /* Checkout and orders.
@@ -1601,6 +2514,7 @@ createServer(async (req, res) => {
       customer_name: body?.name ?? 'Someone',
       customer_email: body?.email ?? 'someone@example.test',
       customer_phone: body?.phone ?? null,
+      customer_note: body?.customer_note ?? null,
       billing_address: body?.address ?? null,
       shipping_address: shipped ? (body?.address ?? null) : null,
       gst_required: Boolean(body?.gst_required),
@@ -1677,15 +2591,43 @@ createServer(async (req, res) => {
       meta: { current_page: 1, last_page: 1, per_page: 200, total: rows.length, problems: [], skipped: {} },
     });
   }
+  /*
+   * "Email me when this is back." 202 and one sentence whatever was sent —
+   * a suppressed address, a filled honeypot and a shelf that is not empty
+   * all answer the same, so a form cannot be used to tell them apart. The
+   * cancel link's endpoint answers 200 to any token, used or not.
+   */
+  if (/^\/store\/products\/[^/]+\/notify$/.test(p) && req.method === 'POST') {
+    return json(res, 202, { message: 'Thank you. If it comes back into stock, we will email you once.' });
+  }
+  if (/^\/store\/stock-notices\/[^/]+\/cancel$/.test(p)) {
+    return json(res, 200, { message: 'Done. We will not email you about that product.' });
+  }
   if (p.startsWith('/store/products/')) {
     const sp = storeProducts.find(x => x.slug === p.split('/')[3]);
     // `schema` on the detail read only, gated on `withSchema()` in Laravel.
-    return sp ? json(res, 200, { data: { ...sp, condition: 'new', schema: storeProductSchema(sp) } }) : json(res, 404, { message: 'Not found.' });
+    // The first product carries the §3 fields and a full block set; the
+    // FAQ here is the one the marketing catalogue's twin already has.
+    if (!sp) return json(res, 404, { message: 'Not found.' });
+    const first = sp.id === 1;
+    const spFaqs = first ? [{ id: 31, question: 'Can it be rack-mounted?', answer: 'Yes — one rack unit, and the brackets are in the box.' }] : [];
+    return json(res, 200, { data: { ...sp, condition: 'new', schema: storeProductSchema(sp),
+      warranty: first ? 'Limited lifetime warranty' : null,
+      applications: first ? 'Wiring closets feeding up to two dozen desks, printers and access points.\nBranch offices uplinked to a central core over SFP.' : null,
+      services: first ? [{ id: 2, title: services[1].title, slug: services[1].slug }] : [],
+      ...answerContent(first ? STORE_PRODUCT_ANSWER_BLOCKS : [], spFaqs, {
+        brand: sp.brand ? { name: sp.brand.name, path: `/store?brand=${sp.brand.slug}` } : null,
+        category: sp.category ? { name: sp.category.name, path: `/store/categories/${sp.category.slug}` } : null,
+        services: first ? [{ name: services[1].title, path: `/services/${services[1].slug}` }] : [],
+        solutions: first ? [{ name: solutions[0].title, path: `/solutions/${solutions[0].slug}` }] : [],
+        faq_count: spFaqs.length,
+      }) } });
   }
   if (p === '/store/categories') return json(res, 200, { data: storeCategories });
   if (p.startsWith('/store/categories/')) {
     const sc = storeCategories.find(x => x.slug === p.split('/')[3]);
-    return sc ? json(res, 200, { data: sc }) : json(res, 404, { message: 'Not found.' });
+    return sc ? json(res, 200, { data: { ...sc, ...answerContent([], [], { solutions: [{ name: solutions[0].title, path: `/solutions/${solutions[0].slug}` }] }) } })
+              : json(res, 404, { message: 'Not found.' });
   }
 
   if (p === '/cart' || p.startsWith('/cart/')) {
@@ -1804,7 +2746,8 @@ createServer(async (req, res) => {
       b2.previous = pick(byDate[i - 1]); b2.next = pick(byDate[i + 1]);
     }
     return b2
-      ? json(res, 200, { data: { ...b2, schema: articleSchema(b2, 'Article', '/blog/') } })
+      ? json(res, 200, { data: { ...b2, schema: articleSchema(b2, 'Article', '/blog/'),
+          ...answerContent([], [], b2.id === 1 ? { solutions: [{ name: solutions[2].title, path: `/solutions/${solutions[2].slug}` }] } : {}) } })
       : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/search') {
@@ -1853,13 +2796,18 @@ createServer(async (req, res) => {
   }
   if (p.startsWith('/pages/')) {
     const pg = cmsPages.find(x => x.slug === p.split('/')[2]);
-    return pg ? json(res, 200, { data: pg }) : json(res, 404, { message: 'Not found.' });
+    return pg ? json(res, 200, { data: { ...pg, ...answerContent([], pg.faqs || [], { faq_count: (pg.faqs || []).length }) } })
+              : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/case-studies') return json(res, 200, { data: caseStudies });
   if (p.startsWith('/case-studies/')) {
     const c3 = caseStudies.find(x => x.slug === p.split('/')[2]);
+    // A case study carries `entity` (and the gate's `faq_schema`) and no
+    // blocks or FAQs of its own — the API's shape exactly.
     return c3
-      ? json(res, 200, { data: { ...c3, schema: articleSchema(c3, 'Article', '/case-studies/') } })
+      ? json(res, 200, { data: { ...c3, schema: articleSchema(c3, 'Article', '/case-studies/'),
+          entity: entityOf({ industries: c3.industry ? [{ name: c3.industry.name, path: `/industries/${c3.industry.slug}` }] : [],
+            solutions: [{ name: solutions[0].title, path: `/solutions/${solutions[0].slug}` }] }) } })
       : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/knowledge-base') {
@@ -1882,7 +2830,9 @@ createServer(async (req, res) => {
   if (p.startsWith('/knowledge-base/')) {
     const k2 = kbArticles.find(x => x.slug === p.split('/')[2]);
     return k2
-      ? json(res, 200, { data: { ...k2, schema: articleSchema(k2, 'TechArticle', '/knowledge-base/') } })
+      ? json(res, 200, { data: { ...k2, schema: articleSchema(k2, 'TechArticle', '/knowledge-base/'),
+          ...answerContent(k2.id === 1 ? KB_ANSWER_BLOCKS : [], [],
+            k2.id === 1 ? { services: [{ name: services[2].title, path: `/services/${services[2].slug}` }] } : {}) } })
       : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/enquiries' && req.method === 'POST') return json(res, 201, { message: 'Thanks', data: { id: 1 } });
@@ -1901,7 +2851,7 @@ createServer(async (req, res) => {
 
   if (!auth) return json(res, 401, { message: 'Unauthenticated.' });
 
-  if (p === '/auth/me') return json(res, 200, { data: customer });
+  if (p === '/auth/me') return json(res, 200, { data: customer, meta: { impersonated: bearer === IMPERSONATION_TOKEN } });
   if (p === '/auth/profile' && req.method === 'PATCH') return json(res, 200, { data: customer });
   if (p === '/tickets/summary') return json(res, 200, { data: { open: 1, in_progress: 1, pending: 1, resolved: 1, closed: 1 } });
 

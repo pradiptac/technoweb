@@ -234,3 +234,17 @@
 /* The shop's furniture: square, like everything else here. */
 [data-theme="terminal"] [data-store-disc] { border-radius: 0; }
 [data-theme="terminal"] [data-store-filter] form { box-shadow: none; }
+
+/*
+  The resources hub's colour (2026-09-21). Every tile on `/resources` carries a
+  `--tile-hue` — the four routes by position, a post by its category, a guide
+  by its category, a project by its industry — and this is how Terminal shows
+  it. Grounds and edges only, never a text colour: the neon set is graded for
+  a glyph at 3:1, not for words, and `npm run audit` grades the words against
+  whatever opaque ground is under them.
+*/
+[data-theme="terminal"] [data-collection="routes"] [data-tile] [data-tile-head]::before {
+  content: "\25A0";
+  margin-right: 8px;
+  color: var(--tile-hue, var(--color-brand-ink));
+}

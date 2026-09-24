@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin\Store;
 
 use App\Http\Resources\Admin\SeoOverrideArray;
+use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Models\StoreProduct;
 use App\Support\Store\ActivationProcedure;
 use App\Support\Store\ProductFeed;
@@ -23,6 +24,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin StoreProduct */
 class ProductResource extends JsonResource
 {
+    use IncludesAnswerContent;
+
     public function toArray(Request $request): array
     {
         $detail = $request->routeIs('*.show', '*.store', '*.update');
@@ -99,6 +102,16 @@ class ProductResource extends JsonResource
             'stock_on_hand' => $this->stockOnHand(),
             'allow_oversell' => (bool) $this->allow_oversell,
             'in_stock' => $this->inStock(),
+            /*
+             * How many people asked to be told when this is back and have
+             * not been. A `withCount` on every read, so a listing of twenty
+             * is one query and not twenty-one; absent rather than zero when
+             * a caller did not count, because zero would be a claim.
+             */
+            'notices_waiting' => $this->when(
+                $this->resource->getAttribute('notices_waiting') !== null,
+                fn () => (int) $this->resource->getAttribute('notices_waiting'),
+            ),
             'returnable' => (bool) $this->returnable,
 
             'status' => $this->status->value,
@@ -111,6 +124,15 @@ class ProductResource extends JsonResource
             // and neither should have to guard for a missing value.
             'specifications' => (object) ($this->specifications ?? []),
             'features' => $this->features ?? [],
+            // Two buyer's questions the row could not answer until 2026-09-21.
+            'warranty' => $this->warranty,
+            'applications' => $this->when($detail, $this->applications),
+            // The services that install or support it — ids for the form,
+            // names beside them so the chips need no second fetch.
+            'service_ids' => $this->whenLoaded('services', fn () => $this->services->pluck('id')->values()),
+            'services' => $this->whenLoaded('services', fn () => $this->services->map(fn ($s) => [
+                'id' => $s->id, 'title' => $s->title, 'slug' => $s->slug,
+            ])->values()),
             'images' => $this->images ?? [],
             // Resolved for previewing; `images` stays the storable form.
             'image_urls' => collect($this->images ?? [])->map(fn ($p) => asset('storage/'.$p))->all(),
@@ -130,6 +152,9 @@ class ProductResource extends JsonResource
                 'is_active' => (bool) $v->is_active,
             ])),
 
+            'faqs' => $this->adminFaqs(),
+            // Every block, drafts included, for the AEO tab's repeater.
+            'answer_blocks' => $this->adminAnswerBlocks(),
             'seo' => $this->when($detail, fn () => SeoOverrideArray::from($this->seo)),
             'seo_defaults' => $this->when($detail, fn () => $this->resolvedSeo()),
             'created_at' => $this->created_at?->toIso8601String(),

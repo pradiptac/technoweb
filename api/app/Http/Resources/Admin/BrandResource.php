@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Models\Brand;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -14,6 +15,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Brand */
 class BrandResource extends JsonResource
 {
+    use IncludesAnswerContent;
+
     public function toArray(Request $request): array
     {
         return [
@@ -32,6 +35,9 @@ class BrandResource extends JsonResource
             'is_featured' => (bool) $this->is_featured,
             'partner_tier' => $this->partner_tier,
             'product_count' => $this->whenCounted('products'),
+            'faqs' => $this->adminFaqs(),
+            // Every block, drafts included, for the AEO tab's repeater.
+            'answer_blocks' => $this->adminAnswerBlocks(),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

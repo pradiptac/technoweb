@@ -82,20 +82,49 @@ export function SlideCaption({ slide, animation = "none" }: { slide: Slide; anim
 
   return (
     /*
-      `px-14` on a phone, not `p-5`: the previous/next buttons are 44px inset
-      8px from each edge, so a caption padded to 20px ran underneath them — the
-      arrow sat on top of the words and clipped the line behind it. Above `sm`
-      there is room for both and the padding goes back to being about the
-      picture's own margins.
+      The phone gutter is about the arrows, and only the middle row has to
+      clear them (2026-09-23).
+
+      The previous/next buttons are 40px inset 8px from each edge and sit at
+      **half height**, so they cross a middle-row caption and nothing else. A
+      flat `px-14` — 56px each side, applied to all nine anchors — spent 112px
+      of a 390px screen on every slide to avoid a collision six of them cannot
+      have: measured at 390px, the text column came out 198px wide, which wraps
+      a heading after two words, clamps the summary mid-sentence and breaks
+      "Shop the store" across three lines. That is the "meshed" caption the
+      client reported.
+
+      `px-12` is 48px, which is exactly where the arrows end, so the middle row
+      still clears them and gets 16px back on each side. Every other anchor
+      takes an ordinary `px-4`. Above `sm` there is room for both and the
+      padding goes back to being about the picture's own margins.
     */
-    <div className={cn("absolute inset-0 flex px-14 py-5 sm:p-8", ANCHOR[position], SCRIM[position])}>
+    <div
+      className={cn(
+        "absolute inset-0 flex py-5 sm:p-8",
+        middle ? "px-12" : "px-4",
+        ANCHOR[position],
+        SCRIM[position],
+      )}
+    >
       <div
         className={cn(
-          "max-w-[46ch]",
+          /*
+            Full width on a phone and shrink-to-fit above it.
+
+            A caption box that sizes to its text is right on a wide picture,
+            where a 46ch measure is a column inside a scene. On a phone there is
+            no scene left to sit inside: the box is most of the slide either
+            way, and letting it shrink only buys narrower lines. Full width
+            takes the text column from 198px to 262px at 390px — the alignment
+            classes still decide which edge the words sit against, because
+            `text-*` is what actually reads.
+          */
+          "w-full sm:w-auto sm:max-w-[46ch]",
           // The panel the middle row needs, and nothing at all for the rows
           // that fade from an edge — a panel there would sit inside its own
           // gradient and read as a box drawn on the picture for no reason.
-          middle && "rounded-lg bg-scrim p-5 sm:p-6",
+          middle && "rounded-lg bg-scrim p-4 sm:p-6",
         )}
       >
         {slide.heading && (

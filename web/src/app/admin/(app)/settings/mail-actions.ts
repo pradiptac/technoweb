@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { updateTag } from "next/cache";
+import { revalidateSettingsScreens } from "./revalidate";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { ApiError } from "@/lib/api";
@@ -61,7 +62,7 @@ export async function finishMailConnection(code: string, state: string): Promise
     return { error: reason(error, "That connection did not complete. Start again from Settings.") };
   }
 
-  revalidatePath("/admin/settings");
+  revalidateSettingsScreens();
   updateTag("settings");
 
   return { ok: account };
@@ -74,7 +75,7 @@ export async function disconnectMailboxAction(): Promise<MailActionState> {
     return { error: reason(error, "We could not disconnect that mailbox.") };
   }
 
-  revalidatePath("/admin/settings");
+  revalidateSettingsScreens();
   updateTag("settings");
 
   return { ok: "Disconnected." };

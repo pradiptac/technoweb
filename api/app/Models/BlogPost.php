@@ -3,17 +3,21 @@
 namespace App\Models;
 
 use App\Enums\PublishStatus;
+use App\Models\Concerns\HasAnswerBlocks;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
+use App\Models\Contracts\Answerable;
+use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-class BlogPost extends Model
+class BlogPost extends Model implements Answerable, Faqable
 {
-    use HasSeo, Sluggable;
+    use HasAnswerBlocks, HasSeo, Sluggable;
 
     protected $fillable = [
         'author_id', 'title', 'slug', 'excerpt', 'body',
@@ -133,5 +137,18 @@ class BlogPost extends Model
             'og_image' => $this->cover_image_path ? asset('storage/'.$this->cover_image_path) : null,
             'schema_type' => 'Article',
         ];
+    }
+
+    /**
+     * Questions answered on this record's page, in order. Widened to this
+     * model on 2026-09-21 (`docs/aeo-geo-contract.md`, section 2): the
+     * FAQPage gate in `StructuredData::answerFaqs()` reads these beside the
+     * `question` answer blocks.
+     *
+     * @return MorphMany<Faq, $this>
+     */
+    public function faqs(): MorphMany
+    {
+        return $this->morphMany(Faq::class, 'faqable')->orderBy('sort_order');
     }
 }

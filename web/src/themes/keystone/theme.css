@@ -176,3 +176,15 @@
 [data-theme="keystone"] [data-collection] [data-tile-count] {
   background-image: linear-gradient(135deg, var(--color-brand-50), var(--color-accent-50));
 }
+
+/*
+  The resources hub's colour (2026-09-21). Every tile on `/resources` carries a
+  `--tile-hue` — the four routes by position, a post by its category, a guide
+  by its category, a project by its industry — and this is how Keystone shows
+  it. Grounds and edges only, never a text colour: the neon set is graded for
+  a glyph at 3:1, not for words, and `npm run audit` grades the words against
+  whatever opaque ground is under them.
+*/
+[data-theme="keystone"] [data-collection="routes"] [data-tile]::after {
+  background: linear-gradient(135deg, var(--tile-hue, var(--color-brand-500)), var(--color-accent-500));
+}

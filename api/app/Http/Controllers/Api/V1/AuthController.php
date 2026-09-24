@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Enums\CustomerStatus;
 use App\Enums\SignInAudience;
 use App\Enums\SignInChannel;
+use App\Enums\WebhookEvent;
 use App\Http\Controllers\Concerns\ResetsPasswords;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
@@ -18,6 +19,8 @@ use App\Notifications\CustomerRegistered;
 use App\Support\Address;
 use App\Support\Notifier;
 use App\Support\SignInCodes;
+use App\Support\Webhooks\WebhookPayload;
+use App\Support\Webhooks\Webhooks;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -178,6 +181,7 @@ class AuthController extends Controller
             $customer->markEmailVerified();
 
             Notifier::route('support_email', new CustomerRegistered($customer->fresh()));
+            Webhooks::emit(WebhookEvent::CustomerRegistered, fn () => WebhookPayload::customer($customer->fresh()));
         }
 
         if (! $customer->status->canSignIn()) {
@@ -247,14 +251,40 @@ class AuthController extends Controller
         return response()->json(['message' => 'Signed out.']);
     }
 
+    /**
+     * `meta.impersonated` is what tells the portal to draw its "viewing as"
+     * banner: a staff member holding a token from
+     * `POST /admin/customers/{id}/impersonate` rather than a customer's own.
+     * On the resource itself it would be a claim about the *customer*; it is
+     * a claim about this session, so it rides beside the record.
+     */
     public function me(Request $request): JsonResponse
     {
-        return response()->json(['data' => new CustomerResource($request->user())]);
+        /** @var Customer $customer */
+        $customer = $request->user();
+
+        return response()->json([
+            'data' => new CustomerResource($customer),
+            'meta' => ['impersonated' => $customer->isImpersonated()],
+        ]);
     }
 
     public function updateProfile(UpdateProfileRequest $request): JsonResponse
     {
+        /** @var Customer $customer */
         $customer = $request->user();
+
+        // The one field an impersonation may not touch. The portal changes an
+        // address without re-verifying it (the console's own edit forces a
+        // fresh confirmation), so a staff session that could change it could
+        // re-point the account at any inbox. Everything else is theirs to do —
+        // reproducing the customer's problem is the point of the session.
+        if ($request->has('email') && $customer->isImpersonated()) {
+            throw ValidationException::withMessages([
+                'email' => 'The email address cannot be changed while viewing this account as staff.',
+            ]);
+        }
+
         $data = $request->safe()->except(['current_password', 'password_confirmation']);
 
         if ($request->filled('password')) {

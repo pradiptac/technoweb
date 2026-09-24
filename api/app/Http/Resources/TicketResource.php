@@ -18,6 +18,8 @@ class TicketResource extends JsonResource
             'reference' => $this->reference,
             'subject' => $this->subject,
             'description' => $this->when($request->routeIs('*.show'), $this->description),
+            // Stored encrypted when set; `description` above is already the plain text.
+            'is_sensitive' => (bool) $this->is_sensitive,
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
             // Drives the admin queue's status <select> — the frontend never
@@ -32,6 +34,10 @@ class TicketResource extends JsonResource
             // an emailed ticket; nothing else reads it.
             'channel' => $this->channel ?? 'portal',
             'is_overdue' => $this->isOverdue(),
+            // Where the conversation went, when this ticket was merged into
+            // another: the target's reference, or null. A merged source still
+            // answers 200 — the screens show it closed and link here.
+            'merged_into' => $this->whenLoaded('mergedInto', fn () => $this->mergedInto?->reference, null),
             // The customer has reported a reply on this ticket. Counted from
             // the loaded messages on a detail read, and from a `withCount`
             // the index adds, so the queue can badge a row without a query per row.

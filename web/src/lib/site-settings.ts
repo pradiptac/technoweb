@@ -80,6 +80,26 @@ export function bannerFor(settings: SiteSettings, section?: BannerSection): stri
 }
 
 /**
+ * The focal point of the banner `bannerFor` chose, or null.
+ *
+ * The same chain, decided the same way: the point belongs to the *file*
+ * (`<prefix>_focus` rides beside `<prefix>_url` in the public settings, the
+ * way `_width` and `_height` do), so it follows whichever picture won —
+ * the section's own or the default — and never the other's. A banner is
+ * cropped to a 300px band on every page that carries it, which is exactly
+ * the crop a point exists for.
+ */
+export function bannerFocusFor(settings: SiteSettings, section?: BannerSection): string | null {
+  if (!section) return null;
+  if (!settingEnabled(settings, "banner_enabled", true)) return null;
+
+  if (settings[`banner_${section}_url`]) return settings[`banner_${section}_focus`] || null;
+  if (settings.banner_default_url) return settings.banner_default_focus || null;
+
+  return null;
+}
+
+/**
  * A phone number as a `tel:` href.
  *
  * Strips everything a person types for legibility — spaces, brackets,
@@ -127,6 +147,28 @@ export function heroCopy(settings: SiteSettings): { kicker: string; heading: str
     lede: settings.hero_lede
       ?? "We design, deploy and support the networks, servers and security systems your operations run on — engineered properly the first time, then maintained by a support desk that actually answers.",
   };
+}
+
+/**
+ * `a|b` per line, generally: the process steps on the homepage are
+ * `title|body`, one step per line, and the same parser reads any two-column
+ * setting. A line short of its second column is dropped, which is what
+ * `statPairs` does with a statistic — and the reason the console edits these
+ * as inputs per row rather than as a textarea of lines.
+ */
+export function linePairs(raw: string | undefined): { title: string; body: string }[] {
+  return (raw ?? "")
+    .split("\n")
+    .map((line) => line.split("|"))
+    .filter((parts) => parts.length >= 2 && parts[0].trim() && parts[1].trim())
+    // Everything after the first `|` is the body, so a body that quotes a
+    // pipe is kept whole rather than cut at it.
+    .map(([title, ...rest]) => ({ title: title.trim(), body: rest.join("|").trim() }));
+}
+
+/** One item per line, blanks dropped — the AMC card's list. */
+export function lines(raw: string | undefined): string[] {
+  return (raw ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
 }
 
 export type StatPair = { value: string; label: string; icon?: string };

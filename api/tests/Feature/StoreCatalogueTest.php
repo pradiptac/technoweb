@@ -7,6 +7,7 @@ use App\Enums\PublishStatus;
 use App\Enums\Role as RoleEnum;
 use App\Models\Product;
 use App\Models\Role;
+use App\Models\Service;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
 use App\Models\User;
@@ -517,5 +518,94 @@ class StoreCatalogueTest extends TestCase
             ->assertCreated();
 
         $this->assertSame(0, Product::count(), 'the store wrote into the site catalogue');
+    }
+
+    // ------------------------------------------- warranty, applications, services
+
+    /**
+     * Two buyer's questions the row could not answer, and the services that
+     * install it. All three round-trip through the form and reach the
+     * storefront's detail read — never a listing row.
+     */
+    public function test_warranty_applications_and_services_round_trip(): void
+    {
+        $service = Service::create(['title' => 'Network Installation', 'slug' => 'network-installation', 'status' => 'published']);
+
+        $response = $this->actingAs($this->manager(), 'sanctum')
+            ->postJson('/api/v1/admin/store/products', $this->payload([
+                'slug' => 'cbs350-24t',
+                'warranty' => '3 years, on site',
+                'applications' => 'Branch offices and small campuses.',
+                'service_ids' => [$service->id],
+            ]))
+            ->assertCreated();
+
+        $this->assertSame('3 years, on site', $response->json('data.warranty'));
+        $this->assertSame('Branch offices and small campuses.', $response->json('data.applications'));
+        $this->assertSame([$service->id], $response->json('data.service_ids'));
+        $this->assertSame('Network Installation', $response->json('data.services.0.title'));
+
+        $public = $this->getJson('/api/v1/store/products/cbs350-24t')->assertOk();
+        $this->assertSame('3 years, on site', $public->json('data.warranty'));
+        $this->assertSame('network-installation', $public->json('data.services.0.slug'));
+        $this->assertArrayNotHasKey('warranty', $this->getJson('/api/v1/store/products')->json('data.0'));
+
+        // Replaced wholesale, like every other relation: `[]` clears.
+        $this->actingAs($this->manager(), 'sanctum')
+            ->patchJson("/api/v1/admin/store/products/{$response->json('data.id')}", ['service_ids' => []])
+            ->assertOk()
+            ->assertJsonPath('data.service_ids', []);
+    }
+
+    /**
+     * The Product graph states what the page states: the spec sheet as
+     * `additionalProperty`, the category as a `Thing` with a URL, the
+     * warranty as a `WarrantyPromise` only when there is one, and the
+     * products the page lists beside it as `isRelatedTo`.
+     */
+    public function test_the_product_graph_carries_the_page_s_facts(): void
+    {
+        $category = StoreCategory::create(['name' => 'Switches', 'slug' => 'switches', 'is_active' => true]);
+        $this->product([
+            'slug' => 'cbs350-24t', 'store_category_id' => $category->id,
+            'specifications' => ['Ports' => '24 x 1G', 'PoE' => 'No'],
+            'warranty' => 'Limited lifetime',
+        ]);
+        $this->product(['slug' => 'cbs350-48t', 'name' => 'The 48-port', 'store_category_id' => $category->id]);
+
+        $schema = $this->getJson('/api/v1/store/products/cbs350-24t')->assertOk()->json('data.schema');
+
+        $this->assertSame('Thing', $schema['category']['@type']);
+        $this->assertSame('Switches', $schema['category']['name']);
+        $this->assertStringEndsWith('/store/categories/switches', $schema['category']['url']);
+        $this->assertSame(
+            [['@type' => 'PropertyValue', 'name' => 'Ports', 'value' => '24 x 1G'], ['@type' => 'PropertyValue', 'name' => 'PoE', 'value' => 'No']],
+            $schema['additionalProperty'],
+        );
+        $this->assertSame('WarrantyPromise', $schema['offers']['warranty']['@type']);
+        $this->assertSame('Limited lifetime', $schema['offers']['warranty']['description']);
+        $this->assertSame('The 48-port', $schema['isRelatedTo'][0]['name']);
+        $this->assertStringEndsWith('/store/products/cbs350-48t', $schema['isRelatedTo'][0]['url']);
+
+        // Nothing invented: no warranty, no WarrantyPromise.
+        $bare = $this->getJson('/api/v1/store/products/cbs350-48t')->assertOk()->json('data.schema');
+        $this->assertArrayNotHasKey('warranty', $bare['offers']);
+        $this->assertArrayNotHasKey('additionalProperty', $bare);
+    }
+
+    /** The `entity` block is on the page only, from the loaded relations. */
+    public function test_the_detail_read_carries_the_entity_block(): void
+    {
+        $category = StoreCategory::create(['name' => 'Switches', 'slug' => 'switches', 'is_active' => true]);
+        $this->product(['slug' => 'cbs350-24t', 'store_category_id' => $category->id]);
+
+        $entity = $this->getJson('/api/v1/store/products/cbs350-24t')->assertOk()->json('data.entity');
+
+        $this->assertSame(['name' => 'Switches', 'path' => '/store/categories/switches'], $entity['category']);
+        $this->assertArrayNotHasKey('brand', $entity);
+        $this->assertSame([], $entity['services']);
+        $this->assertSame(0, $entity['faq_count']);
+
+        $this->assertArrayNotHasKey('entity', $this->getJson('/api/v1/store/products')->json('data.0'));
     }
 }

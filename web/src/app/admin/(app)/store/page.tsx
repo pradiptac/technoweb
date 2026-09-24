@@ -1,3 +1,4 @@
+import { formatTableDate } from "@/lib/dates";
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { Card } from "@/components/ui/card";
@@ -10,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { orderStatusTone, TONE_BAR } from "@/components/ui/badge";
 import {
   IconChart, IconBox, IconTruck, IconKey, IconTag, IconClock,
-  IconWarehouse, IconGauge, IconArrowRight,
+  IconWarehouse, IconGauge, IconArrowRight, IconSearchChart,
 } from "@/components/icons";
 import type { StoreDashboard } from "@/types/api";
 import type { SVGProps } from "react";
@@ -20,8 +21,6 @@ export const metadata = buildMetadata({ title: "Store", path: "/admin/store", se
 const WINDOWS = [7, 30, 90] as const;
 
 /** "28 Jul" — short enough to sit under a narrow column without wrapping. */
-const dayLabel = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
 /**
  * A round number at or above the peak, in paise.
@@ -245,12 +244,12 @@ function RevenueChart({ series, days }: { series: StoreDashboard["series"]; days
             {series.map((d) => (
               <li key={d.day} className="flex h-full flex-1 items-end">
                 <span className="sr-only">
-                  {dayLabel(d.day)}: {formatPaise(d.revenue_paise)} from {d.orders} order
+                  {formatTableDate(d.day)}: {formatPaise(d.revenue_paise)} from {d.orders} order
                   {d.orders === 1 ? "" : "s"}
                 </span>
                 <span
                   aria-hidden
-                  title={`${dayLabel(d.day)} — ${formatPaise(d.revenue_paise)}`}
+                  title={`${formatTableDate(d.day)} — ${formatPaise(d.revenue_paise)}`}
                   className="block w-full rounded-t-[2px] bg-brand-500 transition-colors hover:bg-brand-600"
                   /* A day with revenue too small to see still gets a pixel and a
                      half: a bar of zero height and a day that sold nothing must
@@ -291,7 +290,7 @@ function RevenueChart({ series, days }: { series: StoreDashboard["series"]; days
                   : { left: `${((i + 0.5) / series.length) * 100}%` }
               }
             >
-              {dayLabel(d.day)}
+              {formatTableDate(d.day)}
             </span>
           ) : null,
         )}
@@ -320,7 +319,7 @@ export default async function StoreDashboardPage({
     );
   }
 
-  const { revenue, orders, catalogue, attention, series, recent, low_stock, codes_low } = data;
+  const { revenue, orders, catalogue, attention, funnel, series, recent, low_stock, codes_low } = data;
 
   /*
    * The attention band renders only what is actually waiting.
@@ -346,6 +345,9 @@ export default async function StoreDashboardPage({
     /* The same scope the list behind this link uses, so the count and the list
        cannot disagree — see `StoreProduct::scopeOutOfStock()`. */
     { key: "stock", count: attention.out_of_stock, label: "published but out of stock", href: "/admin/store/products?out_of_stock=1", icon: IconWarehouse, tone: "warn" as const },
+    /* Somebody asked to be told when it is back and nobody has: the shelf
+       worth reordering first. The same `waiting` scope the list filters on. */
+    { key: "waiting", count: attention.awaiting_stock, label: "out of stock with people waiting", href: "/admin/store/products?notices=1", icon: IconWarehouse, tone: "warn" as const },
     { key: "refund", count: attention.refund_requested, label: "refund requested", href: "/admin/store/orders?status=refund_requested", icon: IconTag, tone: "warn" as const },
     { key: "unpaid", count: attention.awaiting_payment, label: "never paid for", href: "/admin/store/orders?unpaid=1", icon: IconClock, tone: "info" as const },
   ].filter((w) => w.count > 0);
@@ -431,6 +433,37 @@ export default async function StoreDashboardPage({
             catalogue.out_of_stock > 0
               ? `${catalogue.out_of_stock} out of stock`
               : `${catalogue.products} in the catalogue`
+          }
+        />
+      </section>
+
+      {/*
+        How many looked against how many bought. The views come from Google
+        Analytics, read only, and a dash is "not measured" rather than nought:
+        a shop that has not connected analytics has not had zero visitors, and
+        the rate is a rate only with something under the line.
+      */}
+      <section className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Figure
+          label={`Product views, last ${days} days`}
+          icon={IconSearchChart}
+          value={funnel.product_views === null ? "—" : funnel.product_views.toLocaleString("en-IN")}
+          footnote={
+            funnel.product_views === null
+              ? "Connect Google Analytics in Settings → API keys"
+              : `${funnel.paid_orders} paid order${funnel.paid_orders === 1 ? "" : "s"} in the window`
+          }
+        />
+        <Figure
+          label="Views → orders"
+          icon={IconGauge}
+          value={funnel.views_to_orders === null ? "—" : `${(funnel.views_to_orders * 100).toFixed(2)}%`}
+          footnote={
+            funnel.product_views === null
+              ? "Connect Google Analytics in Settings → API keys"
+              : funnel.product_views === 0
+                ? "No product page was opened in the window"
+                : "Paid orders over product views"
           }
         />
       </section>

@@ -2,10 +2,11 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
-import { FaqList } from "@/components/ui/faq";
+import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { RelatedEntities } from "@/components/content/related-entities";
 import { CtaBand } from "@/components/ui/cta-band";
 import { ApiError, publicApi } from "@/lib/api";
-import { buildMetadata } from "@/lib/seo";
+import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { CmsPage } from "@/types/api";
 
@@ -70,11 +71,9 @@ export default async function CmsPageRoute({ params }: { params: Promise<{ slug:
         <div data-template={page.template}>
           {page.body ? <ProseWithShortcodes html={page.body} /> : null}
 
-          {page.faqs && page.faqs.length > 0 && (
-            <div className="mt-12">
-              <FaqList faqs={page.faqs} heading="Common questions" />
-            </div>
-          )}
+          {/* The answer blocks with the FAQs merged into their questions, then what the page is connected to. */}
+          <AnswerBlocks blocks={page.answer_blocks} faqs={page.faqs ?? []} className="mt-12" />
+          <RelatedEntities entity={page.entity} className="mt-12" />
 
           <p className="mt-12 border-t border-line pt-5 text-13 text-muted">
             Last updated {updated}.
@@ -83,6 +82,9 @@ export default async function CmsPageRoute({ params }: { params: Promise<{ slug:
       </Container>
 
       <CtaBand />
+
+      {/* The FAQPage over the FAQs and question blocks — the API's, absent under two entries, and the only one on the page. */}
+      {page.faq_schema && <JsonLd data={page.faq_schema} />}
     </>
   );
 }

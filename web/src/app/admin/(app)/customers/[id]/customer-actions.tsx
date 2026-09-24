@@ -9,6 +9,7 @@ import {
   type CustomerActionState,
 } from "./actions";
 import type { AdminCustomer } from "@/types/api";
+import { ViewAsForm } from "../view-as-form";
 
 const initial: CustomerActionState = {};
 
@@ -132,6 +133,20 @@ export function CustomerActions({ customer }: { customer: AdminCustomer }) {
       )}
 
       {status === "active" && (
+        <>
+          {/*
+            The fastest way to see what a customer is looking at when they say
+            a page is wrong. A plain POST form in a client component is fine:
+            it never goes through an action, the tab is the browser's doing.
+          */}
+          <div>
+            <ViewAsForm customer={customer} size="md" variant="secondary" label="Open the portal as this customer" />
+            <p className="mt-1.5 text-12-5 text-muted">
+              Opens in a new tab and ends after an hour. Their own session is untouched, and the visit is
+              recorded in Activity.
+            </p>
+          </div>
+
         <NotedAction
           action={suspendAction}
           id={id}
@@ -140,6 +155,7 @@ export function CustomerActions({ customer }: { customer: AdminCustomer }) {
           hint="Ends every session immediately. Their tickets stay. No email is sent."
           variant="destructive"
         />
+        </>
       )}
 
       {(status === "suspended" || status === "rejected") && (

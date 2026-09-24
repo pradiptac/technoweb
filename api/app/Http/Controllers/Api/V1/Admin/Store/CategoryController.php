@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin\Store;
 
+use App\Enums\AnswerBlockKind;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Store\CategoryRequest;
@@ -25,24 +26,28 @@ class CategoryController extends Controller
             ->orderBy('name')
             ->get();
 
-        return CategoryResource::collection($categories);
+        return CategoryResource::collection($categories)->additional(['meta' => [
+            'answer_block_kinds' => AnswerBlockKind::options(),
+        ]]);
     }
 
     public function show(StoreCategory $storeCategory): JsonResource
     {
-        return new CategoryResource($storeCategory->loadCount('products')->load('seo'));
+        return new CategoryResource($storeCategory->loadCount('products')->load(['faqs', 'answerBlocks', 'seo']));
     }
 
     public function store(CategoryRequest $request): JsonResponse
     {
         [$attributes, $seo] = $this->splitSeo($request->validated());
+        $content = $this->pullAnswerContent($attributes);
 
         $category = StoreCategory::create($attributes);
+        $this->saveAnswerContent($category, $content);
         $this->saveSeo($category, $seo);
 
         // The wrapper survives only through `->response()`. See the product
         // controller: `response()->json($resource)` drops `data`.
-        return (new CategoryResource($category->loadCount('products')->load('seo')))
+        return (new CategoryResource($category->loadCount('products')->load(['faqs', 'answerBlocks', 'seo'])))
             ->response()
             ->setStatusCode(201);
     }
@@ -50,11 +55,13 @@ class CategoryController extends Controller
     public function update(CategoryRequest $request, StoreCategory $storeCategory): JsonResource
     {
         [$attributes, $seo] = $this->splitSeo($request->validated());
+        $content = $this->pullAnswerContent($attributes);
 
         $storeCategory->update($attributes);
+        $this->saveAnswerContent($storeCategory, $content);
         $this->saveSeo($storeCategory, $seo);
 
-        return new CategoryResource($storeCategory->fresh()->loadCount('products')->load('seo'));
+        return new CategoryResource($storeCategory->fresh()->loadCount('products')->load(['faqs', 'answerBlocks', 'seo']));
     }
 
     /**
@@ -68,6 +75,8 @@ class CategoryController extends Controller
      */
     public function destroy(StoreCategory $storeCategory): JsonResponse
     {
+        $storeCategory->faqs()->delete();
+        $storeCategory->answerBlocks()->delete();
         $storeCategory->delete();
 
         return response()->json(null, 204);

@@ -2,7 +2,9 @@
 
 namespace App\Support;
 
+use App\Enums\AnswerBlockKind;
 use App\Enums\ProductCondition;
+use App\Models\AnswerBlock;
 use App\Models\BlogComment;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
@@ -152,7 +154,7 @@ class StructuredData
                 ? ['@type' => 'Brand', 'name' => $product->brand->name]
                 : null,
             'category' => $product->category?->name,
-        ]);
+        ] + self::relationships(EntityLinks::for($product)));
     }
 
     /* ------------------------------------------------- store product */
@@ -214,9 +216,31 @@ class StructuredData
             'brand' => $product->brand
                 ? ['@type' => 'Brand', 'name' => $product->brand->name]
                 : null,
-            'category' => $product->category?->name,
+            /*
+             * `Thing` rather than a bare string since 2026-09-21: a name alone
+             * is a label, a `Thing` with a URL is an entity the page belongs
+             * to. `additionalProperty` is the spec sheet, which is on the page
+             * and so may be claimed; `isRelatedTo` the products the page lists
+             * beside it. The warranty is a `WarrantyPromise` only when somebody
+             * wrote one. Nothing here is invented.
+             */
+            'category' => $product->category
+                ? ['@type' => 'Thing', 'name' => $product->category->name, 'url' => self::url($product->category->publicPath())]
+                : null,
+            'additionalProperty' => collect($product->specifications ?? [])
+                ->filter(fn ($value, $name) => filled($value) && $name !== '')
+                ->map(fn ($value, $name) => ['@type' => 'PropertyValue', 'name' => $name, 'value' => (string) $value])
+                ->values()->all(),
+            'isRelatedTo' => $product->relationLoaded('relatedProducts')
+                ? $product->getRelation('relatedProducts')
+                    ->map(fn (StoreProduct $p) => ['@type' => 'Product', 'name' => $p->name, 'url' => self::url($p->publicPath())])
+                    ->values()->all()
+                : null,
             'offers' => $offer + [
                 'url' => $url,
+                'warranty' => filled($product->warranty)
+                    ? ['@type' => 'WarrantyPromise', 'description' => $product->warranty]
+                    : null,
                 'priceCurrency' => 'INR',
                 /*
                  * The machine-readable form of the sentence already printed
@@ -240,7 +264,7 @@ class StructuredData
                 'hasMerchantReturnPolicy' => self::returnPolicy($product),
                 'seller' => self::publisher(),
             ],
-        ]);
+        ] + self::relationships(EntityLinks::for($product)));
     }
 
     /**
@@ -333,7 +357,7 @@ class StructuredData
             'areaServed' => $record->relationLoaded('locations')
                 ? $record->locations->map(fn (Location $l) => self::place($l))->values()->all()
                 : null,
-        ]);
+        ] + self::relationships(EntityLinks::for($record)));
     }
 
     /**
@@ -423,7 +447,7 @@ class StructuredData
             'commentCount' => $record instanceof BlogPost
                 ? (BlogComment::approved()->where('blog_post_id', $record->id)->count() ?: null)
                 : null,
-        ]);
+        ] + self::relationships(EntityLinks::for($record)));
     }
 
     /* ---------------------------------------------------------------- FAQ */
@@ -449,6 +473,88 @@ class StructuredData
             '@type' => 'FAQPage',
             'mainEntity' => $entries,
         ]);
+    }
+
+    /**
+     * The FAQPage gate: the record's FAQs and its `question` answer blocks as
+     * one list, or null under two entries.
+     *
+     * **Never an `FAQPage` over one question.** Google's guidance treats a
+     * page with a single Q&A as not an FAQ page, and a `mainEntity` of one
+     * is the shape a template produces. Two is the floor, counted across
+     * both sources — one FAQ and one question block is a real pair. The
+     * block's `detail` rides in the answer text after the direct answer,
+     * because it is what the page shows under it.
+     *
+     * @param  iterable<int, Faq>  $faqs
+     * @param  iterable<int, AnswerBlock>  $blocks
+     */
+    public static function answerFaqs(iterable $faqs, iterable $blocks): ?array
+    {
+        $entries = [];
+
+        foreach ($faqs as $faq) {
+            $entries[] = self::question($faq->question, HtmlSanitiser::toText($faq->answer));
+        }
+
+        foreach ($blocks as $block) {
+            if ($block->kind !== AnswerBlockKind::Question || ! filled($block->question)) {
+                continue;
+            }
+
+            $text = trim($block->answer.' '.HtmlSanitiser::toText($block->detail ?? ''));
+            $entries[] = self::question((string) $block->question, $text);
+        }
+
+        return count($entries) < 2 ? null : self::graph([
+            '@type' => 'FAQPage',
+            'mainEntity' => $entries,
+        ]);
+    }
+
+    private static function question(string $name, string $text): array
+    {
+        return [
+            '@type' => 'Question',
+            'name' => $name,
+            'acceptedAnswer' => ['@type' => 'Answer', 'text' => $text],
+        ];
+    }
+
+    /**
+     * The `entity` block's relationships, as the graph states them.
+     *
+     * `about` is what the page is *about* — its category and the solutions it
+     * belongs to; `mentions` is everything else it names. Both are `Thing`
+     * stubs with a name and a URL rather than full nodes, because the full
+     * node lives on that thing's own page and a stub is a pointer to it.
+     * Built from `EntityLinks`, so the page's "Related" sections and the
+     * markup cannot disagree about what is connected.
+     *
+     * @param  array{brand?: array{name: string, path: string}, category?: array{name: string, path: string}, solutions: array<int, array{name: string, path: string}>, services: array<int, array{name: string, path: string}>, industries: array<int, array{name: string, path: string}>, articles: array<int, array{name: string, path: string}>}  $entity
+     * @return array{about: array<int, array<string, string>>, mentions: array<int, array<string, string>>}
+     */
+    private static function relationships(array $entity): array
+    {
+        $thing = fn (array $link, string $type = 'Thing') => [
+            '@type' => $type,
+            'name' => $link['name'],
+            'url' => self::url($link['path']),
+        ];
+
+        $about = array_map($thing, array_merge(
+            isset($entity['category']) ? [$entity['category']] : [],
+            $entity['solutions'],
+        ));
+
+        $mentions = array_merge(
+            isset($entity['brand']) ? [$thing($entity['brand'], 'Brand')] : [],
+            array_map($thing, $entity['services']),
+            array_map($thing, $entity['industries']),
+            array_map(fn (array $link) => $thing($link, 'Article'), $entity['articles']),
+        );
+
+        return ['about' => $about, 'mentions' => $mentions];
     }
 
     /* ------------------------------------------------------- the business */

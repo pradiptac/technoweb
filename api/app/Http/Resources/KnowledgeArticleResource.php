@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\KnowledgeArticle;
@@ -12,7 +13,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin KnowledgeArticle */
 class KnowledgeArticleResource extends JsonResource
 {
-    use IncludesSchema, IncludesSeo;
+    use IncludesAnswerContent, IncludesSchema, IncludesSeo;
 
     public function toArray(Request $request): array
     {
@@ -32,6 +33,13 @@ class KnowledgeArticleResource extends JsonResource
                 'slug' => $this->category->slug,
             ]),
             'published_at' => $this->published_at?->toIso8601String(),
+            'faqs' => $this->publicFaqs(),
+            // The published blocks, in order, with the heading each renders under.
+            'answer_blocks' => $this->publicAnswerBlocks(),
+            // What this record is connected to, on the page only (`EntityLinks`).
+            'entity' => $this->entity(),
+            // An FAQPage over the FAQs and question blocks; absent under two entries.
+            'faq_schema' => $this->faqSchema(),
             'seo' => $this->seo(),
             /*
              * The page's JSON-LD, built server-side.

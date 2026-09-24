@@ -43,6 +43,10 @@ export async function placeOrderAction(
       name: value("name") ?? "",
       email: value("email") ?? "",
       phone: value("phone") ?? "",
+      // Optional, so it is sent only when it was written: `value()` already
+      // drops a box somebody clicked into and left, and an empty string stored
+      // as a note is a note the console would draw an empty panel for.
+      customer_note: value("customer_note"),
       address: {
         line1: value("line1"),
         line2: value("line2"),

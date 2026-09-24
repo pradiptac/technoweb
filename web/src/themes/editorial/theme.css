@@ -179,3 +179,16 @@
 [data-theme="editorial"] [data-store-hero],
 [data-theme="editorial"] [data-store-disc] { border-radius: 0; }
 [data-theme="editorial"] [data-store-filter] form { box-shadow: none; }
+
+/*
+  The resources hub's colour (2026-09-21). Every tile on `/resources` carries a
+  `--tile-hue` — the four routes by position, a post by its category, a guide
+  by its category, a project by its industry — and this is how Editorial shows
+  it. Grounds and edges only, never a text colour: the neon set is graded for
+  a glyph at 3:1, not for words, and `npm run audit` grades the words against
+  whatever opaque ground is under them.
+*/
+[data-theme="editorial"] [data-collection="routes"] [data-tile] {
+  border-left: 3px solid var(--tile-hue, var(--color-line-strong));
+  padding-left: 16px;
+}

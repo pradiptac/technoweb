@@ -49,10 +49,12 @@ export type Seo = {
   sitemap_include: boolean;
 };
 
-export type Brand = {
+export type Brand = AnswerContent & {
   id: number; name: string; slug: string; logo: string | null;
   /** "Gold Partner" or null — what `/certifications` prints under the logo. */
   partner_tier?: string | null;
+  /** Only when a detail read loaded them — nothing public does yet (`docs/aeo-geo-samples.md`). */
+  faqs?: Faq[];
 };
 
 /* ----------------------------------------------------- company profile */
@@ -68,6 +70,8 @@ export type Certification = {
   description: string | null;
   image: string | null;
   image_alt: string;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  image_focus?: string | null;
   /** The certificate itself, as a PDF URL. */
   file: string | null;
 };
@@ -77,6 +81,8 @@ export type Client = {
   name: string;
   logo: string | null;
   logo_alt: string;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  logo_focus?: string | null;
   website_url: string | null;
   note: string | null;
   is_featured: boolean;
@@ -99,21 +105,27 @@ export type TeamMember = {
   bio: string | null;
   photo: string | null;
   photo_alt: string;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  photo_focus?: string | null;
   email: string | null;
   linkedin_url: string | null;
   certifications: TeamMemberCertification[];
 };
 
-export type ProductCategory = {
+export type ProductCategory = AnswerContent & {
   id: number;
   name: string;
   slug: string;
   /** The record's last change, for the sitemap's `lastmod`. */
   updated_at?: string | null;
   description: string | null;
+  /** Detail only. */
+  faqs?: Faq[];
   icon: string | null;
   image: string | null;
   image_alt?: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  image_focus?: string | null;
   parent_id: number | null;
   children?: ProductCategory[];
   /** Published products in this category. Present on the catalogue endpoints. */
@@ -123,7 +135,7 @@ export type ProductCategory = {
   seo?: Seo | null;
 };
 
-export type Product = {
+export type Product = AnswerContent & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -141,6 +153,8 @@ export type Product = {
   images: string[];
   /** Parallel to `images`, index for index. */
   image_alts?: (string | null)[];
+  /** Parallel to `images` too: each file's focal point as `object-position` wants it, or null. */
+  image_focuses?: (string | null)[];
   datasheet_url: string | null;
   status: "draft" | "published" | "archived";
   brand: Brand | null;
@@ -151,7 +165,7 @@ export type Product = {
   seo?: Seo | null;
 };
 
-export type Solution = {
+export type Solution = AnswerContent & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -163,6 +177,8 @@ export type Solution = {
   icon: string | null;
   hero_image: string | null;
   hero_image_alt?: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  hero_image_focus?: string | null;
   status: "draft" | "published";
   /* Detail-only — the index endpoint omits these to keep payloads small. */
   problem_statement?: string | null;
@@ -175,7 +191,7 @@ export type Solution = {
   seo?: Seo | null;
 };
 
-export type Service = {
+export type Service = AnswerContent & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -192,7 +208,56 @@ export type Service = {
 
 export type Faq = { id: number; question: string; answer: string };
 
-export type Industry = {
+/**
+ * One answer block as a public detail read carries it (`docs/aeo-geo-contract.md`
+ * §1, §8): published only, in order, no `id` and no `status`, and `heading` —
+ * the section the page draws it under — sent by the API rather than looked up
+ * from a map here. The admin shape is `AnswerBlock`, further down.
+ */
+export type PublicAnswerBlock = {
+  kind: AnswerBlockKind;
+  question: string | null;
+  /** Plain text, at most 600 characters: the direct answer. */
+  answer: string;
+  /** Rich text, already sanitised: the supporting explanation. Rendered through `Prose`. */
+  detail: string | null;
+  heading: string;
+};
+
+/** One link in the `entity` block: a name and a **path**, never a URL. */
+export type EntityLink = { name: string; path: string };
+
+/**
+ * What a record is connected to (`docs/aeo-geo-contract.md` §4), on every
+ * public detail read: the brand and category where the record has one, and
+ * the solutions, services, industries and supporting articles it is linked
+ * to — `[]` where a relation is empty or was not loaded. Built by
+ * `App\Support\EntityLinks`; `RelatedEntities` draws it.
+ */
+export type EntityLinks = {
+  brand?: EntityLink;
+  category?: EntityLink;
+  solutions: EntityLink[];
+  services: EntityLink[];
+  industries: EntityLink[];
+  articles: EntityLink[];
+  faq_count: number;
+};
+
+/**
+ * The three keys every public detail read gained on 2026-09-21, spread into
+ * each entity type below. `faq_schema` is an `FAQPage` over the FAQs and the
+ * `question` blocks, **absent under two entries** and a sibling of `schema`
+ * rather than folded into it; the page renders both through `JsonLd`, which
+ * is why `FaqList` emits none of its own.
+ */
+export type AnswerContent = {
+  answer_blocks?: PublicAnswerBlock[];
+  entity?: EntityLinks;
+  faq_schema?: SchemaGraph;
+};
+
+export type Industry = AnswerContent & {
   id: number;
   name: string;
   slug: string;
@@ -202,10 +267,13 @@ export type Industry = {
   icon: string | null;
   body?: string | null;
   solutions?: Solution[];
+  /** Detail only. */
+  faqs?: Faq[];
   seo?: Seo | null;
 };
 
-export type CaseStudy = {
+/** A case study carries `entity` and `faq_schema` like the rest, and has no answer blocks or FAQs of its own. */
+export type CaseStudy = Pick<AnswerContent, "entity" | "faq_schema"> & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -219,11 +287,13 @@ export type CaseStudy = {
   results: { value: string; label: string }[] | null;
   cover_image: string | null;
   cover_image_alt?: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  cover_image_focus?: string | null;
   industry?: Industry | null;
   seo?: Seo | null;
 };
 
-export type KnowledgeArticle = {
+export type KnowledgeArticle = AnswerContent & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -233,13 +303,15 @@ export type KnowledgeArticle = {
   updated_at?: string | null;
   excerpt: string | null;
   body?: string | null;
+  /** Detail only. */
+  faqs?: Faq[];
   tags: string[] | null;
   category?: { name: string; slug: string } | null;
   published_at: string | null;
   seo?: Seo | null;
 };
 
-export type BlogPost = {
+export type BlogPost = AnswerContent & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -250,8 +322,12 @@ export type BlogPost = {
   excerpt: string | null;
   /** Detail-only — the index endpoint omits the body. */
   body?: string | null;
+  /** Detail only. */
+  faqs?: Faq[];
   cover_image: string | null;
   cover_image_alt?: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  cover_image_focus?: string | null;
   published_at: string | null;
   reading_minutes: number | null;
   author?: { name: string } | null;
@@ -292,8 +368,15 @@ export type TicketPriority = "low" | "normal" | "high" | "critical";
 
 export type TicketMessage = {
   id: number;
+  /** Already the plain text: a sensitive message is decrypted by the API on read. */
   body: string;
   is_internal: boolean;
+  /**
+   * "This reply contains sensitive data": stored encrypted, announced but
+   * never quoted in the notification email, never sent to a webhook
+   * (`docs/tickets.md`, "Sensitive messages"). Draws the lock.
+   */
+  is_sensitive: boolean;
   /** "email" when it was piped in from the support mailbox; null when written in the app. */
   channel?: "email" | null;
   author: { id: number; name: string; type: "customer" | "staff" };
@@ -324,6 +407,25 @@ export type TicketEvent = {
   at: string | null;
 };
 
+/**
+ * A saved reply for the support desk. On the management screens `body` is
+ * the stored text, `{{placeholders}}` and all; from
+ * `/admin/tickets/{reference}/canned-replies` it is already filled for that
+ * ticket, and the reply form inserts it as it is.
+ */
+export type CannedReply = {
+  id: number;
+  title: string;
+  body: string;
+  sort_order: number;
+  created_by?: { id: number; name: string } | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+/** One chip on the saved-reply form: the API's list, never a copy typed here. */
+export type CannedReplyPlaceholder = { name: string; about: string };
+
 export type Ticket = {
   id: number;
   reference: string;
@@ -339,6 +441,12 @@ export type Ticket = {
   /** Which door it came in by. "email" when opened from the support mailbox. */
   channel?: "portal" | "email";
   is_overdue: boolean;
+  /**
+   * Where the conversation went when this ticket was merged into another:
+   * the target's reference, or null. A merged source is closed for good;
+   * both screens show it with a link here and no reply box.
+   */
+  merged_into?: string | null;
   /** The customer has reported a reply on this ticket; the queue's `?reported=1`. Admin reads only. */
   is_reported?: boolean;
   due_at: string | null;
@@ -349,6 +457,8 @@ export type Ticket = {
   customer?: Customer;
   messages?: TicketMessage[];
   attachments?: TicketAttachment[];
+  /** The opening description is stored encrypted when set; `description` is already the plain text. */
+  is_sensitive: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -384,6 +494,12 @@ export type Customer = {
 };
 
 export type AuthResponse = { token: string; customer: Customer };
+/**
+ * What `POST /admin/customers/{id}/impersonate` answers: a one-hour portal
+ * token for that customer. The console's route handler puts it in the
+ * `tw_session` cookie of a new tab; it never reaches the browser as a value.
+ */
+export type ImpersonationResponse = { token: string; customer: Customer; expires_at: string };
 
 export type TicketSummary = {
   open: number;
@@ -406,7 +522,7 @@ export type StaffUser = {
 
 export type AdminAuthResponse = { token: string; staff: StaffUser };
 
-export type CmsPage = {
+export type CmsPage = AnswerContent & {
   id: number;
   title: string;
   slug: string;
@@ -443,6 +559,8 @@ export type StoreSuggestion = {
   in_stock: boolean;
   image: string | null;
   image_alt: string | null;
+  /** The file's focal point as `object-position` wants it, or null for the centre. */
+  image_focus?: string | null;
 };
 
 export type SearchGroup = {
@@ -468,7 +586,7 @@ export type PublishStatus = "draft" | "published" | "archived";
  */
 export type LeadStatus = "new" | "contacted" | "qualified" | "won" | "lost" | "spam";
 export type LeadBand = "hot" | "warm" | "cold" | "unscored";
-export type CampaignStatus = "draft" | "ready" | "scheduled" | "sending" | "sent" | "paused" | "cancelled" | "failed";
+export type CampaignStatus = "draft" | "ready" | "scheduled" | "sending" | "sent" | "paused" | "cancelled" | "failed" | "automation";
 export type SubscriberStatus = "active" | "unsubscribed" | "bounced" | "suppressed";
 export type CommentStatus = "pending" | "approved" | "spam" | "trash";
 export type DigitalCodeStatus = "available" | "reserved" | "delivered" | "cancelled";
@@ -496,9 +614,74 @@ export type SeoOverride = {
   sitemap_include: boolean;
 };
 
-/** The six things the AI SEO assistant can be asked to do. */
+/**
+ * What the AI SEO assistant can be asked to do.
+ *
+ * The first seven are the SEO panel's; the rest are the AEO/GEO panel's
+ * (`docs/aeo-geo-contract.md` §6). The *keys* are the contract — which
+ * panel draws which button is `AEO_ACTIONS` in `ai-seo-panel.tsx` — and the
+ * labels, blurbs and whether an action exists at all come from
+ * `SeoAiMeta.actions`, so an action the API has not learnt yet simply does
+ * not appear.
+ */
 export type SeoAiActionKey =
-  | "generate" | "analyze" | "improve" | "faq" | "internal_links" | "schema" | "keywords";
+  | "generate" | "analyze" | "improve" | "faq" | "internal_links" | "schema" | "keywords"
+  | "aeo_analyze" | "questions" | "answer_blocks" | "improve_answer" | "faq_suggest"
+  | "geo_analyze" | "entity_links" | "product_qa";
+
+/**
+ * The kinds of answer block (`App\Enums\AnswerBlockKind`), `docs/aeo-geo-contract.md` §1.
+ *
+ * The union is here so a stored block can be typed; the labels, the section
+ * heading each renders under and whether one asks a question all arrive as
+ * `AnswerBlockKindOption`s on every admin index's `meta.answer_block_kinds`,
+ * and the console never retypes them.
+ */
+export type AnswerBlockKind =
+  | "definition" | "who_for" | "why" | "key_fact" | "feature" | "use_case"
+  | "comparison" | "step" | "question";
+
+export type AnswerBlockKindOption = {
+  value: AnswerBlockKind;
+  label: string;
+  /** The section heading the public page draws blocks of this kind under. */
+  heading: string;
+  /** True for `question` and `comparison`: the `question` column is required. */
+  asks_question: boolean;
+};
+
+/**
+ * One answer block, as the admin detail resources carry it and as the
+ * repeater posts it back (without `id` and `sort_order` — the set is replaced
+ * wholesale and the API stamps the order from the array, the `faqs` rule).
+ */
+export type AnswerBlock = {
+  id?: number;
+  kind: AnswerBlockKind;
+  question: string | null;
+  /** Plain text, at most 600 characters: the direct answer. */
+  answer: string;
+  /** Rich text: the supporting explanation. */
+  detail: string | null;
+  sort_order?: number;
+  status: "draft" | "published";
+};
+
+/**
+ * An AEO or GEO readiness score, the `SeoScore` shape.
+ *
+ * `/admin/seo` rows carry only `value` and `band`; the single-record read
+ * (`GET /admin/seo/{type}/{id}`) carries the whole thing with `failed`. Both
+ * are optional on the row until the API lands them, and absent reads as
+ * "not scored yet" everywhere rather than as zero.
+ */
+export type ReadinessScore = {
+  value: number;
+  band: SeoBand;
+  passed?: number;
+  checked?: number;
+  failed?: SeoFailedCheck[];
+};
 
 /**
  * One stored suggestion.
@@ -554,6 +737,9 @@ export type AdminBlogPost = {
   cover_image: string | null;
   author_id: number | null;
   author?: { id: number; name: string } | null;
+  /** Detail-only. Both gained on 2026-09-21 — see `docs/aeo-geo-contract.md`. */
+  faqs?: FaqItem[];
+  answer_blocks?: AnswerBlock[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
   created_at: string;
@@ -576,6 +762,9 @@ export type AdminKnowledgeArticle = {
   /** Read-only telemetry the site writes; never editable. */
   view_count: number;
   helpful_count: number;
+  /** Detail-only. */
+  faqs?: FaqItem[];
+  answer_blocks?: AnswerBlock[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
   created_at: string;
@@ -618,6 +807,8 @@ export type AdminPage = {
   status: PublishStatus;
   status_label: string;
   published_at: string | null;
+  /** Detail-only. */
+  answer_blocks?: AnswerBlock[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
   created_at: string;
@@ -639,6 +830,9 @@ export type AdminBrand = {
   is_featured?: boolean;
   partner_tier?: string | null;
   product_count?: number;
+  /** Detail-only. A brand has no SEO panel, but it does have an AEO tab. */
+  faqs?: FaqItem[];
+  answer_blocks?: AnswerBlock[];
 };
 
 export type AdminCertification = {
@@ -718,6 +912,9 @@ export type AdminProductCategory = {
   sort_order?: number;
   product_count?: number;
   child_count?: number;
+  /** Detail-only. */
+  faqs?: FaqItem[];
+  answer_blocks?: AnswerBlock[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
   /** Whether the mega menu may show it. Not the same as published. */
@@ -736,6 +933,9 @@ export type AdminIndustry = {
   sort_order?: number;
   solution_ids?: number[];
   case_study_count?: number;
+  /** Detail-only. */
+  faqs?: FaqItem[];
+  answer_blocks?: AnswerBlock[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
   /** Whether the mega menu may show it. Not the same as published. */
@@ -754,6 +954,8 @@ export type AdminService = {
   status_label: string;
   sort_order: number;
   faqs?: FaqItem[];
+  /** Detail-only. */
+  answer_blocks?: AnswerBlock[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
   created_at: string;
@@ -826,6 +1028,15 @@ export type SeoRow = {
   ai_pending: number;
   /** Search Console's figures over the window, or null when unconfigured or the page had no impressions. */
   search: { clicks: number; impressions: number; ctr: number; position: number } | null;
+  /** Google Analytics' figures over the same window, or null when unconfigured or nobody opened the page. */
+  analytics: { views: number; users: number } | null;
+  /**
+   * Answer-engine and generative-engine readiness (`docs/aeo-geo-contract.md`
+   * §5). `{value, band}` on a list row, the whole score with `failed` on the
+   * single-record read. Absent until the API scores the record.
+   */
+  aeo?: ReadinessScore;
+  geo?: ReadinessScore;
 };
 
 export type SeoBand = "good" | "fair" | "poor";
@@ -849,6 +1060,9 @@ export type SeoScore = {
   failed: SeoFailedCheck[];
 };
 
+/** One check failing across the site, and on how many records — a "biggest win" on the overview. */
+export type SeoTopIssue = { key: string; label: string; group: string; weight: number; count: number };
+
 export type SeoMeta = {
   total: number;
   current_page: number;
@@ -860,6 +1074,8 @@ export type SeoMeta = {
   ai: SeoAiMeta;
   /** Search Console: whether the column is there, over how many days, and the last refusal in Google's words. */
   search: { configured: boolean; days: number; error: string | null };
+  /** Google Analytics: the same three answers about the other column. */
+  analytics: { configured: boolean; days: number; error: string | null };
   /** Always the whole site, never the filtered page. */
   site_score: {
     value: number;
@@ -867,8 +1083,16 @@ export type SeoMeta = {
     records: number;
     distribution: { good: number; fair: number; poor: number };
     /** Ranked by what each costs: how many records fail it × what it is worth. */
-    top_issues: { key: string; label: string; group: string; weight: number; count: number }[];
+    top_issues: SeoTopIssue[];
     groups: Record<string, string>;
+    /**
+     * The site-wide AEO and GEO averages, each with its own biggest wins —
+     * the checks failing on the most records, ranked the way `top_issues`
+     * is — opened through `?aeo_check=` / `?geo_check=` (their own
+     * parameters, because the three rubrics share a key: `internal_links`).
+     */
+    aeo?: { value: number; band: SeoBand; top_issues: SeoTopIssue[]; groups: Record<string, string> };
+    geo?: { value: number; band: SeoBand; top_issues: SeoTopIssue[]; groups: Record<string, string> };
   };
   types: { value: string; label: string }[];
 };
@@ -981,6 +1205,46 @@ export type AdminStaff = {
   created_at?: string;
   /** Returned once, by create only, and never readable again. */
   generated_password?: string | null;
+};
+
+/** One subscribable event, as `meta.events` on `/admin/webhooks` lists it. */
+export type WebhookEventOption = { value: string; label: string; blurb: string };
+
+export type AdminWebhook = {
+  id: number;
+  name: string;
+  url: string;
+  events: string[];
+  event_labels: string[];
+  is_active: boolean;
+  has_secret: boolean;
+  created_by?: string | null;
+  last_delivered_at: string | null;
+  last_error: string | null;
+  deliveries_count?: number;
+  created_at: string | null;
+  updated_at: string | null;
+  /** Returned once — by create, and by a PATCH carrying `rotate_secret` — and never readable again. */
+  secret?: string;
+};
+
+export type WebhookDeliveryStatus = "pending" | "delivered" | "failed";
+
+export type WebhookDelivery = {
+  id: number;
+  webhook_id: number;
+  event: string;
+  event_label: string;
+  status: WebhookDeliveryStatus;
+  attempts: number;
+  response_status: number | null;
+  response_excerpt: string | null;
+  next_attempt_at: string | null;
+  delivered_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  /** The detail read of one delivery only. */
+  payload?: Record<string, unknown>;
 };
 
 export type CustomerStatus = "pending" | "active" | "rejected" | "suspended";
@@ -1157,6 +1421,8 @@ export type AdminProduct = {
   solution_ids?: number[];
   related_product_ids?: number[];
   faqs?: FaqItem[];
+  /** Detail-only. */
+  answer_blocks?: AnswerBlock[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
 };
@@ -1203,6 +1469,12 @@ export type AdminStoreProduct = {
   /** Take orders when the shelf is empty. Off unless somebody switched it on. */
   allow_oversell: boolean;
   in_stock: boolean;
+  /**
+   * People who asked to be emailed when this is back and have not been.
+   * Counted on every admin read; the list's Waiting column and the
+   * dashboard's figure read the same scope.
+   */
+  notices_waiting?: number;
   returnable: boolean;
   status: PublishStatus;
   status_label?: string;
@@ -1238,6 +1510,18 @@ export type AdminStoreProduct = {
   activation_pdf_path?: string | null;
   /** Resolved from the media row — the stored filename is a hash. */
   activation_pdf_name?: string | null;
+  /**
+   * Product AEO (`docs/aeo-geo-contract.md` §3). Detail only. `warranty` is
+   * one line and becomes the Offer's `WarrantyPromise`; `applications` is
+   * plain text; `services` are the site's services that install or support
+   * it, written back as `service_ids` (replaced wholesale).
+   */
+  warranty?: string | null;
+  applications?: string | null;
+  service_ids?: number[];
+  services?: { id: number; title: string; slug: string }[];
+  faqs?: FaqItem[];
+  answer_blocks?: AnswerBlock[];
 };
 
 /** Physical ships, digital issues a code, service is work somebody does. */
@@ -1288,11 +1572,13 @@ export type AdminStoreCategory = {
   /** Present on a detail response only -- see the API resource's `$detail` gate. */
   seo?: SeoOverride;
   seo_defaults?: Seo;
+  faqs?: FaqItem[];
+  answer_blocks?: AnswerBlock[];
   created_at?: string;
 };
 
 /** What the storefront reads. No stock count — see the API resource. */
-export type StoreProduct = {
+export type StoreProduct = AnswerContent & {
   id: number;
   name: string;
   slug: string;
@@ -1304,8 +1590,16 @@ export type StoreProduct = {
   description?: string | null;
   specifications?: Record<string, string>;
   features?: string[];
+  /* Detail only, since 2026-09-21 (`docs/aeo-geo-contract.md` §3). */
+  warranty?: string | null;
+  applications?: string | null;
+  /** The services that install or support it. */
+  services?: { id: number; title: string; slug: string }[];
+  faqs?: Faq[];
   images: string[];
   image_alts: (string | null)[];
+  /** Parallel to `images` too: each file's focal point as `object-position` wants it, or null. */
+  image_focuses?: (string | null)[];
   price_paise: number;
   /** Only present when it is genuinely higher than the real price. */
   compare_at_paise?: number;
@@ -1401,6 +1695,8 @@ export type StoreVariation = {
   availability?: "in_stock" | "backorder" | "out_of_stock";
   image_url?: string | null;
   image_alt?: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  image_focus?: string | null;
 };
 
 /**
@@ -1467,6 +1763,8 @@ export type Order = {
   customer_name: string;
   customer_email: string;
   customer_phone?: string | null;
+  /** What the buyer asked for at checkout, in their own words. */
+  customer_note?: string | null;
   billing_address?: PostalAddress | null;
   /** Null when nothing in the order travels. */
   shipping_address?: PostalAddress | null;
@@ -1570,11 +1868,20 @@ export type StoreDashboard = {
     awaiting_payment: number;
     awaiting_dispatch: number;
     awaiting_codes: number;
+    /** Products with somebody waiting to hear they are back. Links to `?notices=1`. */
+    awaiting_stock: number;
     refund_requested: number;
     out_of_stock: number;
     codes_exhausted: number;
     failed_payments: number;
   };
+  /**
+   * How many looked against how many bought, over the window. `product_views`
+   * comes from Google Analytics and is null when it is not connected or
+   * refused — never zero for "unmeasured" — and the rate is null with it, or
+   * when a measured zero would put nothing under the line.
+   */
+  funnel: { product_views: number | null; paid_orders: number; views_to_orders: number | null };
   series: { day: string; revenue_paise: number; orders: number }[];
   recent: {
     order_number: string;
@@ -1586,6 +1893,38 @@ export type StoreDashboard = {
   }[];
   low_stock: { id: number; name: string; stock: number }[];
   codes_low: { id: number; name: string; available: number }[];
+};
+
+/**
+ * The catalogue import's dry run, as `POST /admin/store/products/import/analyse`
+ * answers it. `fields` is the column list the mapping is keyed by and the
+ * export writes — sent by the API rather than listed here, the
+ * `schema_type_options` rule. `counts` is per outcome and `problems` the
+ * refused lines, capped at fifty on the server.
+ */
+export type StoreImportAnalysis = {
+  file: string;
+  original_name: string;
+  headers: string[];
+  fields: string[];
+  mapping: Record<string, number | null>;
+  counts: { total: number; create: number; update_product: number; update_variation: number; invalid: number };
+  problems: StoreImportProblem[];
+  /** The first rows as mapped, each with the line and the outcome it would get. */
+  preview: (Record<string, string | null> & { line: number; outcome: string })[];
+};
+
+export type StoreImportProblem = { line: number; sku: string | null; outcome: string; reason: string | null };
+
+/** The committed import, as `POST /admin/store/products/import` answers with 201. */
+export type StoreImportResult = {
+  id: number;
+  status: string;
+  filename: string;
+  mapping: Record<string, number | null>;
+  counts: StoreImportAnalysis["counts"];
+  problems: StoreImportProblem[];
+  created_at: string | null;
 };
 
 /** What sold between two dates. See `App\Support\Store\SalesReport`. */
@@ -1680,6 +2019,8 @@ export type AdminOrder = {
   customer_name: string;
   customer_email: string;
   customer_phone?: string | null;
+  /** The buyer's own note. On the detail read only, like the addresses. */
+  customer_note?: string | null;
   customer_id?: number | null;
   subtotal_paise: number;
   discount_paise: number;
@@ -1809,16 +2150,20 @@ export type CartLine = {
   problem?: string | null;
 };
 
-export type StoreCategory = {
+export type StoreCategory = AnswerContent & {
   id: number;
   name: string;
   slug: string;
   /** The record's last change, for the sitemap's `lastmod`. */
   updated_at?: string | null;
   description?: string | null;
+  /** Detail only. */
+  faqs?: Faq[];
   /** The small 3D mark the rail renders — see the migration's note. */
   icon_url?: string | null;
   image_url?: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  image_focus?: string | null;
   product_count?: number;
   /** Present only on a listing that eager-loaded it -- see the API resource. */
   seo?: Seo;
@@ -1847,6 +2192,8 @@ export type AdminSolution = {
   product_ids?: number[];
   industry_ids?: number[];
   faqs?: FaqItem[];
+  /** Detail-only. */
+  answer_blocks?: AnswerBlock[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
   created_at: string;
@@ -1867,6 +2214,9 @@ export type MediaItem = {
   height: number | null;
   /** Announced in place of the image. Short, factual, public. */
   alt_text: string | null;
+  /** The focal point, 0–100 of the width and of the height; both null is the centre. */
+  focal_x: number | null;
+  focal_y: number | null;
   /** A working note for whoever files assets. Never rendered publicly. */
   description: string | null;
   /** Free labels, normalised lowercase by the API. Always present. */
@@ -1954,6 +2304,8 @@ export type Slide = {
   /** Video id only — the embed URL is built from it, never stored. */
   youtube_id: string | null;
   alt: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  focus?: string | null;
   heading: string | null;
   caption: string | null;
   link_url: string | null;
@@ -1981,6 +2333,8 @@ export type Popup = {
   image: string | null;
   /** Falls back to the popup's own name server-side, never to "". */
   image_alt: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  image_focus?: string | null;
   /**
    * The file's natural size, so the box can be reserved before the bytes land.
    * Absent — not zero — when the media library has no row for the path, in
@@ -2099,6 +2453,8 @@ export type GalleryItem = {
   id: number;
   url: string | null;
   alt: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  focus?: string | null;
   title: string | null;
   subtitle: string | null;
   link_url: string | null;
@@ -2548,6 +2904,90 @@ export type NewsletterCampaign = {
   group_ids?: number[];
   groups?: { id: number; name: string }[];
   author?: string | null;
+  /**
+   * The resend pair, on a detail read. `resend` is the one copy sent to this
+   * campaign's non-openers, null while there has been none; `resend_of` is
+   * the campaign a resend was made from.
+   */
+  resend?: NewsletterResendSummary | null;
+  resend_of?: { id: number; name: string } | null;
+  /**
+   * The sequence this campaign is a step of, on a detail read; null for an
+   * ordinary campaign. The editor hides Audience and Send on a step and
+   * links back to the sequence.
+   */
+  sequence?: { id: number; name: string; position: number; delay_days: number } | null;
+};
+
+export type SequenceStatus = "active" | "paused";
+export type EnrolmentStatus = "active" | "completed" | "cancelled";
+
+/** One step of a sequence: a campaign row, summarised for the sequence screen. */
+export type NewsletterSequenceStep = {
+  id: number;
+  position: number;
+  subject: string;
+  name: string;
+  delay_days: number;
+  health_score: number | null;
+  sent_count: number;
+  updated_at: string | null;
+};
+
+export type NewsletterSequenceEnrolmentCounts = { active: number; completed: number; cancelled: number };
+
+export type NewsletterSequence = {
+  id: number;
+  name: string;
+  status: SequenceStatus;
+  status_label: string;
+  /** The trigger group; null means every new subscriber. */
+  newsletter_group_id: number | null;
+  group?: { id: number; name: string } | null;
+  from_name: string | null;
+  from_email: string | null;
+  reply_to: string | null;
+  author?: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  /** On the index. */
+  steps_count?: number;
+  active_enrolments?: number;
+  /** On a detail read. */
+  steps?: NewsletterSequenceStep[];
+  enrolments?: NewsletterSequenceEnrolmentCounts;
+};
+
+export type NewsletterSequenceEnrolment = {
+  id: number;
+  subscriber: { id: number; email: string; name: string; status: SubscriberStatus } | null;
+  status: EnrolmentStatus;
+  status_label: string;
+  next_position: number;
+  next_at: string | null;
+  enrolled_at: string | null;
+  completed_at: string | null;
+  cancelled_reason: string | null;
+};
+
+/** What a manual enrolment did, a count per outcome. */
+export type NewsletterEnrolTally = {
+  enrolled: number; already_enrolled: number; not_active: number;
+  suppressed: number; no_steps: number; unknown: number;
+};
+
+export type NewsletterSequenceReport = {
+  sequence: { id: number; name: string; status: SequenceStatus };
+  steps: { id: number; position: number; subject: string; delay_days: number; sent: number; opened: number; clicked: number }[];
+  enrolments: NewsletterSequenceEnrolmentCounts;
+};
+
+/** The one resend of a campaign, as the original carries it. */
+export type NewsletterResendSummary = {
+  id: number;
+  name: string;
+  recipient_count: number;
+  status: CampaignStatus;
 };
 
 export type NewsletterTemplate = {
@@ -2749,7 +3189,7 @@ export type NewsletterMailboxStatus = {
   account: string | null;
   connected_at: string | null;
   is_connected: boolean;
-  /** Whether Settings → Ticketing holds an OAuth client to borrow. */
+  /** Whether Tickets → Email to ticket holds an OAuth client to borrow. */
   client_configured: boolean;
   error: string | null;
   callback_path: string;
@@ -2779,7 +3219,12 @@ export type NewsletterReport = {
   counts: {
     recipients: number; sent: number; failed: number; skipped: number;
     opened: number; clicked: number; bounced: number; unsubscribed: number;
+    /** Delivered and never opened — who a resend is offered to, before eligibility. */
+    non_openers: number;
   };
+  /** See `NewsletterCampaign.resend` / `resend_of`. */
+  resend: NewsletterResendSummary | null;
+  resend_of: { id: number; name: string } | null;
   rates: {
     delivery: number | null; open: number | null; click: number | null;
     click_to_open: number | null; bounce: number | null; unsubscribe: number | null;

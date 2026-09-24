@@ -68,7 +68,7 @@ revokes the previous token of the same name.
 | `POST` | `/auth/reset-password` | Customer. Public. Spends a token and revokes every session |
 | `POST` | `/auth/login` | Customer. Public, throttled |
 | `POST` | `/auth/logout` | Customer. Revokes the current token |
-| `GET` | `/auth/me` | Customer |
+| `GET` | `/auth/me` | Customer. `meta.impersonated` says whether the session is a staff member's "View as" |
 | `POST` | `/admin/auth/forgot-password` | Staff. Public, throttled. **A separate broker and a separate table** |
 | `POST` | `/admin/auth/reset-password` | Staff. Public. Spends a token and revokes every session |
 | `POST` | `/admin/auth/password` | Staff, authenticated. Change your own password. Not role-gated — every role needs it |
@@ -836,7 +836,7 @@ here reads `products`.
 | Method | Path | Notes |
 |---|---|---|
 | `GET` | `/store/products` | Paginated. `?q=`, `?category=`, `?type=`, `?sort=`, `?page=` |
-| `GET` | `/store/products/{slug}` | |
+| `GET` | `/store/products/{slug}` | Detail only: `warranty`, `applications`, `services: [{id, title, slug}]`, `faqs`, `answer_blocks`, `entity`, `faq_schema`; the `Product` graph adds `category` as a `Thing`, `additionalProperty` from the spec sheet, `isRelatedTo` (the six the page lists beside it) and `offers.warranty` as a `WarrantyPromise` when one is set |
 | `GET` | `/store/categories` | Only categories with something published in them |
 | `GET` | `/store/categories/{slug}` | |
 | `GET` | `/store/feed` | The Google Merchant Center feed, as rows. Paginated. `/store/feed.xml` renders it |
@@ -850,6 +850,24 @@ here reads `products`.
 | `POST` | `/orders/{number}/pay` | Opens a payment session |
 | `POST` | `/orders/{number}/verify` | What the browser came back with |
 | `POST` | `/payments/{gateway}/webhook` | The gateway talking to us. **Un-throttled** |
+| `POST` | `/store/products/{slug}/notify` | "Email me when this is back": `email`, `variation_id?`, honeypot `website`. Throttled 10/min. **202 and one sentence always** |
+| `GET` | `/store/stock-notices/{token}/cancel` | The link in the email. Idempotent; `{message}`, 200 for a token nobody has too |
+
+**`/store/products/{slug}/notify` answers 202 and one sentence whatever
+happened, the `/auth/register` rule.** A filled honeypot, an address on
+`newsletter_suppressions` and a product (or chosen variation) that is in stock
+— back-ordered counts as in stock, which is what the switch means — all get
+the same answer as a request that was written, and only the last of those
+writes a row. One row per address per shelf: a repeat request re-arms a
+notice already sent by clearing `notified_at` rather than failing. A portal
+bearer token stamps `customer_id`; the route is public, so the guard is read
+by name (`$request->user('sanctum')`, narrowed to a `Customer`). The notice
+is sent by `SendStockNotices`, queued from `StockLedger::record()` on every
+positive movement: the job re-checks the shelf when it runs, skips the
+suppression list, sends `back_in_stock` (editable in the catalogue) through
+`Notifier`, and stamps each row so a second run tells nobody twice. The
+email's cancel link is the frontend's `/store/notify/cancel/<token>`, which
+calls the GET above and shows its sentence.
 
 **`GET /store/feed` is the shop as Google Merchant Center reads it, and it is
 data rather than markup.** One row per thing somebody can buy — a variation
@@ -997,6 +1015,24 @@ that.
 **It is never published.** `allow_oversell` is admin only; the storefront says
 `in_stock` and nothing else, the same reason no exact count is published.
 
+**`phone` is a mobile number and is checked for shape.** Ten digits opening
+6–9, with an optional `+91`, `91` or leading `0` and separators anywhere, so
+`9876543210`, `+91 98765 43210` and `+91-98765-43210` are one number and a
+landline is not. Indian mobiles only, deliberately: this shop prices in rupees,
+extracts GST, asks for a PIN code and offers cash on delivery. Shape only and
+never a lookup — an uncontrolled network call on the request path is the cost
+this project has measured at 12.5s, which is why `email:dns` is absent too. The
+**key stays `phone`** while the checkout screen says Mobile: it is what the
+column, both order resources, the console, the mock and the customer's own
+account call it.
+
+**`customer_note` is the buyer's own note, and it is optional.** Up to 1,000
+characters, stored as typed with its line breaks, returned on
+`GET /orders/{number}?token=` and on the admin **detail** read (never the
+list — it is prose, and a queue is scanned). It is `customer_note` rather than
+`notes` because `Order::notes()` is the desk's staff-only relation and an
+attribute of that name would shadow it.
+
 **`/checkout` prices the order itself.** The request carries a name, a phone
 number and an address; the basket is re-read, every line re-priced from the
 product under a row lock, and the total worked out again. Nothing supplied can
@@ -1106,10 +1142,43 @@ somebody else is a 404 either way.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET`/`POST` | `/admin/store/products` | `?status=`, `?type=`, `?category=`, `?out_of_stock=1`, `?q=` |
-| `GET`/`PATCH`/`DELETE` | `/admin/store/products/{id}` | Bound by **id**. `gtin`, `mpn`, `condition`, `google_product_category`, `weight_grams`, `feed_include`; `meta.conditions` on the index |
+| `GET` | `/admin/store/promo` | The shop front's promo band and the two tiles above it: the eight `store_promo_*` and fourteen `store_tile_{1,2}_*` settings rows in the `GET /admin/settings` row shape (`key`, `value`, `type`, `url` for a picture), band first then tile 1 then tile 2. **Declared above `store/{anything}`** |
+| `PATCH` | `/admin/store/promo` | `settings: [{key, value}]`. **Refuses any key outside the twenty-two** with a 422 naming it, rather than ignoring it. Checks run by suffix: a `_enabled` is `0`/`1`; a `_cta_href` is a path, an http(s) URL, a `mailto:` or a `tel:` (a menu custom link's shape); an `_image_path` must be a media-library path, blank to clear |
+| `GET`/`POST` | `/admin/store/products` | `?status=`, `?type=`, `?category=`, `?out_of_stock=1`, `?notices=1` (somebody waiting to hear it is back), `?q=`. Every row carries `notices_waiting` |
+| `GET` | `/admin/store/products/export` | The catalogue as a CSV: one row per product and one per variation (`parent_sku` filled), money as plain rupee decimals, every cell escaped. **Declared above `products/{id}`** |
+| `POST` | `/admin/store/products/import/analyse` | multipart `file` (CSV or `.xlsx`, 10MB) plus `mapping[<field>]=<column index>` once mapped. A dry run: writes nothing, answers `headers`, `fields`, the `mapping` (guessed, or as sent — a blank sent back beats a guess), `counts` per outcome, the first fifty `problems` and a `preview` |
+| `POST` | `/admin/store/products/import` | `file` (the path `analyse` handed back), `mapping`. Commits; 201 with the `store_product_imports` row: `counts`, `problems` |
+| `GET`/`PATCH`/`DELETE` | `/admin/store/products/{id}` | Bound by **id**. `gtin`, `mpn`, `condition`, `google_product_category`, `weight_grams`, `feed_include`, `notices_waiting`; `warranty` (255), `applications` (text), `service_ids[]` (the services that install or support it, replaced wholesale; read back as `service_ids` and `services: [{id, title, slug}]`), `faqs[]`, `answer_blocks[]`; `meta.conditions` and `meta.answer_block_kinds` on the index |
 | `GET`/`POST` | `/admin/store/categories` | |
 | `GET`/`PATCH`/`DELETE` | `/admin/store/categories/{id}` | Deleting keeps the products |
+
+**The promo band is a narrow door onto the settings table.** Settings as a
+whole are `role:admin` — the SMTP password and the COD ceiling sit in the same
+table — and that does not change. A promotion on the shop front is a store
+manager's job, so `/admin/store/promo` reaches the `store_promo` group (its own
+settings group since 2026-09-20, public, read by the shop front by key) under
+`role:store_manager` and no other key. The console's Store → Promo banner
+screen is the only door: the group is left out of the settings strip, the
+info bar's rule. An administrator may still write the same keys through
+`PATCH /admin/settings`.
+
+**The import matches by SKU and never creates a variation.** A line whose SKU
+is a variation's updates that variation (price, stock, GTIN, MPN, weight,
+oversell); one whose SKU is a product's updates the product's editable
+columns; one matching nothing **creates a product** — a name and a price
+required, `type` defaulting to physical and `status` to draft, the slug
+derived from the name when blank. A line naming a `parent_sku` can only
+update: a variation is a set of options a buyer picks from, and a cell cannot
+say what those are. A SKU matching more than one row, or repeated in the
+file, is refused. **A blank cell leaves the field alone**; only a mapped,
+filled cell writes, so clearing a value stays a job for the form. Prices are
+parsed from the text through `Money::fromRupeeString()` — `₹1,179.99`,
+`1179.99` — and a cell it cannot read makes the line `invalid` rather than
+₹0; `status`, `condition` and `type` are refused outside their enums; a
+category or brand slug nobody has refuses the line, never mints one. Each
+line is its own transaction, so a refused line costs nothing but itself.
+Every stock change goes through `StockLedger::adjusted()` with a note naming
+the import, so the ledger says which spreadsheet put forty on the shelf.
 
 **`role:store_manager`, not `content_manager`.** Blast radius rather than skill:
 this holds prices, stock and the digital-code inventory, none of which can be
@@ -1138,7 +1207,7 @@ the selectors on the product page would shuffle between two loads.
 | `GET`/`POST` | `/admin/store/products/{id}/codes` | The code inventory. The listing never contains a code |
 | `POST` | `/admin/store/codes/{id}/reveal` | Read one, recorded |
 | `DELETE` | `/admin/store/codes/{id}` | Unsold codes only |
-| `GET` | `/admin/store/dashboard` | The shop at a glance. `?days=` of 7, 30 or 90 |
+| `GET` | `/admin/store/dashboard` | The shop at a glance. `?days=` of 7, 30 or 90. `funnel` is `{product_views, paid_orders, views_to_orders}` — the views from Google Analytics over the window, **null** when GA4 is not connected or refused, and the rate (paid orders ÷ views, 0–1 to four places) null with it or over a measured zero |
 | `GET` | `/admin/store/reports` | What sold between two dates. `?from=`, `?to=`, `?group=` |
 | `GET` | `/admin/store/reports/export` | The same range as a CSV. `?type=orders` or `products` |
 | `GET` | `/admin/store/stock` | What came in and what went out. `?from=`, `?to=`, `?product=`, `?reason=`, `?direction=in\|out` |
@@ -1182,7 +1251,8 @@ gross and refunds apart, so a figure matching neither has to be reverse
 engineered before it can be used.
 
 **`attention` is what is waiting on a person**, and each figure is the same query
-as the list it links to. `awaiting_codes` is the one worth knowing about: a paid
+as the list it links to. `awaiting_stock` is products with a back-in-stock
+notice nobody has sent, the `?notices=1` filter's own scope. `awaiting_codes` is the one worth knowing about: a paid
 order short of an activation code reads as `paid` in every status column, so
 before this nothing in the console said a customer was waiting. `out_of_stock`
 and `codes_exhausted` are the two that are about the shop rather than the queue -
@@ -1281,13 +1351,13 @@ authenticated customer — no code path here can reach another customer's data.
 |---|---|---|
 | `POST` | `/auth/login` | Public. Returns token + customer |
 | `POST` | `/auth/logout` | Revokes the current token |
-| `GET` | `/auth/me` | The signed-in customer |
+| `GET` | `/auth/me` | The signed-in customer, and `meta.impersonated` — true on a token from `POST /admin/customers/{id}/impersonate` |
 | `PATCH` | `/auth/profile` | Name, email, company, phone, password, **billing/delivery address and GSTIN**. Changing the password revokes every other session |
 | `GET` | `/tickets` | `?status=`, `?per_page=` (max 50) |
 | `GET` | `/tickets/summary` | Counts by status for the dashboard |
-| `POST` | `/tickets` | multipart. `subject`, `description`, `ticket_category_id`, `priority`, `attachments[]` |
-| `GET` | `/tickets/{reference}` | Bound by reference (`TW-2026-00001`), not id. Carries `events` — the trail of status and assignment changes, oldest first; never a note |
-| `POST` | `/tickets/{reference}/messages` | multipart. `body`, `attachments[]` |
+| `POST` | `/tickets` | multipart. `subject`, `description`, `ticket_category_id`, `priority`, `attachments[]`, `is_sensitive` (the description stored encrypted; see the message rule below) |
+| `GET` | `/tickets/{reference}` | Bound by reference (`TW-2026-00001`), not id. Carries `events` — the trail of status and assignment changes, oldest first; never a note — and `merged_into`, the reference of the ticket this one was merged into, or null |
+| `POST` | `/tickets/{reference}/messages` | multipart. `body`, `attachments[]`, `is_sensitive` (stored encrypted, announced but never quoted in the email, never sent to a webhook — see below) |
 | `POST` | `/tickets/{reference}/messages/{id}/rating` | `rating` 1–5 on a staff reply. Changeable. 404 for anything that is not a visible staff reply on this ticket |
 | `POST` | `/tickets/{reference}/messages/{id}/report` | `reason` (5–2000 chars). Re-sending re-words it and keeps `reported_at` |
 | `POST` | `/tickets/{reference}/close` | |
@@ -1329,6 +1399,21 @@ the index), and the console shows the stars and the reason under the reply.
 **Attachments live on the private disk** and only ever stream through this
 authorised endpoint. There is no public URL for one.
 
+**A message marked `is_sensitive` is stored encrypted (2026-09-21).** Either
+side may set it. The body is sealed with `Crypt` on save and opened on read,
+so `body` on every resource is the plain text and `is_sensitive` is the flag
+the lock is drawn from; the row in the table is ciphertext. The
+`TicketReplied` email carries "This reply is marked sensitive. Open the
+ticket to read it." in place of the excerpt, and **no `ticket.replied`
+webhook is emitted** — the delivery row would hold the body in clear. A row
+that will not decrypt answers "This message could not be decrypted." rather
+than a 500. **The ticket's own `description` takes the same switch** on
+`POST /tickets`: sealed the same way, `is_sensitive` on the ticket resource,
+the `TicketCreated` email announcing it without quoting it — and, unlike a
+message, the ticket's webhooks are still emitted with `description` redacted
+to "Marked sensitive; open the ticket to read it.", because a ticket's
+existence is what an integration is told. The subject is never sealed.
+
 ---
 
 ## Admin — tickets (`role:support_engineer`)
@@ -1339,12 +1424,16 @@ authorised endpoint. There is no public URL for one.
 | `GET` | `/admin/new-since?since=<iso>` | The sidebar's poll: `{since, tickets, leads, enquiries}` created after that moment — each **null for a role that cannot open the screen**, never zero. Staff-wide; three counts and nothing else, where `/admin/dashboard` builds thirty days of metrics. 422 without `since` |
 | `GET` | `/admin/search?q=` | The console's command palette. Groups of five — tickets, customers, leads, products, posts, pages, orders, shop products — **each present only for a role that may open it**. Staff-wide, not role-gated; the controller filters. Two-character floor. `admin_path` is a console route |
 | `GET` | `/admin/users` | Active staff, for assignment pickers |
-| `GET` | `/admin/tickets` | `?status=`, `?priority=`, `?assigned_to=`, `?unassigned=1`, `?overdue=1`, `?reported=1` (a reply the customer reported), `?open=1` (the dashboard's `Ticket::open()`), `?q=`, `?per_page=` (max 100). Critical first, then oldest — or `?sort=created\|due\|subject\|status\|priority` with `?dir=asc\|desc` |
+| `GET` | `/admin/tickets` | `?status=`, `?priority=`, `?assigned_to=`, `?unassigned=1`, `?overdue=1`, `?reported=1` (a reply the customer reported), `?open=1` (the dashboard's `Ticket::open()`), `?customer=<id>` (one customer's — the merge picker, with `?open=1`), `?q=`, `?per_page=` (max 100). Critical first, then oldest — or `?sort=created\|due\|subject\|status\|priority` with `?dir=asc\|desc` |
 | `POST` | `/admin/tickets/bulk` | `ids[]` (max 50) plus the `PATCH` fields. **200 always**, with `updated[]` and `refused[]` per reference — an illegal move on one ticket never undoes the others. Declared above `tickets/{ticket}` |
 | `GET` | `/admin/tickets/{reference}` | Includes internal notes and the audit trail |
 | `PATCH` | `/admin/tickets/{reference}` | `status`, `priority`, `assigned_to`, `ticket_category_id` |
-| `POST` | `/admin/tickets/{reference}/reply` | multipart. `body`, `is_internal`, `attachments[]` |
+| `POST` | `/admin/tickets/{reference}/reply` | multipart. `body`, `is_internal`, `is_sensitive`, `attachments[]` |
+| `POST` | `/admin/tickets/{reference}/merge` | `into` (a reference). Answers the **target**. 422 on `into` with a sentence when the two are one ticket, belong to different customers, the source is already merged, the target is not open, or nothing answers to the reference |
+| `GET` | `/admin/tickets/{reference}/canned-replies` | Every saved reply with its placeholders **already filled for this ticket** and the signed-in engineer. Not paginated |
 | `GET` | `/admin/ticket-attachments/{id}` | Staff download — no ownership check, and internal-note attachments are allowed |
+| `GET`/`POST` | `/admin/canned-replies` | The desk's saved replies, stored text with its `{{placeholders}}`. `?q=`, `?per_page=` (max 100). `meta.placeholders` names each placeholder with a line about it |
+| `GET`/`PATCH`/`DELETE` | `/admin/canned-replies/{id}` | `title`, `body` (plain text), `sort_order` |
 
 **`status_breakdown` is keyed by the status value, not its label.** It used to
 send `"In progress"` — a decision about how to word something on a screen,
@@ -1376,6 +1465,43 @@ ticket's event log. Assigning an unassigned `open` ticket moves it to
 `assigned` automatically, and a customer-visible reply on an `open` ticket
 moves it to `in_progress` and stops the first-response SLA clock — an
 internal note does neither.
+
+**A merge is one transaction and every state may make it.** `merge` re-points
+the source's messages and attachments at the target, sets
+`tickets.merged_into_id` on the source, closes it with `closed_at` —
+directly, past `canTransitionTo()`, because a merge is not a ticket being
+worked to a close but a ticket ceasing to be where the work is — writes a
+`merged_into` event on the source (`to_value` the target) and a
+`merged_from` on the target (`from_value` the source), and leaves an internal
+note on the target reading "Merged from TW-… — <subject>" with the source's
+original request under it. Then one `TicketMerged` to the customer, queued,
+through `Notifier`, editable at `/admin/settings/email-templates` as
+`ticket_merged`.
+
+**Across customers is refused, not confirmable.** It would put one customer's
+messages on another's ticket — the one thing the portal's ownership check
+exists to make impossible — so the 422 says so and no confirmation reaches
+it.
+
+**A merged source is closed for good.** `PATCH` refuses every status change
+on it naming the target, `POST /tickets/{reference}/reopen` refuses from the
+portal, and both ticket resources carry `merged_into` (the target's
+reference, or null) so a read of the source still answers 200 and the
+screens link to where the conversation went. The inbound piper follows
+`merged_into_id` to the end of the chain before the "sender's own open
+ticket" rule, so a reply quoting the old reference lands on the target
+rather than opening a follow-up to a ticket that was closed to make one
+thread.
+
+**Saved replies are filled by the API, never by the console.** The
+per-ticket read runs each body through `Placeholders::fillText` with
+`customer_name`, `first_name` (the first word of the name), `company`,
+`reference`, `subject` and `agent_name`; an unknown name is stripped rather
+than left in braces. `EmailRenderer::personalise` is deliberately not used —
+it pre-seeds a *subscriber's* fields and turns a blank first name into
+"there", and a reply pasted into a ticket has a customer. The management
+index carries `meta.placeholders` so the form's chips and the fill are one
+list.
 
 ---
 
@@ -1543,7 +1669,7 @@ cannot collide with an editor's field name, which is validated against
 `source_path` is **derived** from the URL here rather than accepted, so a lead
 cannot claim a page its own URL contradicts.
 
-**The buying words are the constant plus Settings → Leads.** `lead_intent_words`
+**The buying words are the constant plus Leads → Scoring.** `lead_intent_words`
 (private `leads` group) extends `LeadScore`'s list one word or phrase per line,
 lower-cased and de-duplicated, matched with the same word boundaries and
 inflections. `php artisan technoware:rescore-leads` restates every lead on the
@@ -1726,6 +1852,7 @@ to act on and invites a loop.
 | `POST` | `/admin/customers/{id}/reject` | `note` (staff-only). Revokes every token |
 | `POST` | `/admin/customers/{id}/status` | `status` of `active` or `suspended`, plus `note` |
 | `POST` | `/admin/customers/{id}/resend-verification` | |
+| `POST` | `/admin/customers/{id}/impersonate` | "View as": `{token, customer, expires_at}` — a one-hour `impersonation` token. 422 with a sentence unless the account is active |
 
 **`role:support_engineer`, not `role:admin`.** Deciding whether somebody is a
 customer is support-desk work; behind the administrator role every registration
@@ -1755,6 +1882,25 @@ endpoints, each of which does something besides writing the column — sends an
 email, stamps who decided, revokes tokens. A status settable through the form
 would be a way to suspend an account while leaving its session alive.
 
+**"View as" mints a token of its own, never a `portal` one.** `impersonate`
+answers a Sanctum token named `impersonation` with abilities `portal` and
+`impersonation`, expiring in an hour; a fresh press retires the previous one
+for that customer. It does not go through the login's `issueToken()`, which
+deletes every `portal` token first — signing the customer out of their own
+browser while somebody is trying to help them — and stamps `last_login_at`,
+which the console shows as "Last signed in" and a staff visit must not forge.
+Only an active account: `EnsureUserIsCustomer` refuses every portal request
+for any other status, so a token for one would open a tab that 403s. The
+route sits in the `customers` group and is recorded in the activity log with
+the customer as subject; the logger reads request input only, so the token
+never reaches it. On the token, `GET /auth/me` carries `meta.impersonated:
+true` (the portal draws its banner from it) and `PATCH /auth/profile` refuses
+`email` — the one field a staff session may not touch, because the portal
+path changes an address without re-verifying it. Everything else is theirs
+to do, an order included: reproducing the customer's problem is the point.
+The frontend reaches it from a **POST-only** route handler for the reason
+`docs/customers.md` gives.
+
 ## Admin — CMS (`role:content_manager`)
 
 All five verbs per entity, all bound **by id, not slug** — the edit form
@@ -1765,16 +1911,16 @@ mid-save.
 
 | Entity | Base path | Beyond the common fields |
 |---|---|---|
-| Blog posts | `/admin/blog-posts` | `author_id`, `published_at`, cover image. `reading_minutes` is derived on save and not accepted |
-| Knowledge articles | `/admin/knowledge-articles` | `tags[]`, `knowledge_category_id`, `published_at`. `view_count`/`helpful_count` are read-only telemetry |
+| Blog posts | `/admin/blog-posts` | `author_id`, `published_at`, cover image, `faqs[]`, `answer_blocks[]`. `reading_minutes` is derived on save and not accepted |
+| Knowledge articles | `/admin/knowledge-articles` | `tags[]`, `knowledge_category_id`, `published_at`, `faqs[]`, `answer_blocks[]`. `view_count`/`helpful_count` are read-only telemetry |
 | Case studies | `/admin/case-studies` | `client_name`, `industry_id`, `results[{value,label}]`, cover image. **No `published_at`** — status alone decides |
-| Solutions | `/admin/solutions` | `problem_statement`, `overview` (rich text), `benefits[]`, `technologies[]`, `icon`, `hero_image_path`, `sort_order`, `product_ids[]`, `industry_ids[]`, `faqs[{question,answer}]` |
-| Services | `/admin/services` | `icon`, `sort_order`, `faqs[{question,answer}]`. No `published_at` |
-| Industries | `/admin/industries` | `icon`, `sort_order`, `solution_ids[]`. Titled `name`, **not** `title`, and has **no `status`** — an industry is reference data the catalogue points at, not something you draft |
-| Pages | `/admin/pages` | `template`, `published_at`. No `summary`. `blocks` is deliberately not accepted — the column exists for block-assembled pages, which need a block editor; raw JSON here would let a typo corrupt a page invisibly |
-| Product categories | `/admin/product-categories` | `parent_id`, `icon`, `image_path`, `sort_order`. Titled `name`, and **no `status`** — taxonomy, like industries. `description` is plain text, not rich |
-| Products | `/admin/products` | `sku`, `brand_id`, `product_category_id`, `specifications`, `features[]`, `images[]`, `datasheet_path`, `is_featured`, `sort_order`, `solution_ids[]`, `related_product_ids[]`, `faqs[]`. Titled `name`. **No `published_at`** — status alone decides |
-| Brands | `/admin/brands` | `logo_path`, `sort_order`, `is_featured`, `partner_tier`. Titled `name`, and **no `status` and no `seo`** — a brand is a filter facet on the product listing, not a page |
+| Solutions | `/admin/solutions` | `problem_statement`, `overview` (rich text), `benefits[]`, `technologies[]`, `icon`, `hero_image_path`, `sort_order`, `product_ids[]`, `industry_ids[]`, `faqs[{question,answer}]`, `answer_blocks[]` |
+| Services | `/admin/services` | `icon`, `sort_order`, `faqs[{question,answer}]`, `answer_blocks[]`. No `published_at` |
+| Industries | `/admin/industries` | `icon`, `sort_order`, `solution_ids[]`, `faqs[]`, `answer_blocks[]`. Titled `name`, **not** `title`, and has **no `status`** — an industry is reference data the catalogue points at, not something you draft |
+| Pages | `/admin/pages` | `template`, `published_at`, `faqs[]`, `answer_blocks[]`. No `summary`. `blocks` is deliberately not accepted — the column exists for block-assembled pages, which need a block editor; raw JSON here would let a typo corrupt a page invisibly |
+| Product categories | `/admin/product-categories` | `parent_id`, `icon`, `image_path`, `sort_order`, `faqs[]`, `answer_blocks[]`. Titled `name`, and **no `status`** — taxonomy, like industries. `description` is plain text, not rich |
+| Products | `/admin/products` | `sku`, `brand_id`, `product_category_id`, `specifications`, `features[]`, `images[]`, `datasheet_path`, `is_featured`, `sort_order`, `solution_ids[]`, `related_product_ids[]`, `faqs[]`, `answer_blocks[]`. Titled `name`. **No `published_at`** — status alone decides |
+| Brands | `/admin/brands` | `logo_path`, `sort_order`, `is_featured`, `partner_tier`, `faqs[]`, `answer_blocks[]`. Titled `name`, and **no `status` and no `seo`** — a brand is a filter facet on the product listing, not a page; it takes FAQs and answer blocks because "is this brand's kit supported?" is a question the brand is the record to answer |
 | Certifications | `/admin/certifications` | `issuer`, `certificate_number`, `image_path` (the certificate itself, drawn 3:4 portrait), `file_path` (a media-library PDF), `issued_on`, `valid_until`, `description`. Titled `name`; **no slug, no `seo`** — listed on `/certifications`, no page of its own. `is_expired` on the admin resource |
 | Clients | `/admin/clients` | `logo_path`, `website_url` (http(s) only), `industry_id`, `note`, `is_featured`. Titled `name`; no slug, no `seo` |
 | Team members | `/admin/team-members` | `designation`, `department`, `photo_path`, `bio`, `email`, `linkedin_url`, `certifications[{name,issuer,credential_id,issued_on,expires_on}]` — **replaced wholesale**, `[]` clears. `meta.departments` on the index and the read. Titled `name`; no slug, no `seo`, **no phone** |
@@ -1796,6 +1942,39 @@ the binary log rather than from anything this application keeps.
 Common to all: `title`, `slug`, `summary`/`excerpt`, `body`, `status`
 (`draft`/`published`/`archived`) and a nested `seo` object — with the two
 exceptions called out above.
+
+**Answer blocks (2026-09-21).** Eleven entities — pages, products, store
+products, product categories, store categories, brands, services, solutions,
+blog posts, knowledge articles and industries — accept `answer_blocks[]`:
+`{kind, question?, answer, detail?, status?}`, replaced wholesale on save,
+`[]` clears, an absent key leaves them alone (the `faqs` rule). `kind` is
+`App\Enums\AnswerBlockKind` — `definition`, `who_for`, `why`, `key_fact`,
+`feature`, `use_case`, `comparison`, `step`, `question` — and decides which
+section of the public page draws the block; `question` is required for
+`question` and `comparison` and optional otherwise; `answer` is the direct
+answer, plain text, at most 600 characters; `detail` is rich text through the
+sanitiser; `status` is `draft` or `published` (the default). Every admin
+detail read carries `answer_blocks: [{id, kind, question, answer, detail,
+sort_order, status}]` and every admin index carries
+`meta.answer_block_kinds: [{value, label, heading, asks_question}]` — the
+console never retypes the list. Every public detail read carries the
+**published** blocks, in order, as `answer_blocks: [{kind, question, answer,
+detail, heading}]`; index rows carry no key. Validation errors arrive as
+`answer_blocks.N.field`.
+
+**Every public detail read also carries `entity` and, when earned,
+`faq_schema`.** `entity` is `{brand?, category?, solutions[], services[],
+industries[], articles[], faq_count}` — each link `{name, path}`, a path and
+never a URL — built by `App\Support\EntityLinks` from the relations the
+controller loaded, plus the published posts and knowledge articles whose body
+links to the page (`articles`). The record's graph mirrors it as `about` (the
+category and solutions) and `mentions` (the rest), `Thing` stubs with a name
+and a URL. `faq_schema` is an `FAQPage` over the record's FAQs and its
+`question` blocks, **absent under two entries**: never an FAQ page over one
+question. The `Organization` node's `knowsAbout` (published solution titles)
+and `areaServed` (active location names) reach the frontend as two
+JSON-encoded strings on the public `/settings` map,
+`organization_knows_about` and `organization_area_served`, absent when empty.
 
 | Method | Path |
 |---|---|
@@ -1832,7 +2011,7 @@ same shape until products gained full CRUD, and went the same way.
 | `DELETE` | `/admin/media-folders/{id}` | **Keeps the files** — they become unfiled |
 | `GET` | `/admin/media` | Paginated. `?q=` on filename, **alt text, description and tags**, `?folder=` (an id, or `unfiled`), `?kind=image\|file`, `?sort=`, `?direction=`, `?trashed=1`, `?per_page=` (default **10**, max 100) |
 | `POST` | `/admin/media` | multipart `file` + optional `alt_text`, `folder_id` |
-| `PATCH` | `/admin/media/{id}` | `filename`, `alt_text`, `description`, `tags[]`, `folder_id` |
+| `PATCH` | `/admin/media/{id}` | `filename`, `alt_text`, `description`, `tags[]`, `folder_id`, `focal_x` + `focal_y` (0–100, **together or not at all**; both null is the centre) |
 | `POST` | `/admin/media/move` | `ids[]`, `folder_id` (null means Unfiled) |
 | `POST` | `/admin/media/copy` | `ids[]`, optional `folder_id`. Duplicates the bytes |
 | `POST` | `/admin/media/delete` | `ids[]`. To the bin, not off the disk |
@@ -1994,11 +2173,32 @@ in gets worked around.
 **Alt text lives with the file, and the public resources resolve it by path.**
 Records store a path, not a media id — `cover_image_path`, `images[]` — so the
 path is the only link from a published image back to the row that describes it.
-`App\Support\MediaAlt` loads the whole `path => alt_text` map once per request
-and memoises it, because a products index renders twenty images and twenty
-queries for twenty short strings is the wrong trade. Public resources therefore
-carry `cover_image_alt` (blog, case studies), `hero_image_alt` (solutions) and
-`image_alts` (products — a parallel array, same order and length as `images`).
+`App\Support\MediaMeta` loads the whole `path => {alt, focus}` map once per
+request and memoises it, because a products index renders twenty images and
+twenty queries for twenty short strings is the wrong trade. Public resources
+therefore carry `cover_image_alt` (blog, case studies), `hero_image_alt`
+(solutions) and `image_alts` (products — a parallel array, same order and
+length as `images`).
+
+**The focal point lives with the file too, by the same rule.** `media.focal_x`
+and `media.focal_y` are where the subject is, as a percentage of the width and
+of the height; null is the centre, which is where every crop landed before the
+columns existed. `PATCH /admin/media/{id}` takes the pair **together or not at
+all** — one without the other is a 422 naming the missing half, and both null
+is "Reset to centre" — and the admin resource returns the two numbers. Every
+public resource that carries a `*_alt` carries a `*_focus` beside it, already
+formatted as CSS `object-position` wants it — `"30% 20%"` — or **null when
+nobody has chosen one**, never a centre string, so a client can tell unset from
+chosen and set no style at all for the first: `cover_image_focus`,
+`hero_image_focus`, `image_focus` (categories, store categories, popups,
+variations, certifications), `logo_focus`, `photo_focus`, `focus` on a slide
+and a gallery item, and `image_focuses` parallel to `image_alts`. The public
+`/settings` adds `<prefix>_focus` beside every `<prefix>_url` whose file has
+one (`logo_focus`, `banner_default_focus`, `login_image_focus`), and the
+theme options' `image_focus` rides beside `image_url`. A focal point only ever
+moves the crop — nothing is resized, padded or letterboxed by it — and it
+applies to a vector as much as to a photograph, since it is a rule about
+cropping rather than pixels.
 
 Strictly, alt text describes an image *in context*, and the same photograph can
 warrant different wording in two places. For a hardware catalogue the answer is
@@ -2190,6 +2390,7 @@ complaint, which costs the sending domain far more.
 | `GET`/`POST` | `/admin/newsletter/campaigns` | |
 | `GET`/`PATCH`/`DELETE` | `/admin/newsletter/campaigns/{id}` | A sent campaign refuses `PATCH` |
 | `POST` | `/admin/newsletter/campaigns/{id}/duplicate` | 201: a draft named "… (copy)" with the wording and the groups, and no recipients, events, schedule or health score. The only way to send again |
+| `POST` | `/admin/newsletter/campaigns/{id}/resend` | `subject`. 201 with a new campaign named "… — resend", already `sending` to the original's non-openers under the new line. 422 with a sentence when the campaign is not `sent`, has been resent already, or nobody is left; 422 with `errors.health` on the same blocking checks as `send`. See below |
 | `GET` | `/admin/newsletter/campaigns/{id}/audience` | The counts, and every removal |
 | `GET` | `/admin/newsletter/campaigns/{id}/health` | The deliverability heuristic |
 | `POST` | `/admin/newsletter/campaigns/{id}/test` | Throttled 6/min. Creates no recipient |
@@ -2197,6 +2398,15 @@ complaint, which costs the sending domain far more.
 | `POST` | `/admin/newsletter/campaigns/{id}/decide` | End a subject test now: `winner` of `a` or `b`, or nothing to go by the opens. 422 when there is no undecided test |
 | `GET` | `/admin/newsletter/campaigns/{id}/report` | |
 | `GET`/`POST`/`DELETE` | `/admin/newsletter/suppressions` | Lifting an unsubscribe is refused |
+| `GET`/`POST` | `/admin/newsletter/sequences` | Automation sequences. `name`, `status` (`active`/`paused`), `newsletter_group_id` (null = every new subscriber), `from_name`, `from_email`, `reply_to`. The index carries `steps_count` and `active_enrolments`; `meta.statuses` |
+| `GET`/`PATCH`/`DELETE` | `/admin/newsletter/sequences/{id}` | A detail read lists `steps[]` and `enrolments` counts. `PATCH` to `active` runs the blocking checks on every step: 422 with `errors.health` naming the step. `DELETE` is 422 while anybody is `active` |
+| `POST` | `/admin/newsletter/sequences/{id}/steps` | `subject`, `delay_days` (0–365), optional `newsletter_template_id` (blocks copied server-side). A campaign row at status `automation`, positioned last. 201 with the sequence |
+| `PATCH` | `/admin/newsletter/sequences/{id}/steps/reorder` | `ids[]` — every step exactly once; renumbered 1..n. **Declared above `steps/{campaign}`** |
+| `PATCH`/`DELETE` | `/admin/newsletter/sequences/{id}/steps/{campaign}` | `delay_days`; or remove it and renumber the rest. A campaign that is not this sequence's step is a 404 |
+| `POST` | `/admin/newsletter/sequences/{id}/enrol` | `subscriber_ids[]`, `group_id`, `emails[]` (resolved against the list). A count per outcome: `enrolled`, `already_enrolled`, `not_active`, `suppressed`, `no_steps`, `unknown` |
+| `GET` | `/admin/newsletter/sequences/{id}/enrolments` | `?status=`, paginated, newest first, with the subscriber. `meta.statuses` |
+| `POST` | `/admin/newsletter/sequences/{id}/enrolments/{enrolment}/cancel` | Stops one. 422 when it is not `active` |
+| `GET` | `/admin/newsletter/sequences/{id}/report` | Per step `{position, subject, delay_days, sent, opened, clicked}` off the step's recipient rows, and `enrolments` by status |
 
 **Addresses are verified through Hunter.io, a few a night, and never twice.**
 Optional: nothing happens without `hunter_api_key` (encrypted, `integrations`
@@ -2305,6 +2515,52 @@ nobody presses them.
 Kept in step by `App\Models\Customer`'s `saved` hook for the ordinary path and
 `technoware:sync-customer-group` nightly for whatever reached the table without
 firing an event.
+
+**A resend is a campaign, once.** `POST …/resend` copies a `sent` campaign
+through the same mechanics as `duplicate` — a fresh row with the wording and
+none of the history — gives it the new `subject`, no `subject_b` (a second
+attempt is not an experiment), and `resend_of_id` pointing at the original.
+Its audience is the original's recipients at status `sent` with no
+`opened_at`, put through the **same** eligibility rule as any send
+(`AudienceResolver::freezeFrom()`: active, a sendable verification verdict,
+not suppressed), so somebody who unsubscribed between the two sends is not
+mailed a second time; then it is queued through `CampaignSender` behind the
+same blocking health checks `send` runs. `resend_of_id` is **unique**, which
+is what "once per campaign" means — two presses racing cannot both insert.
+A detail read and the report carry the pair: `resend` (`{id, name,
+recipient_count, status}` or null) on the original, `resend_of` (`{id,
+name}` or null) on the copy, and the report's `counts.non_openers` is the
+figure the panel offers before eligibility takes its share.
+
+**A sequence's steps are campaign rows, and the rest of the API refuses to
+treat them as campaigns.** Each step is a `newsletter_campaigns` row at
+status `automation` with `sequence_id`, `sequence_position` and
+`delay_days`, so it has the block editor, the health checks, tracking, the
+unsubscribe footer and a report already — a second table would have been a
+second newsletter. Its content is edited through `PATCH
+/admin/newsletter/campaigns/{id}`, which refuses `status`, `group_ids`,
+`scheduled_at` and the subject-test fields on a step and prepares the HTML
+for tracking on every save; a detail read carries `sequence` (`{id, name,
+position, delay_days}`, null otherwise). The campaigns index and the
+dashboard's totals leave steps out, `send` and `CampaignSender::queue()`
+refuse them, `completeIfDone()` never marks one done, and `DELETE
+/admin/newsletter/campaigns/{id}` sends you to the sequence instead.
+
+**A subscriber goes through a sequence once, ever.** The enrolment table is
+unique per (sequence, subscriber); joining the trigger group a second time,
+or being enrolled by hand again, reports `already_enrolled` and writes
+nothing. Enrolment happens where a subscriber is written — `SubscriberIntake`
+(new subscriber → every group-less active sequence; groups actually attached
+→ the sequences those groups trigger) and the group screen's bulk add — and
+only for an active subscriber not on the suppression list. A sequence with
+no steps enrols nobody. **The runner is the scheduler, not a listener**:
+`technoware:run-sequences` every ten minutes writes a recipient row on the
+step campaign for each enrolment past its `next_at` and dispatches the same
+`SendCampaignBatch` a campaign uses, then moves the cursor to the next
+step's position and `now + delay_days`, or completes it; a subscriber who is
+no longer active, or has been suppressed, is cancelled with the reason. A
+paused sequence's enrolments wait; a step failing a blocking health check
+is held, not sent.
 
 **A campaign may test two subject lines.** `subject_b` switches it on;
 `ab_test_percent` (10–50) is the share of the frozen list that tests, half
@@ -2554,6 +2810,7 @@ the `Role` enum already placed configuration under administrator.
 | `POST` | `/admin/settings/mail/test` | Sends one real message. Throttled 6/min |
 | `POST` | `/admin/settings/integrations/hunter/test` | Proves the saved Hunter key: 200 with `plan_name`, `reset_date`, `used`, `available`; 422 with Hunter's own words. Throttled 6/min |
 | `POST` | `/admin/settings/integrations/gsc/test` | Proves the saved Search Console service account with one real query: 200 with `site`, `days`, `pages`; 422 with Google's own words. Throttled 6/min |
+| `POST` | `/admin/settings/integrations/ga4/test` | Proves the GA4 property with the same account: one real `runReport` for yesterday, 200 with `property`, `days` (1), `pages`; 422 with Google's own words, or before any call when no property is saved. Throttled 6/min |
 | `GET` | `/admin/settings/tickets/inbound` | The support mailbox tickets are read from: `enabled`, `switched_on`, `provider`, `providers[]` (`value`, `label`, `blurb`, `fields`, `is_oauth`, `imap_host`), `address`, `account`, `connected_at`, `is_connected`, `folder`, `moves_processed`, `processed_folder`, `error`, `last_run_at`, `scheduler`, `categories[]`, `callback_path`, `php` (the extensions the IMAP library declares — `zip`, `openssl`, `mbstring`, `iconv`, `fileinfo` — each true when this server has it), `recent[]` — the last ten ledger rows with their `outcome` |
 | `POST` | `/admin/settings/tickets/inbound/authorize` | `provider` of `google` or `microsoft`, `redirect_uri` checked exactly against `/admin/settings/tickets/callback` on this site's host. Returns the consent URL |
 | `POST` | `/admin/settings/tickets/inbound/callback` | `code`, `state`. Exchanges the code, stores the `inbound_oauth_*` rows, settles `inbound_mail_provider` and fills a blank `inbound_mail_address` from the connected account |
@@ -2825,7 +3082,14 @@ the `/settings` whitelist. Anything added to them stays server-side.
 the property as a user, encrypted), `gsc_site_url` (the property as Search
 Console names it; derived from `FRONTEND_URL` as `sc-domain:` when blank) and
 `gsc_error`. The client signs its own RS256 JWT and trades it for an access
-token — no SDK, for the reason SES ships no `aws/aws-sdk-php`.
+token — no SDK, for the reason SES ships no `aws/aws-sdk-php`. Google
+Analytics 4 reads the **same** service account (`App\Support\Seo\GoogleServiceAccount`
+holds the exchange, one token per scope) and adds two rows of its own:
+`ga4_property_id`, the numeric property id — refused on write unless it is
+digits, because the `G-` measurement id is what gets pasted and addresses
+nothing on the Data API — and `ga4_error`, written by a refusal in Google's
+words and cleared by a success. Read only: nothing here writes to either
+property.
 
 **The `indexnow` group is public and holds two rows.** `indexnow_enabled` (`0`/`1`, **off by default** — `FRONTEND_URL` is the production domain on every machine, so a ping from a development laptop would name live URLs for pages that are not there yet; switch it on at launch) and `indexnow_key`, minted by `App\Support\IndexNow::key()` the first time a ping is sent and public because the protocol's key file is world-readable by design — the frontend serves it at `/indexnow/{key}.txt`. With the switch on, every indexable record (`HasSeo`) queues a `PingIndexNow` job from its `saved` and `deleted` hooks: a published record on every save, a draft only when its status changes, so the engine recrawls and finds the redirect or the 404. One `POST` to `api.indexnow.org` per change; a refusal is logged at `warning` and never retried.
 
@@ -2873,7 +3137,7 @@ the truth about it.
 
 ### Email templates
 
-Every one of the 25 system emails, editable.
+Every one of the 27 system emails, editable.
 
 | Method | Path | Notes |
 |---|---|---|
@@ -2885,7 +3149,7 @@ Every one of the 25 system emails, editable.
 | `POST` | `/admin/settings/email-templates/{key}/test` | Sends the draft to the caller. Throttled 6/min |
 
 **`{key}` is a plain string, not a bound model.** There is no row for an
-uncustomised message and binding would 404 on 25 of 25 on a fresh install.
+uncustomised message and binding would 404 on 27 of 27 on a fresh install.
 
 **Two switches, and they mean different things.** `is_enabled` is "use my
 wording" — false puts the built-in text back and the message still goes.
@@ -2941,7 +3205,7 @@ exactly the one somebody wants to check before switching it back on.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/faq-owners` | Grouped picker: solutions, services, products, pages |
+| `GET` | `/admin/faq-owners` | Grouped picker: solutions, services, products, pages — and, since 2026-09-21, product categories, store products, store categories, brands, blog posts, knowledge articles and industries |
 | `GET` | `/admin/faqs` | `?q=`, `?owner_type=`, `?owner_id=` |
 | `POST` | `/admin/faqs` | `question`, `answer` (rich text), `sort_order`, `owner_type`, `owner_id` |
 | `GET`/`PATCH`/`DELETE` | `/admin/faqs/{id}` | |
@@ -2950,13 +3214,20 @@ exactly the one somebody wants to check before switching it back on.
 public site renders an unattached one, so it would be written, saved and never
 seen. `owner_type` is the morph key (`solution`), not a class name.
 
+**Eleven owners, and each entity's own form takes `faqs[]` too.** The seven
+widened on 2026-09-21 each gained `faqs(): MorphMany` and accept
+`faqs[{question,answer}]` on their store/update requests, replaced wholesale.
+Their admin detail reads carry `faqs`; their public detail reads carry
+`faqs: [{id, question, answer}]`. The FAQPage gate reads them beside the
+`question` answer blocks — see "Answer blocks" under the CMS entities.
+
 ---
 
 ## Admin — SEO and redirects (`role:seo_manager`)
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/seo` | Indexable records, each with a score. `?type=`, `?q=`, `?issues=1`, `?check=`, `?page=`, `?per_page=` (max 200, default 50) |
+| `GET` | `/admin/seo` | Indexable records, each with a score. `?type=`, `?q=`, `?issues=1`, `?check=`, `?aeo=poor\|fair\|good`, `?geo=poor\|fair\|good`, `?aeo_check=<key>`, `?geo_check=<key>` (the records failing one named AEO or GEO check — the site card's biggest wins for each score), `?sort=aeo\|geo\|score` with `?dir=`, `?page=`, `?per_page=` (max 200, default 50) |
 | `PATCH` | `/admin/seo/sitemap` | `type`, `id`, `sitemap_include` |
 | `GET` | `/admin/redirects` | `?q=`, `?source=automatic\|manual`, `?active=` |
 | `POST` | `/admin/redirects` | `from_path`, `to_path`, `status_code`, `is_active` |
@@ -2964,7 +3235,29 @@ seen. `owner_type` is the morph key (`solution`), not a class name.
 
 **Every row carries `ai_pending`** — suggestions on that record nobody has decided on — and `?ai=pending` filters to the records holding one: the review queue a bulk run produces. `meta.ai` is the assistant's state (the same block `seo/ai/suggestions` sends), so the overview can offer "Draft for these N" only when the assistant is on and has a key; `meta.ai.usage` is what each model produced in the last ninety days and how much of it was accepted — `acceptance` is applied over decided and **null while nothing has been decided**, never zero.
 
+**With Google Analytics connected, every row carries `analytics`** — `{views, users}` (`screenPageViews` and `totalUsers`) over the same 28 days, matched on the record's public path with any query string stripped, or null where nobody opened the page — and `?analytics=no_views` filters to the pages Google shows that nobody opens: rows with search figures and no analytics row, or, without Search Console, rows with no analytics row at all; with GA4 itself off it yields nothing rather than everything. `meta.analytics` is `{configured, days, error}`, the `meta.search` shape. One cached `runReport` an hour for the whole overview (`App\Support\Seo\GoogleAnalytics`), never a call per row.
+
 **With Search Console connected, every row carries `search`** — `{clicks, impressions, ctr, position}` over the last 28 days, matched on the record's public path, or null where the page had no impressions — and `?search=no_clicks` filters to the pages shown twenty or more times and never opened. `meta.search` says whether the property is configured, over how many days, and the last refusal in Google's words (`gsc_error`, the `mail_error` pattern). One cached read an hour for the whole overview (`App\Support\Seo\SearchConsole`), never a call per row; the assistant's context lists the queries a page already appears for.
+
+**Every row carries `aeo` and `geo` beside `score`** (2026-09-21): `{value,
+band}` on the list, the full `{value, band, passed, checked, failed[]}` from
+`GET /admin/seo/{type}/{id}`. `App\Support\AeoScore` asks whether the page
+can be quoted — a definition block, three questions counting FAQs, the FAQPage
+gate, key facts or a spec sheet, use cases, a comparison on products and
+solutions, steps on articles and services, direct answers under 600
+characters, internal links, structured data. `App\Support\GeoScore` asks
+whether an engine can tell what it is quoting — the organisation complete
+(name, address, phone, email, logo), the contact details consistent, a brand
+and a category on products, solutions/services/industries linked where the
+kind of record can link them, a supporting article, an author on posts, a
+certification on file, a `why`/`who_for` block, a definition. Both are the
+`SeoScore` shape, scored out of what applies, with the applicability rules in
+the class. `?aeo=` and `?geo=` filter by band, `?sort=aeo|geo` orders by the
+figure (ending on id), `meta.site_score.aeo` and `.geo` carry the site's two
+averages with their own `top_issues` and `groups` — each key a value for
+`?aeo_check=` / `?geo_check=`, their own parameters because the three rubrics
+share `internal_links` as a key and `?check=` names the SEO score's failure —
+and every row carries the `entity` block the public read publishes.
 
 **`GET /admin/seo/{type}/{id}` re-scores one record.** What the console's
 Recheck button calls: the edit form opens in a new tab so working down a
@@ -3065,11 +3358,11 @@ are telemetry it writes, and are read-only here.
 
 | Method | Path | Notes |
 |---|---|---|
-| `POST` | `/admin/seo/ai/{action}` | `generate`, `analyze`, `improve`, `faq`, `internal_links`, `schema`, `keywords`. Body `{type, id}`. Throttled 10/min. `keywords` answers `{focus_keyword, intent, reason, secondary_keywords}`; every action is told the record's stored focus and secondary keywords and to keep them |
-| `GET` | `/admin/seo/ai/suggestions?type=&id=` | This record's history, newest first, plus `meta` |
+| `POST` | `/admin/seo/ai/{action}` | The seven SEO actions — `generate`, `analyze`, `improve`, `faq`, `internal_links`, `schema`, `keywords` — and, since 2026-09-21, the eight AEO/GEO ones: `aeo_analyze`, `questions`, `answer_blocks`, `improve_answer`, `faq_suggest`, `geo_analyze`, `entity_links`, `product_qa`. Body `{type, id}`, plus **`block_id`** for `improve_answer` (required; 422 on `block_id` when absent or when the block is not this record's own). Throttled 10/min. `keywords` answers `{focus_keyword, intent, reason, secondary_keywords}`; every action is told the record's stored focus and secondary keywords and to keep them. The AEO/GEO shapes are below |
+| `GET` | `/admin/seo/ai/suggestions?type=&id=` | This record's history, newest first, plus `meta` — `meta.actions` is all fifteen with `label` and `description` |
 | `POST` | `/admin/seo/ai/suggestions/{id}/status` | `applied` or `rejected`. Reversible |
-| `GET` | `/admin/seo/ai/context?type=&id=` | Exactly what the model would be told, and its token count |
-| `POST` | `/admin/seo/ai/bulk` | `{action, type, ids[]}` (max 25). Queues one `RunSeoSuggestion` job per record; **202** with `queued`, `skipped_pending`, `skipped_cap`, `delivering`. The three refusals (off, no key, cap) are made before anything is queued; a record with a `pending` suggestion for that action is skipped; never queues past what is left of the day's cap. Throttled 10/min |
+| `GET` | `/admin/seo/ai/context?type=&id=` | Exactly what the model would be told, and its token count. `&action=` picks the action's own prompt, `&block_id=` names the block for `improve_answer` |
+| `POST` | `/admin/seo/ai/bulk` | `{action, type, ids[]}` (max 25). Queues one `RunSeoSuggestion` job per record; **202** with `queued`, `skipped_pending`, `skipped_cap`, `delivering`. The three refusals (off, no key, cap) are made before anything is queued; a record with a `pending` suggestion for that action is skipped; never queues past what is left of the day's cap. `improve_answer` is refused on `action` — it works on one block. Throttled 10/min |
 | `POST` | `/admin/seo/ai/test-model` | One real call, to prove a model id works. Throttled 6/min |
 
 **Declared above `seo/{type}/{id}`**, or `{type}` binds the literal `"ai"` and
@@ -3091,6 +3384,33 @@ deliberate exception, for the reason `/admin/settings/mail/test` is.
 **A suggestion cannot name a page that does not exist.** Internal links are
 chosen by index from a numbered list of real published records; anything outside
 it is dropped. Schema is constrained to `SchemaTypes::for()` for that record.
+
+**The AEO/GEO actions (`docs/aeo-geo-contract.md` §6) answer these shapes**,
+each whitelisted key by key like the seven before them:
+
+| Action | `result` |
+|---|---|
+| `aeo_analyze`, `geo_analyze` | `{summary, strengths[], gaps[], suggestions[]}` — up to 8 a list |
+| `questions` | `{questions: [{question, intent}]}` — up to 8, no question twice |
+| `answer_blocks`, `product_qa` | `{blocks: [{kind, question, answer, detail}]}` — up to 8; `kind` is an `AnswerBlockKind` value and **a row with a kind the enum does not know is dropped**, as is a `question`/`comparison` row with no `question`; `answer` is plain text ≤ 600; `detail` is `<p>` paragraphs built here from escaped text, or null |
+| `improve_answer` | `{answer, detail}` for the one block `block_id` named |
+| `faq_suggest` | `{faqs: [{question, answer}]}`, the `faq` shape |
+| `entity_links` | `{links: [{n, relation, title, path, reason}]}` — `n` into the numbered list of real solutions, services, industries, published posts and articles and catalogue products the model was shown; an `n` outside it is dropped, and `relation` (`solution`/`service`/`industry`/`article`/`product`) is **the list's**, never the model's word |
+
+**`[MISSING: what]` is kept verbatim.** The answer-writing actions are told —
+outside the fence, in the API's own words — that a fact the material does not
+give is written as `[MISSING: what is missing]`, never guessed; a store product
+is given its facts (brand, SKU, GTIN, MPN, category, price, availability,
+warranty, applications, specifications, features, the services that install it)
+with a blank one named `(not entered)`. The marker survives validation
+untouched so the editor sees it before pressing Apply. The context also carries
+the answer blocks (drafts included) and the FAQs already on the page, inside
+the fence, so a draft adds rather than repeats.
+
+**Apply never reaches this API.** The console adds the suggested blocks and
+FAQs to the record's own repeaters as unsaved drafts; Save goes through the
+record's update endpoint with `CmsFieldRules::answerBlocks()` and
+`HtmlSanitiser` as a typed row does.
 
 **Off by default** (`seo_ai_enabled`, private `seo` group). Switched off, these
 endpoints refuse before the provider is reached and the console renders no AI
@@ -3131,27 +3451,113 @@ last one, two administrators can each demote the other.
 
 ---
 
+## Admin — webhooks (`role:admin`)
+
+Outgoing webhooks: another system told, by a signed POST to a URL of its
+own, that a lead, a ticket, an order, a customer, a form submission or a
+subscriber arrived here.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/webhooks` | Paginated, by name. `?active=0\|1`, `?per_page=` (max 100). `meta.events` is the subscribable list with `label` and `blurb` |
+| `POST` | `/admin/webhooks` | `name`, `url`, `events[]`, `is_active`. **201 carries `secret`**, on this response only |
+| `GET` | `/admin/webhooks/{id}` | Never carries `secret`; `has_secret` is the most it says |
+| `PATCH` | `/admin/webhooks/{id}` | The same fields, each optional. `rotate_secret: true` mints a new one and answers it once |
+| `DELETE` | `/admin/webhooks/{id}` | Its deliveries cascade |
+| `POST` | `/admin/webhooks/{id}/ping` | One `ping` to this hook, subscribed or not. **202** with `{delivery_id}`. Throttled 30/min |
+| `GET` | `/admin/webhooks/{id}/deliveries` | Newest first. `?status=pending\|delivered\|failed`, `?per_page=` (max 100). **No `payload`** on the list |
+| `GET` | `/admin/webhooks/{id}/deliveries/{delivery}` | One delivery, **with `payload`** — the `data` of the envelope that was sent |
+| `POST` | `/admin/webhooks/{id}/deliveries/{delivery}/redeliver` | A fresh delivery row with the same payload, dispatched now. **202** with the new row. Throttled 30/min |
+
+**`role:admin`, not any narrower role.** A hook is handed every lead's
+telephone number, every order's address and every ticket's text, signed, at
+an address somebody typed. Deciding where that goes is the same class of
+decision as the SMTP settings beside it.
+
+**The events** are `App\Enums\WebhookEvent`: `lead.created`,
+`ticket.created`, `ticket.replied` (a customer-visible message from either
+side — never an internal note), `ticket.status_changed` (adds `from`/`to`),
+`order.placed`, `order.paid` (`paid_at` going from null to set, whoever set
+it), `order.status_changed` (adds `from`/`to`), `customer.registered` (the
+address confirmed), `form.submitted` and `subscriber.joined`. `ping` is sent
+by the ping endpoint only and cannot be subscribed to — a 422 on `events.*`.
+
+**The envelope** is `{id, event, created_at, data}`, where `id` and
+`created_at` are the delivery's own and `data` is the admin resource's shape
+resolved as its detail read: `TicketResource` with `customer` (the
+customer's *own* resource — no `status_note`), `category` and `assignee`;
+`Admin\Store\OrderResource` with `items`, the addresses and no
+`access_token`; `Admin\LeadResource` as a list row; `CustomerResource`;
+`FormSubmissionResource`; `Admin\NewsletterSubscriberResource` with
+`groups`. `ticket.replied` adds `message` (`TicketMessageResource`). What a
+webhook consumer sees is what `GET /admin/…/{id}` answers, so the two
+cannot drift.
+
+**Every delivery carries five headers.** `User-Agent:
+Technoware-Webhooks/1.0`, `X-Technoware-Event`, `X-Technoware-Delivery` (the
+delivery id — dedupe on it), `X-Technoware-Timestamp` (unix seconds) and
+`X-Technoware-Signature: sha256=<hex>`, an HMAC-SHA256 with the hook's
+secret over `timestamp + "." + body`, **where `body` is the exact bytes
+received**. The JSON is encoded once, sent as that string and signed as
+that string; a receiver that verifies over its own re-encoding sees a
+mismatch that reads as a wrong secret. Check the timestamp against your own
+clock to refuse a replay.
+
+**A 2xx is delivered; anything else is retried five times** — after 60s,
+5min, 30min, 2h and 12h — with a 10-second request timeout. Each attempt
+records `response_status` and the first 500 characters of the answer on the
+delivery; the fifth failure marks it `failed` and writes the server's own
+words onto the hook's `last_error`, which the next successful delivery
+clears. A hook switched off between attempts is not sent to.
+
+**The secret leaves once.** Minted server-side, encrypted at rest, on the
+`POST`'s 201 and on a `PATCH` that rotated it, and on no read. It never
+reaches the activity log, which records the create and the delete by its
+existing rules.
+
+**The URL is refused on write when this server must not be pointed at it**:
+plain `http://`, credentials in the URL, an IP literal in a private or
+reserved range in either family, `localhost`, a bare name with no dot, or a
+`.local`/`.internal`/`.lan`/`.home.arpa` suffix — each a 422 on `url` with a
+sentence saying which. A public name that resolves to a private address is
+not caught; see `docs/admin-console.md`.
+
+**A webhook never fails the request that caused it.** `Webhooks::emit()`
+is guarded like `Notifier`: a failure to write the delivery row is logged at
+`warning` and the ticket, order or lead still answers as it would have. The
+delivery row is written in the caller's transaction and the job dispatched
+after commit, so a rolled-back checkout leaves no `order.placed` behind.
+
+**Deliveries are pruned at thirty days** by
+`technoware:prune-webhook-deliveries`, nightly.
+
+---
+
 ## Notifications
 
-Not endpoints — side effects of existing ones.
+Not endpoints — side effects of existing ones. **A webhook is emitted
+beside each of the ones marked below** (see "Admin — webhooks"), through
+`App\Support\Webhooks\Webhooks`, which is guarded the way `Notifier` is: the
+delivery is queued in the same transaction and sent after it commits, and a
+failure to queue it never fails the request.
 
 | Trigger | Goes to | Notification |
 |---|---|---|
-| `POST /tickets` | `support_email` setting | `TicketCreated` |
+| `POST /tickets` | `support_email` setting | `TicketCreated` — and `ticket.created` |
 | `POST /tickets` | The customer | `TicketAcknowledged` |
-| `POST /tickets/{ref}/messages` | `support_email` setting | `TicketReplied` |
-| `POST /admin/tickets/{ref}/reply` | The customer, **unless `is_internal`** | `TicketReplied` |
-| `POST /enquiries` | `sales_email` setting | `EnquiryReceived` |
+| `POST /tickets/{ref}/messages` | `support_email` setting | `TicketReplied` — and `ticket.replied` |
+| `POST /admin/tickets/{ref}/reply` | The customer, **unless `is_internal`** | `TicketReplied` — and `ticket.replied`, under the same condition |
+| `POST /enquiries` | `sales_email` setting | `EnquiryReceived` — and `lead.created` |
 | `POST /enquiries` | The enquirer | `EnquiryAcknowledged` |
-| `POST /forms/{slug}` | the form's `notify_email`, else `sales_email` | `FormSubmitted` |
+| `POST /forms/{slug}` | the form's `notify_email`, else `sales_email` | `FormSubmitted` — and `form.submitted`, then `lead.created` |
 | `POST /forms/{slug}` | The sender, **when the form collected an address** | `FormAcknowledged` |
-| `POST /checkout` | The buyer — the itemised sales order, closing with how they chose to pay | `OrderPlaced` |
-| payment settles | The buyer — the receipt | `OrderPaid` |
+| `POST /checkout` | The buyer — the itemised sales order, closing with how they chose to pay | `OrderPlaced` — and `order.placed` |
+| payment settles | The buyer — the receipt | `OrderPaid` — and `order.paid`, plus `order.status_changed` |
 | payment settles | `support_email` setting | `OrderReceived` |
-| status → dispatched | The buyer | `OrderDispatched` |
+| status → dispatched | The buyer | `OrderDispatched` — and `order.status_changed`, as on every status move |
 | `POST /auth/register` | The registrant | `VerifyCustomerEmail` |
 | `POST /auth/register` (address known) | The **existing** account holder | `RegistrationAttempted` |
-| `POST /auth/verify-email` | `support_email` setting | `CustomerRegistered` |
+| `POST /auth/verify-email` | `support_email` setting | `CustomerRegistered` — and `customer.registered`; the same pair when a sign-in code confirms the address |
 | `POST /admin/customers/{id}/approve` | The customer | `CustomerApproved` |
 | `POST /admin/customers/{id}/reject` | The customer | `CustomerRejected` |
 

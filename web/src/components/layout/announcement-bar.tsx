@@ -1,13 +1,14 @@
 import type { CSSProperties } from "react";
 import { MarqueeToggle } from "@/components/company/marquee-toggle";
 import { AnnouncementClose, AnnouncementShell } from "@/components/layout/announcement-client";
+import { AnnouncementRotator } from "@/components/layout/announcement-rotator";
 import { Container } from "@/components/ui/container";
 import type { Announcement } from "@/lib/announcement";
 import { cn } from "@/lib/utils";
 
 /**
  * The strip above the header: one line of the client's own words, on a
- * colour (or two) they chose, fixed or scrolling.
+ * colour (or two) they chose: fixed, scrolling, or one line at a time.
  *
  * A server component with two client islands — the shell that hides a
  * closed bar and the × that closes it — so the markup, the colours and the
@@ -39,6 +40,19 @@ import { cn } from "@/lib/utils";
  */
 export function AnnouncementBar({ announcement, preview = false }: { announcement: Announcement; preview?: boolean }) {
   const a = announcement;
+
+  /*
+   * The message as one line, for the two styles that are one line.
+   *
+   * A `<br>` breaks a line even under `white-space: nowrap`, so a message an
+   * editor wrote as three lines drew a 33px fixed bar and a 24px vertical one
+   * — three styles, three heights, on a strip whose whole job is to be the
+   * same thin line above the header (the client, 2026-09-23). The lines are
+   * already split for the vertical style, so joining them is the same one
+   * definition read the other way; the separator is a middot because a space
+   * runs two sentences together and the ticker already spaces its repeats.
+   */
+  const oneLine = a.lines.join(" &middot; ");
   const style: CSSProperties = {
     backgroundColor: a.stops[0],
     backgroundImage: a.stops.length > 1 ? `linear-gradient(90deg, ${a.stops[0]}, ${a.stops[1]})` : undefined,
@@ -52,12 +66,33 @@ export function AnnouncementBar({ announcement, preview = false }: { announcemen
         aria-label="Announcement"
         data-announcement={a.id}
         data-mode={a.mode}
-        className="announcement-bar relative text-13-5 leading-snug"
+        className="announcement-bar relative text-12 leading-snug sm:text-13-5"
         style={style}
       >
-        {a.mode === "ticker" ? <Ticker a={a} /> : (
-          <Container className={cn("flex min-h-9 items-center justify-center py-1.5 text-center", a.closable && "pr-9")}>
-            <Message html={a.html} />
+        {a.mode === "ticker" ? <Ticker a={a} html={oneLine} /> : a.mode === "vertical" ? (
+          /*
+            One line at a time, rising. The stack is decoration — it is
+            `aria-hidden` inside the rotator — so the whole message is rendered
+            once beside it for anything that reads rather than looks. A live
+            region would interrupt somebody every few seconds; a rotator whose
+            only readable line is the current one loses the rest.
+          */
+          <Container className={cn("flex min-h-6 items-center py-0 sm:min-h-[27px] sm:py-0.5", a.closable && "pr-9")}>
+            <AnnouncementRotator lines={a.lines} className="w-full" />
+            <Message html={a.html} className="sr-only" />
+          </Container>
+        ) : (
+          <Container className={cn("flex min-h-6 items-center justify-center py-0 text-center sm:min-h-[27px] sm:py-0.5", a.closable && "pr-9")}>
+            {/*
+              One line, ellipsised (the client, 2026-09-23). The band is a slim
+              24/27px strip now, and a fixed message long enough to wrap took it
+              to 66px on a phone — three styles, three different heights, on a
+              bar whose whole job is to be the same thin line above the header.
+              A message too long to fit on one line is what the ticker and the
+              one-line-at-a-time style exist for, and the console says so under
+              the choice.
+            */}
+            <Message html={oneLine} className="min-w-0 truncate" />
           </Container>
         )}
         {a.closable && <AnnouncementClose id={a.id} preview={preview} />}
@@ -92,8 +127,8 @@ function Message({ html, className, hidden = false }: { html: string; className?
 /** A copy is the message repeated until it is longer than any screen is wide. */
 const MIN_CHARS_PER_COPY = 240;
 
-function Ticker({ a }: { a: Announcement }) {
-  const chars = Math.max(1, a.html.replace(/<[^>]+>/g, "").length);
+function Ticker({ a, html }: { a: Announcement; html: string }) {
+  const chars = Math.max(1, html.replace(/<[^>]+>/g, "").length);
   const repeats = Math.max(1, Math.ceil(MIN_CHARS_PER_COPY / chars));
   // ~4.5 characters a second reads comfortably; bounded so a two-word
   // message does not flash past and a paragraph does not crawl.
@@ -101,19 +136,19 @@ function Ticker({ a }: { a: Announcement }) {
   const items = Array.from({ length: repeats * 2 }, (_, i) => i);
 
   return (
-    <div data-marquee className={cn("brand-marquee announcement-ticker relative min-h-9 py-1.5", a.closable ? "pr-20" : "pr-11")}>
+    <div data-marquee className={cn("brand-marquee announcement-ticker relative min-h-6 py-0 sm:min-h-[27px] sm:py-0.5", a.closable ? "pr-[4.25rem]" : "pr-10")}>
       {/* The fade mask sits on this wrapper, not the host: on the host it
           would fade the pause button and the × sitting in its right edge. */}
       <div className="brand-marquee-fade overflow-hidden">
         <div className="brand-marquee-track flex w-max items-center" style={{ animationDuration: `${duration}s` }}>
           {items.map((i) => (
-            <Message key={i} html={a.html} hidden={i > 0} className="mr-12 shrink-0 whitespace-nowrap" />
+            <Message key={i} html={html} hidden={i > 0} className="mr-12 shrink-0 whitespace-nowrap" />
           ))}
         </div>
       </div>
       <MarqueeToggle
         label="the announcement"
-        className={cn("bottom-1/2 translate-y-1/2 border-current bg-transparent opacity-70 hover:opacity-100 focus-visible:opacity-100", a.closable ? "right-11" : "right-2")}
+        className={cn("bottom-1/2 size-6 translate-y-1/2 border-current bg-transparent opacity-70 hover:opacity-100 focus-visible:opacity-100", a.closable ? "right-9" : "right-2")}
       />
     </div>
   );

@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\AnswerBlockKind;
+use App\Enums\PublishStatus;
 use App\Enums\SeoSuggestionStatus;
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
+use App\Models\Certification;
 use App\Models\Industry;
 use App\Models\JobOpening;
 use App\Models\KnowledgeArticle;
@@ -15,14 +18,22 @@ use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\SeoSuggestion;
 use App\Models\Service;
+use App\Models\Setting;
 use App\Models\Solution;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
+use App\Support\AeoScore;
+use App\Support\EntityLinks;
+use App\Support\GeoScore;
+use App\Support\ListSort;
+use App\Support\Seo\GoogleAnalytics;
 use App\Support\Seo\SearchConsole;
 use App\Support\SeoScore;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * A single view of every indexable record's metadata, and how well it is
@@ -61,15 +72,15 @@ class SeoController extends Controller
      * padding a taxonomy label.
      */
     private const ENTITIES = [
-        'page' => [Page::class, 'title', 'pages', 'Pages', [], ['body'], 300],
-        'blog_post' => [BlogPost::class, 'title', 'blog', 'Blog posts', [], ['body'], 300],
-        'knowledge_article' => [KnowledgeArticle::class, 'title', 'knowledge-base', 'Knowledge base', [], ['body'], 300],
-        'case_study' => [CaseStudy::class, 'title', 'case-studies', 'Case studies', [], ['body'], 250],
-        'solution' => [Solution::class, 'title', 'solutions', 'Solutions', [], ['problem_statement', 'overview'], 250],
-        'service' => [Service::class, 'title', 'services', 'Services', [], ['body'], 250],
-        'industry' => [Industry::class, 'name', 'industries', 'Industries', [], ['body'], 200],
-        'product' => [Product::class, 'name', 'products', 'Products', ['brand'], ['description'], 150],
-        'product_category' => [ProductCategory::class, 'name', 'product-categories', 'Product categories', [], ['description'], 80],
+        'page' => [Page::class, 'title', 'pages', 'Pages', ['faqs', 'answerBlocks'], ['body'], 300],
+        'blog_post' => [BlogPost::class, 'title', 'blog', 'Blog posts', ['author', 'categories', 'faqs', 'answerBlocks'], ['body'], 300],
+        'knowledge_article' => [KnowledgeArticle::class, 'title', 'knowledge-base', 'Knowledge base', ['category', 'faqs', 'answerBlocks'], ['body'], 300],
+        'case_study' => [CaseStudy::class, 'title', 'case-studies', 'Case studies', ['industry'], ['body'], 250],
+        'solution' => [Solution::class, 'title', 'solutions', 'Solutions', ['industries', 'faqs', 'answerBlocks'], ['problem_statement', 'overview'], 250],
+        'service' => [Service::class, 'title', 'services', 'Services', ['faqs', 'answerBlocks'], ['body'], 250],
+        'industry' => [Industry::class, 'name', 'industries', 'Industries', ['solutions', 'faqs', 'answerBlocks'], ['body'], 200],
+        'product' => [Product::class, 'name', 'products', 'Products', ['brand', 'category', 'solutions', 'faqs', 'answerBlocks'], ['description'], 150],
+        'product_category' => [ProductCategory::class, 'name', 'product-categories', 'Product categories', ['parent', 'faqs', 'answerBlocks'], ['description'], 80],
         /*
          * Programmatic landing pages are indexable records with SEO overrides,
          * and they were missing from the one screen whose job is finding
@@ -87,7 +98,7 @@ class SeoController extends Controller
          * or a Recheck button until now.
          */
         'job_opening' => [JobOpening::class, 'title', 'jobs', 'Vacancies', [], ['description'], 150],
-        'store_product' => [StoreProduct::class, 'name', 'store/products', 'Store products', [], ['description'], 150],
+        'store_product' => [StoreProduct::class, 'name', 'store/products', 'Store products', ['brand', 'category', 'services', 'faqs', 'answerBlocks'], ['description'], 150],
         /*
          * `store_category` joins them for the reason its own model comment
          * now gives: "not a page" was measured against the wrong thing. A
@@ -96,8 +107,11 @@ class SeoController extends Controller
          * and it had no score, no duplicate check and nothing on this screen
          * to open and fix.
          */
-        'store_category' => [StoreCategory::class, 'name', 'store/categories', 'Store categories', [], ['description'], 80],
+        'store_category' => [StoreCategory::class, 'name', 'store/categories', 'Store categories', ['faqs', 'answerBlocks'], ['description'], 80],
     ];
+
+    /** The bands `?aeo=` and `?geo=` may ask for. */
+    private const BAND_FILTERS = ['poor', 'fair', 'good'];
 
     /**
      * The record a `type` and `id` name, or null.
@@ -145,20 +159,40 @@ class SeoController extends Controller
          * catalogue is for. Beyond that the duplicate pass wants a
          * GROUP BY on a stored resolved title rather than a full load.
          */
-        $rows = $this->withSearch($this->withPendingSuggestions($this->scoreRows($this->collectRows())));
+        $rows = $this->withAnalytics($this->withSearch($this->withPendingSuggestions($this->scoreRows($this->collectRows()))));
 
         $site = $this->siteScore($rows);
         $withIssues = count(array_filter($rows, fn ($r) => $r['issues'] !== []));
 
         $rows = $this->applyFilters($rows, $request);
 
+        // `?sort=aeo|geo` with `?dir=`; anything else keeps the type-then-title
+        // order the rows were collected in.
+        $rows = ListSort::applyToRows($rows, $request, [
+            'aeo' => fn (array $r) => $r['aeo']['value'],
+            'geo' => fn (array $r) => $r['geo']['value'],
+            'score' => fn (array $r) => $r['score']['value'],
+        ]);
+
         $total = count($rows);
         $perPage = min(max((int) $request->integer('per_page', 50), 1), 200);
         $lastPage = max(1, (int) ceil($total / $perPage));
         $page = min(max((int) $request->integer('page', 1), 1), $lastPage);
 
+        // The list carries the figure and the band; the checks behind them
+        // come from the single-record read, which is where somebody opens a
+        // row to act on it. Fifty rows of twenty-two hints each is bytes
+        // over the wire for text nobody is looking at.
+        $data = array_map(function (array $row) {
+            foreach (['aeo', 'geo'] as $key) {
+                $row[$key] = ['value' => $row[$key]['value'], 'band' => $row[$key]['band']];
+            }
+
+            return $row;
+        }, array_slice($rows, ($page - 1) * $perPage, $perPage));
+
         return response()->json([
-            'data' => array_values(array_slice($rows, ($page - 1) * $perPage, $perPage)),
+            'data' => $data,
             'meta' => [
                 'total' => $total,
                 'current_page' => $page,
@@ -175,11 +209,18 @@ class SeoController extends Controller
                     'days' => SearchConsole::DAYS,
                     'error' => SearchConsole::lastError(),
                 ],
+                // Google Analytics: the same three answers about the other column.
+                'analytics' => [
+                    'configured' => GoogleAnalytics::configured(),
+                    'days' => GoogleAnalytics::DAYS,
+                    'error' => GoogleAnalytics::lastError(),
+                ],
                 'types' => array_map(
                     fn ($type, $entity) => ['value' => $type, 'label' => $entity[3]],
                     array_keys(self::ENTITIES),
                     array_values(self::ENTITIES),
                 ),
+                'sorts' => ['aeo', 'geo', 'score'],
             ],
         ]);
     }
@@ -254,6 +295,7 @@ class SeoController extends Controller
     {
         $titleCounts = $this->countNormalised(array_column($rows, 'title'));
         $descriptionCounts = $this->countNormalised(array_column($rows, 'description'));
+        $site = $this->siteFacts();
 
         foreach ($rows as $i => $row) {
             $score = SeoScore::for([
@@ -278,15 +320,116 @@ class SeoController extends Controller
             // counting what they counted.
             $rows[$i]['issues'] = $score['issues'];
 
-            unset($rows[$i]['_resolved'], $rows[$i]['_body'], $rows[$i]['_has_body'], $rows[$i]['_depth']);
+            /*
+             * The two newer questions, scored from the same collection pass.
+             * `internal_links` is the regex `SeoScore` uses for its own check,
+             * so the two scores cannot disagree about whether a body links
+             * anywhere. Every site-wide fact comes from `siteFacts()`, read
+             * once for the whole overview.
+             */
+            $rows[$i]['aeo'] = AeoScore::publish(AeoScore::for([
+                'type' => $row['type'],
+                'title' => $row['name'],
+                'body' => $row['_body'],
+                'has_body' => $row['_has_body'],
+                'answer_blocks' => $row['_kinds'],
+                'overlong_answers' => $row['_overlong'],
+                'faq_count' => $row['entity']['faq_count'],
+                'has_specs' => $row['_has_specs'],
+                'internal_links' => (bool) preg_match('#<a\b[^>]*href=["\']/(?!/)#i', $row['_body']),
+                // Every page carries the layout's Organization, WebSite and
+                // BreadcrumbList nodes whatever the record emits of its own,
+                // so this is true for all of them today.
+                'structured' => true,
+            ]));
+
+            $rows[$i]['geo'] = GeoScore::publish(GeoScore::for([
+                'type' => $row['type'],
+                'entity' => $row['entity'],
+                'answer_blocks' => $row['_kinds'],
+                'author' => $row['_author'],
+            ] + $site));
+
+            unset(
+                $rows[$i]['_resolved'], $rows[$i]['_body'], $rows[$i]['_has_body'], $rows[$i]['_depth'],
+                $rows[$i]['_kinds'], $rows[$i]['_overlong'], $rows[$i]['_has_specs'], $rows[$i]['_author'],
+            );
         }
 
         return $rows;
     }
 
+    /**
+     * What is true of the site rather than of any record, read once.
+     *
+     * `organization_complete` is the five facts an `Organization` node needs
+     * to resolve to one company; `nap_consistent` is the name, address and
+     * phone being set *and* the one other stored postal address — the
+     * newsletter footer's — agreeing with the site's, whitespace aside.
+     * `certifications` is a live, published credential on file.
+     *
+     * @return array{certifications: bool, organization_complete: bool, nap_consistent: bool}
+     */
+    private function siteFacts(): array
+    {
+        $name = trim((string) Setting::get('company_name'));
+        $address = trim((string) Setting::get('address'));
+        $phone = trim((string) Setting::get('phone'));
+        $email = trim((string) Setting::get('support_email'));
+        $logo = trim((string) Setting::get('logo_path'));
+        $newsletterAddress = trim((string) Setting::get('newsletter_address'));
+
+        $squash = fn (string $s) => preg_replace('/\s+/u', ' ', mb_strtolower($s)) ?? '';
+
+        return [
+            'certifications' => Certification::query()->live()->exists(),
+            'organization_complete' => $name !== '' && $address !== '' && $phone !== '' && $email !== '' && $logo !== '',
+            'nap_consistent' => $name !== '' && $address !== '' && $phone !== ''
+                && ($newsletterAddress === '' || $squash($newsletterAddress) === $squash($address)),
+        ];
+    }
+
+    /**
+     * Product categories have no relation to solutions of their own — the
+     * link lives on the product — so the public read computes "the solutions
+     * this category's hardware is deployed in" per category. The overview
+     * needs the same answer for every category at once: one query over the
+     * pivot, grouped in PHP, set on each record as `relatedSolutions` so
+     * `EntityLinks` reads it like any loaded relation.
+     *
+     * @return array<int, Collection<int, Solution>>
+     */
+    private function solutionsByCategory(): array
+    {
+        $pairs = DB::table('product_solution')
+            ->join('products', 'products.id', '=', 'product_solution.product_id')
+            ->join('solutions', 'solutions.id', '=', 'product_solution.solution_id')
+            ->whereNull('products.deleted_at')
+            ->where('products.status', 'published')
+            ->where('solutions.status', 'published')
+            ->whereNotNull('products.product_category_id')
+            ->distinct()
+            ->get(['products.product_category_id as category_id', 'solutions.id as solution_id']);
+
+        $solutions = Solution::query()->whereIn('id', $pairs->pluck('solution_id')->unique())->get()->keyBy('id');
+
+        $byCategory = [];
+        foreach ($pairs as $pair) {
+            $solution = $solutions->get($pair->solution_id);
+            if ($solution !== null) {
+                $byCategory[(int) $pair->category_id] ??= new Collection;
+                $byCategory[(int) $pair->category_id]->push($solution);
+            }
+        }
+
+        return $byCategory;
+    }
+
     private function collectRows(): array
     {
         $rows = [];
+        $articles = EntityLinks::supportingArticlesIndex();
+        $solutionsByCategory = $this->solutionsByCategory();
 
         foreach (self::ENTITIES as $type => [$class, $titleColumn, $adminPath, $label, $relations, $bodyColumns, $depth]) {
             $records = $class::query()
@@ -297,6 +440,19 @@ class SeoController extends Controller
             foreach ($records as $record) {
                 $resolved = $record->resolvedSeo();
                 $override = $record->seo;
+
+                // The relationships the record states, the way its page
+                // states them. The supporting articles and a category's
+                // solutions are set from the two one-pass lookups above.
+                EntityLinks::attachFrom($record, $articles);
+                if ($type === 'product_category') {
+                    $record->setRelation('relatedSolutions', $solutionsByCategory[$record->id] ?? new Collection);
+                }
+                $entity = EntityLinks::for($record);
+
+                $blocks = $record->relationLoaded('answerBlocks')
+                    ? $record->getRelation('answerBlocks')->where('status', PublishStatus::Published)
+                    : new Collection;
 
                 $body = trim(implode("\n", array_filter(array_map(
                     fn ($column) => (string) ($record->{$column} ?? ''),
@@ -352,10 +508,22 @@ class SeoController extends Controller
                     'has_override' => $overridden !== [],
                     'overridden' => $overridden,
                     'sitemap_include' => (bool) ($override?->sitemap_include ?? true),
+                    // What the page says it is connected to — the same block
+                    // the public resource carries, so the console can show
+                    // the relationships as chips without a second fetch.
+                    'entity' => $entity,
                     '_resolved' => $resolved,
                     '_body' => $body,
                     '_has_body' => $bodyColumns !== [],
                     '_depth' => $depth,
+                    '_kinds' => $blocks->map(fn ($b) => $b->kind->value)->values()->all(),
+                    '_overlong' => $blocks
+                        ->filter(fn ($b) => $b->kind === AnswerBlockKind::Question && mb_strlen((string) $b->answer) > AeoScore::ANSWER_MAX)
+                        ->count(),
+                    '_has_specs' => in_array($type, ['product', 'store_product'], true)
+                        && filled($record->getAttribute('specifications')),
+                    '_author' => $type === 'blog_post'
+                        && $record->relationLoaded('author') && $record->getRelation('author') !== null,
                 ];
             }
         }
@@ -411,6 +579,46 @@ class SeoController extends Controller
             ],
             'top_issues' => array_slice(array_values($failures), 0, 6),
             'groups' => SeoScore::GROUPS,
+            // The other two questions, averaged the same way — a mean of the
+            // record scores, every page one page — with their own ranked
+            // failures and group names for the console's card.
+            'aeo' => $this->averageOf($rows, 'aeo', AeoScore::GROUPS),
+            'geo' => $this->averageOf($rows, 'geo', GeoScore::GROUPS),
+        ];
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     * @param  array<string, string>  $groups
+     * @return array{value: int, band: string, top_issues: array<int, array<string, mixed>>, groups: array<string, string>}
+     */
+    private function averageOf(array $rows, string $key, array $groups): array
+    {
+        $values = array_map(fn ($r) => $r[$key]['value'], $rows);
+        $count = count($values);
+        $value = $count > 0 ? (int) round(array_sum($values) / $count) : 100;
+
+        $failures = [];
+        foreach ($rows as $row) {
+            foreach ($row[$key]['failed'] as $check) {
+                $failures[$check['key']] ??= [
+                    'key' => $check['key'],
+                    'label' => $check['label'],
+                    'group' => $check['group'],
+                    'weight' => $check['weight'],
+                    'count' => 0,
+                ];
+                $failures[$check['key']]['count']++;
+            }
+        }
+
+        usort($failures, fn ($a, $b) => ($b['count'] * $b['weight']) <=> ($a['count'] * $a['weight']));
+
+        return [
+            'value' => $value,
+            'band' => SeoScore::band($value),
+            'top_issues' => array_slice($failures, 0, 6),
+            'groups' => $groups,
         ];
     }
 
@@ -444,6 +652,28 @@ class SeoController extends Controller
             $rows = array_filter($rows, fn ($r) => ($r['search']['impressions'] ?? 0) >= 20 && ($r['search']['clicks'] ?? 0) === 0);
         }
 
+        // Shown by Google, opened by nobody: a page with search figures and
+        // no analytics row at all. Without Search Console there is no "shown"
+        // to test against, so it is every page nobody opened; without GA4
+        // there is nothing to say, and the filter yields nothing rather than
+        // everything.
+        if ($request->string('analytics')->value() === 'no_views') {
+            $rows = ! GoogleAnalytics::configured()
+                ? []
+                : array_filter($rows, fn ($r) => $r['analytics'] === null && (! SearchConsole::configured() || $r['search'] !== null));
+        }
+
+        // `?aeo=poor` and `?geo=fair`: the records in a band of one of the
+        // two newer scores. An unknown band is ignored rather than refused,
+        // the `?check=` rule — it arrives from a link.
+        foreach (['aeo', 'geo'] as $score) {
+            $band = $request->string($score)->value();
+
+            if (in_array($band, self::BAND_FILTERS, true)) {
+                $rows = array_filter($rows, fn ($r) => $r[$score]['band'] === $band);
+            }
+        }
+
         // Straight from a figure on the score card to the records behind it.
         // A headline nobody can open is a headline nobody can act on.
         if ($check !== '') {
@@ -451,6 +681,23 @@ class SeoController extends Controller
                 $rows,
                 fn ($r) => in_array($check, array_column($r['score']['failed'], 'key'), true),
             );
+        }
+
+        // The same door for the two readiness scores: `?aeo_check=definition`
+        // is the records failing that one AEO check, from the site card's
+        // "biggest wins" for AEO and GEO (2026-09-21). Their own parameters
+        // rather than `?check=`, because the three rubrics share a key —
+        // `internal_links` is a check on all of them — and one parameter
+        // could not say which score's failure is meant.
+        foreach (['aeo', 'geo'] as $score) {
+            $key = $request->string($score.'_check')->value();
+
+            if ($key !== '') {
+                $rows = array_filter(
+                    $rows,
+                    fn ($r) => in_array($key, array_column($r[$score]['failed'], 'key'), true),
+                );
+            }
         }
 
         return array_values($rows);
@@ -502,6 +749,27 @@ class SeoController extends Controller
         foreach ($rows as $i => $row) {
             $path = '/'.trim((string) $row['public_path'], '/');
             $rows[$i]['search'] = $pages[$path === '/' ? '/' : $path] ?? null;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Google Analytics' figures for each record on the same match — views
+     * and users over the window — or null where GA4 is not configured or
+     * nobody opened the page. One cached report for the whole overview
+     * (`GoogleAnalytics::pages()`), never a call per row.
+     *
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function withAnalytics(array $rows): array
+    {
+        $pages = GoogleAnalytics::pages();
+
+        foreach ($rows as $i => $row) {
+            $path = '/'.trim((string) $row['public_path'], '/');
+            $rows[$i]['analytics'] = $pages[$path === '/' ? '/' : $path] ?? null;
         }
 
         return $rows;

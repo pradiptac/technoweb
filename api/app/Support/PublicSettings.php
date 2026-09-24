@@ -3,9 +3,12 @@
 namespace App\Support;
 
 use App\Enums\PaymentGateway;
+use App\Models\Location;
 use App\Models\Media;
 use App\Models\Setting;
+use App\Models\Solution;
 use App\Support\Chat\ChatSettings;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 /**
@@ -25,7 +28,7 @@ class PublicSettings
      * `payments`, `newsletter`, `chatbot`, `seo`, `media`, `security` — stays
      * server-side unless a key below names it deliberately.
      */
-    public const GROUPS = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'login', 'banners', 'announcement', 'themes', 'portal', 'auth', 'store', 'blog', 'embeds', 'indexnow'];
+    public const GROUPS = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'login', 'banners', 'announcement', 'themes', 'portal', 'auth', 'store', 'store_promo', 'store_tiles', 'blog', 'embeds', 'indexnow'];
 
     /** @return array<string, string> */
     public static function build(): array
@@ -168,7 +171,7 @@ class PublicSettings
                 ->filter(fn ($k) => $values->has($k))
                 ->map(fn ($k) => $values[$k])
                 ->all())
-            ->get(['path', 'width', 'height'])
+            ->get(['path', 'width', 'height', 'focal_x', 'focal_y'])
             ->keyBy('path');
 
         // Stored as paths, served as URLs — the same split the media library
@@ -190,8 +193,53 @@ class PublicSettings
                 $values[$prefix.'_width'] = (string) $file->width;
                 $values[$prefix.'_height'] = (string) $file->height;
             }
+
+            /*
+             * And the focal point, on the same ride and by the same rule:
+             * present when the file has one, absent when it does not — the
+             * banners are cropped to 300px bands and the login picture to a
+             * column, and where the subject sits is a fact about the file.
+             * Read from the row here rather than through `MediaMeta`, which
+             * loads only live rows; a binned banner still serves.
+             */
+            $focus = MediaMeta::format($file?->focal_x, $file?->focal_y);
+
+            if ($focus !== null) {
+                $values[$prefix.'_focus'] = $focus;
+            }
+        }
+
+        /*
+         * Two derived lists for the `Organization` node, which the frontend
+         * builds from this map (`lib/seo.tsx`): `knowsAbout` is the published
+         * solutions' titles and `areaServed` the active locations' names.
+         * JSON-encoded, because this is a flat map of strings and the
+         * frontend already decodes `site_theme_options` from it the same
+         * way. Absent rather than `[]` when there is nothing to say, so the
+         * node carries no empty claim. Held under the settings' own cache
+         * window; a solution renamed reaches the node when it turns over.
+         */
+        foreach (self::organizationFacts() as $key => $list) {
+            if ($list !== []) {
+                $values[$key] = json_encode($list, JSON_UNESCAPED_UNICODE) ?: '[]';
+            }
         }
 
         return $values->all();
+    }
+
+    /**
+     * What the company knows about and where it works, from the records that
+     * say so. One cached read for both, on the same clock as the rest of
+     * the public map.
+     *
+     * @return array{organization_knows_about: array<int, string>, organization_area_served: array<int, string>}
+     */
+    public static function organizationFacts(): array
+    {
+        return Cache::remember('public-settings:organization-facts', 600, fn () => [
+            'organization_knows_about' => Solution::published()->orderBy('sort_order')->orderBy('title')->pluck('title')->values()->all(),
+            'organization_area_served' => Location::active()->orderBy('sort_order')->orderBy('name')->pluck('name')->values()->all(),
+        ]);
     }
 }

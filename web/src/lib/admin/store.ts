@@ -1,8 +1,10 @@
 import "server-only";
 import { apiFetch, apiUpload } from "@/lib/api";
 import { token } from "./_shared";
+import type { SettingRow } from "./settings";
 import type {
   Paginated, AdminStoreProduct, AdminStoreCategory, AdminOrder, StoreDashboard, StoreReport, StockReport, StockMovement, AdminDigitalCode,
+  StoreImportAnalysis, StoreImportResult,
 } from "@/types/api";
 
 /**
@@ -23,7 +25,7 @@ export type StoreProductIndex = Paginated<AdminStoreProduct> & {
 
 export type StoreProductQueryParams = {
   status?: string; type?: string; q?: string; category?: string;
-  out_of_stock?: boolean; page?: number; per_page?: number;
+  out_of_stock?: boolean; notices?: boolean; page?: number; per_page?: number;
 };
 
 export async function getStoreProductList(params: StoreProductQueryParams = {}) {
@@ -33,11 +35,32 @@ export async function getStoreProductList(params: StoreProductQueryParams = {}) 
   if (params.q) query.set("q", params.q);
   if (params.category) query.set("category", params.category);
   if (params.out_of_stock) query.set("out_of_stock", "1");
+  if (params.notices) query.set("notices", "1");
   if (params.page) query.set("page", String(params.page));
   if (params.per_page) query.set("per_page", String(params.per_page));
   const qs = query.toString();
 
   return apiFetch<StoreProductIndex>(`/admin/store/products${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+/**
+ * The catalogue import's dry run. Multipart, so `apiUpload` — a FormData
+ * handed to `apiFetch` arrives as `{}` and the API answers "the file field
+ * is required", which reads as the upload being refused rather than as
+ * never having been sent.
+ */
+export async function analyseStoreImport(form: FormData): Promise<StoreImportAnalysis> {
+  const res = await apiUpload<{ data: StoreImportAnalysis }>(
+    "/admin/store/products/import/analyse", form, { token: await token() },
+  );
+  return res.data;
+}
+
+export async function runStoreImport(payload: Record<string, unknown>): Promise<StoreImportResult> {
+  const res = await apiFetch<{ data: StoreImportResult }>("/admin/store/products/import", {
+    method: "POST", body: payload, token: await token(),
+  });
+  return res.data;
 }
 
 export async function getStoreProduct(id: number): Promise<AdminStoreProduct> {
@@ -163,6 +186,23 @@ export async function recordStoreOrderRefund(
     { method: "POST", body, token: await token() },
   );
   return res.data;
+}
+
+/**
+ * The shop front's promo band and the two tiles above it — the eight
+ * `store_promo_*` and fourteen `store_tile_*` settings rows,
+ * read and written through the Store section's own endpoint rather than
+ * `/admin/settings`, so a store manager can edit a promotion without being
+ * handed the SMTP password beside it. Same row shape as `getSettings()`, so
+ * the screen draws the same controls.
+ */
+export async function getStorePromo(): Promise<SettingRow[]> {
+  const res = await apiFetch<{ data: SettingRow[] }>("/admin/store/promo", { token: await token() });
+  return res.data;
+}
+
+export async function saveStorePromo(settings: { key: string; value: string }[]): Promise<void> {
+  await apiFetch<void>("/admin/store/promo", { method: "PATCH", body: { settings }, token: await token() });
 }
 
 export async function getStoreDashboard(days?: number): Promise<StoreDashboard> {

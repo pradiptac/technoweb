@@ -2,11 +2,11 @@ import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { ApiError } from "@/lib/api";
-import { getBrand } from "@/lib/admin";
+import { getAnswerBlockKinds, getBrand } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { BrandForm } from "../brand-form";
-import type { AdminBrand } from "@/types/api";
+import type { AdminBrand, AnswerBlockKindOption } from "@/types/api";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -26,8 +26,9 @@ export default async function EditBrandPage({
   if (!Number.isInteger(numericId)) notFound();
 
   let brand: AdminBrand;
+  let kinds: AnswerBlockKindOption[] = [];
   try {
-    brand = await getBrand(numericId);
+    [brand, kinds] = await Promise.all([getBrand(numericId), getAnswerBlockKinds("/admin/brands")]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
     throw error;
@@ -44,7 +45,7 @@ export default async function EditBrandPage({
         </Link>
       </PageHeader>
 
-      <BrandForm brand={brand} saved={Boolean(saved)} />
+      <BrandForm brand={brand} saved={Boolean(saved)} kinds={kinds} />
     </>
   );
 }

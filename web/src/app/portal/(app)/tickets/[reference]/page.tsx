@@ -47,6 +47,7 @@ export default async function TicketDetailPage({
 
   const isClosed = ticket.status === "closed";
   const isResolved = ticket.status === "resolved";
+  const merged = ticket.merged_into ?? null;
 
   return (
     <>
@@ -58,6 +59,15 @@ export default async function TicketDetailPage({
         <div className="mt-4">
           <Alert tone="ok" title={`Ticket ${ticket.reference} submitted`}>
             An engineer will respond within your SLA. You will get an email when they do.
+          </Alert>
+        </div>
+      )}
+
+      {merged && (
+        <div className="mt-4">
+          <Alert tone="info" title={`This ticket was merged into ${merged}`} dismissible={false}>
+            Everything you sent here is on that ticket now, and this one is closed. Quote {merged} from now on.{" "}
+            <Link href={`/portal/tickets/${merged}`} className="font-semibold text-brand-ink underline">Open {merged}</Link>
           </Alert>
         </div>
       )}
@@ -97,9 +107,13 @@ export default async function TicketDetailPage({
         customerName={ticket.customer?.name ?? me?.name ?? "You"}
         createdAt={ticket.created_at}
         messages={ticket.messages ?? []}
+        attachments={ticket.attachments}
+        sensitive={ticket.is_sensitive}
       />
 
-      <div className="mt-8 rounded-xl border border-line-strong bg-card p-6">
+      {/* A merged source offers neither a reply box nor a reopen: the
+          conversation is on the target, and the API refuses both. */}
+      {!merged && <div className="mt-8 rounded-xl border border-line-strong bg-card p-6">
         {isClosed ? (
           <div className="flex flex-wrap items-center gap-4">
             <p className="text-14-5 text-muted">
@@ -129,7 +143,7 @@ export default async function TicketDetailPage({
             )}
           </>
         )}
-      </div>
+      </div>}
     </>
   );
 }

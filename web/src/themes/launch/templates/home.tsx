@@ -138,7 +138,7 @@ export function Home({
     { id: "hero", node: hero },
     { id: "partners", node: <Partners items={brands.data} mode="lens" /> },
     { id: "categories", node: <ProductCategories items={categories.data.slice(0, 12)} /> },
-    { id: "why", node: <WhyUs /> },
+    { id: "why", node: <WhyUs settings={settings} /> },
     { id: "clients", node: <TrustedBy items={clients.data} mode="rise" /> },
     { id: "credentials", node: <Credentials items={certifications.data} /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
@@ -152,8 +152,8 @@ export function Home({
 
   return (
     <>
-      {orderSections(SECTIONS, options).map((s) => (
-        <Bg key={s.id} id={s.id} {...bg}>{s.node}</Bg>
+      {orderSections(SECTIONS, options).map((s, i) => (
+        <Bg key={s.id} id={s.id} index={i} {...bg}>{s.node}</Bg>
       ))}
     </>
   );

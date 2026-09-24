@@ -46,7 +46,7 @@ export default async function MailboxScanCallbackPage({
           {params.error_description ?? params.error}
           <span className="mt-1 block">
             A <code className="font-mono">redirect_uri_mismatch</code> means the address below is not one of the
-            authorised redirect URIs on the OAuth client saved under Settings → Ticketing:
+            authorised redirect URIs on the OAuth client saved under Tickets → Email to ticket:
             <code className="mt-1 block font-mono text-12-5 [overflow-wrap:anywhere]">/admin/newsletter/subscribers/import/mailbox/callback</code>
           </span>
         </Alert>

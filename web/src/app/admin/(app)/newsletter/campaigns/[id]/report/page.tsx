@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { ButtonLink } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { noIndex } from "@/lib/no-index";
 import type { NewsletterReport } from "@/types/api";
 import { Card } from "@/components/ui/card";
+import { ResendPanel } from "../../resend-panel";
 
 export const metadata = buildMetadata({ title: "Campaign report", path: "/admin/newsletter/campaigns", seo: noIndex });
 
@@ -88,6 +90,21 @@ export default async function CampaignReportPage({ params }: { params: Promise<{
         <Figure label="Skipped" value={counts.skipped} note="Unsubscribed mid-send" />
         <Figure label="Unsubscribed" value={counts.unsubscribed} note={rate(rates.unsubscribe)} />
       </section>
+
+      {/*
+        A resend names the campaign it came from, and a sent campaign offers
+        one — see `ResendPanel` for why the panel has two states and no third.
+      */}
+      {report.resend_of && (
+        <Alert tone="info" title="A resend" dismissible={false}>
+          This went to the people who did not open{" "}
+          <Link href={`/admin/newsletter/campaigns/${report.resend_of.id}/report`} className="font-semibold text-brand-ink underline">
+            {report.resend_of.name}
+          </Link>.
+        </Alert>
+      )}
+
+      <ResendPanel report={report} />
 
       {/*
         Said plainly and near the numbers rather than in a footnote. An open

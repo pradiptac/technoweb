@@ -3,7 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\Certification;
-use App\Support\MediaAlt;
+use App\Support\MediaMeta;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -27,7 +27,8 @@ class CertificationResource extends JsonResource
             'description' => $this->description,
             'image' => filled($this->image_path) ? asset('storage/'.$this->image_path) : null,
             // Falls back to the name: a badge is the certificate, not decoration.
-            'image_alt' => MediaAlt::for($this->image_path) ?: $this->name,
+            'image_alt' => MediaMeta::alt($this->image_path) ?: $this->name,
+            'image_focus' => MediaMeta::focus($this->image_path),
             'file' => filled($this->file_path) ? asset('storage/'.$this->file_path) : null,
         ];
     }

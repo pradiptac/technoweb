@@ -1,5 +1,6 @@
 "use client";
 
+import { SettingSwitch } from "@/components/admin/setting-switch";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Alert, Field, Input, Select } from "@/components/ui/input";
@@ -121,23 +122,22 @@ export function TicketsPanel({ status, rows }: { status: InboundMailStatus; rows
       {result.error && <Alert tone="err" title="That did not work">{result.error}</Alert>}
       {result.ok && <Alert tone="ok" title="Done">{result.ok}</Alert>}
 
-      <label htmlFor="inbound-mail-enabled" className="flex cursor-pointer items-start gap-2.5 text-13-5">
-        <input
-          id="inbound-mail-enabled" type="checkbox" checked={enabled}
-          onChange={(e) => setEnabled(e.target.checked)} className="mt-0.5 size-4 accent-brand-600"
-        />
-        <input type="hidden" name="setting__inbound_mail_enabled" value={enabled ? "1" : "0"} />
-        <span>
-          <span className="block font-semibold text-ink">Open tickets from email</span>
-          <span className="block text-12-5 text-muted">
-            Every new message in the mailbox below becomes a ticket, the sender gets the
-            acknowledgement with the reference, and the desk is told — exactly as for a
-            ticket raised in the portal. A reply that quotes the reference lands on the
-            ticket.{" "}
-            {lastRun ? `Last read ${lastRun}.` : "Not read yet."}
-          </span>
-        </span>
-      </label>
+      <SettingSwitch
+        id="inbound-mail-enabled"
+        name="setting__inbound_mail_enabled"
+        checked={enabled}
+        onChange={setEnabled}
+        align="start"
+        note={<>
+          Every new message in the mailbox below becomes a ticket, the sender gets the
+          acknowledgement with the reference, and the desk is told — exactly as for a
+          ticket raised in the portal. A reply that quotes the reference lands on the
+          ticket.{" "}
+          {lastRun ? `Last read ${lastRun}.` : "Not read yet."}
+        </>}
+      >
+        Open tickets from email
+      </SettingSwitch>
 
       <Field
         label="How the mailbox is reached" htmlFor="setting__inbound_mail_provider"

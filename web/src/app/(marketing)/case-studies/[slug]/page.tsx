@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { stripColumns } from "@/lib/strip-columns";
@@ -7,6 +8,7 @@ import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
+import { RelatedEntities } from "@/components/content/related-entities";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -129,11 +131,15 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
               sizes="(min-width: 1920px) 1728px, 90vw"
               priority
               className="object-cover"
+              style={focalStyle(study.cover_image_focus)}
             />
           </div>
         )}
 
         {study.body && <ProseWithShortcodes html={study.body} />}
+
+        {/* What the study is connected to — the industry, the solutions, the articles. A case study has no answer blocks of its own. */}
+        <RelatedEntities entity={study.entity} className="mt-12" />
 
         <p className="mt-12 border-t border-line pt-6">
           <Link href="/case-studies" className="inline-block py-1 text-14 font-semibold text-brand-ink hover:underline">
@@ -157,6 +163,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         `</script>` would otherwise close the block.
       */}
       {study.schema && <JsonLd data={study.schema} />}
+      {study.faq_schema && <JsonLd data={study.faq_schema} />}
     </>
   );
 }

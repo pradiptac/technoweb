@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/dates";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { Card } from "@/components/ui/card";
@@ -13,12 +14,6 @@ import { DetailsForm } from "./details-form";
 
 export const metadata = buildMetadata({ title: "Customer", path: "/admin/customers", seo: noIndex });
 
-const stamp = (iso: string | null) =>
-  iso
-    ? new Date(iso).toLocaleString("en-GB", {
-        day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-      })
-    : "—";
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -98,11 +93,11 @@ export default async function AdminCustomerPage({
           <Card className="p-4">
             <h2 className="admin-title mb-1">Account</h2>
             <dl>
-              <Row label="Registered">{stamp(customer.created_at)}</Row>
-              <Row label="Email confirmed">{stamp(customer.email_verified_at)}</Row>
-              <Row label="Activated">{stamp(customer.approved_at)}</Row>
+              <Row label="Registered">{formatDate(customer.created_at, "dateTime")}</Row>
+              <Row label="Email confirmed">{formatDate(customer.email_verified_at, "dateTime")}</Row>
+              <Row label="Activated">{formatDate(customer.approved_at, "dateTime")}</Row>
               <Row label="Activated by">{customer.approved_by || "—"}</Row>
-              <Row label="Last signed in">{stamp(customer.last_login_at)}</Row>
+              <Row label="Last signed in">{formatDate(customer.last_login_at, "dateTime")}</Row>
               <Row label="Tickets">
                 {/*
                   Linked rather than stated, because "6 tickets" is the point at

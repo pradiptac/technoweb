@@ -16,6 +16,9 @@ class TicketMessageResource extends JsonResource
             'id' => $this->id,
             'body' => $this->body,
             'is_internal' => (bool) $this->is_internal,
+            // Stored encrypted; `body` above is already the plain text. The
+            // flag is what draws the lock on both sides.
+            'is_sensitive' => (bool) $this->is_sensitive,
             // 'email' when the message was piped in from the support mailbox;
             // null for everything written in the portal or the console.
             'channel' => $this->channel,

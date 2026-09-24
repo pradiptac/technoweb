@@ -84,6 +84,11 @@ class SubscriberIntake
 
             self::join($subscriber, $groupIds);
 
+            // The one place a subscriber is born active, so the one place the
+            // group-less sequences hear about a new one. The group-triggered
+            // sequences heard from `join()` a line above.
+            Sequences::onActivated($subscriber);
+
             return self::result(self::CREATED, $subscriber);
         }
 
@@ -137,6 +142,11 @@ class SubscriberIntake
         $changed = $subscriber->groups()->syncWithoutDetaching(
             NewsletterGroup::whereIn('id', $groupIds)->pluck('id')->all()
         );
+
+        // Joining a group is what enrols somebody in the sequence it
+        // triggers — only the groups actually attached, so a re-import of
+        // somebody already in the group is not a second welcome series.
+        Sequences::onJoined($subscriber, array_map('intval', $changed['attached']));
 
         return $changed['attached'] !== [];
     }

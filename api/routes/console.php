@@ -76,6 +76,15 @@ Schedule::command('technoware:prune-comments')->dailyAt('03:45');
 Schedule::command('technoware:prune-seo-suggestions')->dailyAt('03:50');
 
 /*
+ * Webhook deliveries older than thirty days.
+ *
+ * Each row is a stored payload — an order, a lead — kept so a failed send can
+ * be read and resent; a month is longer than any retry and long enough for a
+ * quiet hook to be noticed. See PruneWebhookDeliveries.
+ */
+Schedule::command('technoware:prune-webhook-deliveries')->dailyAt('03:55');
+
+/*
  * Spent and expired sign-in codes.
  *
  * Housekeeping rather than retention — nothing is promised about these and
@@ -189,5 +198,14 @@ Schedule::command('technoware:send-scheduled-campaigns')
 // has passed; `CampaignSender::decide()` is idempotent, so ten minutes is a
 // cadence rather than a risk.
 Schedule::command('technoware:decide-subject-tests')
+    ->everyTenMinutes()
+    ->withoutOverlapping();
+
+// Automation sequences: every enrolment whose step has fallen due gets its
+// recipient row and a batch job, or is cancelled if the subscriber can no
+// longer be mailed. Ten minutes for the same reason as the line above — the
+// cursor moves as the row is written and the recipient index holds — and
+// the mail itself leaves through the worker the scheduler already drains.
+Schedule::command('technoware:run-sequences')
     ->everyTenMinutes()
     ->withoutOverlapping();

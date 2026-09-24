@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -170,9 +171,16 @@ class MediaController extends Controller
      */
     public function update(Request $request, Media $medium): JsonResponse
     {
-        $data = $request->validate([
+        $validator = Validator::make($request->all(), [
             'filename' => ['sometimes', 'string', 'max:255'],
             'alt_text' => ['sometimes', 'nullable', 'string', 'max:255'],
+            /*
+             * The focal point: where the subject is, as a percentage of the
+             * width and of the height. Null is the centre. Raster and SVG
+             * alike — it is a rule about cropping, not about pixels.
+             */
+            'focal_x' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:100'],
+            'focal_y' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:100'],
             'description' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'folder_id' => ['sometimes', 'nullable', 'integer', 'exists:media_folders,id'],
             'tags' => ['sometimes', 'nullable', 'array', 'max:25'],
@@ -188,6 +196,31 @@ class MediaController extends Controller
              */
             'tags.*' => ['nullable', 'string', 'max:40'],
         ]);
+
+        /*
+         * Both or neither. A point is two numbers, and one alone is not a
+         * point: half a pair stored would draw a crosshair somewhere nobody
+         * chose and crop every picture behind it to match. The refusal
+         * names the half that is missing, because "invalid" against two
+         * fields is a hunt — the same rule the announcement's window keeps
+         * for its two dates.
+         */
+        $validator->after(function ($v) use ($request) {
+            $hasX = $request->has('focal_x');
+            $hasY = $request->has('focal_y');
+
+            if ($hasX !== $hasY) {
+                $v->errors()->add($hasX ? 'focal_y' : 'focal_x', 'A focal point is two numbers; send focal_x and focal_y together, or neither.');
+
+                return;
+            }
+
+            if ($hasX && (($request->input('focal_x') === null) !== ($request->input('focal_y') === null))) {
+                $v->errors()->add($request->input('focal_x') === null ? 'focal_x' : 'focal_y', 'A focal point is two numbers; clear both to reset it to the centre.');
+            }
+        });
+
+        $data = $validator->validate();
 
         /*
          * Tags are normalised here rather than trusted as sent.

@@ -3,7 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\GalleryItem;
-use App\Support\MediaAlt;
+use App\Support\MediaMeta;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -18,7 +18,8 @@ class GalleryItemResource extends JsonResource
             // The item's own alt wins; the media library's description is the
             // fallback, so a picture already described in the library needs
             // nothing typed twice.
-            'alt' => $this->alt_text ?: MediaAlt::for($this->media_path),
+            'alt' => $this->alt_text ?: MediaMeta::alt($this->media_path),
+            'focus' => MediaMeta::focus($this->media_path),
             'title' => $this->title,
             'subtitle' => $this->subtitle,
             'link_url' => $this->link_url,

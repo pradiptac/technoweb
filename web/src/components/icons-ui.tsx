@@ -19,6 +19,20 @@ const brand = { viewBox: "0 0 24 24", fill: "currentColor", width: 24, height: 2
  * them so server code and the icon map keep importing from one place. Add a
  * glyph here when a client component needs it, and nowhere else.
  */
+/**
+ * Sign out: a door with the arrow leaving through it, the mark this control
+ * has everywhere (2026-09-23). Drawn to `base` like every glyph here — stroke
+ * 1.7, round caps — rather than borrowed at Lucide's 2, because mixed weights
+ * in one row read as sloppy before anybody can say why.
+ */
+export const IconSignOut = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M14.5 3.5h4a1.5 1.5 0 0 1 1.5 1.5v14a1.5 1.5 0 0 1-1.5 1.5h-4" />
+    <path d="M10 16.5 14.5 12 10 7.5" />
+    <path d="M14.5 12H3.5" />
+  </svg>
+);
+
 export const IconCart = (p: P) => (
   <svg {...base} {...p}>
     <circle cx="9" cy="20" r="1.4" /><circle cx="18" cy="20" r="1.4" />

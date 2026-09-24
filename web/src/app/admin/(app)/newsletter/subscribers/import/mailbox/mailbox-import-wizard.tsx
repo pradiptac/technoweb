@@ -465,7 +465,7 @@ export function MailboxImportWizard({
             <div className="grid gap-3 pl-6">
               {!status.client_configured && (
                 <Alert tone="info" title="No OAuth client is saved yet" dismissible={false}>
-                  An administrator saves the client ID and secret once under Settings → Ticketing; this screen only
+                  An administrator saves the client ID and secret once under Tickets → Email to ticket; this screen only
                   adds its own callback address, <span className="font-mono text-12 [overflow-wrap:anywhere]">{status.callback_path}</span>, to that client.
                 </Alert>
               )}
@@ -484,7 +484,7 @@ export function MailboxImportWizard({
                 onDisconnect={() => run(disconnectNewsletterMailboxAction)}
                 connectLabel={provider === "microsoft" ? "Connect a Microsoft 365 mailbox" : "Connect a Gmail mailbox"}
                 disconnectWarning="The consent is forgotten; connect again to scan."
-                hint={`Register ${status.callback_path} on this site's address as a redirect URI of the OAuth client saved under Settings → Ticketing, then connect. ${
+                hint={`Register ${status.callback_path} on this site's address as a redirect URI of the OAuth client saved under Tickets → Email to ticket, then connect. ${
                   provider === "microsoft"
                     ? "The app registration needs the delegated permissions IMAP.AccessAsUser.All, offline_access, openid and email, and IMAP switched on for the mailbox."
                     : "Only the Google account's IMAP access is asked for; nothing is sent as it."

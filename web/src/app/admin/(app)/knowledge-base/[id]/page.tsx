@@ -3,11 +3,11 @@ import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getKnowledgeArticle, getKnowledgeCategories } from "@/lib/admin";
+import { getAnswerBlockKinds, getKnowledgeArticle, getKnowledgeCategories } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ArticleForm } from "../article-form";
-import type { AdminKnowledgeArticle, KnowledgeCategory } from "@/types/api";
+import type { AdminKnowledgeArticle, KnowledgeCategory, AnswerBlockKindOption } from "@/types/api";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -30,8 +30,9 @@ export default async function EditKnowledgeArticlePage({
 
   let article: AdminKnowledgeArticle;
   let categories: KnowledgeCategory[] = [];
+  let kinds: AnswerBlockKindOption[] = [];
   try {
-    [article, categories] = await Promise.all([getKnowledgeArticle(numericId), getKnowledgeCategories()]);
+    [article, categories, kinds] = await Promise.all([getKnowledgeArticle(numericId), getKnowledgeCategories(), getAnswerBlockKinds("/admin/knowledge-articles")]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
     throw error;
@@ -54,7 +55,7 @@ export default async function EditKnowledgeArticlePage({
         )}
       </PageHeader>
 
-      <ArticleForm article={article} categories={categories} saved={Boolean(saved)} />
+      <ArticleForm article={article} categories={categories} saved={Boolean(saved)} kinds={kinds} />
     </>
   );
 }

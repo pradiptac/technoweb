@@ -140,7 +140,7 @@ export default async function PortalDashboard() {
             >
               <span
                 className={cn(
-                  "mb-3 grid size-11 place-items-center rounded-lg bg-card/70 transition-transform",
+                  "mb-3 grid size-11 place-items-center rounded-lg bg-card/70 transition-[scale] duration-(--duration-base)",
                   "group-hover:scale-105 motion-reduce:group-hover:scale-100",
                   c.ink,
                 )}

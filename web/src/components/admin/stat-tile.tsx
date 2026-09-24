@@ -53,7 +53,13 @@ export function StatTile({
   const box = (
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
-        <p className={cn("font-display text-[26px] leading-none font-semibold tracking-[-.02em] tabular-nums", t.value)}>
+        {/*
+          One rung smaller below `sm` (the client, 2026-09-23). The console
+          keeps its dense desktop scale — that density is the point of a tool
+          worked at a desk — but a 26px figure in a tile that is the full width
+          of a 390px screen is a number shouting across an empty card.
+        */}
+        <p className={cn("font-display text-22 leading-none font-semibold tracking-[-.02em] tabular-nums sm:text-[26px]", t.value)}>
           {value}
         </p>
         {/*

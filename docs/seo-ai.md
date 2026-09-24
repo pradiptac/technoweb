@@ -111,6 +111,62 @@ through. Raster formats only, under 4MB; the same refusals, cap and
 counter as every other action. `AltTextTest` pins the data-URL transport,
 the decorative verdict, the vector refusal and that nothing is written.
 
+## The eight AEO and GEO actions (2026-09-21)
+
+`docs/aeo-geo-contract.md` §6. The AEO tab of every entity form draws
+these through the same `ai-seo-panel.tsx`, keyed by `AEO_ACTIONS`; the
+SEO tab keeps the seven above. Same enum, same `run()`, same
+`seo_ai_suggestions` row, same cap and counter — a case plus a prompt
+plus a parse, which is what the enum's docblock promised adding one
+would be.
+
+| Action | What it answers |
+|---|---|
+| `aeo_analyze` | Could an assistant quote this page? `{summary, strengths, gaps, suggestions}`, each gap naming the kind of block that would fill it |
+| `geo_analyze` | Can an engine tell what it is quoting? The same shape, about the entity, its relationships and its authority. Never a word about ranking |
+| `questions` | Up to eight `{question, intent}` people ask before choosing this, none the page already answers |
+| `answer_blocks` | Up to eight `{kind, question, answer, detail}` drafts from the material |
+| `product_qa` | The same, for a store product, from its own facts |
+| `improve_answer` | `{answer, detail}` for the one block `block_id` names — required, and refused when it is another record's |
+| `faq_suggest` | The `faq` shape, as rows for the FAQ repeater |
+| `entity_links` | `{links: [{n, relation, title, path, reason}]}` from a numbered list of real solutions, services, industries, articles and catalogue products |
+
+Three rules carried over and one new:
+
+- **A kind outside the enum is dropped, never mapped.** `AnswerBlockKind`
+  is the vocabulary, the prompt lists it (`Permitted block kinds:` — the
+  `Permitted schema types` lesson), and a row the enum does not know is a
+  row the console's select has nothing to show for. A `question` or
+  `comparison` row with no question goes the same way.
+- **`entity_links` chooses from a list and the list says the relation.**
+  `SeoAssistant::entityCandidates()` numbers real records with the relation
+  each *is*; the model repeats the word for an honest shape, and the
+  validator reads it off the candidate regardless — a solution the model
+  calls a service is still a solution, and "tick these on the Related tab"
+  needs the true one.
+- **Apply writes nothing here.** The console adds the blocks and FAQs to
+  the repeaters as drafts; Save goes through the record's own update
+  endpoint, so `CmsFieldRules::answerBlocks()` and `HtmlSanitiser` apply
+  to a suggested row exactly as to a typed one.
+- **`[MISSING: what]` is a hole, kept.** `SeoContext::MISSING_RULE` — ours,
+  so outside the fence — is stated on the four answer-writing actions:
+  where a fact is needed and the material does not give it, write
+  `[MISSING: what is missing]`, never guess. A store product's context
+  states its facts (brand, SKU, GTIN, MPN, category, price, availability,
+  warranty, applications, the spec sheet, the features, the services that
+  install it) with every blank one named `(not entered)`, because a model
+  that is not told the warranty is unknown writes the warranty a product
+  like this usually has. The marker passes through `plain()` untouched and
+  the panel shows it before Apply. The `ArticleBrief` rule, one module over.
+
+The context also gains the answer blocks already on the page — every one,
+drafts included, since a draft is still a block the editor has — and the
+FAQs, inside the fence, so a draft adds to the page rather than repeating
+it; and, for `improve_answer`, the named block under `THE BLOCK TO IMPROVE`
+in a fence of its own. `GET /admin/seo/ai/context?action=…&block_id=…`
+shows all of it. `SeoAiAeoTest` pins the shapes, the drops, the marker,
+the other record's block and what the context says.
+
 ## Search Console in the loop, and what each model earns (2026-09-18)
 
 Everything on the SEO screens until now was scored from what is stored.
@@ -283,7 +339,7 @@ Then, **in the console** and not in the database — a settings row written
 directly does not clear the cache:
 
 1. Settings → API keys: the OpenAI key, if the chatbot has not already set one.
-2. Settings → SEO defaults: switch **AI SEO assistant** to `1`.
+2. SEO → Settings → SEO defaults: switch **AI SEO assistant** to `1`.
 3. Choose a model and press **Test**.
 4. Fill in what the business does, who it sells to and where it operates.
 

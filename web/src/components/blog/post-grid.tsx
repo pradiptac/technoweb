@@ -3,6 +3,7 @@ import { IconBook } from "@/components/icons";
 import { CategoryChips } from "@/components/blog/category-chips";
 import type { BlogPost } from "@/types/api";
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 
 /**
  * A row of small cards: "You may have missed", and related reading on a post.
@@ -58,6 +59,7 @@ export function PostGrid({
                     fill
                     sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
                     className="object-cover"
+                    style={focalStyle(post.cover_image_focus)}
                   />
                 ) : (
                   <span className="grid size-full place-items-center bg-linear-135 from-brand-800 to-brand-600">

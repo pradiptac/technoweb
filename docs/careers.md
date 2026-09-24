@@ -49,3 +49,22 @@ neither a `jobLocation` nor `jobLocationType: TELECOMMUTE`, and a role with an
 empty location was previously emitting neither. `identifier` and
 `directApply` are there too — the second because the form is on the page rather
 than behind a job board.
+
+**The vacancy page has a shape now (2026-09-21).** It was a badge row that
+repeated the facts card, whatever the editor typed in the body, a facts card
+alone at the top of the right column and the application form down the left
+of an empty half — and the seeded vacancy, whose body is a logo and nothing
+else, showed every bit of that. Under the hero an **at-a-glance strip**
+(location, employment, experience, salary, each with a glyph, blanks left out
+rather than dashed); a summary standing in for an empty description, so the
+column is never bare; "What you will do" and "What we are looking for" as a
+pair of cards on `cardTint()` washes (`neon-6`, `neon-8`, position deciding);
+the aside sticky with the facts, a primary "Apply for this role" to `#apply`
+and `ShareLinks`. The application is a **band** on `bg-surface` — the page's
+destination, drawn like one — with the untouched `ApplyForm` on the left and,
+beside it, "What happens next" as three numbered steps (it is a sequence),
+the careers address from Settings → Contact (`careers_email`, then
+`support_email`), and up to three other open roles as `Tile`s, so the band
+is never a form beside a void. `publicApi.careers()` is the one extra read,
+ISR-tagged like the rest; the JSON-LD, the metadata and `generateStaticParams`
+did not change.

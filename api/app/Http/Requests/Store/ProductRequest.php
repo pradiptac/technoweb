@@ -37,8 +37,9 @@ class ProductRequest extends FormRequest
     {
         // `activation_procedure` is rich text and must be declared here or it
         // bypasses the sanitiser entirely — it is rendered into an email and,
-        // through the order page, into a browser.
-        return ['description', 'activation_procedure'];
+        // through the order page, into a browser. `answer_blocks.*.detail` is
+        // the explanation under each answer block, rich text like any body.
+        return ['description', 'activation_procedure', 'answer_blocks.*.detail'];
     }
 
     public function authorize(): bool
@@ -177,6 +178,20 @@ class ProductRequest extends FormRequest
             'variations.*.is_active' => ['sometimes', 'boolean'],
 
             ...CmsFieldRules::stringList('features'),
+
+            /*
+             * Two questions every buyer asks that nothing on the row could
+             * answer. Both plain text: the warranty is a phrase ("3 years,
+             * on site") and the applications a paragraph, and each is quoted
+             * verbatim on the page and in the Product graph.
+             */
+            'warranty' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'applications' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            // The services that install or support it, replaced wholesale.
+            ...CmsFieldRules::ids('service_ids', 'services'),
+
+            ...CmsFieldRules::faqs(),
+            ...CmsFieldRules::answerBlocks(),
             ...SeoRules::rules(),
         ];
     }
@@ -193,6 +208,12 @@ class ProductRequest extends FormRequest
             'variations.*.gtin.regex' => 'A GTIN is the barcode number — 8, 12, 13 or 14 digits and nothing else.',
             'variations.*.name.required' => 'Every variation needs a name — what the buyer picks from.',
             'variations.max' => 'A product can carry up to 50 variations.',
+            'faqs.*.question.required' => 'Every FAQ needs a question.',
+            'faqs.*.answer.required' => 'Every FAQ needs an answer.',
+            'answer_blocks.*.kind.required' => 'Every answer block needs a kind.',
+            'answer_blocks.*.answer.required' => 'Every answer block needs its direct answer.',
+            'answer_blocks.*.answer.max' => 'The direct answer is limited to 600 characters. Put the rest in the detail.',
+            'answer_blocks.*.question.required_if' => 'A question or comparison block needs its question.',
         ];
     }
 }

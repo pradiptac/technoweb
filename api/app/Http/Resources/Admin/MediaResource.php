@@ -55,6 +55,15 @@ class MediaResource extends JsonResource
             'height' => $this->height,
             'alt_text' => $this->alt_text,
             /*
+             * The focal point, as two percentages. Null is the centre; the
+             * Edit dialog draws a crosshair at the pair and posts both back,
+             * or both null for "Reset to centre". The public resources carry
+             * it formatted as `object-position` wants it (`"30% 20%"`, via
+             * `MediaMeta::focus`); the console wants the numbers to draw.
+             */
+            'focal_x' => $this->focal_x,
+            'focal_y' => $this->focal_y,
+            /*
              * Deliberately distinct from alt_text, and neither is a synonym
              * for the other. Alt text is announced *in place of* the image on
              * every public page that renders it; a description is a working

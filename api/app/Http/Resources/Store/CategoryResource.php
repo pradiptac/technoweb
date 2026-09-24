@@ -2,14 +2,19 @@
 
 namespace App\Http\Resources\Store;
 
+use App\Http\Resources\Concerns\IncludesAnswerContent;
+use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\SeoResource;
 use App\Models\StoreCategory;
+use App\Support\MediaMeta;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /** @mixin StoreCategory */
 class CategoryResource extends JsonResource
 {
+    use IncludesAnswerContent, IncludesSchema;
+
     public function toArray(Request $request): array
     {
         return [
@@ -23,6 +28,9 @@ class CategoryResource extends JsonResource
             // share preview uses. Two different jobs, two fields.
             'icon_url' => $this->icon_path ? asset('storage/'.$this->icon_path) : null,
             'image_url' => $this->image_path ? asset('storage/'.$this->image_path) : null,
+            // The photograph's focal point from the library, or null: the
+            // rail crops it to a disc and the share preview to 1200x630.
+            'image_focus' => MediaMeta::focus($this->image_path),
             // Present only when the controller counted them: a listing needs
             // the figure and a detail page does not, and `withCount` on a
             // resource that might not have it is a lazy load waiting to throw.
@@ -32,6 +40,13 @@ class CategoryResource extends JsonResource
             // override row -- the derived defaults are still wanted for those.
             // The index never loads it, so a listing carries no `seo` key at
             // all rather than one derived on every row for nothing read there.
+            'faqs' => $this->publicFaqs(),
+            // The published blocks, in order, with the heading each renders under.
+            'answer_blocks' => $this->publicAnswerBlocks(),
+            // What this record is connected to, on the page only (`EntityLinks`).
+            'entity' => $this->entity(),
+            // An FAQPage over the FAQs and question blocks; absent under two entries.
+            'faq_schema' => $this->faqSchema(),
             'seo' => $this->when(
                 $this->resource->relationLoaded('seo'),
                 fn () => new SeoResource($this->resolvedSeo()),

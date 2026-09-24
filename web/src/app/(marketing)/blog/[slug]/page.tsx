@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
@@ -15,6 +16,8 @@ import { PostGrid } from "@/components/blog/post-grid";
 import { PostNav } from "@/components/blog/post-nav";
 import { ShareLinks } from "@/components/ui/share-links";
 import { Comments } from "@/components/blog/comments";
+import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { RelatedEntities } from "@/components/content/related-entities";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, SITE, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -172,6 +175,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                     sizes="(min-width: 1024px) 60vw, 100vw"
                     priority
                     className="object-cover"
+                    style={focalStyle(post.cover_image_focus)}
                   />
                 </div>
               </div>
@@ -196,6 +200,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               */}
               {body && <ProseWithShortcodes html={body} className="max-w-none" />}
             </div>
+
+            {/* The answer blocks and FAQs, then what the post is about — after the body, before the neighbours. */}
+            <AnswerBlocks blocks={post.answer_blocks} faqs={post.faqs ?? []} className="mt-10" />
+            <RelatedEntities entity={post.entity} className="mt-10" />
 
             {/*
               The post either side, before the comments: a reader who has
@@ -277,6 +285,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         `</script>` would otherwise close the block.
       */}
       {post.schema && <JsonLd data={post.schema} />}
+      {/* The FAQPage over the FAQs and question blocks — the API's, absent under two entries, and the only one on the page. */}
+      {post.faq_schema && <JsonLd data={post.faq_schema} />}
     </>
   );
 }

@@ -55,7 +55,8 @@ import {
  * them; `mobile-audit.mjs` has always done it this way.
  */
 const ADMIN_ROUTES = [
-  "/admin", "/admin/tickets", "/admin/customers", "/admin/blog", "/admin/blog/new",
+  "/admin", "/admin/tickets", "/admin/tickets/saved-replies", "/admin/tickets/saved-replies/new",
+  "/admin/customers", "/admin/blog", "/admin/blog/new",
   "/admin/blog-categories", "/admin/blog-categories/new",
   // Audited by neither list until now, which is how a 22px overflow at 320px
   // sat on it unnoticed. The builder behind it has the same history.
@@ -68,16 +69,21 @@ const ADMIN_ROUTES = [
   "/admin/team-members", "/admin/clients", "/admin/certifications",
   "/admin/landing-pages", "/admin/landing-pages/opportunities",
   "/admin/locations", "/admin/locations/new",
-  "/admin/users", "/admin/settings", "/admin/info-bar", "/admin/themes", "/theme-preview/classic", "/theme-preview/classic/specimen", "/admin/profile",
+  "/admin/users", "/admin/settings", "/admin/info-bar", "/admin/store/promo", "/admin/themes", "/theme-preview/classic", "/theme-preview/classic/specimen", "/admin/profile",
   // The wording of every system email. A new console module is not covered
   // until it is named here — the menu builder carried 183px of horizontal
   // scroll at 320px for exactly that reason.
   "/admin/settings/email-templates", "/admin/settings/email-templates/ticket_created",
-  // The Ticketing tab is a panel of its own, and the consent callback is a page nothing links to.
-  "/admin/settings?tab=tickets", "/admin/settings/tickets/callback",
+  // Every module's own settings, at the end of its sidebar section since
+  // 2026-09-20 — ten screens over one form. A screen not named here is not
+  // audited; the Email to ticket panel is the one the consent callback belongs
+  // to, and that callback is a page nothing links to.
+  "/admin/site/settings", "/admin/blog/settings", "/admin/media/settings", "/admin/seo/settings", "/admin/store/settings",
+  "/admin/newsletter/settings", "/admin/leads/settings", "/admin/tickets/settings", "/admin/customers/settings", "/admin/chat/settings",
+  "/admin/settings/tickets/callback",
   // The store, which is its own catalogue and its own role.
   "/admin/store", "/admin/store?days=7",
-  "/admin/store/products", "/admin/store/products/new",
+  "/admin/store/products", "/admin/store/products/new", "/admin/store/products/import",
   "/admin/store/categories", "/admin/store/categories/new",
   "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new",
   "/admin/store/reports",
@@ -89,6 +95,9 @@ const ADMIN_ROUTES = [
   "/admin/newsletter/subscribers/import/mailbox", "/admin/newsletter/verification",
   "/admin/newsletter/groups", "/admin/newsletter/campaigns", "/admin/newsletter/templates",
   "/admin/newsletter/unsubscribes",
+  // Automation sequences: the list and the new screen; the record screen is
+  // discovered below, since nothing seeds a sequence.
+  "/admin/newsletter/sequences", "/admin/newsletter/sequences/new",
   // The rest of the create screens. Eight were missing, so two thirds of the
   // "new record" forms were never looked at.
   "/admin/knowledge-base/new", "/admin/case-studies/new", "/admin/pages/new",
@@ -97,6 +106,10 @@ const ADMIN_ROUTES = [
   "/admin/popups/new",
   "/admin/team-members/new", "/admin/clients/new", "/admin/certifications/new",
   "/admin/forms/new", "/admin/faqs/new", "/admin/redirects/new", "/admin/users/new",
+  // Outgoing webhooks: the list and the form. The edit screen is a DISCOVER
+  // entry below, because nothing seeds a webhook and its id is whatever an
+  // administrator made.
+  "/admin/webhooks", "/admin/webhooks/new",
 ];
 
 /*
@@ -120,7 +133,11 @@ const DISCOVER = [
   { from: "/careers", match: /^\/careers\/[^/]+$/ },
   { from: "/case-studies", match: /^\/case-studies\/[^/]+$/ },
   { from: "/knowledge-base", match: /^\/knowledge-base\/[^/]+$/ },
-  { from: "/admin/tickets", match: /^\/admin\/tickets\/[^/]+$/, admin: true },
+  // `TW-`, not `[^/]+`: the queue's header links to /admin/tickets/saved-replies
+  // now, and the first matching anchor would otherwise be that screen.
+  { from: "/admin/tickets", match: /^\/admin\/tickets\/TW-[^/]+$/, admin: true },
+  // Nothing seeds a saved reply; the edit form exists only once somebody has written one.
+  { from: "/admin/tickets/saved-replies", match: /^\/admin\/tickets\/saved-replies\/\d+$/, admin: true },
   { from: "/admin/customers", match: /^\/admin\/customers\/\d+$/, admin: true },
   { from: "/admin/blog", match: /^\/admin\/blog\/\d+$/, admin: true },
   { from: "/admin/jobs", match: /^\/admin\/jobs\/\d+$/, admin: true },
@@ -155,6 +172,7 @@ const DISCOVER = [
   { from: "/admin/landing-pages", match: /^\/admin\/landing-pages\/\d+$/, admin: true },
   { from: "/admin/locations", match: /^\/admin\/locations\/\d+$/, admin: true },
   { from: "/admin/users", match: /^\/admin\/users\/\d+$/, admin: true },
+  { from: "/admin/webhooks", match: /^\/admin\/webhooks\/\d+$/, admin: true },
   { from: "/admin/store/products", match: /^\/admin\/store\/products\/\d+$/, admin: true },
   { from: "/admin/store/categories", match: /^\/admin\/store\/categories\/\d+$/, admin: true },
   { from: "/admin/store/orders", match: /^\/admin\/store\/orders\/[A-Z0-9-]+$/, admin: true },
@@ -162,6 +180,12 @@ const DISCOVER = [
   // The code inventory hangs off a product, so it is reached the way a person
   // reaches it: open the first product, then its codes.
   { from: "/admin/store/products", match: /^\/admin\/store\/products\/\d+$/, admin: true, suffix: "/codes" },
+  // The campaign editor and its report, which carries the resend panel and
+  // the subject-test table — neither was in either list while the module's
+  // index screens were. Their ids come from whatever was made, so discovered.
+  { from: "/admin/newsletter/campaigns", match: /^\/admin\/newsletter\/campaigns\/\d+$/, admin: true },
+  { from: "/admin/newsletter/campaigns", match: /^\/admin\/newsletter\/campaigns\/\d+$/, admin: true, suffix: "/report" },
+  { from: "/admin/newsletter/sequences", match: /^\/admin\/newsletter\/sequences\/\d+$/, admin: true },
 ];
 
 const haveAdminCredentials = Boolean(

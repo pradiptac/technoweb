@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\AnswerBlockKind;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreProductRequest;
@@ -31,7 +32,7 @@ class ProductController extends Controller
     use WritesCmsEntities;
 
     /** Keys that must be lifted out before mass assignment. */
-    private const RELATIONS = ['solution_ids', 'related_product_ids', 'faqs'];
+    private const RELATIONS = ['solution_ids', 'related_product_ids', 'faqs', 'answer_blocks'];
 
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -55,7 +56,11 @@ class ProductController extends Controller
             ->paginate(min($request->integer('per_page', 30), 100))
             ->withQueryString();
 
-        return ProductResource::collection($products);
+        // Sent by the API, never listed in TypeScript: the console's kind
+        // select is built from this, the `meta.transitions` rule.
+        return ProductResource::collection($products)->additional(['meta' => [
+            'answer_block_kinds' => AnswerBlockKind::options(),
+        ]]);
     }
 
     public function show(Product $product): JsonResource
@@ -120,6 +125,7 @@ class ProductController extends Controller
             // Pivot rows can stay: those relations filter trashed products out
             // on their own.
             $product->faqs()->delete();
+            $product->answerBlocks()->delete();
             $product->seo()->delete();
             $product->delete();
         });
@@ -130,7 +136,7 @@ class ProductController extends Controller
     /** @return array<int, string> */
     private function detailRelations(): array
     {
-        return ['brand', 'category', 'solutions', 'relatedProducts', 'faqs', 'seo'];
+        return ['brand', 'category', 'solutions', 'relatedProducts', 'faqs', 'answerBlocks', 'seo'];
     }
 
     /**
@@ -172,5 +178,6 @@ class ProductController extends Controller
         }
 
         $this->saveFaqs($product, $relations['faqs'] ?? null);
+        $this->saveAnswerBlocks($product, $relations['answer_blocks'] ?? null);
     }
 }

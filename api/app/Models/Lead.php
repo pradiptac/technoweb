@@ -3,6 +3,9 @@
 namespace App\Models;
 
 use App\Enums\LeadStatus;
+use App\Enums\WebhookEvent;
+use App\Support\Webhooks\WebhookPayload;
+use App\Support\Webhooks\Webhooks;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,6 +40,16 @@ class Lead extends Model
             'contacted_at' => 'datetime',
             'closed_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // `lead.created`, wherever the lead came from — the contact form, an
+        // editor-built form, the chatbot — because `LeadIntake` is the one
+        // path and this is the row it writes.
+        static::created(function (self $lead) {
+            Webhooks::emit(WebhookEvent::LeadCreated, fn () => WebhookPayload::lead($lead));
+        });
     }
 
     /** The enquiry or form submission this was made from, where it still exists. */

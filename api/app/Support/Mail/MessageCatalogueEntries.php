@@ -4,6 +4,7 @@ namespace App\Support\Mail;
 
 use App\Notifications\ActivationProcedureIssued;
 use App\Notifications\ApplicationAcknowledged;
+use App\Notifications\BackInStock;
 use App\Notifications\ChatLeadCaptured;
 use App\Notifications\ChatQuestionUnanswered;
 use App\Notifications\CommentAwaitingModeration;
@@ -24,13 +25,14 @@ use App\Notifications\ResetPassword;
 use App\Notifications\SignInCodeIssued;
 use App\Notifications\TicketAcknowledged;
 use App\Notifications\TicketCreated;
+use App\Notifications\TicketMerged;
 use App\Notifications\TicketReplied;
 use App\Notifications\VerifyCustomerEmail;
 
 /**
- * The 25 entries, kept out of `MessageCatalogue` so that class stays readable.
+ * The 26 entries, kept out of `MessageCatalogue` so that class stays readable.
  *
- * Twenty-five for twenty-four classes: `TicketReplied` is two messages. Its
+ * Twenty-six for twenty-five classes: `TicketReplied` is two messages. Its
  * customer and desk versions differ in greeting, action label *and* recipient,
  * and one template cannot say both without lying about one of them.
  *
@@ -149,6 +151,25 @@ class MessageCatalogueEntries
                 'body' => '<p>A customer has replied.</p>'
                     .'<p>{{body}}</p>'
                     .'<p><a href="{{url}}">Open it in the console</a></p>',
+            ],
+
+            'ticket_merged' => [
+                'label' => 'Tickets merged — to the customer',
+                'description' => 'Sent when the desk merges one of their tickets into another, so they know which reference to quote.',
+                'audience' => self::CUSTOMER,
+                'class' => TicketMerged::class,
+                'variables' => [
+                    'reference' => ['about' => 'The ticket the conversation now lives on.', 'sample' => 'TW-2026-00042'],
+                    'subject' => ['about' => 'That ticket\'s subject.', 'sample' => 'Switch keeps dropping its uplink'],
+                    'source_reference' => ['about' => 'The ticket that was closed by the merge.', 'sample' => 'TW-2026-00047'],
+                    'source_subject' => ['about' => 'Its subject.', 'sample' => 'Same switch, again'],
+                    'url' => ['about' => 'The surviving ticket in the customer portal.', 'sample' => 'https://www.technoware.in/portal/tickets/TW-2026-00042'],
+                ],
+                'subject' => '[{{reference}}] Your ticket {{source_reference}} has been merged into it',
+                'body' => '<p>We have merged two of your tickets.</p>'
+                    .'<p><strong>{{source_reference}}</strong> ({{source_subject}}) was about the same thing as <strong>{{reference}}</strong> ({{subject}}), so everything you sent on it is now on the one ticket.</p>'
+                    .'<p>Quote {{reference}} from now on. A reply to the old reference still reaches us, and it lands on the right ticket.</p>'
+                    .'<p><a href="{{url}}">Open the ticket</a></p>',
             ],
         ];
     }
@@ -296,6 +317,32 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     .'<p><a href="{{url}}">Open your order</a></p>'
                     .'{{steps}}'
                     .'<p>If anything does not work, reply to this message and we will pick it up.</p>',
+            ],
+
+            /*
+             * The back-in-stock notice. One message per request, sent by the
+             * queued job when the shelf is refilled; the price is the price
+             * that day. The cancel link removes this notice alone — it is not
+             * an unsubscribe and must not read like one.
+             */
+            'back_in_stock' => [
+                'label' => 'Back in stock — to whoever asked',
+                'description' => 'Sent once when a product somebody asked to hear about has stock again.',
+                'audience' => self::CUSTOMER,
+                'class' => BackInStock::class,
+                'variables' => [
+                    'product_name' => ['about' => 'The product.', 'sample' => 'Cisco CBS350-24T-4G'],
+                    'variation_name' => ['about' => 'The configuration they asked about, or blank.', 'sample' => '48 port'],
+                    'price' => ['about' => 'The price now, formatted.', 'sample' => '₹23,600'],
+                    'url' => ['about' => 'The product page.', 'sample' => 'https://www.technoware.in/store/products/cisco-cbs350-24t-4g'],
+                    'cancel_url' => ['about' => 'Removes this one notice.', 'sample' => 'https://www.technoware.in/store/notify/cancel/…'],
+                ],
+                'subject' => '{{product_name}} is back in stock',
+                'body' => '<p>Good news.</p>'
+                    .'<p><strong>{{product_name}} {{variation_name}}</strong> is back in stock at {{price}}.</p>'
+                    .'<p>You asked us to let you know. This is the one message we will send about it.</p>'
+                    .'<p><a href="{{url}}">See the product</a></p>'
+                    .'<p>Did not ask for this? <a href="{{cancel_url}}">Cancel the notice</a> and we will not email you about it again.</p>',
             ],
         ];
     }

@@ -480,6 +480,12 @@ steps, and each proves something the next one needs.
 - [x] `registration_enabled` closes the door in one setting
 - [x] 23 feature tests; `npm run audit` clean in both schemes,
       `npm run audit:mobile` clean on all 55 routes
+- [x] "View as" (2026-09-21): a support engineer opens the portal as an
+      active customer in a new tab — a one-hour `impersonation` token of its
+      own, the customer's session untouched, a banner with an End button,
+      the visit in the activity log, the email address off limits; 11 tests
+      with real bearer headers. `docs/customers.md` has why it is a POST
+      form and not a link.
 
 **Two bugs found by running it, not reading it.** Dropping `is_active` broke
 `EnsureUserIsCustomer`, which still read it — the missing attribute evaluated
@@ -730,6 +736,12 @@ is for sale by definition so there is no "sellable" tick to forget.
       delivery, handling and the return window as three settings read by the
       page, the feed and the markup alike. The marketing catalogue's
       price-less `Offer` — an error in Search Console — is gone.
+- [x] **The promo band is a Store screen** (2026-09-20). `/admin/store/promo`
+      beside Discount codes, for a store manager, through `PATCH
+      /admin/store/promo` — which reaches the eight `store_promo_*` rows and
+      refuses any other key by name. The rows are their own settings group
+      and left the settings strip, the info bar's rule; the settings section
+      reads Store, not Shop.
 
 ### Still open on the store
 
@@ -955,6 +967,13 @@ Phases 1–14 of the roadmap. Full account in `docs/chatbot-architecture.md`.
       `support_engineer`; everybody was sent there regardless.
 - [x] **`AdminNavRolesTest`** compares the sidebar's map with the real route
       middleware, because the two are hand-written on opposite sides of the wire.
+- [x] **Settings holds only what the whole console shares** (2026-09-20).
+      Every module's own groups are a "Settings" row at the end of its sidebar
+      section — ten screens over one `SettingsForm` and one endpoint, all
+      administrator-only; Tickets, Customers, Leads and Campaign became groups
+      to carry theirs. `SCREENS` in `settings-copy.ts` is the list and
+      `SettingsScreensTest` reads it against the seeder. See
+      `docs/admin-console.md`, "Settings by section".
 - [x] **`sales_manager`** — the lead pipeline's own role, on the same argument:
       blast radius rather than skill. It holds every prospect's name, telephone
       number and expected spend, which is worth more to a competitor than
@@ -968,6 +987,76 @@ Phases 1–14 of the roadmap. Full account in `docs/chatbot-architecture.md`.
       `screenRole()` — the sidebar's own map — whether the account may be there:
       `/admin` sends a role without the dashboard to its landing, anything else
       is a 404. The API still refuses the data regardless.
+
+## Eight items from 2026-09-20/21 — done
+
+- [x] "View as": a support engineer opens the portal as an active customer in
+      a new tab (0.82.0 — see "Customer self-registration" above)
+- [x] The shop's control strip stays docked down the whole page
+- [x] Two promo tiles above the shop's band, on the Promo banners screen
+- [x] The homepage's "Why Technoware" block editable from Settings → Homepage
+- [x] `/resources` colourful under every theme, each in its own idiom
+- [x] The vacancy page redesigned; the summary stands in for an empty body
+- [x] Six sample client logos from Freepik, on the brand-logo refresh rule
+- [x] The team cards redesigned: 4:5 portraits, a colour per person
+
+Verified: `CustomerImpersonationTest` (11), `StorePromoTest` (9),
+`SettingsScreensTest`, `scripts/probes/impersonation.mjs` (15/15 through the
+real screens), `npm run audit` light and dark on every touched route, tsc,
+eslint, pint, Larastan.
+
+## AEO + GEO on the CMS and the store — done (0.83.0, 2026-09-21)
+
+`docs/aeo-geo-plan.md` and `docs/aeo-geo-contract.md`, implemented in three
+streams against the one contract and reconciled:
+
+- [x] Answer blocks — nine kinds, eleven entities, an **AEO** tab on every
+      form with the repeater, the readiness panel and the assistant
+- [x] FAQs widened to the same eleven owners; one `FAQPage` per page, the
+      API's, never under two entries
+- [x] Store product AEO: warranty, applications, the installing services,
+      the fuller `Product` graph
+- [x] The `entity` block and `about`/`mentions` on every public detail read;
+      `knowsAbout`/`areaServed` on the `Organization` node
+- [x] `AeoScore` and `GeoScore` on the overview and the single-record read,
+      with band filters, per-check filters, sorts and the site's two averages
+      with their own biggest wins
+- [x] Eight assistant actions, suggest-only; `[MISSING: …]` where the model
+      was not given a fact; `improve_answer` per saved block
+- [x] Improvement suggestions under each score — the rubric's hints always,
+      the assistant's inline when it is on
+- [x] The public rendering: `AnswerBlocks` grouped by kind under the API's
+      headings, `RelatedEntities`, `/llms-full.txt` carrying definitions and
+      questions
+
+Verified: `AnswerBlockTest`, `FaqOwnersTest`, `AeoGeoScoreTest` (11),
+`SeoAiAeoTest` (19), the full API suite (1446), Larastan, pint; a real
+solution given blocks through the console and read back on the public page;
+`npm run audit` light and dark on the overview, the AEO tab and the public
+detail pages, `audit:mobile` clean at 320–414; tsc and eslint.
+
+## Ticket replies: paste, rows, sensitive — done (0.84.0, 2026-09-21)
+
+The client's reference screenshots of another desk's reply box:
+
+- [x] Ctrl+V a screenshot into any of the three ticket forms and it becomes
+      an attachment row — thumbnail, name, size, delete; a second paste
+      appends; text pastes are untouched
+- [x] "This reply contains sensitive data, encrypt its contents" on both
+      reply forms: ciphertext in the table, plain on both reads, a lock in
+      both threads, announced but never quoted in the email, no webhook
+- [x] The same switch on the new-ticket form for the opening description
+      (0.85.0): sealed the same way, the desk's email announces it, the
+      webhooks redact it, the merge note is sealed with it
+- [x] Files sent with the ticket itself drawn on both ticket pages (they
+      never were)
+- [x] The console header fits a 320px screen (it never did)
+
+Verified: `TicketSensitiveMessageTest` (8, the first attachment upload in the
+suite among them), the ticket suites, Larastan, pint; `scripts/probes/ticket-paste.mjs`
+13/13 through the real portal screens and the same on the console by hand;
+`npm run audit` light and dark and `audit:mobile` on the three ticket
+screens; tsc, eslint.
 
 ## Decisions still owed by the client
 
@@ -1474,3 +1563,70 @@ September; it passes in dark, which is what a timing-sensitive paint looks like.
 Worth knowing when it is fixed: the sibling `media-browser.tsx` already uses a
 plain `<img>` for this reason, and `media-card.tsx` passes `unoptimized`, so
 `next/image` is buying nothing there but the warning.
+
+## Nine of the feature ideas, built — 0.71.0 to 0.79.0
+
+`docs/feature-ideas-2026-09-20.md` listed twenty-three additions once the
+pending list was clear; nine were chosen (1, 2, 10, 11, 13, 17, 18, 19, 20)
+and built on 2026-09-20 — the design in
+`docs/superpowers/specs/2026-09-20-feature-ideas-design.md`, one version and
+one `VERSION.md` entry each. The Scope-limits paragraph in `CLAUDE.md` now
+says what the scope is: the shop sells, the catalogue does not.
+
+- **Canned replies** (1) — shared, filled per ticket by the API.
+- **Ticket merge** (2) — one transaction, one notification, refused across
+  customers; email-to-ticket follows the chain.
+- **Store import and export** (10) — CSV or `.xlsx`, dry run then commit,
+  matched by SKU, never a variation created.
+- **Image focal point** (11) — a property of the file beside its alt text;
+  `object-position` at every cover site; unset renders as before.
+- **Back-in-stock notices** (13) — 202 always, fired from `StockLedger`,
+  stamped once, the suppression list honoured.
+- **Resend to non-openers** (17) — the audience re-filtered, the health gate
+  kept, `TrackingRewriter::unprepare()` fixing a duplicate's links on the way.
+- **Automation sequences** (18) — each step a campaign row; once per
+  subscriber per sequence; `technoware:run-sequences` every ten minutes.
+- **GA4, read only** (19) — the Search Console credential, `analytics`
+  beside `search`, the store funnel's views.
+- **Outgoing webhooks** (20) — signed over `timestamp.body`, guarded like
+  `Notifier`, retried through the queue, secret shown once.
+
+### How it was built, and what that taught
+
+Six agents in parallel, one `git worktree` each under `d:\tmp`, one test
+database each (`DB_DATABASE=technoweb_test_<x>` — `phpunit.xml`'s `<env>`
+yields to a real variable). What nearly made the whole exercise worthless:
+**`api/vendor` as a directory junction to the main checkout makes PHP
+resolve Composer's `$baseDir` to the main checkout**, so every worktree's
+suite was running the main tree's `App\` classes against the worktree's
+tests and routes — a new class "not found", a model edit invisible, a green
+run that said nothing. Three of the six agents found it independently. The
+shape that works: a real `vendor/` with the autoloader, `composer/`, `bin/`,
+`phpunit/` and `phpstan/` copied and every other package junctioned, checked
+with `ReflectionClass(App\Models\Ticket)->getFileName()`.
+
+Two things the merged suite found that no branch could: both branches that
+added a catalogue message counted to twenty-six (it is twenty-seven), and
+`QueuedMailTest`'s worker tests failed only in a full run — `queue:work`
+stops after any job once the process is over its default 128MB `--memory`,
+and 1,395 tests in one process are past that by the letter Q. `--memory 0`
+in the two tests, with the reason.
+
+### Verified
+
+1,395 API tests, 9,400 assertions — 97 test methods more than 0.70.0; Larastan
+"No errors" with the baseline untouched; `pint`, `tsc`, `eslint` clean; the
+mock API carries every new shape. `npm run audit` over all 165 routes in
+light — the campaign editor and its report discovered for the first time —
+with two real findings fixed (the first blog row's cover loaded lazily while
+being the largest paint; the A/B panel's `h3` under an `h1`, there since
+0.70.0) and three dev-server artefacts that pass alone (the documented gzip
+listener warning on `/admin`, a 504 from the optimiser under the burst, a
+fade slider read past its first slide); the phone audit clean at four widths
+over the new screens; the dark run over every new or changed screen. Driven
+for real, not only in tests: a focal point set through the API measured as
+`object-position: 20% 80%` on the category listing; a back-in-stock request,
+a restock through the console's own endpoint, the queued job drained, the
+notice stamped and the message sent; a sequence created, activated, a
+subscriber enrolled by the intake, the runner holding the step on a missing
+sender and sending it once one was set.

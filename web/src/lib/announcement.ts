@@ -16,7 +16,12 @@ export type Announcement = {
   id: string;
   /** Sanitised on write by the API's `inline` purifier profile. */
   html: string;
-  mode: "fixed" | "ticker";
+  mode: AnnouncementMode;
+  /**
+   * The message split into the lines the vertical style shows one at a time.
+   * One entry for every other mode, which is the whole message.
+   */
+  lines: string[];
   closable: boolean;
   /** The stops as they will paint — one for solid, two for a gradient — after `announcementBand()`. */
   stops: string[];
@@ -31,6 +36,30 @@ export const ANNOUNCEMENT_KEY = "tw_announcement_closed";
 
 /** The seeded colours, and what a field falls back to on a bad value — the theme's per-field rule. */
 export const ANNOUNCEMENT_DEFAULTS = { colour: "#12140d", colour2: "#2f3a1f" } as const;
+
+/** Fixed, scrolling, or one line at a time. The API refuses anything else. */
+export type AnnouncementMode = "fixed" | "ticker" | "vertical";
+
+const MODES = new Set<AnnouncementMode>(["fixed", "ticker", "vertical"]);
+
+/**
+ * The message as lines, for the vertical style.
+ *
+ * A line is what the editor pressed Enter or Shift+Enter to make: the
+ * `inline` purifier profile keeps `<br>` and wraps runs in `<p>`, so those
+ * are the two separators there can be. Anything that trims to nothing is
+ * dropped — a trailing `<br>` is the ordinary state of a box somebody typed
+ * into — and a message with no separator at all is one line, which is what
+ * makes the other two modes able to read this same field.
+ */
+export function announcementLines(html: string): string[] {
+  const parts = html
+    .split(/<br\s*\/?>|<\/p>\s*<p[^>]*>/i)
+    .map((line) => line.replace(/^\s*<p[^>]*>|<\/p>\s*$/gi, "").trim())
+    .filter((line) => line.replace(/<[^>]+>/g, "").trim() !== "");
+
+  return parts.length > 0 ? parts : [html];
+}
 
 const isHex = (v: string | undefined): v is string => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
 
@@ -51,12 +80,16 @@ export function announcementFor(settings: SiteSettings): Announcement | null {
   const c2 = isHex(settings.announcement_colour_2) ? settings.announcement_colour_2.toLowerCase() : ANNOUNCEMENT_DEFAULTS.colour2;
   const typed = settings.announcement_style === "gradient" ? [c1, c2] : [c1];
   const band = announcementBand(typed);
-  const mode = settings.announcement_mode === "ticker" ? "ticker" : "fixed";
+  const raw = (settings.announcement_mode ?? "") as AnnouncementMode;
+  // A stored value outlives the rule that accepted it, so this falls back on
+  // the way *out* as well — the `SchemaTypes::resolve()` rule.
+  const mode: AnnouncementMode = MODES.has(raw) ? raw : "fixed";
 
   return {
     id: fingerprint(`${html}|${mode}|${typed.join(",")}`),
     html,
     mode,
+    lines: announcementLines(html),
     closable: settings.announcement_closable !== "0",
     stops: band.stops,
     ink: band.ink,

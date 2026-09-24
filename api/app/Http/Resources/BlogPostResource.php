@@ -2,11 +2,12 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\BlogPost;
 use App\Support\Blog\Comments;
-use App\Support\MediaAlt;
+use App\Support\MediaMeta;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -14,7 +15,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin BlogPost */
 class BlogPostResource extends JsonResource
 {
-    use IncludesSchema, IncludesSeo;
+    use IncludesAnswerContent, IncludesSchema, IncludesSeo;
 
     public function toArray(Request $request): array
     {
@@ -29,7 +30,8 @@ class BlogPostResource extends JsonResource
             'excerpt' => $this->excerpt,
             'body' => $this->when($detail, $this->body),
             'cover_image' => $this->cover_image_path ? asset('storage/'.$this->cover_image_path) : null,
-            'cover_image_alt' => MediaAlt::for($this->cover_image_path),
+            'cover_image_alt' => MediaMeta::alt($this->cover_image_path),
+            'cover_image_focus' => MediaMeta::focus($this->cover_image_path),
             /*
              * Present only when eager-loaded, which every listing does. A post
              * carries several, so this is a list rather than one name: the
@@ -58,6 +60,13 @@ class BlogPostResource extends JsonResource
              */
             'previous' => $this->whenLoaded('previous', fn () => $this->previous ? ['title' => $this->previous->title, 'slug' => $this->previous->slug] : null),
             'next' => $this->whenLoaded('next', fn () => $this->next ? ['title' => $this->next->title, 'slug' => $this->next->slug] : null),
+            'faqs' => $this->publicFaqs(),
+            // The published blocks, in order, with the heading each renders under.
+            'answer_blocks' => $this->publicAnswerBlocks(),
+            // What this record is connected to, on the page only (`EntityLinks`).
+            'entity' => $this->entity(),
+            // An FAQPage over the FAQs and question blocks; absent under two entries.
+            'faq_schema' => $this->faqSchema(),
             'seo' => $this->seo(),
             /*
              * The page's JSON-LD, built server-side.

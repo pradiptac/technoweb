@@ -6,7 +6,7 @@ import { CompanyField } from "@/components/forms/company-field";
 import { AddressFields } from "@/components/forms/address-fields";
 import { Button } from "@/components/ui/button";
 import { brandConfettiColors, confettiBurst } from "@/components/velora/confetti";
-import { Alert, Field, Input } from "@/components/ui/input";
+import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { formatPaise } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { placeOrderAction, type CheckoutState } from "./actions";
@@ -129,8 +129,22 @@ export function CheckoutForm({
                 aria-invalid={Boolean(err("name"))} />
             </Field>
 
-            <Field label="Phone" htmlFor="phone" error={err("phone")}>
-              <Input id="phone" name="phone" type="tel" autoComplete="tel" required defaultValue={customer?.phone ?? ""}
+            {/*
+              "Mobile", and the field is still `phone`.
+
+              The word on screen is the one this audience uses for the number a
+              courier actually rings; the key underneath is what the column, the
+              order resource, the console and the customer's own account all
+              call it, and renaming a wire key to match a label is a migration
+              across five files that a buyer never sees.
+
+              No hint, deliberately — this form deletes hints that restate their
+              label, and the format only matters when it is wrong, which is when
+              the server says so in a sentence naming it.
+            */}
+            <Field label="Mobile" htmlFor="phone" error={err("phone")}>
+              <Input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" required
+                defaultValue={customer?.phone ?? ""}
                 aria-invalid={Boolean(err("phone"))} />
             </Field>
           </div>
@@ -259,6 +273,32 @@ export function CheckoutForm({
             )}
           </>
         )}
+
+        {/*
+          Anything the desk should know, in the buyer's own words.
+
+          Last in the column on purpose: it is the one optional thing on the
+          screen, and a free-text box above the fields an order cannot be placed
+          without is a box people stop to think about before they have finished
+          the ones that matter. The line under the heading says what to write —
+          that is information rather than a restatement of the label, so it
+          earns its line where a hint reading "optional" would not.
+
+          It is never a second address and never a change to the order: it
+          reaches the console as text beside the order, which is exactly what a
+          gate code or a delivery window needs to be.
+        */}
+        <section className={cn(card, "mt-3")}>
+          <h2 className="text-15 font-semibold">Order notes</h2>
+          <p className="mb-3 text-12-5 text-muted">
+            Optional — a delivery window, a gate code, a purchase-order number.
+          </p>
+
+          <Field label="Notes for this order" htmlFor="customer_note" error={err("customer_note")}>
+            <Textarea id="customer_note" name="customer_note" rows={3} maxLength={1000}
+              aria-invalid={Boolean(err("customer_note"))} />
+          </Field>
+        </section>
       </div>
 
       <aside className={cn(card, "lg:sticky lg:top-24")}>

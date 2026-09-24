@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useAutoplay, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import type { Gallery as GalleryData, GalleryItem } from "@/types/api";
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 
 /**
  * A tabbed picture grid whose thumbnails open a lightbox.
@@ -123,6 +124,7 @@ export function Gallery({
                         and was reported as no animation at all.
                       */
                       className="object-cover transition-[scale] duration-500 ease-brand motion-safe:group-hover:scale-[1.08] motion-safe:group-focus-visible:scale-[1.08]"
+                      style={focalStyle(item.focus)}
                     />
                   )}
 
@@ -543,6 +545,7 @@ export function Lightbox({
                       fill
                       sizes="(min-width: 640px) 64vw, 86vw"
                       className="object-cover"
+                      style={focalStyle(it.focus)}
                     />
                   ))}
                 </div>
@@ -580,7 +583,7 @@ export function Lightbox({
                     i === index ? "opacity-100 ring-2 ring-white" : "opacity-50 hover:opacity-90",
                   )}
                 >
-                  {it.url && <Image src={it.url} alt="" fill sizes="80px" className="object-cover" />}
+                  {it.url && <Image src={it.url} alt="" fill sizes="80px" className="object-cover" style={focalStyle(it.focus)} />}
                 </button>
               ))}
             </div>

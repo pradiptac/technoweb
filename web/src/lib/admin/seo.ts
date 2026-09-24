@@ -62,14 +62,26 @@ export async function getSeoRecord(type: string, id: number): Promise<SeoRow> {
 }
 
 export async function getSeoOverview(
-  params: { type?: string; q?: string; issues?: string; check?: string; ai?: string; search?: string; page?: string; per_page?: string } = {},
+  params: {
+    type?: string; q?: string; issues?: string; check?: string; ai?: string; search?: string; analytics?: string;
+    aeo?: string; geo?: string; aeo_check?: string; geo_check?: string;
+    sort?: string; dir?: string; page?: string; per_page?: string;
+  } = {},
 ) {
   const query = new URLSearchParams();
   if (params.type) query.set("type", params.type);
+  // Readiness (docs/aeo-geo-contract.md §5): `?aeo=poor|fair`, `?geo=poor|fair`
+  // filter by band, `?sort=aeo|geo` orders by the value through `ListSort`.
+  if (params.aeo) query.set("aeo", params.aeo);
+  if (params.geo) query.set("geo", params.geo);
+  if (params.sort) query.set("sort", params.sort);
+  if (params.dir) query.set("dir", params.dir);
   // The AI review queue: records holding a suggestion nobody has read.
   if (params.ai) query.set("ai", params.ai);
   // Search Console: `no_clicks` is the pages shown and never opened.
   if (params.search) query.set("search", params.search);
+  // Google Analytics: `no_views` is the pages search shows and nobody opens.
+  if (params.analytics) query.set("analytics", params.analytics);
   if (params.q) query.set("q", params.q);
   // Server-side, because the results are paginated: filtering a page in the
   // browser would hide only the rows that happened to land on it.
@@ -77,6 +89,9 @@ export async function getSeoOverview(
   // One failed check, named. This is what turns a figure on the score card
   // into the list of records behind it.
   if (params.check) query.set("check", params.check);
+  // The same door for the two readiness scores' own biggest wins.
+  if (params.aeo_check) query.set("aeo_check", params.aeo_check);
+  if (params.geo_check) query.set("geo_check", params.geo_check);
   if (params.page) query.set("page", params.page);
   if (params.per_page) query.set("per_page", params.per_page);
   const qs = query.toString();
@@ -91,10 +106,18 @@ export async function getSeoOverview(
  * and saving goes through the record's own update endpoint with the same
  * validation and sanitising a typed value gets.
  */
-export async function runSeoAi(action: SeoAiActionKey, type: string, id: number) {
+/**
+ * What an action needs beyond the record. `improve_answer` names the one
+ * answer block it rewrites (`block_id`, a saved block of this record — the
+ * API answers 422 with a sentence otherwise); every other action takes
+ * nothing more. `docs/aeo-geo-contract.md` §6.
+ */
+export type SeoAiRunExtra = { block_id?: number };
+
+export async function runSeoAi(action: SeoAiActionKey, type: string, id: number, extra: SeoAiRunExtra = {}) {
   const res = await apiFetch<{ data: SeoSuggestion }>(
     `/admin/seo/ai/${encodeURIComponent(action)}`,
-    { method: "POST", body: { type, id }, token: await token() },
+    { method: "POST", body: { type, id, ...extra }, token: await token() },
   );
 
   return res.data;

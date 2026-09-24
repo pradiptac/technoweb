@@ -154,6 +154,50 @@ freezes the track and `globals.css` turns it into a centred, unmasked line
 with the repeats hidden. Playwright's `hover()` never resolves on a marquee
 (it waits for the target to be stable), so the probe moves the pointer.
 
+**The third style shows one line at a time, and it is the one client island
+here (2026-09-23).** `vertical` beside `fixed` and `ticker`: each line rises
+from the bottom, holds `1.4s + chars/15` — floored at 3s so two words do not
+blink past, capped at 9s so a long one does not read as a bar that has stopped
+— and pauses under the pointer, while something inside has focus, and while
+the tab is hidden. A line is what the editor pressed Enter to make:
+`announcementLines()` splits on `<br>` and on `</p><p>`, which are the only
+separators the `inline` purifier profile can leave, and a message with neither
+is one line, which is how the other two modes read the same field.
+
+It is a client component where the ticker is pure CSS, and the reason is
+structural rather than preference: each line's in, hold and out are
+percentages of one shared keyframe, and those percentages depend on how many
+lines there are — something CSS has no way to take as a parameter. The
+alternatives were generating a keyframe block per install into an inline
+`<style>` or this.
+
+Two rules come with it. The stack is `aria-hidden` and the whole message is
+rendered once in an `sr-only` element beside it, because a rotator read aloud
+is either a live region interrupting somebody every few seconds or a message
+of which only one line is ever in the accessibility tree. And it needs no
+reduced-motion branch: the movement is a CSS transition, which the global rule
+already disables, and the hidden state sits on the lines that are *not*
+current — so the line swaps instantly and nothing is left stuck at `opacity:
+0`, which is the trap that rule creates.
+
+**The band is 24px on a phone and 27px from `sm` (the client, 2026-09-23).**
+It was 36px with 13.5px type and two 28px discs, measuring 49px on a phone
+once the message wrapped. Halved and three-quartered as asked: 12px type below
+`sm`, the vertical padding gone, and the line centred in the band rather than
+sitting on its top edge. **The discs are 24px and cannot go below it** — that
+is the tap-target floor `npm run audit:mobile` enforces, and it is what stops
+the bar getting slimmer than this, not the type.
+
+**Every style is one line, and a `<br>` is why that had to be said.** The three
+drew 66px, 33px and 24px from the same message on a phone: `white-space: nowrap`
+does not suppress an explicit line break, so a message an editor wrote as three
+lines wrapped in the fixed style and not in the ticker. `announcementFor()`
+already splits the message into lines for the vertical style, so the two
+one-line styles render `lines.join(" &middot; ")` — one definition read the
+other way — and each style clamps to one line with `truncate`. The console says
+so under Fixed, because a message too long for one line is what the other two
+styles are for.
+
 **Closing it is a fingerprint in `sessionStorage`, hidden before paint.**
 `announcementFor()` fingerprints the message, mode and stops (djb2), so a
 changed announcement reappears after an earlier one was closed. The root
@@ -351,3 +395,40 @@ bordered, rounded box of size holding content — fails when its ground is
 transparent or the same colour as the nearest opaque ancestor beneath it
 with no background-image. Measured after: zero on every real route, light
 and dark clean.
+
+**The "Why Technoware" block is settings, and three of its rows had been
+waiting.** (2026-09-21) The argument, the four steps, the pull-quote and the
+AMC card were constants in `content/site.ts` until the client asked how the
+block could be edited. `testimonial_quote`, `_author` and `_role` had been
+seeded in the `homepage` group and labelled on the Homepage tab — with a
+hint promising "leave blank to hide" — and nothing had ever read them: a
+setting nothing reads, the mirror image of an endpoint with no control. They
+are read now, beside eleven new rows (`why_kicker/heading/lede/steps`,
+`amc_heading/inclusions/link_label/link_href`). The steps are `title|body`
+lines and the list one item per line, the `hero_stats` convention, edited as
+rows through `LinesField` — `StatsField` without the icon picker, columns
+given by the caller — so the wire format is one a script can still write.
+Seeded with the old copy so a fresh install renders what it did. **The
+testimonial and the AMC card hide by a switch, never by a blank field** —
+`testimonial_enabled` and `amc_enabled`, the promo band's shape. The first
+cut honoured the old hint, "leave blank to hide", and the review found it
+could not: `Setting::setPlainValue()` stores a cleared field as null and
+`PublicSettings::build()` drops null rows from the public map, so the site
+receives the same nothing for "cleared" as for "never set" and a blank
+reverted to the placeholder quote — the fourth instance of the `??`/`||`
+family in this codebase, one layer further back. A blank now falls back to
+the constants like every other homepage row. `WhyUs` takes `settings` from
+the seven theme templates that draw it; the whole block's on/off is the
+Themes screen's section switch.
+
+**The share row's marks take their own colours under the pointer, and only
+there (2026-09-21).** `ShareLinks` sets `--share-hue` per link from the
+`--color-social-*` tokens in `globals.css` — WhatsApp, LinkedIn, Facebook,
+Telegram as published, X as the scheme's ink, email and copy-link the brand
+ink — and the hover colour reads it, so one class list serves six colours.
+At rest every glyph stays `text-muted`, because the published values are not
+graded (WhatsApp's green is 1.9:1 on white) and rest is where the audit reads.
+The logo is a little larger on a phone: 31px tall under `sm` (28 above),
+width cap 120 → 128, still inside the 130px the flanking group leaves at
+320px; the text fallback goes 23 → 25px. `npm run audit:mobile` clean at all
+four widths after.

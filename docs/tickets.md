@@ -233,6 +233,47 @@ enabled on the mailbox and can be blocked by Security Defaults or
 Conditional Access. The ledger is pruned after 180 days
 (`technoware:prune-inbound-emails`), well past any plausible redelivery.
 
+**A reply to a merged ticket lands where the conversation went (2026-09-20).**
+The desk can merge one of a customer's tickets into another
+(`POST /admin/tickets/{ticket}/merge`), which closes the source with
+`merged_into_id` set — and the customer's last email still quotes the old
+reference. `TicketPiper::pipe()` therefore follows `merged_into_id` to the
+end of the chain (a target can be merged in its turn; ten hops is the
+ceiling) *before* the "sender's own open ticket" rule is applied, so the
+reply threads onto the target rather than opening "Follow-up to TW-…, which
+is closed" against a ticket that was closed precisely so there would be one
+thread. The target belongs to the same customer by construction — a merge
+across customers is refused, not confirmable — so nothing the ownership
+check relies on changes. `InboundMailTest` pins a two-hop chain.
+
+**A merge is one transaction, and every state may make its one move.**
+Messages and attachments are re-pointed at the target, the source is closed
+with `closed_at` directly — past `canTransitionTo()`, because a merge is not
+a ticket being worked to a close but a ticket ceasing to be where the work
+is, and a source in PendingCustomer must end up closed exactly as one in
+Open must — with a `merged_into` event on the source, a `merged_from` on the
+target, and an internal note on the target naming the source, its subject
+and its original request (which lives on the source's `description` and
+would otherwise be a link away). Then one `TicketMerged` to the customer,
+queued, in the message catalogue as `ticket_merged`, through `Notifier` so a
+dead mail server cannot undo a merge already committed. A merged source is
+closed for good: the desk's status change and the portal's reopen both
+refuse it naming the target, both resources carry `merged_into`, and the two
+screens show an alert linking there with no reply box. `TicketMergeTest`.
+
+**Saved replies are filled by the API, and the console only ever pastes.**
+`canned_replies` — a title, a plain-text body, an order, shared across the
+desk — is offered on every ticket's reply form through
+`GET /admin/tickets/{ticket}/canned-replies`, which runs each body through
+`Placeholders::fillText` with `customer_name`, `first_name`, `company`,
+`reference`, `subject` and `agent_name` for *that* ticket and the signed-in
+engineer, stripping any name it does not know. The console inserts text at
+the cursor and never learns a placeholder rule; the management screen's
+chips come from `meta.placeholders` on the index, so the fill and the chips
+are one list in `CannedReply::PLACEHOLDERS`. Not `EmailRenderer::personalise`,
+for the reason `Placeholders`' docblock gives: it pre-seeds a subscriber's
+fields and turns a blank first name into "there". `CannedReplyTest`.
+
 **A sender the provider caught lying is skipped as `spoofed` (2026-09-20).**
 The security review of that day rated "reply to somebody else's ticket by
 forging their `From`" the module's one real finding — bounded, off by
@@ -247,3 +288,57 @@ exactly as it was, which is the gap that remains. The full fix, when it is
 worth it: thread a reply onto a ticket only when its `In-Reply-To` names a
 Message-ID this system sent for that ticket, or carry a per-ticket token in
 the Reply-To. `docs/security-audit-2026-09-20.md` has the review.
+
+**A reply may be marked sensitive, and then it is stored encrypted
+(2026-09-21).** "This reply contains sensitive data, encrypt its contents" —
+the switch under the reply box on the portal and the console, either side
+may set it. `ticket_messages.is_sensitive` is one column and three
+consequences. The body of a switched-on row is sealed with `Crypt` in
+`TicketMessage::sealBody()` on `saving` and opened again by the `body`
+accessor, so every reader — both resources, the notification, the piper's
+read-modify-write — sees the plain text and nothing has to know; the row
+in the table is Laravel's base64 envelope (`isSealed()` recognises it, so a
+row is never sealed twice and a plain row is never "decrypted"). The
+Setting pattern rather than an `encrypted` cast, because only some rows are
+secret and a cast applies to the column — and `withoutObjectCaching()` on
+the attribute, because Eloquent otherwise keeps the value the setter was
+handed and re-applies the setter on save, which put the plain text back
+over the ciphertext the hook had just written; measured before it was
+understood. A row that will not decrypt (APP_KEY changed, the trade
+`DigitalCode` documents) answers `TicketMessage::UNREADABLE` and a warning
+in the log, never a 500 on the thread. No fingerprint column: nothing
+searches `ticket_messages.body` — the admin search, `TicketMetrics`, the
+chat retriever and the SEO code never touch it, which was checked rather
+than assumed.
+
+The other two consequences are the point. **The `TicketReplied` email
+announces a sensitive reply and never quotes it** —
+`TicketReplied::SENSITIVE_LINE` in place of the 600-character excerpt on
+both the desk's and the customer's copy, because a mailbox is somebody
+else's server and the email was the one place a body left this system in
+clear. And **no `ticket.replied` webhook is emitted** for a sensitive
+message, the way none is for an internal note: the payload is written to
+`webhook_deliveries` in clear and shown on the delivery screen, so redacting
+one field would not have been enough. `TicketSensitiveMessageTest` pins all
+three, the read-modify-write, and the undecryptable row.
+
+**The ticket's own description takes the same switch (0.85.0, the same
+day).** It is a column on `tickets`, not a message row, so it has its own
+`is_sensitive` and is sealed the same way — the sealing moved into
+`App\Models\Concerns\SealsSensitiveText`, one definition both models use
+(`sealSensitive('column')` on `saving`, `openSensitive()` from the
+accessor, `isSealed()`, `UNREADABLE`). The new-ticket form carries the
+switch, both resources carry the flag, both threads draw the lock on the
+original request, and the desk's `TicketCreated` email says
+`SENSITIVE_LINE` instead of the 400-character excerpt. **The webhook rule
+differs from a message's, deliberately**: a sensitive message emits no
+`ticket.replied` at all, because a message *is* its body; a sensitive ticket
+still emits `ticket.created` and every later `ticket.*` — "a ticket exists"
+is what an integration is told, and the reference, subject and customer are
+still that — with `description` **redacted** to `WebhookPayload::REDACTED`
+in `WebhookPayload::ticket()`, the one place every ticket payload is built.
+The merge note, which quotes the source's description, is sealed when the
+source was. The subject is never sealed: it is the line every list, email
+subject and webhook names the ticket by, and a sealed subject would be a
+ticket nobody can find. Pinned by three more cases in
+`TicketSensitiveMessageTest`.

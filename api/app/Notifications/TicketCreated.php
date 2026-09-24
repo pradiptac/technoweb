@@ -49,7 +49,7 @@ class TicketCreated extends Notification implements ShouldQueue
             'company' => $t->customer?->company ?? '',
             'priority' => $t->priority->label(),
             'category' => $t->category?->name ?? 'Uncategorised',
-            'description' => str(HtmlSanitiser::toText($t->description ?? ''))->limit(400)->value(),
+            'description' => $this->excerpt(),
             'url' => self::consoleUrl($t),
         ];
     }
@@ -58,6 +58,19 @@ class TicketCreated extends Notification implements ShouldQueue
     private static function consoleUrl(Ticket $ticket): string
     {
         return rtrim((string) config('app.frontend_url'), '/')."/admin/tickets/{$ticket->reference}";
+    }
+
+    /** What the email says in place of a sensitive description — the `TicketReplied` rule. */
+    public const SENSITIVE_LINE = 'This ticket is marked sensitive. Open it to read the request.';
+
+    /** The request's first 400 characters, or the sentence that stands in for a sensitive one. */
+    private function excerpt(): string
+    {
+        if ($this->ticket->is_sensitive) {
+            return self::SENSITIVE_LINE;
+        }
+
+        return str(HtmlSanitiser::toText($this->ticket->description ?? ''))->limit(400)->value();
     }
 
     protected function defaultMail(object $notifiable): MailMessage
@@ -74,7 +87,7 @@ class TicketCreated extends Notification implements ShouldQueue
                 ? "From {$t->customer->name}".($t->customer->company ? " at {$t->customer->company}" : '')
                 : 'From a customer.')
             ->line('Priority: '.$t->priority->label().' · Category: '.($t->category?->name ?? 'Uncategorised'))
-            ->line(str(HtmlSanitiser::toText($t->description ?? ''))->limit(400)->value())
+            ->line($this->excerpt())
             ->action('Open in the console', self::consoleUrl($t))
             ->salutation('— Technoware'), MailHeaders::GENERATED);
     }

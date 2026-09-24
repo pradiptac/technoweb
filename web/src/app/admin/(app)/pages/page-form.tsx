@@ -8,11 +8,13 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select } from "@/components/ui/input";
 import { EditorField } from "@/components/admin/editor-field";
+import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
+import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import { createPageAction, updatePageAction, deletePageAction, type PageFormState } from "./actions";
-import type { AdminPage } from "@/types/api";
+import type { AdminPage, AnswerBlockKindOption } from "@/types/api";
 
 const initial: PageFormState = {};
 
@@ -21,6 +23,8 @@ const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
     fields: ["title", "slug", "body", "status", "published_at", "template"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
+  // The AEO tab (docs/aeo-geo-contract.md §7). Last, so every tab above keeps its place.
+  { id: "aeo", label: "AEO", fields: ["answer_blocks"] },
 ];
 
 function toLocalInput(iso: string | null): string {
@@ -30,7 +34,14 @@ function toLocalInput(iso: string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function PageForm({ page, saved }: { page?: AdminPage; saved?: boolean }) {
+export function PageForm({
+  page, saved, kinds,
+}: {
+  page?: AdminPage;
+  saved?: boolean;
+  /** `meta.answer_block_kinds` from this entity's admin index. */
+  kinds: AnswerBlockKindOption[];
+}) {
   const editing = Boolean(page);
   const [state, formAction, pending] = useActionState(
     editing ? updatePageAction : createPageAction,
@@ -39,6 +50,9 @@ export function PageForm({ page, saved }: { page?: AdminPage; saved?: boolean })
 
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
   const seoErr = (f: string) => state.fieldErrors?.[`seo.${f}`]?.[0];
+  /** Per-row errors arrive as e.g. answer_blocks.0.answer; surface the first. */
+  const rowErr = (prefix: string) =>
+    err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
 
   const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
 
@@ -103,6 +117,15 @@ export function PageForm({ page, saved }: { page?: AdminPage; saved?: boolean })
         </div>
 
         <SeoPanel seo={page?.seo} defaults={page?.seo_defaults} error={seoErr} embedded record={page ? { type: 'page', id: page.id } : null} />
+
+        {/*
+          The AEO tab, one child: the readiness scores and the assistant on
+          top, the answer blocks under them. See docs/aeo-geo-contract.md §7.
+        */}
+        <div>
+          <AeoGeoPanel record={page ? { type: 'page', id: page.id } : null} blocks={page?.answer_blocks} />
+          <AnswerBlocksField defaultValue={page?.answer_blocks ?? []} kinds={kinds} error={rowErr("answer_blocks")} />
+        </div>
       </Tabs>
 
       <FormActions>

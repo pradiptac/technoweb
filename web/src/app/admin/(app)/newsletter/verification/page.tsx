@@ -71,7 +71,7 @@ export default async function VerificationPage() {
 
       {data.configured && data.paused && (
         <Alert tone="warn" title="Checking is paused">
-          The monthly allowance is set to 0 under Settings → Newsletter. Nothing is asked until it
+          The monthly allowance is set to 0 under Campaign → Settings. Nothing is asked until it
           is raised.
         </Alert>
       )}

@@ -1,6 +1,6 @@
 # The store
 
-A separate catalogue with prices; baskets, checkout, payment, stock, coupons, digital codes, the Merchant Center feed.
+A separate catalogue with prices; baskets, checkout, payment, stock, coupons, digital codes, the Merchant Center feed, the catalogue as a spreadsheet, back-in-stock notices.
 
 Moved out of `CLAUDE.md` on 2026-09-14, verbatim and in the order they were
 written. Each note is a rule and the measurement behind it; the one-line
@@ -640,6 +640,65 @@ header.** That row is at its measured limit — both flanking groups are
 reopen the 320px overflow the logo cap exists for. `store/layout.tsx`, the same
 answer `NewsletterNav` gives for the newsletter's screens.
 
+**A sticky element is held by its own parent, so the filter strip has to be a
+direct child of the block it follows (2026-09-23).** The strip is
+`lg:sticky lg:top-[var(--h-site-header)]` and it was released at the
+pagination — it docked for the products grid and then slid up behind the
+header while the promo band, the latest products and the trust strip were
+still to come. A wrapper `<div>` spanning the shop had been added for exactly
+this in September and did nothing, because the strip sat one `Container` deep
+inside the first `<section>` and `position: sticky` never looks past the
+element's own parent box: measured at 1707px, it released at an absolute top
+of 1979 inside a wrapper running to 3714. `/store` renders `StoreFilterBar` as
+a direct child of that wrapper now and passes the container's gutter through
+the new `className` prop — `mx-auto w-[calc(90%+0.5rem)]`, the extra 0.5rem
+being what `px-1` spends, so the *card* lines up with the grid to the pixel
+(84.6 and 1607.4 on both, measured) while the opaque band still clears its
+rounded corners. The space above it is a **margin**, because padding would sit
+inside the stuck box as a permanent band. The category and product pages
+already held it in one page-length `Container`, which is why only the shop
+front was wrong.
+
+**The strip sticks at every width from 2026-09-23, at the client's request.**
+It was `lg` and up on a measurement that still stands: the strip is three rows
+and 201px tall at 390px, so it and the header hold about a third of the
+screen. What the client weighed against it is that the basket lives in this
+strip and the phone header carries none, so a strip that scrolls away leaves
+somebody halfway down a listing with no way to reach the basket or the search
+without going back to the top. The band is `py-2` below `lg` so the stuck
+height is the strip and not a frame around it.
+
+**Two products to a row on a phone (the client, 2026-09-23), which is what the
+card was already written for.** `product-card.tsx`'s own note describes a grid
+running "from two columns on a phone to six on a wide screen" — every store
+grid said `sm:grid-cols-2`, so a phone got one. The grids are `grid-cols-2`
+from the base width now, `sizes` moves from `100vw` to `50vw`, and the card's
+type steps down one rung below `sm`: a 16px title and a 20px price in a 170px
+cell wrap the name to three lines and shout the price. Nothing goes under
+12px, which the public site's floor would lift back anyway.
+
+**The two promo tiles sit directly above the trust strip (the client,
+2026-09-23).** They were between the products grid and the promo band, where
+two editor-set pictures interrupt the shop between what is for sale and the
+rest of it.
+
+**The checkout asks for a Mobile, and the wire key is still `phone`.** The
+label is the word this audience uses for the number a courier rings; the key is
+what `orders.customer_phone`, both order resources, the console, the mock and
+the customer's account all call it, and renaming it to match a label is a
+migration across five files a buyer never sees. The number is checked for shape
+in `CheckoutRequest` — ten digits opening 6–9, optional `+91`/`91`/`0`,
+separators anywhere — never against a lookup.
+
+**`orders.customer_note` is the buyer's own note, and it is not `notes`.**
+`Order::notes()` is the desk's staff-only relation, so an attribute of that
+name would shadow it — an `$order->notes` that is sometimes a collection and
+sometimes a string is a collision nothing reports. Optional, stored as typed
+with its line breaks, read back on the buyer's order page and drawn on the
+console's order screen beside the address, which is the screen the parcel is
+packed from. On the admin **detail** only, like the addresses: it is prose, and
+a queue is scanned a row at a time.
+
 **The order page's alert reads `paid_at`, not the status.** It said "Payment
 received" for every order past `pending_payment` — which is a
 cash-on-delivery order, born `confirmed` with nothing paid, the moment it was
@@ -666,7 +725,7 @@ SKU is nullable and editable, and a changed id deletes an item's history.
 
 **Shipping carries a service and a transit window.** `store_shipping_service`
 ("Standard Shipping"), `store_transit_days_min` (3) and
-`store_transit_days_max` (7) in Settings → Store; `Fulfilment::shippingService()`
+`store_transit_days_max` (7) in Store → Settings; `Fulfilment::shippingService()`
 and `transitDays()` (the maximum never below the minimum — a window typed
 backwards is a form error, not a shorter promise, and Merchant Center
 refuses it). The feed's `<g:shipping>` block names `<g:service>`,
@@ -686,7 +745,7 @@ the aliases.
 **Cashfree is the second gateway, and the three ways it is not Razorpay are
 each pinned by a test (2026-09-18).** `App\Support\Store\Payments\CashfreeProvider`,
 on the seam `PaymentGateway` and `PaymentProvider` left for it; Paytm stays
-"not built". Settings → Payments offers it with an App ID, a secret key and
+"not built". Store → Settings → Payments offers it with an App ID, a secret key and
 an environment (sandbox or production, a select — sandbox keys answer 401
 against the live host and the reverse), and the enum's `fields()` grew an
 `options` shape for that one control. What differs:
@@ -753,3 +812,194 @@ that completes what was paid makes the order `refunded`, terminal, with the
 stock left where it is (a refund is money, not goods). The report's
 `refunded_paise` still counts orders in `refunded`, so a partial refund is on
 the order and in the trail rather than in that figure.
+
+## The catalogue as a spreadsheet (2026-09-20)
+
+**`GET /admin/store/products/export` writes one row per product and one per
+variation, in the columns the import reads back.** `CatalogueImport::FIELDS`
+is the one list both sides use, so a file exported, edited in Excel and
+uploaded again maps itself — "change forty prices" is a spreadsheet job, not
+forty edit forms. A variation's row carries its product's SKU in `parent_sku`
+and its own in `sku`; a product's row leaves `parent_sku` blank, and that is
+the whole of how the importer tells the two apart. Money is
+`Money::toRupeeString()` and every cell goes through `Csv::escape`, the two
+rules above about a file somebody opens in Excel.
+
+**The import is a dry run and then a commit of the same file**, the
+newsletter importer's shape and for its reason: reporting afterwards means the
+moment somebody notices they mapped the cost column onto the price is the
+moment after two hundred prices went live. `CatalogueImport::plan()` is one
+walk that both passes share, so the counts somebody approved are the counts
+the commit produces — two walks with two sets of rules is a preview that says
+"40 updated" over a commit that does 38. The console re-reads the dry run on
+every column change, and a blank mapping sent back beats a guess, or a wrong
+guess could never be undone.
+
+**Matching is by SKU, and the import never creates a variation.** A line whose
+SKU is a variation's updates that variation; one whose SKU is a product's
+updates the product; one matching nothing creates a product, which needs a
+name and a price and nothing else. A line naming a `parent_sku` can only
+update, because a variation is a set of options a buyer picks from and a
+spreadsheet cell cannot say what those are — the product form can. A SKU that
+matches more than one row, or is repeated in the file, is refused rather than
+guessed at — naming the first line, because a spreadsheet joined from two
+sources routinely repeats.
+
+**A blank cell leaves the field alone.** A file exported to change forty
+prices carries every other column too, and a blank in one of them means "I
+did not fill this in", never "clear it". Only a mapped, filled cell writes;
+clearing a value stays a job for the edit form. An importer that *could* blank
+a hundred descriptions because a column was empty would have on the first
+file anybody tried.
+
+**Money and enums are refused, never coerced.** `Money::fromRupeeString()`
+parses the text — `₹1,179.99` and `1179.99` alike, the sign and the commas
+stripped first — and never goes through a float, the rule `rupeesToPaise`
+follows on the other side; a cell it cannot read makes the line `invalid`,
+because "call for price" must not become ₹0. `status`, `condition` and `type`
+outside their enums are refused; a category or brand slug nobody has refuses
+the line and never mints one, because a typo in a spreadsheet would otherwise
+create a category.
+
+**Each line is its own transaction.** An unknown category on line 40 costs
+line 40 and nothing else; the rest of the file goes through, and the line is
+named in `problems` with its reason. Fifty problems are kept per file — a
+spreadsheet of five hundred bad rows is a wrong mapping, and the first fifty
+say so as well as the five-hundredth.
+
+**Stock changes go through the ledger with the import's name on them.**
+`StockLedger::adjusted()` grew a `$source`, written in front of the level
+change — `Import #12: changed from 10 to 40.` — so a row in the ledger says
+which spreadsheet put forty on the shelf rather than reading like somebody
+typed it. A new product's opening stock is `Initial`, as from the form.
+
+**`store_product_imports` is the record**: who, which file, the mapping, the
+counts and the refused lines as JSON. The spreadsheet itself waits on the
+private disk between the two steps and is deleted once read; the copies a
+re-mapping leaves behind are pruned after a day.
+
+**`Csv::guessMapping` was left alone and the store has its own.** The
+newsletter's guesser reads "name" as a first name and "address" as an email,
+which is right for a list of people and wrong for a list of products; the two
+share nothing but the idea, and a shared table would need every entry to say
+which importer it was for.
+
+**`compare_at` on a variation's row is exported blank and ignored on import.**
+The specification named it, and `store_product_variations` has no such
+column — a variation's "was" price is the product's.
+
+## Back-in-stock notices (2026-09-20)
+
+**`POST /store/products/{slug}/notify` answers 202 and one sentence, always.**
+The `/auth/register` rule: a form that answered differently for an address it
+recognised is a membership oracle. A filled honeypot, an address on
+`newsletter_suppressions` and a shelf that is not empty — back-ordered counts
+as buyable, which is what the switch means — all get the answer a written
+request gets, and only that last case writes a row.
+
+**One row per address per shelf, re-armed rather than repeated.**
+`stock_notices` is unique on the product, the variation and the address, and
+`notified_at` is the whole state: null waiting, set told, cleared re-armed. A
+second request for a notice already sent clears the stamp, because "tell me
+again next time" is exactly what it means. `StockNotice::arm()` finds before
+it creates: MySQL treats a null variation as distinct in a unique index, so
+the index alone would let "any variation" rows pile up.
+
+**A signed-in customer is stamped from the guard by name.** The route is
+public, so `$request->user()` is always null there and reads as working — the
+trap `CLAUDE.md` records for comments and the chatbot. `$request->user('sanctum')`,
+narrowed with `instanceof Customer`, and the Server Action forwards the portal
+token; `StockNoticeTest` sends a real bearer header rather than `actingAs`,
+for the reason that section gives.
+
+**The trigger is `StockLedger::record()`, on every positive delta.** The one
+place stock ever goes up, so nothing can put something on a shelf and forget
+to say so; a trigger at each caller is a caller that forgets. Dispatched
+`afterCommit`, because the product form saves inside a transaction and a
+worker can be faster than a commit.
+
+**The job re-checks the shelf when it runs.** `SendStockNotices` trusts
+nothing the movement said: an adjustment can be corrected a second later, and
+a queue drained once a minute would otherwise announce a delivery that was
+already typed away. A variation arriving answers the notices for that
+variation and the notices for "any"; the notices for the other variation
+wait.
+
+**Idempotent by the row.** `notified_at` is stamped per notice as it goes out
+and only unstamped rows are read, so two movements in one minute — two jobs
+— tell each person once. The suppression list is read at send time as well as
+at request time: an address suppressed after asking is skipped and left
+unstamped, so a lifted suppression is still owed its notice. Every send goes
+through `Notifier` and never throws — a dead mail server must not leave a
+failed job re-sending the first half of the list on every retry.
+
+**`back_in_stock` is in the message catalogue** with the product, the
+variation, the price *today* and the two links; the cancel link removes one
+notice and is not an unsubscribe, and the wording says so.
+`GET /store/stock-notices/{token}/cancel` deletes the row and answers the same
+200 for a link already used and a token nobody has, so the endpoint cannot be
+used to test which tokens exist.
+
+**The storefront form is a sibling of the basket form, keyed on the choice.**
+A form cannot hold a form, so `StockNoticeForm` sits under `AddToBasket`'s
+`<Form>` and appears on the same flag that disables the button — `in_stock`
+false, which a back-ordered shelf never is. It is prefilled from
+`/api/store/me` *after mount*, never during render: the product page is
+served whole from the ISR cache, and the same reasoning that made the basket
+count a client component applies. That route answers 204 with no API call
+when there is no portal cookie.
+
+**The console reads one scope.** `StockNotice::scopeWaiting()` is what the
+products list counts (`notices_waiting`, a `withCount` on every read),
+filters (`?notices=1`) and the dashboard's `awaiting_stock` links to — a tile
+reading "3" that opens a list of five is worse than no tile.
+
+## The promo band is edited from Store (2026-09-20)
+
+The dark band on `/store` — kicker, price line, heading, subheading, button,
+picture — is eight `store_promo_*` settings rows, and until now they were the
+last eight fields of Settings → Store. That was the wrong door twice: the
+person running a promotion is the store manager, who cannot open Settings at
+all, and a banner on the shop front is looked for under Store.
+
+**A group of its own, and an endpoint of its own.** The rows moved to a
+`store_promo` settings group (the seeder refreshes an existing row's group on
+its next run, so nothing is retyped) so the settings strip can leave them out
+through `STANDALONE_GROUPS` — the info bar's rule: a sidebar row *and* a tab
+is two doors to one form. `/admin/store/promo` is the screen, under Store
+beside Discount codes, and `GET`/`PATCH /admin/store/promo` is what it reads
+and writes, under `role:store_manager` in `routes/api/admin-store-manager.php`.
+
+**The allowlist is the door.** `PromoController::KEYS` is the whole of what
+the endpoint may touch, and a key outside it is a 422 naming the key rather
+than a silent skip — `PATCH /admin/settings` ignores unknown keys, which is
+right for a form carrying thirty and wrong for one whose purpose is to hand a
+narrower role a narrower door. `StorePromoTest` sends `store_shipping_paise`
+through it and asserts the request saves nothing. Settings as a whole stay
+`role:admin`; an administrator may still write the same keys from either
+screen.
+
+**The shop front did not change.** `PromoBanner` reads the public settings
+map by key, and `PublicSettings::GROUPS` names the new group so the keys
+keep being published; the `_path` → `_url` rule reaches a row whatever group
+it is in. The save calls `updateTag("settings")`, so the band shows the
+change on the next request — measured by renaming the heading through the
+real form as a store manager and reading `/store`.
+
+**Two tiles above the band (2026-09-21), through the same door.** The client
+asked for two 50/50 banners between the top picks and the band, editable in
+the console. They are the band's shape minus the price line, twice: seven
+`store_tile_{1,2}_*` rows in a `store_tiles` group (standalone like the
+band's), drawn by `components/store/promo-tiles.tsx` and edited on the same
+Promo banners screen, written through the same `PATCH /admin/store/promo` —
+whose `KEYS` grew to twenty-two and whose three per-key checks (the switch,
+the link's shape, a picture the library knows) now run by **suffix**, so the
+tiles are held to the band's rules without the checks being written three
+times. A tile draws only when its switch is on and it has a heading or a
+picture, the band's rule; one tile alone takes the whole row at the band's
+flatter ratio rather than half a row beside a hole; neither, and the section
+is not rendered. The ratio applies from `lg` only and the picture is not
+drawn below `sm`, because a heading, a line and a button need more than a
+16:9 box gives them at 320px. `StorePromoTest` covers the order the rows
+come back in, the suffix checks, and a `store_tile_3_*` key being refused
+by name.

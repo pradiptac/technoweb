@@ -170,7 +170,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
       </section>
 
       <div className="mt-3 grid gap-3 xl:grid-cols-[1fr_320px]">
-        <section className="min-w-0 rounded-lg border border-line-strong bg-card p-4">
+        <Card as="section" interactive={false} padding="sm" className="min-w-0">
           <h2 className="mb-3 text-13 font-semibold">By product</h2>
 
           {products.length === 0 ? (
@@ -222,9 +222,9 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
               </table>
             </div>
           )}
-        </section>
+        </Card>
 
-        <section className="min-w-0 rounded-lg border border-line-strong bg-card p-4">
+        <Card as="section" interactive={false} padding="sm" className="min-w-0">
           <h2 className="mb-1 text-13 font-semibold">Why it moved</h2>
           <p className="mb-3 text-11-5 text-faint">
             &ldquo;40 down&rdquo; means one thing if it is all sales and another if half of it is a
@@ -244,10 +244,10 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
               </li>
             ))}
           </ul>
-        </section>
+        </Card>
       </div>
 
-      <section className="mt-3 rounded-lg border border-line-strong bg-card p-4">
+      <Card as="section" interactive={false} padding="sm" className="mt-3">
         <h2 className="mb-3 text-13 font-semibold">Every movement</h2>
 
         {!movements || movements.data.length === 0 ? (
@@ -305,7 +305,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
             <Pagination meta={movements.meta} basePath="/admin/store/stock" params={{ ...params }} />
           </>
         )}
-      </section>
+      </Card>
     </>
   );
 }

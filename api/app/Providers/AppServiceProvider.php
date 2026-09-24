@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\AnswerBlock;
 use App\Models\BlogCategory;
 use App\Models\BlogComment;
 use App\Models\BlogPost;
 use App\Models\Brand;
+use App\Models\CannedReply;
 use App\Models\CaseStudy;
 use App\Models\Certification;
 use App\Models\ChatConversation;
@@ -35,6 +37,8 @@ use App\Models\MenuItem;
 use App\Models\NewsletterCampaign;
 use App\Models\NewsletterGroup;
 use App\Models\NewsletterImport;
+use App\Models\NewsletterSequence;
+use App\Models\NewsletterSequenceEnrolment;
 use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterTemplate;
 use App\Models\Order;
@@ -57,6 +61,8 @@ use App\Models\Ticket;
 use App\Models\TicketAttachment;
 use App\Models\TicketCategory;
 use App\Models\User;
+use App\Models\Webhook;
+use App\Models\WebhookDelivery;
 use App\Support\Chat\AiProvider;
 use App\Support\Chat\Providers\OpenAiProvider;
 use App\Support\InboundMail\ImapMailbox;
@@ -173,6 +179,7 @@ class AppServiceProvider extends ServiceProvider
             'blog_category' => BlogCategory::class,
             'blog_comment' => BlogComment::class,
             'brand' => Brand::class,
+            'canned_reply' => CannedReply::class,
             'certification' => Certification::class,
             'client' => Client::class,
             'coupon' => Coupon::class,
@@ -184,6 +191,8 @@ class AppServiceProvider extends ServiceProvider
             'slider' => Slider::class,
             'form' => Form::class,
             'faq' => Faq::class,
+            // The `faqs` shape with a kind; owned by eleven models the way FAQs are.
+            'answer_block' => AnswerBlock::class,
             'media' => Media::class,
             'media_folder' => MediaFolder::class,
             'redirect' => Redirect::class,
@@ -214,6 +223,8 @@ class AppServiceProvider extends ServiceProvider
             'newsletter_import' => NewsletterImport::class,
             'newsletter_campaign' => NewsletterCampaign::class,
             'newsletter_template' => NewsletterTemplate::class,
+            'newsletter_sequence' => NewsletterSequence::class,
+            'newsletter_sequence_enrolment' => NewsletterSequenceEnrolment::class,
 
             /*
              * The store's own catalogue. `store_product` rather than
@@ -237,6 +248,12 @@ class AppServiceProvider extends ServiceProvider
             'lead' => Lead::class,
             'lead_note' => LeadNote::class,
             'form_submission' => FormSubmission::class,
+
+            // Outgoing webhooks: the activity log names the hook a DELETE
+            // was aimed at, and it has to be here for that to have a name.
+            // A delivery is bound too (redeliver), so it needs one as well.
+            'webhook' => Webhook::class,
+            'webhook_delivery' => WebhookDelivery::class,
         ]);
     }
 }

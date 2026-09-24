@@ -304,6 +304,30 @@ class InboundMailTest extends TestCase
         Notification::assertSentTo($customer, TicketAcknowledged::class, fn ($n) => $n->ticket->is($new));
     }
 
+    public function test_a_reply_quoting_a_merged_reference_lands_on_the_target(): void
+    {
+        $this->enable();
+        $customer = $this->customer();
+        $target = $this->ticketFor($customer, TicketStatus::InProgress);
+        // The chain is followed to its end: old → middle → target.
+        $middle = $this->ticketFor($customer, TicketStatus::Closed);
+        $middle->update(['merged_into_id' => $target->id]);
+        $old = $this->ticketFor($customer, TicketStatus::Closed);
+        $old->update(['merged_into_id' => $middle->id]);
+
+        $this->pipe(FakeMailbox::message(subject: "Re: [{$old->reference}] We have your ticket: Switch keeps dropping"));
+
+        // No follow-up ticket: the reply threaded onto where the conversation went.
+        $this->assertSame(3, Ticket::count());
+        $this->assertSame(0, $old->messages()->count());
+        $this->assertSame(0, $middle->messages()->count());
+        $message = $target->messages()->sole();
+        $this->assertSame('email', $message->channel);
+        $this->assertSame($customer->id, $message->author_id);
+        $this->assertSame(InboundEmail::REPLIED, InboundEmail::sole()->outcome);
+        Notification::assertNotSentTo($customer, TicketAcknowledged::class);
+    }
+
     public function test_a_reference_from_somebody_else_opens_their_own_ticket(): void
     {
         $this->enable();

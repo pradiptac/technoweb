@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { ButtonLink } from "@/components/ui/button";
 import { CtaBand } from "@/components/ui/cta-band";
-import { FaqList } from "@/components/ui/faq";
+import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { RelatedEntities } from "@/components/content/related-entities";
 import { PageHero } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { EnquiryForm } from "@/components/forms/enquiry-form";
@@ -88,7 +89,9 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
         <div className="grid gap-12 lg:grid-cols-[1fr_380px] lg:gap-16">
           <div className="min-w-0">
             {service.body && <ProseWithShortcodes html={service.body} />}
-            {faqs.length > 0 && <div className="mt-12"><FaqList faqs={faqs} /></div>}
+            {/* The answer blocks (FAQs merged into their questions), then what the record is connected to. */}
+            <AnswerBlocks blocks={service.answer_blocks} faqs={faqs} className="mt-12" />
+            <RelatedEntities entity={service.entity} className="mt-12" />
           </div>
 
           <aside>
@@ -106,6 +109,8 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
       <CtaBand />
 
       {service.schema && <JsonLd data={service.schema} />}
+      {/* The FAQPage over the FAQs and question blocks — the API's, absent under two entries, and the only one on the page. */}
+      {service.faq_schema && <JsonLd data={service.faq_schema} />}
     </>
   );
 }

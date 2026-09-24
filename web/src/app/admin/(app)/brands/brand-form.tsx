@@ -7,20 +7,50 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea, Select } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
+import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
+import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
+import { FaqField } from "@/components/admin/faq-field";
+import { Tabs } from "@/components/admin/tabs";
+import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import {
   createBrandAction, updateBrandAction, deleteBrandAction, type BrandFormState,
 } from "./actions";
-import type { AdminBrand } from "@/types/api";
+import type { AdminBrand, AnswerBlockKindOption } from "@/types/api";
 
 const initial: BrandFormState = {};
 
-export function BrandForm({ brand, saved }: { brand?: AdminBrand; saved?: boolean }) {
+/**
+ * Two panels since 2026-09-21. A brand was the one-pane form — no status, no
+ * SEO — and it still has neither; what it gained is answer blocks and FAQs
+ * (docs/aeo-geo-contract.md §1–2), which are an AEO tab on every entity
+ * that carries them, this one included. The field lists map a 422 back to
+ * the tab holding it — see buildFormTabs.
+ */
+const GROUPS: TabGroup[] = [
+  { id: "content", label: "Content",
+    fields: ["name", "slug", "description", "logo_path", "sort_order", "is_featured", "partner_tier"] },
+  { id: "aeo", label: "AEO", fields: ["answer_blocks", "faqs"] },
+];
+
+export function BrandForm({
+  brand, saved, kinds,
+}: {
+  brand?: AdminBrand;
+  saved?: boolean;
+  /** `meta.answer_block_kinds` from this entity's admin index. */
+  kinds: AnswerBlockKindOption[];
+}) {
   const editing = Boolean(brand);
   const [state, formAction, pending] = useActionState(
     editing ? updateBrandAction : createBrandAction, initial,
   );
 
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
+  /** Per-row errors arrive as e.g. answer_blocks.0.answer; surface the first. */
+  const rowErr = (prefix: string) =>
+    err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
+
+  const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
 
   return (
     <Form action={formAction} state={state} noValidate>
@@ -33,6 +63,8 @@ export function BrandForm({ brand, saved }: { brand?: AdminBrand; saved?: boolea
         </Alert>
       )}
 
+      {/* One child per tab — `Tabs` reads `children[i]` positionally. */}
+      <Tabs tabs={tabs} jumpTo={jumpTo} jumpNonce={state}>
       <div className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
         <div className="min-w-0">
           <Field label="Name" htmlFor="name" error={err("name")}>
@@ -84,10 +116,22 @@ export function BrandForm({ brand, saved }: { brand?: AdminBrand; saved?: boolea
 
           <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-12-5 leading-[1.5] text-muted">
             Brands have no draft state and no SEO settings — they are a filter on
-            the product listing, not a page of their own.
+            the product listing, not a page of their own. The AEO tab is what a
+            brand does carry: the answers and FAQs the brand page quotes.
           </p>
         </aside>
       </div>
+
+      {/*
+        The AEO tab, one child. A brand is not on the SEO overview, so the
+        readiness panel says "not scored" here rather than showing a figure.
+      */}
+      <div>
+        <AeoGeoPanel record={brand ? { type: 'brand', id: brand.id } : null} blocks={brand?.answer_blocks} />
+        <AnswerBlocksField defaultValue={brand?.answer_blocks ?? []} kinds={kinds} error={rowErr("answer_blocks")} />
+        <FaqField defaultValue={brand?.faqs ?? []} error={rowErr("faqs")} />
+      </div>
+      </Tabs>
 
       <FormActions>
         <Button type="submit" pending={pending}>

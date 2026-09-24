@@ -1,7 +1,8 @@
 import Image from "next/image";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Container } from "@/components/ui/container";
-import { bannerFor } from "@/lib/site-settings";
+import { focalStyle } from "@/lib/focal";
+import { bannerFocusFor, bannerFor } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import type { PageHeroProps } from "@/themes/contract";
 import { GradientHeading } from "../gradient-heading";
@@ -15,6 +16,7 @@ import { GradientHeading } from "../gradient-heading";
  */
 export function PageHero({ kicker, title, lede, crumbs, children, section, settings }: PageHeroProps) {
   const picture = section ? bannerFor(settings, section) : null;
+  const focus = focalStyle(bannerFocusFor(settings, section));
   return (
     <section className="page-hero">
       <Container className="flex flex-col items-center pt-10 pb-8 text-center lg:pt-14 lg:pb-10">
@@ -26,7 +28,7 @@ export function PageHero({ kicker, title, lede, crumbs, children, section, setti
         {picture && (
           <div className="keystone-frame mt-10 w-full max-w-[1180px] overflow-hidden rounded-2xl border border-line-strong bg-dark p-2">
             <div className="relative aspect-[21/9] overflow-hidden rounded-xl">
-              <Image src={picture} alt="" aria-hidden fill sizes="(min-width: 1280px) 1180px, 100vw" priority className="object-cover" />
+              <Image src={picture} alt="" aria-hidden fill sizes="(min-width: 1280px) 1180px, 100vw" priority className="object-cover" style={focus} />
             </div>
           </div>
         )}

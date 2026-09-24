@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { Form } from "@/components/ui/form";
 import { useActionState, useEffect, useState } from "react";
-import { Button, ButtonLink } from "@/components/ui/button";
-import { IconCheck } from "@/components/icons-ui";
+import { AddToBasketButton } from "@/components/store/add-to-basket-button";
 import { Alert, Field, Select } from "@/components/ui/input";
 import { announceBasketChange } from "@/lib/basket-events";
 import { formatPaise } from "@/lib/money";
 import { addToCartAction, type CartActionState } from "@/components/store/actions";
+import { StockNoticeForm } from "@/components/store/stock-notice-form";
 import type { StoreProduct, StoreVariation } from "@/types/api";
 
 const initial: CartActionState = {};
@@ -68,6 +68,7 @@ export function AddToBasket({ product }: { product: StoreProduct }) {
   const available = variations.length ? Boolean(chosen?.in_stock) : product.in_stock;
 
   return (
+    <>
     <Form action={formAction} state={state} className="grid gap-3">
       <input type="hidden" name="product_id" value={product.id} />
       {chosen && <input type="hidden" name="variation_id" value={chosen.id} />}
@@ -131,15 +132,10 @@ export function AddToBasket({ product }: { product: StoreProduct }) {
         </div>
       </div>
 
-      {justAdded && !pending ? (
-        <ButtonLink href="/cart" variant="secondary" className="w-full sm:w-auto">
-          <IconCheck className="size-4" /> Added · View basket
-        </ButtonLink>
-      ) : (
-        <Button type="submit" pending={pending} disabled={!available} className="w-full sm:w-auto">
-          {pending ? "Adding…" : available ? "Add to basket" : "Out of stock"}
-        </Button>
-      )}
+      {/* Four stages in one control — idle, pending, added (a link to the
+          basket for the three seconds above), out of stock. The motion is
+          the component's own file and `.add-basket` in globals.css. */}
+      <AddToBasketButton pending={pending} justAdded={justAdded} available={available} />
 
       {/*
         An Alert rather than a toast: this is part of what the screen says
@@ -159,5 +155,20 @@ export function AddToBasket({ product }: { product: StoreProduct }) {
         </p>
       )}
     </Form>
+
+    {/*
+      "Email me when this is back", only while there is nothing to buy: the
+      chosen configuration, or the product, is out of stock and not
+      back-ordered — `in_stock` is true for a back-ordered shelf, correctly,
+      so the same flag that disables the button is what shows this. A
+      sibling of the basket form rather than inside it, because a form
+      cannot hold a form. Keyed on the choice so a change of configuration
+      starts the form afresh rather than carrying a "we'll email you" from
+      the last one.
+    */}
+    {!available && (
+      <StockNoticeForm key={chosen?.id ?? "product"} slug={product.slug} variationId={chosen?.id ?? null} />
+    )}
+    </>
   );
 }

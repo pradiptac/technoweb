@@ -298,6 +298,15 @@
   --duration-base: 200ms;
   --duration-slow: 300ms;
   --duration-exit: 140ms;
+  /* A fifth, and the only one that is not about responding to somebody
+     (2026-09-23). The four above time a reaction — a press, a panel, a thing
+     leaving — where this times motion nobody asked for and nobody is waiting
+     on: the info bar's line rising to the next one. At `slow` that read as a
+     flick, which on an ambient loop is a distraction rather than a hand-off;
+     at 900ms it drifts. It is a token rather than a literal for the reason
+     the other four are, and it is named for the motion rather than for the
+     component so the next ambient thing does not invent a sixth. */
+  --duration-drift: 900ms;
   /* Velora's shimmer-button sweep (`components/velora/shimmer-button.tsx`);
      the keyframe is beside the other guarded ones further down. */
   --animate-shimmer: shimmer 2.5s linear infinite;
@@ -478,6 +487,31 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
   --color-g-red: #ea4335;
   --color-g-yellow: #fbbc05;
   --color-g-green: #34a853;
+}
+
+/*
+ * The share row's marks in their own colours, on hover only (2026-09-21, the
+ * client's ask). At rest the six glyphs are `text-muted` and graded; under
+ * the pointer each takes the network's published colour — a brand mark is
+ * recognised by its colour before its shape, and a row of grey glyphs is a
+ * row somebody has to read. Hover-only for the reason the brand strip stays
+ * grey: the published values are what they are and are not graded here
+ * (WhatsApp's green is 1.9:1 on white), which is acceptable for a state that
+ * exists under the pointer and never at rest, where the audit reads. X has no
+ * colour and is the ink of the scheme; the two marks that are not networks
+ * (email, copy link) take the brand ink. Read from an inline `style`, so not
+ * in `@theme`, for the reason the Google hues give.
+ */
+:root {
+  --color-social-whatsapp: #25d366;
+  --color-social-linkedin: #0a66c2;
+  --color-social-x: #000000;
+  --color-social-facebook: #1877f2;
+  --color-social-telegram: #26a5e4;
+}
+
+:root[data-scheme="dark"] {
+  --color-social-x: #ffffff;
 }
 
 :root[data-scheme="dark"] {
@@ -1446,6 +1480,12 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
 .public-site [data-collection] { counter-reset: tile; }
 .public-site [data-collection] > li { counter-increment: tile; }
 .public-site [data-collection] [data-tile-cta] { display: none; }
+/* The picture's focal point. `Tile` sets `--tile-focus` on the media well
+   from the record's `*_focus` (a property of the file, beside its alt text)
+   and the picture inside reads it as `object-position`, so a caller passes
+   the point once and never reaches into the element it handed over. Unset
+   is the centre — the browser's own default, and every tile as it was. */
+.public-site [data-tile-media] > img { object-position: var(--tile-focus, 50% 50%); }
 /* An icon and its heading share one line everywhere — a hub's route tiles
    stacked them until 2026-09-19, and the client asked for one line in
    every theme, so no idiom sets `flex-direction: column` on a head. */
@@ -3273,5 +3313,133 @@ nav[data-panel-swap] [data-panel-host]:hover > .panel-drop { transition-duration
     from { opacity: 0; transform: rotateX(-90deg); }
     60% { opacity: 1; transform: rotateX(12deg); }
     to { opacity: 1; transform: rotateX(0); }
+  }
+}
+
+/* ------------------------------------------------- add to basket
+ *
+ * The product page's four-stage "Add to basket" —
+ * `components/store/add-to-basket-button.tsx` explains the markup: a
+ * three-column pill (disc | label | arrow) with the cart riding an
+ * absolutely positioned track, and a `<button>` for idle and pending that
+ * becomes an `<a href="/cart">` for the three seconds after a success.
+ * `data-stage` on the pill is `idle`, `pending` or `added`; `data-from`
+ * says a remounted idle button is returning from the added look.
+ *
+ * Two halves. The *looks* — where the cart sits, which label shows —
+ * are outside the guard, because they are the stages and not a start
+ * state waiting for motion: under `reduce` a press shows the centred cart
+ * at once, a success shows the green link with its check at once, and
+ * nothing is hidden that the stage does not mean to hide. The *motion* —
+ * every transition, the two keyframes and the `@starting-style` rules
+ * that let one element take over from the other mid-look — sits inside
+ * it, the rule every reveal in this file keeps.
+ *
+ * The track is as wide as the run from the left slot's glyph position to
+ * the right slot's, so `translate: 50% 0` is the pill's centre and `100%`
+ * the right slot — a percentage translate is of the element's own width,
+ * which is why the track moves and the glyph merely sits at its left end.
+ * The pill's `overflow: hidden` is what keeps the track at `100%` out of
+ * `documentElement.scrollWidth`. `translate`, never `transform`, so the
+ * Tailwind lift on the pill and the nudge on the arrow are the same
+ * property this file transitions everywhere else.
+ *
+ * The fill is the site's one loader drawn as the thing being waited for:
+ * a filled copy of the cart under the stroked one, `clip-path` from an
+ * empty inset to none on a loop while pending — `infinite` is for
+ * loaders, and this is one. The check's disc scales in from `.6` with a
+ * small overshoot, and the crossfade between the two labels is a pair of
+ * opacities in one grid cell.
+ */
+.add-basket {
+  --add-basket-pad: 1.25rem;
+  --add-basket-slot: 1.5rem;
+  --add-basket-glyph: 1.25rem;
+}
+.add-basket__track {
+  top: 50%;
+  height: var(--add-basket-glyph);
+  margin-top: calc(var(--add-basket-glyph) / -2);
+  left: calc(var(--add-basket-pad) + (var(--add-basket-slot) - var(--add-basket-glyph)) / 2);
+  right: calc(var(--add-basket-pad) + (var(--add-basket-slot) + var(--add-basket-glyph)) / 2);
+  translate: 0 0;
+}
+.add-basket[data-stage="pending"] .add-basket__track { translate: 50% 0; }
+.add-basket[data-stage="added"] .add-basket__track { translate: 100% 0; }
+
+.add-basket__disc,
+.add-basket__label-added,
+.add-basket__fill { opacity: 0; }
+.add-basket[data-stage="pending"] .add-basket__label-idle,
+.add-basket[data-stage="pending"] .add-basket__arrow,
+.add-basket[data-stage="added"] .add-basket__label-idle,
+.add-basket[data-stage="added"] .add-basket__arrow { opacity: 0; }
+.add-basket[data-stage="pending"] .add-basket__fill,
+.add-basket[data-stage="added"] .add-basket__disc,
+.add-basket[data-stage="added"] .add-basket__label-added { opacity: 1; }
+
+/* The nudge: idle only, so a fading arrow is not also sliding. */
+.add-basket[data-stage="idle"]:hover .add-basket__arrow,
+.add-basket[data-stage="idle"]:focus-visible .add-basket__arrow { translate: 4px 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .add-basket {
+    transition:
+      translate var(--duration-base) var(--ease-brand),
+      scale var(--duration-base) var(--ease-brand),
+      background-color var(--duration-slow) var(--ease-brand),
+      box-shadow var(--duration-base) var(--ease-brand),
+      filter var(--duration-base) var(--ease-brand);
+  }
+  .add-basket__track { transition: translate var(--duration-slow) var(--ease-brand); }
+  .add-basket__label,
+  .add-basket__arrow,
+  .add-basket__disc,
+  .add-basket__fill {
+    transition:
+      opacity var(--duration-base) var(--ease-brand),
+      translate var(--duration-base) var(--ease-brand);
+  }
+  /* Leaving is shorter than arriving: the words that go while pending. */
+  .add-basket[data-stage="pending"] .add-basket__label-idle,
+  .add-basket[data-stage="pending"] .add-basket__arrow {
+    transition: opacity var(--duration-exit) var(--ease-exit);
+  }
+
+  .add-basket[data-stage="pending"] .add-basket__fill {
+    animation: basket-fill 1100ms var(--ease-brand) infinite;
+  }
+  @keyframes basket-fill {
+    from { clip-path: inset(100% 0 0 0); }
+    70%, to { clip-path: inset(0 0 0 0); }
+  }
+
+  .add-basket[data-stage="added"] .add-basket__disc {
+    animation: basket-check 360ms var(--ease-brand) both;
+  }
+  @keyframes basket-check {
+    from { scale: .6; opacity: 0; }
+    65% { scale: 1.08; opacity: 1; }
+    to { scale: 1; opacity: 1; }
+  }
+
+  /*
+   * The hand-over between the two elements. The link mounts from the
+   * pending look and settles into green; the button, when it is the one
+   * returning (`data-from`), mounts from the green look and settles into
+   * idle. A cold load has no `data-from`, so the first paint is idle with
+   * no fade at all.
+   */
+  @starting-style {
+    .add-basket[data-stage="added"] { background-color: var(--color-brand-600); }
+    .add-basket[data-stage="added"] .add-basket__track { translate: 50% 0; }
+    .add-basket[data-stage="added"] .add-basket__label-added { opacity: 0; }
+
+    .add-basket[data-stage="idle"][data-from="added"] { background-color: var(--color-ok-fill); }
+    .add-basket[data-stage="idle"][data-from="added"] .add-basket__track { translate: 100% 0; }
+    .add-basket[data-stage="idle"][data-from="added"] .add-basket__disc,
+    .add-basket[data-stage="idle"][data-from="added"] .add-basket__label-added { opacity: 1; }
+    .add-basket[data-stage="idle"][data-from="added"] .add-basket__label-idle,
+    .add-basket[data-stage="idle"][data-from="added"] .add-basket__arrow { opacity: 0; }
   }
 }

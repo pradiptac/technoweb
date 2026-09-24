@@ -64,7 +64,7 @@ export default async function AdminThemesPage() {
         lede={<>
           How the public site is built &mdash; its header, its homepage, the shape of
           its pages. The content is the same whichever you choose; the colours
-          and type are Settings &rarr; Colour palette.
+          and type are Site &rarr; Settings &rarr; Colour palette.
         </>}
       />
 

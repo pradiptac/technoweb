@@ -71,7 +71,7 @@ export function LibraryInfo({ meta }: { meta: MediaLibraryMeta }) {
             <Row label="Largest image" value={`${meta.max_megapixels} megapixels`} />
           </dl>
           <p className="mt-1.5 text-11-5 text-faint">
-            The sizes and the resolution are set in Settings → Media. What the
+            The sizes and the resolution are set in Content → Media settings. What the
             server allows is php.ini, and it wins — a limit above it cannot take
             effect. Resolution is a separate rule because a well-compressed
             image of enormous dimensions fits inside the size limit and still

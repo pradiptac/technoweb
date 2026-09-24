@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import type { SeoBand, SeoMeta } from "@/types/api";
+import type { SeoBand, SeoMeta, SeoTopIssue } from "@/types/api";
 
 /**
  * The site-wide figure, and the two primitives the per-row cells share.
@@ -101,6 +101,25 @@ export function SiteScoreCard({
               {withIssues} with issues
             </Link>.
           </p>
+          {/*
+            The two readiness averages (docs/aeo-geo-contract.md §5), once the
+            API sends them; each links to the records it is lowest on. Absent
+            until then, never zero.
+          */}
+          {(site.aeo || site.geo) && (
+            <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-12-5 text-muted">
+              {site.aeo && (
+                <Link href={href({ aeo: "poor" })} className="hover:underline" title="Answer-engine readiness — open the records rated poor">
+                  AEO <span className={cn("font-semibold tabular-nums", BAND[site.aeo.band].text)}>{site.aeo.value}</span>
+                </Link>
+              )}
+              {site.geo && (
+                <Link href={href({ geo: "poor" })} className="hover:underline" title="Generative-engine readiness — open the records rated poor">
+                  GEO <span className={cn("font-semibold tabular-nums", BAND[site.geo.band].text)}>{site.geo.value}</span>
+                </Link>
+              )}
+            </p>
+          )}
         </div>
       </div>
 
@@ -119,22 +138,28 @@ export function SiteScoreCard({
               Ranked by what each is costing — how many records fail it, weighted by what
               the check is worth. Open one to see only those records.
             </p>
-            <div className="mt-2.5 flex flex-wrap gap-1.5">
-              {site.top_issues.map((issue) => (
-                <Link
-                  key={issue.key}
-                  href={href({ check: issue.key })}
-                  className="flex items-center gap-1.5 rounded-full border border-line-strong bg-surface-2 py-1.5 pl-3 pr-1.5 text-12-5 font-medium text-ink transition-colors hover:border-brand-600 hover:text-brand-ink"
-                >
-                  {issue.label}
-                  <span className="rounded-full bg-card px-1.5 py-px text-11-5 font-semibold text-muted">
-                    {issue.count}
-                  </span>
-                </Link>
-              ))}
-            </div>
+            <Wins issues={site.top_issues} href={(key) => href({ check: key })} />
           </>
         )}
+
+        {/*
+          The same list for each readiness score (2026-09-21): what would
+          move the AEO and GEO averages most, each chip opening the records
+          failing that one check through the score's own parameter. Drawn
+          only where the API sends them, and only while something fails —
+          a heading over "everything passes" three times is noise.
+        */}
+        {([["AEO", "aeo", site.aeo], ["GEO", "geo", site.geo]] as const).map(([label, key, score]) => (
+          score && score.top_issues.length > 0 && (
+            <div key={key} className="mt-3.5">
+              <p className="text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                {label} — biggest wins
+                <span className={cn("ml-2 font-display text-12 normal-case tracking-normal tabular-nums", BAND[score.band].text)}>{score.value}</span>
+              </p>
+              <Wins issues={score.top_issues} href={(k) => href({ [`${key}_check`]: k })} />
+            </div>
+          )
+        ))}
 
         <div className="mt-3.5 flex flex-wrap gap-1.5">
           {(["good", "fair", "poor"] as const).map((b) => (
@@ -150,6 +175,26 @@ export function SiteScoreCard({
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** The chips: one check failing across the site, its count, and the filtered list behind it. */
+function Wins({ issues, href }: { issues: SeoTopIssue[]; href: (key: string) => string }) {
+  return (
+    <div className="mt-2.5 flex flex-wrap gap-1.5">
+      {issues.map((issue) => (
+        <Link
+          key={issue.key}
+          href={href(issue.key)}
+          className="flex items-center gap-1.5 rounded-full border border-line-strong bg-surface-2 py-1.5 pl-3 pr-1.5 text-12-5 font-medium text-ink transition-colors hover:border-brand-600 hover:text-brand-ink"
+        >
+          {issue.label}
+          <span className="rounded-full bg-card px-1.5 py-px text-11-5 font-semibold text-muted">
+            {issue.count}
+          </span>
+        </Link>
+      ))}
     </div>
   );
 }

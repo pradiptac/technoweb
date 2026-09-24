@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 /**
- * The code an administrator pasted into Settings → Embeds → "Before
+ * The code an administrator pasted into Site → Settings → Embeds → "Before
  * `</body>`", put on the public site's pages.
  *
  * Asked for on 2026-09-17: a box for the snippet a widget vendor says to

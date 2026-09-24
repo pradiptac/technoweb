@@ -70,9 +70,42 @@ class SettingsSeeder extends Seeder
 24/7|Critical escalation
 96%|Resolved in SLA
 340+|Sites covered', 'type' => 'text'],
-            ['group' => 'homepage', 'key' => 'testimonial_quote', 'value' => null, 'type' => 'text'],
-            ['group' => 'homepage', 'key' => 'testimonial_author', 'value' => null, 'type' => 'string'],
-            ['group' => 'homepage', 'key' => 'testimonial_role', 'value' => null, 'type' => 'string'],
+            /*
+             * The "Why Technoware" block (2026-09-21): the argument, the four
+             * steps, the pull-quote and the AMC card, which were `content/site.ts`
+             * constants until the client asked how the block could be edited.
+             * Seeded with that copy, so a fresh install renders the page it
+             * rendered before; the frontend falls back to the same constants
+             * for a row the seeder has not created yet. The steps are one per
+             * line as `title|body`, the `hero_stats` convention — the number is
+             * the row's position, never stored. The testimonial and the AMC
+             * card are hidden by their own switches, `testimonial_enabled` and
+             * `amc_enabled`, and never by a blank field: the public `/settings`
+             * map drops a blank value, so the site cannot tell "cleared" from
+             * "never set" and a blank falls back to the constants like every
+             * other row here. (The hint used to promise "leave blank to hide",
+             * which nothing could honour — the review of 2026-09-21 found it.)
+             */
+            ['group' => 'homepage', 'key' => 'why_kicker', 'value' => 'Why Technoware', 'type' => 'string'],
+            ['group' => 'homepage', 'key' => 'why_heading', 'value' => 'Most IT problems are handover problems.', 'type' => 'string'],
+            ['group' => 'homepage', 'key' => 'why_lede', 'value' => 'Someone sells the box, someone else racks it, nobody owns the outcome. We keep all four stages under one roof so there is nobody to point at but us.', 'type' => 'text'],
+            ['group' => 'homepage', 'key' => 'why_steps', 'value' => 'Assess before we quote|A site visit and an honest audit of what you have. We would rather tell you a switch has three good years left than sell you a new one.
+Design for the next five years|Capacity, growth, failure modes and budget on paper before a single cable is pulled — with the reasoning written down, not kept in someone\'s head.
+Deploy with documentation|Labelled racks, IP schemas, credentials handed over properly and an as-built document you own — even if you later leave us.
+Support with a real desk|A ticket portal, a named engineer and an SLA clock that starts when you raise the ticket, not when someone gets around to it.', 'type' => 'text'],
+            ['group' => 'homepage', 'key' => 'testimonial_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'homepage', 'key' => 'testimonial_quote', 'value' => 'They inherited a network held together by guesswork. Six weeks later we had documentation, a firewall policy that made sense, and — for the first time — someone who picks up.', 'type' => 'text'],
+            ['group' => 'homepage', 'key' => 'testimonial_author', 'value' => 'R. Kulkarni', 'type' => 'string'],
+            ['group' => 'homepage', 'key' => 'testimonial_role', 'value' => 'Head of IT, manufacturing group · 6 sites', 'type' => 'string'],
+            ['group' => 'homepage', 'key' => 'amc_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'homepage', 'key' => 'amc_heading', 'value' => 'Every AMC contract includes', 'type' => 'string'],
+            ['group' => 'homepage', 'key' => 'amc_inclusions', 'value' => 'Defined response & resolution SLAs
+Scheduled preventive site visits
+Live asset & warranty register
+Named engineer and escalation path
+Quarterly infrastructure review', 'type' => 'text'],
+            ['group' => 'homepage', 'key' => 'amc_link_label', 'value' => 'See what AMC covers', 'type' => 'string'],
+            ['group' => 'homepage', 'key' => 'amc_link_href', 'value' => '/solutions/amc', 'type' => 'string'],
 
             ['group' => 'contact', 'key' => 'phone', 'value' => '+91 98765 43210', 'type' => 'string'],
             ['group' => 'contact', 'key' => 'support_email', 'value' => 'support@technoware.in', 'type' => 'string'],
@@ -789,15 +822,43 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * Off by default: a half-configured dark band with no image and
              * placeholder copy must not appear on a fresh install, the same
              * reasoning `newsletter_signup_enabled` already follows.
+             *
+             * A group of its own since 2026-09-20, because it is edited from
+             * the Store section of the console (`/admin/store/promo`, by a
+             * store manager through `PATCH /admin/store/promo`) and not from
+             * Settings → Store — the info bar's shape. The settings strip
+             * leaves the group out; the seeder moves existing rows on the
+             * next run, the way `login_image_path` moved.
              */
-            ['group' => 'store', 'key' => 'store_promo_enabled', 'value' => '0', 'type' => 'boolean'],
-            ['group' => 'store', 'key' => 'store_promo_kicker', 'value' => null, 'type' => 'string'],
-            ['group' => 'store', 'key' => 'store_promo_heading', 'value' => null, 'type' => 'string'],
-            ['group' => 'store', 'key' => 'store_promo_price_text', 'value' => null, 'type' => 'string'],
-            ['group' => 'store', 'key' => 'store_promo_subheading', 'value' => null, 'type' => 'text'],
-            ['group' => 'store', 'key' => 'store_promo_cta_label', 'value' => 'Shop Now', 'type' => 'string'],
-            ['group' => 'store', 'key' => 'store_promo_cta_href', 'value' => '/store', 'type' => 'string'],
-            ['group' => 'store', 'key' => 'store_promo_image_path', 'value' => null, 'type' => 'string'],
+            ['group' => 'store_promo', 'key' => 'store_promo_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'store_promo', 'key' => 'store_promo_kicker', 'value' => null, 'type' => 'string'],
+            ['group' => 'store_promo', 'key' => 'store_promo_heading', 'value' => null, 'type' => 'string'],
+            ['group' => 'store_promo', 'key' => 'store_promo_price_text', 'value' => null, 'type' => 'string'],
+            ['group' => 'store_promo', 'key' => 'store_promo_subheading', 'value' => null, 'type' => 'text'],
+            ['group' => 'store_promo', 'key' => 'store_promo_cta_label', 'value' => 'Shop Now', 'type' => 'string'],
+            ['group' => 'store_promo', 'key' => 'store_promo_cta_href', 'value' => '/store', 'type' => 'string'],
+            ['group' => 'store_promo', 'key' => 'store_promo_image_path', 'value' => null, 'type' => 'string'],
+
+            /*
+             * The two tiles above the promo band, side by side (2026-09-21):
+             * the same shape as the band minus the price line, twice. Their
+             * own group so the settings strip leaves them out with the band,
+             * and the same door — `PATCH /admin/store/promo` — writes them.
+             */
+            ['group' => 'store_tiles', 'key' => 'store_tile_1_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'store_tiles', 'key' => 'store_tile_1_kicker', 'value' => null, 'type' => 'string'],
+            ['group' => 'store_tiles', 'key' => 'store_tile_1_heading', 'value' => null, 'type' => 'string'],
+            ['group' => 'store_tiles', 'key' => 'store_tile_1_text', 'value' => null, 'type' => 'text'],
+            ['group' => 'store_tiles', 'key' => 'store_tile_1_cta_label', 'value' => 'Shop now', 'type' => 'string'],
+            ['group' => 'store_tiles', 'key' => 'store_tile_1_cta_href', 'value' => '/store', 'type' => 'string'],
+            ['group' => 'store_tiles', 'key' => 'store_tile_1_image_path', 'value' => null, 'type' => 'string'],
+            ['group' => 'store_tiles', 'key' => 'store_tile_2_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'store_tiles', 'key' => 'store_tile_2_kicker', 'value' => null, 'type' => 'string'],
+            ['group' => 'store_tiles', 'key' => 'store_tile_2_heading', 'value' => null, 'type' => 'string'],
+            ['group' => 'store_tiles', 'key' => 'store_tile_2_text', 'value' => null, 'type' => 'text'],
+            ['group' => 'store_tiles', 'key' => 'store_tile_2_cta_label', 'value' => 'Shop now', 'type' => 'string'],
+            ['group' => 'store_tiles', 'key' => 'store_tile_2_cta_href', 'value' => '/store', 'type' => 'string'],
+            ['group' => 'store_tiles', 'key' => 'store_tile_2_image_path', 'value' => null, 'type' => 'string'],
 
             ['group' => 'mail', 'key' => 'smtp_host', 'value' => null, 'type' => 'string'],
             ['group' => 'mail', 'key' => 'smtp_port', 'value' => '587', 'type' => 'string'],
@@ -967,6 +1028,15 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'integrations', 'key' => 'gsc_service_account', 'value' => null, 'type' => 'text', 'is_secret' => true],
             ['group' => 'integrations', 'key' => 'gsc_site_url', 'value' => null, 'type' => 'string'],
             ['group' => 'integrations', 'key' => 'gsc_error', 'value' => null, 'type' => 'string'],
+            /*
+             * Google Analytics 4, read by the SEO overview and the store
+             * dashboard (`App\Support\Seo\GoogleAnalytics`). The same
+             * service account as Search Console, added to the property as a
+             * Viewer; the only row of its own is the numeric property id.
+             * `ga4_error` is the `mail_error` pattern again.
+             */
+            ['group' => 'integrations', 'key' => 'ga4_property_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'integrations', 'key' => 'ga4_error', 'value' => null, 'type' => 'string'],
 
             // Social profiles. Seeded empty on purpose — a blank value hides
             // the icon, so the footer never links to a profile that does not

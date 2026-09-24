@@ -94,6 +94,7 @@ export function StoreProductCard({
               <CardImages
                 images={product.images}
                 alts={product.image_alts}
+                focuses={product.image_focuses}
                 /*
                   Six columns inside a 90vw container is 15vw a card, so 16vw
                   carries a little margin — it was 20vw for the five-column grid
@@ -101,7 +102,7 @@ export function StoreProductCard({
                   what picks the srcset candidate, so a card never downloads
                   the 2560px original to paint 250px.
                 */
-                sizes="(min-width: 1280px) 16vw, (min-width: 640px) 33vw, 100vw"
+                sizes="(min-width: 1280px) 16vw, (min-width: 640px) 33vw, 50vw"
                 priority={priority}
               />
             ) : (
@@ -134,27 +135,40 @@ export function StoreProductCard({
       </div>
 
       <div data-tile-body className="flex min-w-0 flex-1 flex-col gap-2 p-4">
+        {/*
+          One step smaller below `sm`, because the phone grid is two columns
+          (2026-09-23, the client's ask).
+
+          The card was written for one column on a phone and six on a wide
+          screen, and its type was set for the wide end — a 16px title and a
+          20px price in a 170px cell wrap the name to three lines and make the
+          price the loudest thing on the screen. Every size here steps down by
+          one rung below `sm` and goes back to what it was above it: the grid
+          is the only thing that changed, so the type follows the grid rather
+          than the other way round. Nothing goes under 12px, which is the floor
+          `globals.css` enforces for the public site anyway.
+        */}
         <div data-tile-kicker className="flex flex-wrap items-start gap-2">
           {product.brand && (
-            <span className="text-12-5 font-semibold uppercase tracking-[.05em] text-muted">
+            <span className="text-12 font-semibold uppercase tracking-[.05em] text-muted sm:text-12-5">
               {product.brand.name}
             </span>
           )}
           {!product.in_stock && <Badge tone="urgent">Out of stock</Badge>}
         </div>
 
-        <Heading data-tile-title className="text-[16px] font-semibold leading-snug">
+        <Heading data-tile-title className="text-14 font-semibold leading-snug sm:text-[16px]">
           <Link href={`/store/products/${product.slug}`} className="hover:underline">
             {product.name}
           </Link>
         </Heading>
 
         {product.short_description && (
-          <p data-tile-summary className="line-clamp-2 text-13 text-muted">{product.short_description}</p>
+          <p data-tile-summary className="line-clamp-2 text-12-5 text-muted sm:text-13">{product.short_description}</p>
         )}
 
         <div data-tile-meta data-tile-price className="mt-auto flex flex-wrap items-baseline gap-2 pt-1">
-          <span className="text-[20px] font-semibold tabular-nums">{formatPaise(product.price_paise)}</span>
+          <span className="text-17 font-semibold tabular-nums sm:text-[20px]">{formatPaise(product.price_paise)}</span>
           {discounted && (
             <>
               <span className="text-13 tabular-nums text-faint line-through">

@@ -7,6 +7,7 @@ import {
   getSeoAiContext,
   getSeoSuggestions,
   runSeoAi,
+  type SeoAiRunExtra,
   testSeoAiModel,
 } from "@/lib/admin";
 import type { SeoAiActionKey, SeoAiMeta, SeoSuggestion } from "@/types/api";
@@ -52,9 +53,10 @@ export async function runSeoAiAction(
   action: SeoAiActionKey,
   type: string,
   id: number,
+  extra: SeoAiRunExtra = {},
 ): Promise<AiState<SeoSuggestion>> {
   try {
-    return { ok: true, data: await runSeoAi(action, type, id) };
+    return { ok: true, data: await runSeoAi(action, type, id, extra) };
   } catch (error) {
     return toState(error);
   }

@@ -44,14 +44,14 @@ export function NocPanel() {
       */}
       <div className="hidden min-w-0 rounded-lg border border-dark-line bg-dark-2 p-4 md:block">
         <svg viewBox="0 0 400 168" className="h-auto w-full">
-          <g stroke="#2a2e20" strokeWidth={1.4}>
+          <g stroke="var(--color-dark-line)" strokeWidth={1.4}>
             <path d="M200 30v28M200 58 96 96M200 58l104 38M96 96v28M304 96v28M96 124H40M96 124h56M304 124h-56M304 124h56" />
           </g>
-          <g stroke="#8fa65e" strokeWidth={1.6} strokeDasharray="4 6" opacity={0.9}>
+          <g stroke="var(--color-brand-400)" strokeWidth={1.6} strokeDasharray="4 6" opacity={0.9}>
             <path d="M200 30v28" />
             <path d="M200 58 96 96" />
           </g>
-          <g fill="#1b1e14" stroke="#3a4030">
+          <g fill="var(--color-dark-2)" stroke="var(--color-dark-line)">
             <rect x="164" y="12" width="72" height="20" rx="5" />
             <rect x="164" y="48" width="72" height="20" rx="5" />
             <rect x="62" y="86" width="68" height="20" rx="5" />
@@ -61,7 +61,7 @@ export function NocPanel() {
             <rect x="222" y="116" width="52" height="18" rx="5" />
             <rect x="334" y="116" width="52" height="18" rx="5" />
           </g>
-          <g fill="#9ba095" fontFamily="ui-monospace, monospace" fontSize="8.5" textAnchor="middle">
+          <g fill="var(--color-dark-muted)" fontFamily="ui-monospace, monospace" fontSize="8.5" textAnchor="middle">
             <text x="200" y="25">ISP / WAN</text>
             <text x="200" y="61">FIREWALL</text>
             <text x="96" y="99">CORE-SW-01</text>
@@ -71,7 +71,7 @@ export function NocPanel() {
             <text x="248" y="128">SERVERS</text>
             <text x="360" y="128">CCTV</text>
           </g>
-          <g fill="#a9c273">
+          <g fill="var(--color-brand-300)">
             <rect x="167" y="51" width="3" height="14" rx="1.5" />
             <rect x="65" y="89" width="3" height="14" rx="1.5" />
             <rect x="273" y="89" width="3" height="14" rx="1.5" />

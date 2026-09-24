@@ -2,7 +2,7 @@ import "server-only";
 import { apiFetch, apiUpload } from "@/lib/api";
 import { token } from "./_shared";
 import type {
-  AdminDashboard, Paginated, StaffUser, Ticket, TicketMessage, TicketPriority, TicketStatus,
+  AdminDashboard, CannedReply, CannedReplyPlaceholder, Paginated, StaffUser, Ticket, TicketMessage, TicketPriority, TicketStatus,
 } from "@/types/api";
 
 /**
@@ -28,6 +28,8 @@ export type TicketQueueParams = {
   overdue?: boolean;
   reported?: boolean;
   open?: boolean;
+  /** One customer's tickets — what the merge picker lists, with `open`. */
+  customer?: number;
   q?: string;
   sort?: string;
   dir?: string;
@@ -44,6 +46,7 @@ export async function getTickets(params: TicketQueueParams = {}) {
   if (params.overdue) query.set("overdue", "1");
   if (params.reported) query.set("reported", "1");
   if (params.open) query.set("open", "1");
+  if (params.customer) query.set("customer", String(params.customer));
   if (params.q) query.set("q", params.q);
   if (params.sort) query.set("sort", params.sort);
   if (params.dir) query.set("dir", params.dir);
@@ -83,10 +86,72 @@ export async function getTicket(reference: string): Promise<Ticket> {
   return res.data;
 }
 
+/**
+ * Merge `reference` into `into`. Answers the target; every refusal is a 422
+ * on `into` with a sentence, and the action shows it under the field.
+ */
+export async function mergeTicket(reference: string, into: string): Promise<Ticket> {
+  const res = await apiFetch<{ data: Ticket }>(`/admin/tickets/${encodeURIComponent(reference)}/merge`, {
+    method: "POST",
+    body: { into },
+    token: await token(),
+  });
+  return res.data;
+}
+
 export async function replyToTicket(reference: string, formData: FormData): Promise<TicketMessage> {
   const res = await apiUpload<{ data: TicketMessage }>(
     `/admin/tickets/${reference}/reply`,
     formData,
+    { token: await token() },
+  );
+  return res.data;
+}
+
+/* ------------------------------------------------------------ saved replies */
+
+export type CannedReplyPayload = { title: string; body: string; sort_order: number };
+
+/** The management list: stored text, and the placeholder chips in `meta`. */
+export async function getCannedReplies(params: { q?: string; page?: number; per_page?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
+  const qs = query.toString();
+  return apiFetch<Paginated<CannedReply> & { meta: Paginated<CannedReply>["meta"] & { placeholders: CannedReplyPlaceholder[] } }>(
+    `/admin/canned-replies${qs ? `?${qs}` : ""}`,
+    { token: await token() },
+  );
+}
+
+export async function getCannedReply(id: number): Promise<CannedReply> {
+  const res = await apiFetch<{ data: CannedReply }>(`/admin/canned-replies/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createCannedReply(payload: CannedReplyPayload): Promise<CannedReply> {
+  const res = await apiFetch<{ data: CannedReply }>("/admin/canned-replies", { method: "POST", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function updateCannedReply(id: number, payload: Partial<CannedReplyPayload>): Promise<CannedReply> {
+  const res = await apiFetch<{ data: CannedReply }>(`/admin/canned-replies/${id}`, { method: "PATCH", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function deleteCannedReply(id: number): Promise<void> {
+  await apiFetch(`/admin/canned-replies/${id}`, { method: "DELETE", token: await token() });
+}
+
+/**
+ * Every saved reply with its placeholders filled for this ticket and the
+ * signed-in engineer — what the reply form's picker inserts. The fill
+ * happens in the API; nothing here knows a placeholder from a word.
+ */
+export async function getTicketCannedReplies(reference: string): Promise<CannedReply[]> {
+  const res = await apiFetch<{ data: CannedReply[] }>(
+    `/admin/tickets/${encodeURIComponent(reference)}/canned-replies`,
     { token: await token() },
   );
   return res.data;

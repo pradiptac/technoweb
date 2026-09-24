@@ -201,6 +201,12 @@ Measured as `rows=3 ids=3,3,4`, which is a person receiving one campaign twice.
 The audience is a `whereExists` predicate on the outer row, which cannot express
 the duplicate. Reverting it fails exactly its own test.
 
+**`SendCampaignBatch` carries a `$timeout` of 80** (2026-09-21). It had none,
+so the worker's 60s default bounded a loop over up to a thousand sends, and a
+batch killed at that limit left its remaining recipients `pending` with
+`$tries` 1 saying nothing would come back for them. Eighty is under the
+database queue's `retry_after` of 90, the rule every other job follows.
+
 **A campaign is claimed with a conditional UPDATE, not a read-then-write.** Two
 requests both reading `ready` both send, and there is no unsend — the same shape
 as `SignInCodes::consume()`. Recipients also carry a unique index per campaign,
@@ -311,7 +317,7 @@ folder-count progress bar instead of a message-count one.
 **The consent is spent by the scan and forgotten.** `OAuthConnection::newsletter()`
 is a slot of its own — prefix `newsletter_oauth_`, cache `newsletter-oauth-*`,
 error row `newsletter_oauth_error` — that *borrows* the app registration saved
-under Settings → Ticketing through `credentialsPrefix: 'inbound_oauth_'`: one
+under Tickets → Email to ticket through `credentialsPrefix: 'inbound_oauth_'`: one
 OAuth client with three callback addresses, rather than three clients. A state
 minted here cannot be spent at either Settings callback and theirs cannot be
 spent here (`NewsletterMailboxImportTest`). The job's `finally` calls
@@ -392,3 +398,174 @@ truth. `NewsletterTest` drives the whole path: three sent, three held, B
 opened, the command declines before the wait and decides after it, the
 released three mailed with the second subject, the campaign completes, the
 report says B.
+
+## Resending to non-openers (2026-09-20)
+
+**A resend is a campaign, and the copy goes through the one copy mechanism.**
+`POST /admin/newsletter/campaigns/{id}/resend {subject}` on a `sent` campaign
+makes a fresh row through `NewsletterCampaign::replicateAsDraft()` — the same
+method `duplicate` now calls, so the two cannot drift about what a copy
+carries — names it "<name> — resend", gives it the new subject and no
+`subject_b` (a second attempt is not an experiment), and points it home
+through `resend_of_id`. It has a report, a health score and tracking of its
+own, which is the whole argument for it being a row rather than a flag.
+
+**Its audience is the original's non-openers re-filtered, never the groups.**
+The recipients at status `sent` with no `opened_at` are handed to
+`AudienceResolver::freezeFrom()`, which applies the *same* expression
+`eligible()` applies — `sendable()` is one private method both call — so
+somebody who unsubscribed, bounced or was suppressed between the two sends is
+dropped, and the per-recipient check in `SendCampaignBatch` catches whoever
+leaves after that. `CampaignSender::queue($campaign, recipientsFrozen: true)`
+then skips freezing from the groups. A flag rather than "notice existing
+rows", deliberately: the claim stays the first write `queue()` makes, so two
+requests still cannot both win it, and a campaign that somehow carries stale
+rows is not silently sent to them because a count came back non-zero.
+
+**The health gate applies, before anything is written.** The copy is built in
+memory, `HealthCheck::run()` on it, and a blocking failure is the same 422
+with `errors.health` that `send` answers — a campaign sent before the postal
+address was configured cannot be resent breaking the rule the first send
+should have been stopped by. The copy is saved only once every refusal has
+had its chance.
+
+**Once per campaign, and the guard is the unique index.** `resend_of_id` is
+unique, so a second press — or two at once — is refused by the database
+whatever the controller read a moment earlier; the `UniqueConstraintViolation`
+is caught and answered with the same sentence as the check above. MySQL
+allows any number of nulls in a unique column, so every ordinary campaign is
+unaffected.
+
+**A copy carries the message, never the tracking.** A sent campaign's stored
+HTML has been through `TrackingRewriter::prepare()`: every link points at
+*that* campaign's click rows and the open pixel is in it. Copied as-is —
+which `duplicate` did for months — the copy's clicks would be counted
+against the original, and a second `prepare()` would leave the links alone
+(they already point at the tracker) and add a second pixel.
+`TrackingRewriter::unprepare()` puts each click URL back to its destination
+by the link id and removes the pixel; `replicateAsDraft()` calls it, and
+`queue()` prepares the copy afresh on rows of its own. The pixel is also
+idempotent now — `prepare()` adds none when one is present.
+
+**The panel has two states and no third.** On a sent campaign's report the
+console offers "Resend to people who did not open" with the report's
+`counts.non_openers` (delivered and never opened — an upper bound, since
+eligibility takes its share on the server), a subject field starting as the
+original's line, and Send; once a resend exists the panel links to its report
+instead, and the resend's own report names its parent. The action redirects
+to the resend's report with `?done=campaign-resent`, because a confirmation
+left on the original's screen would be a toast about a different campaign.
+
+## Sequences (2026-09-20)
+
+**Each step is a `newsletter_campaigns` row, and that is the whole design.**
+A step carries `sequence_id`, `sequence_position`, `delay_days` and the
+status `automation` (`CampaignStatus::Automation`), so it has the block
+editor, the health checks, `TrackingRewriter`, the unsubscribe footer,
+`CampaignMessage` and a report without a second implementation of any of
+them — a `sequence_steps` table would have been a second newsletter, and
+this module has already been bitten by two screens holding two definitions
+of one word. A step send is an ordinary recipient row on that campaign,
+accumulating over time rather than frozen once; the recipient index (one
+row per subscriber per campaign) is what makes one person get one step
+once whatever the runner does twice. What the rest of the module had to
+learn is to refuse a step as a campaign: `queue()` answers with a sentence,
+`completeIfDone()` returns early (it is never done), the campaigns index and
+the dashboard's totals leave `automation` out, the campaign `PATCH` accepts
+content and refuses `status`, `group_ids`, `scheduled_at` and the
+subject-test fields, and the campaign `DELETE` sends you to the sequence.
+
+**A subscriber goes through a sequence once, ever.** `newsletter_sequence_enrolments`
+is unique per (sequence, subscriber), and `Sequences::enrol()` answers
+`already_enrolled` rather than starting again; a race on the index is caught
+and answers the same. Re-joining the trigger group, being re-imported from a
+spreadsheet, being enrolled by hand a second time — none of them restarts a
+welcome series, because the alternative is somebody receiving "Welcome to
+Technoware" for the third time in a year and reporting it as spam. The
+step campaigns' recipient index says the same thing one level down.
+`SubscriberIntake::take()` hooks are on the outcome, not the call: a *new*
+row triggers the group-less sequences (`onActivated`), and only the groups
+`syncWithoutDetaching` actually **attached** trigger the group sequences
+(`onJoined`) — an import that names a group somebody is already in is not
+a join. The group screen's bulk add calls the same hook with the attached
+ids. Both are guarded so a sequence can never fail the intake that called
+it: the subscriber was added, and an enrolment that could not be written is
+a log line, not a refused import.
+
+**Enrolment is refused for the same reasons a send is.** Only an active
+subscriber not on the suppression list; a bounced or unsubscribed one
+answers `not_active`, a suppressed one `suppressed`, and a sequence with no
+steps `no_steps` — an enrolment with nowhere to go would sit `active` for
+ever and read on the console as somebody waiting. The manual endpoint takes
+ids, a group or pasted addresses (resolved on the server, with `unknown` for
+an address that is not on the list at all) and answers a count per outcome,
+because the refused ones are the interesting ones.
+
+**The runner is the scheduler, not a listener.** Nothing sends at the moment
+of enrolment. `technoware:run-sequences` runs every ten minutes beside
+`decide-subject-tests`, and `Sequences::run()` takes every active enrolment
+past its `next_at` in an active sequence, in chunks: a subscriber who is
+gone, no longer active or suppressed is **cancelled with the reason** and
+gets no row; otherwise a recipient row is written on the step campaign (the
+shape `AudienceResolver` writes, the model minting the tracking token) and
+the cursor moves to the next step's position and `now + its delay_days`, or
+to `completed` after the last. The rows are dispatched per step in batches
+of `CampaignSender::batchSize()` through the same `SendCampaignBatch` a
+campaign uses — which is the whole argument for a scheduler over a
+listener: a step with a delay of zero goes out within ten minutes of
+joining rather than inside the request that joined, SMTP stays off the
+request path, a paused sequence is one status rather than a queue to drain,
+and every send passes the job's own suppression, verification and
+hard-bounce handling. The cursor is a *position*, not a step id: remove a
+step and the rest are renumbered, and whoever was due position 2 gets
+whatever is second now; past the end, the runner completes them.
+
+**A step is prepared on save, on activation and again before it is used.**
+A campaign is prepared once by `queue()` at the moment it is sent; a step is
+sent a person at a time for months, so `Sequences::prepare()` runs
+`TrackingRewriter::prepare()` and stores the result when the campaign
+controller saves a step, when the sequence is switched on, and in the runner
+before a step's first row of the run — idempotently, because the rewriter
+leaves a link already pointing at the tracker alone and, since this change,
+adds no second pixel. `HealthCheck` strips the pixel before counting images,
+or a short step with its pixel in it scored as "mostly picture".
+
+**Switching a sequence on is the send gate, and a failing step is held.**
+`PATCH status=active` runs `HealthCheck` on every step and refuses with
+`errors.health` naming the step — the moment that corresponds to a
+campaign's send. Because a step can be edited while the sequence runs, the
+runner checks again per step per run, and a step failing a blocking check
+is **held** rather than sent: its enrolments are left where they are, the
+tally says `held`, and the Steps tab shows the score. A step that would be
+refused as a campaign is not sent as a step either.
+
+**The sender lives on the sequence and is copied onto every step.**
+`CampaignMessage` reads the From off the campaign row, so the sequence's
+`from_name`, `from_email` and `reply_to` are written onto each step at
+creation and on every sequence save; the campaign editor shows the fields
+disabled on a step and says where they live. A series that changes its
+sender halfway through reads as two senders.
+
+**Deleting is refused while anybody is still enrolled.** An active enrolment
+is a promise of messages to come, and deleting it silently is how somebody
+told to expect a series gets half of one. Pause it, or cancel the
+enrolments, then delete; the steps cascade with the sequence (a step has no
+meaning without it) and the subscribers are untouched. A cancelled
+enrolment never goes back to `active` — it is the record that they were not
+to be mailed.
+
+**The console.** `Sequences` in the newsletter strip; the list (trigger,
+steps, enrolled, status); `/new` (born paused, landing on the Steps tab,
+since a sequence with no steps enrols nobody and that is the next thing to
+do); and one screen of four tabs — Settings, Steps (a `ReorderButtons` row
+per step with its cumulative "Day N", the delay as a select saved on
+change, "Edit content" into the campaign editor, remove), Enrolments (the
+counts, a group-or-addresses enrol form, one page of people with a status
+filter and Cancel) and Report (per step sent/opened/clicked, rates over
+sent). The campaign editor opened on a step shows "Step N of <sequence>",
+goes back to the sequence, and drops the Audience and Send tabs — the panels
+too, because `Tabs` reads its children by position. `NewsletterSubscriber`
+gained `status` in its in-memory defaults on the way: `enrol()` asks a row
+created and enrolled in one breath, and the column's default is not on the
+model until it is re-read — null there read as "not active" and enrolled
+nobody, the trap `StoreProduct` records for `track_stock`.

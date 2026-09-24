@@ -6,11 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreFaqRequest;
 use App\Http\Requests\UpdateFaqRequest;
 use App\Http\Resources\Admin\FaqResource;
+use App\Models\BlogPost;
+use App\Models\Brand;
 use App\Models\Faq;
+use App\Models\Industry;
+use App\Models\KnowledgeArticle;
 use App\Models\Page;
 use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Models\Service;
 use App\Models\Solution;
+use App\Models\StoreCategory;
+use App\Models\StoreProduct;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -39,6 +46,18 @@ class FaqController extends Controller
         'service' => [Service::class, 'title', 'Services'],
         'product' => [Product::class, 'name', 'Products'],
         'page' => [Page::class, 'title', 'Pages'],
+        // Widened on 2026-09-21 (`docs/aeo-geo-contract.md`, section 2): a
+        // question about a brand, a category or an article is a question an
+        // assistant is asked, and the record it is about is where the
+        // answer belongs. Each of these carries `faqs()` and the morph
+        // alias already existed.
+        'product_category' => [ProductCategory::class, 'name', 'Product categories'],
+        'store_product' => [StoreProduct::class, 'name', 'Store products'],
+        'store_category' => [StoreCategory::class, 'name', 'Store categories'],
+        'brand' => [Brand::class, 'name', 'Brands'],
+        'blog_post' => [BlogPost::class, 'title', 'Blog posts'],
+        'knowledge_article' => [KnowledgeArticle::class, 'title', 'Knowledge base'],
+        'industry' => [Industry::class, 'name', 'Industries'],
     ];
 
     public function index(Request $request): AnonymousResourceCollection

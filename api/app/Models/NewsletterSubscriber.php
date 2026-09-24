@@ -4,6 +4,9 @@ namespace App\Models;
 
 use App\Enums\EmailVerification;
 use App\Enums\SubscriberStatus;
+use App\Enums\WebhookEvent;
+use App\Support\Webhooks\WebhookPayload;
+use App\Support\Webhooks\Webhooks;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -26,6 +29,10 @@ class NewsletterSubscriber extends Model
      * would throw on — the trap `StoreProduct` records for `track_stock`.
      */
     protected $attributes = [
+        // `status` too: `Sequences::enrol()` asks a row created and enrolled
+        // in one breath, and the column's default is not on the model until
+        // it is re-read. Null there read as "not active" and enrolled nobody.
+        'status' => 'active',
         'verification' => 'unverified',
         'verification_attempts' => 0,
     ];
@@ -62,6 +69,18 @@ class NewsletterSubscriber extends Model
             $subscriber->subscribed_at ??= now();
         });
 
+        /*
+         * `subscriber.joined` on the row being created. `SubscriberIntake`
+         * creates a subscriber exactly once per address — an existing row is
+         * enriched, never re-created — so this fires once however the address
+         * arrived: the signup form, a paste, a file, a mailbox scan, the
+         * customer group. An address that unsubscribed and came back is an
+         * update, not a join, and is deliberately silent.
+         */
+        static::created(function (self $subscriber) {
+            Webhooks::emit(WebhookEvent::SubscriberJoined, fn () => WebhookPayload::subscriber($subscriber));
+        });
+
         // Normalised on every write, not just on insert: an edit that changes
         // the case of an address must not create a second identity for it.
         static::saving(function (self $subscriber) {
@@ -94,6 +113,12 @@ class NewsletterSubscriber extends Model
     public function verifications(): HasMany
     {
         return $this->hasMany(NewsletterVerification::class);
+    }
+
+    /** @return HasMany<NewsletterSequenceEnrolment, $this> */
+    public function enrolments(): HasMany
+    {
+        return $this->hasMany(NewsletterSequenceEnrolment::class);
     }
 
     public function name(): string

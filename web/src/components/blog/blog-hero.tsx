@@ -4,6 +4,7 @@ import { formatDate } from "@/components/ui/article-meta";
 import { CategoryChips } from "@/components/blog/category-chips";
 import type { BlogPost } from "@/types/api";
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 
 /**
  * The lead article, and three beside it.
@@ -82,6 +83,7 @@ function FeatureCard({ post }: { post: BlogPost }) {
             // largest thing above the fold and therefore the LCP element.
             priority
             className="object-cover transition-[scale] duration-500 motion-safe:group-hover:scale-[1.03]"
+            style={focalStyle(post.cover_image_focus)}
           />
         ) : (
           <span className="grid size-full place-items-center bg-linear-135 from-brand-800 to-brand-600">
@@ -133,6 +135,7 @@ function SideRow({ post }: { post: BlogPost }) {
             fill
             sizes="(min-width: 1024px) 15vw, 30vw"
             className="object-cover transition-[scale] duration-500 motion-safe:group-hover:scale-[1.03]"
+            style={focalStyle(post.cover_image_focus)}
           />
         ) : (
           <span className="grid size-full place-items-center bg-linear-135 from-brand-800 to-brand-600">

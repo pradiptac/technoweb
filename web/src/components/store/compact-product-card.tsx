@@ -44,6 +44,7 @@ export function CompactProductCard({ product, priority = false }: { product: Sto
               <CardImages
                 images={product.images}
                 alts={product.image_alts}
+                focuses={product.image_focuses}
                 sizes="(min-width: 1280px) 20vw, (min-width: 640px) 33vw, 100vw"
                 priority={priority}
               />

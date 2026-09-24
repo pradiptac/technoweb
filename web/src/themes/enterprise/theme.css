@@ -95,3 +95,16 @@
 [data-theme="enterprise"] [data-store-hero] { border-radius: 4px; }
 [data-theme="enterprise"] [data-store-filter] form { border-top: 3px solid var(--color-brand-600); box-shadow: none; }
 [data-theme="enterprise"] [data-store-disc] { border-radius: 4px; }
+
+/*
+  The resources hub's colour (2026-09-21). Every tile on `/resources` carries a
+  `--tile-hue` — the four routes by position, a post by its category, a guide
+  by its category, a project by its industry — and this is how Enterprise shows
+  it. Grounds and edges only, never a text colour: the neon set is graded for
+  a glyph at 3:1, not for words, and `npm run audit` grades the words against
+  whatever opaque ground is under them.
+*/
+[data-theme="enterprise"] [data-collection="routes"] [data-tile] {
+  background-image: linear-gradient(155deg, color-mix(in srgb, var(--tile-hue, var(--color-card)) 14%, var(--color-card)) 0%, var(--color-card) 55%, var(--color-surface-2) 100%);
+  border-top: 3px solid var(--tile-hue, var(--color-line-strong));
+}
