@@ -1,6 +1,7 @@
 import { PageHero } from "@/components/ui/page-hero";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
+import { clientIpHeaders } from "@/lib/client-ip";
 import { UnsubscribeForm } from "./unsubscribe-form";
 
 /**
@@ -30,7 +31,7 @@ export default async function UnsubscribePage({ params }: { params: Promise<{ to
   try {
     const base = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
     const response = await fetch(`${base}/api/v1/newsletter/unsubscribe/${token}`, {
-      headers: { Accept: "application/json" },
+      headers: { Accept: "application/json", ...(await clientIpHeaders()) },
       cache: "no-store",
     });
 

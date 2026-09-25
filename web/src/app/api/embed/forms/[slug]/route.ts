@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { publicApi } from "@/lib/api";
+import { clientIpHeaders } from "@/lib/client-ip";
 
 /**
  * Where a form pasted as raw HTML onto another website posts.
@@ -95,7 +96,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   try {
     const res = await fetch(`${base}/api/v1/forms/${encodeURIComponent(slug)}`, {
       method: "POST",
-      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      headers: { Accept: "application/json", "Content-Type": "application/json", ...(await clientIpHeaders()) },
       body: JSON.stringify(payload),
       cache: "no-store",
     });

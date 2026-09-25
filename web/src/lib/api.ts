@@ -1,4 +1,5 @@
 import "server-only";
+import { clientIpHeaders } from "@/lib/client-ip";
 import type {
   ContentBlock,
   BlogPost,
@@ -66,10 +67,20 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   const url = `${BASE}/api/${VERSION}${path.startsWith("/") ? path : `/${path}`}`;
 
+  /*
+    Who is asking, for the API's per-visitor rate limits — on uncached calls
+    only. A cached read is shared by every visitor and its cache key includes
+    the headers, so naming one visitor there would split the cache per address
+    (and a prerender has no visitor to name). Every throttled endpoint is a
+    write or a no-store read, which is exactly the set this covers.
+  */
+  const forwarded = revalidate === undefined ? await clientIpHeaders() : {};
+
   const res = await fetch(url, {
     ...rest,
     headers: {
       Accept: "application/json",
+      ...forwarded,
       ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
@@ -110,6 +121,7 @@ export async function apiUpload<T>(
     method: options.method ?? "POST",
     headers: {
       Accept: "application/json",
+      ...(await clientIpHeaders()),
       ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
     },
     body: formData,
