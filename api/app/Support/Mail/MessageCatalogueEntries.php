@@ -214,7 +214,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     ),
                     'payment_method' => ['about' => 'The method they chose, by name.', 'sample' => 'Bank transfer (NEFT / IMPS / RTGS)'],
                     'payment_status' => ['about' => 'One phrase for the subject line: payment not yet made, confirmed, pay on delivery, awaiting your transfer, or awaiting your UPI payment.', 'sample' => 'awaiting your transfer'],
-                    'url' => ['about' => 'The order page, reached by the link in this email.', 'sample' => 'https://www.technoware.in/order/TWO-2026-0117?token=…'],
+                    'url' => ['about' => 'The order page, reached by the link in this email.', 'sample' => 'https://www.technoware.in/order/TWO-2026-0117/open?token=…'],
                 ],
                 'subject' => 'Your order {{order_number}} — {{payment_status}}',
                 'body' => '<p>Thanks, {{customer_name}}.</p>'
@@ -244,7 +244,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                         'Anything that applies to this order — an activation code being prepared, tracking to follow, a GST invoice by hand.',
                         '<p>We will email the tracking details as soon as it is dispatched.</p>',
                     ),
-                    'url' => ['about' => 'The order page.', 'sample' => 'https://www.technoware.in/order/TWO-2026-0117?token=…'],
+                    'url' => ['about' => 'The order page.', 'sample' => 'https://www.technoware.in/order/TWO-2026-0117/open?token=…'],
                 ],
                 'subject' => 'Payment received for {{order_number}}',
                 'body' => '<p>Thank you, {{customer_name}}.</p>'
@@ -309,7 +309,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     'customer_name' => $customer,
                     'products' => ['about' => 'What the code is for.', 'sample' => 'Veeam Backup Essentials'],
                     'steps' => self::details('The activation steps written on the product, as text.', '<p>Sign in at the vendor portal and enter the key under Licences.</p>'),
-                    'url' => ['about' => 'The order page, where the code is revealed.', 'sample' => 'https://www.technoware.in/order/TWO-2026-0117?token=…'],
+                    'url' => ['about' => 'The order page, where the code is revealed.', 'sample' => 'https://www.technoware.in/order/TWO-2026-0117/open?token=…'],
                 ],
                 'subject' => 'How to activate your purchase — {{order_number}}',
                 'body' => '<p>Hello {{customer_name}},</p>'

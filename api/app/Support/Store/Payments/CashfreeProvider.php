@@ -81,8 +81,6 @@ class CashfreeProvider implements PaymentProvider
 
     public function createSession(Order $order): array
     {
-        $frontend = rtrim((string) config('app.frontend_url'), '/');
-
         $response = $this->client()->post(self::api().'/orders', [
             // Our order number is Cashfree's `order_id` too: the webhook and
             // the return both name it, and asking twice with the same id
@@ -100,7 +98,8 @@ class CashfreeProvider implements PaymentProvider
                 'customer_phone' => self::phone($order->customer_phone),
             ],
             'order_meta' => [
-                'return_url' => $frontend.'/order/'.$order->order_number.'?token='.$order->access_token.'&paid=cashfree',
+                // Through `/open`, which trades the token for a cookie (Order::url()).
+                'return_url' => $order->url('cashfree'),
                 'notify_url' => rtrim((string) config('app.url'), '/').'/api/v1/payments/cashfree/webhook',
             ],
             'order_note' => 'Order '.$order->order_number,

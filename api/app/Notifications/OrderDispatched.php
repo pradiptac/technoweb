@@ -52,8 +52,7 @@ class OrderDispatched extends Notification implements ShouldQueue
             // somebody pressing "track" expects; the order otherwise.
             'url' => filled($order->tracking_url)
                 ? $order->tracking_url
-                : rtrim((string) config('app.frontend_url'), '/')
-                    .'/order/'.$order->order_number.'?token='.$order->access_token,
+                : $order->url(),
         ];
     }
 
@@ -80,7 +79,6 @@ class OrderDispatched extends Notification implements ShouldQueue
 
         return filled($order->tracking_url)
             ? $message->action('Track this shipment', $order->tracking_url)
-            : $message->action('View your order', rtrim((string) config('app.frontend_url'), '/')
-                .'/order/'.$order->order_number.'?token='.$order->access_token);
+            : $message->action('View your order', $order->url());
     }
 }
