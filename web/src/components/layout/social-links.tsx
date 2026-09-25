@@ -2,7 +2,9 @@ import {
   IconFacebook, IconInstagram, IconLinkedin, IconReddit, IconWhatsapp, IconX, IconYoutube,
 } from "@/components/icons";
 import type { SiteSettings } from "@/lib/site-settings";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactElement } from "react";
+import { IconMail } from "@/components/icons-ui";
+import { contact } from "@/content/site";
 import { Dock, DockIcon } from "@/components/velora/dock";
 
 /**
@@ -53,7 +55,16 @@ export function SocialLinks({ settings }: { settings: SiteSettings }) {
 
   if (links.length === 0) return null;
 
-  if (settings.social_style !== "dock") return <SocialFlip links={links} word={settings.social_flip_word} />;
+  if (settings.social_style !== "dock") {
+    // Email follows the profiles as a tile of its own, as it does in the
+    // source component — the address the header and the footer plates use.
+    const email = settings.support_email ?? contact.email;
+    const flip: FlipLink[] = [
+      ...links.map(({ key, label, initial, href, Icon }) => ({ key, label, initial, href, Icon, external: true })),
+      ...(email ? [{ key: "email", label: "Email", initial: "E", href: `mailto:${email}`, Icon: IconMail, external: false }] : []),
+    ];
+    return <SocialFlip links={flip} word={settings.social_flip_word} />;
+  }
 
   /*
     Velora's Dock: the tiles magnify under the cursor. This stays a server
@@ -112,92 +123,97 @@ export function SocialLinks({ settings }: { settings: SiteSettings }) {
 }
 
 /**
- * Letter tiles that flip to the icons (the client, 2026-09-24, after Vengeance
- * UI's social flip button — MIT, re-drawn rather than vendored: the original
- * pulls in framer-motion and react-icons, and this is a row of six links).
+ * Letter tiles that flip to the icons — Vengeance UI's social flip button
+ * (the client, 2026-09-24; re-drawn to its source on 2026-09-26 after "not
+ * followed properly"). MIT, re-drawn rather than vendored: the original pulls
+ * in framer-motion and react-icons for a row of seven links.
  *
- * The fronts spell `social_flip_word`, and the word decides how many tiles
- * there are, up to `FLIP_MAX` (the client, 2026-09-25: "CONTACT" over six
- * profiles lost its T). A tile past the last profile is a letter and nothing
- * else — not a link, out of the tab order and hidden from a screen reader —
- * whose back repeats the letter, so it never turns over to a blank. A
- * profile past the end of the word shows its network's initial, so a short
- * word still reads as something rather than as blanks. Pointing at the row — or
- * tabbing into it — turns every tile over, one after another, to the icon on
- * the back; the hovered one lifts a name tag above itself.
+ * What is taken from the source, part for part:
+ * - **The panel**: the tiles sit in a rounded panel with a hairline border
+ *   and two light streaks running along its top and bottom edges, in
+ *   opposite directions, forever — the component's signature.
+ * - **The faces**: the front is a filled tile with the letter in bold; the
+ *   back is the inverse, a solid near-white tile with the mark in the
+ *   footer's dark — monochrome, as the source is, not brand colours.
+ * - **The turn**: a spring (stiffness 120, damping 15 — about 5% overshoot)
+ *   staggered 80ms per tile, as `--ease-spring`.
+ * - **The name tag**: a pill with an arrow that rises and grows above the
+ *   tile under the pointer.
+ * - **Email is a tile**, after the profiles: the source's "CONTACT" is six
+ *   networks and an envelope, and so is this site's with six profiles set.
+ *
+ * The fronts spell `social_flip_word` (up to `FLIP_MAX`); a letter past the
+ * last tile gets a tile of its own that is not a link — `aria-hidden`, out of
+ * the tab order — whose back repeats the letter, so it never turns to a
+ * blank. A link past the end of the word shows its network's initial.
  *
  * **CSS only, in `globals.css` under `.social-flip`.** The turn is the CSS
- * `rotate` property (`rotate: y 180deg`), transitioned as `rotate` — the
- * Tailwind v4 trap this project keeps meeting: `transition-transform` would
- * animate nothing. The stagger is `--i` on each item. Three cases that are
- * not a flip: a device that cannot hover shows the icons from the start,
- * because letters that only turn into icons under a pointer leave a phone
- * with a word that goes nowhere; reduced motion swaps the faces by opacity;
- * and the link's name is its `aria-label`, so the letter and the tag are
- * both `aria-hidden` and a screen reader hears "Technoware on LinkedIn".
+ * `rotate` property, never a transform utility (the v4 trap). A device that
+ * cannot hover shows the icons from the start; reduced motion swaps the faces
+ * by opacity and stops the streaks; the link's name is its `aria-label`, so a
+ * screen reader hears "Technoware on LinkedIn".
  *
- * The back face is the dock's hover state — the glyph in its brand colour on
- * the footer's dark ground — so every contrast figure measured above still
- * holds for it.
+ * The panel carries its own ground — the dark lifted by a few per cent of
+ * the footer's ink — so it reads as a surface on the dark footers and on the
+ * light ones alike, and every colour inside it is a non-inverting dark token.
  */
 /** The longest word the tiles spell; the API refuses a longer one. */
 const FLIP_MAX = 7;
 
-function SocialFlip({ links, word }: {
-  links: ((typeof PROFILES)[number] & { href: string })[];
-  word: string | undefined;
-}) {
+type FlipLink = { key: string; label: string; initial: string; href: string; Icon: (p: { className?: string }) => ReactElement; external: boolean };
+
+function SocialFlip({ links, word }: { links: FlipLink[]; word: string | undefined }) {
   const letters = (word ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, FLIP_MAX);
   const extra = Array.from(letters.slice(links.length));
-  const face = "social-flip__face grid place-items-center rounded-lg border border-dark-line font-display text-[17px] font-semibold text-dark-muted";
+  const tile = "social-flip__tile relative block size-8 rounded-lg sm:size-10";
+  const front = "social-flip__face grid place-items-center rounded-lg bg-dark-line font-display text-[15px] font-bold text-dark-ink shadow-1 sm:text-[17px]";
+  const back = "social-flip__face social-flip__back grid place-items-center rounded-lg bg-dark-ink text-dark";
 
   return (
-    <ul className="social-flip mt-6 flex flex-wrap gap-2">
-      {links.map(({ key, label, initial, href, Icon, brand }, i) => (
-        <li key={key} style={{ "--i": i, "--brand": brand } as CSSProperties}>
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Technoware on ${label}`}
-            className="social-flip__tile relative block size-10 rounded-lg"
-          >
-            <span className="social-flip__card relative block size-full">
-              <span aria-hidden className={face}>
-                {letters[i] ?? initial}
+    <div className="social-flip relative mt-6 inline-flex max-w-full rounded-2xl border border-dark-line bg-[color-mix(in_srgb,var(--color-dark-ink)_5%,var(--color-dark))] p-2 sm:p-4">
+      {/* The streaks, clipped to the panel's corners and kept off every pointer. */}
+      <span aria-hidden className="pointer-events-none absolute -inset-px overflow-hidden rounded-2xl">
+        <span className="social-flip__streak absolute top-0 left-0 h-px w-full bg-linear-to-r from-transparent via-dark-ink/50 to-transparent" />
+        <span className="social-flip__streak social-flip__streak--back absolute bottom-0 left-0 h-px w-full bg-linear-to-r from-transparent via-dark-ink/50 to-transparent" />
+      </span>
+      <ul className="relative flex flex-wrap gap-1.5 sm:gap-2">
+        {links.map(({ key, label, initial, href, Icon, external }, i) => (
+          <li key={key} style={{ "--i": i } as CSSProperties}>
+            <a
+              href={href}
+              {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+              aria-label={external ? `Technoware on ${label}` : `Email Technoware`}
+              className={tile}
+            >
+              <span className="social-flip__card relative block size-full">
+                <span aria-hidden className={front}>
+                  {letters[i] ?? initial}
+                </span>
+                <span aria-hidden className={`${back} [&_svg]:size-[50%]`}>
+                  <Icon />
+                </span>
               </span>
               <span
                 aria-hidden
-                className="social-flip__face social-flip__back grid place-items-center rounded-lg border border-[color-mix(in_srgb,var(--brand)_45%,transparent)] bg-dark text-[var(--brand)] [&_svg]:size-[55%]"
+                className="social-flip__tip pointer-events-none absolute bottom-full left-1/2 z-10 mb-3 rounded-lg bg-dark-ink px-3 py-1.5 text-12 font-semibold whitespace-nowrap text-dark shadow-3"
               >
-                <Icon />
+                {label}
+                <span className="absolute -bottom-1 left-1/2 size-2 -translate-x-1/2 rotate-45 bg-dark-ink" />
+              </span>
+            </a>
+          </li>
+        ))}
+        {extra.map((letter, j) => (
+          <li key={`letter-${j}`} aria-hidden style={{ "--i": links.length + j } as CSSProperties}>
+            <span className={tile}>
+              <span className="social-flip__card relative block size-full">
+                <span className={front}>{letter}</span>
+                <span className={`${back} font-display text-[15px] font-bold sm:text-[17px]`}>{letter}</span>
               </span>
             </span>
-            <span
-              aria-hidden
-              className="social-flip__tip pointer-events-none absolute bottom-full left-1/2 mb-2 rounded-md bg-brand-600 px-2 py-1 text-12 font-semibold whitespace-nowrap text-brand-on"
-            >
-              {label}
-            </span>
-          </a>
-        </li>
-      ))}
-      {extra.map((letter, j) => (
-        <li
-          key={`letter-${j}`}
-          aria-hidden
-          style={{ "--i": links.length + j, "--brand": "var(--color-dark-muted-brand)" } as CSSProperties}
-        >
-          <span className="social-flip__tile relative block size-10 rounded-lg">
-            <span className="social-flip__card relative block size-full">
-              <span className={face}>{letter}</span>
-              <span className="social-flip__face social-flip__back grid place-items-center rounded-lg border border-[color-mix(in_srgb,var(--brand)_45%,transparent)] bg-dark font-display text-[17px] font-semibold text-[var(--brand)]">
-                {letter}
-              </span>
-            </span>
-          </span>
-        </li>
-      ))}
-    </ul>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
