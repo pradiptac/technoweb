@@ -60,8 +60,8 @@ export function SocialLinks({ settings }: { settings: SiteSettings }) {
     // source component — the address the header and the footer plates use.
     const email = settings.support_email ?? contact.email;
     const flip: FlipLink[] = [
-      ...links.map(({ key, label, initial, href, Icon }) => ({ key, label, initial, href, Icon, external: true })),
-      ...(email ? [{ key: "email", label: "Email", initial: "E", href: `mailto:${email}`, Icon: IconMail, external: false }] : []),
+      ...links.map(({ key, label, initial, href, Icon, brand }) => ({ key, label, initial, href, Icon, brand, external: true })),
+      ...(email ? [{ key: "email", label: "Email", initial: "E", href: `mailto:${email}`, Icon: IconMail, brand: "var(--color-dark-ink)", external: false }] : []),
     ];
     return <SocialFlip links={flip} word={settings.social_flip_word} />;
   }
@@ -133,8 +133,17 @@ export function SocialLinks({ settings }: { settings: SiteSettings }) {
  *   and two light streaks running along its top and bottom edges, in
  *   opposite directions, forever — the component's signature.
  * - **The faces**: the front is a filled tile with the letter in bold; the
- *   back is the inverse, a solid near-white tile with the mark in the
- *   footer's dark — monochrome, as the source is, not brand colours.
+ *   back is the footer's dark with the mark in its **own brand colour** (the
+ *   client, 2026-09-26 — the source is monochrome; the colours are the ones
+ *   measured against `--color-dark` in `PROFILES`, and a near-white back
+ *   would have hidden X's white mark).
+ * - **One line, always** (the client, 2026-09-26): the tiles are a one-row
+ *   grid that shrinks them to the column — 40px at most, ~26px in the
+ *   narrowest footer column (the brand column at 1024px), never under the
+ *   24px target, which is why the panel's padding and gaps are tight — and the letters
+ *   scale with the tile through container units, never under 12px. The
+ *   panel's width is worked out from the tile count so a short row does not
+ *   sit in a wide empty box.
  * - **The turn**: a spring (stiffness 120, damping 15 — about 5% overshoot)
  *   staggered 80ms per tile, as `--ease-spring`.
  * - **The name tag**: a pill with an arrow that rises and grows above the
@@ -160,25 +169,29 @@ export function SocialLinks({ settings }: { settings: SiteSettings }) {
 /** The longest word the tiles spell; the API refuses a longer one. */
 const FLIP_MAX = 7;
 
-type FlipLink = { key: string; label: string; initial: string; href: string; Icon: (p: { className?: string }) => ReactElement; external: boolean };
+type FlipLink = { key: string; label: string; initial: string; href: string; Icon: (p: { className?: string }) => ReactElement; brand: string; external: boolean };
 
 function SocialFlip({ links, word }: { links: FlipLink[]; word: string | undefined }) {
   const letters = (word ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, FLIP_MAX);
   const extra = Array.from(letters.slice(links.length));
-  const tile = "social-flip__tile relative block size-8 rounded-lg sm:size-10";
-  const front = "social-flip__face grid place-items-center rounded-lg bg-dark-line font-display text-[15px] font-bold text-dark-ink shadow-1 sm:text-[17px]";
-  const back = "social-flip__face social-flip__back grid place-items-center rounded-lg bg-dark-ink text-dark";
+  const count = links.length + extra.length;
+  const tile = "social-flip__tile relative block aspect-square w-full rounded-lg [container-type:inline-size]";
+  const front = "social-flip__face grid place-items-center rounded-lg bg-dark-line font-display text-[max(12px,42cqi)] font-bold text-dark-ink shadow-1";
+  const back = "social-flip__face social-flip__back grid place-items-center rounded-lg border border-[color-mix(in_srgb,var(--brand)_45%,transparent)] bg-dark text-[var(--brand)]";
 
   return (
-    <div className="social-flip relative mt-6 inline-flex max-w-full rounded-2xl border border-dark-line bg-[color-mix(in_srgb,var(--color-dark-ink)_5%,var(--color-dark))] p-2 sm:p-4">
+    <div
+      style={{ "--n": count } as CSSProperties}
+      className="social-flip relative mt-6 w-full max-w-[calc(var(--n)*2.5rem+(var(--n)-1)*0.25rem+1rem)] rounded-2xl border border-dark-line bg-[color-mix(in_srgb,var(--color-dark-ink)_5%,var(--color-dark))] p-2"
+    >
       {/* The streaks, clipped to the panel's corners and kept off every pointer. */}
       <span aria-hidden className="pointer-events-none absolute -inset-px overflow-hidden rounded-2xl">
         <span className="social-flip__streak absolute top-0 left-0 h-px w-full bg-linear-to-r from-transparent via-dark-ink/50 to-transparent" />
         <span className="social-flip__streak social-flip__streak--back absolute bottom-0 left-0 h-px w-full bg-linear-to-r from-transparent via-dark-ink/50 to-transparent" />
       </span>
-      <ul className="relative flex flex-wrap gap-1.5 sm:gap-2">
-        {links.map(({ key, label, initial, href, Icon, external }, i) => (
-          <li key={key} style={{ "--i": i } as CSSProperties}>
+      <ul className="relative grid grid-flow-col auto-cols-fr gap-1">
+        {links.map(({ key, label, initial, href, Icon, brand, external }, i) => (
+          <li key={key} className="min-w-0" style={{ "--i": i, "--brand": brand } as CSSProperties}>
             <a
               href={href}
               {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
@@ -204,11 +217,11 @@ function SocialFlip({ links, word }: { links: FlipLink[]; word: string | undefin
           </li>
         ))}
         {extra.map((letter, j) => (
-          <li key={`letter-${j}`} aria-hidden style={{ "--i": links.length + j } as CSSProperties}>
+          <li key={`letter-${j}`} aria-hidden className="min-w-0" style={{ "--i": links.length + j, "--brand": "var(--color-dark-muted-brand)" } as CSSProperties}>
             <span className={tile}>
               <span className="social-flip__card relative block size-full">
                 <span className={front}>{letter}</span>
-                <span className={`${back} font-display text-[15px] font-bold sm:text-[17px]`}>{letter}</span>
+                <span className={`${back} font-display text-[max(12px,42cqi)] font-bold`}>{letter}</span>
               </span>
             </span>
           </li>
