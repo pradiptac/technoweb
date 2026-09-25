@@ -7,9 +7,10 @@ namespace App\Enums;
  *
  * `sending` is claimed with a conditional UPDATE from `draft` or `scheduled`
  * (`Broadcasts::queue()`), so two presses — or the scheduler and a press —
- * cannot both freeze an audience. Only a draft may be edited; only a draft
- * or a scheduled broadcast may be deleted or cancelled, because a message
- * that has gone cannot be recalled.
+ * cannot both freeze an audience. Only a draft may be edited. A scheduled or
+ * sending broadcast may be cancelled — what has not gone yet is skipped,
+ * because a message that has gone cannot be recalled — and only a draft or
+ * a cancelled one may be deleted.
  */
 enum BroadcastStatus: string
 {
