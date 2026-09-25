@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\FormController;
 use App\Http\Controllers\Api\V1\GalleryController;
 use App\Http\Controllers\Api\V1\LandingPageController;
+use App\Http\Controllers\Api\V1\MessagingController;
 use App\Http\Controllers\Api\V1\NewsletterController;
 use App\Http\Controllers\Api\V1\OrderCodeController;
 use App\Http\Controllers\Api\V1\PaymentController;
@@ -375,6 +376,26 @@ Route::post('newsletter/unsubscribe/{token}', [NewsletterController::class, 'uns
  */
 Route::post('newsletter/webhooks/{provider}', [NewsletterController::class, 'bounceWebhook'])
     ->name('newsletter.webhook');
+
+/*
+ * Messaging providers reporting back — delivered, read, a STOP, a template
+ * approved. GET as well, for Meta's subscription handshake. Un-throttled for
+ * the bounce webhook's reason, and nothing is acted on without the
+ * provider's signature or the shared secret (`MessagingWebhook`).
+ */
+Route::match(['get', 'post'], 'messaging/webhooks/{channel}/{provider}', [MessagingController::class, 'webhook'])
+    ->where(['channel' => 'whatsapp|rcs|push', 'provider' => '[a-z_]+'])
+    ->name('messaging.webhook');
+
+/*
+ * The push bell: a browser handing over its FCM token, or taking it back.
+ * Public — guests may subscribe to broadcasts — and a forwarded portal
+ * token stamps the customer. 202 whatever happened.
+ */
+Route::post('messaging/push/subscribe', [MessagingController::class, 'subscribe'])
+    ->middleware('throttle:10,1')->name('messaging.push.subscribe');
+Route::post('messaging/push/unsubscribe', [MessagingController::class, 'unsubscribe'])
+    ->middleware('throttle:10,1')->name('messaging.push.unsubscribe');
 
 /*
  * A browser reporting that its JavaScript failed.

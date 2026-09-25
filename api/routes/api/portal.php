@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CustomerOrderController;
+use App\Http\Controllers\Api\V1\MessagingPreferenceController;
 use App\Http\Controllers\Api\V1\TicketController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +32,11 @@ Route::middleware('customer')->group(function () {
      */
     Route::get('my/orders', [CustomerOrderController::class, 'index'])->name('my.orders.index');
     Route::get('my/orders/{orderNumber}', [CustomerOrderController::class, 'show'])->name('my.orders.show');
+
+    // Which channels this customer is told things on (WhatsApp, RCS, push).
+    Route::get('messaging/preferences', [MessagingPreferenceController::class, 'show'])->name('messaging.preferences.show');
+    Route::patch('messaging/preferences', [MessagingPreferenceController::class, 'update'])
+        ->middleware('throttle:20,1')->name('messaging.preferences.update');
 
     Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
     Route::get('tickets/summary', [TicketController::class, 'summary'])->name('tickets.summary');

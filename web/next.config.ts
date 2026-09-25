@@ -181,6 +181,10 @@ const fullCsp = (dev: boolean, frameAncestors = "'self'") => [
     "https://sdk.cashfree.com https://api.cashfree.com https://sandbox.cashfree.com",
     // The reviews widget fetches its reviews from Elfsight's service.
     "https://core.service.elfsight.com https://*.elfsight.com https://*.elfsightcdn.com",
+    // The push bell, and only after it is pressed: Firebase's installation
+    // and registration endpoints turn a browser's Web Push subscription into
+    // the FCM token the API sends to (`lib/push-client.ts`).
+    "https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com",
     dev ? "ws: wss:" : "",
   ].filter(Boolean).join(" "),
   /*

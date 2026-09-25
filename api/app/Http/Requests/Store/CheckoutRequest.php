@@ -105,6 +105,11 @@ class CheckoutRequest extends FormRequest
              */
             'payment_method' => ['sometimes', 'nullable', Rule::enum(PaymentMethod::class)],
 
+            // The messaging opt-in boxes under the mobile field: which of the
+            // phone channels may carry updates to the number typed above.
+            'message_opt_in' => ['sometimes', 'array', 'max:2'],
+            'message_opt_in.*' => ['string', Rule::in(['whatsapp', 'rcs'])],
+
             'gst_required' => ['sometimes', 'boolean'],
 
             /*

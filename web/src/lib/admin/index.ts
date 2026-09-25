@@ -22,6 +22,7 @@ export * from "./company";
 export * from "./knowledge-base";
 export * from "./leads";
 export * from "./media";
+export * from "./messaging";
 export * from "./newsletter";
 export * from "./pages";
 export * from "./seo";

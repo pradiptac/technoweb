@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Admin\EmailTemplateController;
 use App\Http\Controllers\Api\V1\Admin\InboundMailController;
 use App\Http\Controllers\Api\V1\Admin\IntegrationsController;
 use App\Http\Controllers\Api\V1\Admin\MailController;
+use App\Http\Controllers\Api\V1\Admin\MessagingSettingsController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\V1\Admin\UserAdminController;
 use App\Http\Controllers\Api\V1\Admin\WebhookController;
@@ -82,6 +83,16 @@ Route::middleware('role:admin')->group(function () {
     Route::post('settings/mail/disconnect', [MailController::class, 'disconnect'])->name('settings.mail.disconnect');
     Route::post('settings/mail/test', [MailController::class, 'test'])
         ->middleware('throttle:6,1')->name('settings.mail.test');
+
+    /*
+     * The messaging channels (WhatsApp, RCS, push): what the settings screen
+     * needs to draw each provider's fields and webhook URL, and a test send
+     * per channel — throttled like the mail test, a fixed body to an address
+     * the administrator types. The keys themselves save through `settings`.
+     */
+    Route::get('settings/messaging', [MessagingSettingsController::class, 'status'])->name('settings.messaging.status');
+    Route::post('settings/messaging/test', [MessagingSettingsController::class, 'test'])
+        ->middleware('throttle:6,1')->name('settings.messaging.test');
 
     /*
      * The support mailbox tickets are read from (Settings → Ticketing).

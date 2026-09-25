@@ -53,6 +53,7 @@ export function CheckoutForm({
   cart,
   shippable,
   customer,
+  messagingChannels = [],
 }: {
   cart: CartSummary;
   shippable: boolean;
@@ -66,6 +67,8 @@ export function CheckoutForm({
    * form still submits what is on screen rather than what is on the account.
    */
   customer?: Customer | null;
+  /** The phone channels that can deliver now, from the public settings' live bits. */
+  messagingChannels?: { value: string; label: string }[];
 }) {
   const [state, formAction, pending] = useActionState(placeOrderAction, initial);
   const [gst, setGst] = useState(Boolean(customer?.gstin));
@@ -192,6 +195,26 @@ export function CheckoutForm({
                 aria-invalid={Boolean(err("phone"))} />
             </Field>
           </div>
+
+          {/*
+            Order updates on the number above, one box per messaging channel
+            the shop can actually deliver on (the API's `messaging_*_live`
+            bits) — none at all while every channel is off. Unticked by
+            default: consent is something a person gives, and a box ticked for
+            them is not it.
+          */}
+          {messagingChannels.length > 0 && (
+            <fieldset className="mb-4 grid gap-1.5">
+              <legend className="sr-only">Order updates on your mobile</legend>
+              {messagingChannels.map((c) => (
+                <label key={c.value} className="flex min-h-6 items-start gap-2.5 text-14">
+                  <input type="checkbox" name="message_opt_in" value={c.value}
+                    className="mt-1 size-4 shrink-0 accent-[var(--color-brand-600)]" />
+                  <span>Send order updates to this number on {c.label}. Reply STOP to end them.</span>
+                </label>
+              ))}
+            </fieldset>
+          )}
 
           {/*
             The email keeps its hint and its own row. It is the only field here

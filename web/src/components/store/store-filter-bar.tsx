@@ -5,6 +5,9 @@ import { StoreSearch } from "@/components/store/store-search";
 import { cn } from "@/lib/utils";
 import { BasketIndicator } from "@/components/store/basket-bar";
 import { WishlistIndicator } from "@/components/store/wishlist-indicator";
+import { PushBell } from "@/components/push/push-bell";
+import { getSiteSettings } from "@/lib/settings";
+import { consentGateFrom, pushConfigFrom } from "@/lib/push";
 import type { StoreCategory } from "@/types/api";
 
 /**
@@ -66,6 +69,9 @@ export async function StoreFilterBar({
   className?: string;
 }) {
   const filtered = Boolean(q || category);
+  // Cached with the rest of the settings (600s), so the shop stays cacheable.
+  const settings = await getSiteSettings();
+  const push = pushConfigFrom(settings);
 
   return (
     /*
@@ -278,6 +284,8 @@ export async function StoreFilterBar({
           <div>
             <BasketIndicator />
           </div>
+          {/* The push bell, beside the basket (Phase 2). Drawn only while push can deliver. */}
+          {push && <PushBell config={push} consentGated={consentGateFrom(settings)} />}
         </div>
       </AutoApplyForm>
     </div>

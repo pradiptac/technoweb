@@ -861,6 +861,64 @@ it. `home_stats_block`, `home_pricing_block` and `home_stack_block` in the
 
 ---
 
+## Messaging channels — WhatsApp, RCS, push
+
+Phase 2 (2026-09-25). See `docs/messaging.md`. Every event's email is
+unchanged; these channels are called beside it through `Messenger::notify()`.
+
+### Public
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET`/`POST` | `/messaging/webhooks/{channel}/{provider}` | A provider reporting back: `whatsapp` × `meta_cloud`\|`gupshup`\|`twilio`, `rcs` × `google_rbm`\|`gupshup`. **200 always**, un-throttled; nothing is acted on unless it verifies (see below). GET is Meta's subscription handshake |
+| `POST` | `/messaging/push/subscribe` | `token` (an FCM registration token). Throttled 10/min. **202 always**; written only while push is live. A forwarded portal Bearer stamps the customer (read as `$request->user('sanctum')`, never for a "View as" session) |
+| `POST` | `/messaging/push/unsubscribe` | `token`. Throttled 10/min. 202 always |
+
+**Verification fails closed.** Meta: `X-Hub-Signature-256` = `sha256=` HMAC-SHA256 of the raw body with `whatsapp_meta_app_secret`; the GET echoes `hub.challenge` only when `hub.verify_token` equals `whatsapp_meta_verify_token`. Twilio: `X-Twilio-Signature` = base64 HMAC-SHA1, keyed with the auth token, over the URL called and every POST field name+value in name order. Google RBM: `X-Goog-Signature` = base64 HMAC-SHA512 of the base64-decoded `message.data` with `rcs_rbm_client_token`; a body of `{clientToken, secret}` is the configuration handshake and is answered `{secret}` when the token is ours. Both Gupshups sign nothing and require `messaging_webhook_secret` as `?token=` (or `X-Webhook-Secret`). No secret configured accepts nothing.
+
+**What a verified webhook does.** A status (`sent`, `delivered`, `read`, `failed`) moves the matching `message_deliveries` row **forward only**; an inbound STOP (STOP, STOP ALL, UNSUBSCRIBE, CANCEL, END, QUIT, OPT OUT, STOP PROMOTIONS) opts that number out on that channel; a template status update (Meta, Gupshup) sets the template's approval.
+
+`/settings` adds `messaging_whatsapp_live`, `messaging_rcs_live` and `push_live` — `"1"`/`"0"`, whether the checkout may offer a box and the shop a bell — and publishes the `push` group (Firebase's web config: `push_api_key`, `push_project_id`, `push_messaging_sender_id`, `push_app_id`, `push_vapid_key`). No provider or credential is public.
+
+`POST /checkout` accepts `message_opt_in[]` of `whatsapp` and `rcs`: the number typed in `phone` is opted in on each **live** channel (source `checkout`), inside the order's transaction and before the order-placed message is queued. Anything else is a 422; a channel that is off records nothing.
+
+### Portal
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/messaging/preferences` | `{phone, channels: [{channel, label, live, opted_in, devices}]}` — `phone` is the account's number in E.164 or null; `devices` counts active push subscriptions |
+| `PATCH` | `/messaging/preferences` | `whatsapp`, `rcs`, `push` booleans, each optional. On opts the **account's** number in (422 without one; ignored for a channel that is not live); off opts out every number the account holds on it. `push` can only be `false`: off everywhere. A "View as" session may turn a channel off and never on (422). Throttled 20/min |
+
+### Admin — settings (`role:admin`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/settings/messaging` | `channels[]`: `value`, `label`, `setting` (`messaging_<channel>_provider`), `provider`, `ready`, `address_kind` (`phone`\|`token`), `needs_approval`, `error` (the last credential refusal), `providers[]` (`value`, `label`, `blurb`, `fields`, `available`, `configured`, `webhook_url` from the route table, `webhook_secret_param`); `quiet_hours` (`start`, `end`, `open_now`, `next_opening`, `timezone`); `queue` |
+| `POST` | `/admin/settings/messaging/test` | `channel`, `to` (a mobile, or a push token). The fixed test body — Meta's `hello_world` template — to that address; 422 with the provider's own words, written to `messaging_<channel>_error`; a success clears it. Throttled 6/min |
+
+The keys are ordinary rows in the private `messaging` group, saved through `PATCH /admin/settings`: `messaging_{whatsapp,rcs,push}_provider` (an id from the channel's enum or blank for off; `options` carries the list), `messaging_promo_start`/`_end` (`HH:MM`, the end after the start — the quiet-hours window), `messaging_webhook_secret`, and each provider's fields (`whatsapp_meta_*`, `whatsapp_gupshup_*`, `whatsapp_twilio_*`, `rcs_rbm_*`, `rcs_gupshup_*`, `push_fcm_service_account`). Every credential is `is_secret`: encrypted, blank = unchanged, never returned. A service-account key must be Google's JSON file (`client_email`, `private_key`) or it is refused.
+
+### Admin — messaging (`role:campaign_manager,store_manager`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET`/`POST` | `/admin/messaging/templates` | `?channel=`, `?q=`, `?per_page=` (max 100). `meta`: `channels`, `events` (value, label, promotional, placeholders), `common_placeholders`, `samples`, `categories`, `approvals` |
+| `POST` | `/admin/messaging/templates/sync` | `channel`. Reads every template's approval from the provider: `{matched, unknown[]}`. 422 in the provider's words. **Declared above `templates/{id}`** |
+| `GET`/`PATCH`/`DELETE` | `/admin/messaging/templates/{id}` | Bound by **id**. `channel` is fixed once saved (prohibited on PATCH) |
+| `POST` | `/admin/messaging/templates/{id}/submit` | WhatsApp: submit for review; the template becomes `pending`. Throttled 10/min |
+| `POST` | `/admin/messaging/templates/{id}/test` | `to`. This template, filled with `samples`, to one address. Throttled 6/min |
+| `GET` | `/admin/messaging/automations` | The whole grid, every event × channel: `event`, `event_label`, `promotional`, `channel`, `message_template_id`, `is_enabled`, `live`, `reason`. `meta.channels`, `meta.templates` |
+| `PUT` | `/admin/messaging/automations` | `rows[]` of `{event, channel, message_template_id, is_enabled}`, upserted. A template on another channel, or switched on with none, is a 422 on the row |
+| `GET` | `/admin/messaging/contacts` | `?channel=`, `?status=active\|opted_out`, `?q=` (name, customer, or four digits of a number). A push token is shortened to 12 characters. `meta.channels[].active` counts. **No create** |
+| `POST` | `/admin/messaging/contacts/{id}/opt-out` | Records an opt-out said somewhere else (`staff`) |
+| `GET`/`POST` | `/admin/messaging/broadcasts` | `?status=`. `meta`: `channels`, `audiences`, `statuses`, `wishlists` (whether the wishlist tables exist), `groups`, `products`, `templates`, `quiet_hours` |
+| `GET` | `/admin/messaging/broadcasts/audience` | `?channel=&audience=&newsletter_group_id=&store_product_id=` → `{count}`. **Declared above `broadcasts/{id}`** |
+| `GET`/`PATCH`/`DELETE` | `/admin/messaging/broadcasts/{id}` | `name`, `channel`, `message_template_id` (same channel), `audience` (`opt_ins`, `customers`, `newsletter_group`, `wishlist`), `newsletter_group_id`, `store_product_id`. A read of a draft or scheduled one carries `audience_count`; of anything else `report` (`counts` by status, `sent`, `delivery_rate`, `read_rate` — null before anything was sent — and the latest 20 `failures`). PATCH on a draft only; DELETE on a draft or cancelled one |
+| `POST` | `/admin/messaging/broadcasts/{id}/send` | `scheduled_at?`. A future time schedules it; otherwise it is claimed with a conditional UPDATE, frozen into delivery rows and queued in batches of 100 inside the quiet hours. 422 with `errors.send[]` on an unapproved template, a channel off, or nobody in the audience; 422 once already sent. Answers `starts_at` |
+| `POST` | `/admin/messaging/broadcasts/{id}/cancel` | Scheduled or sending: `cancelled`, and every delivery not yet sent `skipped` |
+
+**Every audience is narrowed to active contacts on the broadcast's channel.** `newsletter_group` matches the group's active subscribers to portal customers by email; `wishlist` reads `wishlist_items.store_product_id` joined to `wishlists.customer_id` and is **empty until those tables exist**.
+
 ## The store
 
 A **separate catalogue** from `/products`. What the shop sells is maintained

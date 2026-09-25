@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\MessageChannel;
 use App\Enums\PaymentGateway;
 use App\Models\Location;
 use App\Models\Media;
@@ -28,7 +29,7 @@ class PublicSettings
      * `payments`, `newsletter`, `chatbot`, `seo`, `media`, `security` — stays
      * server-side unless a key below names it deliberately.
      */
-    public const GROUPS = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'login', 'banners', 'announcement', 'themes', 'portal', 'auth', 'store', 'store_promo', 'store_tiles', 'blog', 'embeds', 'indexnow'];
+    public const GROUPS = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'login', 'banners', 'announcement', 'themes', 'portal', 'auth', 'store', 'store_promo', 'store_tiles', 'blog', 'embeds', 'indexnow', 'push'];
 
     /** @return array<string, string> */
     public static function build(): array
@@ -116,6 +117,19 @@ class PublicSettings
          * them against a visitor's clock. One bit, like the one above.
          */
         $values['announcement_live'] = Announcement::isLive($values->all()) ? '1' : '0';
+
+        /*
+         * Which messaging channels the site may offer an opt-in for: the
+         * checkout's WhatsApp and RCS boxes, the push bell. One bit each —
+         * the provider and its keys are private (`messaging`), and a box
+         * offered for a channel that cannot deliver is a promise broken at
+         * the first order. Push also needs the browser half of Firebase,
+         * the public `push` group, or the bell has nothing to subscribe with.
+         */
+        $values['messaging_whatsapp_live'] = MessageChannel::WhatsApp->ready() ? '1' : '0';
+        $values['messaging_rcs_live'] = MessageChannel::Rcs->ready() ? '1' : '0';
+        $values['push_live'] = MessageChannel::Push->ready() && collect(['push_api_key', 'push_project_id', 'push_messaging_sender_id', 'push_app_id', 'push_vapid_key'])
+            ->every(fn (string $k) => filled($values[$k] ?? null)) ? '1' : '0';
 
         // A media path inside the theme options JSON needs its URL the way
         // every `_path` setting gets one below; the row is rewritten with an

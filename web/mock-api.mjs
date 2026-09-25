@@ -878,6 +878,137 @@ const kbArticles = [
     published_at:'2026-07-02T09:00:00Z', seo:null },
 ];
 
+/*
+ * Messaging channels (WhatsApp, RCS, push). The lists — channels, events,
+ * placeholders, audiences — travel on `meta`, as the API sends them.
+ */
+const MSG_CHANNELS = [
+  { value: 'whatsapp', label: 'WhatsApp', needs_approval: true, ready: true, provider: 'Meta WhatsApp Cloud API' },
+  { value: 'rcs', label: 'RCS messages', needs_approval: false, ready: false, provider: null },
+  { value: 'push', label: 'Browser push', needs_approval: false, ready: true, provider: 'Firebase Cloud Messaging' },
+];
+const MSG_EVENTS = [
+  { value: 'order_placed', label: 'Order placed', promotional: false, placeholders: ['order_number', 'order_total', 'order_url'] },
+  { value: 'order_paid', label: 'Order paid', promotional: false, placeholders: ['order_number', 'order_total', 'order_url'] },
+  { value: 'order_dispatched', label: 'Order dispatched', promotional: false, placeholders: ['order_number', 'order_url', 'courier', 'tracking_number', 'tracking_url'] },
+  { value: 'ticket_replied', label: 'Reply on a ticket', promotional: false, placeholders: ['reference', 'subject', 'ticket_url'] },
+  { value: 'cart_reminder_1', label: 'Basket reminder — first', promotional: true, placeholders: ['basket_url', 'item_count', 'basket_total', 'coupon_code'] },
+  { value: 'cart_reminder_2', label: 'Basket reminder — second', promotional: true, placeholders: ['basket_url', 'item_count', 'basket_total', 'coupon_code'] },
+  { value: 'wishlist_back_in_stock', label: 'Wishlist item back in stock', promotional: true, placeholders: ['product_name', 'product_url'] },
+  { value: 'wishlist_price_drop', label: 'Wishlist item price drop', promotional: true, placeholders: ['product_name', 'product_url', 'old_price', 'new_price'] },
+];
+const MSG_TEMPLATE_META = {
+  channels: MSG_CHANNELS,
+  events: MSG_EVENTS,
+  common_placeholders: ['customer_name', 'first_name', 'site_name'],
+  samples: {
+    customer_name: 'Neil Basu', first_name: 'Neil', site_name: 'Technoware', order_number: 'TW-10042', order_total: '₹12,400',
+    order_url: 'https://www.technoware.in/store', courier: 'Blue Dart', tracking_number: 'BD1234567890', tracking_url: 'https://www.technoware.in/store',
+    reference: 'TW-2026-00042', subject: 'Switch keeps rebooting', ticket_url: 'https://www.technoware.in/store', basket_url: 'https://www.technoware.in/store',
+    item_count: '2', basket_total: '₹12,400', coupon_code: 'COMEBACK10', product_name: 'Aruba 6100 48G switch', product_url: 'https://www.technoware.in/store',
+    old_price: '₹14,999', new_price: '₹12,999',
+  },
+  categories: ['utility', 'marketing', 'authentication'],
+  approvals: [
+    { value: 'not_required', label: 'No approval needed' }, { value: 'draft', label: 'Not submitted' }, { value: 'pending', label: 'Waiting for approval' },
+    { value: 'approved', label: 'Approved' }, { value: 'rejected', label: 'Rejected' }, { value: 'paused', label: 'Paused by the provider' },
+  ],
+};
+const msgTemplate = (o) => ({
+  header_text: null, media_path: null, media_url: null, buttons: [], push_title: null, push_link: null, category: null, language: 'en',
+  provider_template_name: null, provider_template_id: null, approval_reason: null, submitted_at: null, synced_at: null,
+  updated_at: '2026-09-25T10:00:00+05:30', ...o,
+});
+const messageTemplates = [
+  msgTemplate({ id: 1, channel: 'whatsapp', channel_label: 'WhatsApp', key: 'order_paid', name: 'Order paid', category: 'utility',
+    body: 'Hi {{first_name}}, we have your payment for {{order_number}} — {{order_total}}. Track it at {{order_url}}.',
+    buttons: [{ type: 'url', text: 'Track order', value: 'https://www.technoware.in/store' }],
+    approval_status: 'approved', approval_label: 'Approved', sendable: true, placeholders: ['first_name', 'order_number', 'order_total', 'order_url'] }),
+  msgTemplate({ id: 2, channel: 'whatsapp', channel_label: 'WhatsApp', key: 'basket_reminder', name: 'Basket reminder', category: 'marketing',
+    body: 'Hi {{first_name}}, your basket is still waiting: {{basket_url}}', approval_status: 'pending', approval_label: 'Waiting for approval',
+    sendable: false, placeholders: ['first_name', 'basket_url'] }),
+  msgTemplate({ id: 3, channel: 'push', channel_label: 'Browser push', key: 'order_dispatched', name: 'Dispatched', push_title: 'On its way: {{order_number}}',
+    push_link: '{{order_url}}', body: '{{courier}} has it. Tracking number {{tracking_number}}.', approval_status: 'not_required',
+    approval_label: 'No approval needed', sendable: true, placeholders: ['courier', 'tracking_number'] }),
+];
+const msgAutomationGrid = () => MSG_EVENTS.flatMap((e) => MSG_CHANNELS.map((c) => {
+  const template = e.value === 'order_paid' && c.value === 'whatsapp' ? 1 : e.value === 'cart_reminder_1' && c.value === 'whatsapp' ? 2 : e.value === 'order_dispatched' && c.value === 'push' ? 3 : null;
+  const enabled = template !== null;
+  const reason = !enabled ? null : template === 2 ? 'The template is not approved yet.' : null;
+  return { event: e.value, event_label: e.label, promotional: e.promotional, channel: c.value, message_template_id: template, is_enabled: enabled, live: enabled && !reason, reason };
+}));
+const msgAutomationMeta = () => ({
+  channels: MSG_CHANNELS.map(({ value, label, ready }) => ({ value, label, ready })),
+  templates: messageTemplates.map((t) => ({ id: t.id, channel: t.channel, name: t.name, sendable: t.sendable, approval_label: t.approval_label })),
+});
+const messageContacts = [
+  { id: 1, channel: 'whatsapp', channel_label: 'WhatsApp', address: '+919820011223', name: 'Neil Basu', customer: { id: 1, name: 'Neil Basu', email: 'neil@meridianfoods.in' },
+    source: 'checkout', is_active: true, opted_in_at: '2026-09-20T11:00:00+05:30', opted_out_at: null, opt_out_reason: null, last_sent_at: '2026-09-24T12:00:00+05:30' },
+  { id: 2, channel: 'whatsapp', channel_label: 'WhatsApp', address: '+919830000002', name: null, customer: null,
+    source: 'checkout', is_active: false, opted_in_at: '2026-09-18T11:00:00+05:30', opted_out_at: '2026-09-21T09:00:00+05:30', opt_out_reason: 'stop', last_sent_at: null },
+  { id: 3, channel: 'push', channel_label: 'Browser push', address: 'fXk3Qe8mT0a1…', name: null, customer: null,
+    source: 'push_bell', is_active: true, opted_in_at: '2026-09-22T19:00:00+05:30', opted_out_at: null, opt_out_reason: null, last_sent_at: null },
+];
+const MSG_BROADCAST_META = {
+  channels: MSG_CHANNELS.map(({ value, label, ready }) => ({ value, label, ready })),
+  audiences: [
+    { value: 'opt_ins', label: 'Everybody opted in on the channel', blurb: 'Guests and customers alike.' },
+    { value: 'customers', label: 'Portal customers opted in', blurb: 'Only contacts tied to an active portal account.' },
+    { value: 'newsletter_group', label: 'A newsletter group', blurb: 'Matched to portal customers by email address.' },
+    { value: 'wishlist', label: 'Wishlist holders of a product', blurb: 'Empty until wishlists exist.' },
+  ],
+  statuses: [
+    { value: 'draft', label: 'Draft' }, { value: 'scheduled', label: 'Scheduled' }, { value: 'sending', label: 'Sending' },
+    { value: 'sent', label: 'Sent' }, { value: 'cancelled', label: 'Cancelled' },
+  ],
+  wishlists: false,
+  groups: [{ id: 1, name: 'Existing customers' }, { id: 2, name: 'Partners' }],
+  products: [{ id: 1, name: 'Aruba 6100 48G switch' }],
+  templates: messageTemplates.map((t) => ({ id: t.id, channel: t.channel, name: t.name, sendable: t.sendable, approval_label: t.approval_label })),
+  quiet_hours: { start: '09:00', end: '21:00', open_now: true, next_opening: '2026-09-25T11:00:00+05:30' },
+};
+const messageBroadcasts = [
+  { id: 1, name: 'Diwali switch sale', channel: 'whatsapp', channel_label: 'WhatsApp', message_template_id: 1,
+    template: { id: 1, name: 'Order paid', approval_status: 'approved', sendable: true }, audience: 'opt_ins', audience_label: 'Everybody opted in on the channel',
+    newsletter_group_id: null, store_product_id: null, status: 'sent', status_label: 'Sent', scheduled_at: null,
+    started_at: '2026-09-24T10:00:00+05:30', completed_at: '2026-09-24T10:02:00+05:30', recipient_count: 2, created_at: '2026-09-24T09:50:00+05:30',
+    report: { counts: { pending: 0, sent: 0, delivered: 1, read: 0, failed: 1, skipped: 0 }, total: 2, sent: 1, delivery_rate: 1, read_rate: 0,
+      failures: [{ id: 2, address: '+919830000002', error: 'Meta answered 400: Recipient phone number not in allowed list', at: '2026-09-24T10:01:00+05:30' }] } },
+  { id: 2, name: 'Back-to-office AMC offer', channel: 'whatsapp', channel_label: 'WhatsApp', message_template_id: 1,
+    template: { id: 1, name: 'Order paid', approval_status: 'approved', sendable: true }, audience: 'customers', audience_label: 'Portal customers opted in',
+    newsletter_group_id: null, store_product_id: null, status: 'draft', status_label: 'Draft', scheduled_at: null, started_at: null, completed_at: null,
+    recipient_count: 0, created_at: '2026-09-25T09:00:00+05:30', audience_count: 1 },
+];
+const MESSAGING_STATUS = {
+  channels: [
+    { value: 'whatsapp', label: 'WhatsApp', setting: 'messaging_whatsapp_provider', provider: 'meta_cloud', ready: true, address_kind: 'phone', needs_approval: true, error: null,
+      providers: [
+        { value: 'meta_cloud', label: 'Meta WhatsApp Cloud API', blurb: 'Straight to Meta.', fields: ['whatsapp_meta_phone_number_id', 'whatsapp_meta_business_account_id', 'whatsapp_meta_access_token', 'whatsapp_meta_app_secret', 'whatsapp_meta_verify_token'], available: true, configured: true, webhook_url: 'http://127.0.0.1:8899/api/v1/messaging/webhooks/whatsapp/meta_cloud', webhook_secret_param: false },
+        { value: 'gupshup', label: 'Gupshup', blurb: 'Your Gupshup app.', fields: ['whatsapp_gupshup_api_key', 'whatsapp_gupshup_app_name', 'whatsapp_gupshup_app_id', 'whatsapp_gupshup_source', 'messaging_webhook_secret'], available: true, configured: false, webhook_url: 'http://127.0.0.1:8899/api/v1/messaging/webhooks/whatsapp/gupshup', webhook_secret_param: true },
+        { value: 'twilio', label: 'Twilio', blurb: 'Account SID and auth token.', fields: ['whatsapp_twilio_account_sid', 'whatsapp_twilio_auth_token', 'whatsapp_twilio_from'], available: true, configured: false, webhook_url: 'http://127.0.0.1:8899/api/v1/messaging/webhooks/whatsapp/twilio', webhook_secret_param: false },
+      ] },
+    { value: 'rcs', label: 'RCS messages', setting: 'messaging_rcs_provider', provider: null, ready: false, address_kind: 'phone', needs_approval: false, error: null,
+      providers: [
+        { value: 'google_rbm', label: 'Google RCS Business Messaging', blurb: 'Your agent and a service account.', fields: ['rcs_rbm_agent_id', 'rcs_rbm_service_account', 'rcs_rbm_client_token'], available: true, configured: false, webhook_url: 'http://127.0.0.1:8899/api/v1/messaging/webhooks/rcs/google_rbm', webhook_secret_param: false },
+        { value: 'gupshup', label: 'Gupshup', blurb: 'The enterprise gateway.', fields: ['rcs_gupshup_userid', 'rcs_gupshup_password', 'rcs_gupshup_bot_id', 'messaging_webhook_secret'], available: true, configured: false, webhook_url: 'http://127.0.0.1:8899/api/v1/messaging/webhooks/rcs/gupshup', webhook_secret_param: true },
+      ] },
+    { value: 'push', label: 'Browser push', setting: 'messaging_push_provider', provider: 'fcm', ready: true, address_kind: 'token', needs_approval: false, error: null,
+      providers: [
+        { value: 'fcm', label: 'Firebase Cloud Messaging', blurb: 'A service account in your Firebase project.', fields: ['push_fcm_service_account'], available: true, configured: true, webhook_url: null, webhook_secret_param: false },
+      ] },
+  ],
+  quiet_hours: { start: '09:00', end: '21:00', open_now: true, next_opening: '2026-09-25T11:00:00+05:30', timezone: 'Asia/Kolkata' },
+  queue: { driver: 'database', known: true, pending: 0, failed: 0, oldest_seconds: null },
+};
+const messagingPreferences = {
+  phone: '+919820011223',
+  channels: [
+    { channel: 'whatsapp', label: 'WhatsApp', live: true, opted_in: true, devices: null },
+    { channel: 'rcs', label: 'RCS messages', live: false, opted_in: false, devices: null },
+    { channel: 'push', label: 'Browser push', live: true, opted_in: true, devices: 1 },
+  ],
+};
+
 const paginate = (rows) => ({
   data: rows,
   links:{ first:null, last:null, prev:null, next:null },
@@ -1482,6 +1613,12 @@ createServer(async (req, res) => {
      together, and the header reserves its space from the last two. Sending the
      URL alone reintroduces the layout shift they exist to remove. Same for
      favicon_ and login_image_. */
+  // Messaging: provider webhooks answer 200 always; the bell answers 202.
+  if (p.startsWith('/messaging/webhooks/')) { res.writeHead(200); return res.end(); }
+  if ((p === '/messaging/push/subscribe' || p === '/messaging/push/unsubscribe') && req.method === 'POST') {
+    return json(res, 202, { message: p.endsWith('/subscribe') ? 'Notifications are on for this browser.' : 'Notifications are off for this browser.' });
+  }
+
   if (p === '/settings') return json(res, 200, { data: {
     company_name: 'Technoware',
     tagline: 'Technology infrastructure that keeps your business connected.',
@@ -1494,6 +1631,11 @@ createServer(async (req, res) => {
     sales_email: 'sales@example.test',
     address: 'Address line one, Address line two',
     theme: 'olive',
+    // Messaging (Phase 2): WhatsApp live, so the checkout draws its box;
+    // push live with a mock web config, so the store strip draws the bell.
+    messaging_whatsapp_live: '1', messaging_rcs_live: '0', push_live: '1',
+    push_api_key: 'AIzaMockKey000000000000000000000000000', push_project_id: 'technoware-push',
+    push_messaging_sender_id: '123456789012', push_app_id: '1:123456789012:web:0a1b2c3d4e5f', push_vapid_key: 'BMockVapidKey',
     motion_reveal: 'lift', motion_buttons: 'lift', motion_page: 'none', motion_loader: 'none', motion_splash: '0', motion_hero: 'grid',
     login_backdrop: 'image', login_intensity: 'medium', login_speed: 'normal', stats_animation: 'count',
     // The site theme. CI builds against this mock, and `classic` is also the
@@ -1979,6 +2121,32 @@ createServer(async (req, res) => {
           ] }),
           s('inbound_mail_last_run', null, { group: 'tickets' }), s('inbound_mail_error', null, { group: 'tickets' }),
         ],
+        /* Messaging channels (Messaging -> Settings). */
+        messaging: [
+          s('messaging_whatsapp_provider', 'meta_cloud', { group: 'messaging' }), s('messaging_rcs_provider', null, { group: 'messaging' }),
+          s('messaging_push_provider', 'fcm', { group: 'messaging' }),
+          s('messaging_promo_start', '09:00', { group: 'messaging' }), s('messaging_promo_end', '21:00', { group: 'messaging' }),
+          s('messaging_webhook_secret', null, { group: 'messaging', is_secret: true, is_set: false }),
+          s('whatsapp_meta_phone_number_id', '105500000000000', { group: 'messaging' }), s('whatsapp_meta_business_account_id', '900100000000000', { group: 'messaging' }),
+          s('whatsapp_meta_access_token', null, { group: 'messaging', is_secret: true, is_set: true }),
+          s('whatsapp_meta_app_secret', null, { group: 'messaging', is_secret: true, is_set: true }),
+          s('whatsapp_meta_verify_token', null, { group: 'messaging', is_secret: true, is_set: false }),
+          s('whatsapp_gupshup_api_key', null, { group: 'messaging', is_secret: true, is_set: false }), s('whatsapp_gupshup_app_name', null, { group: 'messaging' }),
+          s('whatsapp_gupshup_app_id', null, { group: 'messaging' }), s('whatsapp_gupshup_source', null, { group: 'messaging' }),
+          s('whatsapp_twilio_account_sid', null, { group: 'messaging' }), s('whatsapp_twilio_auth_token', null, { group: 'messaging', is_secret: true, is_set: false }),
+          s('whatsapp_twilio_from', null, { group: 'messaging' }),
+          s('rcs_rbm_agent_id', null, { group: 'messaging' }), s('rcs_rbm_service_account', null, { group: 'messaging', type: 'text', is_secret: true, is_set: false }),
+          s('rcs_rbm_client_token', null, { group: 'messaging', is_secret: true, is_set: false }),
+          s('rcs_gupshup_userid', null, { group: 'messaging' }), s('rcs_gupshup_password', null, { group: 'messaging', is_secret: true, is_set: false }),
+          s('rcs_gupshup_bot_id', null, { group: 'messaging' }),
+          s('push_fcm_service_account', null, { group: 'messaging', type: 'text', is_secret: true, is_set: true }),
+          s('messaging_whatsapp_error', null, { group: 'messaging' }), s('messaging_rcs_error', null, { group: 'messaging' }), s('messaging_push_error', null, { group: 'messaging' }),
+        ],
+        push: [
+          s('push_api_key', 'AIzaMockKey000000000000000000000000000', { group: 'push' }), s('push_project_id', 'technoware-push', { group: 'push' }),
+          s('push_messaging_sender_id', '123456789012', { group: 'push' }), s('push_app_id', '1:123456789012:web:0a1b2c3d4e5f', { group: 'push' }),
+          s('push_vapid_key', 'BMockVapidKey', { group: 'push' }),
+        ],
       } });
     }
     if (p === '/admin/settings' && req.method === 'PATCH') return json(res, 200, { data: [] });
@@ -2190,6 +2358,79 @@ createServer(async (req, res) => {
         },
         error: null, expires_at: '2026-09-19T09:04:00+05:30', created_at: '2026-09-18T09:00:00+05:30',
       } });
+    }
+
+    /*
+     * Messaging channels. Answered from the fixtures; writes echo what was
+     * sent, the webhooks block's rule.
+     */
+    if (p === '/admin/settings/messaging') return json(res, 200, { data: MESSAGING_STATUS });
+    if (p === '/admin/settings/messaging/test' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      return json(res, 200, { data: { sent_to: body.channel === 'push' ? 'that browser' : '+919820011223', provider: 'Meta WhatsApp Cloud API', id: 'wamid.mock' } });
+    }
+    if (p === '/admin/messaging/templates/sync' && req.method === 'POST') return json(res, 200, { data: { matched: 2, unknown: ['hello_world'] } });
+    if (p === '/admin/messaging/templates') {
+      if (req.method === 'POST') {
+        const body = await readJsonBody(req);
+        return json(res, 201, { data: msgTemplate({ id: 9, channel: body.channel, channel_label: (MSG_CHANNELS.find((c) => c.value === body.channel) || {}).label,
+          key: body.key, name: body.name, body: body.body, approval_status: body.channel === 'whatsapp' ? 'draft' : 'not_required',
+          approval_label: body.channel === 'whatsapp' ? 'Not submitted' : 'No approval needed', sendable: body.channel !== 'whatsapp', placeholders: [] }) });
+      }
+      const channel = url.searchParams.get('channel');
+      const rows = channel ? messageTemplates.filter((t) => t.channel === channel) : messageTemplates;
+      return json(res, 200, { ...paginate(rows), meta: { current_page: 1, last_page: 1, per_page: 50, total: rows.length, ...MSG_TEMPLATE_META } });
+    }
+    {
+      const m = p.match(/^\/admin\/messaging\/templates\/(\d+)(\/submit|\/test)?$/);
+      if (m) {
+        const t = messageTemplates.find((r) => r.id === Number(m[1]));
+        if (!t) return json(res, 404, { message: 'Not found.' });
+        if (m[2] === '/submit') return json(res, 200, { data: { ...t, approval_status: 'pending', approval_label: 'Waiting for approval', sendable: false } });
+        if (m[2] === '/test') return json(res, 200, { data: { sent_to: '+919820011223', id: 'wamid.mock' } });
+        if (req.method === 'PATCH') return json(res, 200, { data: { ...t, ...(await readJsonBody(req)) } });
+        if (req.method === 'DELETE') { res.writeHead(204); return res.end(); }
+        return json(res, 200, { data: t, meta: MSG_TEMPLATE_META });
+      }
+    }
+    if (p === '/admin/messaging/automations') {
+      return json(res, 200, { data: msgAutomationGrid(), meta: msgAutomationMeta(), ...(req.method === 'PUT' ? { message: 'Automations saved.' } : {}) });
+    }
+    if (p === '/admin/messaging/contacts') {
+      const channel = url.searchParams.get('channel');
+      const status = url.searchParams.get('status');
+      const rows = messageContacts.filter((c) => (!channel || c.channel === channel) && (!status || (status === 'active' ? c.is_active : !c.is_active)));
+      return json(res, 200, { ...paginate(rows), meta: { current_page: 1, last_page: 1, per_page: 40, total: rows.length,
+        channels: MSG_CHANNELS.map((c) => ({ value: c.value, label: c.label, active: messageContacts.filter((k) => k.channel === c.value && k.is_active).length })) } });
+    }
+    {
+      const m = p.match(/^\/admin\/messaging\/contacts\/(\d+)\/opt-out$/);
+      if (m) {
+        const c = messageContacts.find((r) => r.id === Number(m[1]));
+        return c ? json(res, 200, { data: { ...c, is_active: false, opted_out_at: '2026-09-25T12:00:00+05:30', opt_out_reason: 'staff' } }) : json(res, 404, { message: 'Not found.' });
+      }
+    }
+    if (p === '/admin/messaging/broadcasts/audience') return json(res, 200, { data: { count: 1 } });
+    if (p === '/admin/messaging/broadcasts') {
+      if (req.method === 'POST') {
+        const body = await readJsonBody(req);
+        return json(res, 201, { data: { ...messageBroadcasts[1], id: 9, name: body.name || 'New broadcast', channel: body.channel || 'whatsapp' } });
+      }
+      const status = url.searchParams.get('status');
+      const rows = status ? messageBroadcasts.filter((b) => b.status === status) : messageBroadcasts;
+      return json(res, 200, { ...paginate(rows.map((b) => Object.fromEntries(Object.entries(b).filter(([k]) => k !== 'report' && k !== 'audience_count')))), meta: { current_page: 1, last_page: 1, per_page: 25, total: rows.length, ...MSG_BROADCAST_META } });
+    }
+    {
+      const m = p.match(/^\/admin\/messaging\/broadcasts\/(\d+)(\/send|\/cancel)?$/);
+      if (m) {
+        const b = messageBroadcasts.find((r) => r.id === Number(m[1]));
+        if (!b) return json(res, 404, { message: 'Not found.' });
+        if (m[2] === '/send') return json(res, 200, { data: { ...b, status: 'sending', status_label: 'Sending', recipient_count: 1 }, starts_at: '2026-09-25T11:00:00+05:30' });
+        if (m[2] === '/cancel') return json(res, 200, { data: { ...b, status: 'cancelled', status_label: 'Cancelled' } });
+        if (req.method === 'PATCH') return json(res, 200, { data: { ...b, ...(await readJsonBody(req)) } });
+        if (req.method === 'DELETE') { res.writeHead(204); return res.end(); }
+        return json(res, 200, { data: b, meta: MSG_BROADCAST_META });
+      }
     }
 
     /*
@@ -3067,6 +3308,13 @@ createServer(async (req, res) => {
   if (!auth) return json(res, 401, { message: 'Unauthenticated.' });
 
   if (p === '/auth/me') return json(res, 200, { data: customer, meta: { impersonated: bearer === IMPERSONATION_TOKEN } });
+  if (p === '/messaging/preferences') {
+    if (req.method === 'PATCH') {
+      const body = await readJsonBody(req);
+      return json(res, 200, { data: { ...messagingPreferences, channels: messagingPreferences.channels.map((c) => (c.channel in body ? { ...c, opted_in: Boolean(body[c.channel]) } : c)) }, message: 'Your message preferences are saved.' });
+    }
+    return json(res, 200, { data: messagingPreferences });
+  }
   if (p === '/auth/profile' && req.method === 'PATCH') return json(res, 200, { data: customer });
   if (p === '/tickets/summary') return json(res, 200, { data: { open: 1, in_progress: 1, pending: 1, resolved: 1, closed: 1 } });
 

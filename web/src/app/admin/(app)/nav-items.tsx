@@ -6,7 +6,7 @@ import {
   IconArrows, IconBook, IconBox, IconBuilding, IconCert, IconChart,   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
   IconClock, IconHeadset, IconMegaphone, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
-  IconWrench, IconNewspaper, IconBriefcase, IconShield, IconPlug,
+  IconWrench, IconNewspaper, IconBriefcase, IconShield, IconPlug, IconChat,
 } from "@/components/icons";
 
 /**
@@ -30,6 +30,14 @@ type Icon = (p: React.SVGProps<SVGSVGElement>) => React.ReactElement;
  */
 export type RoleSlug = "support_engineer" | "content_manager" | "seo_manager" | "campaign_manager" | "store_manager" | "sales_manager" | "admin";
 
+/**
+ * A row reachable by either of two roles, spelled the way the route's
+ * middleware spells it (`role:campaign_manager,store_manager`), so
+ * `AdminNavRolesTest` compares the two strings as they are. Messaging is the
+ * first: its templates, automations and broadcasts are worked by both desks.
+ */
+export type RoleGate = RoleSlug | `${RoleSlug},${RoleSlug}`;
+
 export type NavLink = {
   href: string;
   label: string;
@@ -46,7 +54,7 @@ export type NavLink = {
    * link that 403s. Omitted means everybody: `/admin/profile` is your own
    * account and every role may reach it.
    */
-  role?: RoleSlug;
+  role?: RoleGate;
 };
 
 export type NavItem =
@@ -156,6 +164,23 @@ export const NAV: NavItem[] = [
       { role: "store_manager", href: "/admin/store/stock", label: "Stock", icon: IconBox },
       { role: "store_manager", href: "/admin/store/reports", label: "Reports", icon: IconSearchChart },
       { role: "admin", href: "/admin/store/settings", label: "Settings", icon: IconSliders },
+    ],
+  },
+  {
+    /*
+      WhatsApp, RCS and browser push (Phase 2): what is said on each channel,
+      which event says it, one-off broadcasts, and who agreed to be messaged.
+      Top level beside Campaign and Store because both desks work it — the
+      one section gated on two roles at once — and its settings (the provider
+      keys) are the administrator's, like every module's.
+    */
+    kind: "group", id: "messaging", label: "Messaging", icon: IconChat,
+    links: [
+      { role: "campaign_manager,store_manager", href: "/admin/messaging/templates", label: "Templates", icon: IconPen },
+      { role: "campaign_manager,store_manager", href: "/admin/messaging/automations", label: "Automations", icon: IconSliders },
+      { role: "campaign_manager,store_manager", href: "/admin/messaging/broadcasts", label: "Broadcasts", icon: IconMegaphone },
+      { role: "campaign_manager,store_manager", href: "/admin/messaging/contacts", label: "Contacts", icon: IconUsers },
+      { role: "admin", href: "/admin/messaging/settings", label: "Settings", icon: IconSliders },
     ],
   },
   {
@@ -464,11 +489,11 @@ export function neonFor(href: string): string {
  * An `admin` passes every role check on the server, so it passes every one
  * here — one rule, stated once, rather than an `admin` entry on all 24 rows.
  */
-export function permits(roles: string[], role?: RoleSlug): boolean {
+export function permits(roles: string[], role?: RoleGate): boolean {
   if (role === undefined) return true;
   if (roles.includes("admin")) return true;
 
-  return roles.includes(role);
+  return role.split(",").some((r) => roles.includes(r));
 }
 
 
@@ -487,7 +512,7 @@ export function permits(roles: string[], role?: RoleSlug): boolean {
  * profile, a screen added before its row — needs nothing, and the API still
  * has the last word on every one.
  */
-export function screenRole(pathname: string): RoleSlug | undefined {
+export function screenRole(pathname: string): RoleGate | undefined {
   return bestRow(NAV.flatMap((item) => (item.kind === "link" ? [item] : item.links)), pathname)?.role;
 }
 

@@ -1,8 +1,8 @@
 import { ErrorState } from "@/components/ui/empty";
 import { PageHeader } from "@/components/admin/page-header";
 import { ApiError } from "@/lib/api";
-import { getInboundMailStatus, getMailStatus, getSettings, type SettingsPayload } from "@/lib/admin";
-import type { InboundMailStatus, MailStatus } from "@/types/api";
+import { getInboundMailStatus, getMailStatus, getMessagingStatus, getSettings, type SettingsPayload } from "@/lib/admin";
+import type { InboundMailStatus, MailStatus, MessagingStatus } from "@/types/api";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { screenAt } from "./settings-copy";
@@ -33,11 +33,13 @@ export async function SettingsScreen({ path }: { path: string }) {
   let settings: SettingsPayload;
   let mail: MailStatus | undefined;
   let inbound: InboundMailStatus | undefined;
+  let messaging: MessagingStatus | undefined;
   try {
-    [settings, mail, inbound] = await Promise.all([
+    [settings, mail, inbound, messaging] = await Promise.all([
       getSettings(),
       screen.needs?.includes("mail") ? getMailStatus() : undefined,
       screen.needs?.includes("inbound") ? getInboundMailStatus() : undefined,
+      screen.needs?.includes("messaging") ? getMessagingStatus() : undefined,
     ]);
   } catch (error) {
     // Settings are administrator-only, so a content manager landing here gets
@@ -69,6 +71,7 @@ export async function SettingsScreen({ path }: { path: string }) {
         payments={settings.payments}
         mail={mail}
         inbound={inbound}
+        messaging={messaging}
       />
     </>
   );

@@ -2,6 +2,7 @@
 
 namespace App\Support\Store\Payments;
 
+use App\Enums\MessageEvent;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
@@ -9,6 +10,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\User;
 use App\Notifications\OrderPaid;
+use App\Support\Messaging\OrderMessages;
 use App\Support\Money;
 use App\Support\Notifier;
 use App\Support\Store\DigitalFulfilment;
@@ -158,5 +160,6 @@ class ManualPayment
         DigitalFulfilment::fulfil($order->refresh());
 
         Notifier::to($order->customer_email, new OrderPaid($order));
+        OrderMessages::order(MessageEvent::OrderPaid, $order);
     }
 }

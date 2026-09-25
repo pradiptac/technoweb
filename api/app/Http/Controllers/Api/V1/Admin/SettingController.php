@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Enums\AiModel;
 use App\Enums\ContentBlockType;
 use App\Enums\ImageQuality;
+use App\Enums\MessageChannel;
 use App\Enums\PaymentGateway;
 use App\Http\Controllers\Controller;
 use App\Models\ContentBlock;
@@ -15,6 +16,10 @@ use App\Support\Chat\ChatSettings;
 use App\Support\HtmlSanitiser;
 use App\Support\InboundMail\InboundMail;
 use App\Support\Store\CartReminders;
+use App\Support\Messaging\ProviderOption;
+use App\Support\Messaging\Providers\Fcm;
+use App\Support\Messaging\Providers\GoogleRbm;
+use App\Support\Seo\GoogleServiceAccount;
 use App\Support\ThemeOptions;
 use App\Support\UploadLimits;
 use App\Support\YouTube;
@@ -259,10 +264,31 @@ class SettingController extends Controller
             'chatbot_model' => AiModel::options(
                 (string) Setting::query()->where('key', 'chatbot_model')->value('value'),
             ),
+            'messaging_whatsapp_provider' => self::messagingOptions(MessageChannel::WhatsApp),
+            'messaging_rcs_provider' => self::messagingOptions(MessageChannel::Rcs),
+            'messaging_push_provider' => self::messagingOptions(MessageChannel::Push),
             // The support mailbox's choices: provider, what to do with a
             // processed message, unknown senders, priority, encryption.
             default => InboundMail::options()[$key] ?? null,
         };
+    }
+
+    /**
+     * A channel's providers as a select: off, then each provider the enum
+     * lists — the mail transports' rule, one list on one side of the wire.
+     *
+     * @return list<array{value: string, label: string, description: string}>
+     */
+    private static function messagingOptions(MessageChannel $channel): array
+    {
+        return [
+            ['value' => '', 'label' => 'Off', 'description' => "Nothing is sent on {$channel->label()} and no opt-in is offered for it."],
+            ...array_map(fn (ProviderOption $p) => [
+                'value' => $p->id(),
+                'label' => $p->label(),
+                'description' => $p->isAvailable() ? $p->blurb() : 'Needs the OpenSSL extension, which the PHP on this server does not have.',
+            ], $channel->providers()),
+        ];
     }
 
     /**
@@ -325,6 +351,7 @@ class SettingController extends Controller
         $this->validateMotion($request);
         $this->validateSiteTheme($request);
         $this->validateAnnouncement($request, $existing);
+        $this->validateMessaging($request, $existing);
 
         /*
          * A setting with a fixed set of choices is checked against that set.
@@ -801,6 +828,56 @@ class SettingController extends Controller
             $i = $sent['announcement_ends_at']['i'] ?? $sent['announcement_starts_at']['i'] ?? 0;
 
             throw ValidationException::withMessages(["settings.{$i}.value" => 'The end is before the start, so this would never show.']);
+        }
+    }
+
+    /**
+     * The messaging group: a provider from the channel's own enum or blank
+     * for off, a quiet-hours window as two HH:MM times the right way round,
+     * and a service-account key that is Google's JSON file — refused here
+     * rather than at the first send, the mail transports' rule. A replaced
+     * key forgets the token cached for the old one.
+     *
+     * @param  Collection<string, Setting>  $existing
+     */
+    private function validateMessaging(Request $request, $existing): void
+    {
+        $sent = [];
+
+        foreach ($request->input('settings', []) as $i => $row) {
+            $key = (string) ($row['key'] ?? '');
+            $value = $row['value'] ?? null;
+            $sent[$key] = ['i' => $i, 'value' => $value];
+
+            foreach (MessageChannel::cases() as $channel) {
+                if ($key === $channel->settingKey() && filled($value) && $channel->provider((string) $value) === null) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a provider from the list, or Off.']);
+                }
+            }
+
+            if (in_array($key, ['messaging_promo_start', 'messaging_promo_end'], true) && filled($value)
+                && ! preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', (string) $value)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'A time on the 24-hour clock, such as 09:00 or 21:00.']);
+            }
+
+            if (in_array($key, [GoogleRbm::KEY, Fcm::KEY], true) && filled($value)) {
+                $json = json_decode((string) $value, true);
+
+                if (! is_array($json) || empty($json['client_email']) || empty($json['private_key'])) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'Paste the whole JSON key file Google issued for the service account — it holds client_email and private_key.']);
+                }
+
+                GoogleServiceAccount::forget($key === Fcm::KEY ? Fcm::SCOPE : GoogleRbm::SCOPE, $key);
+            }
+        }
+
+        $start = array_key_exists('messaging_promo_start', $sent) ? $sent['messaging_promo_start']['value'] : $existing->get('messaging_promo_start')?->value;
+        $end = array_key_exists('messaging_promo_end', $sent) ? $sent['messaging_promo_end']['value'] : $existing->get('messaging_promo_end')?->value;
+
+        if (filled($start) && filled($end) && (string) $end <= (string) $start) {
+            $i = $sent['messaging_promo_end']['i'] ?? $sent['messaging_promo_start']['i'] ?? 0;
+
+            throw ValidationException::withMessages(["settings.{$i}.value" => 'The window closes before it opens. Promotional messages go out between the two times on the same day.']);
         }
     }
 

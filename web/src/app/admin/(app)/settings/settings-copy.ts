@@ -66,6 +66,11 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Text size",
     hint: "The size of the messages in the panel.",
   },
+  push_api_key: { label: "API key", placeholder: "AIza…" },
+  push_project_id: { label: "Project ID", placeholder: "technoware-push" },
+  push_messaging_sender_id: { label: "Sender ID", placeholder: "123456789012" },
+  push_app_id: { label: "App ID", placeholder: "1:123456789012:web:…" },
+  push_vapid_key: { label: "Web Push certificate key", hint: "Cloud Messaging → Web configuration → the key pair's public key." },
   indexnow_enabled: { label: "Send IndexNow pings", hint: "Switch on at launch. Every published record then reports its own changes." },
   indexnow_key: { label: "Key", hint: "Filled in automatically the first time a ping is sent; served at /indexnow/{key}.txt so the engines can verify it. Leave blank." },
   reviews_embed: {
@@ -665,6 +670,14 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Media",
     blurb: "How hard the library compresses the images it makes — a resize, a crop, a thumbnail, a rotate. Uploads are stored exactly as they arrive, because re-encoding an original throws away quality nobody can get back, and it is the only copy there is. Changing this affects images edited from now on; it does not go back and re-encode what is already there.",
   },
+  messaging: {
+    title: "Channels",
+    blurb: "A channel with no provider is off: nothing is sent on it and no opt-in is offered for it. Every key here is encrypted, never shown again, and left alone by a blank save.",
+  },
+  push: {
+    title: "Browser push",
+    blurb: "The browser half of Firebase — Project settings → General → your web app, and Cloud Messaging → Web Push certificates for the key pair. Public by nature: a browser cannot subscribe without it. The bell appears on the shop and in the portal once these five and the push provider are all set.",
+  },
   auth: {
     title: "Sign-in",
     blurb: "How people get in. A one-time code by email is the default for both the portal and this console; passwords remain available behind a link. Leave passwords on unless you are certain outgoing mail is reliable — with codes as the only way in, a broken mail configuration locks out every account, including yours.",
@@ -736,6 +749,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
           "store_price_drop_min_percent"],
   store_reminders: ["store_cart_reminders_enabled", "store_cart_reminder_1_hours", "store_cart_reminder_2_days", "store_cart_reminder_coupon"],
   leads: ["lead_intent_words"],
+  push: ["push_api_key", "push_project_id", "push_messaging_sender_id", "push_app_id", "push_vapid_key"],
   embeds: ["reviews_embed", "reviews_kicker", "reviews_heading", "reviews_lede", "body_code"],
   portal: ["portal_enabled", "registration_enabled", "customer_approval_required"],
   auth: ["default_login_method", "otp_login_enabled", "otp_admin_login_enabled", "password_login_enabled"],
@@ -756,6 +770,8 @@ export const FIELD_ORDER: Record<string, string[]> = {
 export const HIDDEN = new Set([
   "newsletter_verify_error", "newsletter_verify_last_run", "gsc_error", "ga4_error", "inbound_mail_error", "inbound_mail_last_run",
   // The consent a mailbox scan spends, written by the import screen and forgotten by the job.
+  // Written by a refused send or test and cleared by a success; the messaging panel shows them.
+  "messaging_whatsapp_error", "messaging_rcs_error", "messaging_push_error",
   "newsletter_oauth_provider", "newsletter_oauth_refresh_token", "newsletter_oauth_account", "newsletter_oauth_connected_at", "newsletter_oauth_error",
 ]);
 
@@ -808,7 +824,7 @@ export type SettingsScreen = {
   lede: string;
   saveLabel: string;
   /** Status reads beyond `getSettings()` that a panel on this screen needs. */
-  needs?: ("mail" | "inbound")[];
+  needs?: ("mail" | "inbound" | "messaging")[];
   /** The groups drawn, in order. A `label` puts a heading over those tabs. */
   sections: { label?: string; groups: string[] }[];
 };
@@ -921,6 +937,15 @@ export const SCREENS: SettingsScreen[] = [
     lede: "What the website assistant is called, how it looks, what it asks before it answers, which model it uses and the ceilings that bound the bill.",
     saveLabel: "Save assistant settings",
     sections: [{ groups: ["chatbot"] }],
+  },
+  {
+    path: "/admin/messaging/settings",
+    title: "Messaging settings",
+    area: "Messaging",
+    lede: "Which provider carries WhatsApp, RCS and browser push, their keys and webhook addresses, a test send per channel, the quiet hours promotional messages keep to, and the browser half of Firebase.",
+    saveLabel: "Save messaging settings",
+    needs: ["messaging"],
+    sections: [{ groups: ["messaging", "push"] }],
   },
 ];
 

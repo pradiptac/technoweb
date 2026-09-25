@@ -144,6 +144,7 @@ Contents:
   - Email to ticket — `docs/tickets.md`
   - Icon packs — `docs/icons.md`
   - Content blocks — `docs/blocks.md`
+  - Messaging — `docs/messaging.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -2588,6 +2589,25 @@ CTA banners, stat bars, pricing tables and technology stacks (2026-09-24): one e
 - A scroller holding sr-only children is `relative` (the comparison table, 188px at 360); a stack disc takes no percentage padding (it resolves against the parent's width — the logo box measured 0px in the wide detail card).
 - Console at `/admin/blocks/{type}` — the kind in the path, because `?type=` matched no sidebar row and `screenRole()` 404s a screen no row matches. Previews and showcases are `data-reveal-static`: the observer skips them, re-checked at intersection time because an async component streams as its own chunk outside the region first.
 - `home_stats_block`/`home_pricing_block`/`home_stack_block` are pickers of published blocks of that kind (API options, anything else refused); `homeBlockSections()` returns only chosen blocks, so none chosen draws no empty band; `HOME_SECTIONS` places them.
+
+### Messaging — `docs/messaging.md`
+
+WhatsApp, RCS and browser push beside the email (Phase 2, 2026-09-25): providers per channel, contacts and opt-in, templates, automations, broadcasts, `Messenger::notify()`.
+
+- `MessageChannel` and one provider enum per channel on the `MailTransport` model (`meta_cloud`/`gupshup`/`twilio`, `google_rbm`/`gupshup`, `fcm`); one `ChannelProvider` per provider over Laravel's HTTP client, no SDK, every one tested with `Http::fake()`. A channel whose provider is blank is off, and `ready()` is the one answer to "may this send".
+- Nothing is sent without an enabled automation, a sendable template (WhatsApp approved; RCS and push `not_required`), a ready channel and an **active contact** — and consent comes only from the person: the checkout box, the portal switch, the bell. No console route creates a contact; "View as" may switch a channel off, never on.
+- A phone channel reaches the number the caller holds (the checkout's), and the customer's own numbers only when it holds none; push reaches a customer's own browsers only — a guest's token is broadcast-only.
+- `notify()` never fails its caller, writes a delivery row per contact and dispatches `afterCommit()`; a promotional event is delayed to `QuietHours::nextOpening()` and `ChannelSender` checks the window again when it runs; with nothing draining the queue a transactional one is sent after the commit (`Notifier`'s rule).
+- The worker re-checks contact, template approval and channel at the moment of sending and marks a stale one `skipped`, not `failed`; only `pending` rows send; a delivery's status only moves forward (`rank()`), because callbacks arrive out of order.
+- Provider webhooks (`/messaging/webhooks/{channel}/{provider}`) answer 200 always and fail closed: Meta's `X-Hub-Signature-256`, Twilio's `X-Twilio-Signature`, Google's `X-Goog-Signature`, and `messaging_webhook_secret` as `?token=` for the two Gupshups, which sign nothing. A forged STOP would opt people out in silence.
+- STOP (and its synonyms, `Contacts::isStop()`) opts the number out; FCM `UNREGISTERED` opts the token out; a Google RBM 404 is a failed message, not an opt-out. A 401/403 writes `messaging_<channel>_error`, the `mail_error` pattern, and a success clears it.
+- Templates are plain text through `Placeholders::fillText`. WhatsApp at Meta is named-parameter (`parameter_format: NAMED`); Gupshup and Twilio are numbered, so the body is renumbered by first use (`positionalBody()`) and sent by `provider_template_id`. Editing a reviewed field of a submitted WhatsApp template puts it back to draft.
+- Placeholder chips and the phone preview read `MessageEvent::placeholders()` and the API's `meta.samples` (`Samples::value()`), the same values a template test and a provider's review example use — never a list in TypeScript.
+- Broadcast audiences are always narrowed to active contacts on the channel; the wishlist source is a no-op until `wishlist_items` exists. Claimed with a conditional UPDATE, frozen into delivery rows, `SendBroadcastBatch` in hundreds; a send is refused on an unapproved template, a channel off or nobody in the audience; cancelling skips what has not gone.
+- `role:campaign_manager,store_manager` for templates, automations, broadcasts and contacts (`routes/api/admin-messaging.php`); provider keys and the test send are `role:admin`. The sidebar's `role` takes the same comma-joined pair (`RoleGate`) and `AdminNavRolesTest` compares it as written.
+- `GoogleServiceAccount` is parameterised by setting key (`rcs_rbm_service_account`, `push_fcm_service_account`), its cache keyed on both; a replaced key file forgets its token.
+- The public `push` group is Firebase's web config; `messaging_whatsapp_live`, `messaging_rcs_live` and `push_live` are derived public bits, so the checkout offers a box and the shop a bell only for a channel that can deliver.
+- Push has **no Firebase SDK**: `lib/push-client.ts`, imported on the bell's press, does the installation and registration calls the SDK makes (both hosts in `connect-src`), and `public/firebase-messaging-sw.js` handles the push itself with its fallbacks from `/push/sw-config`. The bell asks nothing on load, waits for the cookie answer where the banner is drawn, and renders inert on the server so the shop stays cached.
 
 ## Conventions
 

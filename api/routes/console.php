@@ -226,3 +226,15 @@ Schedule::command('technoware:decide-subject-tests')
 Schedule::command('technoware:run-sequences')
     ->everyTenMinutes()
     ->withoutOverlapping();
+
+// Messaging broadcasts (WhatsApp, RCS, push) whose scheduled time has come.
+// `Broadcasts::queue()` claims each with a conditional update, so overlapping
+// runs cannot freeze one audience twice; the batches wait for the quiet-hours
+// window themselves.
+Schedule::command('technoware:send-broadcasts')
+    ->everyMinute()
+    ->withoutOverlapping();
+
+// Delivery rows are a log of what was attempted, not a record anybody edits;
+// ninety days answers "did that customer get the dispatch notice".
+Schedule::command('technoware:prune-message-deliveries')->dailyAt('03:58');
