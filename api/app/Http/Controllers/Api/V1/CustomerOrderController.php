@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\PublishStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Store\OrderResource;
 use App\Models\Order;
@@ -51,7 +52,12 @@ class CustomerOrderController extends Controller
             ->where('customer_id', $request->user()->id)
             ->firstOrFail();
 
-        $order->load(['items.product:id,slug', 'payments']);
+        // The product only while it is on sale, so a line's `slug` — and the
+        // portal's "Write a review" beside it — is null for one that is not.
+        $order->load([
+            'items.product' => fn ($q) => $q->select('id', 'slug', 'status')->where('status', PublishStatus::Published),
+            'payments',
+        ]);
 
         /*
          * The customer's own review of each line's product, so the order page

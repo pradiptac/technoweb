@@ -9,7 +9,7 @@ import { loginAction, sendCodeAction, verifyCodeAction } from "./actions";
  */
 export function LoginForm({
   canRegister = false, ...props
-}: { otpEnabled?: boolean; passwordEnabled?: boolean; defaultMethod?: "otp" | "password"; canRegister?: boolean }) {
+}: { otpEnabled?: boolean; passwordEnabled?: boolean; defaultMethod?: "otp" | "password"; canRegister?: boolean; returnTo?: string }) {
   return (
     <SignInForm
       {...props}

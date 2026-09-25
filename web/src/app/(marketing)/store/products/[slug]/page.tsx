@@ -13,6 +13,8 @@ import { StoreProductCard } from "@/components/store/product-card";
 import { ProductGallery } from "@/components/product/product-gallery";
 import { RecentlyViewed, RememberProduct } from "@/components/store/recently-viewed";
 import { ShareLinks } from "@/components/ui/share-links";
+import { ReviewsSection } from "@/components/store/reviews/reviews-section";
+import { reviewPage } from "@/lib/reviews";
 import { publicApi } from "@/lib/api";
 import { formatPaise, percentOff } from "@/lib/money";
 import { buildMetadata, JsonLd, SITE } from "@/lib/seo";
@@ -80,13 +82,15 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
     cannot make three different promises; they used to be a sentence in
     `content/site.ts` the API could not see.
   */
-  const [categories, shelf, newest, settings] = await Promise.all([
+  const [categories, shelf, newest, settings, firstReviews] = await Promise.all([
     publicApi.storeCategories().then((r) => r.data).catch(() => [] as StoreCategory[]),
     product.category
       ? publicApi.storeProducts(`?category=${product.category.slug}&per_page=6`).then((r) => r.data).catch(() => [] as StoreProduct[])
       : Promise.resolve([] as StoreProduct[]),
     publicApi.storeProducts("?sort=newest&per_page=6").then((r) => r.data).catch(() => [] as StoreProduct[]),
     getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>),
+    // The first page of reviews, cached under `store-reviews:<slug>`; a failure draws the section empty rather than failing the page.
+    reviewPage(product.slug).catch(() => null),
   ]);
   const seen = new Set<number>([product.id]);
   const alsoLike = [...shelf, ...newest].filter((p) => !seen.has(p.id) && seen.add(p.id)).slice(0, 4);
@@ -369,6 +373,8 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
           <RelatedEntities entity={product.entity} className="mt-14" />
           </div>
           </div>
+
+          <ReviewsSection slug={product.slug} productName={product.name} rating={product.rating ?? null} initial={firstReviews} />
 
           {alsoLike.length > 0 && (
             <section aria-labelledby="also-like" className="mt-16" data-aos="fade-up">

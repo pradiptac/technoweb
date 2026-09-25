@@ -82,6 +82,7 @@ export function SignInForm({
   otpEnabled = true,
   passwordEnabled = true,
   defaultMethod = "otp",
+  returnTo,
 }: {
   actions: SignInActions;
   /** Where "Forgot your password?" goes — each door has its own reset. */
@@ -96,6 +97,12 @@ export function SignInForm({
   passwordEnabled?: boolean;
   /** Which step this opens on, from settings. The other is always a link away. */
   defaultMethod?: "otp" | "password";
+  /**
+   * Where to go once signed in, posted as `return` and checked again by the
+   * action (`safeReturnPath`) — a hidden field is a request body, and a
+   * request body is not a promise.
+   */
+  returnTo?: string;
 }) {
   /*
    * The default, then what is actually possible.
@@ -125,7 +132,7 @@ export function SignInForm({
   if (mode === "password" || !otpEnabled) {
     return (
       <>
-        <PasswordSignIn action={actions.login} forgotHref={forgotHref} onUseCode={otpEnabled ? () => setMode("code") : undefined} />
+        <PasswordSignIn action={actions.login} forgotHref={forgotHref} returnTo={returnTo} onUseCode={otpEnabled ? () => setMode("code") : undefined} />
         {registerLink}
       </>
     );
@@ -133,7 +140,7 @@ export function SignInForm({
 
   return (
     <>
-      <CodeSignIn actions={actions} onUsePassword={passwordEnabled ? () => setMode("password") : undefined} />
+      <CodeSignIn actions={actions} returnTo={returnTo} onUsePassword={passwordEnabled ? () => setMode("password") : undefined} />
       {registerLink}
     </>
   );
@@ -141,7 +148,7 @@ export function SignInForm({
 
 /* ------------------------------------------------------------ by a code */
 
-function CodeSignIn({ actions, onUsePassword }: { actions: SignInActions; onUsePassword?: () => void }) {
+function CodeSignIn({ actions, onUsePassword, returnTo }: { actions: SignInActions; onUsePassword?: () => void; returnTo?: string }) {
   /*
     Two actions, two forms, one state each — rather than one action switching
     on a hidden `intent`.
@@ -195,6 +202,7 @@ function CodeSignIn({ actions, onUsePassword }: { actions: SignInActions; onUseP
   return (
     <>
       <Form action={verifyAction} state={verified} noValidate>
+        {returnTo && <input type="hidden" name="return" value={returnTo} />}
         <Refusal state={verified} />
 
         {/*
@@ -250,7 +258,7 @@ function CodeSignIn({ actions, onUsePassword }: { actions: SignInActions; onUseP
 
 /* -------------------------------------------------------- by a password */
 
-function PasswordSignIn({ action, forgotHref, onUseCode }: { action: Action<SignInState>; forgotHref: string; onUseCode?: () => void }) {
+function PasswordSignIn({ action, forgotHref, onUseCode, returnTo }: { action: Action<SignInState>; forgotHref: string; onUseCode?: () => void; returnTo?: string }) {
   const [state, formAction, pending] = useActionState(action, initialLogin);
 
   /*
@@ -282,6 +290,7 @@ function PasswordSignIn({ action, forgotHref, onUseCode }: { action: Action<Sign
       }}
     >
       <Refusal state={state} />
+      {returnTo && <input type="hidden" name="return" value={returnTo} />}
 
       <Field label="Email address" htmlFor="email" error={state.fieldErrors?.email?.[0]}>
         <Input
