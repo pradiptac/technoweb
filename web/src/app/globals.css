@@ -3506,3 +3506,28 @@ nav[data-panel-swap] [data-panel-host]:hover > .panel-drop { transition-duration
     transition: opacity var(--duration-fast) var(--ease-brand), translate var(--duration-fast) var(--ease-brand);
   }
 }
+
+/* ------------------------------------------------------- wishlist heart
+ *
+ * The glyph pops once when a heart is pressed full (2026-09-25). Keyed on
+ * `data-pop`, which `WishlistHeart` sets only from a press and clears on
+ * `animationend` — never from the list arriving after mount, or every saved
+ * heart on a grid would pop together on load. On the **svg**, which carries no
+ * scale utility, so this keyframe's `transform` fights nothing; the button's
+ * own press is Tailwind's `active:scale-*` through a transition on `scale`.
+ * Inside the guard with no start state outside it: under reduced motion the
+ * heart is simply full. `--ease-brand` decelerates, because it is arriving.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes wish-pop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.3); }
+    70%  { transform: scale(.92); }
+    100% { transform: scale(1); }
+  }
+
+  .wish-heart[data-pop] svg {
+    animation: wish-pop var(--duration-slow) var(--ease-brand);
+    transform-origin: 50% 55%;
+  }
+}

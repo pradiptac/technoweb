@@ -1,6 +1,6 @@
 # The store
 
-A separate catalogue with prices; baskets, checkout, payment, stock, coupons, digital codes, the Merchant Center feed, the catalogue as a spreadsheet, back-in-stock notices.
+A separate catalogue with prices; baskets, checkout, payment, stock, coupons, digital codes, the Merchant Center feed, the catalogue as a spreadsheet, back-in-stock notices, wishlists.
 
 Moved out of `CLAUDE.md` on 2026-09-14, verbatim and in the order they were
 written. Each note is a rule and the measurement behind it; the one-line
@@ -1003,3 +1003,131 @@ drawn below `sm`, because a heading, a line and a button need more than a
 16:9 box gives them at 320px. `StorePromoTest` covers the order the rows
 come back in, the suffix checks, and a `store_tile_3_*` key being refused
 by name.
+
+## Wishlists (2026-09-25)
+
+The client asked for a wishlist for **guests and accounts, merged on sign-in**,
+feeding **back-in-stock and price-drop** messages (`docs/phase-2-contract.md`,
+section C). It is the basket's shape everywhere it can be, and the places it
+is not are the interesting ones.
+
+**A guest's list is a token; an account's list is the account.** `wishlists`
+holds a 64-hex `token` from `random_bytes` (the basket's) and a unique,
+nullable `customer_id`. The token reaches a list only while `customer_id` is
+null (`Wishlist::scopeGuest`), and an account's summary sends `token: null`.
+The alternative — a cookie that keeps addressing a list after it joined an
+account — hands the last customer's list to whoever uses the computer next.
+The Next server reads a null token as "forget the cookie" (`rememberWishlist`
+in `lib/wishlist.ts`), which is also how the cookie is cleaned up after a merge
+that happened on a request that was not a sign-in.
+
+**Signing in merges, on either path, never under "View as".** `Wishlists::claim()`
+folds the guest's lines into the account's (a line both hold keeps the
+account's row, whose save price is the older) and deletes the guest's row, in
+one transaction under `lockForUpdate`. It runs from `AuthController::issueToken()`
+— the one place both sign-in endpoints finish — when `lib/auth.ts` forwards
+`X-Wishlist-Token`, and from `Wishlists::resolve()` on the first request that
+carries both a bearer and a token. An impersonation token is refused the merge:
+a staff member's browser holding a guest list of its own must not put their
+shopping into the customer's account. Guarded — a failed merge is reported and
+the sign-in answers as it would have. `WishlistTest` sends a real bearer header
+throughout, for the reason `CLAUDE.md` gives.
+
+**A read never writes.** `GET /wishlist` with nothing in hand is an empty
+summary and no row, unlike `GET /cart`, so it needed no floor under it; the
+first heart pressed mints the list. `technoware:prune-wishlists` deletes guest
+lists untouched for 180 days, the cookie's own life; an account's list stays.
+
+**One line per list, product and variation, and the database says so.**
+MySQL treats NULLs as distinct in a unique index, so "any variation" would
+slip past `(wishlist_id, store_product_id, store_product_variation_id)`.
+`variation_key` is the variation's id or 0, written by `WishlistItem`'s
+`saving` hook, and the unique index is on that. Not a generated column: MySQL
+refuses a CASCADE foreign key on the base column of a stored generated one,
+and a deleted variation has to take its lines with it. A second press is the
+same line; a race that loses to the index reads the winner back.
+
+**A line is a pointer with one remembered number.** Like a basket line it
+shows the price *now*; `price_at_save` is the one figure kept, because a price
+drop has to be measured from something. A product-level line on a product
+with options cannot go straight into a basket — the API answers the basket's
+"Choose an option" 422 and the line stays — so the list offers "Choose
+options" on the product page for it (`needs_choice`).
+
+**The hearts and the count never make a shop page dynamic.** Every heart on a
+card, the product page's Wishlist button and the strip's count are client
+islands (`WishlistHeart`, `WishlistIndicator`) drawn empty by the server and
+filled from `/api/store/wishlist` after mount — the `BasketIndicator` rule —
+and they share one fetch through a module-level store read with
+`useSyncExternalStore` (`lib/wishlist-events.ts`), because forty hearts on a
+grid asking separately is forty requests for one answer. The route handler
+answers 204 with no API call when there is neither a wishlist cookie nor a
+portal session, and strips the token from what it returns. A press is
+optimistic, ignores a second press while the first is in flight, and
+announces `tw:wishlist` with the new list as its `detail`.
+
+**The heart's motion is the `scale` property and one keyframe.** The press is
+`active:scale-*` through `transition-[scale,…]` (the Tailwind v4 trap), and
+becoming saved pops the glyph once through `.wish-heart[data-pop] svg` inside
+the reduced-motion guard. `data-pop` is set only by a press: were it keyed on
+the pressed state, every saved heart on a grid would pop together the moment
+the list arrived.
+
+**Back in stock follows the shelf in both directions.** `StockLedger::record()`
+queues `SyncWishlistStock` (after commit, and only for a product somebody
+saved — one indexed read otherwise) on every movement, and the job trusts
+nothing the movement said: it re-reads the shelf, arms every line whose shelf
+is empty (`awaiting_stock_at`), and tells each armed line that is buyable
+again. A line saved while the shelf was empty is armed at once. So a restock of
+something that never ran out tells nobody, and a sale that empties the shelf
+arms the line for the next arrival — "once, re-arming when it goes out again".
+
+**A price drop is measured from what they were last told.** The product's and
+the variation's `updated` hooks queue `SendWishlistPriceDrops` when
+`price_paise` falls (a variation on any change, since going from the
+product's price to one of its own is a change `price_paise` alone does not
+describe). A line is told when the price now is at least
+`store_price_drop_min_percent` (Settings → Store, default 5, refused outside
+1–90) below its reference — the price saved, or the price last told,
+whichever is lower — and telling it records the price told. So one drop is one
+message, a wobble back up and down to the same figure is not news, and only a
+further fall from there is. Whole paise throughout: `now × 100 ≤ reference ×
+(100 − p)`. A drop on something that cannot be bought waits.
+
+**Once, even with two jobs.** Both jobs claim a line with a conditional update
+before sending — `awaiting_stock_at` not null, or `price_drop_notified_paise`
+unchanged — and only the row that changed gets an email. Two movements a
+second apart, or a deferred job running beside a fresh one at nine o'clock,
+tell each person once.
+
+**Promotional, so quiet hours and the suppression list.** Both events are
+`promotional()`: outside `QuietHours::allows()` the job still arms what it
+must and re-dispatches itself delayed to `QuietHours::nextOpening()` rather
+than sending. An address on `newsletter_suppressions`, a guest list with no
+address, an account that may not sign in and a list whose stop link was
+pressed are all skipped **and left owed** (`WishlistMail::address()`), so a
+lifted suppression or an address given later is still told — the stock
+notice's rule.
+
+**A guest is told only if they ask.** The `/store/wishlist` page offers "Email
+me about these" to a guest whose list has items and no address
+(`PATCH /wishlist {email}`); an account's list refuses an address of its own,
+because its messages go to the account. Each email carries a stop link on
+`alerts_token` — never the list's token, which would let anybody who read the
+email open and edit the list — landing on `/store/wishlist/stop/{token}`,
+which answers one sentence for every token, the cancel link's rule. It stops
+the list's emails and nothing else: it is not a newsletter unsubscribe.
+
+**Both emails are in the catalogue** — `wishlist_back_in_stock` and
+`wishlist_price_drop`, editable in Settings → Email templates (thirty messages
+now) — and `Messenger::notify(WishlistBackInStock|WishlistPriceDrop, …)` is
+called beside each, guarded, for the channels stream B adds.
+
+**Where it is seen.** A heart on both store cards and a Wishlist button under
+Add to basket on the product page (the product as a whole — somebody saving a
+switch has usually not chosen between the ports yet); the count before the
+divider in the store strip, which wraps below `lg` for the one 320px case
+that does not fit; `/store/wishlist`; the portal's "My wishlist" tab beside
+the orders, with the emails switch; and "Most wished for" on the store
+dashboard — five products by the number of *lists*, all time, since a wish is
+standing demand rather than an event in the window.

@@ -1851,7 +1851,7 @@ new rule goes in both places.
 
 ### The store — `docs/store.md`
 
-A separate catalogue with prices; baskets, checkout, payment, stock, coupons, digital codes, the Merchant Center feed.
+A separate catalogue with prices; baskets, checkout, payment, stock, coupons, digital codes, the Merchant Center feed, wishlists.
 
 - "Paid" has one definition and three screens read it.
 - The public order page's alert reads `paid_at` too: a cash-on-delivery order is confirmed and unpaid, and it said "Payment received" until 2026-09-16.
@@ -1950,6 +1950,7 @@ A separate catalogue with prices; baskets, checkout, payment, stock, coupons, di
 - A refund is a `payments` row with status `refunded` (`ManualRefund`, `POST …/orders/{number}/refunds`): an amount, a reference, who confirmed it; partial refunds add up, the amount completing what was paid makes the order `refunded`, and nothing calls a gateway (2026-09-20).
 - The catalogue imports and exports (2026-09-20, `CatalogueExport`/`CatalogueImport`): one CSV row per product and per variation with `parent_sku`, money as plain decimals; the import is a dry run then a commit, matched by SKU — a variation's SKU updates the variation, a product's the product, an unknown one creates a product, and nothing ever creates a variation; a blank cell leaves a column alone; stock moves through `StockLedger::adjusted` with the import named; a store-specific column guesser, because the newsletter's reads "name" as a first name.
 - A back-in-stock notice is a row that is stamped once (2026-09-20, `stock_notices`): `POST /store/products/{slug}/notify` answers 202 whatever happened, `StockLedger::record()` on a positive delta dispatches `SendStockNotices` after commit, and the job re-checks `inStock()` when it runs, skips the suppression list, sends `back_in_stock` and stamps `notified_at`; a repeat request re-arms. `notices_waiting` on the admin product, `?notices=1`, `attention.awaiting_stock`.
+- A wishlist is a basket-shaped token for a guest and the account for a customer (2026-09-25, `wishlists`/`wishlist_items`, `Wishlists`): a token never reaches an account's list (its summary sends `token: null`, which makes the Next server forget the cookie), a request carrying both — and `issueToken()` at sign-in, when `lib/auth.ts` forwards `X-Wishlist-Token` — merges the guest's in, never under "View as"; the hearts and the strip's count are client islands fed by one `useSyncExternalStore` fetch of `/api/store/wishlist` (204 with nothing in hand), so the shop stays cached; `SyncWishlistStock` from every `StockLedger::record()` arms empty shelves and tells armed lines once, `SendWishlistPriceDrops` from the product/variation `updated` hooks tells once per drop of `store_price_drop_min_percent`, both claimed by a conditional update, inside `QuietHours` (re-dispatched to `nextOpening()` otherwise) and off the suppression list.
 
 ### Customers and addresses — `docs/customers.md`
 

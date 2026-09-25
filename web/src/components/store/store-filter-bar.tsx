@@ -4,6 +4,7 @@ import { Select } from "@/components/ui/input";
 import { StoreSearch } from "@/components/store/store-search";
 import { cn } from "@/lib/utils";
 import { BasketIndicator } from "@/components/store/basket-bar";
+import { WishlistIndicator } from "@/components/store/wishlist-indicator";
 import type { StoreCategory } from "@/types/api";
 
 /**
@@ -232,7 +233,7 @@ export async function StoreFilterBar({
           as well, or at 1440 the group is handed less than its content and
           "Basket is empty" wraps to three lines; it is the search that gives.
         */}
-        <div className="col-span-2 flex items-center gap-3 lg:col-span-1 lg:flex-1 lg:shrink-0">
+        <div className="col-span-2 flex flex-wrap items-center gap-3 lg:col-span-1 lg:flex-1 lg:shrink-0 lg:flex-nowrap">
           <button
             type="submit"
             className="h-11 shrink-0 rounded-lg bg-brand-600 px-6 text-14 font-semibold text-brand-on transition-colors duration-(--duration-base) hover:bg-brand-700"
@@ -260,8 +261,21 @@ export async function StoreFilterBar({
             once they are genuinely on one line; below that it would be a mark
             separating nothing.
           */}
-          <span aria-hidden className="ml-auto hidden h-7 w-px bg-line-strong lg:block" />
-          <div className="ml-auto lg:ml-0">
+          {/*
+            The wishlist's count, before the divider (2026-09-25): a heart
+            and a number, 40px, so the phone row — Apply, Clear, the basket —
+            gains one disc rather than a label. `ml-auto` moves here from the
+            divider and the basket, so at every width the heart, the rule and
+            the basket travel together to the far end opposite Apply. The row
+            wraps below `lg` for the one case that does not fit 320px — Apply,
+            Clear, the heart and "Basket is empty" together — where the
+            basket drops to a second line rather than past the screen's edge.
+          */}
+          <div className="ml-auto">
+            <WishlistIndicator />
+          </div>
+          <span aria-hidden className="hidden h-7 w-px bg-line-strong lg:block" />
+          <div>
             <BasketIndicator />
           </div>
         </div>

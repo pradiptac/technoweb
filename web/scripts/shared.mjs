@@ -42,6 +42,10 @@ export const PUBLIC_ROUTES = [
   // The page a back-in-stock email's cancel link lands on. A token nobody
   // has answers the same sentence as a real one, so it renders in full.
   "/store/notify/cancel/not-a-real-token",
+  // The wishlist (2026-09-25): the list page, empty for the audit's fresh
+  // browser, and where a wishlist email's stop link lands — one sentence for
+  // any token, so a made-up one renders the page in full.
+  "/store/wishlist", "/store/wishlist/stop/not-a-real-token",
   /*
     The embeddable form, which is a real public page and would otherwise be
     audited by nothing. It renders outside `(marketing)`, so it has none of the

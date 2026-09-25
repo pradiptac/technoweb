@@ -1172,6 +1172,49 @@ in a link.** Both exist because both cases are real: most buyers here never sign
 in, and the ones who do should not have to keep an email. An order belonging to
 somebody else is a 404 either way.
 
+### The wishlist (2026-09-25)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/wishlist` | The list for `X-Wishlist-Token` and/or the portal bearer. **Never writes**: nothing in hand is an empty summary and no row. Throttled 120/min |
+| `PATCH` | `/wishlist` | `email` (a guest's "email me about these"; 422 on an account's list), `alerts` (boolean). 404 with no list. Throttled 10/min |
+| `POST` | `/wishlist/items` | `product_id`, `variation_id?`. 201 with the list; mints a guest list (or the account's) on the first press; the same line twice is one line. 422 for a draft, another product's option, or a full list (200). Throttled 60/min |
+| `DELETE` | `/wishlist/items/{item}` | A line in somebody else's list is a **404**. Throttled 60/min |
+| `POST` | `/wishlist/items/{item}/move-to-basket` | One into the basket in `X-Cart-Token` (or a new one), off the list: `{data, cart}`. 422 "Choose an option…" for a product-level line on a product with options, which stays on the list. Throttled 30/min |
+| `GET` | `/wishlist/alerts/{token}/stop` | The stop link in a wishlist email: switches the list's emails off. **200 and one sentence for every token.** Throttled 30/min |
+
+The summary is `{token, account, items[], item_count, email, alerts, alerts_off}`;
+each item `{id, product_id, variation_id, name, variation_name, slug, image_url,
+image_alt, price_paise, price_at_save_paise, saving_paise, in_stock,
+needs_choice, added_at}` — priced now, `saving_paise` null unless it is cheaper
+than when it was saved.
+
+**A token reaches a guest list and nothing else.** An account's list is
+addressed by the portal bearer (read with `$request->user('sanctum')`, only
+for a customer who may sign in) and its summary sends **`token: null`** — the
+Next server reads that as "forget the cookie", so a cookie left on a shared
+computer never opens the last customer's list.
+
+**Signing in merges.** A request carrying both a guest token and a bearer
+folds the guest's list into the account's (a line both hold keeps the
+account's row) and deletes the guest's; so do `POST /auth/login` and
+`POST /auth/verify-code` when the Next server forwards `X-Wishlist-Token`.
+**Never under a "View as" token** — that is a staff member's browser, and the
+guest cookie beside it is theirs. The merge is guarded: it never fails a
+sign-in.
+
+**Back in stock and price drop are emails, promotional, and once.** A stock
+movement (`StockLedger::record()`) queues `SyncWishlistStock`, which arms every
+line whose shelf is empty and tells each armed line's holder once when it is
+buyable again (`wishlist_back_in_stock`); a fall in a product's or variation's
+`price_paise` queues `SendWishlistPriceDrops`, which tells a holder once the
+price is at least `store_price_drop_min_percent` (default 5) below the price
+saved or last told (`wishlist_price_drop`). Both claim each line with a
+conditional update, go only to an account that may sign in or a guest list
+with an address, skip the suppression list and a stopped list (leaving the
+line owed), and outside `QuietHours` re-dispatch themselves to its next
+opening. `Messenger::notify()` is called beside each email.
+
 ### Admin — the store (`role:store_manager`)
 
 | Method | Path | Notes |
@@ -1241,7 +1284,7 @@ the selectors on the product page would shuffle between two loads.
 | `GET`/`POST` | `/admin/store/products/{id}/codes` | The code inventory. The listing never contains a code |
 | `POST` | `/admin/store/codes/{id}/reveal` | Read one, recorded |
 | `DELETE` | `/admin/store/codes/{id}` | Unsold codes only |
-| `GET` | `/admin/store/dashboard` | The shop at a glance. `?days=` of 7, 30 or 90. `funnel` is `{product_views, paid_orders, views_to_orders}` — the views from Google Analytics over the window, **null** when GA4 is not connected or refused, and the rate (paid orders ÷ views, 0–1 to four places) null with it or over a measured zero |
+| `GET` | `/admin/store/dashboard` | The shop at a glance. `?days=` of 7, 30 or 90. `funnel` is `{product_views, paid_orders, views_to_orders}` — the views from Google Analytics over the window, **null** when GA4 is not connected or refused, and the rate (paid orders ÷ views, 0–1 to four places) null with it or over a measured zero. `most_wished` is the five products on the most wishlists, `{id, name, wishes}` counted by list, all time, `[]` when nobody has saved anything |
 | `GET` | `/admin/store/reports` | What sold between two dates. `?from=`, `?to=`, `?group=` |
 | `GET` | `/admin/store/reports/export` | The same range as a CSV. `?type=orders` or `products` |
 | `GET` | `/admin/store/stock` | What came in and what went out. `?from=`, `?to=`, `?product=`, `?reason=`, `?direction=in\|out` |
@@ -3178,7 +3221,7 @@ the truth about it.
 
 ### Email templates
 
-Every one of the 27 system emails, editable.
+Every one of the 30 system emails, editable.
 
 | Method | Path | Notes |
 |---|---|---|
@@ -3190,7 +3233,7 @@ Every one of the 27 system emails, editable.
 | `POST` | `/admin/settings/email-templates/{key}/test` | Sends the draft to the caller. Throttled 6/min |
 
 **`{key}` is a plain string, not a bound model.** There is no row for an
-uncustomised message and binding would 404 on 27 of 27 on a fresh install.
+uncustomised message and binding would 404 on 30 of 30 on a fresh install.
 
 **Two switches, and they mean different things.** `is_enabled` is "use my
 wording" — false puts the built-in text back and the message still goes.
@@ -3601,6 +3644,8 @@ failure to queue it never fails the request.
 | `POST /auth/verify-email` | `support_email` setting | `CustomerRegistered` — and `customer.registered`; the same pair when a sign-in code confirms the address |
 | `POST /admin/customers/{id}/approve` | The customer | `CustomerApproved` |
 | `POST /admin/customers/{id}/reject` | The customer | `CustomerRejected` |
+| a stock movement fills a saved shelf | The wishlist holder, once, inside the quiet hours | `WishlistBackInStock` |
+| a saved product's price falls far enough | The wishlist holder, once per drop, inside the quiet hours | `WishlistPriceDrop` |
 
 **A send failure never fails the request.** `App\Support\Notifier` logs and
 swallows: a committed ticket must still answer 201 when mail is down.
@@ -3630,7 +3675,7 @@ server will send to any address typed into a public form — a reflected-mail
 surface, bounded by the endpoint's 10/min throttle. Fixed content is a nuisance
 to abuse; content the sender supplies is a relay.
 
-**Twenty-one of the twenty-four are queued**, so the request does not wait for
+**Twenty-three of the twenty-six are queued**, so the request does not wait for
 SMTP at all — an unreachable host was measured taking a contact-form submission
 from 0.2s to 12.5s. The queue is drained by the scheduler every minute, so a
 message goes out within about a minute of the thing that caused it.

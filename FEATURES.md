@@ -154,6 +154,10 @@ first rupee.
 - **Stock ledger** recording every movement in and out, with a report and a
   CSV export that Excel can actually sum.
 - **Back-orders** switchable per product or per variation.
+- **Wishlists** for guests and accounts — a heart on every product, merged into
+  the account on sign-in — with a once-only back-in-stock email and a
+  once-per-drop price-drop email, both held to 9am–9pm, and the most-wished
+  products on the store dashboard.
 - **Order management**: status lifecycle, dispatch notice on status change,
   tracking, uploaded invoices, internal notes, manual payment recording.
 - **Sales dashboard and reports** by day, week or month, with medians rather
@@ -306,7 +310,7 @@ Built in, measured, and never allowed to guess.
 - **Six outgoing transports** chosen in Settings — SMTP, Gmail/Workspace over
   OAuth, Brevo, Mailgun, Amazon SES and a log transport — with a test button
   that returns the server's own words.
-- **Every system email editable** in the console: 25 messages, each with its
+- **Every system email editable** in the console: 30 messages, each with its
   placeholders listed, subject and body.
 - **Acknowledgements to the customer** for tickets, enquiries, form
   submissions and applications.

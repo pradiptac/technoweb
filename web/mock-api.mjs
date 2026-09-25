@@ -457,6 +457,69 @@ const cartFor = (token) => {
   return { token: key, lines: carts.get(key) };
 };
 
+/* Wishlists, in memory, the basket's arrangement: a guest's by the
+   X-Wishlist-Token header, the one portal customer's by the bearer. A token
+   never reaches the account's list, and a request carrying both merges the
+   guest's into the account's and answers token null -- which is what makes
+   the Next server forget the cookie, exactly as Laravel's Wishlists does. */
+const wishlists = new Map();
+let wishSeq = 0;
+const ACCOUNT_WISHLIST = 'account';
+
+const wishlistFor = (req, create = false) => {
+  const guest = req.headers['x-wishlist-token'];
+  const signedIn = [TOKEN, IMPERSONATION_TOKEN].includes((req.headers.authorization || '').replace('Bearer ', ''));
+  const impersonated = (req.headers.authorization || '').replace('Bearer ', '') === IMPERSONATION_TOKEN;
+
+  if (signedIn) {
+    if (guest && guest !== ACCOUNT_WISHLIST && wishlists.has(guest) && !impersonated) mergeWishlist(guest);
+    if (!wishlists.has(ACCOUNT_WISHLIST) && create) wishlists.set(ACCOUNT_WISHLIST, { lines: [], email: null, alertsOff: false });
+    return wishlists.has(ACCOUNT_WISHLIST) ? { key: ACCOUNT_WISHLIST, list: wishlists.get(ACCOUNT_WISHLIST) } : null;
+  }
+
+  if (guest && guest !== ACCOUNT_WISHLIST && wishlists.has(guest)) return { key: guest, list: wishlists.get(guest) };
+  if (!create) return null;
+
+  const key = `mock-wishlist-${String(++wishSeq).padStart(50, '0')}`;
+  wishlists.set(key, { lines: [], email: null, alertsOff: false });
+  return { key, list: wishlists.get(key) };
+};
+
+const mergeWishlist = (guest) => {
+  const from = wishlists.get(guest);
+  if (!from) return;
+  if (!wishlists.has(ACCOUNT_WISHLIST)) wishlists.set(ACCOUNT_WISHLIST, { lines: [], email: null, alertsOff: false });
+  const into = wishlists.get(ACCOUNT_WISHLIST);
+  for (const l of from.lines) {
+    if (!into.lines.some((x) => x.product_id === l.product_id && x.variation_id === l.variation_id)) into.lines.push(l);
+  }
+  wishlists.delete(guest);
+};
+
+const wishlistSummary = (found) => {
+  if (!found) return { token: null, account: false, items: [], item_count: 0, email: null, alerts: false, alerts_off: false };
+  const account = found.key === ACCOUNT_WISHLIST;
+  const items = found.list.lines.map((l) => {
+    const product = storeProducts.find((x) => x.id === l.product_id);
+    const variation = product?.variations?.find((v) => v.id === l.variation_id) ?? null;
+    const now = variation?.price_paise ?? product?.price_paise ?? 0;
+    return {
+      id: l.id, product_id: l.product_id, variation_id: variation?.id ?? null,
+      name: product?.name ?? 'Unknown', variation_name: variation?.name ?? null, slug: product?.slug ?? '',
+      image_url: null, image_alt: null, price_paise: now, price_at_save_paise: l.price_at_save,
+      saving_paise: now < l.price_at_save ? l.price_at_save - now : null,
+      in_stock: product?.in_stock !== false,
+      needs_choice: !variation && (product?.variations?.length ?? 0) > 0,
+      added_at: l.added_at,
+    };
+  });
+  const email = account ? null : found.list.email;
+  return {
+    token: account ? null : found.key, account, items, item_count: items.length, email,
+    alerts: !found.list.alertsOff && (account || Boolean(email)), alerts_off: found.list.alertsOff,
+  };
+};
+
 /* GST is extracted from the inclusive total, never added -- the same
    arithmetic App\Support\Money does, so the figures the frontend renders
    against the mock are the figures Laravel would send. */
@@ -1228,7 +1291,10 @@ createServer(async (req, res) => {
     return res.end(png);
   }
 
-  if (p === '/auth/login' && req.method === 'POST') return json(res, 200, { token: TOKEN, customer });
+  if (p === '/auth/login' && req.method === 'POST') {
+    if (req.headers['x-wishlist-token']) mergeWishlist(req.headers['x-wishlist-token']);
+    return json(res, 200, { token: TOKEN, customer });
+  }
   if (p === '/admin/auth/login' && req.method === 'POST') return json(res, 200, { token: STAFF_TOKEN, staff });
 
   /* Sign-in codes, both principals.
@@ -1764,6 +1830,7 @@ createServer(async (req, res) => {
         attention: { awaiting_payment: 0, awaiting_dispatch: 0, awaiting_codes: 0, refund_requested: 0, out_of_stock: 0, codes_exhausted: 0, failed_payments: 0 },
         funnel: { product_views: null, paid_orders: 0, views_to_orders: null },
         series, recent: [], low_stock: [], codes_low: [],
+        most_wished: [{ id: storeProducts[0].id, name: storeProducts[0].name, wishes: 3 }],
       } });
     }
 
@@ -2732,6 +2799,63 @@ createServer(async (req, res) => {
       lines.splice(index, 1);
       return json(res, 200, { data: summarise(token, lines) });
     }
+  }
+
+  /* The wishlist -- see the helpers beside the basket's. */
+  if (p === '/wishlist' && req.method === 'GET') return json(res, 200, { data: wishlistSummary(wishlistFor(req)) });
+  if (p === '/wishlist' && req.method === 'PATCH') {
+    const found = wishlistFor(req);
+    if (!found) return json(res, 404, { message: 'Not found.' });
+    const body = await readJsonBody(req);
+    if ('email' in body) {
+      if (found.key === ACCOUNT_WISHLIST) {
+        return json(res, 422, { message: 'Messages about this list go to your account’s address.', errors: { email: ['Messages about this list go to your account’s address.'] } });
+      }
+      found.list.email = body.email ? String(body.email).toLowerCase() : null;
+      if (body.email) found.list.alertsOff = false;
+    }
+    if ('alerts' in body) found.list.alertsOff = !body.alerts;
+    return json(res, 200, { data: wishlistSummary(found) });
+  }
+  if (p === '/wishlist/items' && req.method === 'POST') {
+    const body = await readJsonBody(req);
+    const product = storeProducts.find((x) => x.id === Number(body.product_id));
+    if (!product) return json(res, 422, { message: 'That product is not on sale.' });
+    const found = wishlistFor(req, true);
+    const variationId = Number(body.variation_id) || null;
+    if (!found.list.lines.some((l) => l.product_id === product.id && l.variation_id === variationId)) {
+      const variation = product.variations?.find((v) => v.id === variationId);
+      found.list.lines.unshift({ id: ++wishSeq, product_id: product.id, variation_id: variationId, price_at_save: variation?.price_paise ?? product.price_paise, added_at: new Date().toISOString() });
+    }
+    return json(res, 201, { data: wishlistSummary(found) });
+  }
+  {
+    const m = p.match(/^\/wishlist\/items\/(\d+)(\/move-to-basket)?$/);
+    if (m) {
+      const found = wishlistFor(req);
+      const index = found ? found.list.lines.findIndex((l) => l.id === Number(m[1])) : -1;
+      if (index === -1) return json(res, 404, { message: 'Not found.' });
+      const line = found.list.lines[index];
+      if (m[2] && req.method === 'POST') {
+        const product = storeProducts.find((x) => x.id === line.product_id);
+        if (!line.variation_id && product?.variations?.length) {
+          return json(res, 422, { message: 'Choose an option before adding this to your basket.' });
+        }
+        const { token, lines } = cartFor(req.headers['x-cart-token']);
+        const existing = lines.find((l) => l.product_id === line.product_id && l.variation_id === line.variation_id);
+        if (existing) existing.quantity += 1;
+        else lines.push({ id: lines.length + 1, product_id: line.product_id, variation_id: line.variation_id, quantity: 1 });
+        found.list.lines.splice(index, 1);
+        return json(res, 200, { data: wishlistSummary(found), cart: summarise(token, lines) });
+      }
+      if (!m[2] && req.method === 'DELETE') {
+        found.list.lines.splice(index, 1);
+        return json(res, 200, { data: wishlistSummary(found) });
+      }
+    }
+  }
+  if (/^\/wishlist\/alerts\/[^/]+\/stop$/.test(p)) {
+    return json(res, 200, { message: 'Done. We will not email you about your wishlist again. Your list is still there.' });
   }
 
   if (p === '/blog') {
