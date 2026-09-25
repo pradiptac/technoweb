@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Store\OrderResource;
 use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\ProductReview;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -49,6 +51,25 @@ class CustomerOrderController extends Controller
             ->where('customer_id', $request->user()->id)
             ->firstOrFail();
 
-        return new OrderResource($order->load(['items', 'payments']));
+        $order->load(['items.product:id,slug', 'payments']);
+
+        /*
+         * The customer's own review of each line's product, so the order page
+         * can offer "Write a review" or "Edit your review" beside it. One
+         * query for the order, set on each line as a relation — an order
+         * holding one product twice shows the same review against both.
+         */
+        $reviews = ProductReview::query()
+            ->where('customer_id', $request->user()->id)
+            ->whereIn('store_product_id', $order->items->pluck('store_product_id')->filter()->unique())
+            ->get()
+            ->keyBy('store_product_id');
+
+        $order->items->each(fn (OrderItem $item) => $item->setRelation(
+            'myReview',
+            $item->store_product_id !== null ? $reviews->get($item->store_product_id) : null,
+        ));
+
+        return new OrderResource($order);
     }
 }

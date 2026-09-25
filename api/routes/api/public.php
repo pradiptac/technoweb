@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\V1\NewsletterController;
 use App\Http\Controllers\Api\V1\OrderCodeController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PopupController;
+use App\Http\Controllers\Api\V1\ProductReviewController;
 use App\Http\Controllers\Api\V1\RedirectController;
 use App\Http\Controllers\Api\V1\RegistrationController;
 use App\Http\Controllers\Api\V1\SearchController;
@@ -82,6 +83,15 @@ Route::post('store/products/{storeProduct:slug}/notify', [StockNoticeController:
     ->middleware('throttle:10,1')->name('store.products.notify');
 Route::get('store/stock-notices/{token}/cancel', [StockNoticeController::class, 'cancel'])
     ->middleware('throttle:30,1')->name('store.stock-notices.cancel');
+
+/*
+ * Published reviews of one product, six a page (`docs/store.md`, "Reviews").
+ * `?sort=` of featured, newest, highest or lowest; `meta` carries the
+ * average, the count and the five-row distribution. Writing one is a portal
+ * route — see `portal.php`.
+ */
+Route::get('store/products/{storeProduct:slug}/reviews', [ProductReviewController::class, 'index'])
+    ->middleware('throttle:120,1')->name('store.products.reviews.index');
 
 /*
  * The basket.

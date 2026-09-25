@@ -66,6 +66,7 @@ class StoreProduct extends Model implements Answerable, Faqable
         'is_featured' => false,
         'feed_include' => true,
         'condition' => 'new',
+        'rating_count' => 0,
     ];
 
     protected function casts(): array
@@ -88,6 +89,9 @@ class StoreProduct extends Model implements Answerable, Faqable
             'allow_oversell' => 'boolean',
             'returnable' => 'boolean',
             'is_featured' => 'boolean',
+            // Written only by `ReviewSummary`; read by every card.
+            'rating_average' => 'decimal:1',
+            'rating_count' => 'integer',
         ];
     }
 
@@ -190,6 +194,18 @@ class StoreProduct extends Model implements Answerable, Faqable
     public function stockNotices(): HasMany
     {
         return $this->hasMany(StockNotice::class);
+    }
+
+    /**
+     * Every review written about this product, in any state. `published()`
+     * narrows it; `ReviewSummary` keeps the product's own two columns in
+     * step with what that narrowing says.
+     *
+     * @return HasMany<ProductReview, $this>
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(ProductReview::class);
     }
 
     /**

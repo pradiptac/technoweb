@@ -819,6 +819,16 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'store', 'key' => 'store_return_days', 'value' => '7', 'type' => 'string'],
 
             /*
+             * "How was it?" — the review request (`technoware:request-reviews`).
+             * On by default, because the client asked for it; the delay is
+             * days after dispatch (or after payment, for an order with nothing
+             * to ship). Neither says anything a visitor could use, so both
+             * sit in the public `store` group harmlessly.
+             */
+            ['group' => 'store', 'key' => 'store_review_requests_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'store', 'key' => 'store_review_request_days', 'value' => '7', 'type' => 'string'],
+
+            /*
              * The storefront's promo band — one static, editable slot rather
              * than a second `Slider`. It is a single fixed block, not a
              * rotating carousel, so a handful of settings fields are less to
