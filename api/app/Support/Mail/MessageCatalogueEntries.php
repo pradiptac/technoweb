@@ -6,6 +6,7 @@ use App\Notifications\ActivationProcedureIssued;
 use App\Notifications\ApplicationAcknowledged;
 use App\Notifications\BackInStock;
 use App\Notifications\BlockLeadCaptured;
+use App\Notifications\CartReminder;
 use App\Notifications\ChatLeadCaptured;
 use App\Notifications\ChatQuestionUnanswered;
 use App\Notifications\CommentAwaitingModeration;
@@ -31,11 +32,12 @@ use App\Notifications\TicketReplied;
 use App\Notifications\VerifyCustomerEmail;
 
 /**
- * The 26 entries, kept out of `MessageCatalogue` so that class stays readable.
+ * The 30 entries, kept out of `MessageCatalogue` so that class stays readable.
  *
- * Twenty-six for twenty-five classes: `TicketReplied` is two messages. Its
+ * Thirty for twenty-eight classes: `TicketReplied` is two messages — its
  * customer and desk versions differ in greeting, action label *and* recipient,
- * and one template cannot say both without lying about one of them.
+ * and one template cannot say both without lying about one of them — and
+ * `CartReminder` is two, the first basket reminder and the second.
  *
  * **Three are `locked`.** The address verification, the password reset and
  * the sign-in code each carry a credential somebody is waiting for at a form,
@@ -62,6 +64,31 @@ class MessageCatalogueEntries
     private static function details(string $about, string $sample): array
     {
         return ['about' => $about, 'sample' => $sample, 'html' => true];
+    }
+
+    /**
+     * What both basket reminders offer — one list, so the two cannot drift.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private static function cartReminderVariables(): array
+    {
+        return [
+            'customer_name' => ['about' => 'The account holder\'s name, or "there" for a guest.', 'sample' => 'Priya'],
+            'items' => self::details(
+                'What is in the basket, one line each, priced today.',
+                '<ul><li>1 × Aruba 2930F 24G — ₹98,000.00</li></ul>',
+            ),
+            'item_count' => ['about' => 'How many things are in it.', 'sample' => '1'],
+            'basket_total' => ['about' => 'The total today, formatted.', 'sample' => '₹98,000.00'],
+            'basket_url' => ['about' => 'Restores the basket in their browser and opens it.', 'sample' => 'https://www.technoware.in/store/basket/restore/…'],
+            'coupon' => self::details(
+                'A sentence offering the reminder coupon — empty when there is none, or the basket cannot use it.',
+                '<p>Use the code <strong>COMEBACK10</strong> at the checkout for 10% off.</p>',
+            ),
+            'coupon_code' => ['about' => 'The reminder coupon\'s code alone, or blank.', 'sample' => 'COMEBACK10'],
+            'unsubscribe_url' => ['about' => 'Puts the address on the do-not-mail list.', 'sample' => 'https://www.technoware.in/newsletter/unsubscribe/…'],
+        ];
     }
 
     /** @return array<string, array<string, mixed>> */
@@ -344,6 +371,49 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     .'<p>You asked us to let you know. This is the one message we will send about it.</p>'
                     .'<p><a href="{{url}}">See the product</a></p>'
                     .'<p>Did not ask for this? <a href="{{cancel_url}}">Cancel the notice</a> and we will not email you about it again.</p>',
+            ],
+
+            /*
+             * The two abandoned-basket reminders (2026-09-25). One class,
+             * `CartReminder`, two messages — the `ticket_replied` shape — so
+             * the first and the second are worded and switched off on their
+             * own. Sent by `technoware:remind-abandoned-carts` inside the
+             * quiet-hours window only, never to an address on the suppression
+             * list, and each carries an unsubscribe that puts it there.
+             * `{{coupon}}` is empty unless the second reminder has a code the
+             * basket could actually use.
+             */
+            'cart_reminder_1' => [
+                'label' => 'Basket reminder, first — to the shopper',
+                'description' => 'Sent once, a set number of hours after a basket with an address on it goes quiet. Store → Settings holds the switch and the delay.',
+                'audience' => self::CUSTOMER,
+                'class' => CartReminder::class,
+                'variables' => self::cartReminderVariables(),
+                'subject' => 'You left something in your basket',
+                'body' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>You started an order with us and did not finish it. Your basket is saved:</p>'
+                    .'{{items}}'
+                    .'<p>Total: <strong>{{basket_total}}</strong> including GST.</p>'
+                    .'<p><a href="{{basket_url}}">Return to your basket</a></p>'
+                    .'<p>Prices and stock are checked again when you order, so the basket shows today\'s figures.</p>'
+                    .'<p>Rather not hear about baskets? <a href="{{unsubscribe_url}}">Unsubscribe</a> and we will not email you about one again.</p>',
+            ],
+
+            'cart_reminder_2' => [
+                'label' => 'Basket reminder, second — to the shopper',
+                'description' => 'The last one, a set number of days after the basket went quiet. Carries the reminder coupon from Store → Settings when one is set and the basket can use it.',
+                'audience' => self::CUSTOMER,
+                'class' => CartReminder::class,
+                'variables' => self::cartReminderVariables(),
+                'subject' => 'Your basket is still waiting',
+                'body' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>The things you chose are still in your basket, and we have kept it for you.</p>'
+                    .'{{items}}'
+                    .'<p>Total: <strong>{{basket_total}}</strong> including GST.</p>'
+                    .'{{coupon}}'
+                    .'<p><a href="{{basket_url}}">Return to your basket</a></p>'
+                    .'<p>This is the last reminder we will send about it.</p>'
+                    .'<p>Rather not hear about baskets? <a href="{{unsubscribe_url}}">Unsubscribe</a> and we will not email you about one again.</p>',
             ],
         ];
     }

@@ -32,6 +32,10 @@ async function call(
       method: init.method,
       body: init.body,
       headers: token ? { "X-Cart-Token": token } : undefined,
+      // The portal session rides along, so a signed-in customer's basket is
+      // claimed for the account (`carts.customer_id`). The API reads it with
+      // the guard named — the route is public — and ignores a "View as".
+      token: await getToken(),
       cache: "no-store",
     });
 

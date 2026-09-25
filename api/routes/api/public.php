@@ -134,6 +134,24 @@ Route::delete('cart/coupon', [CartController::class, 'removeCoupon'])
     ->middleware('throttle:30,1')->name('cart.coupon.remove');
 
 /*
+ * Abandoned-basket reminders.
+ *
+ * `contact` is what the checkout has typed so far — the email and mobile,
+ * saved on blur, before any order exists, because the basket that is
+ * abandoned is the one that never became one. Throttled like a form rather
+ * than like a basket: it is written a few times per checkout, never sixty.
+ *
+ * `restore` swaps the token in a reminder's link for the basket's own, which
+ * the Next route handler puts in the cookie. The link never carries the cart
+ * token itself. Throttled because a token is a guessable-in-principle path
+ * segment, the stock-notice cancel link's rule.
+ */
+Route::patch('cart/contact', [CartController::class, 'contact'])
+    ->middleware('throttle:20,1')->name('cart.contact');
+Route::get('cart/restore/{token}', [CartController::class, 'restore'])
+    ->middleware('throttle:30,1')->name('cart.restore');
+
+/*
  * The checkout.
  *
  * Public, because guest checkout is a requirement — a portal account is

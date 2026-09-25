@@ -34,7 +34,9 @@ use Illuminate\Console\Command;
  */
 class PruneCarts extends Command
 {
-    protected $signature = 'technoware:prune-carts {--days=30 : How long an untouched basket is kept}';
+    protected $signature = 'technoware:prune-carts
+        {--days=30 : How long an untouched basket is kept}
+        {--reminded-days=90 : How long a basket somebody was reminded about is kept}';
 
     protected $description = 'Delete abandoned shopping baskets and their lines';
 
@@ -59,7 +61,25 @@ class PruneCarts extends Command
         $deleted = 0;
 
         do {
-            $batch = Cart::where('updated_at', '<', $cutoff)->limit(500)->delete();
+            $batch = Cart::where('updated_at', '<', $cutoff)->where('reminders_sent', 0)->limit(500)->delete();
+            $deleted += $batch;
+        } while ($batch > 0);
+
+        /*
+         * A basket somebody was reminded about is kept for ninety days, the
+         * store dashboard's longest window.
+         *
+         * Its row is the only record that a reminder went out and whether the
+         * basket came back as an order, so deleting it at thirty would make
+         * the dashboard's "recovered" figure over ninety days count recoveries
+         * the rows still remember against reminders they have forgotten. The
+         * cookie has long expired by then, so nothing can shop into it; only
+         * the reminder's own restore link still reaches it.
+         */
+        $remindedCutoff = now()->subDays(max($days, (int) $this->option('reminded-days')));
+
+        do {
+            $batch = Cart::where('updated_at', '<', $remindedCutoff)->where('reminders_sent', '>', 0)->limit(500)->delete();
             $deleted += $batch;
         } while ($batch > 0);
 

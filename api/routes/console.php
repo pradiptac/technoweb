@@ -35,6 +35,19 @@ Schedule::command('technoware:prune-applications')->dailyAt('03:25');
 Schedule::command('technoware:prune-carts')->dailyAt('03:30');
 
 /*
+ * Reminders about those baskets, while they are still worth one.
+ *
+ * Every ten minutes, so a first reminder lands close to the delay the shop
+ * chose. The switch and the quiet-hours window are the command's first two
+ * questions, so a run outside either costs one settings read; the claim on
+ * each basket is a conditional UPDATE, and `withoutOverlapping` is belt to
+ * that brace.
+ */
+Schedule::command('technoware:remind-abandoned-carts')
+    ->everyTenMinutes()
+    ->withoutOverlapping();
+
+/*
  * JavaScript failures nobody has seen for a month.
  *
  * This list is about what is broken *now*, so it ages on `last_seen_at`: a bug

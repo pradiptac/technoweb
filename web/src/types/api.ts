@@ -1740,6 +1740,12 @@ export type CartSummary = {
     /** Only cash on delivery has one. Null means no ceiling. */
     max_paise?: number | null;
   }[];
+  /**
+   * What the checkout typed on blur (`PATCH /cart/contact`), and whether
+   * basket reminders are switched on — which decides whether the line under
+   * the email field promising one is drawn at all.
+   */
+  contact?: { email: string | null; phone: string | null; reminders: boolean };
 };
 
 /**
@@ -1882,6 +1888,12 @@ export type StoreDashboard = {
    * when a measured zero would put nothing under the line.
    */
   funnel: { product_views: number | null; paid_orders: number; views_to_orders: number | null };
+  /**
+   * What the basket reminders brought back over the window: baskets reminded,
+   * how many became an order, those orders' paid total, and the share. Null —
+   * never zeros — when nothing was reminded.
+   */
+  recovered?: { reminded: number; recovered: number; revenue_paise: number; rate: number } | null;
   series: { day: string; revenue_paise: number; orders: number }[];
   recent: {
     order_number: string;

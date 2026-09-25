@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { orderStatusTone, TONE_BAR } from "@/components/ui/badge";
 import {
   IconChart, IconBox, IconTruck, IconKey, IconTag, IconClock,
-  IconWarehouse, IconGauge, IconArrowRight, IconSearchChart,
+  IconWarehouse, IconGauge, IconArrowRight, IconSearchChart, IconCart, IconMail,
 } from "@/components/icons";
 import type { StoreDashboard } from "@/types/api";
 import type { SVGProps } from "react";
@@ -320,6 +320,8 @@ export default async function StoreDashboardPage({
   }
 
   const { revenue, orders, catalogue, attention, funnel, series, recent, low_stock, codes_low } = data;
+  // Absent from an API older than the reminders; null when none went out.
+  const recovered = data.recovered ?? null;
 
   /*
    * The attention band renders only what is actually waiting.
@@ -464,6 +466,32 @@ export default async function StoreDashboardPage({
               : funnel.product_views === 0
                 ? "No product page was opened in the window"
                 : "Paid orders over product views"
+          }
+        />
+        {/*
+          What the basket reminders brought back. A dash while nothing was
+          reminded — switched off, or nobody left a basket with an address —
+          because "0 of 0" reads as a feature that failed rather than one
+          that has not run.
+        */}
+        <Figure
+          label="Baskets recovered"
+          icon={IconCart}
+          value={recovered === null ? "—" : `${recovered.recovered} of ${recovered.reminded}`}
+          footnote={
+            recovered === null
+              ? "No basket reminder went out in the window"
+              : `${(recovered.rate * 100).toFixed(1)}% of reminded baskets became an order`
+          }
+        />
+        <Figure
+          label="Recovered revenue"
+          icon={IconMail}
+          value={recovered === null ? "—" : formatPaise(recovered.revenue_paise)}
+          footnote={
+            recovered === null
+              ? "Switch reminders on in Store → Settings"
+              : "Paid orders placed from a reminded basket"
           }
         />
       </section>

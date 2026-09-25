@@ -286,6 +286,18 @@ class Checkout
              */
             $cart->items()->delete();
 
+            /*
+             * The basket is marked as having become this order.
+             *
+             * It is what stops the reminders — an emptied basket is not
+             * selected anyway, but a stamp says why — and it is what the store
+             * dashboard counts as *recovered*, though only for a basket that
+             * had been reminded first: an order from a basket nobody was
+             * emailed about is an ordinary order. Through the query builder,
+             * so the idle clock the reminders read does not move.
+             */
+            Cart::whereKey($cart->id)->toBase()->update(['recovered_order_id' => $order->id]);
+
             $order->load('items');
 
             /*
