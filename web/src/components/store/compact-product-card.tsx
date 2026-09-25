@@ -3,6 +3,7 @@ import { IconBox } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { formatPaise, percentOff } from "@/lib/money";
 import { CardImages } from "@/components/store/card-images";
+import { RatingPill } from "@/components/store/rating-pill";
 import { CompactAdd } from "@/components/store/compact-add";
 import { QuickView } from "@/components/store/quick-view";
 import type { StoreProduct } from "@/types/api";
@@ -27,9 +28,8 @@ import type { StoreProduct } from "@/types/api";
  * between the two listings — the one thing about a card that should not depend
  * on which page it is being shown on.
  *
- * No star rating, no wishlist heart — same reason as `StoreProductCard`: no
- * rating data exists anywhere in this product, and inventing one would be
- * the fabrication this codebase consistently refuses elsewhere.
+ * The rating pill sits bottom-left, opposite the ADD pill, and only once a
+ * review has been published (`RatingPill`) — never an invented one.
  */
 export function CompactProductCard({ product, priority = false }: { product: StoreProduct; priority?: boolean }) {
   const discounted = Boolean(product.compare_at_paise && product.compare_at_paise > product.price_paise);
@@ -60,6 +60,7 @@ export function CompactProductCard({ product, priority = false }: { product: Sto
           </span>
         )}
 
+        <RatingPill rating={product.rating} className="bottom-2 left-2" />
         {/* A sibling of the Link, not a child of it — see StoreProductCard. */}
         <CompactAdd product={product} />
       </div>
