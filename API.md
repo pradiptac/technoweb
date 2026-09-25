@@ -886,6 +886,9 @@ here reads `products`.
 | `POST` | `/payments/{gateway}/webhook` | The gateway talking to us. **Un-throttled** |
 | `POST` | `/store/products/{slug}/notify` | "Email me when this is back": `email`, `variation_id?`, honeypot `website`. Throttled 10/min. **202 and one sentence always** |
 | `GET` | `/store/stock-notices/{token}/cancel` | The link in the email. Idempotent; `{message}`, 200 for a token nobody has too |
+| `GET` | `/store/products/{slug}/reviews` | Published reviews, 6 a page. `?sort=featured\|newest\|highest\|lowest` (unknown → featured), `?page=`. `meta`: `sort`, `average` (null with none), `count`, `distribution` `{5..1}`. Rows: `id`, `display_name`, `verified`, `variant_label`, `rating`, `title`, `body`, `published_at` |
+| `GET` | `/store/products/{slug}/reviews/mine` | **Portal token.** The caller's own review in any status, or `data: null`; `meta.can_review`, `meta.verified` |
+| `POST` | `/store/products/{slug}/reviews` | **Portal token.** `rating` 1–5, `title?` (120), `body` (2–2000, plain text), honeypot `website`. Throttled 10/min. **202 and one sentence**; creates or rewrites the caller's one review, always back to `pending` |
 
 **`/store/products/{slug}/notify` answers 202 and one sentence whatever
 happened, the `/auth/register` rule.** A filled honeypot, an address on
@@ -3178,7 +3181,7 @@ the truth about it.
 
 ### Email templates
 
-Every one of the 27 system emails, editable.
+Every one of the 29 system emails, editable.
 
 | Method | Path | Notes |
 |---|---|---|
@@ -3190,7 +3193,7 @@ Every one of the 27 system emails, editable.
 | `POST` | `/admin/settings/email-templates/{key}/test` | Sends the draft to the caller. Throttled 6/min |
 
 **`{key}` is a plain string, not a bound model.** There is no row for an
-uncustomised message and binding would 404 on 27 of 27 on a fresh install.
+uncustomised message and binding would 404 on 29 of 29 on a fresh install.
 
 **Two switches, and they mean different things.** `is_enabled` is "use my
 wording" — false puts the built-in text back and the message still goes.
@@ -3688,3 +3691,36 @@ job sitting for an hour is a broken deployment.
 
 Nothing outstanding in the brief. See `PROGRESS.md` for what remains before
 launch, which is content and configuration rather than code.
+
+---
+
+## Store reviews (2026-09-26)
+
+See `docs/store.md`, "Reviews". The public and portal routes are listed under
+"The store".
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/store/reviews` | `role:store_manager`. `?status=` (blank = waiting, `all` = every status), `?rating=`, `?product=` (id), `?verified=0\|1`, `?q=` (words, name, customer email, product), `?sort=created\|rating\|published` with `?dir=`, `?per_page=` (max 100). `meta.statuses`, `meta.pending_count`, `meta.sorts` |
+| `POST` | `/admin/store/reviews/moderate` | `ids[]` (max 200), `status` of `pending`/`published`/`rejected`/`spam`. One row at a time, so `published_at`, the moderator and the product's summary follow. `{moved, pending_count, slugs}` |
+| `PATCH` | `/admin/store/reviews/{id}` | `is_featured` |
+| `DELETE` | `/admin/store/reviews/{id}` | For good; rejecting is the reversible choice |
+
+**Every write goes back to the queue.** A customer's second `POST` rewrites
+their one review, returns it to `pending` and clears `is_featured`;
+`published_at` is never cleared. **Verified** is a line for the product on one
+of the caller's `Order::paid()` orders, re-read on every write.
+
+**`rating` on the store product resource** (index and detail) is
+`{average, count}` from the product's stored summary, or **null** until a
+review is published. The detail's `schema` gains `aggregateRating` and up to
+five `review` nodes under the same condition.
+
+**`GET /my/orders/{number}`** carries `my_review` on each item —
+`{status, status_label, rating}` or null — and `slug` only while the product is
+published. **`/admin/store/dashboard`** carries `attention.reviews_pending`.
+
+**The review request.** `technoware:request-reviews` (hourly) sends
+`review_request` once per order `store_review_request_days` after dispatch
+(or payment, when nothing ships), inside `QuietHours`, while
+`store_review_requests_enabled`; both settings are in the `store` group.
