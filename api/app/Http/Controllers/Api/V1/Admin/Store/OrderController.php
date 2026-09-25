@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Api\V1\Admin\Store;
 
+use App\Enums\MessageEvent;
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\Store\OrderResource;
 use App\Models\Order;
 use App\Notifications\OrderDispatched;
 use App\Support\ListSort;
+use App\Support\Messaging\OrderMessages;
 use App\Support\Notifier;
 use App\Support\Store\DigitalFulfilment;
 use App\Support\Store\Payments\ManualPayment;
@@ -120,6 +122,7 @@ class OrderController extends Controller
          */
         if ($next === OrderStatus::Dispatched) {
             Notifier::to($order->customer_email, new OrderDispatched($order->fresh()));
+            OrderMessages::order(MessageEvent::OrderDispatched, $order->fresh());
         }
 
         return new OrderResource($order->fresh(['items', 'payments', 'history', 'notes']));

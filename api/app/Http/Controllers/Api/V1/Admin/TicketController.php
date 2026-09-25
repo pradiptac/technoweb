@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Notifications\TicketMerged;
 use App\Notifications\TicketReplied;
 use App\Support\ListSort;
+use App\Support\Messaging\OrderMessages;
 use App\Support\Notifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -364,6 +365,8 @@ class TicketController extends Controller
         if (! $isInternal) {
             $ticket->loadMissing('customer');
             Notifier::send($ticket->customer, new TicketReplied($ticket, $message, toCustomer: true));
+            // Inside the same `! $isInternal` guard: a note never reaches a phone either.
+            OrderMessages::ticketReplied($ticket);
         }
 
         return response()->json(['data' => new TicketMessageResource($message->load(['author', 'attachments']))], 201);

@@ -2,6 +2,7 @@
 
 namespace App\Support\Store\Payments;
 
+use App\Enums\MessageEvent;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
@@ -12,6 +13,7 @@ use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
 use App\Notifications\OrderPaid;
 use App\Notifications\OrderReceived;
+use App\Support\Messaging\OrderMessages;
 use App\Support\Notifier;
 use App\Support\Store\Checkout;
 use App\Support\Store\DigitalFulfilment;
@@ -124,6 +126,7 @@ class Settlement
             $order->refresh()->loadMissing('items');
 
             Notifier::to($order->customer_email, new OrderPaid($order));
+            OrderMessages::order(MessageEvent::OrderPaid, $order);
             Notifier::to(Setting::get('support_email'), new OrderReceived($order));
 
             return $payment;

@@ -35,6 +35,9 @@ use App\Models\Media;
 use App\Models\MediaFolder;
 use App\Models\Menu;
 use App\Models\MenuItem;
+use App\Models\MessageBroadcast;
+use App\Models\MessageContact;
+use App\Models\MessageTemplate;
 use App\Models\NewsletterCampaign;
 use App\Models\NewsletterGroup;
 use App\Models\NewsletterImport;
@@ -227,6 +230,10 @@ class AppServiceProvider extends ServiceProvider
             'newsletter_template' => NewsletterTemplate::class,
             'newsletter_sequence' => NewsletterSequence::class,
             'newsletter_sequence_enrolment' => NewsletterSequenceEnrolment::class,
+            // Messaging channels: bound in admin routes, so activity subjects.
+            'message_template' => MessageTemplate::class,
+            'message_broadcast' => MessageBroadcast::class,
+            'message_contact' => MessageContact::class,
 
             /*
              * The store's own catalogue. `store_product` rather than

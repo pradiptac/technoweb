@@ -1043,6 +1043,69 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'integrations', 'key' => 'ga4_property_id', 'value' => null, 'type' => 'string'],
             ['group' => 'integrations', 'key' => 'ga4_error', 'value' => null, 'type' => 'string'],
 
+            /*
+             * Messaging channels — WhatsApp, RCS and browser push (Messaging →
+             * Settings, administrators only). Private like `mail`: every
+             * credential here is `is_secret`, blank on a save means unchanged,
+             * and none is ever returned. A channel whose provider is blank is
+             * off. `App\Enums\MessageChannel` and the three provider enums are
+             * the list of what each provider reads.
+             *
+             * `messaging_promo_start` / `_end` are the quiet-hours window
+             * `App\Support\Messaging\QuietHours` reads: promotional messages —
+             * basket reminders, wishlist notes, broadcasts — go out only
+             * inside it, in the app's timezone (IST). Transactional ones go at
+             * any hour.
+             *
+             * `messaging_webhook_secret` verifies the providers that sign
+             * nothing (Gupshup), on the callback URL as `?token=`. Without it
+             * their webhooks accept nothing — a forged STOP would opt people
+             * out in silence, the bounce webhook's argument.
+             */
+            ['group' => 'messaging', 'key' => 'messaging_whatsapp_provider', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'messaging_rcs_provider', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'messaging_push_provider', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'messaging_promo_start', 'value' => '09:00', 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'messaging_promo_end', 'value' => '21:00', 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'messaging_webhook_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'messaging', 'key' => 'whatsapp_meta_phone_number_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'whatsapp_meta_business_account_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'whatsapp_meta_access_token', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'messaging', 'key' => 'whatsapp_meta_app_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'messaging', 'key' => 'whatsapp_meta_verify_token', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'messaging', 'key' => 'whatsapp_gupshup_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'messaging', 'key' => 'whatsapp_gupshup_app_name', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'whatsapp_gupshup_app_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'whatsapp_gupshup_source', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'whatsapp_twilio_account_sid', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'whatsapp_twilio_auth_token', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'messaging', 'key' => 'whatsapp_twilio_from', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'rcs_rbm_agent_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'rcs_rbm_service_account', 'value' => null, 'type' => 'text', 'is_secret' => true],
+            ['group' => 'messaging', 'key' => 'rcs_rbm_client_token', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'messaging', 'key' => 'rcs_gupshup_userid', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'rcs_gupshup_password', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'messaging', 'key' => 'rcs_gupshup_bot_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'push_fcm_service_account', 'value' => null, 'type' => 'text', 'is_secret' => true],
+            // Why a channel last refused its credentials — the `mail_error`
+            // pattern, written by a failed send or test, cleared by a success.
+            ['group' => 'messaging', 'key' => 'messaging_whatsapp_error', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'messaging_rcs_error', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'messaging_push_error', 'value' => null, 'type' => 'string'],
+
+            /*
+             * The browser half of Firebase — public, because a browser cannot
+             * subscribe without it and none of it is a secret (Firebase's web
+             * config is in the page source of every site that uses it). The
+             * service account that *sends* is `push_fcm_service_account`
+             * above, private.
+             */
+            ['group' => 'push', 'key' => 'push_api_key', 'value' => null, 'type' => 'string'],
+            ['group' => 'push', 'key' => 'push_project_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'push', 'key' => 'push_messaging_sender_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'push', 'key' => 'push_app_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'push', 'key' => 'push_vapid_key', 'value' => null, 'type' => 'string'],
+
             // Social profiles. Seeded empty on purpose — a blank value hides
             // the icon, so the footer never links to a profile that does not
             // exist yet. Fill these in from Settings in the admin.

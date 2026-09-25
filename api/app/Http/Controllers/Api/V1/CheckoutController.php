@@ -106,6 +106,7 @@ class CheckoutController extends Controller
             'gstin' => $request->input('gstin'),
             'company_name' => $request->input('company_name'),
             'payment_method' => $request->input('payment_method'),
+            'message_opt_in' => (array) $request->input('message_opt_in', []),
         ]);
 
         /*
