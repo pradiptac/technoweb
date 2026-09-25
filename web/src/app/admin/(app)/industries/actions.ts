@@ -83,7 +83,10 @@ export async function updateIndustryAction(_p: IndustryFormState, formData: Form
 export async function deleteIndustryAction(formData: FormData) {
   const id = Number(formData.get("id"));
   if (!id) return;
-  await deleteIndustry(id).catch(() => null);
+  // Only a delete the API accepted may purge anything: a refusal (in use,
+  // a role, a network error) used to purge the caches and report success.
+  const deleted = await deleteIndustry(id).then(() => true, () => false);
+  if (!deleted) redirect("/admin/industries?done=not-deleted");
   updateTag("industries");
   updateTag("menu");
   revalidatePath("/admin/industries");

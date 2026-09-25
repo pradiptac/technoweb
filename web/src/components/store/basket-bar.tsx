@@ -5,9 +5,8 @@ import Link from "next/link";
 import { IconBox, IconCart } from "@/components/icons-ui";
 import { CheckoutLink } from "@/components/store/checkout-confetti";
 import { RemoveLineButton } from "@/components/store/remove-line-button";
-import { useBasket } from "@/lib/basket-events";
+import { useBasket, type BasketView } from "@/lib/basket-events";
 import { formatPaise } from "@/lib/money";
-import type { CartSummary } from "@/types/api";
 
 /**
  * The basket, as the shop's chrome shows it.
@@ -181,7 +180,7 @@ export function BasketIndicator() {
  * hydration. On touch there is no hover to trigger it, which is the right
  * outcome here too — the icon still opens `/cart` on a tap.
  */
-function BasketPreview({ cart }: { cart: CartSummary }) {
+function BasketPreview({ cart }: { cart: BasketView }) {
   const shown = cart.items.slice(0, 5);
   const overflow = cart.items.length - shown.length;
 

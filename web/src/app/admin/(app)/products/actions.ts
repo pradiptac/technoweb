@@ -101,7 +101,10 @@ export async function updateProductAction(_p: ProductFormState, formData: FormDa
 export async function deleteProductAction(formData: FormData) {
   const id = Number(formData.get("id"));
   if (!id) return;
-  await deleteProduct(id).catch(() => null);
+  // Only a delete the API accepted may purge anything: a refusal (in use,
+  // a role, a network error) used to purge the caches and report success.
+  const deleted = await deleteProduct(id).then(() => true, () => false);
+  if (!deleted) redirect("/admin/products?done=not-deleted");
   updateTag("products");
   revalidatePath("/admin/products");
   redirect("/admin/products?deleted=1");

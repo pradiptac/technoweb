@@ -104,7 +104,10 @@ export async function deleteCaseStudyAction(formData: FormData) {
   const id = Number(formData.get("id"));
   if (!id) return;
 
-  await deleteCaseStudy(id).catch(() => null);
+  // Only a delete the API accepted may purge anything: a refusal (in use,
+  // a role, a network error) used to purge the caches and report success.
+  const deleted = await deleteCaseStudy(id).then(() => true, () => false);
+  if (!deleted) redirect("/admin/case-studies?done=not-deleted");
   updateTag("case-studies");
   revalidatePath("/admin/case-studies");
   redirect("/admin/case-studies?deleted=1");

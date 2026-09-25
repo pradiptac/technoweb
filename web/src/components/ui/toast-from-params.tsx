@@ -81,6 +81,17 @@ const OUTCOMES: Record<string, Message> = {
     title: "Block deleted",
     body: "Anything embedding its shortcode now renders nothing in its place.",
   },
+  /*
+    The twelve content lists' delete (pages, posts, articles, case studies,
+    solutions, services, industries, products, categories, brands, FAQs,
+    landing pages) when the API refused it. Those actions used to swallow the
+    refusal and report "deleted" — and purge the caches — whatever happened.
+  */
+  "not-deleted": {
+    tone: "err",
+    title: "Could not delete that",
+    body: "Nothing was changed and it is still there. If it keeps failing, something may still depend on it.",
+  },
   "block-not-deleted": {
     tone: "err",
     title: "Could not delete the block",

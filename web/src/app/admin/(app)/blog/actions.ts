@@ -86,7 +86,10 @@ export async function deletePostAction(formData: FormData) {
   const id = Number(formData.get("id"));
   if (!id) return;
 
-  await deleteBlogPost(id).catch(() => null);
+  // Only a delete the API accepted may purge anything: a refusal (in use,
+  // a role, a network error) used to purge the caches and report success.
+  const deleted = await deleteBlogPost(id).then(() => true, () => false);
+  if (!deleted) redirect("/admin/blog?done=not-deleted");
   updateTag("blog");
   revalidatePath("/admin/blog");
   redirect("/admin/blog?deleted=1");
