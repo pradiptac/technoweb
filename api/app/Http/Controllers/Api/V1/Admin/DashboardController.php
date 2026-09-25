@@ -146,7 +146,21 @@ class DashboardController extends Controller
                 'sla_first_response' => TicketMetrics::slaFirstResponse(),
                 'open_by_priority' => TicketMetrics::openBy('priority'),
                 'open_by_category' => TicketMetrics::openBy('category'),
-            ]),
+            ]) + [
+                /*
+                 * The volume chart over the period the console asked for
+                 * (`?volume=month|quarter|half|year`, the client 2026-09-24),
+                 * cached per period beside the block above. `volume` stays
+                 * the 30-day daily series the tiles are measured over; this
+                 * is only what the chart draws.
+                 */
+                'volume_series' => (function () use ($request) {
+                    $period = $request->string('volume')->value();
+                    $period = array_key_exists($period, TicketMetrics::VOLUME_PERIODS) ? $period : 'month';
+
+                    return Cache::remember(self::METRICS_CACHE_KEY.':volume:'.$period, 60, fn () => TicketMetrics::volume($period));
+                })(),
+            ],
             /*
              * Keyed by the enum value, not its label.
              *

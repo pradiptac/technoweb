@@ -60,7 +60,10 @@ class NewsletterController extends Controller
             return $answer;
         }
 
-        if (Setting::get('newsletter_signup_enabled') === '0') {
+        // A `boolean` row: `Setting::get()` casts it, so off is `false`, never
+        // the string '0' this compared against until 2026-09-24 — when
+        // switching signup off refused nothing.
+        if (! filter_var(Setting::get('newsletter_signup_enabled', true), FILTER_VALIDATE_BOOL)) {
             return response()->json(['message' => 'Newsletter signup is closed.'], 403);
         }
 

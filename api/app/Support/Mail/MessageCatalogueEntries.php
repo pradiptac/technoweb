@@ -5,6 +5,7 @@ namespace App\Support\Mail;
 use App\Notifications\ActivationProcedureIssued;
 use App\Notifications\ApplicationAcknowledged;
 use App\Notifications\BackInStock;
+use App\Notifications\BlockLeadCaptured;
 use App\Notifications\ChatLeadCaptured;
 use App\Notifications\ChatQuestionUnanswered;
 use App\Notifications\CommentAwaitingModeration;
@@ -656,6 +657,27 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     .'<p><strong>Asked from:</strong> {{source_path}}</p>'
                     .'<p><a href="{{url}}">Read the conversation</a></p>'
                     .'<p>The unanswered list groups this with anyone else who asked the same thing.</p>',
+            ],
+
+            'block_lead_captured' => [
+                'label' => 'Download or webinar sign-up from a banner — to the desk',
+                'description' => 'Sent when somebody downloads a gated file or registers for a webinar through a CTA banner.',
+                'audience' => self::INTERNAL,
+                'class' => BlockLeadCaptured::class,
+                'variables' => [
+                    'name' => ['about' => 'Who it was, or “Somebody”.', 'sample' => 'Priya Sharma'],
+                    'action' => ['about' => '“downloaded” or “registered for”.', 'sample' => 'downloaded'],
+                    'banner' => ['about' => 'The banner’s heading — the file or the event.', 'sample' => 'The 2026 network readiness checklist'],
+                    'details' => self::details('Their email, phone and company, where each was given.', '<p><strong>Email:</strong> priya@meridianfoods.test</p>'),
+                    'source_path' => ['about' => 'The page the banner was on.', 'sample' => '/solutions/networking'],
+                    'url' => ['about' => 'The lead in the console.', 'sample' => 'https://www.technoware.in/admin/leads/42'],
+                ],
+                'subject' => 'New lead: {{name}} {{action}} “{{banner}}”',
+                'body' => '<p>A new lead from a banner on the website.</p>'
+                    .'<p><strong>{{name}}</strong> {{action}} “{{banner}}”.</p>'
+                    .'{{details}}'
+                    .'<p><strong>On the page:</strong> {{source_path}}</p>'
+                    .'<p><a href="{{url}}">Open this lead</a></p>',
             ],
         ];
     }

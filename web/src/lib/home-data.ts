@@ -1,3 +1,4 @@
+import type { ContentBlock } from "@/types/api";
 import "server-only";
 import { publicApi } from "@/lib/api";
 import { getSiteSettings } from "@/lib/settings";
@@ -42,5 +43,22 @@ export async function loadHome(): Promise<HomeData> {
     publicApi.slider("homepage-hero").then((r) => r.data).catch(() => null),
   ]);
 
-  return { settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider };
+  /*
+    The homepage's block sections (2026-09-24), chosen by slug in the
+    `homepage` settings. A second round, but only for what is chosen, each
+    cached like any block and each caught on its own: a draft, a deleted
+    block or one of the wrong kind is simply not drawn, never a failed page.
+  */
+  const block = async (slug: string | undefined, type: ContentBlock["type"]) => {
+    if (!slug) return null;
+    const found = await publicApi.block(slug).then((r) => r.data).catch(() => null);
+    return found && found.type === type ? found : null;
+  };
+  const [stats, pricing, stack] = await Promise.all([
+    block(settings.home_stats_block, "stats"),
+    block(settings.home_pricing_block, "pricing"),
+    block(settings.home_stack_block, "stack"),
+  ]);
+
+  return { settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, blocks: { stats, pricing, stack } };
 }

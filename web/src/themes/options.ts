@@ -133,6 +133,11 @@ export const HOME_SECTIONS: readonly { id: string; label: string }[] = [
   { id: "support", label: "Support band" },
   { id: "cases", label: "Case studies" },
   { id: "resources", label: "Resources" },
+  // Content blocks (2026-09-24): drawn only when one is chosen in Site →
+  // Settings → Homepage; placed and switched here like any section.
+  { id: "stats_block", label: "Stat bar (block)" },
+  { id: "stack", label: "Technology stack (block)" },
+  { id: "pricing", label: "Pricing (block)" },
   { id: "cta", label: "Closing band" },
 ];
 

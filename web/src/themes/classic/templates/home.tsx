@@ -1,3 +1,4 @@
+import { homeBlockSections } from "@/components/blocks/home-block-sections";
 import { Hero } from "@/components/home/hero";
 import {
   CaseStudies, Credentials, Industries, Partners, ProductCategories,
@@ -32,7 +33,7 @@ import { orderSections, type ThemeOptions } from "@/themes/options";
  * renamed here is a setting an editor made that stops applying.
  */
 export function Home({
-  settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, options,
+  settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
 }: HomeData & { options: ThemeOptions }) {
   const bg = { sections: options.sections, seeds: homeSeeds(settings) };
   const SECTIONS = [
@@ -52,6 +53,7 @@ export function Home({
     // 2xl:grid-cols-6, matching the product category grid — six is one full row.
     { id: "cases", node: <CaseStudies items={caseStudies.data.slice(0, 6)} /> },
     { id: "resources", node: <Resources items={posts.data.slice(0, 4)} /> },
+    ...homeBlockSections(blocks),
     { id: "cta", node: <CtaBand tone="brand" size="lg" backdrop={motionFor(settings).hero} className="pt-0 pb-19 lg:pb-23" /> },
   ];
 

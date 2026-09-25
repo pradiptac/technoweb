@@ -130,3 +130,17 @@ those. The refusal panel — "waiting for approval" as an info panel with
 nothing to press, "confirm your address" with the resend beside it — lives
 in the shared form and never fires for the console, whose actions set no
 `reason`. The audit signs in through it on every run, which is the test.
+
+## Seven more backgrounds (2026-09-24)
+
+Wave grid, Aurora, Fluid morph, Twisting ribbon, Animated rays, Perspective
+grid and Light lines, after Vengeance UI's backgrounds — read as behaviour
+and re-drawn on the same 2D canvas as the first eight. The references' wave
+grid is a three.js scene with post-processing and the fluid morph is
+framer-motion; neither is added. The scenes moved out of `auth-backdrop.tsx`
+into `components/layout/backdrop-scenes/` (`shared.ts`, `original.ts` for
+the first eight verbatim, `vengeance.ts`, `index.ts` typed as the full
+record so an id without a scene is a type error). Scenes now receive
+`input.pointer` — listened for on the panel, only while animating — which
+the wave grid ripples from. The ribbon turns three times, not the
+reference's six: at panel width six read as a string of beads.

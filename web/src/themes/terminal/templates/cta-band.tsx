@@ -22,6 +22,9 @@ export function CtaBand({
   size = "md",
   className,
   phone,
+  kicker,
+  primary,
+  secondary,
 }: CtaBandProps) {
   // The rule alone carries the tone: a coloured `$` on the `ink` box read at
   // 1.59:1 in dark, where `ink` is light and the 300 step is too — the
@@ -36,16 +39,23 @@ export function CtaBand({
         >
           <p className="font-mono text-12-5 opacity-80"><span className="font-bold">$</span> book --site-audit</p>
           <div className="mt-4 grid gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-12">
+            {kicker && <p className="mb-3 text-12 font-semibold uppercase tracking-[.14em]">{kicker}</p>}
             <h2 className={cn(size === "lg" ? "display-2" : "display-3", "text-balance")}>{title}</h2>
             <div>
               <p className="text-15 leading-relaxed opacity-85"><span aria-hidden className="font-mono">{"> "}</span>{body}</p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <ButtonLink href="/contact" variant="secondary" className="border-page/40 bg-page text-ink hover:bg-page/90">
-                  book a site audit <IconArrowRight />
+                <ButtonLink href={primary?.href || "/contact"} variant="secondary" className="border-page/40 bg-page text-ink hover:bg-page/90">
+                  {primary?.label || "book a site audit"} <IconArrowRight />
                 </ButtonLink>
-                <ButtonLink href={telHref(phone)} variant="secondary" className="border-page/40 bg-transparent text-page hover:bg-page/10">
-                  call {phone}
-                </ButtonLink>
+                {secondary === null ? null : secondary ? (
+                  <ButtonLink href={secondary.href} variant="secondary" className="border-page/40 bg-transparent text-page hover:bg-page/10">
+                    {secondary.label}
+                  </ButtonLink>
+                ) : (
+                  <ButtonLink href={telHref(phone)} variant="secondary" className="border-page/40 bg-transparent text-page hover:bg-page/10">
+                    call {phone}
+                  </ButtonLink>
+                )}
               </div>
             </div>
           </div>

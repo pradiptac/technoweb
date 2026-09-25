@@ -13,7 +13,8 @@
  * the brand gradient and grid when none is. An install that never opens
  * the tab changes nothing on deploy.
  *
- * Every animation is drawn by `components/layout/auth-backdrop.tsx` in the
+ * Every animation is drawn by `components/layout/auth-backdrop.tsx` (the
+ * scenes themselves in `components/layout/backdrop-scenes/`) in the
  * theme's own brand, secondary and accent hues, read from the CSS tokens at
  * mount — so a palette change reaches the sign-in screen without a second
  * list of colours here. Under `prefers-reduced-motion` each one draws a
@@ -23,7 +24,8 @@ export type LoginChoice = { id: string; label: string; note: string };
 
 export type LoginBackdropId =
   | "image" | "particles" | "waves" | "circuit" | "geometric"
-  | "dataflow" | "gradient" | "quantum" | "stars";
+  | "dataflow" | "gradient" | "quantum" | "stars"
+  | "wavegrid" | "aurora" | "fluid" | "ribbon" | "rays" | "perspective" | "lightlines";
 
 export const BACKDROPS: (LoginChoice & { id: LoginBackdropId })[] = [
   { id: "image", label: "Picture", note: "The sign-in image below, or the brand gradient when none is set. The screen as it has always been." },
@@ -35,6 +37,13 @@ export const BACKDROPS: (LoginChoice & { id: LoginBackdropId })[] = [
   { id: "gradient", label: "Gradient", note: "Three washes of the theme's colours, drifting into one another." },
   { id: "quantum", label: "Quantum", note: "Points orbiting field centres, with rings that breathe." },
   { id: "stars", label: "Stars", note: "A starfield with depth, drifting slowly and twinkling." },
+  { id: "wavegrid", label: "Wave grid", note: "An isometric field of cells rippling outward from the pointer, and from quiet spots of their own." },
+  { id: "aurora", label: "Aurora", note: "Soft light drifting behind a row of fluted glass." },
+  { id: "fluid", label: "Fluid morph", note: "Glowing shapes whose outlines never settle, flowing into one another." },
+  { id: "ribbon", label: "Twisting ribbon", note: "One ribbon across the panel, waving and turning over as it goes." },
+  { id: "rays", label: "Animated rays", note: "A fan of light falling from above, swaying and breathing." },
+  { id: "perspective", label: "Perspective grid", note: "A floor grid running toward a glowing horizon." },
+  { id: "lightlines", label: "Light lines", note: "Long flowing lines with light travelling along them." },
 ];
 
 export type LoginIntensityId = "low" | "medium" | "high";

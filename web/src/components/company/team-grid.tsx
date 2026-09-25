@@ -77,7 +77,16 @@ export function TeamGrid({
               <span className="text-13-5 text-muted">{g.members.length}</span>
             </div>
           )}
-          <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {/*
+            Medium cards whatever the width (the client, 2026-09-24): a column
+            is 15rem at least and the row fills with as many as fit —
+            three at ~900px, five at 1440, one at 320. It used to be
+            `sm:2 / lg:3 / xl:4`, which put two ~550px cards across a
+            900px window. `auto-fill`, not `auto-fit`: a department of two
+            keeps two medium cards and leaves the empty tracks empty,
+            rather than stretching both across the row.
+          */}
+          <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-5">
             {g.members.map((m, i) => (
               <li
                 key={m.id}
@@ -95,8 +104,8 @@ export function TeamGrid({
                       src={m.photo}
                       alt={m.photo_alt}
                       fill
-                      sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
-                      loading={gi === 0 && i < 4 ? "eager" : undefined}
+                      sizes="(min-width: 640px) 320px, 100vw"
+                      loading={gi === 0 && i < 5 ? "eager" : undefined}
                       className="object-cover transition-[scale] duration-(--duration-slow) ease-brand motion-safe:group-hover/member:scale-[1.03]"
                       style={focalStyle(m.photo_focus)}
                     />

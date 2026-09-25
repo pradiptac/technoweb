@@ -317,6 +317,15 @@ export const NAV: NavItem[] = [
       { role: "content_manager", href: "/admin/galleries", label: "Galleries", icon: IconImage },
       { role: "content_manager", href: "/admin/popups", label: "Popups", icon: IconLayers },
       /*
+        Content blocks (2026-09-24): one entity, four rows, the kind in the
+        path so each row matches its own list, form and preview — and the
+        role gate finds a row for every one of those screens.
+      */
+      { role: "content_manager", href: "/admin/blocks/cta", label: "CTA banners", icon: IconMegaphone },
+      { role: "content_manager", href: "/admin/blocks/stats", label: "Stat bars", icon: IconChart },
+      { role: "content_manager", href: "/admin/blocks/pricing", label: "Pricing", icon: IconGrid },
+      { role: "content_manager", href: "/admin/blocks/stack", label: "Technology stack", icon: IconLayers },
+      /*
         The announcement strip, at the client's request beside Popups — it
         is a thing on the site rather than a setting, whatever table it
         lives in. A deep link into the settings screen's own tab, and the

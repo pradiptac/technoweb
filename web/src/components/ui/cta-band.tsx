@@ -1,10 +1,11 @@
 import type { BackdropVariant } from "@/components/ui/backdrop";
-import { contact } from "@/content/site";
-import { getSiteSettings } from "@/lib/settings";
-import { activeTheme } from "@/themes";
+import { CtaBlock } from "@/components/blocks/cta-block";
+import { ThemeBand } from "@/components/ui/theme-band";
+import { publicApi } from "@/lib/api";
 
 /**
- * The closing band on twenty-three public pages, the homepage included.
+ * The closing band on twenty-three public pages, the homepage included —
+ * the site's default CTA banner when one is chosen in the console.
  *
  * A dispatcher since 2026-09-16: the pages keep this import and the active
  * theme decides what the band looks like. The telephone number is resolved
@@ -30,8 +31,39 @@ export async function CtaBand(props: {
   /** On the `<section>` — the homepage overrides `section-y` with a bottom-only padding. */
   className?: string;
 }) {
-  const [theme, settings] = await Promise.all([activeTheme(), getSiteSettings()]);
-  const Band = theme.templates.CtaBand;
+  /*
+    The site's default CTA banner (2026-09-24), chosen in the console. None
+    chosen, or the API unreachable, is the band exactly as it was — the
+    theme's own words — so the default is additive and a dead API cannot
+    take the foot of every page with it.
 
-  return <Band {...props} phone={settings.phone ?? contact.phone} options={theme.options} />;
+    A page that passes its own `title`/`body` ("Thinking about firewalls?")
+    keeps them; the kicker, the buttons and the layout come from the
+    default. A `band` default is drawn by the theme; any other layout by
+    `CtaBlock`, on the page's own spacing.
+  */
+  const fallback = await publicApi.defaultCta().then((r) => r.data).catch(() => null);
+  if (!fallback || fallback.type !== "cta") return <ThemeBand {...props} />;
+
+  if (fallback.layout !== "band") {
+    return <CtaBlock block={fallback} override={{ heading: props.title, body: props.body }} className={props.className} />;
+  }
+
+  const c = fallback.content;
+  const secondary = c.secondary_mode === "none"
+    ? null
+    : c.secondary_mode === "link" && c.secondary?.label && c.secondary?.href
+      ? { label: c.secondary.label, href: c.secondary.href }
+      : undefined;
+
+  return (
+    <ThemeBand
+      {...props}
+      title={props.title ?? c.heading}
+      body={props.body ?? c.body ?? undefined}
+      kicker={c.kicker ?? undefined}
+      primary={c.primary ?? undefined}
+      secondary={secondary}
+    />
+  );
 }

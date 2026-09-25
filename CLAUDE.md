@@ -143,6 +143,7 @@ Contents:
   - Site themes — `docs/themes.md`
   - Email to ticket — `docs/tickets.md`
   - Icon packs — `docs/icons.md`
+  - Content blocks — `docs/blocks.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -1975,6 +1976,7 @@ Account lifecycle, registration, the one address definition, company suggestions
 ### Sign-in — `docs/auth.md`
 
 Codes, passwords, the two principals and what they must never share.
+- Fifteen sign-in backgrounds since 2026-09-24: the seven after Vengeance UI (wave grid, aurora, fluid morph, twisting ribbon, animated rays, perspective grid, light lines) are re-drawn on the same 2D canvas — no three.js, no framer-motion — in `components/layout/backdrop-scenes/`, the loop and palette staying in `auth-backdrop.tsx`; scenes receive the pointer (the wave grid ripples from it).
 
 - `default_login_method` decides which step a sign-in form opens on.
 - The two principals must not share anything keyed on a value they both hold.
@@ -2301,6 +2303,7 @@ Targeting, matching in the browser, the seen rules, the audit's dismissal.
 ### Sliders and galleries — `docs/sliders.md`
 
 Transitions, layouts, captions, the crossfade rules, the lightbox.
+- Cylinder and Ripple are the fifth and sixth slider layouts (2026-09-24, after Vengeance UI, MIT, re-drawn): the cylinder places cards with the `transform` function list (`rotateY` then `translateZ` — the individual properties compose the other way) and turns the ring with the `rotate` property one card per step on an unbounded counter; the ripple draws each change with raw WebGL from same-origin `/_next/image` textures (an API-origin image taints the canvas) over the real `<img>`, crossfading without WebGL, on reduced motion or for an SVG. Short sliders fall back to a banner, the cards/fan convention.
 
 - A gallery's transition is a per-gallery setting, and the list is the API's.
 - The transition keyframes write `transform`, and must not be mixed with Tailwind's utilities.
@@ -2411,6 +2414,7 @@ Role-filtered sidebar, the settings strip, the activity log, dashboard charts, c
 - A dashboard tile is a link to the list that produced its number, filtered the way the API counted it.
 - Ticket volume is two smooth curves rather than sixty bars (the client, 2026-09-23): SVG with `preserveAspectRatio="none"` and `vector-effect="non-scaling-stroke"`, `var(--color-info)`/`var(--color-ok)` in the gradient stops so nothing is a hex, and a Catmull-Rom spline at a sixth-of-the-span tension so the line never bows past a value nobody recorded. **The labels stay HTML** — the hero diagram's rule: SVG text scales with the viewBox.
 - The console keeps its dense desktop scale and steps one rung down below `sm` (the client, 2026-09-23): the stat tiles' 26px figure and 32px corner glyph, sized for six across, shout across a card the width of a 390px screen. "Sign out" is `IconSignOut` below `sm` with the words from `sm`, `aria-label` on the button either way — two words wrapped the header to a second row at 320px.
+- The volume chart takes a period (the client, 2026-09-24): `?volume=` on `/admin`, links rather than a client toggle so the page stays server-rendered, buckets chosen by the API (`TicketMetrics::VOLUME_PERIODS` — days, weeks, weeks, months) and cached per period; the tiles stay on thirty days. An icon picker is a one-row field whose grid opens in a `Modal` — never ~130 tiles inline on a page (same day).
 - A column heading sorts, and it is a link — `SortTh`, `?sort=`/`?dir=`, allowlisted per list by `ListSort`.
 - The ticket queue has a selection bar, and the selection is a module-level store read through `useSyncExternalStore`.
 - Ctrl/⌘ K opens a command palette, and its pages are the sidebar's rows plus every settings tab and every setting (`settingsPages()`, from `settings-copy.ts`; `?tab=` opens the panel and `#setting__<key>` scrolls to the field, with `scroll-margin-top` for the sticky header); records come through `/api/admin/search`.
@@ -2426,6 +2430,7 @@ Role-filtered sidebar, the settings strip, the activity log, dashboard charts, c
 ### The public site's chrome — `docs/site-chrome.md`
 
 Header, footer, banners, the logo cap, phone-width reversals.
+- The footer's social links are flip tiles by default (`social_style` `flip`|`dock`, `social_flip_word`, 2026-09-24): letters that turn to the icons on hover or focus-within via the CSS `rotate` property, icons shown outright where nothing can hover, an opacity swap under reduced motion. Reddit is the seventh profile (`social_reddit`, `IconReddit` drawn here; `#FF4500` on the footer 5.39:1, `#D93A00` behind white in the blog sidebar, 4.61:1).
 
 - The site header's desktop nav appears at 1280px, not 1160.
 - The footer's newsletter signup is a band, not a column widget.
@@ -2567,6 +2572,20 @@ Five packs measured, what each yielded and why the rest were refused.
 - `base` and `P` live in `icon-base.ts`, not in `icons.tsx`.
 - A wholesale import would have failed invisibly.
 - Icon packs are vendored, never depended on — `@tailgrids/icons` declares Babel and SVGR as runtime dependencies.
+
+### Content blocks — `docs/blocks.md`
+
+CTA banners, stat bars, pricing tables and technology stacks (2026-09-24): one entity, shortcodes, the default closing band, three homepage sections.
+
+- One table, `content_blocks`, with a `type`; each type its own layout enum, all with `options()` in the `SliderLayout` shape, sent as `meta.layouts`. The type is fixed once saved — a shortcode names the kind.
+- The wire field is `content`, the column `data`: a resource array holding a `data` key is not wrapped, and every read came back without its envelope.
+- `BlockRules::for($type, $layout)` asks each layout for exactly what it draws; `after()` checks media that exists, a priced plan, one comparison cell per plan, one picture per stack node. Every text field is plain text; buttons take `PopupRequest`'s link shape.
+- A gated download's file never appears in the public read (`has_download: true`); its URL is handed out only by `POST /blocks/{slug}/submit`, which also files `download`/`webinar` leads through `LeadIntake::fromBlock` and mails `block_lead_captured`.
+- One published CTA is the default (`makeDefault()`, drafts refused, unpublishing clears it); `GET /blocks/default/cta` is `{data: null}` in a 200. `CtaBand` draws a `band` default through the theme (`ThemeBand`, `kicker`/`primary`/`secondary` on all twelve templates) and any other layout through `CtaBlock`; pages that pass their own `title`/`body` keep them.
+- `newsletter_signup_enabled` is a `boolean` row — `Setting::get()` returns `false`, never `'0'`; `/newsletter/subscribe` compared it to `'0'` and never refused anybody until 2026-09-24.
+- A scroller holding sr-only children is `relative` (the comparison table, 188px at 360); a stack disc takes no percentage padding (it resolves against the parent's width — the logo box measured 0px in the wide detail card).
+- Console at `/admin/blocks/{type}` — the kind in the path, because `?type=` matched no sidebar row and `screenRole()` 404s a screen no row matches. Previews and showcases are `data-reveal-static`: the observer skips them, re-checked at intersection time because an async component streams as its own chunk outside the region first.
+- `home_stats_block`/`home_pricing_block`/`home_stack_block` are pickers of published blocks of that kind (API options, anything else refused); `homeBlockSections()` returns only chosen blocks, so none chosen draws no empty band; `HOME_SECTIONS` places them.
 
 ## Conventions
 
@@ -2722,6 +2741,10 @@ document reopens.
     certificate numbers, and the partner tiers on Cisco and Fortinet — the
     last being a claim about a third party. All create-only, so replacing
     them in the console is permanent.
+  - The sample content blocks from `ContentBlockSeeder` (2026-09-24): every
+    one a draft except `site-audit`, the default closing band, whose words
+    are the band's own; the stat samples reuse the hero's invented figures
+    and the pricing sample (AMC plans) is invented outright.
 - **The logo is a text placeholder.** `#4A5A2A` is sampled from a screenshot,
   not the real file. See `web/src/components/layout/logo.tsx`.
 - **`/privacy` and `/terms` are placeholder copy.** They read as real policy

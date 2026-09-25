@@ -1,3 +1,4 @@
+import { homeBlockSections } from "@/components/blocks/home-block-sections";
 import Link from "next/link";
 import { NocPanel } from "@/components/home/noc-panel";
 import {
@@ -40,7 +41,7 @@ import { StatValue } from "@/components/ui/stat-value";
  * clients, credentials, case studies, posts) whatever the room looks like.
  */
 export function Home({
-  settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, options,
+  settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
 }: HomeData & { options: ThemeOptions }) {
   const stats = statPairs(settings.hero_stats, heroStats);
   const look = statLookFor(settings);
@@ -159,6 +160,7 @@ export function Home({
     { id: "support", node: <SupportBand settings={settings} /> },
     { id: "cases", node: <CaseStudies items={caseStudies.data.slice(0, 6)} /> },
     { id: "resources", node: <Resources items={posts.data.slice(0, 4)} /> },
+    ...homeBlockSections(blocks),
     { id: "cta", node: <CtaBand tone="brand" size="lg" className="pt-0" /> },
   ];
 

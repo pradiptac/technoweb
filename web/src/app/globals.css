@@ -1,6 +1,11 @@
 @import "tailwindcss";
 /* Every theme's own rules, scoped under [data-theme]; see themes/themes.css for the ordering consequence. */
 @import "../themes/themes.css";
+/* The content blocks' own rules (2026-09-24). Here, not imported by the block
+   components: imported there it became its own CSS chunk, and because every
+   page's closing band can render a block, Next preloaded that chunk on every
+   route and warned it went unused — 143 routes in the audit. */
+@import "../components/blocks/blocks.css";
 
 /* ============================================================
    TECHNOWARE — design tokens
@@ -860,6 +865,15 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
   html[data-aos-ready] [data-aos="fade-down"] { transform: translateY(-20px); }
   html[data-aos-ready] [data-aos="zoom-in"]   { transform: scale(.97); }
   html[data-aos-ready] [data-aos="fade"]      { transform: none; }
+
+  /*
+   * A reveal-static region — the console's block previews — shows its
+   * content at rest and is never observed (reveal.tsx skips it). The
+   * console streams its pages in behind `loading.tsx`, after the shell has
+   * hydrated, and the observer stamping `data-aos-animate` on that markup is
+   * a hydration mismatch — the note on `loading.tsx` under (marketing).
+   */
+  html[data-aos-ready] [data-reveal-static] [data-aos] { opacity: 1; transform: none; }
 
   html[data-aos-ready] [data-aos][data-aos-animate] {
     opacity: 1;
@@ -3441,5 +3455,54 @@ nav[data-panel-swap] [data-panel-host]:hover > .panel-drop { transition-duration
     .add-basket[data-stage="idle"][data-from="added"] .add-basket__label-added { opacity: 1; }
     .add-basket[data-stage="idle"][data-from="added"] .add-basket__label-idle,
     .add-basket[data-stage="idle"][data-from="added"] .add-basket__arrow { opacity: 0; }
+  }
+}
+
+/*
+ * The footer's social flip tiles — components/layout/social-links.tsx.
+ *
+ * Unlayered like the other motion rules. The turn is the CSS `rotate`
+ * property, never a `transform` utility (the v4 trap): the card turns on the
+ * y axis and each face hides its back, so the letter shows at rest and the
+ * icon once the row is pointed at or tabbed into. The stagger is `--i`,
+ * set per item; the timing is the tokens, no new curve.
+ *
+ * Three cases that do not flip. A device that cannot hover shows the icons
+ * from the start — a word that only turns into icons under a pointer is a
+ * row of letters that goes nowhere on a phone. Reduced motion swaps the two
+ * faces by opacity instead of turning them. And the name tag is shown on
+ * hover and keyboard focus only; it is `aria-hidden`, the link's own label
+ * already names the network.
+ */
+.social-flip__tile { perspective: 600px; }
+.social-flip__card { transform-style: preserve-3d; }
+.social-flip__face { position: absolute; inset: 0; backface-visibility: hidden; }
+.social-flip__back { rotate: y 180deg; }
+.social-flip:is(:hover, :focus-within) .social-flip__card { rotate: y 180deg; }
+.social-flip__tip { opacity: 0; translate: -50% 4px; }
+.social-flip__tile:is(:hover, :focus-visible) .social-flip__tip { opacity: 1; translate: -50% 0; }
+
+@media (hover: none) {
+  .social-flip .social-flip__card { rotate: y 180deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .social-flip .social-flip__card,
+  .social-flip:is(:hover, :focus-within) .social-flip__card { rotate: none; }
+  .social-flip .social-flip__back { rotate: none; opacity: 0; }
+  .social-flip:is(:hover, :focus-within) .social-flip__back { opacity: 1; }
+  .social-flip:is(:hover, :focus-within) .social-flip__face:not(.social-flip__back) { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) and (hover: none) {
+  .social-flip .social-flip__back { opacity: 1; }
+  .social-flip .social-flip__face:not(.social-flip__back) { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  .social-flip__card {
+    transition: rotate var(--duration-slow) var(--ease-brand) calc(var(--i, 0) * 80ms);
+  }
+  .social-flip__tip {
+    transition: opacity var(--duration-fast) var(--ease-brand), translate var(--duration-fast) var(--ease-brand);
   }
 }

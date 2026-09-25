@@ -139,6 +139,27 @@ authenticated to authenticate. A *failed* sign-in is recorded too, and
 `user_id` stays null even when the address matches a real account: the row is
 about an attempt, not about that person.
 
+**The volume chart has a period, and the API decides the buckets (the
+client, 2026-09-24).** Monthly, Quarterly, Half-yearly and Yearly are links to
+`/admin?volume=…`, not a client toggle: the dashboard is a server component
+fed by `/admin/dashboard`, and a choice in the URL survives a refresh and a
+shared link. `TicketMetrics::VOLUME_PERIODS` is the one list — thirty days,
+13 and 26 Monday weeks, twelve calendar months — because 365 daily points is
+a line nobody can read a spike off. Counts are taken per day in SQL and
+bucketed in PHP, so the grouping is identical on every database, and every
+bucket is present as zero when empty (the `dailyVolume` rule one level up).
+Each period is cached for a minute under its own key beside the metrics
+block; `metrics.volume` stays the thirty-day series the tiles are measured
+over. The axis labels one bucket in N so six or seven fit at 320px, and the
+last label is anchored to the row as "Today" / "This week" / "This month",
+for the reason the note below gives.
+
+**An icon picker is a field and a dialog.** `IconField` is one row — the
+glyph, its name, browse and clear — and the ~130 tiles open in a `Modal`
+with the name under each and the search focused; picking closes it. The
+inline grid it replaced was eight rows per homepage statistic. The hidden
+input is unchanged, so the entity forms' Server Actions did not move.
+
 **The ticket volume is two curves, and this is the one chart here that is SVG
 (the client, 2026-09-23).** Opened and resolved as smooth lines with a gradient
 fading under each, in the `--color-info` and `--color-ok` the legend already

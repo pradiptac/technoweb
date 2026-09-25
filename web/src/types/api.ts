@@ -2280,10 +2280,22 @@ export type AdminDashboard = {
   metrics: DashboardMetrics;
 };
 
+export type VolumePeriod = "month" | "quarter" | "half" | "year";
+
 export type DashboardMetrics = {
   window_days: number;
   /** One entry per day in the window, oldest first, gaps filled with zeroes. */
   volume: { date: string; created: number; resolved: number }[];
+  /**
+   * What the volume chart draws, over the period asked for with `?volume=`:
+   * 30 days, 13 or 26 Monday weeks, or 12 calendar months. `date` is each
+   * bucket's first day and `end` its last (never past today).
+   */
+  volume_series: {
+    period: VolumePeriod;
+    bucket: "day" | "week" | "month";
+    points: { date: string; end: string; created: number; resolved: number }[];
+  };
   /** `change` is null when the previous window was empty — see TicketMetrics. */
   volume_trend: { current: number; previous: number; change: number | null };
   /** Medians, not means, and null when nothing has been measured yet. */
@@ -3362,3 +3374,5 @@ export type MailTemplateDetail = {
   };
   meta: { message: MailTemplateMessage };
 };
+
+export * from "./blocks";

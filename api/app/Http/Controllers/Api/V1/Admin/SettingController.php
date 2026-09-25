@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\AiModel;
+use App\Enums\ContentBlockType;
 use App\Enums\ImageQuality;
 use App\Enums\PaymentGateway;
 use App\Http\Controllers\Controller;
+use App\Models\ContentBlock;
 use App\Models\Setting;
 use App\Support\Announcement;
 use App\Support\Chat\ChatSettings;
@@ -138,6 +140,39 @@ class SettingController extends Controller
         ['value' => 'large', 'label' => 'Large', 'description' => 'Display-sized figures that carry the row.'],
     ];
 
+    /** Which setting chooses which kind of homepage block. */
+    public const HOME_BLOCKS = [
+        'home_stats_block' => ContentBlockType::Stats,
+        'home_pricing_block' => ContentBlockType::Pricing,
+        'home_stack_block' => ContentBlockType::Stack,
+    ];
+
+    /**
+     * A homepage block setting's choices: none, then every published block of
+     * that kind by name. A picker, not a slug typed by hand — a typo would
+     * save, report saved and draw nothing.
+     *
+     * @return list<array{value: string, label: string, description: string}>
+     */
+    private static function blockOptions(ContentBlockType $type): array
+    {
+        return [
+            ['value' => '', 'label' => 'None', 'description' => 'No section on the homepage.'],
+            ...ContentBlock::query()->published()->where('type', $type)->orderBy('name')->get(['slug', 'name', 'layout'])
+                ->map(fn (ContentBlock $b) => ['value' => $b->slug, 'label' => $b->name, 'description' => '['.$type->value.' slug="'.$b->slug.'"]'])
+                ->all(),
+        ];
+    }
+
+    /**
+     * How the footer's social links are drawn (the client, 2026-09-24). The
+     * frontend's `SocialLinks` reads the value and falls back to `flip`.
+     */
+    public const SOCIAL_STYLES = [
+        ['value' => 'flip', 'label' => 'Flip tiles', 'description' => 'A letter on each tile, spelling the word below; pointing at the row flips them one after another to the icons. Phones show the icons.'],
+        ['value' => 'dock', 'label' => 'Magnifying dock', 'description' => 'The icons in bordered tiles that grow under the pointer, each taking its brand colour.'],
+    ];
+
     /**
      * How a statistic's figure arrives the first time it scrolls into view.
      * Drawn by the frontend's `StatValue`; the list is here because the
@@ -208,6 +243,10 @@ class SettingController extends Controller
             'chatbot_font_size' => ChatSettings::FONT_SIZES,
             'chatbot_animation' => ChatSettings::ANIMATIONS,
             'stats_size' => self::STAT_SIZES,
+            'social_style' => self::SOCIAL_STYLES,
+            'home_stats_block' => self::blockOptions(ContentBlockType::Stats),
+            'home_pricing_block' => self::blockOptions(ContentBlockType::Pricing),
+            'home_stack_block' => self::blockOptions(ContentBlockType::Stack),
             'stats_animation' => self::STAT_ANIMATIONS,
             'chatbot_model' => AiModel::options(
                 (string) Setting::query()->where('key', 'chatbot_model')->value('value'),
@@ -590,6 +629,21 @@ class SettingController extends Controller
                 $rows[$i]['value'] = strtolower((string) $value);
             }
 
+            if (isset(self::HOME_BLOCKS[$key]) && filled($value)
+                && ! ContentBlock::query()->published()->where('type', self::HOME_BLOCKS[$key])->where('slug', $value)->exists()) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a published block of this kind, or None.']);
+            }
+            if ($key === 'social_style' && filled($value) && ! in_array($value, array_column(self::SOCIAL_STYLES, 'value'), true)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a style from the list.']);
+            }
+            // One letter per tile, so letters and digits only; stored upper-case
+            // because the tiles are capitals whatever was typed.
+            if ($key === 'social_flip_word' && filled($value)) {
+                if (! preg_match('/^[A-Za-z0-9]{1,12}$/', (string) $value)) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'Letters and digits only, no spaces, at most 12 — one per tile.']);
+                }
+                $rows[$i]['value'] = strtoupper((string) $value);
+            }
             if ($key === 'stats_size' && filled($value) && ! in_array($value, array_column(self::STAT_SIZES, 'value'), true)) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a size from the list.']);
             }

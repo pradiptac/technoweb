@@ -66,6 +66,11 @@ const ADMIN_ROUTES = [
   "/admin/media", "/admin/products", "/admin/products/new", "/admin/product-categories",
   "/admin/brands", "/admin/solutions", "/admin/services", "/admin/industries",
   "/admin/sliders", "/admin/popups", "/admin/forms", "/admin/seo", "/admin/redirects",
+  // Content blocks (2026-09-24): the four lists, and the four showcases — the
+  // showcases render every seeded layout, drafts included, which is the only
+  // place the audit can reach all of them without a public placeholder page.
+  "/admin/blocks/cta", "/admin/blocks/stats", "/admin/blocks/pricing", "/admin/blocks/stack",
+  "/admin/blocks/cta/showcase", "/admin/blocks/stats/showcase", "/admin/blocks/pricing/showcase", "/admin/blocks/stack/showcase",
   "/admin/team-members", "/admin/clients", "/admin/certifications",
   "/admin/landing-pages", "/admin/landing-pages/opportunities",
   "/admin/locations", "/admin/locations/new",
@@ -103,6 +108,7 @@ const ADMIN_ROUTES = [
   "/admin/knowledge-base/new", "/admin/case-studies/new", "/admin/pages/new",
   "/admin/product-categories/new", "/admin/brands/new", "/admin/solutions/new",
   "/admin/services/new", "/admin/industries/new", "/admin/sliders/new",
+  "/admin/blocks/cta/new", "/admin/blocks/stack/new",
   "/admin/popups/new",
   "/admin/team-members/new", "/admin/clients/new", "/admin/certifications/new",
   "/admin/forms/new", "/admin/faqs/new", "/admin/redirects/new", "/admin/users/new",
@@ -152,6 +158,11 @@ const DISCOVER = [
   { from: "/admin/services", match: /^\/admin\/services\/\d+$/, admin: true },
   { from: "/admin/industries", match: /^\/admin\/industries\/\d+$/, admin: true },
   { from: "/admin/sliders", match: /^\/admin\/sliders\/\d+$/, admin: true },
+  // One edit form per kind: each draws a different editor.
+  { from: "/admin/blocks/cta", match: /^\/admin\/blocks\/cta\/\d+$/, admin: true },
+  { from: "/admin/blocks/stats", match: /^\/admin\/blocks\/stats\/\d+$/, admin: true },
+  { from: "/admin/blocks/pricing", match: /^\/admin\/blocks\/pricing\/\d+$/, admin: true },
+  { from: "/admin/blocks/stack", match: /^\/admin\/blocks\/stack\/\d+$/, admin: true },
   /*
    * The popup edit form, which is the screen of the pair worth auditing: it
    * carries the section checklist, the targeting summary and the image

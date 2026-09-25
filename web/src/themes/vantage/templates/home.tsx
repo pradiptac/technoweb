@@ -1,3 +1,4 @@
+import { homeBlockSections } from "@/components/blocks/home-block-sections";
 import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
 import Link from "next/link";
@@ -45,7 +46,7 @@ const NOC = "/themes/vantage/noc.jpg";
  * and the classic sections to the closing band.
  */
 export function Home({
-  settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, options,
+  settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
 }: HomeData & { options: ThemeOptions }) {
   const stats = statPairs(settings.hero_stats, heroStats);
   const look = statLookFor(settings);
@@ -197,6 +198,7 @@ export function Home({
     { id: "support", node: <SupportBand settings={settings} /> },
     { id: "cases", node: <CaseStudies items={caseStudies.data.slice(0, 6)} /> },
     { id: "resources", node: <Resources items={posts.data.slice(0, 3)} /> },
+    ...homeBlockSections(blocks),
     { id: "cta", node: <CtaBand tone="accent" size="lg" /> },
   ];
 

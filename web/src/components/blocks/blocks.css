@@ -1,0 +1,321 @@
+/* ==========================================================================
+ * Stats and pricing blocks (`stats-block.tsx`, `pricing-block.tsx`).
+ *
+ * Plain CSS, unlayered, tokens only. Three rules every motion here keeps:
+ * only opacity and the individual `scale` property move; a hidden start
+ * state lives inside `prefers-reduced-motion: no-preference`; nothing
+ * widens the document.
+ * ========================================================================== */
+
+/* --- Pricing: the billing toggle ------------------------------------------
+ * Each price is rendered once per period and the wrapper's `data-billing`
+ * says which one shows. Without JavaScript the wrapper says `monthly`.
+ */
+.blk-pricing[data-billing="monthly"] [data-period="yearly"],
+.blk-pricing[data-billing="yearly"] [data-period="monthly"] { display: none; }
+
+/* --- Stats: gradient text (feature_cards) ---------------------------------
+ * The `color` stays a graded ink, so a browser without background-clip:text
+ * paints readable words and the audit grades a real colour; the fill is a
+ * gradient of two graded inks, each of which clears 4.5:1 on its own.
+ */
+.blk-grad-text { color: var(--color-brand-ink); }
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .blk-grad-text {
+    background-image: linear-gradient(90deg, var(--color-brand-ink), var(--color-accent-ink));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+/* --- Stats: feature cards --------------------------------------------------
+ * The accent edge is a `::before`, never a background layer: the audit reads
+ * a wide background layer as the ground under the words. The hover glow is an
+ * `::after` behind the content (the card isolates, so z-index -1 paints above
+ * the card's own ground and below its text) and only its opacity moves.
+ */
+.blk-feature-card { isolation: isolate; }
+.blk-feature-card::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 18px;
+  bottom: 18px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, var(--color-brand-600), var(--color-accent-600));
+  pointer-events: none;
+}
+.blk-feature-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--color-brand-600) 14%, transparent), transparent 65%);
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-brand);
+  pointer-events: none;
+}
+.blk-feature-card:hover::after,
+.blk-feature-card:focus-within::after { opacity: 1; }
+
+/* --- Stats: the chips heading's underline ----------------------------------
+ * Drawn by default; hidden and drawn in on the section's hover only where
+ * motion is welcome and a pointer can hover — a phone never hovers and would
+ * otherwise never see it.
+ */
+.blk-underline { position: relative; display: inline-block; max-width: 100%; }
+.blk-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.06em;
+  height: 0.09em;
+  border-radius: 999px;
+  background: var(--color-accent-600);
+  transform-origin: left center;
+}
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  .blk-chips .blk-underline::after {
+    scale: 0 1;
+    transition: scale var(--duration-slow) var(--ease-brand);
+  }
+  .blk-chips:hover .blk-underline::after,
+  .blk-chips:focus-within .blk-underline::after { scale: 1 1; }
+}
+
+/* --- Stats: the pulse strip ------------------------------------------------
+ * A calm dot is the `ok` tone. An anomalous one is `warn` with a static halo,
+ * which is all a reduced-motion reader gets and all anybody gets without
+ * JavaScript; with motion it also pulses a few times once the reveal observer
+ * has seen the strip, then rests. Infinite motion is for loaders.
+ */
+.blk-pulse-dot {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-ok);
+}
+.blk-pulse-dot[data-anomaly] {
+  background: var(--color-warn);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-warn) 25%, transparent);
+}
+.blk-pulse-dot[data-anomaly]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-warn);
+  opacity: 0;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .blk-pulse[data-aos-animate] .blk-pulse-dot[data-anomaly]::after {
+    animation: blk-pulse 2.4s var(--ease-brand) 4;
+  }
+}
+@keyframes blk-pulse {
+  0% { opacity: 0.55; scale: 1; }
+  80%, 100% { opacity: 0; scale: 2.6; }
+}
+
+/* ==================================================================== */
+/* Technology stack blocks — stack-block.tsx, stack-orbit.tsx,          */
+/* stack-globe.tsx. Owned by the stack block; other blocks append their */
+/* own sections above or below this one.                                */
+/*                                                                      */
+/* Unlayered, tokens only. Every animation and every transition that    */
+/* is more than a hover nicety sits inside the reduced-motion guard,    */
+/* and every moving thing moves on `rotate`/`translate`/`scale`, never  */
+/* `transform` (CLAUDE.md, the Tailwind v4 transform trap).             */
+/* ==================================================================== */
+
+/*
+ * A technology's disc. A picture sits on the logo ground: white in the light
+ * scheme and `--color-dark-ink` in the dark, which does not invert — a brand
+ * logo's own colours read only on a light ground (docs/catalogue.md), and a
+ * light disc keeps them where the strip's silhouette filter would flatten
+ * them. An icon or initials sit on `surface-2`, the ground the identity hues
+ * are measured against.
+ */
+.stack-disc {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 1px solid var(--color-line-strong);
+  background: var(--color-surface-2);
+  /* No percentage padding: CSS resolves it against the *parent's* width, so
+     in the orbit's wide detail card 16% of the card swallowed a 56px disc
+     whole — the logo's box measured 0px tall. The mark is sized as a share
+     of the disc itself instead (`.stack-disc__mark`). */
+  padding: 0;
+}
+.stack-disc--logo { background: var(--color-card); }
+.stack-disc__mark { position: relative; display: block; width: 64%; height: 64%; }
+.stack-disc--logo .stack-disc__mark { width: 68%; height: 68%; }
+:root[data-scheme="dark"] .stack-disc--logo {
+  background: var(--color-dark-ink);
+  border-color: transparent;
+}
+/* Text on the logo ground (the orbit's company-name fallback): the dark that no section re-derives. */
+.stack-logo-ink { color: var(--color-scrim); }
+
+/* --- Orbit ------------------------------------------------------------ */
+
+.stack-orbit {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: clip;
+  container-type: inline-size;
+}
+.stack-orbit__ring {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.stack-orbit__track {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 999px;
+}
+.stack-orbit__node {
+  position: absolute;
+  width: 2.25rem;
+  height: 2.25rem;
+  translate: -50% -50%;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+}
+@media (min-width: 40rem) {
+  .stack-orbit__node { width: 2.75rem; height: 2.75rem; }
+}
+.stack-orbit__node > .stack-disc {
+  box-shadow: var(--shadow-1);
+  transition: scale var(--duration-base) var(--ease-brand), box-shadow var(--duration-base) var(--ease-brand);
+}
+.stack-orbit__node:hover > .stack-disc,
+.stack-orbit__node:focus-visible > .stack-disc { scale: 1.12; }
+.stack-orbit__node[aria-pressed="true"] > .stack-disc {
+  box-shadow:
+    0 0 0 2px var(--color-page),
+    0 0 0 4px var(--node-colour, var(--color-brand-500)),
+    0 0 18px color-mix(in srgb, var(--node-colour, var(--color-brand-500)) 55%, transparent);
+}
+.stack-orbit__centre {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  width: 24%;
+  aspect-ratio: 1;
+  padding: 4.5%;
+  box-shadow: var(--shadow-2);
+}
+
+/* The picked technology's card: its own colour on the edge and in the glow, never on the words. */
+.stack-detail {
+  border-color: color-mix(in srgb, var(--stack-accent, var(--color-brand-500)) 45%, var(--color-line-strong));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--stack-accent, var(--color-brand-500)) 18%, transparent),
+    0 16px 40px -22px color-mix(in srgb, var(--stack-accent, var(--color-brand-500)) 65%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes stack-orbit-spin {
+    from { rotate: 0deg; }
+    to   { rotate: 360deg; }
+  }
+  .stack-orbit__ring {
+    animation: stack-orbit-spin var(--orbit-speed, 60s) linear infinite;
+    animation-direction: var(--orbit-dir, normal);
+  }
+  /* The counter-turn: the same rate the other way, so every logo stays upright. */
+  .stack-orbit__node {
+    animation: stack-orbit-spin var(--orbit-speed, 60s) linear infinite;
+    animation-direction: var(--orbit-counter, reverse);
+  }
+  .stack-orbit:hover :is(.stack-orbit__ring, .stack-orbit__node),
+  .stack-orbit:focus-within :is(.stack-orbit__ring, .stack-orbit__node),
+  [data-marquee][data-paused] .stack-orbit :is(.stack-orbit__ring, .stack-orbit__node) {
+    animation-play-state: paused;
+  }
+}
+
+/* --- Globe ------------------------------------------------------------ */
+
+.stack-globe {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: clip;
+  container-type: inline-size;
+  touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
+}
+.stack-globe--dragging { cursor: grabbing; }
+.stack-globe__shell {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 68cqw;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--color-brand-500) 10%, transparent), transparent 70%);
+  pointer-events: none;
+}
+.stack-globe__node {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  will-change: translate, scale, opacity;
+}
+.stack-globe__node img { -webkit-user-drag: none; }
+
+/* --- Layers ----------------------------------------------------------- */
+
+.stack-layers { display: grid; gap: 1rem; }
+.stack-layers__item { position: relative; z-index: calc(20 - var(--layer, 0)); }
+
+@media (min-width: 48rem) {
+  .stack-layers { gap: 0; }
+  /* On the item, not the list: `perspective` reaches children only, and the plate is the item's child. */
+  .stack-layers__item { perspective: 1600px; perspective-origin: 50% 0; }
+  .stack-layers__item + .stack-layers__item { margin-top: -1.25rem; }
+  .stack-layer {
+    rotate: x 16deg;
+    transform-origin: 50% 100%;
+    padding-bottom: 2.25rem;
+    box-shadow:
+      0 10px 0 -4px var(--color-line-strong),
+      0 26px 40px -26px color-mix(in srgb, var(--color-ink) 45%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stack-layer { transition: translate var(--duration-base) var(--ease-brand); }
+  .stack-layers__item:hover,
+  .stack-layers__item:focus-within { z-index: 30; }
+  .stack-layers__item:hover > .stack-layer,
+  .stack-layers__item:focus-within > .stack-layer { translate: 0 -0.75rem; }
+}

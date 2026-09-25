@@ -1,5 +1,6 @@
 import "server-only";
 import type {
+  ContentBlock,
   BlogPost,
   PublicComment,
   BlogTaxonomy, Brand, CaseStudy, Certification, Client, Collection, Industry, KnowledgeArticle, Paginated, TeamMember,
@@ -303,6 +304,22 @@ export const publicApi = {
    */
   slider: (slug: string) =>
     apiFetch<Single<Slider>>(`/sliders/${slug}`, { revalidate: 600, tags: [`slider:${slug}`] }),
+
+  /**
+   * One content block by slug — a `[cta]`, `[stats]`, `[pricing]` or
+   * `[stack]` shortcode. Tagged per slug and with `blocks`, so a console save
+   * refreshes the one block and the default band's read together.
+   */
+  block: (slug: string) =>
+    apiFetch<Single<ContentBlock>>(`/blocks/${slug}`, { revalidate: 600, tags: ["blocks", `block:${slug}`] }),
+
+  /**
+   * The site's default CTA, or `data: null` — a 200 either way (the menu
+   * rule: every page ending on the closing band asks, and Next caches only
+   * a 200).
+   */
+  defaultCta: () =>
+    apiFetch<{ data: ContentBlock | null }>("/blocks/default/cta", { revalidate: 600, tags: ["blocks"] }),
 
   /**
    * One gallery by slug. Cached and tagged exactly like a slider — both are

@@ -12,6 +12,7 @@ use App\Models\CaseStudy;
 use App\Models\Certification;
 use App\Models\ChatConversation;
 use App\Models\Client;
+use App\Models\ContentBlock;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\DigitalCode;
@@ -189,6 +190,7 @@ class AppServiceProvider extends ServiceProvider
             'popup' => Popup::class,
             'team_member' => TeamMember::class,
             'slider' => Slider::class,
+            'content_block' => ContentBlock::class,
             'form' => Form::class,
             'faq' => Faq::class,
             // The `faqs` shape with a kind; owned by eleven models the way FAQs are.

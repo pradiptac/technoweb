@@ -31,6 +31,9 @@ export function CtaBand({
   backdrop = "grid",
   className,
   phone,
+  kicker,
+  primary,
+  secondary,
 }: CtaBandProps) {
   const large = size === "lg";
 
@@ -52,18 +55,25 @@ export function CtaBand({
             mask="radial-gradient(ellipse 60% 80% at 50% 0%, #000, transparent 70%)"
           />
           <div className="relative">
+            {kicker && <p className="mb-3 text-12 font-semibold uppercase tracking-[.14em]">{kicker}</p>}
             <h2 className={cn(large ? "display-2" : "display-3", "text-white")}>{title}</h2>
             <p className="mx-auto mt-4 max-w-[52ch] text-dark-muted-brand">{body}</p>
             <div className={cn("flex flex-wrap justify-center gap-3", large ? "mt-7.5" : "mt-7")}>
-              <ButtonLink href="/contact" variant="onDark">
-                Book a site audit <IconArrowRight />
+              <ButtonLink href={primary?.href || "/contact"} variant="onDark">
+                {primary?.label || "Book a site audit"} <IconArrowRight />
               </ButtonLink>
               {/* A tel: link rather than a second route to /contact — on a
                   phone this should dial, which is the point of putting a
                   number on a call to action. */}
-              <ButtonLink href={telHref(phone)} variant="onDarkOutline" className="border-white/25 text-white">
-                Call {phone}
-              </ButtonLink>
+              {secondary === null ? null : secondary ? (
+                <ButtonLink href={secondary.href} variant="onDarkOutline" className="border-white/25 text-white">
+                  {secondary.label}
+                </ButtonLink>
+              ) : (
+                <ButtonLink href={telHref(phone)} variant="onDarkOutline" className="border-white/25 text-white">
+                  Call {phone}
+                </ButtonLink>
+              )}
             </div>
           </div>
         </div>

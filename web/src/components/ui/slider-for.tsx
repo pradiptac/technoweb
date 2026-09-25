@@ -1,6 +1,8 @@
 import { Slider } from "@/components/ui/slider";
 import { CardsSlider } from "@/components/ui/cards-slider";
 import { FanSlider } from "@/components/ui/fan-slider";
+import { CylinderSlider } from "@/components/ui/cylinder-slider";
+import { RippleSlider } from "@/components/ui/ripple-slider";
 import type { ComponentProps } from "react";
 
 /**
@@ -23,5 +25,7 @@ import type { ComponentProps } from "react";
 export function SliderFor(props: ComponentProps<typeof Slider>) {
   if (props.slider.layout === "cards") return <CardsSlider {...props} />;
   if (props.slider.layout === "fan") return <FanSlider {...props} />;
+  if (props.slider.layout === "cylinder") return <CylinderSlider {...props} />;
+  if (props.slider.layout === "ripple") return <RippleSlider {...props} />;
   return <Slider {...props} />;
 }

@@ -144,7 +144,7 @@ export function listingMetadata(input: {
 
 type Json = Record<string, unknown>;
 
-const SOCIAL_KEYS = ["social_linkedin", "social_x", "social_facebook", "social_instagram", "social_youtube"] as const;
+const SOCIAL_KEYS = ["social_linkedin", "social_x", "social_facebook", "social_instagram", "social_youtube", "social_reddit"] as const;
 
 /** The social profile URLs an install has filled in — `Organization.sameAs`. */
 function sameAs(settings: Record<string, string | undefined>): string[] {

@@ -21,6 +21,63 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.88.0 — 2026-09-24
+
+**Content blocks: CTA banners, stat bars, pricing tables and technology
+stacks**, built once in the console (Site → CTA banners / Stat bars /
+Pricing / Technology stack) and placed anywhere with a shortcode —
+`[cta slug="…"]`, `[stats …]`, `[pricing …]`, `[stack …]`.
+- Ten CTA layouts (band, split, two paths, reassurance, inline newsletter,
+  gated download, countdown, webinar, hiring, app with QR), seven stat
+  layouts (row, sparkline cards, ring trio, count-up, anomaly pulse strip,
+  feature cards, chips), three pricing layouts with price-set tabs and a
+  monthly/yearly switch, and six stack layouts (orbit, grouped, cloud,
+  globe, marquee, layers).
+- **One CTA can be the site default** — the closing band at the foot of
+  every page. A band default keeps each theme's own look with the block's
+  words and buttons; pages with their own heading keep it. The seeded
+  default carries the band's existing words, so nothing moved.
+- Downloads and webinar sign-ups become leads (channels `download`,
+  `webinar`) with an email to sales; the PDF's link is given only after the
+  form is sent. Newsletter banners join the list.
+- Three homepage sections choose a stat bar, a pricing table and a stack;
+  the Themes screen places them.
+- A showcase per kind draws every block, drafts included, as the site does.
+
+**Also in this release**
+- The footer's social icons are flip tiles spelling a word (Settings →
+  Social), with the magnifying dock kept as an option; **Reddit** is a
+  seventh profile.
+- Seven more sign-in backgrounds: wave grid, aurora, fluid morph, twisting
+  ribbon, animated rays, perspective grid, light lines.
+- Two more slider layouts: cylinder carousel and ripple.
+- Team cards are a medium size whatever the width, and the placeholder
+  photos no longer crop the name off.
+
+**Fixed:** switching newsletter signup off never stopped the footer form —
+the check compared a true/false setting to the text `'0'`.
+
+---
+
+## 0.87.0 — 2026-09-24
+
+**The ticket volume chart has a period.** Monthly, Quarterly, Half-yearly and
+Yearly across the top of the card (1M/3M/6M/1Y on a phone). A month is thirty
+days, a quarter and a half year are 13 and 26 Monday weeks, a year is twelve
+calendar months — so the line stays readable at every length. The choice is
+`?volume=` in the URL; the API allowlists it (`TicketMetrics::volume()`,
+`metrics.volume_series`), caches each period for a minute, and falls back to
+a month. The tiles above keep measuring the last thirty days.
+
+**Every icon picker is one row and a dialog.** The ~130-tile grid used to sit
+inline under each picker — eight rows per homepage statistic. The field now
+shows the chosen glyph and its name with a browse button and a clear button,
+and the grid opens in a `Modal` with a name under every tile and the search
+focused. Solutions, services, industries, product categories, the menu
+builder and both statistic lists all use it.
+
+---
+
 ## 0.86.0 — 2026-09-23
 
 **Sixteen things the client asked for while looking at the site**, most of

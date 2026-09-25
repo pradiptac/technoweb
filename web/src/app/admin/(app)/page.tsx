@@ -38,10 +38,14 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
   );
 }
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({ searchParams }: {
+  searchParams: Promise<{ volume?: string }>;
+}) {
+  // The volume chart's period. The API allowlists it and falls back to a month.
+  const { volume } = await searchParams;
   let dashboard: AdminDashboard | null = null;
   try {
-    dashboard = await getDashboard();
+    dashboard = await getDashboard(typeof volume === "string" ? volume : undefined);
   } catch {
     return (
       <ErrorState title="We could not load the dashboard">

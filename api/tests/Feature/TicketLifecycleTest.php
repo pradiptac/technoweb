@@ -169,4 +169,39 @@ class TicketLifecycleTest extends TestCase
         $this->assertSame(1, collect(TicketMetrics::dailyVolume())->sum('resolved'));
         $this->assertNotNull(TicketMetrics::resolutionHours());
     }
+
+    /**
+     * The volume chart's periods: every bucket present, the right count of
+     * them, and a ticket from four months ago inside the half year and the
+     * year but outside the month and the quarter.
+     */
+    public function test_the_volume_chart_buckets_each_period(): void
+    {
+        $recent = $this->ticket();
+        // The fixture makes one customer per call; a second ticket is a copy.
+        $old = $recent->replicate(['reference']);
+        $old->reference = 'TW-2026-99999';
+        $old->save();
+        $old->forceFill(['created_at' => now()->subMonthsNoOverflow(4)])->saveQuietly();
+
+        $expect = ['month' => [30, 'day', 1], 'quarter' => [13, 'week', 1], 'half' => [26, 'week', 2], 'year' => [12, 'month', 2]];
+
+        foreach ($expect as $period => [$count, $bucket, $created]) {
+            $series = TicketMetrics::volume($period);
+            $this->assertSame($period, $series['period']);
+            $this->assertSame($bucket, $series['bucket']);
+            $this->assertCount($count, $series['points'], $period);
+            $this->assertSame($created, collect($series['points'])->sum('created'), $period);
+            $this->assertSame(now()->toDateString(), end($series['points'])['end'], $period);
+        }
+
+        // An unknown period is a month, not an error.
+        $this->assertSame('month', TicketMetrics::volume('decade')['period']);
+
+        $this->actingAs($this->staff(), 'sanctum')
+            ->getJson('/api/v1/admin/dashboard?volume=year')
+            ->assertOk()
+            ->assertJsonPath('data.metrics.volume_series.period', 'year')
+            ->assertJsonCount(12, 'data.metrics.volume_series.points');
+    }
 }

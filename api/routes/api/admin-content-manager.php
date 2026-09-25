@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Admin\BrandController as AdminBrandController;
 use App\Http\Controllers\Api\V1\Admin\CaseStudyController as AdminCaseStudyController;
 use App\Http\Controllers\Api\V1\Admin\CertificationController as AdminCertificationController;
 use App\Http\Controllers\Api\V1\Admin\ClientController as AdminClientController;
+use App\Http\Controllers\Api\V1\Admin\ContentBlockController as AdminContentBlockController;
 use App\Http\Controllers\Api\V1\Admin\FaqController as AdminFaqController;
 use App\Http\Controllers\Api\V1\Admin\FormController as AdminFormController;
 use App\Http\Controllers\Api\V1\Admin\GalleryController as AdminGalleryController;
@@ -164,6 +165,16 @@ Route::middleware('role:content_manager')->group(function () {
     Route::get('team-members/{team_member:id}', [AdminTeamMemberController::class, 'show'])->name('team-members.show');
     Route::patch('team-members/{team_member:id}', [AdminTeamMemberController::class, 'update'])->name('team-members.update');
     Route::delete('team-members/{team_member:id}', [AdminTeamMemberController::class, 'destroy'])->name('team-members.destroy');
+
+    // Content blocks (2026-09-24): CTA banners, stat bars, pricing and
+    // technology stacks, one entity filtered by `?type=`. Bound by id, the
+    // slug being the shortcode's contract that the form may change.
+    Route::get('blocks', [AdminContentBlockController::class, 'index'])->name('blocks.index');
+    Route::post('blocks', [AdminContentBlockController::class, 'store'])->name('blocks.store');
+    Route::get('blocks/{content_block:id}', [AdminContentBlockController::class, 'show'])->name('blocks.show');
+    Route::patch('blocks/{content_block:id}', [AdminContentBlockController::class, 'update'])->name('blocks.update');
+    Route::post('blocks/{content_block:id}/duplicate', [AdminContentBlockController::class, 'duplicate'])->name('blocks.duplicate');
+    Route::delete('blocks/{content_block:id}', [AdminContentBlockController::class, 'destroy'])->name('blocks.destroy');
 
     // Bound by id, not slug: the edit form can change the slug it
     // is addressed by, the same reason every other CMS entity does.

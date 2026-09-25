@@ -79,7 +79,42 @@ function readJsonBody(req) {
   });
 }
 
-function buildAdminDashboard() {
+/*
+  The ticket volume chart's series over a period, in the API's buckets:
+  30 days, 13 or 26 Monday weeks, or 12 calendar months. Deterministic
+  figures so a screenshot is repeatable.
+*/
+const VOLUME_PERIODS = { month: ['day', 30], quarter: ['week', 13], half: ['week', 26], year: ['month', 12] };
+function buildVolumeSeries(period) {
+  const key = VOLUME_PERIODS[period] ? period : 'month';
+  const [bucket, count] = VOLUME_PERIODS[key];
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+  const starts = [];
+  if (bucket === 'day') {
+    for (let i = count - 1; i >= 0; i--) starts.push(new Date(today.getTime() - i * 864e5));
+  } else if (bucket === 'week') {
+    const monday = new Date(today.getTime() - ((today.getUTCDay() + 6) % 7) * 864e5);
+    for (let i = count - 1; i >= 0; i--) starts.push(new Date(monday.getTime() - i * 7 * 864e5));
+  } else {
+    for (let i = count - 1; i >= 0; i--) starts.push(new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - i, 1)));
+  }
+  const scale = bucket === 'day' ? 1 : bucket === 'week' ? 5 : 20;
+  const points = starts.map((s, i) => {
+    const next = starts[i + 1] ?? (bucket === 'day' ? new Date(s.getTime() + 864e5)
+      : bucket === 'week' ? new Date(s.getTime() + 7 * 864e5)
+      : new Date(Date.UTC(s.getUTCFullYear(), s.getUTCMonth() + 1, 1)));
+    const end = new Date(Math.min(next.getTime() - 864e5, today.getTime()));
+    return {
+      date: iso(s), end: iso(end),
+      created: ((i * 7) % 5) * scale + (i % 3),
+      resolved: ((i * 5) % 4) * scale,
+    };
+  });
+  return { period: key, bucket, points };
+}
+
+function buildAdminDashboard(volumePeriod = 'month') {
   const openStates = ['open', 'assigned', 'in_progress', 'pending_customer'];
   const openTickets = tickets.filter((t) => openStates.includes(t.status));
   const breakdown = {};
@@ -106,6 +141,17 @@ function buildAdminDashboard() {
     recent_tickets: tickets.slice(0, 8),
     high_priority: openTickets.filter((t) => t.priority === 'critical' || t.priority === 'high').slice(0, 5),
     status_breakdown: breakdown,
+    metrics: {
+      window_days: 30,
+      volume: buildVolumeSeries('month').points.map(({ date, created, resolved }) => ({ date, created, resolved })),
+      volume_series: buildVolumeSeries(volumePeriod),
+      volume_trend: { current: 12, previous: 9, change: 33 },
+      first_response_hours: 3.4,
+      resolution_hours: 41.2,
+      sla_first_response: { pct: 88, of: 17 },
+      open_by_priority: [{ label: 'high', total: 2 }, { label: 'medium', total: 1 }],
+      open_by_category: [{ label: 'Networking', total: 2 }, { label: 'Hardware', total: 1 }],
+    },
   };
 }
 
@@ -1788,7 +1834,7 @@ createServer(async (req, res) => {
       return json(res, 200, { data: {
         general: [s('company_name', 'Technoware'), s('tagline', 'Technology infrastructure that keeps your business connected.'), s('theme', 'olive')],
         contact: [s('phone', '+91 00000 00000'), s('support_email', 'support@example.test'), s('sales_email', 'sales@example.test'), s('address', 'Address line one, Address line two')],
-        social: [s('social_linkedin'), s('social_twitter'), s('social_facebook')],
+        social: [s('social_linkedin'), s('social_twitter'), s('social_facebook'), s('social_reddit')],
         login: [
           s('login_backdrop', 'image', { group: 'login' }), s('login_intensity', 'medium', { group: 'login' }),
           s('login_speed', 'normal', { group: 'login' }), s('login_image_path', null, { group: 'login' }),
@@ -2179,7 +2225,7 @@ createServer(async (req, res) => {
       }
     }
     if (p === '/admin/auth/logout' && req.method === 'POST') return json(res, 200, { message: 'Signed out.' });
-    if (p === '/admin/dashboard') return json(res, 200, { data: buildAdminDashboard() });
+    if (p === '/admin/dashboard') return json(res, 200, { data: buildAdminDashboard(url.searchParams.get('volume') || 'month') });
     if (p === '/admin/users') return json(res, 200, { data: staffList });
 
     if (p === '/admin/tickets' && req.method === 'GET') {
@@ -2424,6 +2470,29 @@ createServer(async (req, res) => {
 
   // Carousels, addressed by slug. 404 for anything unknown, and for a slider
   // with no slides — the frontend's fallback depends on that being a miss.
+  /*
+    Content blocks (2026-09-24). The default CTA is `data: null` in a 200 —
+    the real API's answer for "none chosen", and what keeps every page's
+    closing band as the theme draws it. One sample stat bar answers by slug so
+    a `[stats slug="mock-figures"]` shortcode renders; anything else is a 404,
+    like a draft.
+  */
+  if (p === '/blocks/default/cta') return json(res, 200, { data: null });
+  if (p.startsWith('/blocks/') && req.method === 'GET') {
+    const slug = p.split('/')[2];
+    if (slug === 'mock-figures') {
+      return json(res, 200, { data: {
+        id: 1, type: 'stats', layout: 'row', name: 'Mock figures', slug,
+        content: { items: [{ value: '16 yrs', label: 'In the field' }, { value: '340+', label: 'Sites under AMC' }] },
+        updated_at: '2026-09-24T10:00:00+05:30',
+      } });
+    }
+    return json(res, 404, { message: 'Not found.' });
+  }
+  if (p.startsWith('/blocks/') && p.endsWith('/submit') && req.method === 'POST') {
+    return json(res, 202, { message: 'Thank you.' });
+  }
+
   if (p.startsWith('/sliders/')) {
     const sl = sliders.find(x => x.slug === p.split('/')[2]);
     return sl && sl.slides.length

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\ClientErrorController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanySuggestionController;
+use App\Http\Controllers\Api\V1\ContentBlockController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\FormController;
@@ -193,6 +194,15 @@ Route::get('popups', [PopupController::class, 'index'])->name('popups.index');
 
 // Carousels, addressed by slug from a [slider] shortcode or the hero.
 Route::get('sliders/{slug}', [SliderController::class, 'show'])->name('sliders.show');
+
+// Content blocks (2026-09-24), addressed by slug from a [cta], [stats],
+// [pricing] or [stack] shortcode. `default/cta` is declared first, or
+// `{slug}` would bind the literal "default". The default is `data: null` in
+// a 200 when none is chosen — the menu rule, since every page asks.
+Route::get('blocks/default/cta', [ContentBlockController::class, 'defaultCta'])->name('blocks.default');
+Route::get('blocks/{slug}', [ContentBlockController::class, 'show'])->name('blocks.show');
+Route::post('blocks/{slug}/submit', [ContentBlockController::class, 'submit'])
+    ->middleware('throttle:10,1')->name('blocks.submit');
 
 // Picture sets, addressed by slug from a [gallery] shortcode. 404 when
 // unpublished or empty, exactly like a slider.

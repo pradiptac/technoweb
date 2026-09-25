@@ -1,10 +1,11 @@
-import { formatTableDate } from "@/lib/dates";
+import Link from "next/link";
+import { LOCALE, formatTableDate } from "@/lib/dates";
 import { TONE_BAR, priorityTone } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { hueFor } from "@/lib/hues";
 import { cn } from "@/lib/utils";
 import { IconTicket, IconHeadset, IconClock, IconGauge } from "@/components/icons";
-import type { DashboardMetrics, TicketPriority } from "@/types/api";
+import type { DashboardMetrics, TicketPriority, VolumePeriod } from "@/types/api";
 
 /** "28 Jul". Short enough to sit under a 36px column without wrapping. */
 
@@ -76,8 +77,46 @@ function Tile({
   );
 }
 
+/**
+ * The volume chart's periods (the client, 2026-09-24). The API decides the
+ * buckets — days for a month, weeks for a quarter and a half year, months for
+ * a year — and this side only names them.
+ */
+const PERIODS: { id: VolumePeriod; label: string; short: string; span: string }[] = [
+  { id: "month", label: "Monthly", short: "1M", span: "last 30 days" },
+  { id: "quarter", label: "Quarterly", short: "3M", span: "last 3 months" },
+  { id: "half", label: "Half-yearly", short: "6M", span: "last 6 months" },
+  { id: "year", label: "Yearly", short: "1Y", span: "last 12 months" },
+];
+
+type Bucket = DashboardMetrics["volume_series"]["bucket"];
+
+const monthFmt = new Intl.DateTimeFormat(LOCALE, { month: "short", timeZone: "UTC" });
+const monthYearFmt = new Intl.DateTimeFormat(LOCALE, { month: "short", year: "numeric", timeZone: "UTC" });
+
+/** What a bucket is called under the axis. */
+function bucketTick(date: string, bucket: Bucket): string {
+  return bucket === "month" ? monthFmt.format(new Date(`${date}T00:00:00Z`)) : formatTableDate(date);
+}
+
+/** What a bucket is called in its hover title. */
+function bucketTitle(p: { date: string; end: string }, bucket: Bucket): string {
+  if (bucket === "day") return formatTableDate(p.date);
+  if (bucket === "week") return `${formatTableDate(p.date)} – ${formatTableDate(p.end)}`;
+  return monthYearFmt.format(new Date(`${p.date}T00:00:00Z`));
+}
+
 export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }) {
-  const { volume, volume_trend: trend, sla_first_response: sla } = metrics;
+  const { volume_trend: trend, sla_first_response: sla } = metrics;
+  const series = metrics.volume_series;
+  const volume = series.points;
+  const bucket = series.bucket;
+  const period = PERIODS.find((p) => p.id === series.period) ?? PERIODS[0];
+  // A label every Nth bucket: weekly on a month, monthly-ish on 13 and 26
+  // weeks, every other month on a year — six or seven labels whatever the
+  // period, which is what fits under the plot at 320px.
+  const step = bucket === "day" ? 7 : bucket === "week" ? (volume.length > 13 ? 5 : 3) : 2;
+  const lastLabel = bucket === "day" ? "Today" : bucket === "week" ? "This week" : "This month";
   const peak = Math.max(1, ...volume.map((d) => Math.max(d.created, d.resolved)));
   const totalCreated = volume.reduce((n, d) => n + d.created, 0);
 
@@ -152,8 +191,35 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
             stacked breakdowns beside it, and a chart that ignores that leaves
             a third of itself blank. */}
         <div className="flex flex-col rounded-lg border border-line-strong bg-card p-4">
-          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             <p className="text-13 font-semibold">Ticket volume</p>
+            {/*
+              The period, as links rather than a client toggle: the page is
+              server-rendered from the API, and `?volume=` keeps the choice in
+              the URL so a refresh or a shared link shows the same chart.
+              `scroll={false}` so switching does not jump to the top. The
+              short labels below `sm`, where four words do not fit a row.
+            */}
+            <nav aria-label="Ticket volume period" className="order-last flex w-full rounded-md border border-line-strong p-0.5 sm:order-none sm:w-auto">
+              {PERIODS.map((p) => {
+                const active = p.id === period.id;
+                return (
+                  <Link
+                    key={p.id}
+                    href={p.id === "month" ? "/admin" : `/admin?volume=${p.id}`}
+                    scroll={false}
+                    aria-current={active ? "true" : undefined}
+                    className={cn(
+                      "flex min-h-7 flex-1 items-center justify-center rounded px-2.5 text-12 font-semibold transition-colors duration-(--duration-fast) sm:flex-none",
+                      active ? "bg-brand-600 text-brand-on" : "text-muted hover:bg-surface-2 hover:text-ink",
+                    )}
+                  >
+                    <span className="sm:hidden" aria-hidden>{p.short}</span>
+                    <span className="sr-only sm:not-sr-only">{p.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
             <p className="flex items-center gap-3 text-11-5 text-muted">
               <span className="flex items-center gap-1.5">
                 <span aria-hidden className="size-2.5 rounded-sm bg-info" /> opened
@@ -181,7 +247,7 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
             <div className="grid flex-1 place-items-center text-center">
               <div>
                 <p className="text-13 text-muted">
-                  No tickets opened or resolved in the last {metrics.window_days} days.
+                  No tickets opened or resolved in the {period.span}.
                 </p>
                 <p className="mt-1 text-12-5 text-faint">
                   Anything still open was raised before that, and is counted above.
@@ -218,7 +284,7 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
                     <span className="block border-t border-line-strong" />
                   </div>
 
-                  <VolumeCurves volume={volume} axisTop={axisTop} />
+                  <VolumeCurves volume={volume} bucket={bucket} axisTop={axisTop} />
                 </div>
               </div>
 
@@ -231,15 +297,15 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
               */}
               <div className="relative ml-8 mt-1.5 flex text-11 text-faint" aria-hidden>
                 {volume.map((d, i) => {
-                  // The weekly tick nearest the end is suppressed: "Today" is
+                  // The tick nearest the end is suppressed: "Today" is
                   // anchored to the right edge, and on a 30-day window the two
                   // landed four columns apart and printed as "25 AugToday".
-                  const show = i % 7 === 0 && i < volume.length - 7;
+                  const show = i % step === 0 && i < volume.length - step;
                   return (
                     <span key={d.date} className="min-w-0 flex-1">
                       {show && (
                         <span className="-ml-3 block whitespace-nowrap">
-                          {formatTableDate(d.date)}
+                          {bucketTick(d.date, bucket)}
                         </span>
                       )}
                     </span>
@@ -262,11 +328,11 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
                   this row and the bars above it are two separate flex rows
                   that agree only by having equal children.
                 */}
-                <span className="absolute right-0 top-0 whitespace-nowrap">Today</span>
+                <span className="absolute right-0 top-0 whitespace-nowrap">{lastLabel}</span>
               </div>
 
               <p className="sr-only">
-                {totalCreated} tickets opened over {metrics.window_days} days, peaking at {peak} in a day.
+                {totalCreated} tickets opened over the {period.span}, peaking at {peak} in a {bucket}.
               </p>
             </>
           )}
@@ -335,8 +401,9 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
  * carrying the same `title` the bars carried, because a `<title>` inside a
  * stretched SVG path is a target the size of the stroke.
  */
-function VolumeCurves({ volume, axisTop }: {
-  volume: DashboardMetrics["volume"];
+function VolumeCurves({ volume, bucket, axisTop }: {
+  volume: DashboardMetrics["volume_series"]["points"];
+  bucket: Bucket;
   axisTop: number;
 }) {
   const last = Math.max(1, volume.length - 1);
@@ -345,7 +412,7 @@ function VolumeCurves({ volume, axisTop }: {
   const x = (i: number) => (i / last) * 100;
   const y = (v: number) => 100 - Math.min(100, (v / axisTop) * 100);
 
-  const curve = (pick: (d: DashboardMetrics["volume"][number]) => number): string => {
+  const curve = (pick: (d: DashboardMetrics["volume_series"]["points"][number]) => number): string => {
     const pts = volume.map((d, i) => [x(i), y(pick(d))] as const);
     if (pts.length === 0) return "";
     if (pts.length === 1) return `M ${pts[0][0]} ${pts[0][1]}`;
@@ -423,13 +490,13 @@ function VolumeCurves({ volume, axisTop }: {
         />
       </svg>
 
-      {/* The day-by-day figures, as targets rather than as shapes. */}
+      {/* The per-bucket figures, as targets rather than as shapes. */}
       <ul className="absolute inset-0 flex" aria-hidden>
         {volume.map((d) => (
           <li
             key={d.date}
             className="min-w-0 flex-1"
-            title={`${formatTableDate(d.date)}: ${d.created} opened, ${d.resolved} resolved`}
+            title={`${bucketTitle(d, bucket)}: ${d.created} opened, ${d.resolved} resolved`}
           />
         ))}
       </ul>

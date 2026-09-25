@@ -303,3 +303,29 @@ and the pill always fit; the counter keeps clear of the pause button with
 `pr-12`. Videos and YouTube slides show their poster: it is a gallery of
 stills. Two slides minimum, or it renders `Slider`; the transition and the
 caption anchor are ignored, the `Cards` reasoning.
+
+## Cylinder and Ripple (2026-09-24)
+
+After Vengeance UI's cylinder carousel and ripple displacement slider (MIT),
+re-drawn rather than vendored.
+
+**Cylinder** (`components/ui/cylinder-slider.tsx`): the slides stand as cards
+around a ring in perspective. Each card is placed with the `transform`
+*function list* — `rotateY(i·360/n) translateZ(r)`, turned then pushed out
+along its own facing — because the individual `rotate`/`translate`
+properties compose as translate ∘ rotate and would push every card out
+along one axis. The ring turns with the `rotate` property (the transitioned
+one) and is pushed back with `translate`. It turns **one card per step**
+(autoplay, arrows, dots, a press on a card) on an unbounded step counter, so
+last → first is one step forward; the reference spins continuously, which
+leaves no front card for the heading and caption. `r` is card width over
+`2·tan(π/n)` with 6% air. Needs five slides, or it renders `Slider`.
+
+**Ripple** (`components/ui/ripple-slider.tsx`): a full-bleed banner whose
+changes are drawn by a raw WebGL fragment shader — one quad, two textures, a
+progress uniform tweened by rAF (the reference is three.js + gsap). Textures
+load from the **same-origin `/_next/image` URL**: an API-origin image taints
+the canvas without CORS on `/storage`. The canvas paints only during a
+change; the real `<img>` is always underneath (alt, LCP, no-JS). No WebGL, a
+lost context, reduced motion or an SVG slide → the crossfade. Two slides
+minimum.

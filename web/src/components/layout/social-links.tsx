@@ -1,5 +1,5 @@
 import {
-  IconFacebook, IconInstagram, IconLinkedin, IconWhatsapp, IconX, IconYoutube,
+  IconFacebook, IconInstagram, IconLinkedin, IconReddit, IconWhatsapp, IconX, IconYoutube,
 } from "@/components/icons";
 import type { SiteSettings } from "@/lib/site-settings";
 import type { CSSProperties } from "react";
@@ -36,12 +36,14 @@ import { Dock, DockIcon } from "@/components/velora/dock";
  * footer would hide it completely.
  */
 const PROFILES = [
-  { key: "social_linkedin", label: "LinkedIn", Icon: IconLinkedin, brand: "#0A66C2" },
-  { key: "social_x", label: "X", Icon: IconX, brand: "#ffffff" },
-  { key: "social_facebook", label: "Facebook", Icon: IconFacebook, brand: "#1877F2" },
-  { key: "social_instagram", label: "Instagram", Icon: IconInstagram, brand: "#E4405F" },
-  { key: "social_youtube", label: "YouTube", Icon: IconYoutube, brand: "#FF0000" },
-  { key: "social_whatsapp", label: "WhatsApp", Icon: IconWhatsapp, brand: "#25D366" },
+  { key: "social_linkedin", label: "LinkedIn", initial: "L", Icon: IconLinkedin, brand: "#0A66C2" },
+  { key: "social_x", label: "X", initial: "X", Icon: IconX, brand: "#ffffff" },
+  { key: "social_facebook", label: "Facebook", initial: "F", Icon: IconFacebook, brand: "#1877F2" },
+  { key: "social_instagram", label: "Instagram", initial: "I", Icon: IconInstagram, brand: "#E4405F" },
+  { key: "social_youtube", label: "YouTube", initial: "Y", Icon: IconYoutube, brand: "#FF0000" },
+  { key: "social_whatsapp", label: "WhatsApp", initial: "W", Icon: IconWhatsapp, brand: "#25D366" },
+  // 5.39:1 on the footer's #12140d, measured 2026-09-24.
+  { key: "social_reddit", label: "Reddit", initial: "R", Icon: IconReddit, brand: "#FF4500" },
 ] as const;
 
 export function SocialLinks({ settings }: { settings: SiteSettings }) {
@@ -50,6 +52,8 @@ export function SocialLinks({ settings }: { settings: SiteSettings }) {
     .filter((p): p is typeof p & { href: string } => Boolean(p.href));
 
   if (links.length === 0) return null;
+
+  if (settings.social_style !== "dock") return <SocialFlip links={links} word={settings.social_flip_word} />;
 
   /*
     Velora's Dock: the tiles magnify under the cursor. This stays a server
@@ -104,5 +108,74 @@ export function SocialLinks({ settings }: { settings: SiteSettings }) {
         </DockIcon>
       ))}
     </Dock>
+  );
+}
+
+/**
+ * Letter tiles that flip to the icons (the client, 2026-09-24, after Vengeance
+ * UI's social flip button — MIT, re-drawn rather than vendored: the original
+ * pulls in framer-motion and react-icons, and this is a row of six links).
+ *
+ * The fronts spell `social_flip_word`, one letter per link; a tile past the
+ * end of the word shows its network's initial, so a word of the wrong length
+ * still reads as something rather than as blanks. Pointing at the row — or
+ * tabbing into it — turns every tile over, one after another, to the icon on
+ * the back; the hovered one lifts a name tag above itself.
+ *
+ * **CSS only, in `globals.css` under `.social-flip`.** The turn is the CSS
+ * `rotate` property (`rotate: y 180deg`), transitioned as `rotate` — the
+ * Tailwind v4 trap this project keeps meeting: `transition-transform` would
+ * animate nothing. The stagger is `--i` on each item. Three cases that are
+ * not a flip: a device that cannot hover shows the icons from the start,
+ * because letters that only turn into icons under a pointer leave a phone
+ * with a word that goes nowhere; reduced motion swaps the faces by opacity;
+ * and the link's name is its `aria-label`, so the letter and the tag are
+ * both `aria-hidden` and a screen reader hears "Technoware on LinkedIn".
+ *
+ * The back face is the dock's hover state — the glyph in its brand colour on
+ * the footer's dark ground — so every contrast figure measured above still
+ * holds for it.
+ */
+function SocialFlip({ links, word }: {
+  links: ((typeof PROFILES)[number] & { href: string })[];
+  word: string | undefined;
+}) {
+  const letters = (word ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+  return (
+    <ul className="social-flip mt-6 flex flex-wrap gap-2">
+      {links.map(({ key, label, initial, href, Icon, brand }, i) => (
+        <li key={key} style={{ "--i": i, "--brand": brand } as CSSProperties}>
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Technoware on ${label}`}
+            className="social-flip__tile relative block size-10 rounded-lg"
+          >
+            <span className="social-flip__card relative block size-full">
+              <span
+                aria-hidden
+                className="social-flip__face grid place-items-center rounded-lg border border-dark-line font-display text-[17px] font-semibold text-dark-muted"
+              >
+                {letters[i] ?? initial}
+              </span>
+              <span
+                aria-hidden
+                className="social-flip__face social-flip__back grid place-items-center rounded-lg border border-[color-mix(in_srgb,var(--brand)_45%,transparent)] bg-dark text-[var(--brand)] [&_svg]:size-[55%]"
+              >
+                <Icon />
+              </span>
+            </span>
+            <span
+              aria-hidden
+              className="social-flip__tip pointer-events-none absolute bottom-full left-1/2 mb-2 rounded-md bg-brand-600 px-2 py-1 text-12 font-semibold whitespace-nowrap text-brand-on"
+            >
+              {label}
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
   );
 }

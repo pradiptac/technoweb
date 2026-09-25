@@ -74,6 +74,8 @@ export type HomeData = {
   clients: Awaited<ReturnType<typeof publicApi.clients>>;
   certifications: Awaited<ReturnType<typeof publicApi.certifications>>;
   heroSlider: Awaited<ReturnType<typeof publicApi.slider>>["data"] | null;
+  /** The stat bar, pricing table and technology stack chosen for the homepage — each null when none is. */
+  blocks: import("@/components/blocks/home-block-sections").HomeBlocks;
 };
 
 /** `PageHero`'s public props, plus the settings the dispatcher has read. */
@@ -93,6 +95,15 @@ export type PageHeroProps = {
 export type CtaBandProps = {
   title?: string;
   body?: string;
+  /** A small line above the heading, from the default CTA banner. */
+  kicker?: string;
+  /** The first button; the theme's own words and `/contact` when absent. */
+  primary?: { label?: string | null; href?: string | null };
+  /**
+   * The second button: absent → "Call {phone}", as every theme always drew
+   * it; `null` → none; a link → that link. From the default CTA banner.
+   */
+  secondary?: { label: string; href: string } | null;
   tone?: "accent" | "brand";
   size?: "md" | "lg";
   backdrop?: BackdropVariant;

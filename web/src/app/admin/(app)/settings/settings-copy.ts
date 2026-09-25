@@ -395,6 +395,28 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   social_instagram: { label: "Instagram", placeholder: "https://www.instagram.com/…" },
   social_youtube: { label: "YouTube", placeholder: "https://www.youtube.com/@…" },
   social_whatsapp: { label: "WhatsApp", placeholder: "https://wa.me/919876543210" },
+  social_reddit: { label: "Reddit", placeholder: "https://www.reddit.com/r/… or /user/…" },
+  home_stats_block: {
+    label: "Stat bar section",
+    hint: "A published stat bar to show on the homepage (Site → Stat bars). Where it sits, and whether it shows, is on the Themes screen.",
+  },
+  home_stack_block: {
+    label: "Technology stack section",
+    hint: "A published technology stack to show on the homepage (Site → Technology stack).",
+  },
+  home_pricing_block: {
+    label: "Pricing section",
+    hint: "A published pricing table to show on the homepage (Site → Pricing).",
+  },
+  social_style: {
+    label: "How the icons are drawn",
+    hint: "Flip tiles spell the word below and turn into the icons when somebody points at them; phones and touch screens show the icons straight away.",
+  },
+  social_flip_word: {
+    label: "Word on the flip tiles",
+    placeholder: "FOLLOW",
+    hint: "One letter per profile filled in above — six profiles, six letters. Letters and digits only. A tile past the end of the word shows its network's initial.",
+  },
   google_analytics_id: {
     label: "Google Analytics (GA4)",
     hint: "The measurement ID, which starts with G-. Leave blank to load nothing.",
@@ -508,7 +530,7 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
   },
   social: {
     title: "Social profiles",
-    blurb: "Full URLs. Leave one blank and its icon disappears from the footer — better than linking to a profile that does not exist.",
+    blurb: "Full URLs. Leave one blank and its icon disappears from the footer — better than linking to a profile that does not exist. Below them, how the row of icons is drawn.",
   },
   appearance: {
     // "Colour palette" since 2026-09-16, when the site gained Themes (Site →
@@ -651,7 +673,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
             "chatbot_whatsapp_number", "chatbot_forward_unanswered",
             "chatbot_model", "chatbot_max_message_chars", "chatbot_max_messages",
             "chatbot_context_messages", "chatbot_daily_reply_cap", "chat_retention_days"],
-  homepage: ["hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats", "stats_colour", "stats_size", "stats_animation",
+  homepage: ["hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats", "stats_colour", "stats_size", "stats_animation", "home_stats_block", "home_stack_block", "home_pricing_block",
              "why_kicker", "why_heading", "why_lede", "why_steps",
              "testimonial_enabled", "testimonial_quote", "testimonial_author", "testimonial_role",
              "amc_enabled", "amc_heading", "amc_inclusions", "amc_link_label", "amc_link_href"],
@@ -677,7 +699,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
     out of the command palette, since `settingsPages()` lists fields from
     here. The seeder's own order, which is the order somebody wrote them in.
   */
-  social: ["social_linkedin", "social_facebook", "social_x", "social_instagram", "social_youtube", "social_whatsapp"],
+  social: ["social_linkedin", "social_facebook", "social_x", "social_instagram", "social_youtube", "social_whatsapp", "social_reddit", "social_style", "social_flip_word"],
   blog: ["blog_video_url", "comments_enabled", "comments_closed_after_days"],
   indexnow: ["indexnow_enabled", "indexnow_key"],
   media: ["image_quality", "media_max_kb", "media_max_video_kb", "media_max_megapixels"],

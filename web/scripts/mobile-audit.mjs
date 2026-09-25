@@ -86,6 +86,8 @@ const ADMIN_ROUTES = [
   // section checklist plus a targeting summary is a lot of small controls in
   // 320px, which is exactly what this run measures.
   "/admin/popups", "/admin/popups/new",
+  "/admin/blocks/cta", "/admin/blocks/stack/new",
+  "/admin/blocks/cta/showcase", "/admin/blocks/stats/showcase", "/admin/blocks/pricing/showcase", "/admin/blocks/stack/showcase",
   "/admin/team-members", "/admin/team-members/new", "/admin/clients", "/admin/clients/new",
   "/admin/certifications", "/admin/certifications/new",
   /*

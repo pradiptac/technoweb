@@ -223,6 +223,7 @@ function FollowUs({ settings }: { settings: SiteSettings }) {
  *   LinkedIn  #0A66C2   5.69:1     X         #0f1419  18.51:1
  *   Facebook  #0C63D6   5.57:1     YouTube   #C4302B   5.52:1
  *   Instagram #C13584   5.11:1     WhatsApp  #075E54   7.67:1
+ *   Reddit    #D93A00   4.61:1  (its published #FF4500 is 3.44:1)
  *
  * WhatsApp's published green (#25D366) is 1.9:1 under white; its own dark
  * teal is used instead. Facebook's is darkened a step, which is the smallest
@@ -240,4 +241,5 @@ const SOCIAL_BUTTONS = [
   { key: "social_x", label: "X", className: "bg-[#0f1419]" },
   { key: "social_youtube", label: "YouTube", className: "bg-[#C4302B]" },
   { key: "social_whatsapp", label: "WhatsApp", className: "bg-[#075E54]" },
+  { key: "social_reddit", label: "Reddit", className: "bg-[#D93A00]" },
 ] as const;

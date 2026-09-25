@@ -66,6 +66,11 @@ class SettingsSeeder extends Seeder
             // client asked for counting figures site-wide, so it is the shipped
             // default rather than a choice; `none` is the homepage as it was.
             ['group' => 'homepage', 'key' => 'stats_animation', 'value' => 'count', 'type' => 'string'],
+            // The homepage's block sections (2026-09-24): a block's slug each,
+            // blank for none. Placed and switched on the Themes screen.
+            ['group' => 'homepage', 'key' => 'home_stats_block', 'value' => null, 'type' => 'string'],
+            ['group' => 'homepage', 'key' => 'home_pricing_block', 'value' => null, 'type' => 'string'],
+            ['group' => 'homepage', 'key' => 'home_stack_block', 'value' => null, 'type' => 'string'],
             ['group' => 'homepage', 'key' => 'support_stats', 'value' => '< 4h|First response
 24/7|Critical escalation
 96%|Resolved in SLA
@@ -1047,6 +1052,11 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'social', 'key' => 'social_instagram', 'value' => null, 'type' => 'string'],
             ['group' => 'social', 'key' => 'social_youtube', 'value' => null, 'type' => 'string'],
             ['group' => 'social', 'key' => 'social_whatsapp', 'value' => null, 'type' => 'string'],
+            ['group' => 'social', 'key' => 'social_reddit', 'value' => null, 'type' => 'string'],
+            // How the row is drawn (2026-09-24): letter tiles that flip to the
+            // icons, spelling `social_flip_word`, or the magnifying dock.
+            ['group' => 'social', 'key' => 'social_style', 'value' => 'flip', 'type' => 'string'],
+            ['group' => 'social', 'key' => 'social_flip_word', 'value' => 'FOLLOW', 'type' => 'string'],
         ];
 
         foreach ($settings as $s) {

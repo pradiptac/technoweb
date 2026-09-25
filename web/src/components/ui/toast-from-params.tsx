@@ -61,6 +61,31 @@ const OUTCOMES: Record<string, Message> = {
     title: "Saved reply deleted",
     body: "It is off every ticket's picker. Replies already sent with it are unchanged.",
   },
+  "block-saved": {
+    tone: "ok",
+    title: "Block saved",
+    body: "Pages embedding its shortcode show the change on their next render.",
+  },
+  "block-copied": {
+    tone: "ok",
+    title: "Copy made",
+    body: "The copy is a draft under its own slug. Rename it, then publish when it is ready.",
+  },
+  "block-not-copied": {
+    tone: "err",
+    title: "Could not make a copy",
+    body: "Nothing was changed. Try again in a moment.",
+  },
+  "block-deleted": {
+    tone: "ok",
+    title: "Block deleted",
+    body: "Anything embedding its shortcode now renders nothing in its place.",
+  },
+  "block-not-deleted": {
+    tone: "err",
+    title: "Could not delete the block",
+    body: "It is still there. Try again in a moment.",
+  },
   "vacancy-deleted": {
     tone: "ok",
     title: "Vacancy deleted",

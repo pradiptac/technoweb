@@ -827,6 +827,40 @@ AMC, NAS, PoE and VPN are most of what this catalogue is asked.
 
 ---
 
+## Content blocks
+
+CTA banners, stat bars, pricing tables and technology stacks (2026-09-24).
+See `docs/blocks.md`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/blocks/default/cta` | The default CTA, or **`{data: null}` in a 200** when none is chosen. Declared above `blocks/{slug}` |
+| `GET` | `/blocks/{slug}` | One published block: `{id, type, layout, name, slug, content, updated_at}`. 404 when a draft, unknown or empty |
+| `POST` | `/blocks/{slug}/submit` | A CTA's form (`newsletter`, `gated_download`, `webinar` only; 404 otherwise). `email`, `name` (required for a webinar), `company`, `phone`, honeypot `website`, the `_source_*` envelope. Throttled 10/min. Download: 200 with `data.url` — the only place the file's URL appears. Webinar: 202. Newsletter: 202 always, 403 while signup is off |
+| `GET`/`POST` | `/admin/blocks` | `role:content_manager`. `?type=`, `?status=`, `?q=`, `?per_page=` (max 100); default first, then by name. `meta.types`, `meta.layouts[type]` (value, label, blurb) |
+| `GET`/`PATCH`/`DELETE` | `/admin/blocks/{id}` | Bound by **id**. `type` is prohibited on PATCH; a new `layout` must come with `content` |
+| `POST` | `/admin/blocks/{id}/duplicate` | 201: a draft copy under a free slug, never the default |
+
+**The field is `content`, not `data`.** A resource whose array holds a `data`
+key is not wrapped, so the block's content travels as `content` and every
+read keeps its `{data: …}` envelope. Its shape is per type and layout
+(`App\Support\Blocks\BlockRules`); 422s are keyed `content.items.0.value`.
+
+**The admin read** carries `content` as stored (paths, brand ids), `media`
+(a URL for every stored `*_path`), `preview` (the public shape), `status`,
+`is_default` and `shortcode`. **The public read** resolves paths to URLs with
+alt text and focal points, gives a stack node naming a brand that brand's
+name and logo (dropping a node whose brand is gone), and never carries a
+gated download's file — `has_download: true` stands in for it.
+
+**`is_default`** is accepted on a published CTA only (422 otherwise);
+setting it clears every other default, and unpublishing the default clears
+it. `home_stats_block`, `home_pricing_block` and `home_stack_block` in the
+`homepage` settings group are pickers of published blocks of their kind
+(`options` from the API; anything else is a 422).
+
+---
+
 ## The store
 
 A **separate catalogue** from `/products`. What the shop sells is maintained
@@ -1420,7 +1454,7 @@ existence is what an integration is told. The subject is never sealed.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/dashboard` | Counts, high priority, status breakdown, and a `metrics` block: 30-day volume, trend, median first response and resolution, SLA rate, open by priority and category. `?since=<iso>` adds `new_since` — tickets, enquiries and (for a sales role) leads created after that moment; null when not asked |
+| `GET` | `/admin/dashboard` | Counts, high priority, status breakdown, and a `metrics` block: 30-day volume, trend, median first response and resolution, SLA rate, open by priority and category. `?volume=month\|quarter\|half\|year` picks what `metrics.volume_series` covers — `{period, bucket, points[{date, end, created, resolved}]}` in 30 days, 13 or 26 Monday weeks, or 12 months, every bucket present, an unknown period a month; `metrics.volume` stays the 30-day daily series. `?since=<iso>` adds `new_since` — tickets, enquiries and (for a sales role) leads created after that moment; null when not asked |
 | `GET` | `/admin/new-since?since=<iso>` | The sidebar's poll: `{since, tickets, leads, enquiries}` created after that moment — each **null for a role that cannot open the screen**, never zero. Staff-wide; three counts and nothing else, where `/admin/dashboard` builds thirty days of metrics. 422 without `since` |
 | `GET` | `/admin/search?q=` | The console's command palette. Groups of five — tickets, customers, leads, products, posts, pages, orders, shop products — **each present only for a role that may open it**. Staff-wide, not role-gated; the controller filters. Two-character floor. `admin_path` is a console route |
 | `GET` | `/admin/users` | Active staff, for assignment pickers |
@@ -3099,6 +3133,13 @@ Elfsight snippet), `reviews_kicker`, `reviews_heading`, `reviews_lede` and
 sanitised, deliberately — a snippet that cannot carry a script is useless —
 which is safe only because `role:admin` is the sole writer; the frontend
 reads the app id out of the reviews snippet rather than injecting it.
+
+**The `social` group is public** and holds the seven profile URLs —
+LinkedIn, X, Facebook, Instagram, YouTube, WhatsApp and, since 2026-09-24,
+`social_reddit` — plus how the footer draws them: `social_style` (`flip` or
+`dock`, offered as `options`, refused outside them) and `social_flip_word`
+(letters and digits, at most 12, stored in capitals). A blank URL hides its
+icon.
 
 **The `consent` group is public too**, for the same reason — the banner is
 rendered client-side and needs every string in it.
