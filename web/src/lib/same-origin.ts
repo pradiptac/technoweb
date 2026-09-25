@@ -13,7 +13,11 @@ import { requestHost } from "@/lib/request-host";
  * `Origin: null` (a sandboxed frame, a privacy redirect) is refused.
  *
  * The host is read the way `proxy.ts` reads it, `x-forwarded-host` first, so
- * Plesk's internal address does not fail every legitimate press. Moved here
+ * Plesk's internal address does not fail every legitimate press — and the
+ * site's own public origin (`NEXT_PUBLIC_SITE_URL`) is accepted as well, for a
+ * proxy that forwards neither the public `Host` nor `X-Forwarded-Host`, where
+ * the request would otherwise look like it arrived at `127.0.0.1:3000` and
+ * every upload would be refused. Moved here
  * from the impersonation handler on 2026-09-26, when the multipart handlers
  * (`proxyMultipart`) were found to have no check at all.
  */
@@ -28,5 +32,13 @@ export function isSameOrigin(request: Request): boolean {
     return false;
   }
 
-  return host !== "" && host === requestHost(request.headers);
+  return host !== "" && (host === requestHost(request.headers) || host === siteHost());
+}
+
+function siteHost(): string | null {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "").host.toLowerCase() || null;
+  } catch {
+    return null;
+  }
 }

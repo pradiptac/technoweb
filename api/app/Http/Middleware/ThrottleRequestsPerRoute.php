@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Routing\Route;
 use RuntimeException;
 
 /**
@@ -33,13 +35,13 @@ use RuntimeException;
 class ThrottleRequestsPerRoute extends ThrottleRequests
 {
     /**
-     * @param  \Illuminate\Http\Request  $request
+     * @param  Request  $request
      */
     protected function resolveRequestSignature($request)
     {
         $route = $request->route();
 
-        if (! $route instanceof \Illuminate\Routing\Route) {
+        if (! $route instanceof Route) {
             throw new RuntimeException('Unable to generate the request signature. Route unavailable.');
         }
 
