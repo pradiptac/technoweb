@@ -5,10 +5,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { NewsletterGroup } from "@/types/api";
 import { SequenceSettingsForm } from "../sequence-settings-form";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New sequence", path: "/admin/newsletter/sequences/new", seo: noIndex });
 
 export default async function NewSequencePage() {
+  await requireScreen();
   let groups: NewsletterGroup[];
 
   try {

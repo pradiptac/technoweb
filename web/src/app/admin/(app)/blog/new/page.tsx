@@ -5,10 +5,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { PostForm } from "../post-form";
 import type { StaffUser, AnswerBlockKindOption } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New post", path: "/admin/blog/new", seo: noIndex });
 
 export default async function NewBlogPostPage() {
+  await requireScreen();
   let staff: StaffUser[] = [];
   let kinds: AnswerBlockKindOption[] = [];
   try {

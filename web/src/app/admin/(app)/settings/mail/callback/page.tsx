@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { finishMailConnection } from "../../mail-actions";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({
   title: "Connecting a mailbox", path: "/admin/settings/mail/callback", seo: noIndex,
@@ -33,6 +34,7 @@ export default async function MailCallbackPage({
 }: {
   searchParams: Promise<{ code?: string; state?: string; error?: string; error_description?: string }>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   // Google reports a refused consent in the query string rather than by not

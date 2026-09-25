@@ -5,6 +5,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { PasswordForm } from "./password-form";
 import { Card } from "@/components/ui/card";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Your account", path: "/admin/profile", seo: noIndex });
 
@@ -16,6 +17,7 @@ export const metadata = buildMetadata({ title: "Your account", path: "/admin/pro
  * to do it — who would then know their password.
  */
 export default async function AdminProfilePage() {
+  await requireScreen();
   const staff = await getCurrentStaff();
 
   return (

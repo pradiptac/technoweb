@@ -8,6 +8,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { MailTemplateIndex, MailTemplateRow } from "@/types/api";
 import { formatDate } from "@/lib/dates";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({
   title: "Email templates",
@@ -38,6 +39,7 @@ function when(row: MailTemplateRow): string {
 }
 
 export default async function EmailTemplatesPage() {
+  await requireScreen();
   let result: MailTemplateIndex;
 
   try {

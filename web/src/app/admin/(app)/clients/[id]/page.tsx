@@ -10,10 +10,12 @@ import { noIndex } from "@/lib/no-index";
 import { ClientForm } from "../client-form";
 import { deleteClientAction } from "../actions";
 import type { AdminClient, AdminIndustry } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Edit client", path: "/admin/clients", seo: noIndex });
 
 export default async function EditClientPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireScreen();
   const { id } = await params;
   const numericId = Number(id);
   if (!Number.isInteger(numericId) || numericId <= 0) notFound();

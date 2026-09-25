@@ -11,6 +11,7 @@ import { IconBuilding } from "@/components/icons";
 import { getClientList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Clients", path: "/admin/clients", seo: noIndex });
 
@@ -19,6 +20,7 @@ export default async function AdminClientsPage({
 }: {
   searchParams: Promise<{ q?: string; status?: string; page?: string; per_page?: string }>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result;

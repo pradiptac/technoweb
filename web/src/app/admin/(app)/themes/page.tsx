@@ -9,6 +9,7 @@ import { noIndex } from "@/lib/no-index";
 import { siteThemeId, siteThemeOverridden } from "@/lib/site-theme";
 import { MANIFESTS } from "@/themes/manifests";
 import { ThemesGallery } from "./themes-gallery";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Themes", path: "/admin/themes", seo: noIndex });
 
@@ -30,6 +31,7 @@ export const metadata = buildMetadata({ title: "Themes", path: "/admin/themes", 
  * the screen has to say so rather than let an editor conclude it is broken.
  */
 export default async function AdminThemesPage() {
+  await requireScreen();
   let settings: SettingsPayload;
   try {
     settings = await getSettings();

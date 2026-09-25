@@ -8,6 +8,7 @@ import { getNewsletterSequences } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { NewsletterSequence } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Sequences", path: "/admin/newsletter/sequences", seo: noIndex });
 
@@ -20,6 +21,7 @@ export const metadata = buildMetadata({ title: "Sequences", path: "/admin/newsle
  * sends by hand, and the campaigns list hides them.
  */
 export default async function SequencesPage() {
+  await requireScreen();
   let sequences: NewsletterSequence[];
 
   try {

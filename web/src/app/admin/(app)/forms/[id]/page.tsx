@@ -10,6 +10,7 @@ import { noIndex } from "@/lib/no-index";
 import { FormForm } from "../form-form";
 import { deleteFormAction } from "../actions";
 import type { SiteForm } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Edit form", path: "/admin/forms", seo: noIndex });
 
@@ -19,6 +20,7 @@ export default async function EditFormPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ saved?: string }>;
 }) {
+  await requireScreen();
   const { id } = await params;
   const { saved } = await searchParams;
 

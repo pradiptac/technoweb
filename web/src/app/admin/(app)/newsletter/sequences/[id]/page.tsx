@@ -12,6 +12,7 @@ import { SequenceStatusControls } from "./sequence-status-controls";
 import { StepsPanel } from "./steps-panel";
 import { EnrolmentsPanel } from "./enrolments-panel";
 import { ReportPanel } from "./report-panel";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Sequence", path: "/admin/newsletter/sequences", seo: noIndex });
 
@@ -30,6 +31,7 @@ export default async function SequencePage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ tab?: string; status?: string; page?: string; per_page?: string }>;
 }) {
+  await requireScreen();
   const { id } = await params;
   const query = await searchParams;
 

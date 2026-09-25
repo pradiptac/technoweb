@@ -5,10 +5,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { StoreProductForm } from "../store-product-form";
 import type { AdminStoreCategory, PickerOption, AnswerBlockKindOption } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New store product", path: "/admin/store/products/new", seo: noIndex });
 
 export default async function NewStoreProductPage() {
+  await requireScreen();
   let brands: PickerOption[] = [];
   let categories: AdminStoreCategory[] = [];
   let services: PickerOption[] = [];

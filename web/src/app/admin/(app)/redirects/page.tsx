@@ -11,6 +11,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminRedirect, Paginated } from "@/types/api";
 import { formatDate } from "@/lib/dates";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Redirects", path: "/admin/redirects", seo: noIndex });
 
@@ -22,6 +23,7 @@ export default async function AdminRedirectsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: Paginated<AdminRedirect>;

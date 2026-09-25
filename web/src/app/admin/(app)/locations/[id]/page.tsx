@@ -6,6 +6,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { LocationForm } from "../location-form";
 import type { AdminLocation } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 
 export const metadata = buildMetadata({ title: "Place", path: "/admin/locations", seo: noIndex });
@@ -16,6 +17,7 @@ export default async function EditLocationPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ saved?: string; blocked?: string }>;
 }) {
+  await requireScreen();
   const { id } = await params;
   const flags = await searchParams;
 

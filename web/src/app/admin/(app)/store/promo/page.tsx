@@ -5,6 +5,7 @@ import { getStorePromo, type SettingRow } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { PromoForm } from "./promo-form";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Promo banners", path: "/admin/store/promo", seo: noIndex });
 
@@ -18,6 +19,7 @@ export const metadata = buildMetadata({ title: "Promo banners", path: "/admin/st
  * which reaches those eight keys under `role:store_manager` and no other.
  */
 export default async function AdminStorePromoPage() {
+  await requireScreen();
   let rows: SettingRow[];
   try {
     rows = await getStorePromo();

@@ -12,6 +12,7 @@ import { noIndex } from "@/lib/no-index";
 import type { AdminBlogPost, Paginated, PublishStatus, StaffUser } from "@/types/api";
 import type { ReactNode } from "react";
 import { formatTableDate } from "@/lib/dates";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Blog", path: "/admin/blog", seo: noIndex });
 
@@ -44,6 +45,7 @@ export default async function AdminBlogPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   const queryParams: BlogQueryParams = {

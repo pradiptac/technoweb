@@ -11,6 +11,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { CampaignIndex } from "@/lib/admin";
 import { CampaignRowActions } from "./campaign-row-actions";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Campaigns", path: "/admin/newsletter/campaigns", seo: noIndex });
 
@@ -30,6 +31,7 @@ export default async function CampaignsPage({
 }: {
   searchParams: Promise<{ q?: string; status?: string; page?: string; per_page?: string }>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: CampaignIndex;

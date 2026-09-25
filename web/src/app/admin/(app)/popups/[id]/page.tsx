@@ -10,10 +10,12 @@ import { noIndex } from "@/lib/no-index";
 import { PopupForm } from "../popup-form";
 import { deletePopupAction } from "../actions";
 import type { AdminPopup } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Edit popup", path: "/admin/popups", seo: noIndex });
 
 export default async function EditPopupPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireScreen();
   const { id } = await params;
 
   let popup: AdminPopup;

@@ -18,6 +18,7 @@ import { BulkAi } from "./bulk-ai";
 import { SortTh } from "@/components/admin/sort-th";
 import { BAND } from "./score";
 import type { ReadinessScore, SeoBand, SeoMeta, SeoRow } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "SEO", path: "/admin/seo", seo: noIndex });
 
@@ -53,6 +54,7 @@ export default async function AdminSeoPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   let rows: SeoRow[];

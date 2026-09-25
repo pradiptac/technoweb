@@ -8,6 +8,7 @@ import { getChatConversations } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { formatDate } from "@/lib/dates";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Conversations", path: "/admin/chat/conversations", seo: noIndex });
 
@@ -21,6 +22,7 @@ type SearchParams = { q?: string; with_lead?: string; unanswered?: string; page?
  * answers is "which one do I want", not "what did it say".
  */
 export default async function ConversationsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireScreen();
   const params = await searchParams;
 
   const list = await getChatConversations({

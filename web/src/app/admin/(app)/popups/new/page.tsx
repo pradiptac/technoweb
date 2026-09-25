@@ -4,10 +4,12 @@ import { getPopupList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { PopupForm } from "../popup-form";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New popup", path: "/admin/popups/new", seo: noIndex });
 
 export default async function NewPopupPage() {
+  await requireScreen();
   /*
     The index is fetched for its `meta` alone — the sections, the sizes and the
     frequencies. They are sent by the API rather than listed in TypeScript, the

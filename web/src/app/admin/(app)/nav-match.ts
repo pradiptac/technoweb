@@ -25,3 +25,33 @@ export function bestRow<T extends { href: string; exact?: boolean }>(rows: T[], 
 
   return best;
 }
+
+/**
+ * The path a role is judged on, from the proxy's `x-pathname`.
+ *
+ * Decoded, because the proxy forwards the path as requested and the router
+ * decodes before it matches: `/admin/%73ettings` renders Settings while
+ * matching no row here, and no row means no role to check — the percent sign
+ * was a way round the gate. Doubled and trailing slashes are folded for the
+ * same reason. Anything that does not decode, is not under `/admin`, or
+ * carries a `.`/`..` segment is `null`, which every caller treats as a
+ * refusal rather than as "no row, so allowed".
+ */
+export function screenPath(raw: string | null): string | null {
+  if (!raw) return null;
+
+  let path: string;
+  try {
+    path = decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
+
+  path = path.replace(/\/{2,}/g, "/");
+  if (path.length > 1 && path.endsWith("/")) path = path.slice(0, -1);
+
+  if (path !== "/admin" && !path.startsWith("/admin/")) return null;
+  if (path.split("/").some((segment) => segment === "." || segment === "..")) return null;
+
+  return path;
+}

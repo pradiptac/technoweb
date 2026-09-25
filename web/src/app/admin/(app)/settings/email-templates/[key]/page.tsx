@@ -10,6 +10,7 @@ import { noIndex } from "@/lib/no-index";
 import { TemplateEditor } from "./template-editor";
 import { resetTemplateAction } from "../actions";
 import type { MailTemplateDetail } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({
   title: "Edit email template",
@@ -22,6 +23,7 @@ export default async function EditEmailTemplatePage({
 }: {
   params: Promise<{ key: string }>;
 }) {
+  await requireScreen();
   const { key } = await params;
 
   let result: MailTemplateDetail;

@@ -7,6 +7,7 @@ import { noIndex } from "@/lib/no-index";
 import type { AdminContentBlock } from "@/types/api";
 import { PreviewFrame } from "../../preview-frame";
 import { blockType } from "../../types";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Block showcase", path: "/admin/blocks", seo: noIndex });
 
@@ -16,6 +17,7 @@ export const metadata = buildMetadata({ title: "Block showcase", path: "/admin/b
  * reach every layout without a public page carrying placeholder content.
  */
 export default async function BlockShowcasePage({ params }: { params: Promise<{ type: string }> }) {
+  await requireScreen();
   const type = blockType((await params).type);
   if (!type) notFound();
 

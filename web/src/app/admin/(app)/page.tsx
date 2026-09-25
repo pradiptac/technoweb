@@ -11,6 +11,7 @@ import { StatTile, type Tone } from "@/components/admin/stat-tile";
 import { DashboardMetricsPanel } from "./metrics";
 import type { AdminDashboard, Ticket, TicketStatus } from "@/types/api";
 import type { SVGProps } from "react";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Dashboard", path: "/admin", seo: noIndex });
 
@@ -41,6 +42,7 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
 export default async function AdminDashboardPage({ searchParams }: {
   searchParams: Promise<{ volume?: string }>;
 }) {
+  await requireScreen();
   // The volume chart's period. The API allowlists it and falls back to a month.
   const { volume } = await searchParams;
   let dashboard: AdminDashboard | null = null;

@@ -12,6 +12,7 @@ import { noIndex } from "@/lib/no-index";
 import type { AdminSolution, Paginated, PublishStatus } from "@/types/api";
 import type { ReactNode } from "react";
 import { IconTile } from "@/components/ui/icon-tile";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Solutions", path: "/admin/solutions", seo: noIndex });
 
@@ -48,6 +49,7 @@ export default async function AdminSolutionsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   const queryParams: SolutionQueryParams = {

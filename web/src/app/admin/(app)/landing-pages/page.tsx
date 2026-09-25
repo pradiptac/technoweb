@@ -9,6 +9,7 @@ import { getLandingPages } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminLandingPage } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Landing pages", path: "/admin/landing-pages", seo: noIndex });
 
@@ -27,6 +28,7 @@ const statusTone = {
 type SearchParams = { status?: string; kind?: string; q?: string; page?: string; per_page?: string; deleted?: string };
 
 export default async function LandingPagesPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: Awaited<ReturnType<typeof getLandingPages>>;

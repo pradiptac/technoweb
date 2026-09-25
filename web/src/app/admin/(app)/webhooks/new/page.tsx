@@ -5,10 +5,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { WebhookForm } from "../webhook-form";
 import type { WebhookEventOption } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New webhook", path: "/admin/webhooks/new", seo: noIndex });
 
 export default async function NewWebhookPage() {
+  await requireScreen();
   let events: WebhookEventOption[] = [];
   try {
     events = await getWebhookEvents();

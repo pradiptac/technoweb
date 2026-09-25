@@ -12,6 +12,7 @@ import type { SubscriberIndex } from "@/lib/admin";
 import type { NewsletterGroup } from "@/types/api";
 import { SubscriberRow } from "./subscriber-row";
 import { AddSubscriber } from "./add-subscriber";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Subscribers", path: "/admin/newsletter/subscribers", seo: noIndex });
 
@@ -20,6 +21,7 @@ export default async function SubscribersPage({
 }: {
   searchParams: Promise<{ q?: string; status?: string; group?: string; verification?: string; page?: string; per_page?: string }>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: SubscriberIndex;

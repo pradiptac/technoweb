@@ -12,6 +12,7 @@ import type { EmailVerification, NewsletterVerificationReport } from "@/types/ap
 import { VerificationDonut } from "./verification-donut";
 import { Card } from "@/components/ui/card";
 import { formatDate } from "@/lib/dates";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Verification", path: "/admin/newsletter/verification", seo: noIndex });
 
@@ -26,6 +27,7 @@ export const metadata = buildMetadata({ title: "Verification", path: "/admin/new
  * nightly run stops at whichever is lower.
  */
 export default async function VerificationPage() {
+  await requireScreen();
   let data: NewsletterVerificationReport;
 
   try {

@@ -6,10 +6,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminContentBlock } from "@/types/api";
 import { PreviewFrame } from "../../../preview-frame";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Preview block", path: "/admin/blocks", seo: noIndex });
 
 export default async function PreviewBlockPage({ params }: { params: Promise<{ type: string; id: string }> }) {
+  await requireScreen();
   const { id } = await params;
 
   let block: AdminContentBlock;

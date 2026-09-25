@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { Badge, orderStatusTone } from "@/components/ui/badge";
 import type { OrderStatus, StoreReport } from "@/types/api";
 import { Card } from "@/components/ui/card";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Sales reports", path: "/admin/store/reports", seo: noIndex });
 
@@ -39,6 +40,7 @@ export default async function StoreReportsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   let report: StoreReport;

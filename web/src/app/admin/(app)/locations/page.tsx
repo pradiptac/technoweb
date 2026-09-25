@@ -9,12 +9,14 @@ import { getLocations } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminLocation, Paginated } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Places", path: "/admin/locations", seo: noIndex });
 
 type SearchParams = { q?: string; active?: string; page?: string; deleted?: string };
 
 export default async function LocationsAdminPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: Paginated<AdminLocation>;

@@ -4,10 +4,12 @@ import { getMenus } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { MenuEditor } from "../menu-editor";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New menu", path: "/admin/menus/new", seo: noIndex });
 
 export default async function NewMenuPage() {
+  await requireScreen();
   /*
     The index is fetched for its `meta` alone — the locations and the item
     types. Both are sent by the API rather than listed in TypeScript, the same

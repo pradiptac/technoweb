@@ -4,10 +4,12 @@ import { getTeamMemberList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { TeamMemberForm } from "../team-member-form";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New team member", path: "/admin/team-members/new", seo: noIndex });
 
 export default async function NewTeamMemberPage() {
+  await requireScreen();
   // The index is fetched for its `meta.departments` alone — the datalist
   // behind the department field. The `/admin/popups/new` shape.
   let meta;

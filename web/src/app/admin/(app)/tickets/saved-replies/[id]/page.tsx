@@ -8,10 +8,12 @@ import { noIndex } from "@/lib/no-index";
 import { SavedReplyForm } from "../saved-reply-form";
 import { deleteSavedReplyAction } from "../actions";
 import type { CannedReply, CannedReplyPlaceholder } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Edit saved reply", path: "/admin/tickets/saved-replies", seo: noIndex });
 
 export default async function EditSavedReplyPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireScreen();
   const { id } = await params;
   const numericId = Number(id);
   if (!Number.isInteger(numericId) || numericId <= 0) notFound();

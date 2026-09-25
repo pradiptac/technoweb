@@ -5,10 +5,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { JobForm } from "../job-form";
 import type { JobExperienceLevelRow, JobQualificationRow } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New vacancy", path: "/admin/jobs/new", seo: noIndex });
 
 export default async function NewJobPage() {
+  await requireScreen();
   // Fetched inside the try, rendered outside it. JSX built in a try block does
   // not catch its own render errors -- React renders it later — so the catch
   // would be quietly lying about what it protects.

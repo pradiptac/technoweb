@@ -10,6 +10,7 @@ import { getStaffList, getStaffRoles } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminStaff, Paginated, RoleOption } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Staff", path: "/admin/users", seo: noIndex });
 
@@ -21,6 +22,7 @@ export default async function AdminStaffPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: Paginated<AdminStaff>;

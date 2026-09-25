@@ -12,6 +12,7 @@ import { noIndex } from "@/lib/no-index";
 import type { AdminCoupon } from "@/lib/admin";
 import type { Paginated } from "@/types/api";
 import { formatDate } from "@/lib/dates";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Discount codes", path: "/admin/store/coupons", seo: noIndex });
 
@@ -20,6 +21,7 @@ export default async function CouponsPage({
 }: {
   searchParams: Promise<{ q?: string; page?: string; per_page?: string }>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: Paginated<AdminCoupon>;

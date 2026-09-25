@@ -5,10 +5,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { NewsletterTemplate } from "@/types/api";
 import { NewCampaign } from "./new-campaign";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New campaign", path: "/admin/newsletter/campaigns/new", seo: noIndex });
 
 export default async function NewCampaignPage() {
+  await requireScreen();
   let templates: NewsletterTemplate[];
 
   try {

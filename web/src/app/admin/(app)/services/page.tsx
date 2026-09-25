@@ -11,6 +11,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminService, Paginated, PublishStatus } from "@/types/api";
 import { IconTile } from "@/components/ui/icon-tile";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Web services", path: "/admin/services", seo: noIndex });
 
@@ -31,6 +32,7 @@ export default async function AdminServicesPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: Paginated<AdminService> | null = null;

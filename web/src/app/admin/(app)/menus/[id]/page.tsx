@@ -6,10 +6,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { MenuEditor } from "../menu-editor";
 import { DeleteMenu } from "../delete-menu";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Edit menu", path: "/admin/menus", seo: noIndex });
 
 export default async function EditMenuPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireScreen();
   const { id } = await params;
 
   let menu, meta;

@@ -7,6 +7,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { StoreProductForm } from "../store-product-form";
 import type { AdminStoreCategory, AdminStoreProduct, PickerOption, AnswerBlockKindOption } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 const statusTone = { draft: "closed", published: "resolved", archived: "closed" } as const;
 
@@ -22,6 +23,7 @@ export default async function EditStoreProductPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ saved?: string }>;
 }) {
+  await requireScreen();
   const { id } = await params;
   const { saved } = await searchParams;
 
