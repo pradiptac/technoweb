@@ -118,6 +118,23 @@ there and can contain network diagrams, logs and credentials.
   `mod_deflate`, which Plesk's Apache loads by default. `AllowOverride
   FileInfo` on `api/public` is what lets a `.htaccess` set headers at all.
 
+**Tell the API which address the Next server connects from.** Every public
+request reaches Laravel through the Next server, which names the visitor in
+`X-Forwarded-For`; Laravel believes that header only from `TRUSTED_PROXIES`
+in `api/.env` (default `127.0.0.1,::1`, right when both run on one box and
+`API_BASE_URL` is a loopback address). If Next reaches the API over the
+network — `API_BASE_URL=https://api.technoware.in`, say — list the address
+those requests arrive from (the server's own public IP, or the Next host's).
+Never `*`: that lets anybody choose the address they are rate-limited under.
+Wrong the other way, nothing fails and every visitor shares one rate-limit
+bucket again. To check: sign in with a wrong password five times from one
+network, then sign in correctly from another (a phone on mobile data) — the
+second must succeed; or look at the IPs the activity log records for sign-ins.
+
+If the web server in front of Node *sets* `X-Real-IP` to the connecting
+address, `CLIENT_IP_HEADER=x-real-ip` in the Node environment reads that
+instead of the rightmost `X-Forwarded-For` entry; leave it unset otherwise.
+
 **Add the scheduler as a cron entry.** One line, and it is not optional:
 
 ```

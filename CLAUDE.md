@@ -183,7 +183,9 @@ and again on the `tw:cart` window event that Add to basket and Remove
 announce. And **`revalidatePath("/store", "layout")` must not come back** to
 the cart actions: it would purge every cached shop page for every visitor on
 each Add to basket. `/api/store/basket` answers 204 with no API call when
-there is no cookie, so a crawler still never mints a cart.
+there is no cookie, so a crawler still never mints a cart — and it answers
+**without the cart's token** (`BasketView`), which it used to hand to browser
+JavaScript from inside `data` while the cookie holding it was httpOnly.
 
 **A console save has to `updateTag` the collection, and ten action files
 never did.** Every detail fetch carries its collection's tag as well as its
@@ -193,7 +195,13 @@ services, solutions, FAQs and the store's products and categories calls
 `updateTag(<collection>)` — before that, an edit reached the public page only
 when the fetch's revalidate window ran out, five to ten minutes, which a probe
 renaming a solution through the real form proved. Verified after: HIT before
-the save, the new title on the next request.
+the save, the new title on the next request. **A delete purges only once the
+API accepted it**: the twelve content lists' delete actions ran
+`deleteX(id).catch(() => null)` and then purged and reported "deleted" whatever
+happened; a refusal now redirects with `?done=not-deleted` and purges nothing,
+and the pages delete no longer calls `revalidatePath` on a slug taken from the
+form (2026-09-26). An anonymous form submission purges nothing at all —
+`submitFormAction` carried a `revalidatePath("/")` nothing needed.
 
 **The proxy holds the redirect table in memory.** `proxy.ts` used to call
 `/redirects/lookup` on every request under ten content prefixes — pages that
@@ -265,7 +273,9 @@ public site does without, and its detail routes are ISR-cached anyway.
 **Never ISR-cache a user's search query.** `publicApi.products()` and
 `publicApi.knowledgeArticles()` take a `cache` flag — pass `false` when `q` is
 present. Caching search fills the cache with single-use entries and serves a
-stale empty result for the whole revalidate window.
+stale empty result for the whole revalidate window. The registration form's
+company lookup (`/api/companies`) was the one route handler still doing it
+(`revalidate: 300`); it is `no-store` since 2026-09-26.
 
 **Portal auth guard is on `web/src/app/portal/(app)/layout.tsx`.**
 `portal/login/` sits *outside* that route group deliberately — guarding it too
@@ -329,7 +339,21 @@ the static constants in `content/site.ts` when one is unset.
 console or the portal. Tracking staff pollutes the client's numbers, and a
 tracker on a signed-in support page sends ticket URLs — which contain a
 customer reference — to a third party. Each tag renders only when its ID is
-set.
+set. **And not on a page a secret addresses** (2026-09-26): `/order/*`,
+`/newsletter/unsubscribe/*` and `/store/notify/cancel/*` render no tag, carry
+`Referrer-Policy: no-referrer` (`next.config.ts`), and GA4's `page_location`
+everywhere is origin + path + the campaign parameters only. The order page
+used to be `/order/{n}?token=…` — its access token reported to GA4 and the
+Meta Pixel on every confirmation.
+
+**An order's token lives in a cookie, never in a rendered URL.** Links (the
+emails, Cashfree's return URL, `Order::url()`) go to `/order/{n}/open?token=…`,
+a route handler that sets an httpOnly cookie scoped to `/order/{n}` and 303s
+to the clean page; the checkout action sets the same cookie and redirects clean;
+the page, `PayButton`, `RevealCode` and their actions read it
+(`lib/order-access.ts`) and never take the token as a prop. A `?token=` still
+arriving at the page (an old email) is redirected through `/open`, never
+rendered with. The token must be 64 hex characters — the mock's is too.
 
 **Consent gates the trackers for real.** With `cookie_consent_enabled` on —
 the default — `Analytics` renders nothing at all until someone accepts: no
@@ -388,7 +412,10 @@ things that came with switching:
   it, because it filtered "Failed to load resource" out of its console check.
   The exception is granted only when a configured asset origin is loopback or
   RFC 1918; `ASSET_ORIGIN=https://api.technoware.in` keeps the guard. **The
-  audit now fails a route on any 4xx/5xx image response from this origin.**
+  asset origins are `ASSET_ORIGIN`, or `API_BASE_URL` only when that is
+  unset** — they were both, always, so a production build with an internal
+  `API_BASE_URL=http://127.0.0.1:8000` switched the guard off (2026-09-26).
+  **The audit now fails a route on any 4xx/5xx image response from this origin.**
 - **React Flight emits a preload hint for every non-lazy raw `<img>` in a
   server component, and a `<Link>` prefetch executes it.** With a raw `<img>`
   in `PageHero`, every page linking to `/support` and `/resources` in its nav
@@ -620,6 +647,22 @@ perfectly correct in development, where the retained port is the one the browser
 wanted. The host is read from `x-forwarded-host` before `host` for the same
 family of reason: compare the internal host and the check never matches, which
 is an infinite redirect.
+
+**The API sees the visitor's address only because the Next server tells it,
+and believes it only from the Next server.** Every public request reaches
+Laravel from Next, so until 2026-09-26 `$request->ip()` was the Next host for
+everybody: every per-IP throttle was one bucket for the site, and five wrong
+passwords locked an account (staff too) for all. Now every uncached API call
+— `apiFetch` without `revalidate`, `apiUpload`, `proxyMultipart` and the route
+handlers that fetch directly — sends `X-Forwarded-For: <visitor>` from
+`clientIpHeaders()` (`lib/client-ip.ts`), which takes the rightmost
+non-loopback entry the edge appended, **never the header as received**
+(`CLIENT_IP_HEADER=x-real-ip` for an edge that sets that instead). Laravel
+believes `X-Forwarded-For` — and no other forwarded header — from
+`TRUSTED_PROXIES` only (`api/config/trustedproxy.php`, default loopback). A
+cached read never carries it: its cache key includes the headers. Get
+`TRUSTED_PROXIES` wrong and the site is back to one bucket, silently — the
+README's deploy section says how to check.
 
 ### Type, measure and overflow
 
@@ -1549,6 +1592,13 @@ and a product legitimately called `A <> B` should still work.
 not enough on its own: a breakout splits one block into two that both parse
 cleanly, which is how it went unnoticed.
 
+**A cookie-authenticated route handler that changes something checks
+`Origin` first** — `isSameOrigin()` in `lib/same-origin.ts`, inside
+`proxyMultipart` for every upload handler and in the impersonation handler.
+`sameSite: "lax"` already keeps the session cookies off a cross-site POST; the
+check does not rely on that. An absent `Origin` passes (not a browser), a
+`null` one does not.
+
 **Two settings groups are private and must stay that way.** `mail` holds the
 SMTP credentials and `integrations` holds the API key. They are excluded from
 the public `/settings` whitelist, marked `is_secret`, encrypted at rest, and
@@ -1562,6 +1612,14 @@ which of those two lists it belongs on before adding it to the seeder.
 rendered inside ours.
 
 ### Laravel conventions
+
+**`throttle:N,M` counts per route.** The framework's unnamed limit keys on the
+caller alone, so all ~80 throttled routes shared one counter per caller —
+twenty JavaScript error reports answered 429 on `auth/login`.
+`ThrottleRequestsPerRoute` is registered over the `throttle` alias in
+`bootstrap/app.php` and adds the route's name (methods + URI without one), so a
+new route gets its own counter by writing `throttle:N,M` as before; nothing
+per-route to remember. `RateLimitScopeTest` pins it with the proxy rule above.
 
 **A log line an operator needs must clear the shipped `LOG_LEVEL`.** Both
 `.env` and `.env.example` ship `LOG_LEVEL=warning`, so `logger()->info(...)` is
@@ -1855,6 +1913,7 @@ A separate catalogue with prices; baskets, checkout, payment, stock, coupons, di
 
 - "Paid" has one definition and three screens read it.
 - The public order page's alert reads `paid_at` too: a cash-on-delivery order is confirmed and unpaid, and it said "Payment received" until 2026-09-16.
+- An order's token is never the address of a rendered page (2026-09-26): links go to `/order/{n}/open?token=`, which sets an httpOnly cookie at `path=/order/{n}` and 303s clean; the page and its actions read the cookie (`lib/order-access.ts`), Analytics skip `/order/*`, `no-referrer` there.
 - "Out of stock" has one definition too, and it is the one the tile links to.
 - Overselling is a switch on the shelf, so it lives where the stock does.
 - With oversell on, `inStock()`, `scopeOutOfStock()`, `CartItem::availableQuantity()`, the checkout gate and `Settlement::takeStock()` all agree, and stock goes negative on purpose.
@@ -2419,7 +2478,7 @@ Role-filtered sidebar, the settings strip, the activity log, dashboard charts, c
 - The ticket queue has a selection bar, and the selection is a module-level store read through `useSyncExternalStore`.
 - Ctrl/⌘ K opens a command palette, and its pages are the sidebar's rows plus every settings tab and every setting (`settingsPages()`, from `settings-copy.ts`; `?tab=` opens the panel and `#setting__<key>` scrolls to the field, with `scroll-margin-top` for the sticky header); records come through `/api/admin/search`.
 - The sidebar and the tab's title say what arrived while the console was open — `new-since.tsx`, one poll a minute, null for a role that cannot open the screen.
-- The screens are guarded by role too: `proxy.ts` forwards `x-pathname` under `/admin`, the layout asks `screenRole()` (the sidebar's own map) and sends `/admin` to `landingFor()` or answers 404; the API still refuses the data regardless (2026-09-20).
+- The screens are guarded by role too: `proxy.ts` overwrites `x-pathname` on every `/admin` request (its own matcher entry, prefetches included), and `requireScreen()` (`lib/admin-screen.ts`) — called by the `(app)` layout **and every page**, because a layout is not re-rendered on a client-side navigation and the browser's router state decides which segments are — decodes it (`screenPath()`), refuses a missing one, asks `screenRole()` and sends `/admin` to `landingFor()` or answers 404; the API still refuses the data regardless (2026-09-20, per page 2026-09-26). A new console page starts with `await requireScreen();`.
 - Outgoing webhooks (2026-09-20, `docs/admin-console.md` "Webhooks"): `Webhooks::emit()` is guarded like `Notifier` and never fails the request, takes a closure so the payload is built only when a hook is subscribed, writes one delivery per hook and dispatches `DeliverWebhook` after commit; five attempts with backoff, `X-Technoware-Signature: sha256=` HMAC over `timestamp.body` on the exact bytes sent; the secret is shown once on create and on rotate and never read back; https only and no private host; emitters are model hooks except `order.placed` (from `Checkout`, after the lines exist) and `customer.registered`; deliveries pruned at 30 days.
 - The header's palette trigger is hidden below 360px (2026-09-21): the account row is 332px in a 320px screen's 304, and every console screen scrolled by 8px.
 - The Bin tab is `IconBin` with a lid that lifts on hover and stays open on the bin view (`.bin-tab`, `transform-box: fill-box`); deleting a folder asks for `YES` typed (2026-09-20).

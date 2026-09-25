@@ -373,6 +373,22 @@ a content manager: `/admin` → `/admin/blog`, `/admin/users` and
 `/admin/settings` and `/admin/store/orders` 404, `/admin/blog` and
 `/admin/profile` 200.
 
+**It had three holes, closed 2026-09-26.** A `Purpose: prefetch` request
+skipped the proxy (the matcher's `missing` rule), so `x-pathname` reached the
+layout as the browser sent it — or not at all, and a missing path skipped the
+check. A client-side navigation never re-ran it, because the layout is kept
+across navigations and the browser's router state decides which segments the
+server renders. And the path was matched undecoded, so `/admin/%73ettings`
+rendered Settings while matching no row. Now: `proxy.ts` has a second matcher
+entry, `/admin/:path*` with no `missing` rule, and overwrites `x-pathname` on
+every console request (and strips one sent anywhere else); the check is
+`requireScreen()` in `lib/admin-screen.ts`, called by the layout and as the
+first line of **every page** under `admin/(app)` (158 of them — a new page must
+do the same), and it decodes and folds the path through `screenPath()` in
+`nav-match.ts` and refuses when there is none. Pages rather than per-section
+layouts, because any layout can be skipped by a request whose router state
+claims to hold it; the page is the one segment always rendered.
+
 **The media library's Bin is its glyph, and its lid moves (2026-09-20).**
 `IconBin` in `icons-ui.tsx`, drawn in two groups so `globals.css` can lift
 and tilt the lid on hover and hold it open while the bin is the view — the
