@@ -29,11 +29,13 @@ use App\Notifications\TicketCreated;
 use App\Notifications\TicketMerged;
 use App\Notifications\TicketReplied;
 use App\Notifications\VerifyCustomerEmail;
+use App\Notifications\WishlistBackInStock;
+use App\Notifications\WishlistPriceDrop;
 
 /**
- * The 26 entries, kept out of `MessageCatalogue` so that class stays readable.
+ * The 30 entries, kept out of `MessageCatalogue` so that class stays readable.
  *
- * Twenty-six for twenty-five classes: `TicketReplied` is two messages. Its
+ * Thirty for twenty-nine classes: `TicketReplied` is two messages. Its
  * customer and desk versions differ in greeting, action label *and* recipient,
  * and one template cannot say both without lying about one of them.
  *
@@ -344,6 +346,44 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     .'<p>You asked us to let you know. This is the one message we will send about it.</p>'
                     .'<p><a href="{{url}}">See the product</a></p>'
                     .'<p>Did not ask for this? <a href="{{cancel_url}}">Cancel the notice</a> and we will not email you about it again.</p>',
+            ],
+            'wishlist_back_in_stock' => [
+                'label' => 'Wishlist item back in stock — to whoever saved it',
+                'description' => 'Sent once when something on a wishlist that had run out has stock again, and again only after it runs out once more. Promotional: held until the quiet-hours window opens.',
+                'audience' => self::CUSTOMER,
+                'class' => WishlistBackInStock::class,
+                'variables' => [
+                    'product_name' => ['about' => 'The product, and the option saved if there was one.', 'sample' => 'Cisco CBS350-24T-4G — 48 port'],
+                    'price' => ['about' => 'The price now, formatted.', 'sample' => '₹23,600'],
+                    'url' => ['about' => 'The product page.', 'sample' => 'https://www.technoware.in/store/products/cisco-cbs350-24t-4g'],
+                    'wishlist_url' => ['about' => 'Their wishlist — the portal’s for an account, the shop’s for a guest.', 'sample' => 'https://www.technoware.in/portal/wishlist'],
+                    'stop_url' => ['about' => 'Stops wishlist emails. Not a newsletter unsubscribe; the list stays.', 'sample' => 'https://www.technoware.in/store/wishlist/stop/…'],
+                ],
+                'subject' => '{{product_name}} is back in stock',
+                'body' => '<p>Good news.</p>'
+                    .'<p><strong>{{product_name}}</strong>, on your wishlist, is back in stock at {{price}}.</p>'
+                    .'<p><a href="{{url}}">See the product</a></p>'
+                    .'<p><a href="{{wishlist_url}}">Your wishlist</a> · <a href="{{stop_url}}">Stop these emails</a> — your list stays as it is.</p>',
+            ],
+            'wishlist_price_drop' => [
+                'label' => 'Wishlist price drop — to whoever saved it',
+                'description' => 'Sent once per drop when something on a wishlist costs at least the Store setting’s percentage less than when it was saved or last announced. Promotional: held until the quiet-hours window opens.',
+                'audience' => self::CUSTOMER,
+                'class' => WishlistPriceDrop::class,
+                'variables' => [
+                    'product_name' => ['about' => 'The product, and the option saved if there was one.', 'sample' => 'Cisco CBS350-24T-4G'],
+                    'old_price' => ['about' => 'What it cost when saved, or when they were last told.', 'sample' => '₹25,000'],
+                    'new_price' => ['about' => 'What it costs now.', 'sample' => '₹22,500'],
+                    'saving_percent' => ['about' => 'How much less, as a whole percentage.', 'sample' => '10'],
+                    'url' => ['about' => 'The product page.', 'sample' => 'https://www.technoware.in/store/products/cisco-cbs350-24t-4g'],
+                    'wishlist_url' => ['about' => 'Their wishlist.', 'sample' => 'https://www.technoware.in/portal/wishlist'],
+                    'stop_url' => ['about' => 'Stops wishlist emails. Not a newsletter unsubscribe; the list stays.', 'sample' => 'https://www.technoware.in/store/wishlist/stop/…'],
+                ],
+                'subject' => '{{product_name}} is now {{new_price}}',
+                'body' => '<p>A price came down.</p>'
+                    .'<p><strong>{{product_name}}</strong>, on your wishlist, was {{old_price}} and is now {{new_price}} — {{saving_percent}}% less.</p>'
+                    .'<p><a href="{{url}}">See the product</a></p>'
+                    .'<p><a href="{{wishlist_url}}">Your wishlist</a> · <a href="{{stop_url}}">Stop these emails</a> — your list stays as it is.</p>',
             ],
         ];
     }

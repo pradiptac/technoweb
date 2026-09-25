@@ -405,6 +405,15 @@ class SettingController extends Controller
                     ]);
                 }
             }
+
+            // The wishlist price-drop threshold: a whole percentage, refused
+            // outside 1–90 rather than read as five without saying so.
+            if ($row['key'] === 'store_price_drop_min_percent' && filled($row['value'])
+                && (! ctype_digit((string) $row['value']) || (int) $row['value'] < 1 || (int) $row['value'] > 90)) {
+                throw ValidationException::withMessages([
+                    "settings.{$i}.value" => 'Give a whole percentage between 1 and 90.',
+                ]);
+            }
         }
 
         DB::transaction(function () use ($validated, $existing) {

@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SliderController;
 use App\Http\Controllers\Api\V1\StockNoticeController;
 use App\Http\Controllers\Api\V1\StoreController;
+use App\Http\Controllers\Api\V1\WishlistController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -180,6 +181,32 @@ Route::post('payments/{gateway}/webhook', [PaymentController::class, 'webhook'])
  */
 Route::post('orders/{orderNumber}/items/{item}/reveal', [OrderCodeController::class, 'reveal'])
     ->middleware('throttle:20,1')->name('orders.reveal');
+
+/*
+ * The wishlist (2026-09-25).
+ *
+ * A guest's list is addressed by `X-Wishlist-Token`, which the Next server
+ * holds in an httpOnly cookie and forwards like the basket's; a signed-in
+ * customer's by the portal bearer, read from the guard by name because the
+ * routes are public. A request carrying both merges the guest's list into
+ * the account's (never under a staff member's "View as"). See `Wishlists`.
+ *
+ * `GET` never writes — a visitor with nothing gets an empty summary and no
+ * row — so it is throttled like any read; the writes like the basket's.
+ * The stop link answers one sentence for every token, used or not.
+ */
+Route::get('wishlist', [WishlistController::class, 'show'])
+    ->middleware('throttle:120,1')->name('wishlist.show');
+Route::patch('wishlist', [WishlistController::class, 'update'])
+    ->middleware('throttle:10,1')->name('wishlist.update');
+Route::post('wishlist/items', [WishlistController::class, 'addItem'])
+    ->middleware('throttle:60,1')->name('wishlist.items.store');
+Route::delete('wishlist/items/{item}', [WishlistController::class, 'removeItem'])
+    ->whereNumber('item')->middleware('throttle:60,1')->name('wishlist.items.destroy');
+Route::post('wishlist/items/{item}/move-to-basket', [WishlistController::class, 'moveToBasket'])
+    ->whereNumber('item')->middleware('throttle:30,1')->name('wishlist.items.move');
+Route::get('wishlist/alerts/{token}/stop', [WishlistController::class, 'stopAlerts'])
+    ->middleware('throttle:30,1')->name('wishlist.alerts.stop');
 
 /*
  * Every popup that is live right now, for the whole site.

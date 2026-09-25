@@ -5,11 +5,13 @@ namespace App\Support\Store;
 use App\Enums\ProductType;
 use App\Enums\StockMovementReason;
 use App\Jobs\SendStockNotices;
+use App\Jobs\SyncWishlistStock;
 use App\Models\Order;
 use App\Models\StockMovement;
 use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
 use App\Models\User;
+use App\Models\WishlistItem;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -86,6 +88,18 @@ class StockLedger
              */
             if ($delta > 0) {
                 SendStockNotices::dispatch($product->id, $variation?->id)->afterCommit();
+            }
+
+            /*
+             * Wishlist lines follow the shelf in both directions: a movement
+             * that empties it arms them, one that fills it tells whoever was
+             * armed (2026-09-25). The job re-reads the shelf, so it is queued
+             * on every movement rather than guessing here which ones matter —
+             * but only for a product somebody has saved, so a sale of
+             * something nobody wished for costs one indexed read, not a job.
+             */
+            if (WishlistItem::where('store_product_id', $product->id)->exists()) {
+                SyncWishlistStock::dispatch($product->id)->afterCommit();
             }
 
             return $movement;

@@ -9,6 +9,7 @@ use App\Enums\ProductType;
 use App\Enums\PublishStatus;
 use App\Models\Order;
 use App\Models\StoreProduct;
+use App\Models\WishlistItem;
 use App\Support\Seo\GoogleAnalytics;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -67,6 +68,7 @@ class StoreMetrics
             'recent' => self::recent(),
             'low_stock' => self::lowStock(),
             'codes_low' => self::codesRunningLow(),
+            'most_wished' => self::mostWished(),
         ];
     }
 
@@ -332,6 +334,37 @@ class StoreMetrics
                 'id' => $p->id,
                 'name' => $p->name,
                 'available' => (int) $p->available_codes,
+            ])
+            ->all();
+    }
+
+    /**
+     * The five products on the most wishlists (2026-09-25).
+     *
+     * Counted by list, not by line — a list holding the 24-port and the
+     * 48-port of one switch is one person wanting it — and over every list,
+     * guest or account, since both are somebody who would like to buy it.
+     * All time rather than the window: a wish is standing demand, not an
+     * event in a period. Empty rather than zeroes when nobody has saved
+     * anything.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private static function mostWished(): array
+    {
+        return WishlistItem::query()
+            ->join('store_products', 'store_products.id', '=', 'wishlist_items.store_product_id')
+            ->selectRaw('store_products.id, store_products.name, count(distinct wishlist_items.wishlist_id) as wishes')
+            ->groupBy('store_products.id', 'store_products.name')
+            ->orderByDesc('wishes')
+            ->orderBy('store_products.id')
+            ->limit(5)
+            ->toBase()
+            ->get()
+            ->map(fn (object $row) => [
+                'id' => (int) $row->id,
+                'name' => (string) $row->name,
+                'wishes' => (int) $row->wishes,
             ])
             ->all();
     }
