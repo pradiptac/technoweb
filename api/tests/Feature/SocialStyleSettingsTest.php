@@ -65,10 +65,11 @@ class SocialStyleSettingsTest extends TestCase
     public function test_the_word_is_letters_and_digits_and_stored_in_capitals(): void
     {
         $this->save(['social_flip_word' => 'say hi'])->assertStatus(422)->assertJsonValidationErrors('settings.0.value');
-        $this->save(['social_flip_word' => 'thirteenchars'])->assertStatus(422);
+        // Seven tiles at most: CONTACT fits, one more letter does not.
+        $this->save(['social_flip_word' => 'contacts'])->assertStatus(422);
 
-        $this->save(['social_flip_word' => 'Connect1'])->assertOk();
-        $this->assertSame('CONNECT1', Setting::get('social_flip_word'));
+        $this->save(['social_flip_word' => 'Contact'])->assertOk();
+        $this->assertSame('CONTACT', Setting::get('social_flip_word'));
 
         // Blank is allowed: every tile then shows its network's initial.
         $this->save(['social_flip_word' => ''])->assertOk();

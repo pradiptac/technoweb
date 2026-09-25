@@ -3138,7 +3138,7 @@ reads the app id out of the reviews snippet rather than injecting it.
 LinkedIn, X, Facebook, Instagram, YouTube, WhatsApp and, since 2026-09-24,
 `social_reddit` — plus how the footer draws them: `social_style` (`flip` or
 `dock`, offered as `options`, refused outside them) and `social_flip_word`
-(letters and digits, at most 12, stored in capitals). A blank URL hides its
+(letters and digits, at most 7 — one tile each — stored in capitals). A blank URL hides its
 icon.
 
 **The `consent` group is public too**, for the same reason — the banner is

@@ -2430,7 +2430,7 @@ Role-filtered sidebar, the settings strip, the activity log, dashboard charts, c
 ### The public site's chrome — `docs/site-chrome.md`
 
 Header, footer, banners, the logo cap, phone-width reversals.
-- The footer's social links are flip tiles by default (`social_style` `flip`|`dock`, `social_flip_word`, 2026-09-24): letters that turn to the icons on hover or focus-within via the CSS `rotate` property, icons shown outright where nothing can hover, an opacity swap under reduced motion. Reddit is the seventh profile (`social_reddit`, `IconReddit` drawn here; `#FF4500` on the footer 5.39:1, `#D93A00` behind white in the blog sidebar, 4.61:1).
+- The footer's social links are flip tiles by default (`social_style` `flip`|`dock`, `social_flip_word` of up to 7 letters that sets the tile count — a letter past the last profile is a non-link tile, 2026-09-24/25): letters that turn to the icons on hover or focus-within via the CSS `rotate` property, icons shown outright where nothing can hover, an opacity swap under reduced motion. Reddit is the seventh profile (`social_reddit`, `IconReddit` drawn here; `#FF4500` on the footer 5.39:1, `#D93A00` behind white in the blog sidebar, 4.61:1).
 
 - The site header's desktop nav appears at 1280px, not 1160.
 - The footer's newsletter signup is a band, not a column widget.

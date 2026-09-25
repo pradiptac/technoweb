@@ -116,9 +116,13 @@ export function SocialLinks({ settings }: { settings: SiteSettings }) {
  * UI's social flip button — MIT, re-drawn rather than vendored: the original
  * pulls in framer-motion and react-icons, and this is a row of six links).
  *
- * The fronts spell `social_flip_word`, one letter per link; a tile past the
- * end of the word shows its network's initial, so a word of the wrong length
- * still reads as something rather than as blanks. Pointing at the row — or
+ * The fronts spell `social_flip_word`, and the word decides how many tiles
+ * there are, up to `FLIP_MAX` (the client, 2026-09-25: "CONTACT" over six
+ * profiles lost its T). A tile past the last profile is a letter and nothing
+ * else — not a link, out of the tab order and hidden from a screen reader —
+ * whose back repeats the letter, so it never turns over to a blank. A
+ * profile past the end of the word shows its network's initial, so a short
+ * word still reads as something rather than as blanks. Pointing at the row — or
  * tabbing into it — turns every tile over, one after another, to the icon on
  * the back; the hovered one lifts a name tag above itself.
  *
@@ -136,11 +140,16 @@ export function SocialLinks({ settings }: { settings: SiteSettings }) {
  * the footer's dark ground — so every contrast figure measured above still
  * holds for it.
  */
+/** The longest word the tiles spell; the API refuses a longer one. */
+const FLIP_MAX = 7;
+
 function SocialFlip({ links, word }: {
   links: ((typeof PROFILES)[number] & { href: string })[];
   word: string | undefined;
 }) {
-  const letters = (word ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const letters = (word ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, FLIP_MAX);
+  const extra = Array.from(letters.slice(links.length));
+  const face = "social-flip__face grid place-items-center rounded-lg border border-dark-line font-display text-[17px] font-semibold text-dark-muted";
 
   return (
     <ul className="social-flip mt-6 flex flex-wrap gap-2">
@@ -154,10 +163,7 @@ function SocialFlip({ links, word }: {
             className="social-flip__tile relative block size-10 rounded-lg"
           >
             <span className="social-flip__card relative block size-full">
-              <span
-                aria-hidden
-                className="social-flip__face grid place-items-center rounded-lg border border-dark-line font-display text-[17px] font-semibold text-dark-muted"
-              >
+              <span aria-hidden className={face}>
                 {letters[i] ?? initial}
               </span>
               <span
@@ -174,6 +180,22 @@ function SocialFlip({ links, word }: {
               {label}
             </span>
           </a>
+        </li>
+      ))}
+      {extra.map((letter, j) => (
+        <li
+          key={`letter-${j}`}
+          aria-hidden
+          style={{ "--i": links.length + j, "--brand": "var(--color-dark-muted-brand)" } as CSSProperties}
+        >
+          <span className="social-flip__tile relative block size-10 rounded-lg">
+            <span className="social-flip__card relative block size-full">
+              <span className={face}>{letter}</span>
+              <span className="social-flip__face social-flip__back grid place-items-center rounded-lg border border-[color-mix(in_srgb,var(--brand)_45%,transparent)] bg-dark font-display text-[17px] font-semibold text-[var(--brand)]">
+                {letter}
+              </span>
+            </span>
+          </span>
         </li>
       ))}
     </ul>

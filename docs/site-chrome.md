@@ -438,7 +438,11 @@ four widths after.
 The footer's social row is flip tiles by default — `social_style` (`flip` or
 `dock`) and `social_flip_word`, both public in the `social` group, the style
 refused outside its list and the word letters/digits only, stored in
-capitals. A tile past the end of the word shows its network's initial.
+capitals, at most seven. The word sets the tile count (2026-09-25:
+"CONTACT" over six profiles lost its T): a letter past the last profile is a
+tile that is not a link — `aria-hidden`, out of the tab order — whose back
+repeats the letter; a profile past the end of the word shows its network's
+initial.
 
 CSS only (`.social-flip` in `globals.css`): the card turns with the CSS
 `rotate: y 180deg` property, transitioned as `rotate`, staggered by `--i`,

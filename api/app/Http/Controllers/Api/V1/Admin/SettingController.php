@@ -639,8 +639,8 @@ class SettingController extends Controller
             // One letter per tile, so letters and digits only; stored upper-case
             // because the tiles are capitals whatever was typed.
             if ($key === 'social_flip_word' && filled($value)) {
-                if (! preg_match('/^[A-Za-z0-9]{1,12}$/', (string) $value)) {
-                    throw ValidationException::withMessages(["settings.{$i}.value" => 'Letters and digits only, no spaces, at most 12 — one per tile.']);
+                if (! preg_match('/^[A-Za-z0-9]{1,7}$/', (string) $value)) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'Letters and digits only, no spaces, at most 7 — one per tile.']);
                 }
                 $rows[$i]['value'] = strtoupper((string) $value);
             }

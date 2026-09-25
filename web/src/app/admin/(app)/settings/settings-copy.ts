@@ -415,7 +415,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   social_flip_word: {
     label: "Word on the flip tiles",
     placeholder: "FOLLOW",
-    hint: "One letter per profile filled in above — six profiles, six letters. Letters and digits only. A tile past the end of the word shows its network's initial.",
+    hint: "Up to seven letters or digits, one per tile — CONTACT fits. A letter past the last profile gets a tile of its own that is not a link; a profile past the end of the word shows its network's initial.",
   },
   google_analytics_id: {
     label: "Google Analytics (GA4)",
