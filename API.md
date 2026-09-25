@@ -1135,9 +1135,39 @@ whatever status it has.
 
 | `POST` | `/cart/coupon` | Applies a discount code. Throttled 15/min |
 | `DELETE` | `/cart/coupon` | Takes it off |
+| `PATCH` | `/cart/contact` | `email`, `phone` — what the checkout has typed, saved on blur before any order exists. Each optional and written only when sent; a blank clears it. `phone` is held to the checkout's mobile rule. Throttled 20/min. Answers the basket |
+| `GET` | `/cart/restore/{token}` | A basket reminder's link: `{data: {token}}`, the basket's own cart token, for the frontend to put in the cookie. **404** for an unknown token and for a basket that has already become an order. Throttled 30/min |
 | `POST` | `/orders/{number}/items/{item}/reveal` | Hands over an activation code. Throttled 20/min |
 | `GET` | `/my/orders` | The signed-in customer's orders |
 | `GET` | `/my/orders/{number}` | One of them |
+
+**Every basket read carries `contact`** — `{email, phone, reminders}`: what
+`PATCH /cart/contact` stored, and whether basket reminders are switched on.
+The checkout prefills from the first two and draws the line promising a
+reminder only while the third is true. A basket call carrying a portal
+`Authorization: Bearer` claims an unclaimed basket for that customer
+(`carts.customer_id`), read with the guard named since the routes are public;
+a "View as" token claims nothing, and claiming does not move the idle clock.
+
+**Abandoned-basket reminders are two emails at most, and the API decides
+all of it.** `technoware:remind-abandoned-carts`, every ten minutes, off
+until `store_cart_reminders_enabled` (private `store_reminders` group — the
+`store` group is public, and the fourth row is a coupon code). A basket is
+reminded when it has lines, a contact — an address stored with
+`contact_consent_at`, stamped only while reminders are on, or an account —
+no `recovered_order_id`, an address not on `newsletter_suppressions`, and has
+been idle (`updated_at`) past `store_cart_reminder_1_hours` (1–72) for the
+first or `store_cart_reminder_2_days` (1–25, before the 30-day prune) and
+twelve hours after the first for the second; never the first for a basket
+idle over seven days; only while `QuietHours::allows()`. Each is the
+`cart_reminder_1`/`_2` email and `Messenger::notify(CartReminder1|2, …)`;
+the second carries `store_cart_reminder_coupon` only when `refusalFor()`
+passes for that basket and address. The link is
+`/store/basket/restore/{restore_token}`, never the cart token; the email's
+unsubscribe is `/newsletter/unsubscribe/{restore_token}`, which
+`GET`/`POST /newsletter/unsubscribe/{token}` now accept beside a subscriber's
+token and answer by suppressing the address. The checkout stamps
+`recovered_order_id` on the basket it ordered from.
 
 **The basket stores a coupon *code*, never an amount.** The discount is worked
 out on every read, so adding a line, removing one or the code expiring all
@@ -1241,7 +1271,7 @@ the selectors on the product page would shuffle between two loads.
 | `GET`/`POST` | `/admin/store/products/{id}/codes` | The code inventory. The listing never contains a code |
 | `POST` | `/admin/store/codes/{id}/reveal` | Read one, recorded |
 | `DELETE` | `/admin/store/codes/{id}` | Unsold codes only |
-| `GET` | `/admin/store/dashboard` | The shop at a glance. `?days=` of 7, 30 or 90. `funnel` is `{product_views, paid_orders, views_to_orders}` — the views from Google Analytics over the window, **null** when GA4 is not connected or refused, and the rate (paid orders ÷ views, 0–1 to four places) null with it or over a measured zero |
+| `GET` | `/admin/store/dashboard` | The shop at a glance. `?days=` of 7, 30 or 90. `funnel` is `{product_views, paid_orders, views_to_orders}` — the views from Google Analytics over the window, **null** when GA4 is not connected or refused, and the rate (paid orders ÷ views, 0–1 to four places) null with it or over a measured zero. `recovered` is `{reminded, recovered, revenue_paise, rate}` — baskets given a reminder in the window, how many of those became an order, those orders' total when paid, and the share — or **null** when no reminder went out |
 | `GET` | `/admin/store/reports` | What sold between two dates. `?from=`, `?to=`, `?group=` |
 | `GET` | `/admin/store/reports/export` | The same range as a CSV. `?type=orders` or `products` |
 | `GET` | `/admin/store/stock` | What came in and what went out. `?from=`, `?to=`, `?product=`, `?reason=`, `?direction=in\|out` |
@@ -3178,7 +3208,7 @@ the truth about it.
 
 ### Email templates
 
-Every one of the 27 system emails, editable.
+Every one of the 30 system emails, editable.
 
 | Method | Path | Notes |
 |---|---|---|
@@ -3190,7 +3220,7 @@ Every one of the 27 system emails, editable.
 | `POST` | `/admin/settings/email-templates/{key}/test` | Sends the draft to the caller. Throttled 6/min |
 
 **`{key}` is a plain string, not a bound model.** There is no row for an
-uncustomised message and binding would 404 on 27 of 27 on a fresh install.
+uncustomised message and binding would 404 on 30 of 30 on a fresh install.
 
 **Two switches, and they mean different things.** `is_enabled` is "use my
 wording" — false puts the built-in text back and the message still goes.

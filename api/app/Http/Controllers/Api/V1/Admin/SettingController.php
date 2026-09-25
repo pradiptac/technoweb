@@ -8,11 +8,13 @@ use App\Enums\ImageQuality;
 use App\Enums\PaymentGateway;
 use App\Http\Controllers\Controller;
 use App\Models\ContentBlock;
+use App\Models\Coupon;
 use App\Models\Setting;
 use App\Support\Announcement;
 use App\Support\Chat\ChatSettings;
 use App\Support\HtmlSanitiser;
 use App\Support\InboundMail\InboundMail;
+use App\Support\Store\CartReminders;
 use App\Support\ThemeOptions;
 use App\Support\UploadLimits;
 use App\Support\YouTube;
@@ -190,6 +192,12 @@ class SettingController extends Controller
     {
         return match ($key) {
             'image_quality' => ImageQuality::options(),
+            // Two words rather than "1 or 0" in a text box: this one decides
+            // whether customers are emailed, which is not a thing to typo.
+            'store_cart_reminders_enabled' => [
+                ['value' => '0', 'label' => 'Off', 'description' => 'Nobody is emailed about a basket they left.'],
+                ['value' => '1', 'label' => 'On', 'description' => 'Up to two reminders, inside the promotional hours, never to the do-not-mail list.'],
+            ],
             // The gateway list comes from the enum, which also knows which of
             // them this server can actually use. One list, as with the mail
             // transports.
@@ -346,6 +354,39 @@ class SettingController extends Controller
                 ]);
             }
 
+            /*
+             * The basket reminders' delays, refused outside their range
+             * rather than clamped: the second has to land before the prune
+             * deletes the basket at thirty days, and a number the console
+             * accepted and the command then quietly ignored is a setting
+             * that lies about what it does.
+             */
+            $delays = [
+                'store_cart_reminder_1_hours' => [CartReminders::MAX_FIRST_HOURS, 'The first reminder goes between 1 and '.CartReminders::MAX_FIRST_HOURS.' hours after the basket goes quiet.'],
+                'store_cart_reminder_2_days' => [CartReminders::MAX_SECOND_DAYS, 'The second reminder goes between 1 and '.CartReminders::MAX_SECOND_DAYS.' days after — an untouched basket is deleted at 30.'],
+            ];
+
+            if ($row['key'] === 'store_cart_reminders_enabled' && ! in_array((string) $row['value'], ['0', '1'], true)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'Basket reminders are on (1) or off (0).']);
+            }
+
+            if (isset($delays[$row['key']]) && filled($row['value'])) {
+                [$max, $message] = $delays[$row['key']];
+
+                if (! ctype_digit((string) $row['value']) || (int) $row['value'] < 1 || (int) $row['value'] > $max) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => $message]);
+                }
+            }
+
+            // A reminder coupon has to be a code the shop has, or the second
+            // reminder would offer a discount the checkout refuses.
+            if ($row['key'] === 'store_cart_reminder_coupon' && filled($row['value'])
+                && ! Coupon::where('code', Coupon::normalise($row['value']))->exists()) {
+                throw ValidationException::withMessages([
+                    "settings.{$i}.value" => 'There is no discount code called '.Coupon::normalise($row['value']).'. Make it under Store → Discount codes first.',
+                ]);
+            }
+
             if ($row['key'] === 'image_quality' && filled($row['value'])
                 && ImageQuality::tryFrom($row['value']) === null) {
                 throw ValidationException::withMessages([
@@ -421,6 +462,11 @@ class SettingController extends Controller
                 // lower-case so `#2563EB` and `#2563eb` are one value.
                 if (in_array($row['key'], self::COLOUR_KEYS, true) && filled($value)) {
                     $value = strtolower((string) $value);
+                }
+
+                // A coupon is matched on its normalised code; store it that way.
+                if ($row['key'] === 'store_cart_reminder_coupon' && filled($value)) {
+                    $value = Coupon::normalise((string) $value);
                 }
 
                 // A blank secret means "leave it alone", not "clear it".

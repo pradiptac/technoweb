@@ -450,6 +450,10 @@ const orders = new Map();
 let orderSeq = 0;
 
 const carts = new Map();
+/* The checkout's email and mobile per basket (`PATCH /cart/contact`). The
+   mock never sends a reminder, so `reminders` is always false and no restore
+   token is ever minted — `GET /cart/restore/{token}` answers 404. */
+const cartContacts = new Map();
 
 const cartFor = (token) => {
   const key = token && carts.has(token) ? token : `mock-cart-${carts.size + 1}`;
@@ -488,6 +492,7 @@ const summarise = (token, lines) => {
     taxable_paise: taxable, gst_paise: subtotal - taxable, gst_rate: '18%',
     has_shippable: items.some((i) => i.shipped),
     problems: items.map((i) => i.problem).filter(Boolean),
+    contact: { email: null, phone: null, ...(cartContacts.get(token) ?? {}), reminders: false },
   };
 };
 
@@ -1763,6 +1768,8 @@ createServer(async (req, res) => {
         catalogue: { products: 0, published: 0, out_of_stock: 0 },
         attention: { awaiting_payment: 0, awaiting_dispatch: 0, awaiting_codes: 0, refund_requested: 0, out_of_stock: 0, codes_exhausted: 0, failed_payments: 0 },
         funnel: { product_views: null, paid_orders: 0, views_to_orders: null },
+        // Null, not zeros: the mock never reminds anybody about a basket.
+        recovered: null,
         series, recent: [], low_stock: [], codes_low: [],
       } });
     }
@@ -2703,6 +2710,21 @@ createServer(async (req, res) => {
     const { token, lines } = cartFor(req.headers['x-cart-token']);
 
     if (p === '/cart' && req.method === 'GET') return json(res, 200, { data: summarise(token, lines) });
+    if (p === '/cart/contact' && req.method === 'PATCH') {
+      const body = await readJsonBody(req);
+      const phone = typeof body.phone === 'string' ? body.phone.replace(/\s+/g, ' ').trim() : body.phone;
+      if (phone && !/^(?:\+?91[-\s]?)?0?[6-9](?:[-\s]?\d){9}$/.test(phone)) {
+        return json(res, 422, { message: 'That does not look like a mobile number.', errors: { phone: ['That does not look like a mobile number. Ten digits starting 6 to 9, with or without +91.'] } });
+      }
+      const current = cartContacts.get(token) ?? { email: null, phone: null };
+      if ('email' in body) current.email = body.email ? String(body.email).trim().toLowerCase() : null;
+      if ('phone' in body) current.phone = phone || null;
+      cartContacts.set(token, current);
+      return json(res, 200, { data: summarise(token, lines) });
+    }
+    if (p.startsWith('/cart/restore/') && req.method === 'GET') {
+      return json(res, 404, { message: 'That basket is no longer available.' });
+    }
     if (p === '/cart' && req.method === 'DELETE') {
       lines.length = 0;
       return json(res, 200, { data: summarise(token, lines) });

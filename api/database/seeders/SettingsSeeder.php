@@ -819,6 +819,24 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'store', 'key' => 'store_return_days', 'value' => '7', 'type' => 'string'],
 
             /*
+             * Abandoned-basket reminders (2026-09-25): the switch, the two
+             * delays and the second reminder's coupon.
+             *
+             * A group of their own rather than `store`, because `store` is
+             * public — the whole group reaches `/settings` — and a coupon code
+             * published to every visitor is a discount handed to anybody who
+             * reads the page source. Drawn on the same Store → Settings screen.
+             *
+             * **Off by default.** An email about a basket is marketing, and a
+             * shop decides to send it; the second delay stops at 25 days so it
+             * always falls before the prune deletes the basket at thirty.
+             */
+            ['group' => 'store_reminders', 'key' => 'store_cart_reminders_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'store_reminders', 'key' => 'store_cart_reminder_1_hours', 'value' => '1', 'type' => 'string'],
+            ['group' => 'store_reminders', 'key' => 'store_cart_reminder_2_days', 'value' => '1', 'type' => 'string'],
+            ['group' => 'store_reminders', 'key' => 'store_cart_reminder_coupon', 'value' => null, 'type' => 'string'],
+
+            /*
              * The storefront's promo band — one static, editable slot rather
              * than a second `Slider`. It is a single fixed block, not a
              * rotating carousel, so a handful of settings fields are less to

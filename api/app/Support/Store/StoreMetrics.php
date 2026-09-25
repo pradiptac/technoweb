@@ -7,6 +7,7 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ProductType;
 use App\Enums\PublishStatus;
+use App\Models\Cart;
 use App\Models\Order;
 use App\Models\StoreProduct;
 use App\Support\Seo\GoogleAnalytics;
@@ -63,6 +64,7 @@ class StoreMetrics
             'catalogue' => self::catalogue(),
             'attention' => self::attention($since),
             'funnel' => self::funnel($since),
+            'recovered' => self::recovered($since),
             'series' => self::series($since, $days),
             'recent' => self::recent(),
             'low_stock' => self::lowStock(),
@@ -218,6 +220,41 @@ class StoreMetrics
             'product_views' => $views,
             'paid_orders' => $paid,
             'views_to_orders' => $views !== null && $views > 0 ? round($paid / $views, 4) : null,
+        ];
+    }
+
+    /**
+     * What the basket reminders brought back over the window.
+     *
+     * `reminded` is baskets that had a reminder in the window; `recovered`
+     * those of them that went on to become an order — the checkout stamps
+     * `recovered_order_id` on every basket it orders from, and it counts here
+     * only because a reminder had gone first. `revenue_paise` is those orders'
+     * totals **when paid**, the one definition of paid, so an order placed
+     * from a reminder and never paid for is a recovery and not revenue.
+     *
+     * **Null, not zeros, when nothing was reminded** — reminders switched off,
+     * or nobody left a basket with an address on it. "0 of 0 recovered" reads
+     * as a feature that failed; null reads as one that has not run.
+     *
+     * @return array{reminded: int, recovered: int, revenue_paise: int, rate: float}|null
+     */
+    private static function recovered(Carbon $since): ?array
+    {
+        $reminded = Cart::where('reminders_sent', '>', 0)->where('last_reminded_at', '>=', $since);
+        $count = (clone $reminded)->count();
+
+        if ($count === 0) {
+            return null;
+        }
+
+        $orderIds = (clone $reminded)->whereNotNull('recovered_order_id')->pluck('recovered_order_id');
+
+        return [
+            'reminded' => $count,
+            'recovered' => $orderIds->count(),
+            'revenue_paise' => $orderIds->isEmpty() ? 0 : (int) Order::paid()->whereIn('id', $orderIds)->sum('total_paise'),
+            'rate' => round($orderIds->count() / $count, 4),
         ];
     }
 

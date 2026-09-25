@@ -17,7 +17,31 @@ use Illuminate\Support\Str;
  */
 class Cart extends Model
 {
-    protected $fillable = ['token', 'customer_id', 'coupon_code'];
+    protected $fillable = [
+        'token', 'customer_id', 'coupon_code',
+        // Abandoned-basket reminders — see the 2026_09_25 migration.
+        'email', 'phone', 'contact_consent_at', 'reminders_sent', 'last_reminded_at',
+        'recovered_order_id', 'restore_token',
+    ];
+
+    /**
+     * In-memory defaults matching the columns, so an unsaved cart reads the
+     * same as a saved one (`CLAUDE.md`: a model's defaults must match).
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'reminders_sent' => 0,
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'contact_consent_at' => 'datetime',
+            'last_reminded_at' => 'datetime',
+            'reminders_sent' => 'integer',
+        ];
+    }
 
     /** @return HasMany<CartItem, $this> */
     public function items(): HasMany
@@ -29,6 +53,42 @@ class Cart extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    /** @return BelongsTo<Order, $this> */
+    public function recoveredOrder(): BelongsTo
+    {
+        return $this->belongsTo(Order::class, 'recovered_order_id');
+    }
+
+    /**
+     * Who a reminder about this basket goes to, or null for nobody.
+     *
+     * An address typed at the checkout counts only with its consent stamp —
+     * the line under the field said a reminder might follow. An account
+     * holder is reached at the account's address when the basket carries no
+     * address of its own.
+     */
+    public function reminderEmail(): ?string
+    {
+        if (filled($this->email) && $this->contact_consent_at !== null) {
+            return $this->email;
+        }
+
+        return $this->customer?->email;
+    }
+
+    /** The restore link's token, minted on first use and kept. */
+    public function ensureRestoreToken(): string
+    {
+        if (blank($this->restore_token)) {
+            $this->restore_token = self::newToken();
+            $this->timestamps = false;
+            $this->save();
+            $this->timestamps = true;
+        }
+
+        return (string) $this->restore_token;
     }
 
     /**

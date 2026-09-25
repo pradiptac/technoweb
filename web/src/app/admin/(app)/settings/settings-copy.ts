@@ -244,6 +244,25 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     hint: "Counted from delivery. Shown on every returnable product and declared to Google as the return policy; a product marked non-returnable ignores it.",
     placeholder: "7",
   },
+  store_cart_reminders_enabled: {
+    label: "Send basket reminders",
+    hint: "Off by default. On, somebody who leaves a basket with an email in it — typed at the checkout, or on their account — is emailed a reminder, and a second later. Only between the promotional hours, never to an address on the do-not-mail list, and each email carries an unsubscribe.",
+  },
+  store_cart_reminder_1_hours: {
+    label: "First reminder after (hours)",
+    hint: "How long a basket sits untouched before the first email. 1 to 72. A basket left for more than a week before reminders were switched on is not woken.",
+    placeholder: "1",
+  },
+  store_cart_reminder_2_days: {
+    label: "Second reminder after (days)",
+    hint: "Counted from when the basket went quiet, and at least twelve hours after the first. 1 to 25 — an untouched basket is deleted at 30.",
+    placeholder: "1",
+  },
+  store_cart_reminder_coupon: {
+    label: "Coupon in the second reminder",
+    hint: "A code from Store → Discount codes, or blank for none. It is offered only when the basket could actually use it — not expired, not used up, not below its minimum order.",
+    placeholder: "COMEBACK10",
+  },
   store_promo_enabled: { label: "Show the promo banner" },
   store_promo_kicker: { label: "Kicker", hint: "The short line above the heading — a category, an offer, a season.", placeholder: "Business laptops, in stock" },
   store_promo_heading: { label: "Heading", placeholder: "Save Up To 60%" },
@@ -590,6 +609,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Store",
     blurb: "Whether the shop is open, which is a different question from whether a gateway is configured — the first is a decision, the second is a deployment that is not finished.",
   },
+  store_reminders: {
+    title: "Basket reminders",
+    blurb: "Up to two emails to somebody who left something in their basket, the second of which may carry a discount code. The wording is under Settings → Email templates. The dashboard counts a basket as recovered when it became an order after a reminder.",
+  },
   indexnow: {
     title: "IndexNow",
     blurb: "Tells Bing, Yandex and the other IndexNow engines the moment a page is published, changed or removed, instead of waiting for a crawl — Bing's index is what Copilot and ChatGPT search read. Off until launch: the site's public address is pinned to production on every machine, so a ping from anywhere else would name pages that are not there yet. The key is minted on first use and is public by the protocol's design.",
@@ -705,6 +728,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
   media: ["image_quality", "media_max_kb", "media_max_video_kb", "media_max_megapixels"],
   store: ["store_enabled", "digital_auto_fulfil", "activation_procedure", "activation_pdf_path", "store_shipping_paise",
           "store_handling_days", "store_shipping_service", "store_transit_days_min", "store_transit_days_max", "store_return_days"],
+  store_reminders: ["store_cart_reminders_enabled", "store_cart_reminder_1_hours", "store_cart_reminder_2_days", "store_cart_reminder_coupon"],
   leads: ["lead_intent_words"],
   embeds: ["reviews_embed", "reviews_kicker", "reviews_heading", "reviews_lede", "body_code"],
   portal: ["portal_enabled", "registration_enabled", "customer_approval_required"],
@@ -847,9 +871,9 @@ export const SCREENS: SettingsScreen[] = [
     path: "/admin/store/settings",
     title: "Store settings",
     area: "Store",
-    lede: "Whether the shop is open, what delivery costs and how long it takes, how licences are handed over, and how the shop takes money.",
+    lede: "Whether the shop is open, what delivery costs and how long it takes, how licences are handed over, the basket reminders, and how the shop takes money.",
     saveLabel: "Save store settings",
-    sections: [{ groups: ["store", "payments"] }],
+    sections: [{ groups: ["store", "store_reminders", "payments"] }],
   },
   {
     path: "/admin/newsletter/settings",

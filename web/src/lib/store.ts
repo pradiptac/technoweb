@@ -17,11 +17,14 @@ import type { Order, PaymentSession, Single } from "@/types/api";
 export async function placeOrder(
   cartToken: string,
   details: Record<string, unknown>,
+  portalToken?: string,
 ): Promise<{ order: Order; accessToken: string }> {
   const res = await apiFetch<Single<Order> & { meta?: { access_token?: string } }>("/checkout", {
     method: "POST",
     body: details,
     headers: { "X-Cart-Token": cartToken },
+    // Forwarded like every other basket call, so the API sees who is buying.
+    token: portalToken,
     cache: "no-store",
   });
 

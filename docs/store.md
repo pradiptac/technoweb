@@ -1003,3 +1003,103 @@ drawn below `sm`, because a heading, a line and a button need more than a
 16:9 box gives them at 320px. `StorePromoTest` covers the order the rows
 come back in, the suffix checks, and a `store_tile_3_*` key being refused
 by name.
+
+## Abandoned baskets (2026-09-25)
+
+Phase 2, stream A (`docs/phase-2-contract.md`). Up to two emails to somebody
+who left something in their basket; the second may carry a coupon.
+
+**The address is kept before any order exists, because that is the basket
+that is abandoned.** The checkout saves the email and the mobile as each
+field loses focus — a debounced Server Action, `saveCartContactAction`, to
+`PATCH /cart/contact` — and says on the line under the email field that a
+reminder may follow if the order is not finished. That line is drawn only
+while reminders are switched on (`contact.reminders` on every basket read),
+and `contact_consent_at` is stamped only then, so an address typed while no
+reminder was promised is never mailed. The mobile is held to the checkout's
+own rule (`CheckoutRequest::MOBILE_PATTERN`); each field is written only when
+sent, and a blank clears it. The action never reports anything — a
+half-typed number is the order form's to word when it is submitted.
+
+**A signed-in customer's basket is claimed from the Bearer.** The Next
+server forwards the portal token on every basket call (`getCart()`, `call()`
+in `components/store/actions.ts`, `placeOrder()`), and the API reads it with
+the guard named — the routes are public, the `$request->user()` trap — and
+stamps `carts.customer_id` on a basket nobody has claimed. A "View as" token
+claims nothing: that browser's basket is the staff member's, and stamping it
+would send the customer reminders about it. Claiming is written with
+timestamps off, so it is not activity. The merge of a guest basket into an
+account's on sign-in is not this stream's (the wishlist stream owns the
+sign-in hook).
+
+**Idle is `carts.updated_at`, and nothing in the reminder path moves it.**
+It is the column every basket action touches and the prune reads. The claim
+on a basket, the reminder stamps, the restore token and the checkout's
+`recovered_order_id` are all written through the query builder or with
+timestamps off; otherwise the second reminder's clock would restart from the
+first and the prune would keep a basket alive by mailing about it.
+
+**Who is reminded** (`CartReminders::due()` then `send()`):
+
+- a basket with lines, whose lines still price (an unpublished product drops out of the summary);
+- with a contact — an address with its consent stamp, or an account (reached at the account's address when the basket has none of its own);
+- no `recovered_order_id`;
+- idle past `store_cart_reminder_1_hours` (1–72) for the first, and not idle over **seven days** — switching reminders on must not wake a month of old baskets at nine the next morning;
+- idle past `store_cart_reminder_2_days` (1–25) for the second, **and** twelve hours after the first, so a first reminder held overnight by the quiet hours is not followed an hour later by the second;
+- whose address is not on `newsletter_suppressions`;
+- only while `store_cart_reminders_enabled` (off by default) and `QuietHours::allows()` — outside the window the run does nothing, and the next run inside it sends.
+
+Each basket is **claimed with a conditional UPDATE** on `reminders_sent`
+before anything is sent, so two overlapping runs cannot tell anybody twice;
+the schedule adds `withoutOverlapping` anyway. A run takes at most 200 per
+stage, second reminders first.
+
+**Each reminder is an email and a `Messenger::notify()`.** `CartReminder` is
+one class and two catalogue messages, `cart_reminder_1` and
+`cart_reminder_2` (the `TicketReplied` arrangement), queued through
+`Notifier`, with the basket priced when the job runs. The second carries
+`store_cart_reminder_coupon` only when `Coupon::refusalFor()` passes for that
+basket's subtotal and address — the same check the basket and the checkout
+make — so an email never offers a code the checkout refuses. The console
+refuses a coupon code that does not exist and stores it normalised.
+
+**The link restores the basket; it never carries the cart token.** The
+first reminder mints `restore_token` (64 hex, unique). The email links to
+`/store/basket/restore/{restore_token}`, a route handler that swaps it for
+the cart token through `GET /cart/restore/{token}`, sets the `tw_cart` cookie
+(`CART_COOKIE` in `lib/cart.ts`, shared with `setCartToken`) and answers 303
+to `/cart?restored=1` — a path, so behind Plesk the browser supplies the
+origin. A basket that has become an order, or an unknown token, is a 404 and
+lands on `/cart?restored=0`, which says why the basket is empty. The basket
+page is `/cart`; the contract's `/store/basket` exists only as the restore
+link's prefix.
+
+**The unsubscribe is the newsletter's own route.**
+`/newsletter/unsubscribe/{restore_token}` — the same page and the same
+`GET`/`POST /newsletter/unsubscribe/{token}` a campaign uses, which now fall
+back to a basket's restore token when no subscriber holds it, and answer by
+putting the address on the suppression list (and marking a subscriber row at
+that address unsubscribed). The email carries `List-Unsubscribe` and
+`List-Unsubscribe-Post` for the same reason every campaign does.
+
+**Recovered means reminded first.** The checkout stamps `recovered_order_id`
+on every basket it orders from, which is what stops reminders; the store
+dashboard's `recovered` counts it only on a basket that had a reminder in the
+window, and `revenue_paise` only for those orders that are paid (the one
+definition). **Null, not zeros, when no reminder went out** — reminders off,
+or nobody left an address. A reminded basket is pruned at **ninety** days,
+not thirty (`technoware:prune-carts --reminded-days`), because its row is
+the only record of the reminder, and the dashboard's longest window is
+ninety days.
+
+**The settings are a group of their own, `store_reminders`, and private.**
+The `store` group is public — all of it reaches `/settings` — and one of
+these rows is a coupon code, which on the public map is a discount for
+anybody who reads the page source. Drawn on Store → Settings beside `store`
+and `payments`; the switch is a two-option select, the delays are refused
+outside their ranges rather than clamped.
+
+`CartReminderTest` covers the contact endpoint, the claim and its "View as"
+exception, every selection rule from both sides, the coupon rule, restore,
+the unsubscribe fallback, recovery stamping, the dashboard figure, the prune
+window and the settings' refusals.

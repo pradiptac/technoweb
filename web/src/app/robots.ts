@@ -30,6 +30,7 @@ const PRIVATE = [
   "/api/",
   "/theme-preview/",
   "/cart",
+  "/store/basket/",
   "/checkout",
   "/order/",
   "/search",
