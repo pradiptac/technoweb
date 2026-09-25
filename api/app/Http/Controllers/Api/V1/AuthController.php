@@ -19,6 +19,7 @@ use App\Notifications\CustomerRegistered;
 use App\Support\Address;
 use App\Support\Notifier;
 use App\Support\SignInCodes;
+use App\Support\Store\Wishlists;
 use App\Support\Webhooks\WebhookPayload;
 use App\Support\Webhooks\Webhooks;
 use Illuminate\Http\JsonResponse;
@@ -87,7 +88,7 @@ class AuthController extends Controller
 
         RateLimiter::clear($request->throttleKey());
 
-        return $this->issueToken($customer);
+        return $this->issueToken($customer, $request);
     }
 
     /* --------------------------------------------------- sign in by code */
@@ -190,7 +191,7 @@ class AuthController extends Controller
 
         RateLimiter::clear($request->throttleKey());
 
-        return $this->issueToken($customer);
+        return $this->issueToken($customer, $request);
     }
 
     /**
@@ -210,9 +211,19 @@ class AuthController extends Controller
         return null;
     }
 
-    /** One active token per login; old tokens for this device name are replaced. */
-    private function issueToken(Customer $customer): JsonResponse
+    /**
+     * One active token per login; old tokens for this device name are replaced.
+     *
+     * The one place both ways in finish, so it is where a guest's wishlist
+     * joins the account's when the Next server forwards `X-Wishlist-Token`
+     * (2026-09-25). Guarded inside `Wishlists::claim()` — a merge that fails
+     * is reported and the sign-in answers as it would have. A staff member's
+     * "View as" never comes through here, so it can never merge.
+     */
+    private function issueToken(Customer $customer, Request $request): JsonResponse
     {
+        Wishlists::claim($customer, Wishlists::token($request));
+
         $customer->tokens()->where('name', 'portal')->delete();
         $token = $customer->createToken('portal', ['portal'], now()->addDays(14));
 

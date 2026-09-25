@@ -34,6 +34,10 @@ Schedule::command('technoware:prune-applications')->dailyAt('03:25');
  */
 Schedule::command('technoware:prune-carts')->dailyAt('03:30');
 
+// Guest wishlists, for the same reason: a heart pressed by anybody mints a
+// row. Six months, the wishlist cookie's life. Accounts' lists are kept.
+Schedule::command('technoware:prune-wishlists')->dailyAt('03:32');
+
 /*
  * Reminders about those baskets, while they are still worth one.
  *

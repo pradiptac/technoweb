@@ -6,6 +6,7 @@ use App\Casts\SpecSheet;
 use App\Enums\ProductCondition;
 use App\Enums\ProductType;
 use App\Enums\PublishStatus;
+use App\Jobs\SendWishlistPriceDrops;
 use App\Models\Concerns\HasAnswerBlocks;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
@@ -89,6 +90,21 @@ class StoreProduct extends Model implements Answerable, Faqable
             'returnable' => 'boolean',
             'is_featured' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        /*
+         * A price that came down is news to whoever saved this (2026-09-25).
+         * Here rather than in the product form, because the form, the import
+         * and anything written later all save through the model; the job
+         * re-reads every line and decides who is owed a message.
+         */
+        static::updated(function (self $product) {
+            if ($product->wasChanged('price_paise') && (int) $product->price_paise < (int) $product->getOriginal('price_paise')) {
+                SendWishlistPriceDrops::watch($product->id);
+            }
+        });
     }
 
     protected function slugSource(): string

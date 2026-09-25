@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Casts\SpecSheet;
+use App\Jobs\SendWishlistPriceDrops;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -52,6 +53,21 @@ class StoreProductVariation extends Model
             'weight_grams' => 'integer',
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * A variation's own price changing may be a drop for whoever saved it
+     * (2026-09-25). Any change, not only a fall: a variation going from "the
+     * product's price" to a price of its own is a change in what it costs
+     * that `price_paise` alone does not describe. The job measures.
+     */
+    protected static function booted(): void
+    {
+        static::updated(function (self $variation) {
+            if ($variation->wasChanged('price_paise')) {
+                SendWishlistPriceDrops::watch((int) $variation->store_product_id);
+            }
+        });
     }
 
     /** @return BelongsTo<StoreProduct, $this> */

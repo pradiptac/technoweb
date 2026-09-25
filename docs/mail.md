@@ -197,6 +197,8 @@ desk merges one of their tickets into another, queued like the rest and
 naming both references so the one to quote is the one in the subject line.
 See `docs/tickets.md`.)
 
+**`wishlist_back_in_stock` and `wishlist_price_drop` make thirty-two (2026-09-25)** — two classes, sent once per restock or per price drop to whoever saved the product, promotional so held to the quiet-hours window, each with a stop link that leaves the list alone (`docs/store.md`, "Wishlists").
+
 **`cart_reminder_1` and `cart_reminder_2` make thirty (2026-09-25)** — the twenty-eighth was `block_lead_captured` (`docs/blocks.md`). One class, `CartReminder`, and two messages, the `ticket_replied` shape: the abandoned-basket reminders, sent by `technoware:remind-abandoned-carts` only inside the quiet-hours window and never to the suppression list, each carrying an unsubscribe that puts the address on it. `docs/store.md`, "Abandoned baskets".
 
 **`back_in_stock` is the twenty-seventh (2026-09-20).** Sent by `SendStockNotices` to whoever asked to hear a store product is back, queued and templated like the rest, with the price read on the day it goes and a cancel link that removes that one notice — not an unsubscribe, and the wording says so. `docs/store.md`, "Back-in-stock notices".

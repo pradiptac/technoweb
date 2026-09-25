@@ -68,6 +68,8 @@ const PORTAL_ROUTES = [
   // The order history, which is the reason most buyers sign in at all.
   "/portal/orders",
   "/portal", "/portal/tickets", "/portal/tickets/new", "/portal/profile",
+  // The account's wishlist (2026-09-25), empty or not.
+  "/portal/wishlist",
   ...(PORTAL_TICKET ? [`/portal/tickets/${PORTAL_TICKET}`] : []),
 ];
 
@@ -139,7 +141,10 @@ const ADMIN_ROUTES = [
   and a route that silently redirects to an empty basket would be reported
   clean while never having been looked at.
 */
-const STORE_ROUTES = ["/store", "/cart", "/store/notify/cancel/not-a-real-token"];
+const STORE_ROUTES = [
+  "/store", "/cart", "/store/notify/cancel/not-a-real-token",
+  "/store/wishlist", "/store/wishlist/stop/not-a-real-token",
+];
 
 /*
   The embeddable form, and this script is the one that matters most for it.

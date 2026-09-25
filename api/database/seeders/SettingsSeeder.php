@@ -837,6 +837,16 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'store_reminders', 'key' => 'store_cart_reminder_coupon', 'value' => null, 'type' => 'string'],
 
             /*
+             * How far a price has to fall before somebody who saved the
+             * product is told (2026-09-25). A whole percentage of the price
+             * when it was saved — or when they were last told, so one drop is
+             * one message. Five by default: a rupee off is not news, and a
+             * wishlist that emails every rounding is one people stop reading.
+             * Anything outside 1–90 reads as five.
+             */
+            ['group' => 'store', 'key' => 'store_price_drop_min_percent', 'value' => '5', 'type' => 'string'],
+
+            /*
              * The storefront's promo band — one static, editable slot rather
              * than a second `Slider`. It is a single fixed block, not a
              * rotating carousel, so a handful of settings fields are less to

@@ -8,6 +8,7 @@ import { IconCheck } from "@/components/icons";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { AddToBasket } from "@/components/store/add-to-basket";
+import { WishlistHeart } from "@/components/store/wishlist-heart";
 import { StoreFilterBar } from "@/components/store/store-filter-bar";
 import { StoreProductCard } from "@/components/store/product-card";
 import { ProductGallery } from "@/components/product/product-gallery";
@@ -264,6 +265,16 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
               )}
 
               <AddToBasket product={product} />
+
+              {/*
+                Save it for later, under the basket rather than beside it: the
+                panel's one primary action keeps the row to itself. The product
+                as a whole, not the option chosen above — somebody saving a
+                switch for later has usually not decided between the 24 and the
+                48 ports yet. A client island, filled after mount like the
+                cards' hearts, so the page stays in the ISR cache.
+              */}
+              <WishlistHeart variant="page" productId={product.id} name={product.name} className="justify-self-start" />
 
               {/*
                 The things a buyer checks before pressing the button, in the

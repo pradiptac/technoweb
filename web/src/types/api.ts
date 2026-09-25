@@ -1905,6 +1905,8 @@ export type StoreDashboard = {
   }[];
   low_stock: { id: number; name: string; stock: number }[];
   codes_low: { id: number; name: string; available: number }[];
+  /** The five products on the most wishlists, counted by list. Empty when nobody has saved anything. */
+  most_wished?: { id: number; name: string; wishes: number }[];
 };
 
 /**
@@ -2160,6 +2162,49 @@ export type CartLine = {
   shipped: boolean;
   /** What is wrong with this line, if anything. Reported, never fixed silently. */
   problem?: string | null;
+};
+
+/**
+ * One thing on a wishlist, priced now. `price_at_save_paise` is what it cost
+ * when it was saved — the figure a price-drop email measures from — and
+ * `saving_paise` is null unless it costs less today.
+ */
+export type WishlistLine = {
+  id: number;
+  product_id: number;
+  variation_id: number | null;
+  name: string;
+  variation_name: string | null;
+  slug: string;
+  image_url: string | null;
+  image_alt: string | null;
+  price_paise: number;
+  price_at_save_paise: number;
+  saving_paise: number | null;
+  in_stock: boolean;
+  /** A product-level line on a product with options: choose one on its page first. */
+  needs_choice: boolean;
+  added_at: string | null;
+};
+
+/**
+ * The wishlist, as `GET /wishlist` answers it.
+ *
+ * `token` is a guest list's own and is **null for an account's list** — the
+ * Next server reads that as "forget the cookie", and the browser never sees
+ * either: `/api/store/wishlist` strips it. `alerts` says whether a
+ * back-in-stock or price-drop email can reach anybody; `alerts_off` whether
+ * the stop link in one was pressed.
+ */
+export type WishlistSummary = {
+  token: string | null;
+  account: boolean;
+  items: WishlistLine[];
+  item_count: number;
+  /** A guest's own "email me about these" address. Null on an account's list. */
+  email: string | null;
+  alerts: boolean;
+  alerts_off?: boolean;
 };
 
 export type StoreCategory = AnswerContent & {

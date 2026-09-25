@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { cache } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
+import { clearWishlistToken, wishlistToken } from "@/lib/wishlist-cookie";
 import type { AuthResponse, Customer } from "@/types/api";
 
 const COOKIE = "tw_session";
@@ -104,12 +105,30 @@ export async function isImpersonated(): Promise<boolean> {
 }
 
 export async function login(email: string, password: string, remember = true): Promise<Customer> {
+  const wishlist = await wishlistToken();
   const res = await apiFetch<AuthResponse>("/auth/login", {
     method: "POST",
     body: { email, password },
+    headers: wishlistHeader(wishlist),
   });
   await setToken(res.token, remember);
+  await forgetMergedWishlist(wishlist);
   return res.customer;
+}
+
+/**
+ * A guest's wishlist joins the account's at sign-in (2026-09-25): both ways in
+ * forward the list's token, the API merges it inside the sign-in, and the
+ * guest cookie is forgotten once the sign-in has succeeded — the list it
+ * addressed is the account's now, and an account's list is never reached by a
+ * token. A staff member's "View as" is minted elsewhere and forwards nothing.
+ */
+function wishlistHeader(token: string | undefined): Record<string, string> {
+  return token ? { "X-Wishlist-Token": token } : {};
+}
+
+async function forgetMergedWishlist(token: string | undefined): Promise<void> {
+  if (token) await clearWishlistToken();
 }
 
 export async function logout(): Promise<void> {
@@ -138,11 +157,14 @@ export async function requestSignInCode(email: string): Promise<void> {
 }
 
 export async function signInWithCode(email: string, code: string, remember = true): Promise<Customer> {
+  const wishlist = await wishlistToken();
   const res = await apiFetch<AuthResponse>("/auth/verify-code", {
     method: "POST",
     body: { email, code },
+    headers: wishlistHeader(wishlist),
   });
   await setToken(res.token, remember);
+  await forgetMergedWishlist(wishlist);
   return res.customer;
 }
 

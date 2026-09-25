@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { orderStatusTone, TONE_BAR } from "@/components/ui/badge";
 import {
   IconChart, IconBox, IconTruck, IconKey, IconTag, IconClock,
-  IconWarehouse, IconGauge, IconArrowRight, IconSearchChart, IconCart, IconMail,
+  IconWarehouse, IconGauge, IconArrowRight, IconSearchChart, IconCart, IconMail, IconHeart,
 } from "@/components/icons";
 import type { StoreDashboard } from "@/types/api";
 import type { SVGProps } from "react";
@@ -322,6 +322,7 @@ export default async function StoreDashboardPage({
   const { revenue, orders, catalogue, attention, funnel, series, recent, low_stock, codes_low } = data;
   // Absent from an API older than the reminders; null when none went out.
   const recovered = data.recovered ?? null;
+  const mostWished = data.most_wished ?? [];
 
   /*
    * The attention band renders only what is actually waiting.
@@ -538,7 +539,7 @@ export default async function StoreDashboardPage({
         </Panel>
       </div>
 
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+      <div className="mt-3 grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
         <Panel title="Running out of stock" href="/admin/store/products" linkLabel="All products">
           {low_stock.length === 0 ? (
             <p className="py-4 text-13 text-muted">Everything tracked is above {data.low_stock_threshold} in stock.</p>
@@ -589,6 +590,36 @@ export default async function StoreDashboardPage({
                       )}
                     >
                       {p.available === 0 ? "None left" : `${p.available} left`}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+
+        {/*
+          What people would like to buy (2026-09-25): the five products on the
+          most wishlists, counted by list rather than by line. Standing demand
+          rather than an event in the window, so it ignores the period picker —
+          and it is the audience a broadcast to "everybody who saved this"
+          would reach.
+        */}
+        <Panel title="Most wished for">
+          {mostWished.length === 0 ? (
+            <p className="py-4 text-13 text-muted">Nobody has saved anything to a wishlist yet.</p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {mostWished.map((p) => (
+                <li key={p.id}>
+                  <Link
+                    href={`/admin/store/products/${p.id}`}
+                    className="flex items-center gap-3 rounded-md px-1 py-1.5 transition-colors hover:bg-surface-2"
+                  >
+                    <IconHeart aria-hidden className="size-4 shrink-0 text-faint" />
+                    <span className="min-w-0 flex-1 truncate text-13">{p.name}</span>
+                    <span className="shrink-0 text-13 font-semibold tabular-nums">
+                      {p.wishes} {p.wishes === 1 ? "list" : "lists"}
                     </span>
                   </Link>
                 </li>
