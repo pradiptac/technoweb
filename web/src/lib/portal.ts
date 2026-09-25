@@ -1,7 +1,7 @@
 import "server-only";
 import { apiFetch, apiUpload } from "@/lib/api";
 import { getToken } from "@/lib/auth";
-import type { Order, Paginated, Ticket, TicketMessage, TicketSummary } from "@/types/api";
+import type { MessagingPreferences, Order, Paginated, Ticket, TicketMessage, TicketSummary } from "@/types/api";
 
 /**
  * Authenticated portal reads and writes. Every function pulls the token from
@@ -97,4 +97,19 @@ export async function reopenTicket(reference: string) {
     method: "POST",
     token: await token(),
   });
+}
+
+/**
+ * Which channels this customer is told things on (WhatsApp, RCS, push) —
+ * the profile screen's messaging card. Never cached: it is the answer to a
+ * toggle somebody just pressed.
+ */
+export async function getMessagingPreferences(): Promise<MessagingPreferences> {
+  const res = await apiFetch<{ data: MessagingPreferences }>("/messaging/preferences", { token: await token(), cache: "no-store" });
+  return res.data;
+}
+
+export async function updateMessagingPreferences(body: Partial<Record<"whatsapp" | "rcs" | "push", boolean>>): Promise<MessagingPreferences> {
+  const res = await apiFetch<{ data: MessagingPreferences }>("/messaging/preferences", { method: "PATCH", body, token: await token() });
+  return res.data;
 }

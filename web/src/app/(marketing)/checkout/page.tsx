@@ -62,7 +62,11 @@ export default async function CheckoutPage() {
             </Alert>
           )}
 
-          <CheckoutForm cart={cart} shippable={cart.has_shippable} customer={customer} />
+          <CheckoutForm cart={cart} shippable={cart.has_shippable} customer={customer}
+            messagingChannels={[
+              ...(settingEnabled(settings, "messaging_whatsapp_live") ? [{ value: "whatsapp", label: "WhatsApp" }] : []),
+              ...(settingEnabled(settings, "messaging_rcs_live") ? [{ value: "rcs", label: "RCS messages" }] : []),
+            ]} />
         </Container>
       </section>
     </>

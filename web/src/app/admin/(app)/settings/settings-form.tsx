@@ -28,12 +28,13 @@ import {
 } from "./settings-copy";
 import { ChoiceField, ServerLimits, SettingColourField } from "./settings-fields";
 import type { PaymentsMeta, SettingGroups, UploadLimits } from "@/lib/admin";
-import type { InboundMailStatus, MailStatus } from "@/types/api";
+import type { InboundMailStatus, MailStatus, MessagingStatus } from "@/types/api";
+import { MessagingPanel } from "./messaging-panel";
 
 const initial: SettingsFormState = {};
 
 export function SettingsForm({
-  screen, groups, uploads, payments, mail, inbound,
+  screen, groups, uploads, payments, mail, inbound, messaging,
 }: {
   screen: SettingsScreen;
   groups: SettingGroups;
@@ -43,6 +44,8 @@ export function SettingsForm({
   mail?: MailStatus;
   /** Only Tickets → Email to ticket draws the mailbox panel. */
   inbound?: InboundMailStatus;
+  /** Only Messaging → Settings draws the channels panel. */
+  messaging?: MessagingStatus;
 }) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);
 
@@ -61,7 +64,7 @@ export function SettingsForm({
   }
 
   const panel = (group: string) => (
-    <GroupPanel key={group} group={group} rows={groups[group]} uploads={uploads} payments={payments} mail={mail} inbound={inbound} />
+    <GroupPanel key={group} group={group} rows={groups[group]} uploads={uploads} payments={payments} mail={mail} inbound={inbound} messaging={messaging} />
   );
 
   return (
@@ -119,7 +122,7 @@ export function SettingsForm({
  * can draw a group the same way.
  */
 function GroupPanel({
-  group, rows, uploads, payments, mail, inbound,
+  group, rows, uploads, payments, mail, inbound, messaging,
 }: {
   group: string;
   rows: SettingGroups[string];
@@ -127,6 +130,7 @@ function GroupPanel({
   payments: PaymentsMeta;
   mail?: MailStatus;
   inbound?: InboundMailStatus;
+  messaging?: MessagingStatus;
 }) {
   const meta = GROUP_TITLES[group] ?? { title: group, blurb: "" };
 
@@ -152,6 +156,12 @@ function GroupPanel({
       {group === "tickets" && inbound && <TicketsPanel status={inbound} rows={rows} />}
 
       {/*
+        Messaging channels: a provider per channel decides which fields
+        exist, and each channel carries its webhook URL and a test.
+      */}
+      {group === "messaging" && messaging && <MessagingPanel status={messaging} rows={rows} />}
+
+      {/*
         Payments, like mail, cannot be drawn by the generic renderer:
         which fields exist depends on the gateway chosen, and the panel
         carries the webhook URL, which is not a setting at all.
@@ -175,7 +185,7 @@ function GroupPanel({
         {/* MailPanel renders the whole mail group itself: which fields
             exist depends on the transport, which is not something a
             flat list can say. */}
-        {(group === "mail" || group === "tickets" || group === "payments" || group === "banners"
+        {(group === "mail" || group === "tickets" || group === "payments" || group === "banners" || group === "messaging"
           ? []
           : orderFields(group, rows)
         ).map((row) => {

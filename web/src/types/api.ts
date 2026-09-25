@@ -3376,3 +3376,4 @@ export type MailTemplateDetail = {
 };
 
 export * from "./blocks";
+export * from "./messaging";

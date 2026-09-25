@@ -81,6 +81,9 @@ export async function placeOrderAction(
       // the order is made — a form is a suggestion, which is the same reason
       // nothing about money is submitted from here at all.
       payment_method: value("payment_method"),
+      // The messaging boxes under the mobile field: which channels may carry
+      // order updates to that number. The API records only a live channel.
+      message_opt_in: formData.getAll("message_opt_in").map(String),
       gst_required: formData.get("gst_required") === "1",
       gstin: value("gstin"),
       company_name: value("company_name"),
