@@ -90,7 +90,7 @@ const ADMIN_ROUTES = [
   "/admin/store", "/admin/store?days=7",
   "/admin/store/products", "/admin/store/products/new", "/admin/store/products/import",
   "/admin/store/categories", "/admin/store/categories/new",
-  "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new",
+  "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new", "/admin/store/reviews",
   "/admin/store/reports",
   // The Campaign section. Seven screens behind one sidebar entry, and none
   // of them was in this list or the phone one until the Verification tab was
@@ -137,6 +137,8 @@ const DISCOVER = [
   // canonical, and it was covered by neither this list nor the route list.
   { from: "/blog", match: /^\/blog\/category\/[^/]+$/ },
   { from: "/careers", match: /^\/careers\/[^/]+$/ },
+  // A store product page: the reviews section, its popovers and the dialog's trigger (docs/store.md, "Reviews").
+  { from: "/store", match: /^\/store\/products\/[^/]+$/ },
   { from: "/case-studies", match: /^\/case-studies\/[^/]+$/ },
   { from: "/knowledge-base", match: /^\/knowledge-base\/[^/]+$/ },
   // `TW-`, not `[^/]+`: the queue's header links to /admin/tickets/saved-replies

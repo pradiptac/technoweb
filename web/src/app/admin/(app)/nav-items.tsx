@@ -6,7 +6,7 @@ import {
   IconArrows, IconBook, IconBox, IconBuilding, IconCert, IconChart,   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
   IconClock, IconHeadset, IconMegaphone, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
-  IconWrench, IconNewspaper, IconBriefcase, IconShield, IconPlug,
+  IconWrench, IconNewspaper, IconBriefcase, IconShield, IconPlug, IconChat,
 } from "@/components/icons";
 
 /**
@@ -149,6 +149,8 @@ export const NAV: NavItem[] = [
       { role: "store_manager", href: "/admin/store/products", label: "Products", icon: IconBox },
       { role: "store_manager", href: "/admin/store/categories", label: "Categories", icon: IconGrid },
       { role: "store_manager", href: "/admin/store/coupons", label: "Discount codes", icon: IconTag },
+      // Product reviews: the queue opens on what is waiting (docs/store.md, "Reviews").
+      { role: "store_manager", href: "/admin/store/reviews", label: "Reviews", icon: IconChat },
       // The shop front's promo band: eight settings rows behind a store-manager
       // endpoint of their own, so the person running a promotion does not
       // need Settings — which they cannot open. The info bar's shape.

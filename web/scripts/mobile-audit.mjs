@@ -120,7 +120,7 @@ const ADMIN_ROUTES = [
   "/admin/store", "/admin/store?days=7",
   "/admin/store/products", "/admin/store/products/new", "/admin/store/products/import",
   "/admin/store/categories", "/admin/store/categories/new",
-  "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new",
+  "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new", "/admin/store/reviews",
   "/admin/store/reports",
   // The Campaign section, in neither audit until the Verification tab came:
   // its nav strip is seven tabs now, which is what this run is for.
