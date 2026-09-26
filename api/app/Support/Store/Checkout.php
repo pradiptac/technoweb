@@ -426,18 +426,43 @@ class Checkout
      * does not promote a rejected or suspended account, because that decision
      * was made by a person about a person and a purchase does not overturn it —
      * the order is still reachable by its own link either way.
+     *
+     * **An existing account is joined only once its address is confirmed.**
+     * The email on a guest order is whatever was typed, and a row with that
+     * email may have been made by somebody who never proved they read that
+     * inbox — `/auth/register` stores a caller-chosen password on an
+     * unconfirmed account. Attaching here would hand that person the buyer's
+     * order the moment the real owner confirmed the address. So an
+     * unconfirmed account is passed over: the order stays reachable by its
+     * link, and `claimOrders()` joins it when the address is confirmed, by
+     * whoever can read the mailbox.
      */
     public static function accountFor(Order $order): ?Customer
     {
         if ($order->customer_id !== null) {
-            return $order->customer;
+            $customer = $order->customer;
+
+            // Placed by this customer, signed in: their own choice of address
+            // is the one worth offering next time.
+            if ($customer !== null) {
+                self::rememberDetails($customer, $order, overwrite: true);
+            }
+
+            return $customer;
         }
 
         $existing = Customer::where('email', $order->customer_email)->first();
 
         if ($existing !== null) {
+            if (! $existing->hasVerifiedEmail()) {
+                return null;
+            }
+
             $order->update(['customer_id' => $existing->id]);
-            self::rememberDetails($existing, $order);
+            // A guest order typed with this address fills a blank and never
+            // replaces what the account holder saved: anybody can type an
+            // email at the checkout.
+            self::rememberDetails($existing, $order, overwrite: false);
 
             return $existing;
         }
@@ -455,20 +480,40 @@ class Checkout
         ]);
 
         $order->update(['customer_id' => $customer->id]);
-        self::rememberDetails($customer, $order);
+        self::rememberDetails($customer, $order, overwrite: true);
 
         return $customer;
     }
 
     /**
+     * Join the paid guest orders placed under a newly confirmed address.
+     *
+     * The other half of `accountFor()` passing an unconfirmed account over:
+     * a confirmation proves the mailbox, which is what the email on those
+     * orders claims, so they are this account's now. Paid ones only — the
+     * rule `accountFor()` runs at settlement, which never sees an order
+     * nobody paid for.
+     */
+    public static function claimOrders(Customer $customer): void
+    {
+        Order::query()
+            ->whereNull('customer_id')
+            ->where('customer_email', $customer->email)
+            ->paid()
+            ->update(['customer_id' => $customer->id]);
+    }
+
+    /**
      * Keep the address and GSTIN for the next order.
      *
-     * Only what the order actually carries, and only over a blank — no, over
-     * whatever was there: the *last* address used is the one worth offering
-     * next time, and somebody who has moved should not have to correct the
-     * form twice. What must never move is the order's own copy, which is what
-     * an invoice reads; these columns are a convenience for a future form and
-     * the migration says so.
+     * Only what the order actually carries, and — for an order the customer
+     * placed signed in — over whatever was there: the *last* address used is
+     * the one worth offering next time, and somebody who has moved should not
+     * have to correct the form twice. A guest order matched by email only
+     * fills a blank (`$overwrite` false), because the email is all it proves.
+     * What must never move is the order's own copy, which is what an invoice
+     * reads; these columns are a convenience for a future form and the
+     * migration says so.
      *
      * `shipping_address` is written **only** when the order genuinely had a
      * different one. Copying the billing address into it would turn "same as
@@ -480,7 +525,7 @@ class Checkout
      * retypes an address; a settlement that threw here is a paid order that
      * did not finish. The same rule `StockLedger` follows.
      */
-    private static function rememberDetails(Customer $customer, Order $order): void
+    private static function rememberDetails(Customer $customer, Order $order, bool $overwrite): void
     {
         try {
             // Blank means "this order said nothing about it", which must not
@@ -524,6 +569,25 @@ class Checkout
                 $keep['shipping_address'] = Address::same($order->shipping_address, $order->billing_address)
                     ? null
                     : $order->shipping_address;
+            }
+
+            /*
+             * Only over a blank, unless this customer placed the order.
+             *
+             * A guest order is matched to an account by the email typed into
+             * the form, which anybody can type. Letting it replace what the
+             * account holder saved would let a stranger rewrite the address
+             * their next checkout opens with — so it fills what is empty, and
+             * the billing and delivery pair move together or not at all.
+             */
+            if (! $overwrite) {
+                if (filled($customer->billing_address)) {
+                    unset($keep['billing_address'], $keep['shipping_address']);
+                }
+
+                if (filled($customer->gstin)) {
+                    unset($keep['gstin']);
+                }
             }
 
             $customer->forceFill($keep)->save();

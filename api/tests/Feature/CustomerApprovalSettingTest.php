@@ -72,6 +72,9 @@ class CustomerApprovalSettingTest extends TestCase
         $this->assertSame(CustomerStatus::Active, $customer->status);
 
         $customer->markEmailVerified();
+        // Confirming retires the registration password; the owner chooses
+        // one through "Forgot your password?", which this stands in for.
+        $customer->forceFill(['password' => self::PASSWORD])->save();
 
         $this->postJson('/api/v1/auth/login', ['email' => 'priya@example.test', 'password' => self::PASSWORD])
             ->assertOk()
@@ -117,7 +120,10 @@ class CustomerApprovalSettingTest extends TestCase
 
         $this->postJson('/api/v1/auth/verify-email', ['email' => 'priya@example.test', 'token' => $token])
             ->assertOk()
-            ->assertJson(['message' => 'Your address is confirmed. You can sign in now.', 'status' => 'active']);
+            ->assertJson([
+                'message' => 'Your address is confirmed. Sign in with a one-time code sent to it, or choose a password with "Forgot your password?".',
+                'status' => 'active',
+            ]);
     }
 
     public function test_verifying_a_pending_address_says_a_human_will_activate_it(): void

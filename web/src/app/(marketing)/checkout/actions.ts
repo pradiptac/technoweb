@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { ApiError } from "@/lib/api";
+import { getToken as portalToken } from "@/lib/auth";
 import { cartToken, clearCartToken } from "@/lib/cart";
 import { placeOrder } from "@/lib/store";
 
@@ -34,6 +35,9 @@ export async function placeOrderAction(
   };
 
   const elsewhere = formData.get("ship_elsewhere") === "1";
+  // Signed in or not: the API reads the portal token to know the order is
+  // theirs, which is what lets it update the address the account keeps.
+  const signedIn = await portalToken();
 
   let orderNumber: string;
   let accessToken: string;
@@ -87,7 +91,7 @@ export async function placeOrderAction(
       // The honeypot. Sent as-is so the API refuses it rather than this
       // silently dropping it — one trap, checked in one place.
       website: value("website"),
-    });
+    }, signedIn);
 
     orderNumber = order.order_number;
     accessToken = access;

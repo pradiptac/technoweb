@@ -151,8 +151,8 @@ rather than on it), read through `Customer::isImpersonated()` — an ability
 check that is sound for a `Customer` only because Sanctum's stateful path asks
 the `web` guard alone, whose provider is the `users` table, so a customer is
 never a `TransientToken` whose `can()` answers true to everything. The one
-thing the session may not do is change the email address: the portal path
-changes one without re-verification. `CustomerImpersonationTest` pins all of
+thing the session may not do is change the email address: a change made there
+would send the confirmation to an inbox the staff member chose. `CustomerImpersonationTest` pins all of
 it with **real bearer headers**, which turned up two stickinesses worth
 knowing — `actingAs()` authenticates every later request in the same test,
 and the guard object keeps the first user it resolved until
@@ -172,3 +172,37 @@ know: the new tab overwrites whatever portal session that browser held, and
 "End" (or Sign out) revokes the impersonation token and lands the tab on the
 customer's record in the console — a redirect, never `window.close()`, which
 only closes a tab whose history holds one entry.
+
+## Unconfirmed accounts are passed over, and a changed address is unconfirmed (2026-09-26)
+
+A guest order and an emailed ticket are joined to "the account with that
+email". Until now that included an account nobody had confirmed — and
+`/auth/register` lets anybody create one for anybody's address, with a
+password of their choosing. Three rules close it, each pinned by a test:
+
+- **`Checkout::accountFor()` passes over an unconfirmed account.** The paid
+  order stays reachable by its link; `Checkout::claimOrders()` joins it when
+  the address is confirmed, by whoever reads the mailbox
+  (`CheckoutTest::test_a_guest_order_waits_for_an_unconfirmed_account_to_be_confirmed`).
+- **The first confirmation retires the password it did not prove** and ends
+  every session — see `docs/auth.md`. `TicketPiper::customer()` confirms an
+  unconfirmed sender's account the same way before attaching the ticket:
+  mail from the address is the mailbox proof it already accepted for a new
+  account.
+- **Changing the address from the portal un-confirms it**, and the link goes
+  to the new address — the rule the console's edit always followed. Saving
+  the same address (in any case) keeps the confirmation.
+
+`POST /auth/verify-email` also checks the token **before** it says anything:
+it used to answer `already_verified` with the account's `status` to anybody
+naming a confirmed address, whatever token they sent. A spent link is now the
+same 422 as every other mismatch, and `already_verified` is always false (kept
+on the wire so the page's branch still type-checks).
+
+**A guest order only fills a blank.** The saved billing and delivery
+addresses and the GSTIN are what the account holder's next checkout opens
+with, and the email on a guest order is all it proves. `rememberDetails()`
+overwrites only for an order the customer placed signed in — `/checkout`
+reads the portal token by guard name (`$request->user('sanctum')`), and the
+checkout Server Action now forwards it — or for a brand-new account.
+

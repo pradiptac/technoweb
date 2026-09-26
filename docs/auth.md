@@ -144,3 +144,49 @@ record so an id without a scene is a type error). Scenes now receive
 `input.pointer` — listened for on the panel, only while animating — which
 the wave grid ripples from. The ribbon turns three times, not the
 reference's six: at panel width six read as a string of beads.
+
+## Passwords switched off means switched off (2026-09-26)
+
+`password_login_enabled` used to decide which step the sign-in screens opened
+on and nothing else: `POST /auth/login` and `POST /admin/auth/login` took a
+password from anybody who posted to them. Both now refuse **before** the
+credentials are looked at — 403, `reason: password_login_disabled`, one answer
+for every address — and the console's refusal is written to the activity log
+as a `login_failed` with that reason.
+
+**The break-glass is `AUTH_PASSWORD_BREAK_GLASS=true` in `api/.env`** (then
+`php artisan config:clear`; `config('auth.password_break_glass')`). Mail is
+configured from the console and can be misconfigured from it: an install with
+passwords off and broken SMTP has no code that can arrive and no
+administrator who can sign in to fix it. The flag re-opens **staff** password
+sign-in only — never the portal's — and is meant to be switched off again the
+moment mail works. It is a file on the server rather than a setting because
+the setting is behind the door it has to open.
+
+## A confirmation retires the password it did not prove (2026-09-26)
+
+`/auth/register` stores whatever password the caller chose on an account
+nobody has confirmed, and anybody can register anybody's address. A code,
+the emailed link, or mail piped in from the address all prove the *mailbox*
+and nothing about who typed that password — so before this, the owner
+signing in by code or clicking their link switched on an account the
+registrant could also sign in to, holding the owner's orders and tickets.
+
+`Customer::markEmailVerified()` therefore, on the **first** confirmation only,
+replaces the password with 64 random characters, deletes every token, and
+then joins the paid guest orders under the address (`Checkout::claimOrders`).
+The owner signs in with a code, or sets a password through "Forgot your
+password?", which is itself a mailbox proof. Confirming an address already
+confirmed changes nothing. The verification response says so: "Sign in with
+a one-time code sent to it, or choose a password with 'Forgot your
+password?'."
+
+## The attempt is claimed before the code is compared (2026-09-26)
+
+`SignInCodes::consume()` read `attempts`, ran bcrypt, then incremented — so
+guesses sent in parallel all read the same count while the first was being
+hashed, and the cap of five meant nothing. One conditional
+`UPDATE … SET attempts = attempts + 1 WHERE attempts < 5 AND consumed_at IS
+NULL AND expires_at > now()` decides whether a request gets a guess at all;
+only a request that changed a row compares. `SignInCodeTest` stages the race
+by answering the first comparison with seven more guesses.

@@ -20,6 +20,7 @@ use App\Support\InboundMail\TicketPiper;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\AnonymousNotifiable;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -180,6 +181,30 @@ class InboundMailTest extends TestCase
         $this->assertNotNull($customer->approved_at);
         $this->assertSame($customer->id, Ticket::sole()->customer_id);
         Notification::assertSentTo($customer, TicketAcknowledged::class);
+    }
+
+    /**
+     * An account nobody confirmed is confirmed by the mail, then joined.
+     *
+     * Its password may be whoever registered the address, not whoever reads
+     * it — attaching the ticket as it stood put the sender's words in front
+     * of that person. The message is the mailbox proof, and confirming
+     * retires the password nobody proved and every session with it.
+     */
+    public function test_mail_from_an_unconfirmed_account_retires_its_password_before_it_joins(): void
+    {
+        $this->enable();
+        $registered = $this->customer();
+        $registered->createToken('portal', ['portal']);
+
+        $this->pipe(FakeMailbox::message());
+
+        $registered->refresh();
+
+        $this->assertSame($registered->id, Ticket::sole()->customer_id);
+        $this->assertNotNull($registered->email_verified_at);
+        $this->assertFalse(Hash::check('password-for-tests', $registered->password));
+        $this->assertSame(0, $registered->tokens()->count());
     }
 
     public function test_a_sender_with_no_display_name_is_named_from_the_address(): void

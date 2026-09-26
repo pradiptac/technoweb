@@ -307,6 +307,21 @@ final class TicketPiper
     {
         $customer = Customer::whereRaw('LOWER(email) = ?', [$from])->first();
 
+        /*
+         * An unconfirmed account is confirmed by this message first.
+         *
+         * Its password may have been chosen by whoever registered the
+         * address, not by whoever reads it; attaching the ticket as it stands
+         * would put this sender's words in front of that person. Mail from
+         * the address is the mailbox proof this method already accepts for a
+         * new account, and `markEmailVerified()` is what turns a confirmation
+         * into safety: the password nobody proved is replaced and every
+         * session ends before the ticket is attached.
+         */
+        if ($customer !== null && ! $customer->hasVerifiedEmail()) {
+            $customer->markEmailVerified();
+        }
+
         if ($customer !== null) {
             return $customer;
         }

@@ -85,6 +85,32 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): JsonResponse
     {
+        /*
+         * `password_login_enabled` is enforced at the endpoint, not only by
+         * the form — the switch used to decide which step the screen opened
+         * on and nothing more.
+         *
+         * **The break-glass is an environment flag, deliberately.** Mail is
+         * configured from this console and can be misconfigured from it; an
+         * install that has switched passwords off and then broken its SMTP
+         * settings has no working way in for any administrator, and the fix
+         * must not need the console it is locked out of. `AUTH_PASSWORD_BREAK_GLASS=true`
+         * in `api/.env` (then `php artisan config:clear`) re-opens staff
+         * password sign-in only — never the portal's — and is meant to be
+         * switched back off once mail works. See `docs/auth.md`.
+         */
+        if (! Setting::get('password_login_enabled', true) && ! config('auth.password_break_glass')) {
+            ActivityLogger::signInFailed((string) $request->string('email'), $request, 'password_login_disabled');
+
+            $message = 'Signing in with a password is switched off. Ask for a sign-in code instead.';
+
+            return response()->json([
+                'message' => $message,
+                'reason' => 'password_login_disabled',
+                'errors' => ['email' => [$message]],
+            ], 403);
+        }
+
         $request->ensureIsNotRateLimited();
 
         $user = User::where('email', $request->string('email'))->first();

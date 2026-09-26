@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Store\CheckoutRequest;
 use App\Http\Resources\Store\OrderResource;
 use App\Models\Cart;
+use App\Models\Customer;
 use App\Models\Order;
 use App\Support\Address;
 use App\Support\Store\Checkout;
@@ -92,7 +93,20 @@ class CheckoutController extends Controller
             }
         }
 
+        /*
+         * Who is buying, when somebody is signed in.
+         *
+         * Named by guard: this route is public, so `$request->user()` asks
+         * the default guard, which nothing here populates — a signed-in
+         * customer would arrive as a guest. The portal token is forwarded by
+         * the checkout's Server Action, and a staff token is not a customer.
+         * It decides whose saved address the order may replace; see
+         * `Checkout::accountFor()`.
+         */
+        $buyer = $request->user('sanctum');
+
         $order = Checkout::place($cart, [
+            'customer_id' => $buyer instanceof Customer ? $buyer->id : null,
             'name' => $request->string('name')->value(),
             'email' => $request->string('email')->value(),
             'phone' => $request->string('phone')->value(),
