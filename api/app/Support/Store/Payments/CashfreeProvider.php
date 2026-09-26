@@ -167,7 +167,9 @@ class CashfreeProvider implements PaymentProvider
         $payments = collect($response->json() ?? []);
         $paid = $payments->first(fn ($p) => ($p['payment_status'] ?? null) === 'SUCCESS');
 
-        if ($paid === null) {
+        // Rupees only: the order was opened in INR, and a payment Cashfree
+        // records in anything else is not a payment of this order's total.
+        if ($paid === null || ($paid['payment_currency'] ?? 'INR') !== 'INR') {
             return null;
         }
 
