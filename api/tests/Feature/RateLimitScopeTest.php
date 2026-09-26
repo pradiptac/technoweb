@@ -124,6 +124,9 @@ class RateLimitScopeTest extends TestCase
             'password' => 'the-right-password-9', 'status' => CustomerStatus::Active,
         ]);
         $customer->markEmailVerified();
+        // Confirming an address retires a password set before it (the
+        // pre-registration takeover fix), so the real one is set after.
+        $customer->forceFill(['password' => 'the-right-password-9'])->save();
 
         for ($i = 0; $i < 5; $i++) {
             $this->viaNext('203.0.113.40')
