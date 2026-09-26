@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\AnswerBlockKind;
 use App\Enums\PublishStatus;
-use App\Http\Controllers\Concerns\WritesCmsEntities;
+use App\Http\Controllers\Concerns\WritesAnswerContent;
+use App\Http\Controllers\Concerns\WritesCustomFields;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\EntryRequest;
 use App\Http\Resources\Admin\ContentTypeResource;
@@ -31,7 +32,9 @@ use Illuminate\Support\Facades\DB;
  */
 class EntryController extends Controller
 {
-    use WritesCmsEntities;
+    // Not `WritesCmsEntities`: its helpers take a bare `Model`, and an entry
+    // is typed here instead — the two it needs are written against `Entry`.
+    use WritesAnswerContent, WritesCustomFields;
 
     private const DETAIL = ['contentType', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group'];
 
@@ -74,17 +77,17 @@ class EntryController extends Controller
     public function store(EntryRequest $request, ContentType $contentType): JsonResponse
     {
         $entry = DB::transaction(function () use ($request, $contentType) {
-            [$attributes, $seo] = $this->splitSeo($request->validated());
+            [$attributes, $seo] = $this->split($request->validated());
             $custom = $this->pullCustomFields($attributes);
             $content = $this->pullAnswerContent($attributes);
 
             // The type first, so the slug is made unique within it.
             $entry = new Entry(['content_type_id' => $contentType->id]);
             $entry->setRelation('contentType', $contentType);
-            $entry->fill($this->withPublishedAt($attributes))->save();
+            $entry->fill($this->publishedAt($attributes))->save();
 
             $this->saveAnswerContent($entry, $content);
-            $this->saveSeo($entry, $seo);
+            $this->seo($entry, $seo);
             $this->saveCustomFields($entry, $custom);
 
             return $entry;
@@ -96,7 +99,7 @@ class EntryController extends Controller
     public function update(EntryRequest $request, ContentType $contentType, Entry $entry): JsonResource
     {
         DB::transaction(function () use ($request, $entry) {
-            [$attributes, $seo] = $this->splitSeo($request->validated());
+            [$attributes, $seo] = $this->split($request->validated());
             $custom = $this->pullCustomFields($attributes);
             $content = $this->pullAnswerContent($attributes);
 
@@ -107,14 +110,57 @@ class EntryController extends Controller
 
             // A slug change writes the 301 through `Sluggable`, under this
             // type's prefix.
-            $entry->update($this->withPublishedAt($attributes, $entry));
+            $entry->update($this->publishedAt($attributes, $entry));
 
             $this->saveAnswerContent($entry, $content);
-            $this->saveSeo($entry, $seo);
+            $this->seo($entry, $seo);
             $this->saveCustomFields($entry, $custom);
         });
 
         return new EntryResource($entry->fresh(self::DETAIL) ?? $entry);
+    }
+
+    /**
+     * The validated attributes and the nested SEO override, apart:
+     * `preventSilentlyDiscardingAttributes` is on, so `seo` in `fill()` throws.
+     *
+     * @return array{0: array<string, mixed>, 1: array<string, mixed>|null}
+     */
+    private function split(array $validated): array
+    {
+        $seo = $validated['seo'] ?? null;
+        unset($validated['seo']);
+
+        return [$validated, is_array($seo) ? $seo : null];
+    }
+
+    /** The override row, only when there is something to write. */
+    private function seo(Entry $entry, ?array $seo): void
+    {
+        if ($seo !== null) {
+            $entry->seo()->updateOrCreate([], $seo);
+        }
+    }
+
+    /**
+     * Publishing without a date means now — the `WritesCmsEntities` rule.
+     * `Entry::scopePublished` admits a null date, so this is about the
+     * archive's newest-first order and the page's dateline, not visibility.
+     *
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
+    private function publishedAt(array $attributes, ?Entry $existing = null): array
+    {
+        $status = $attributes['status'] ?? $existing?->status->value;
+
+        if ($status === PublishStatus::Published->value
+            && empty($attributes['published_at'])
+            && $existing?->published_at === null) {
+            $attributes['published_at'] = now();
+        }
+
+        return $attributes;
     }
 
     public function destroy(ContentType $contentType, Entry $entry): JsonResponse

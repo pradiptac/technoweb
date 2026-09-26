@@ -9,6 +9,11 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 /**
  * What one record holds for one custom field. The value is JSON because the
  * field's kind decides its shape; `CustomFields::save()` is the only writer.
+ *
+ * `mixed` because that is what the column holds: a string for text, a number,
+ * a boolean, a list for checkboxes — a JSON cast decodes each to itself.
+ *
+ * @property mixed $value
  */
 class CustomFieldValue extends Model
 {

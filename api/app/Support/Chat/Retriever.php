@@ -547,17 +547,27 @@ class Retriever
      */
     private static function entries(array $terms): array
     {
-        return self::match(Entry::query()->published()->with('contentType'), $terms, ['title', 'summary'])
+        $rows = self::match(Entry::query()->published()->with('contentType'), $terms, ['title', 'summary'])
             ->limit(self::PER_GROUP)
-            ->get()
-            ->map(fn (Entry $e) => [
+            ->get();
+
+        $out = [];
+        foreach ($rows as $e) {
+            if (! $e instanceof Entry) {
+                continue;
+            }
+
+            $out[] = [
                 'type' => 'entry',
-                'label' => (string) ($e->contentType?->name ?? 'Page'),
+                'label' => (string) $e->contentType->name,
                 'title' => (string) $e->title,
                 'excerpt' => self::excerpt(filled($e->summary) ? $e->summary : $e->body),
                 'url' => $e->publicPath(),
                 'meta' => [],
-            ])->all();
+            ];
+        }
+
+        return $out;
     }
 
     /**

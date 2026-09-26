@@ -115,7 +115,7 @@ class SeoController extends Controller
          * (`/admin/content/{type}/{id}`), so the record answers `adminPath()`
          * itself rather than taking the segment here.
          */
-        'entry' => [Entry::class, 'title', 'content', 'Custom content', ['contentType', 'faqs', 'answerBlocks'], ['summary', 'body'], 250],
+        'entry' => [Entry::class, 'title', 'content', 'Custom content', ['contentType', 'faqs', 'answerBlocks'], ['body'], 250],
     ];
 
     /** The bands `?aeo=` and `?geo=` may ask for. */

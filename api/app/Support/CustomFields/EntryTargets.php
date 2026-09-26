@@ -39,16 +39,15 @@ final class EntryTargets
         return ContentType::query()->where('slug', substr($key, strlen(self::PREFIX)))->first();
     }
 
-    /** @return Builder<Model>|null */
+    /** @return Builder<covariant Model>|null */
     public static function query(string $key): ?Builder
     {
         $type = self::type($key);
 
-        /** @var Builder<Model>|null */
         return $type ? Entry::query()->where('content_type_id', $type->id) : null;
     }
 
-    /** @return Builder<Model>|null */
+    /** @return Builder<covariant Model>|null */
     public static function publicQuery(string $key): ?Builder
     {
         $type = self::type($key);
@@ -57,7 +56,6 @@ final class EntryTargets
             return null;
         }
 
-        /** @var Builder<Model> */
         return Entry::query()->published()->where('content_type_id', $type->id);
     }
 
@@ -72,8 +70,8 @@ final class EntryTargets
      * The type loaded with each entry, so `publicPath()` needs no query per
      * row.
      *
-     * @param  Builder<Model>  $query
-     * @return Builder<Model>
+     * @param  Builder<covariant Model>  $query
+     * @return Builder<covariant Model>
      */
     public static function withType(string $key, Builder $query): Builder
     {

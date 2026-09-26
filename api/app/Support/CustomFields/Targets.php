@@ -93,7 +93,7 @@ final class Targets
      * Every record of a target, whatever its status — what the console's
      * picker lists and what a linked-record value may name.
      *
-     * @return Builder<Model>|null
+     * @return Builder<covariant Model>|null
      */
     public static function query(string $key): ?Builder
     {
@@ -111,7 +111,7 @@ final class Targets
      * at — so every one is linkable. Everything else answers through its own
      * `published()` scope, and an entry also needs its type switched on.
      *
-     * @return Builder<Model>|null
+     * @return Builder<covariant Model>|null
      */
     public static function publicQuery(string $key): ?Builder
     {
