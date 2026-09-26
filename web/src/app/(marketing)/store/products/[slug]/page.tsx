@@ -6,13 +6,17 @@ import { Badge } from "@/components/ui/badge";
 import { Prose, SpecTable } from "@/components/ui/prose";
 import { IconCheck } from "@/components/icons";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { AddToBasket } from "@/components/store/add-to-basket";
+import { WishlistHeart } from "@/components/store/wishlist-heart";
 import { StoreFilterBar } from "@/components/store/store-filter-bar";
 import { StoreProductCard } from "@/components/store/product-card";
 import { ProductGallery } from "@/components/product/product-gallery";
 import { RecentlyViewed, RememberProduct } from "@/components/store/recently-viewed";
 import { ShareLinks } from "@/components/ui/share-links";
+import { ReviewsSection } from "@/components/store/reviews/reviews-section";
+import { reviewPage } from "@/lib/reviews";
 import { publicApi } from "@/lib/api";
 import { formatPaise, percentOff } from "@/lib/money";
 import { buildMetadata, JsonLd, SITE } from "@/lib/seo";
@@ -80,13 +84,15 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
     cannot make three different promises; they used to be a sentence in
     `content/site.ts` the API could not see.
   */
-  const [categories, shelf, newest, settings] = await Promise.all([
+  const [categories, shelf, newest, settings, firstReviews] = await Promise.all([
     publicApi.storeCategories().then((r) => r.data).catch(() => [] as StoreCategory[]),
     product.category
       ? publicApi.storeProducts(`?category=${product.category.slug}&per_page=6`).then((r) => r.data).catch(() => [] as StoreProduct[])
       : Promise.resolve([] as StoreProduct[]),
     publicApi.storeProducts("?sort=newest&per_page=6").then((r) => r.data).catch(() => [] as StoreProduct[]),
     getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>),
+    // The first page of reviews, cached under `store-reviews:<slug>`; a failure draws the section empty rather than failing the page.
+    reviewPage(product.slug).catch(() => null),
   ]);
   const seen = new Set<number>([product.id]);
   const alsoLike = [...shelf, ...newest].filter((p) => !seen.has(p.id) && seen.add(p.id)).slice(0, 4);
@@ -176,6 +182,9 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
               focuses={product.image_focuses}
               name={product.name}
               priority
+              // The shop's additions: videos, every thumbnail, the magnifier.
+              videos={product.videos ?? []}
+              store
             />
 
             {/*
@@ -264,6 +273,16 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
               )}
 
               <AddToBasket product={product} />
+
+              {/*
+                Save it for later, under the basket rather than beside it: the
+                panel's one primary action keeps the row to itself. The product
+                as a whole, not the option chosen above — somebody saving a
+                switch for later has usually not decided between the 24 and the
+                48 ports yet. A client island, filled after mount like the
+                cards' hearts, so the page stays in the ISR cache.
+              */}
+              <WishlistHeart variant="page" productId={product.id} name={product.name} className="justify-self-start" />
 
               {/*
                 The things a buyer checks before pressing the button, in the
@@ -365,10 +384,14 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
               <p className="whitespace-pre-line text-[16px] leading-[1.72] text-ink-2">{product.applications}</p>
             </div>
           )}
+          {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
+          <CustomFieldDetails fields={product.custom_fields} className="mt-14" />
           <AnswerBlocks blocks={product.answer_blocks} faqs={product.faqs ?? []} className="mt-14" />
           <RelatedEntities entity={product.entity} className="mt-14" />
           </div>
           </div>
+
+          <ReviewsSection slug={product.slug} productName={product.name} rating={product.rating ?? null} initial={firstReviews} />
 
           {alsoLike.length > 0 && (
             <section aria-labelledby="also-like" className="mt-16" data-aos="fade-up">

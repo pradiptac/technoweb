@@ -11,6 +11,7 @@ use App\Support\Money;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\HtmlString;
 
 /**
  * "It is back": the product somebody asked to hear about has stock again.
@@ -67,7 +68,10 @@ class BackInStock extends Notification implements ShouldQueue
             ->line("**{$name}** is back in stock at ".Money::format($this->pricePaise()).'.')
             ->line('You asked us to let you know. This is the one message we will send about it.')
             ->action('See the product', $this->productUrl())
-            ->line('Did not ask for this? [Cancel the notice]('.$this->cancelUrl().') and we will not email you about it again.');
+            // An `HtmlString`, so the Markdown link survives the secured
+            // encoding every other line gets: this one is ours, built from a
+            // URL we minted, and is the only line here meant to be a link.
+            ->line(new HtmlString('Did not ask for this? [Cancel the notice]('.$this->cancelUrl().') and we will not email you about it again.'));
     }
 
     /** The variation's price when it has one of its own, the product's otherwise — the price today. */

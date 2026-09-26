@@ -688,14 +688,25 @@ class MediaController extends Controller
     {
         $maxKb = UploadLimits::maxKb();
 
+        /*
+         * The upload's own content check, and the type read from the bytes.
+         *
+         * A replacement is an upload, and it had neither: any content under
+         * any declared type passed, and the client's `Content-Type` was
+         * stored as the file's mime — so HTML declared `image/png` became an
+         * "image" in the library. `mimes:` checks the bytes against the
+         * allowlist the upload uses, and the stored type is the one the
+         * server detected.
+         */
         $request->validate([
-            'file' => ['required', 'file', "max:{$maxKb}"],
+            'file' => ['required', 'file', 'mimes:'.implode(',', MediaUploader::ALLOWED_EXTENSIONS), "max:{$maxKb}"],
         ], [
+            'file.mimes' => 'Upload an image (PNG, JPG, GIF, WebP, SVG), a video (MP4, WebM) or a document (PDF, Word, Excel, CSV, TXT, ZIP).',
             'file.max' => 'That file is over the '.round($maxKb / 1024).' MB limit.',
         ]);
 
         $file = $request->file('file');
-        $mime = $file->getClientMimeType();
+        $mime = MediaUploader::isSvg($file) ? 'image/svg+xml' : (string) ($file->getMimeType() ?: 'application/octet-stream');
 
         $wasImage = $medium->isImage();
         $isImage = str_starts_with($mime, 'image/');

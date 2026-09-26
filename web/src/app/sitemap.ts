@@ -163,6 +163,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       "/store": newest([...storeProducts, ...storeCategories]),
     };
 
+    /*
+     * Custom content types (docs/custom-content.md): each active type's
+     * archive — when it has one — and every published entry, walked page by
+     * page like the catalogue. Its own round, after the rest, because the
+     * list of types decides which archives to walk. A failure here drops
+     * only the custom content, never the sitemap.
+     */
+    const types = await publicApi.contentTypes().then((r) => r.data).catch(() => []);
+    const custom = await Promise.all(types.map(async (t) => ({
+      type: t,
+      entries: await all((q) => publicApi.contentArchive(t.slug, q)).catch(() => []),
+    })));
+
     return [
       ...staticRoutes.map((e) => {
         const d = indexDates[e.url.slice(SITE.url.length)];
@@ -194,6 +207,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...landing.map((l) => entry(l.path, 0.6, "monthly", when(l.updated_at))),
       // /privacy, /terms, /downloads and anything else an editor publishes.
       ...included(pages).map((p) => entry(`/${p.slug}`, 0.4, "yearly", when(p.updated_at))),
+      ...custom.flatMap(({ type, entries }) => [
+        ...(type.archive_enabled ? [entry(type.path, 0.6, "weekly", when(type.updated_at))] : []),
+        ...included(entries).map((e) => entry(e.path, 0.6, "monthly", when(e.updated_at ?? e.published_at))),
+      ]),
     ];
   } catch {
     // Never emit an empty sitemap — a partial one is far less damaging.

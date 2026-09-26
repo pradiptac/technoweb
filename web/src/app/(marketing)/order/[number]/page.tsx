@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
 import { Badge, orderStatusTone } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { OrderTimeline } from "@/components/store/order-timeline";
 import { Alert } from "@/components/ui/input";
 import { ButtonLink } from "@/components/ui/button";
 import { getOrder } from "@/lib/store";
+import { orderToken } from "@/lib/order-access";
 import { formatPaise } from "@/lib/money";
 import { RevealCode } from "./reveal-code";
 import { PaymentInstructionsPanel } from "./payment-instructions";
@@ -26,11 +27,25 @@ export default async function OrderPage({
   params, searchParams,
 }: {
   params: Promise<{ number: string }>;
-  searchParams: Promise<{ token?: string; placed?: string }>;
+  searchParams: Promise<{ token?: string; placed?: string; paid?: string }>;
 }) {
   const { number } = await params;
-  const { token, placed } = await searchParams;
+  const { token: linked, placed, paid } = await searchParams;
 
+  /*
+    A token in the address is never rendered with. Links that still carry one
+    — an email sent before 2026-09-26, a bookmark — go through the handler that
+    trades it for a cookie, and come back here clean; a page rendered at that
+    address is one Analytics would have reported, token and all.
+  */
+  if (linked) {
+    const onward = new URLSearchParams({ token: linked });
+    if (placed === "1") onward.set("placed", "1");
+    if (paid) onward.set("paid", paid);
+    redirect(`/order/${encodeURIComponent(number)}/open?${onward.toString()}`);
+  }
+
+  const token = await orderToken(number);
   if (!token) notFound();
 
   let order: Order;
@@ -123,7 +138,6 @@ export default async function OrderPage({
                         {line.has_codes && (
                           <RevealCode
                             orderNumber={order.order_number}
-                            token={token}
                             itemId={line.id}
                           />
                         )}
@@ -228,7 +242,7 @@ export default async function OrderPage({
               */}
               {unpaid && !order.payment_instructions && (
                 <div className="mt-5">
-                  <PayButton orderNumber={order.order_number} token={token} totalPaise={order.total_paise} />
+                  <PayButton orderNumber={order.order_number} totalPaise={order.total_paise} />
                 </div>
               )}
 

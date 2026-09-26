@@ -1,14 +1,16 @@
 import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
-import { getAnswerBlockKinds, getIndustries, getProductOptions } from "@/lib/admin";
+import { getAnswerBlockKinds, getIndustries, getProductOptions, getCustomFieldGroups } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { SolutionForm } from "../solution-form";
 import type { AdminIndustry, PickerOption, AnswerBlockKindOption } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New solution", path: "/admin/solutions/new", seo: noIndex });
 
 export default async function NewSolutionPage() {
+  await requireScreen();
   let products: PickerOption[] = [];
   let industries: AdminIndustry[] = [];
   let kinds: AnswerBlockKindOption[] = [];
@@ -29,7 +31,7 @@ export default async function NewSolutionPage() {
         title="New solution"
       />
 
-      <SolutionForm products={products} industries={industries} kinds={kinds} />
+      <SolutionForm products={products} industries={industries} kinds={kinds} fieldGroups={await getCustomFieldGroups("/admin/solutions")} />
     </>
   );
 }

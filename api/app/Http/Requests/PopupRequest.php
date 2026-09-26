@@ -7,6 +7,7 @@ use App\Enums\PopupSize;
 use App\Enums\PopupTrigger;
 use App\Enums\PublishStatus;
 use App\Http\Requests\Concerns\SanitisesRichText;
+use App\Support\LinkPattern;
 use App\Support\SiteSection;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -63,7 +64,7 @@ class PopupRequest extends FormRequest
              * http(s) URL, a mailto or a tel — and nothing else, so a
              * `javascript:` URL cannot be stored.
              */
-            'link_url' => ['nullable', 'string', 'max:2048', 'regex:#^(/[^\s]*|https?://[^\s]+|mailto:[^\s]+|tel:[^\s]+)$#i'],
+            'link_url' => ['nullable', 'string', 'max:2048', LinkPattern::RULE],
             'link_new_tab' => ['sometimes', 'boolean'],
 
             /*

@@ -10,6 +10,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminProductCategory, Paginated } from "@/types/api";
 import { IconTile } from "@/components/ui/icon-tile";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({
   title: "Product categories", path: "/admin/product-categories", seo: noIndex,
@@ -30,6 +31,7 @@ export default async function AdminProductCategoriesPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: Paginated<AdminProductCategory> | null = null;

@@ -2,6 +2,7 @@ import "server-only";
 import { apiFetch } from "@/lib/api";
 import { token } from "./_shared";
 import type {
+  AdminContentBlock, BlockMeta, BlockType,
   Paginated, Gallery, Slider, AdminPopup, SiteForm, FormSubmission, Menu, MenuLocationOption, MenuCatalogueOption,
   MenuSectionOption, MenuTypeOption, MenuTarget,
 } from "@/types/api";
@@ -382,4 +383,51 @@ export async function rebuildMenu(location: string): Promise<{ id: number; items
   );
 
   return res.data;
+}
+
+/* ---------------------------------------------------------------------------
+ * Content blocks (2026-09-24) — CTA banners, stat bars, pricing, stacks.
+ * `content` is the block's structured data as the form holds it; the API
+ * checks it against the layout's own rules and answers 422 with keys like
+ * `content.items.0.value`.
+ * ------------------------------------------------------------------------- */
+
+export type BlockPayload = {
+  type?: BlockType;
+  layout?: string;
+  name?: string;
+  slug?: string;
+  status?: string;
+  is_default?: boolean;
+  content?: Record<string, unknown>;
+};
+
+export async function getBlockList(params: { type?: string; q?: string; status?: string; page?: number; per_page?: number } = {}) {
+  const query = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") query.set(k, String(v));
+  const qs = query.toString();
+  return apiFetch<Paginated<AdminContentBlock> & { meta: BlockMeta }>(`/admin/blocks${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+export async function getBlock(id: number): Promise<{ data: AdminContentBlock; meta: BlockMeta }> {
+  return apiFetch<{ data: AdminContentBlock; meta: BlockMeta }>(`/admin/blocks/${id}`, { token: await token() });
+}
+
+export async function createBlock(payload: BlockPayload): Promise<AdminContentBlock> {
+  const res = await apiFetch<{ data: AdminContentBlock }>("/admin/blocks", { method: "POST", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function updateBlock(id: number, payload: BlockPayload): Promise<AdminContentBlock> {
+  const res = await apiFetch<{ data: AdminContentBlock }>(`/admin/blocks/${id}`, { method: "PATCH", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function duplicateBlock(id: number): Promise<AdminContentBlock> {
+  const res = await apiFetch<{ data: AdminContentBlock }>(`/admin/blocks/${id}/duplicate`, { method: "POST", token: await token() });
+  return res.data;
+}
+
+export async function deleteBlock(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/blocks/${id}`, { method: "DELETE", token: await token() });
 }

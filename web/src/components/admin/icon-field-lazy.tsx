@@ -8,13 +8,14 @@ import dynamic from "next/dynamic";
  * keeps whole. Loaded through `next/dynamic` it becomes its own chunk that
  * arrives after the form's, rather than a 47KB tax paid before the first
  * field is interactive. Server-rendered still, so the hidden `icon` input is
- * in the markup and the grid does not pop in.
+ * in the markup; the grid itself is in a dialog now and costs nothing
+ * until it is opened.
  */
 export const IconField = dynamic(() => import("./icon-field").then((m) => m.IconField), {
   loading: () => (
     <div className="mb-[18px]">
       <span className="mb-[7px] block text-13-5 font-semibold">Icon</span>
-      <div className="h-40 animate-pulse rounded border border-line-strong bg-surface" aria-hidden />
+      <div className="h-11 animate-pulse rounded border border-line-strong bg-surface" aria-hidden />
     </div>
   ),
 });

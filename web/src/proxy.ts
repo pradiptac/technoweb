@@ -174,17 +174,27 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
   }
 
   /*
-   * The console's layout guards its screens by role (`screenRole()` in
-   * `admin/(app)/nav-items.tsx`), and a layout cannot see its own pathname —
-   * so for `/admin` the request goes on carrying it as `x-pathname`. Only
-   * there: nothing else reads it, and a header on every request is a header
-   * to explain. `pass()` is every fall-through below; a request that is
+   * The console guards its screens by role (`requireScreen()` in
+   * `lib/admin-screen.ts`, called by the `(app)` layout and every page), and
+   * neither can see its own pathname — so for `/admin` the request goes on
+   * carrying it as `x-pathname`. **Always overwritten, never passed through**:
+   * the header is the gate's whole input, and one the browser supplied is one
+   * the browser chose. Elsewhere nothing reads it, so it is only removed when
+   * somebody sent one. `pass()` is every fall-through below; a request that is
    * redirected never needs it.
+   *
+   * This depends on the proxy running for *every* `/admin` request, prefetches
+   * included — hence the second matcher entry below, which has no `missing`
+   * rule. Without it a `Purpose: prefetch` request skipped the proxy and
+   * reached the layout carrying whatever `x-pathname` it had been given.
    */
   const pass = () => {
-    if (!pathname.startsWith("/admin")) return NextResponse.next();
+    const inConsole = pathname === "/admin" || pathname.startsWith("/admin/");
+    if (!inConsole && !request.headers.has("x-pathname")) return NextResponse.next();
+
     const forwarded = new Headers(request.headers);
-    forwarded.set("x-pathname", pathname);
+    if (inConsole) forwarded.set("x-pathname", pathname);
+    else forwarded.delete("x-pathname");
 
     return NextResponse.next({ request: { headers: forwarded } });
   };
@@ -278,5 +288,12 @@ export const config = {
         { type: "header", key: "purpose", value: "prefetch" },
       ],
     },
+    /*
+     * The console, prefetches and all. The entry above skips a prefetch, and
+     * for `/admin` that meant the role gate's `x-pathname` arrived as the
+     * browser sent it. A redirect-table hit on a console prefetch cannot
+     * happen (nothing writes one there), so the only cost is the header.
+     */
+    { source: "/admin/:path*" },
   ],
 };

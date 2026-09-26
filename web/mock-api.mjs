@@ -79,7 +79,42 @@ function readJsonBody(req) {
   });
 }
 
-function buildAdminDashboard() {
+/*
+  The ticket volume chart's series over a period, in the API's buckets:
+  30 days, 13 or 26 Monday weeks, or 12 calendar months. Deterministic
+  figures so a screenshot is repeatable.
+*/
+const VOLUME_PERIODS = { month: ['day', 30], quarter: ['week', 13], half: ['week', 26], year: ['month', 12] };
+function buildVolumeSeries(period) {
+  const key = VOLUME_PERIODS[period] ? period : 'month';
+  const [bucket, count] = VOLUME_PERIODS[key];
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+  const starts = [];
+  if (bucket === 'day') {
+    for (let i = count - 1; i >= 0; i--) starts.push(new Date(today.getTime() - i * 864e5));
+  } else if (bucket === 'week') {
+    const monday = new Date(today.getTime() - ((today.getUTCDay() + 6) % 7) * 864e5);
+    for (let i = count - 1; i >= 0; i--) starts.push(new Date(monday.getTime() - i * 7 * 864e5));
+  } else {
+    for (let i = count - 1; i >= 0; i--) starts.push(new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - i, 1)));
+  }
+  const scale = bucket === 'day' ? 1 : bucket === 'week' ? 5 : 20;
+  const points = starts.map((s, i) => {
+    const next = starts[i + 1] ?? (bucket === 'day' ? new Date(s.getTime() + 864e5)
+      : bucket === 'week' ? new Date(s.getTime() + 7 * 864e5)
+      : new Date(Date.UTC(s.getUTCFullYear(), s.getUTCMonth() + 1, 1)));
+    const end = new Date(Math.min(next.getTime() - 864e5, today.getTime()));
+    return {
+      date: iso(s), end: iso(end),
+      created: ((i * 7) % 5) * scale + (i % 3),
+      resolved: ((i * 5) % 4) * scale,
+    };
+  });
+  return { period: key, bucket, points };
+}
+
+function buildAdminDashboard(volumePeriod = 'month') {
   const openStates = ['open', 'assigned', 'in_progress', 'pending_customer'];
   const openTickets = tickets.filter((t) => openStates.includes(t.status));
   const breakdown = {};
@@ -103,9 +138,22 @@ function buildAdminDashboard() {
      * anyone without `sales_manager`, so the console must handle both.
      */
     leads: { new: 2, open: 3, overdue: 1, unassigned: 1 },
+    // Engineer visits (docs/visits.md): null for a role that cannot open the queue.
+    visits: { awaiting: visitRequests.filter((v) => v.status === 'requested').length, today: 0 },
     recent_tickets: tickets.slice(0, 8),
     high_priority: openTickets.filter((t) => t.priority === 'critical' || t.priority === 'high').slice(0, 5),
     status_breakdown: breakdown,
+    metrics: {
+      window_days: 30,
+      volume: buildVolumeSeries('month').points.map(({ date, created, resolved }) => ({ date, created, resolved })),
+      volume_series: buildVolumeSeries(volumePeriod),
+      volume_trend: { current: 12, previous: 9, change: 33 },
+      first_response_hours: 3.4,
+      resolution_hours: 41.2,
+      sla_first_response: { pct: 88, of: 17 },
+      open_by_priority: [{ label: 'high', total: 2 }, { label: 'medium', total: 1 }],
+      open_by_category: [{ label: 'Networking', total: 2 }, { label: 'Hardware', total: 1 }],
+    },
   };
 }
 
@@ -353,9 +401,36 @@ const storeCategories = [
   // photograph a share preview uses. One category carries both and one carries
   // neither, because the rail draws an empty tile for the second and a fixture
   // that never sends null would hide that branch.
-  { id: 1, name: 'Switches', slug: 'switches', description: 'Managed and unmanaged access switches.', icon_url: 'http://127.0.0.1:8899/storage/mock/switch-icon.png', image_url: null, image_focus: null, product_count: 2 },
-  { id: 2, name: 'Licences', slug: 'licences', description: 'Software and security licences, delivered by activation code.', icon_url: null, image_url: null, image_focus: null, product_count: 1 },
+  // `filter_specs` (2026-09-26): the spec labels a category offers as filters.
+  { id: 1, name: 'Switches', slug: 'switches', description: 'Managed and unmanaged access switches.', icon_url: 'http://127.0.0.1:8899/storage/mock/switch-icon.png', image_url: null, image_focus: null, product_count: 2, filter_specs: ['Ports', 'Rack units'] },
+  { id: 2, name: 'Licences', slug: 'licences', description: 'Software and security licences, delivered by activation code.', icon_url: null, image_url: null, image_focus: null, product_count: 1, filter_specs: [] },
 ];
+
+/*
+ * The specification filter (2026-09-26), the same rules `SpecFilter` keeps:
+ * a product's pairs are its sheet plus every variation's options, matched on
+ * a trimmed, collapsed, lower-cased key; OR within a label, AND across; a
+ * label counted under the *other* labels' choices only.
+ */
+const specKeyOf = (s) => String(s).trim().replace(/\s+/g, ' ').toLowerCase();
+const specPairsOf = (product) => [
+  ...Object.entries(product.specifications || {}),
+  ...(product.variations || []).flatMap((v) => Object.entries(v.options || {})),
+].filter(([l, v]) => specKeyOf(l) && specKeyOf(v));
+function specSelection(searchParams) {
+  const out = {};
+  for (const [k, v] of searchParams.entries()) {
+    const m = /^spec\[(.+)\]\[\d*\]$/.exec(k);
+    if (!m || !specKeyOf(v)) continue;
+    (out[specKeyOf(m[1])] ??= new Set()).add(specKeyOf(v));
+  }
+  return out;
+}
+function matchesSpecs(product, selection, except = null) {
+  const pairs = specPairsOf(product).map(([l, v]) => [specKeyOf(l), specKeyOf(v)]);
+  return Object.entries(selection).every(([label, values]) =>
+    label === except || pairs.some(([l, v]) => l === label && values.has(v)));
+}
 
 const storeProducts = [
   { id: 1, name: 'CBS350-24T-4G Managed Switch', slug: 'cbs350-24t-4g', sku: 'CBS350-24T-4G', is_featured: true,
@@ -394,6 +469,32 @@ const storeProducts = [
     category: storeCategories[1], brand: null, variations: [] },
 ];
 
+/*
+ * Store reviews (docs/store.md, "Reviews"): three published on the first
+ * product, and one waiting in the console's queue. `rating` is the summary
+ * the API keeps on the product — null until something is published.
+ */
+const storeReviews = [
+  { id: 901, product_id: 1, display_name: 'Asha R.', verified: true, variant_label: '24-Port', rating: 5, title: 'Quiet and simple', body: 'Racked it on a Friday, VLANs up in an hour. Fanless means the office never hears it.', published_at: '2026-09-02T10:00:00+05:30', status: 'published', is_featured: true },
+  { id: 902, product_id: 1, display_name: 'Vikram S.', verified: true, variant_label: '48-Port', rating: 4, title: null, body: 'Does what it says. The web UI is slow to load but everything is there.', published_at: '2026-09-10T15:30:00+05:30', status: 'published', is_featured: false },
+  { id: 903, product_id: 1, display_name: 'Meera K.', verified: false, variant_label: null, rating: 4, title: 'Good value', body: 'Bought through a reseller, supported here anyway.', published_at: '2026-09-18T09:12:00+05:30', status: 'published', is_featured: false },
+  { id: 904, product_id: 2, display_name: 'Neil B.', verified: true, variant_label: null, rating: 2, title: null, body: 'Arrived with a bent bracket.', published_at: null, status: 'pending', is_featured: false },
+];
+for (const sp of storeProducts) sp.rating = null;
+storeProducts[0].rating = { average: 4.3, count: 3 };
+const REVIEW_SORT = {
+  featured: (a, b) => (b.is_featured - a.is_featured) || (b.rating - a.rating) || b.published_at.localeCompare(a.published_at),
+  newest: (a, b) => b.published_at.localeCompare(a.published_at),
+  highest: (a, b) => (b.rating - a.rating) || b.published_at.localeCompare(a.published_at),
+  lowest: (a, b) => (a.rating - b.rating) || b.published_at.localeCompare(a.published_at),
+};
+const publicReview = (r) => ({ id: r.id, display_name: r.display_name, verified: r.verified, variant_label: r.variant_label, rating: r.rating, title: r.title, body: r.body, published_at: r.published_at });
+const adminReview = (r) => {
+  const sp = storeProducts.find((x) => x.id === r.product_id);
+  const labels = { pending: 'Waiting', published: 'Published', rejected: 'Rejected', spam: 'Spam' };
+  return { ...publicReview(r), product: sp ? { id: sp.id, name: sp.name, slug: sp.slug } : null, customer: { id: 1, name: r.display_name, email: 'reviewer@example.test' }, order_id: r.verified ? 1 : null, status: r.status, status_label: labels[r.status], is_featured: r.is_featured, moderated_at: null, moderated_by: null, created_at: r.published_at ?? '2026-09-25T10:00:00+05:30', updated_at: r.published_at ?? '2026-09-25T10:00:00+05:30' };
+};
+
 /* The basket, held in memory and keyed by token -- enough for the frontend to
    be built and audited against, and deliberately not persisted: a mock that
    survived a restart would hide the fact that a real cart is a database row. */
@@ -404,11 +505,78 @@ const orders = new Map();
 let orderSeq = 0;
 
 const carts = new Map();
+/* The checkout's email and mobile per basket (`PATCH /cart/contact`). The
+   mock never sends a reminder, so `reminders` is always false and no restore
+   token is ever minted — `GET /cart/restore/{token}` answers 404. */
+const cartContacts = new Map();
 
 const cartFor = (token) => {
   const key = token && carts.has(token) ? token : `mock-cart-${carts.size + 1}`;
   if (!carts.has(key)) carts.set(key, []);
   return { token: key, lines: carts.get(key) };
+};
+
+/* Wishlists, in memory, the basket's arrangement: a guest's by the
+   X-Wishlist-Token header, the one portal customer's by the bearer. A token
+   never reaches the account's list, and a request carrying both merges the
+   guest's into the account's and answers token null -- which is what makes
+   the Next server forget the cookie, exactly as Laravel's Wishlists does. */
+const wishlists = new Map();
+let wishSeq = 0;
+const ACCOUNT_WISHLIST = 'account';
+
+const wishlistFor = (req, create = false) => {
+  const guest = req.headers['x-wishlist-token'];
+  const signedIn = [TOKEN, IMPERSONATION_TOKEN].includes((req.headers.authorization || '').replace('Bearer ', ''));
+  const impersonated = (req.headers.authorization || '').replace('Bearer ', '') === IMPERSONATION_TOKEN;
+
+  if (signedIn) {
+    if (guest && guest !== ACCOUNT_WISHLIST && wishlists.has(guest) && !impersonated) mergeWishlist(guest);
+    if (!wishlists.has(ACCOUNT_WISHLIST) && create) wishlists.set(ACCOUNT_WISHLIST, { lines: [], email: null, alertsOff: false });
+    return wishlists.has(ACCOUNT_WISHLIST) ? { key: ACCOUNT_WISHLIST, list: wishlists.get(ACCOUNT_WISHLIST) } : null;
+  }
+
+  if (guest && guest !== ACCOUNT_WISHLIST && wishlists.has(guest)) return { key: guest, list: wishlists.get(guest) };
+  if (!create) return null;
+
+  const key = `mock-wishlist-${String(++wishSeq).padStart(50, '0')}`;
+  wishlists.set(key, { lines: [], email: null, alertsOff: false });
+  return { key, list: wishlists.get(key) };
+};
+
+const mergeWishlist = (guest) => {
+  const from = wishlists.get(guest);
+  if (!from) return;
+  if (!wishlists.has(ACCOUNT_WISHLIST)) wishlists.set(ACCOUNT_WISHLIST, { lines: [], email: null, alertsOff: false });
+  const into = wishlists.get(ACCOUNT_WISHLIST);
+  for (const l of from.lines) {
+    if (!into.lines.some((x) => x.product_id === l.product_id && x.variation_id === l.variation_id)) into.lines.push(l);
+  }
+  wishlists.delete(guest);
+};
+
+const wishlistSummary = (found) => {
+  if (!found) return { token: null, account: false, items: [], item_count: 0, email: null, alerts: false, alerts_off: false };
+  const account = found.key === ACCOUNT_WISHLIST;
+  const items = found.list.lines.map((l) => {
+    const product = storeProducts.find((x) => x.id === l.product_id);
+    const variation = product?.variations?.find((v) => v.id === l.variation_id) ?? null;
+    const now = variation?.price_paise ?? product?.price_paise ?? 0;
+    return {
+      id: l.id, product_id: l.product_id, variation_id: variation?.id ?? null,
+      name: product?.name ?? 'Unknown', variation_name: variation?.name ?? null, slug: product?.slug ?? '',
+      image_url: null, image_alt: null, price_paise: now, price_at_save_paise: l.price_at_save,
+      saving_paise: now < l.price_at_save ? l.price_at_save - now : null,
+      in_stock: product?.in_stock !== false,
+      needs_choice: !variation && (product?.variations?.length ?? 0) > 0,
+      added_at: l.added_at,
+    };
+  });
+  const email = account ? null : found.list.email;
+  return {
+    token: account ? null : found.key, account, items, item_count: items.length, email,
+    alerts: !found.list.alertsOff && (account || Boolean(email)), alerts_off: found.list.alertsOff,
+  };
 };
 
 /* GST is extracted from the inclusive total, never added -- the same
@@ -442,6 +610,7 @@ const summarise = (token, lines) => {
     taxable_paise: taxable, gst_paise: subtotal - taxable, gst_rate: '18%',
     has_shippable: items.some((i) => i.shipped),
     problems: items.map((i) => i.problem).filter(Boolean),
+    contact: { email: null, phone: null, ...(cartContacts.get(token) ?? {}), reminders: false },
   };
 };
 
@@ -635,6 +804,57 @@ const webhookDeliveries = [
     created_at: '2026-09-18T15:40:00+05:30', updated_at: '2026-09-19T05:40:00+05:30' },
 ];
 
+/* Engineer visit requests (docs/visits.md). The mock's copy of the shapes
+   `GET /visits/options`, the guest and portal reads and the console answer;
+   the token is fixed so a browser check can open the guest page through
+   `/visit/TV-2026-00001/open?token=…`. */
+const VISIT_TOKEN = 'a'.repeat(64);
+const visitWindows = [
+  { value: 'morning', label: 'Morning', start: '09:00', end: '12:00' },
+  { value: 'afternoon', label: 'Afternoon', start: '12:00', end: '15:00' },
+  { value: 'evening', label: 'Evening', start: '15:00', end: '18:00' },
+];
+const isoDay = (offset) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
+const visitRequests = [
+  {
+    id: 1, reference: 'TV-2026-00001', status: 'requested', status_label: 'Requested', is_open: true,
+    allowed_next: [{ value: 'requested', label: 'Requested' }, { value: 'cancelled', label: 'Cancelled' }],
+    topic: 'Network installation', name: 'Priya Sharma', email: 'priya@meridianfoods.test', phone: '+91 98765 43210',
+    company: 'Meridian Foods', customer_id: 1,
+    site_address: { line1: '14 Park Street', line2: null, city: 'Kolkata', state: 'West Bengal', pin: '700016', country: 'India' },
+    service: { id: 1, title: 'Network installation', slug: 'network-installation' }, solution: null, location: null,
+    notes: 'Two floors; the rack is in the basement.',
+    preferred: [
+      { date: isoDay(2), window: 'morning', label: 'Morning (09:00–12:00)' },
+      { date: isoDay(3), window: 'afternoon', label: 'Afternoon (12:00–15:00)' },
+    ],
+    scheduled_start_at: null, scheduled_end_at: null, visit_date: '', visit_time: '',
+    assigned_to: null, assignee_name: null, staff_note: null, cancel_reason: null,
+    confirmed_at: null, completed_at: null, cancelled_at: null, reminded_at: null, lead_id: 1,
+    source_url: 'https://www.technoware.in/book-a-visit', source_path: '/book-a-visit', source_title: 'Book a site visit',
+    utm_source: null, utm_medium: null, utm_campaign: null, admin_path: '/admin/visits/TV-2026-00001',
+    events: [{ id: 1, type: 'requested', from: null, to: null, note: '2 preferred times', actor_name: null, created_at: new Date().toISOString() }],
+    created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+  },
+];
+const customerVisit = (v) => ({
+  reference: v.reference, status: v.status, status_label: v.status_label, topic: v.topic,
+  name: v.name, email: v.email, phone: v.phone, company: v.company, site_address: v.site_address, notes: v.notes,
+  preferred: v.preferred, scheduled_start_at: v.scheduled_start_at, scheduled_end_at: v.scheduled_end_at,
+  visit_date: v.visit_date, visit_time: v.visit_time, cancel_reason: v.status === 'cancelled' ? v.cancel_reason : null,
+  can_cancel: v.is_open, can_reschedule: v.is_open, created_at: v.created_at,
+});
+const visitMeta = {
+  statuses: [
+    { value: 'requested', label: 'Requested', open: true }, { value: 'confirmed', label: 'Confirmed', open: true },
+    { value: 'completed', label: 'Completed', open: false }, { value: 'cancelled', label: 'Cancelled', open: false },
+    { value: 'no_show', label: 'No-show', open: false },
+  ],
+  awaiting_count: 1, today_count: 0, unassigned_count: 0,
+  assignees: [{ id: 1, name: 'Ada Admin' }], sorts: ['created', 'scheduled', 'name', 'status'],
+  default_minutes: 90, windows: visitWindows,
+};
+
 const leadMeta = {
   statuses: [
     { value: 'new', label: 'New', open: true },
@@ -763,6 +983,137 @@ const kbArticles = [
     tags:['portal','account'], category:{ name:'Portal', slug:'portal' },
     published_at:'2026-07-02T09:00:00Z', seo:null },
 ];
+
+/*
+ * Messaging channels (WhatsApp, RCS, push). The lists — channels, events,
+ * placeholders, audiences — travel on `meta`, as the API sends them.
+ */
+const MSG_CHANNELS = [
+  { value: 'whatsapp', label: 'WhatsApp', needs_approval: true, ready: true, provider: 'Meta WhatsApp Cloud API' },
+  { value: 'rcs', label: 'RCS messages', needs_approval: false, ready: false, provider: null },
+  { value: 'push', label: 'Browser push', needs_approval: false, ready: true, provider: 'Firebase Cloud Messaging' },
+];
+const MSG_EVENTS = [
+  { value: 'order_placed', label: 'Order placed', promotional: false, placeholders: ['order_number', 'order_total', 'order_url'] },
+  { value: 'order_paid', label: 'Order paid', promotional: false, placeholders: ['order_number', 'order_total', 'order_url'] },
+  { value: 'order_dispatched', label: 'Order dispatched', promotional: false, placeholders: ['order_number', 'order_url', 'courier', 'tracking_number', 'tracking_url'] },
+  { value: 'ticket_replied', label: 'Reply on a ticket', promotional: false, placeholders: ['reference', 'subject', 'ticket_url'] },
+  { value: 'cart_reminder_1', label: 'Basket reminder — first', promotional: true, placeholders: ['basket_url', 'item_count', 'basket_total', 'coupon_code'] },
+  { value: 'cart_reminder_2', label: 'Basket reminder — second', promotional: true, placeholders: ['basket_url', 'item_count', 'basket_total', 'coupon_code'] },
+  { value: 'wishlist_back_in_stock', label: 'Wishlist item back in stock', promotional: true, placeholders: ['product_name', 'product_url'] },
+  { value: 'wishlist_price_drop', label: 'Wishlist item price drop', promotional: true, placeholders: ['product_name', 'product_url', 'old_price', 'new_price'] },
+];
+const MSG_TEMPLATE_META = {
+  channels: MSG_CHANNELS,
+  events: MSG_EVENTS,
+  common_placeholders: ['customer_name', 'first_name', 'site_name'],
+  samples: {
+    customer_name: 'Neil Basu', first_name: 'Neil', site_name: 'Technoware', order_number: 'TW-10042', order_total: '₹12,400',
+    order_url: 'https://www.technoware.in/store', courier: 'Blue Dart', tracking_number: 'BD1234567890', tracking_url: 'https://www.technoware.in/store',
+    reference: 'TW-2026-00042', subject: 'Switch keeps rebooting', ticket_url: 'https://www.technoware.in/store', basket_url: 'https://www.technoware.in/store',
+    item_count: '2', basket_total: '₹12,400', coupon_code: 'COMEBACK10', product_name: 'Aruba 6100 48G switch', product_url: 'https://www.technoware.in/store',
+    old_price: '₹14,999', new_price: '₹12,999',
+  },
+  categories: ['utility', 'marketing', 'authentication'],
+  approvals: [
+    { value: 'not_required', label: 'No approval needed' }, { value: 'draft', label: 'Not submitted' }, { value: 'pending', label: 'Waiting for approval' },
+    { value: 'approved', label: 'Approved' }, { value: 'rejected', label: 'Rejected' }, { value: 'paused', label: 'Paused by the provider' },
+  ],
+};
+const msgTemplate = (o) => ({
+  header_text: null, media_path: null, media_url: null, buttons: [], push_title: null, push_link: null, category: null, language: 'en',
+  provider_template_name: null, provider_template_id: null, approval_reason: null, submitted_at: null, synced_at: null,
+  updated_at: '2026-09-25T10:00:00+05:30', ...o,
+});
+const messageTemplates = [
+  msgTemplate({ id: 1, channel: 'whatsapp', channel_label: 'WhatsApp', key: 'order_paid', name: 'Order paid', category: 'utility',
+    body: 'Hi {{first_name}}, we have your payment for {{order_number}} — {{order_total}}. Track it at {{order_url}}.',
+    buttons: [{ type: 'url', text: 'Track order', value: 'https://www.technoware.in/store' }],
+    approval_status: 'approved', approval_label: 'Approved', sendable: true, placeholders: ['first_name', 'order_number', 'order_total', 'order_url'] }),
+  msgTemplate({ id: 2, channel: 'whatsapp', channel_label: 'WhatsApp', key: 'basket_reminder', name: 'Basket reminder', category: 'marketing',
+    body: 'Hi {{first_name}}, your basket is still waiting: {{basket_url}}', approval_status: 'pending', approval_label: 'Waiting for approval',
+    sendable: false, placeholders: ['first_name', 'basket_url'] }),
+  msgTemplate({ id: 3, channel: 'push', channel_label: 'Browser push', key: 'order_dispatched', name: 'Dispatched', push_title: 'On its way: {{order_number}}',
+    push_link: '{{order_url}}', body: '{{courier}} has it. Tracking number {{tracking_number}}.', approval_status: 'not_required',
+    approval_label: 'No approval needed', sendable: true, placeholders: ['courier', 'tracking_number'] }),
+];
+const msgAutomationGrid = () => MSG_EVENTS.flatMap((e) => MSG_CHANNELS.map((c) => {
+  const template = e.value === 'order_paid' && c.value === 'whatsapp' ? 1 : e.value === 'cart_reminder_1' && c.value === 'whatsapp' ? 2 : e.value === 'order_dispatched' && c.value === 'push' ? 3 : null;
+  const enabled = template !== null;
+  const reason = !enabled ? null : template === 2 ? 'The template is not approved yet.' : null;
+  return { event: e.value, event_label: e.label, promotional: e.promotional, channel: c.value, message_template_id: template, is_enabled: enabled, live: enabled && !reason, reason };
+}));
+const msgAutomationMeta = () => ({
+  channels: MSG_CHANNELS.map(({ value, label, ready }) => ({ value, label, ready })),
+  templates: messageTemplates.map((t) => ({ id: t.id, channel: t.channel, name: t.name, sendable: t.sendable, approval_label: t.approval_label })),
+});
+const messageContacts = [
+  { id: 1, channel: 'whatsapp', channel_label: 'WhatsApp', address: '+919820011223', name: 'Neil Basu', customer: { id: 1, name: 'Neil Basu', email: 'neil@meridianfoods.in' },
+    source: 'checkout', is_active: true, opted_in_at: '2026-09-20T11:00:00+05:30', opted_out_at: null, opt_out_reason: null, last_sent_at: '2026-09-24T12:00:00+05:30' },
+  { id: 2, channel: 'whatsapp', channel_label: 'WhatsApp', address: '+919830000002', name: null, customer: null,
+    source: 'checkout', is_active: false, opted_in_at: '2026-09-18T11:00:00+05:30', opted_out_at: '2026-09-21T09:00:00+05:30', opt_out_reason: 'stop', last_sent_at: null },
+  { id: 3, channel: 'push', channel_label: 'Browser push', address: 'fXk3Qe8mT0a1…', name: null, customer: null,
+    source: 'push_bell', is_active: true, opted_in_at: '2026-09-22T19:00:00+05:30', opted_out_at: null, opt_out_reason: null, last_sent_at: null },
+];
+const MSG_BROADCAST_META = {
+  channels: MSG_CHANNELS.map(({ value, label, ready }) => ({ value, label, ready })),
+  audiences: [
+    { value: 'opt_ins', label: 'Everybody opted in on the channel', blurb: 'Guests and customers alike.' },
+    { value: 'customers', label: 'Portal customers opted in', blurb: 'Only contacts tied to an active portal account.' },
+    { value: 'newsletter_group', label: 'A newsletter group', blurb: 'Matched to portal customers by email address.' },
+    { value: 'wishlist', label: 'Wishlist holders of a product', blurb: 'Empty until wishlists exist.' },
+  ],
+  statuses: [
+    { value: 'draft', label: 'Draft' }, { value: 'scheduled', label: 'Scheduled' }, { value: 'sending', label: 'Sending' },
+    { value: 'sent', label: 'Sent' }, { value: 'cancelled', label: 'Cancelled' },
+  ],
+  wishlists: false,
+  groups: [{ id: 1, name: 'Existing customers' }, { id: 2, name: 'Partners' }],
+  products: [{ id: 1, name: 'Aruba 6100 48G switch' }],
+  templates: messageTemplates.map((t) => ({ id: t.id, channel: t.channel, name: t.name, sendable: t.sendable, approval_label: t.approval_label })),
+  quiet_hours: { start: '09:00', end: '21:00', open_now: true, next_opening: '2026-09-25T11:00:00+05:30' },
+};
+const messageBroadcasts = [
+  { id: 1, name: 'Diwali switch sale', channel: 'whatsapp', channel_label: 'WhatsApp', message_template_id: 1,
+    template: { id: 1, name: 'Order paid', approval_status: 'approved', sendable: true }, audience: 'opt_ins', audience_label: 'Everybody opted in on the channel',
+    newsletter_group_id: null, store_product_id: null, status: 'sent', status_label: 'Sent', scheduled_at: null,
+    started_at: '2026-09-24T10:00:00+05:30', completed_at: '2026-09-24T10:02:00+05:30', recipient_count: 2, created_at: '2026-09-24T09:50:00+05:30',
+    report: { counts: { pending: 0, sent: 0, delivered: 1, read: 0, failed: 1, skipped: 0 }, total: 2, sent: 1, delivery_rate: 1, read_rate: 0,
+      failures: [{ id: 2, address: '+919830000002', error: 'Meta answered 400: Recipient phone number not in allowed list', at: '2026-09-24T10:01:00+05:30' }] } },
+  { id: 2, name: 'Back-to-office AMC offer', channel: 'whatsapp', channel_label: 'WhatsApp', message_template_id: 1,
+    template: { id: 1, name: 'Order paid', approval_status: 'approved', sendable: true }, audience: 'customers', audience_label: 'Portal customers opted in',
+    newsletter_group_id: null, store_product_id: null, status: 'draft', status_label: 'Draft', scheduled_at: null, started_at: null, completed_at: null,
+    recipient_count: 0, created_at: '2026-09-25T09:00:00+05:30', audience_count: 1 },
+];
+const MESSAGING_STATUS = {
+  channels: [
+    { value: 'whatsapp', label: 'WhatsApp', setting: 'messaging_whatsapp_provider', provider: 'meta_cloud', ready: true, address_kind: 'phone', needs_approval: true, error: null,
+      providers: [
+        { value: 'meta_cloud', label: 'Meta WhatsApp Cloud API', blurb: 'Straight to Meta.', fields: ['whatsapp_meta_phone_number_id', 'whatsapp_meta_business_account_id', 'whatsapp_meta_access_token', 'whatsapp_meta_app_secret', 'whatsapp_meta_verify_token'], available: true, configured: true, webhook_url: 'http://127.0.0.1:8899/api/v1/messaging/webhooks/whatsapp/meta_cloud', webhook_secret_param: false },
+        { value: 'gupshup', label: 'Gupshup', blurb: 'Your Gupshup app.', fields: ['whatsapp_gupshup_api_key', 'whatsapp_gupshup_app_name', 'whatsapp_gupshup_app_id', 'whatsapp_gupshup_source', 'messaging_webhook_secret'], available: true, configured: false, webhook_url: 'http://127.0.0.1:8899/api/v1/messaging/webhooks/whatsapp/gupshup', webhook_secret_param: true },
+        { value: 'twilio', label: 'Twilio', blurb: 'Account SID and auth token.', fields: ['whatsapp_twilio_account_sid', 'whatsapp_twilio_auth_token', 'whatsapp_twilio_from'], available: true, configured: false, webhook_url: 'http://127.0.0.1:8899/api/v1/messaging/webhooks/whatsapp/twilio', webhook_secret_param: false },
+      ] },
+    { value: 'rcs', label: 'RCS messages', setting: 'messaging_rcs_provider', provider: null, ready: false, address_kind: 'phone', needs_approval: false, error: null,
+      providers: [
+        { value: 'google_rbm', label: 'Google RCS Business Messaging', blurb: 'Your agent and a service account.', fields: ['rcs_rbm_agent_id', 'rcs_rbm_service_account', 'rcs_rbm_client_token'], available: true, configured: false, webhook_url: 'http://127.0.0.1:8899/api/v1/messaging/webhooks/rcs/google_rbm', webhook_secret_param: false },
+        { value: 'gupshup', label: 'Gupshup', blurb: 'The enterprise gateway.', fields: ['rcs_gupshup_userid', 'rcs_gupshup_password', 'rcs_gupshup_bot_id', 'messaging_webhook_secret'], available: true, configured: false, webhook_url: 'http://127.0.0.1:8899/api/v1/messaging/webhooks/rcs/gupshup', webhook_secret_param: true },
+      ] },
+    { value: 'push', label: 'Browser push', setting: 'messaging_push_provider', provider: 'fcm', ready: true, address_kind: 'token', needs_approval: false, error: null,
+      providers: [
+        { value: 'fcm', label: 'Firebase Cloud Messaging', blurb: 'A service account in your Firebase project.', fields: ['push_fcm_service_account'], available: true, configured: true, webhook_url: null, webhook_secret_param: false },
+      ] },
+  ],
+  quiet_hours: { start: '09:00', end: '21:00', open_now: true, next_opening: '2026-09-25T11:00:00+05:30', timezone: 'Asia/Kolkata' },
+  queue: { driver: 'database', known: true, pending: 0, failed: 0, oldest_seconds: null },
+};
+const messagingPreferences = {
+  phone: '+919820011223',
+  channels: [
+    { channel: 'whatsapp', label: 'WhatsApp', live: true, opted_in: true, devices: null },
+    { channel: 'rcs', label: 'RCS messages', live: false, opted_in: false, devices: null },
+    { channel: 'push', label: 'Browser push', live: true, opted_in: true, devices: 1 },
+  ],
+};
 
 const paginate = (rows) => ({
   data: rows,
@@ -1073,6 +1424,94 @@ const adminOf = (r, extra = {}) => ({
   created_at: '2026-01-15T00:00:00Z', updated_at: '2026-01-15T00:00:00Z',
   ...r, ...extra,
 });
+/*
+ * The section page builder (2026-09-26, docs/page-builder.md). A builder
+ * page's public read carries `sections` (presented: hidden ones gone, paths
+ * as URLs, live lists resolved); the admin read carries `blocks` as stored,
+ * `blocks_media` and the same `sections`. `GET /admin/pages/builder` is the
+ * builder's pickers and `POST /admin/pages/preview` presents without writing.
+ */
+const SECTION_TYPES = [
+  { value: 'hero', label: 'Hero', blurb: 'The opening band: a heading, a line under it, a picture and up to two buttons.' },
+  { value: 'rich_text', label: 'Text', blurb: 'A heading and a body from the editor.' },
+  { value: 'media_text', label: 'Picture or video with text', blurb: 'A picture or a video on one side and words on the other.' },
+  { value: 'features', label: 'Features', blurb: 'Up to twelve short points in columns, each with an icon.' },
+  { value: 'cards', label: 'Cards from the catalogue', blurb: 'A live list drawn as the theme draws its grids.' },
+  { value: 'content_block', label: 'Content block', blurb: 'A published CTA banner, stat bar, pricing table or technology stack.' },
+  { value: 'slider', label: 'Slider', blurb: 'A published slider.' },
+  { value: 'gallery', label: 'Gallery', blurb: 'A published gallery.' },
+  { value: 'form', label: 'Form', blurb: 'A published form, with a heading above it.' },
+  { value: 'faq', label: 'Questions', blurb: 'Questions that open, written here or taken from this page’s FAQs.' },
+  { value: 'logos', label: 'Logo strip', blurb: 'Client logos or the brands you carry.' },
+  { value: 'testimonial', label: 'Testimonial', blurb: 'One quotation, with who said it and a photo.' },
+  { value: 'video', label: 'Video', blurb: 'A YouTube video or a video from the library.' },
+  { value: 'divider', label: 'Divider', blurb: 'Space between two sections, with or without a rule.' },
+];
+const SECTION_PRESETS = [
+  { value: 'landing', label: 'Landing page', blurb: 'A hero, three reasons, a live list of solutions, questions and a close.', sections: [
+    { type: 'hero', hidden: false, background: null, data: { heading: 'The promise, in one line', layout: 'centered', primary: { label: 'Talk to us', href: '/contact' } } },
+    { type: 'features', hidden: false, background: null, data: { heading: 'Why it works', columns: 3, items: [{ icon: 'shield', title: 'The first reason' }] } },
+    { type: 'cards', hidden: false, background: null, data: { heading: 'What we build', source: 'solutions', limit: 6, columns: 3 } },
+  ] },
+];
+const BUILDER_OPTIONS = {
+  section_types: SECTION_TYPES,
+  section_presets: SECTION_PRESETS,
+  hero_layouts: [
+    { value: 'centered', label: 'Centred', blurb: 'The words centred on the section’s ground.' },
+    { value: 'split', label: 'Split', blurb: 'The words on one side, the picture framed on the other.' },
+    { value: 'cover', label: 'Cover', blurb: 'The picture fills the band under a dark overlay.' },
+  ],
+  card_sources: [
+    { value: 'solutions', label: 'Solutions' }, { value: 'services', label: 'Services' }, { value: 'industries', label: 'Industries' },
+    { value: 'case_studies', label: 'Case studies' }, { value: 'blog', label: 'Blog posts' }, { value: 'knowledge', label: 'Knowledge base articles' },
+    { value: 'products', label: 'Products (catalogue)' }, { value: 'store_products', label: 'Products (shop)' },
+  ],
+  content_blocks: [], sliders: [], galleries: [], forms: [],
+  product_categories: productCategories.map(({ id, name, slug }) => ({ id, name, slug })),
+  store_categories: storeCategories.map(({ id, name, slug }) => ({ id, name, slug })),
+};
+const SAMPLE_BUILDER_BLOCKS = [
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000001', type: 'hero', hidden: false, background: null, data: {
+    kicker: 'Sample page', heading: 'A page built from sections', layout: 'centered',
+    lede: 'Every kind of section the builder offers, in one place.',
+    primary: { label: 'Talk to us', href: '/contact' }, secondary: { label: 'See the solutions', href: '/solutions' } } },
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000002', type: 'rich_text', hidden: false, background: null, data: {
+    heading: 'Text from the editor', body: '<p>A section of ordinary text with <strong>bold</strong> and <a href="/about">links</a>.</p>' } },
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000003', type: 'features', hidden: false, background: { kind: 'page' }, data: {
+    heading: 'Short points in columns', columns: 3, items: [
+      { icon: 'shield', title: 'Secure by default', body: 'One sentence about it.' },
+      { icon: 'clock', title: 'Fast to respond', body: 'One sentence about it.', href: '/support', link_label: 'Support' },
+      { icon: 'users', title: 'People you know', body: 'One sentence about it.' },
+    ] } },
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000004', type: 'cards', hidden: false, background: null, data: {
+    heading: 'A live list', source: 'solutions', limit: 3, columns: 3 } },
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000005', type: 'testimonial', hidden: false, background: null, data: {
+    quote: 'A customer’s words go here, with their permission.', name: 'A customer', role: 'Their role, their company' } },
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000006', type: 'logos', hidden: false, background: null, data: { heading: 'Trusted by', source: 'clients' } },
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000007', type: 'video', hidden: false, background: null, data: { heading: 'A video', source: 'youtube', youtube: 'aqz-KE-bpKQ', caption: 'A placeholder.' } },
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000008', type: 'divider', hidden: false, background: null, data: { size: 'medium', rule: true } },
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000009', type: 'faq', hidden: false, background: null, data: { heading: 'Questions', source: 'custom', items: [
+    { question: 'Can a section be hidden?', answer: 'Yes — it stays with the page and is left off the public site.' },
+    { question: 'Can sections be reordered?', answer: 'Yes, with the arrows on each section.' },
+  ] } },
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000010', type: 'rich_text', hidden: true, background: null, data: { heading: 'Hidden', body: '<p>Not drawn.</p>' } },
+];
+/** The presenter's shape, for this mock's few types: hidden ones gone, a live list resolved. */
+function presentSections(blocks) {
+  return blocks.filter((b) => !b.hidden).map((b) => {
+    if (b.type !== 'cards') return { id: b.id, type: b.type, background: b.background, data: b.data };
+    const items = solutions.slice(0, b.data.limit || 6).map((s) => ({
+      title: s.title, summary: s.summary ?? null, path: `/solutions/${s.slug}`,
+      image: null, image_alt: null, image_focus: null, icon: s.icon ?? null, kicker: null, meta: null,
+    }));
+    return { id: b.id, type: b.type, background: b.background, data: { ...b.data, items, index_path: '/solutions' } };
+  });
+}
+cmsPages.push({ id: 6, title: 'Sample builder page', slug: 'sample-builder-page', template: 'builder', body: null,
+  published_at: '2026-09-26T09:00:00Z', updated_at: '2026-09-26T09:00:00Z', faqs: [], seo: null,
+  blocks: SAMPLE_BUILDER_BLOCKS, sections: presentSections(SAMPLE_BUILDER_BLOCKS) });
+
 const ADMIN_CMS = [
   { base: '/admin/solutions', rows: solutions, detail: (r) => adminOf(r, r.id === 1
     ? { problem_statement: solutionDetail.problem_statement, overview: solutionDetail.overview,
@@ -1090,7 +1529,7 @@ const ADMIN_CMS = [
       product_category_id: r.category?.id ?? null, category_name: r.category?.name ?? null,
       image_urls: [], datasheet_path: null, is_featured: false, solution_ids: [1], related_product_ids: [],
       faqs: (r.faqs || []).map(({ question, answer }) => ({ question, answer })) }) },
-  { base: '/admin/pages', rows: cmsPages, detail: (r) => adminOf(r) },
+  { base: '/admin/pages', rows: cmsPages, detail: (r) => adminOf(r, { blocks: r.blocks ?? [], blocks_media: {}, sections: r.sections ?? [] }) },
   { base: '/admin/blog-posts', rows: posts, detail: (r) => adminOf(r, { cover_image_path: null, author_id: 3 }) },
   { base: '/admin/knowledge-articles', rows: kbArticles, detail: (r) => adminOf(r, { knowledge_category_id: 1, view_count: 0, helpful_count: 0 }) },
   { base: '/admin/store/categories', rows: storeCategories, detail: (r) => adminOf(r, { is_active: true, icon_path: null, image_path: null }) },
@@ -1108,6 +1547,79 @@ const ADMIN_CMS = [
       services: r.id === 1 ? [{ id: 1, title: 'Domain registration', slug: 'domains' }] : [],
       service_ids: r.id === 1 ? [1] : [] }) },
 ];
+
+/* ---------------- Custom fields and content types (docs/custom-content.md) ----------------
+ *
+ * One field group on pages and on the sample type, and one type ("events")
+ * with two entries — enough for every new console screen, the Fields tab,
+ * the archive and an entry page to render against the mock. The kinds, the
+ * targets and the placements are the API's own `meta`, never retyped. */
+const CUSTOM_FIELD_KINDS = [
+  ['text', 'Text'], ['textarea', 'Long text'], ['rich_text', 'Rich text'], ['number', 'Number'], ['date', 'Date'],
+  ['url', 'Link'], ['email', 'Email address'], ['select', 'Dropdown'], ['multi_select', 'Checkboxes'], ['boolean', 'Yes / no'],
+  ['image', 'Image'], ['file', 'File'], ['relation', 'Linked record'], ['list', 'List of short items'],
+].map(([value, label]) => ({ value, label, blurb: `${label}.`, has_options: value === 'select' || value === 'multi_select' }));
+const CONTENT_TYPES = [{
+  id: 1, name: 'Event', plural: 'Events', slug: 'events', path: '/events', icon: null,
+  description: 'Open days, workshops and launches.', has_body: true, has_image: true, archive_enabled: true,
+  per_page: 12, sort: 'newest', schema_type: 'Article', sort_order: 0, is_active: true,
+  entries_count: 2, published_count: 2, target: 'entry:events', field_groups: [{ id: 1, name: 'Event details', fields_count: 2 }],
+  created_at: '2026-09-26T00:00:00Z', updated_at: '2026-09-26T00:00:00Z',
+}];
+const CUSTOM_FIELD_TARGETS = [
+  ['page', 'Pages'], ['blog_post', 'Blog posts'], ['knowledge_article', 'Knowledge base'], ['case_study', 'Case studies'],
+  ['solution', 'Solutions'], ['service', 'Services'], ['industry', 'Industries'], ['product', 'Products'],
+  ['store_product', 'Store products'], ['entry:events', 'Events'],
+].map(([value, label]) => ({ value, label }));
+const CUSTOM_FIELD_META = {
+  kinds: CUSTOM_FIELD_KINDS,
+  targets: CUSTOM_FIELD_TARGETS,
+  placements: [
+    { value: 'details', label: 'Drawn on the page', blurb: 'A Details section after the body.' },
+    { value: 'hidden', label: 'Data only', blurb: 'Not drawn; still in the public API.' },
+  ],
+};
+const CUSTOM_FIELD_GROUP = {
+  id: 1, name: 'Event details', slug: 'event-details', targets: ['entry:events', 'page'], target_labels: ['Events', 'Pages'],
+  placement: 'details', sort_order: 0, is_active: true, fields_count: 2,
+  fields: [
+    { id: 1, key: 'venue', label: 'Venue', kind: 'text', help: null, required: false, show_on_page: true, options: [], settings: {}, sort_order: 0, values_count: 2 },
+    { id: 2, key: 'format', label: 'Format', kind: 'select', help: null, required: false, show_on_page: true,
+      options: [{ value: 'in_person', label: 'In person' }, { value: 'online', label: 'Online' }], settings: {}, sort_order: 1, values_count: 1 },
+  ],
+  created_at: '2026-09-26T00:00:00Z', updated_at: '2026-09-26T00:00:00Z',
+};
+/* The definitions a Fields tab draws: the group without its counts, with `choices`. */
+const CUSTOM_FIELD_DEFINITIONS = [{
+  id: 1, name: 'Event details', slug: 'event-details', placement: 'details',
+  fields: CUSTOM_FIELD_GROUP.fields.map(({ sort_order, values_count, ...f }) => { void sort_order; void values_count; return { ...f, choices: [] }; }),
+}];
+const ENTRIES = [
+  { id: 1, title: 'Open day at the Mumbai office', slug: 'open-day', summary: 'Walk the NOC, meet the engineers.',
+    body: '<p>Doors open at ten. Bring questions.</p>', image: null, image_alt: null, image_focus: null,
+    published_at: '2026-09-20T10:00:00+05:30', updated_at: '2026-09-20T10:00:00+05:30',
+    custom_fields: [{ key: 'venue', label: 'Venue', kind: 'text', value: 'Andheri East', display: 'Andheri East' },
+      { key: 'format', label: 'Format', kind: 'select', value: 'in_person', display: 'In person' }],
+    custom_data: { venue: 'Andheri East', format: 'in_person' } },
+  { id: 2, title: 'Firewall hardening workshop', slug: 'firewall-workshop', summary: 'Two hours on the rules that matter.',
+    body: '<p>Online, with a recording afterwards.</p>', image: null, image_alt: null, image_focus: null,
+    published_at: '2026-09-12T15:00:00+05:30', updated_at: '2026-09-12T15:00:00+05:30',
+    custom_fields: [{ key: 'venue', label: 'Venue', kind: 'text', value: 'Online', display: 'Online' }],
+    custom_data: { venue: 'Online' } },
+];
+const publicType = ({ name, plural, slug, path, icon, description, archive_enabled, per_page, sort, schema_type, updated_at }) =>
+  ({ name, plural, slug, path, icon, description, archive_enabled, per_page, sort, schema_type, updated_at });
+const publicEntry = (e, t = CONTENT_TYPES[0]) => ({
+  ...e, path: `${t.path}/${e.slug}`,
+  type: { name: t.name, plural: t.plural, slug: t.slug, path: t.path, icon: t.icon, archive_enabled: t.archive_enabled },
+});
+const adminEntry = (e) => ({
+  id: e.id, content_type_id: 1, title: e.title, slug: e.slug, path: `/events/${e.slug}`, summary: e.summary, body: e.body,
+  image_path: null, image: null, status: 'published', status_label: 'Published', published_at: e.published_at, sort_order: 0,
+  faqs: [], answer_blocks: [], seo: null, seo_defaults: null,
+  custom_fields: e.custom_data, custom_field_media: {}, custom_field_groups: CUSTOM_FIELD_DEFINITIONS,
+  created_at: e.published_at, updated_at: e.updated_at,
+});
 
 const json = (res, code, body) => {
   res.writeHead(code, { 'Content-Type': 'application/json' });
@@ -1182,7 +1694,10 @@ createServer(async (req, res) => {
     return res.end(png);
   }
 
-  if (p === '/auth/login' && req.method === 'POST') return json(res, 200, { token: TOKEN, customer });
+  if (p === '/auth/login' && req.method === 'POST') {
+    if (req.headers['x-wishlist-token']) mergeWishlist(req.headers['x-wishlist-token']);
+    return json(res, 200, { token: TOKEN, customer });
+  }
   if (p === '/admin/auth/login' && req.method === 'POST') return json(res, 200, { token: STAFF_TOKEN, staff });
 
   /* Sign-in codes, both principals.
@@ -1365,6 +1880,12 @@ createServer(async (req, res) => {
      together, and the header reserves its space from the last two. Sending the
      URL alone reintroduces the layout shift they exist to remove. Same for
      favicon_ and login_image_. */
+  // Messaging: provider webhooks answer 200 always; the bell answers 202.
+  if (p.startsWith('/messaging/webhooks/')) { res.writeHead(200); return res.end(); }
+  if ((p === '/messaging/push/subscribe' || p === '/messaging/push/unsubscribe') && req.method === 'POST') {
+    return json(res, 202, { message: p.endsWith('/subscribe') ? 'Notifications are on for this browser.' : 'Notifications are off for this browser.' });
+  }
+
   if (p === '/settings') return json(res, 200, { data: {
     company_name: 'Technoware',
     tagline: 'Technology infrastructure that keeps your business connected.',
@@ -1377,6 +1898,11 @@ createServer(async (req, res) => {
     sales_email: 'sales@example.test',
     address: 'Address line one, Address line two',
     theme: 'olive',
+    // Messaging (Phase 2): WhatsApp live, so the checkout draws its box;
+    // push live with a mock web config, so the store strip draws the bell.
+    messaging_whatsapp_live: '1', messaging_rcs_live: '0', push_live: '1',
+    push_api_key: 'AIzaMockKey000000000000000000000000000', push_project_id: 'technoware-push',
+    push_messaging_sender_id: '123456789012', push_app_id: '1:123456789012:web:0a1b2c3d4e5f', push_vapid_key: 'BMockVapidKey',
     motion_reveal: 'lift', motion_buttons: 'lift', motion_page: 'none', motion_loader: 'none', motion_splash: '0', motion_hero: 'grid',
     login_backdrop: 'image', login_intensity: 'medium', login_speed: 'normal', stats_animation: 'count',
     // The site theme. CI builds against this mock, and `classic` is also the
@@ -1467,6 +1993,33 @@ createServer(async (req, res) => {
        TypeScript, so a mock that omitted them would render a screen with
        empty dropdowns and no error. Indented into the `/admin/` block — below
        it nothing is reachable, since that block answers every admin path. */
+    if (p === '/admin/visits' && req.method === 'GET') {
+      return json(res, 200, {
+        data: visitRequests,
+        meta: { ...visitMeta, current_page: 1, last_page: 1, per_page: 20, total: visitRequests.length },
+        links: {},
+      });
+    }
+    const av = p.match(/^\/admin\/visits\/(TV-\d{4}-\d{5})(\/confirm)?$/);
+    if (av) {
+      const v = visitRequests.find((x) => x.reference === av[1]);
+      if (!v) return json(res, 404, { message: 'Not found.' });
+      if (req.method === 'POST' && av[2]) {
+        const body = await readJsonBody(req);
+        Object.assign(v, {
+          status: 'confirmed', status_label: 'Confirmed', scheduled_start_at: `${body.start_at}:00+05:30`,
+          visit_date: body.start_at?.slice(0, 10) ?? '', visit_time: body.start_at?.slice(11, 16) ?? '',
+          allowed_next: [{ value: 'confirmed', label: 'Confirmed' }, { value: 'requested', label: 'Requested' }, { value: 'completed', label: 'Completed' }, { value: 'no_show', label: 'No-show' }, { value: 'cancelled', label: 'Cancelled' }],
+        });
+      } else if (req.method === 'PATCH') {
+        const body = await readJsonBody(req);
+        if (body.status === 'confirmed' && v.status !== 'confirmed') {
+          return json(res, 422, { message: 'Set a time to confirm it.', errors: { status: ['A visit cannot go from Requested to Confirmed here — set a time to confirm it.'] } });
+        }
+        if ('staff_note' in body) v.staff_note = body.staff_note;
+      }
+      return json(res, 200, { data: v });
+    }
     if (p === '/admin/leads' && req.method === 'GET') {
       return json(res, 200, {
         data: leads,
@@ -1613,13 +2166,97 @@ createServer(async (req, res) => {
       }
     }
 
+    /* The page builder's pickers and its unsaved-draft preview (docs/page-builder.md). */
+    if (p === '/admin/pages/builder' && req.method === 'GET') return json(res, 200, { data: BUILDER_OPTIONS });
+    if (p === '/admin/pages/preview' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const blocks = Array.isArray(body.blocks) ? body.blocks : [];
+      const bad = blocks.findIndex((b) => !SECTION_TYPES.some((t) => t.value === b.type));
+      if (bad !== -1) return json(res, 422, { message: 'That is not a kind of section this site can draw.', errors: { [`blocks.${bad}.type`]: ['That is not a kind of section this site can draw.'] } });
+      return json(res, 200, { data: { sections: presentSections(blocks) } });
+    }
+
+    /* Custom field groups. */
+    if (p === '/admin/custom-field-groups' && req.method === 'GET') {
+      const page = paginate([CUSTOM_FIELD_GROUP].map(({ fields, ...g }) => { void fields; return g; }));
+      Object.assign(page.meta, CUSTOM_FIELD_META);
+      return json(res, 200, page);
+    }
+    if (p === '/admin/custom-field-groups' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      return json(res, 201, { data: { ...CUSTOM_FIELD_GROUP, ...body, id: 2 }, meta: CUSTOM_FIELD_META });
+    }
+    {
+      const m = p.match(/^\/admin\/custom-field-groups\/(\d+)$/);
+      if (m) {
+        if (Number(m[1]) !== 1) return json(res, 404, { message: 'Not found.' });
+        if (req.method === 'DELETE') { res.writeHead(204); return res.end(); }
+        const body = req.method === 'PATCH' ? await readJsonBody(req) : {};
+        return json(res, 200, { data: { ...CUSTOM_FIELD_GROUP, ...body }, meta: CUSTOM_FIELD_META });
+      }
+    }
+
+    /* Content types and their entries. */
+    const TYPE_META = {
+      sorts: [{ value: 'newest', label: 'Newest first' }, { value: 'title', label: 'By title' }, { value: 'manual', label: 'By sort order' }],
+      schema_types: [{ value: 'Article', label: 'Article' }, { value: 'WebPage', label: 'Web page' }],
+    };
+    if (p === '/admin/content-types' && req.method === 'GET') {
+      const page = paginate(CONTENT_TYPES);
+      Object.assign(page.meta, TYPE_META);
+      return json(res, 200, page);
+    }
+    if (p === '/admin/content-types' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      return json(res, 201, { data: { ...CONTENT_TYPES[0], ...body, id: 2, path: `/${body.slug}` }, meta: TYPE_META });
+    }
+    {
+      const m = p.match(/^\/admin\/content-types\/(\d+)$/);
+      if (m) {
+        if (Number(m[1]) !== 1) return json(res, 404, { message: 'Not found.' });
+        if (req.method === 'DELETE') return json(res, 422, { message: 'This type still holds 2 entries.', errors: { content_type: ['Delete its entries first.'] } });
+        const body = req.method === 'PATCH' ? await readJsonBody(req) : {};
+        return json(res, 200, { data: { ...CONTENT_TYPES[0], ...body }, meta: TYPE_META });
+      }
+    }
+    {
+      const m = p.match(/^\/admin\/content-types\/([a-z0-9-]+)\/entries(?:\/(\d+))?$/);
+      if (m) {
+        if (m[1] !== 'events') return json(res, 404, { message: 'Not found.' });
+        if (!m[2] && req.method === 'GET') {
+          const page = paginate(ENTRIES.map(adminEntry));
+          Object.assign(page.meta, {
+            type: CONTENT_TYPES[0],
+            statuses: [{ value: 'draft', label: 'Draft' }, { value: 'published', label: 'Published' }, { value: 'archived', label: 'Archived' }],
+            answer_block_kinds: ANSWER_BLOCK_KINDS,
+            custom_field_groups: CUSTOM_FIELD_DEFINITIONS,
+          });
+          return json(res, 200, page);
+        }
+        if (!m[2] && req.method === 'POST') {
+          const body = await readJsonBody(req);
+          return json(res, 201, { data: { ...adminEntry(ENTRIES[0]), ...body, id: 3 } });
+        }
+        const e = ENTRIES.find((x) => x.id === Number(m[2]));
+        if (!e) return json(res, 404, { message: 'Not found.' });
+        if (req.method === 'DELETE') return json(res, 200, { message: 'Entry deleted.' });
+        const body = req.method === 'PATCH' ? await readJsonBody(req) : {};
+        return json(res, 200, { data: { ...adminEntry(e), ...body } });
+      }
+    }
+
     /* The admin CMS indexes and details, from `ADMIN_CMS`. */
     for (const entity of ADMIN_CMS) {
       if (p === entity.base && req.method === 'GET') {
         const q = (url.searchParams.get('q') || '').toLowerCase();
-        const rows = q ? entity.rows.filter((r) => (r.title || r.name || '').toLowerCase().includes(q)) : entity.rows;
+        const rows = q ? entity.rows.filter((r) => `${r.title || r.name || ''} ${r.slug || ''}`.toLowerCase().includes(q)) : entity.rows;
         const page = paginate(rows.map((r) => entity.detail(r)));
         page.meta.answer_block_kinds = ANSWER_BLOCK_KINDS;
+        if (entity.base === '/admin/pages') {
+          page.meta.section_types = SECTION_TYPES;
+          page.meta.section_presets = SECTION_PRESETS;
+        }
+        page.meta.custom_field_groups = entity.base === '/admin/pages' ? CUSTOM_FIELD_DEFINITIONS : [];
         if (entity.base === '/admin/store/products') {
           page.meta.types = [{ value: 'physical', label: 'Physical', description: 'Shipped.' }, { value: 'digital', label: 'Digital', description: 'A code.' }, { value: 'service', label: 'Service', description: 'Work.' }];
           page.meta.statuses = [{ value: 'draft', label: 'Draft' }, { value: 'published', label: 'Published' }, { value: 'archived', label: 'Archived' }];
@@ -1704,6 +2341,28 @@ createServer(async (req, res) => {
       return json(res, 200, { data: rows });
     }
 
+    /* The review queue: waiting by default, `all` for everything. */
+    if (p === '/admin/store/reviews' && req.method === 'GET') {
+      const status = url.searchParams.get('status') || 'pending';
+      const rows = storeReviews.filter(r => status === 'all' || r.status === status).map(adminReview);
+      return json(res, 200, { ...paginate(rows), meta: { ...paginate(rows).meta, statuses: [
+        { value: 'pending', label: 'Waiting' }, { value: 'published', label: 'Published' }, { value: 'rejected', label: 'Rejected' }, { value: 'spam', label: 'Spam' },
+      ], pending_count: storeReviews.filter(r => r.status === 'pending').length, sorts: ['created', 'rating', 'published'] } });
+    }
+    if (p === '/admin/store/reviews/moderate' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const moved = storeReviews.filter(r => (body.ids || []).includes(r.id) && r.status !== body.status);
+      for (const r of moved) { r.status = body.status; if (body.status === 'published') r.published_at ??= new Date().toISOString(); }
+      return json(res, 200, { data: { moved: moved.length, pending_count: storeReviews.filter(r => r.status === 'pending').length, slugs: [] } });
+    }
+    {
+      const m = p.match(/^\/admin\/store\/reviews\/(\d+)$/);
+      const r = m && storeReviews.find(x => x.id === Number(m[1]));
+      if (m && !r) return json(res, 404, { message: 'Not found.' });
+      if (r && req.method === 'PATCH') { r.is_featured = Boolean((await readJsonBody(req)).is_featured); return json(res, 200, { data: adminReview(r) }); }
+      if (r && req.method === 'DELETE') { storeReviews.splice(storeReviews.indexOf(r), 1); res.writeHead(204); return res.end(); }
+    }
+
     if (p === '/admin/store/dashboard' && req.method === 'GET') {
       const days = [7, 30, 90].includes(Number(url.searchParams.get('days'))) ? Number(url.searchParams.get('days')) : 30;
       const series = Array.from({ length: days }, (_, i) => {
@@ -1715,9 +2374,12 @@ createServer(async (req, res) => {
         orders: { total: 0, paid: 0, pending_payment: 0, cancelled: 0, period: 0, with_physical: 0, with_digital: 0 },
         revenue: { total_paise: 0, period_paise: 0, gst_paise: 0, discount_paise: 0, refunded_paise: 0, average_paise: null, sample: 0 },
         catalogue: { products: 0, published: 0, out_of_stock: 0 },
-        attention: { awaiting_payment: 0, awaiting_dispatch: 0, awaiting_codes: 0, refund_requested: 0, out_of_stock: 0, codes_exhausted: 0, failed_payments: 0 },
+        attention: { awaiting_payment: 0, awaiting_dispatch: 0, awaiting_codes: 0, reviews_pending: 1, refund_requested: 0, out_of_stock: 0, codes_exhausted: 0, failed_payments: 0 },
         funnel: { product_views: null, paid_orders: 0, views_to_orders: null },
+        // Null, not zeros: the mock never reminds anybody about a basket.
+        recovered: null,
         series, recent: [], low_stock: [], codes_low: [],
+        most_wished: [{ id: storeProducts[0].id, name: storeProducts[0].name, wishes: 3 }],
       } });
     }
 
@@ -1788,7 +2450,7 @@ createServer(async (req, res) => {
       return json(res, 200, { data: {
         general: [s('company_name', 'Technoware'), s('tagline', 'Technology infrastructure that keeps your business connected.'), s('theme', 'olive')],
         contact: [s('phone', '+91 00000 00000'), s('support_email', 'support@example.test'), s('sales_email', 'sales@example.test'), s('address', 'Address line one, Address line two')],
-        social: [s('social_linkedin'), s('social_twitter'), s('social_facebook')],
+        social: [s('social_linkedin'), s('social_twitter'), s('social_facebook'), s('social_reddit')],
         login: [
           s('login_backdrop', 'image', { group: 'login' }), s('login_intensity', 'medium', { group: 'login' }),
           s('login_speed', 'normal', { group: 'login' }), s('login_image_path', null, { group: 'login' }),
@@ -1858,6 +2520,32 @@ createServer(async (req, res) => {
             { value: 'critical', label: 'Critical', description: 'Target first response within 1 hour.' },
           ] }),
           s('inbound_mail_last_run', null, { group: 'tickets' }), s('inbound_mail_error', null, { group: 'tickets' }),
+        ],
+        /* Messaging channels (Messaging -> Settings). */
+        messaging: [
+          s('messaging_whatsapp_provider', 'meta_cloud', { group: 'messaging' }), s('messaging_rcs_provider', null, { group: 'messaging' }),
+          s('messaging_push_provider', 'fcm', { group: 'messaging' }),
+          s('messaging_promo_start', '09:00', { group: 'messaging' }), s('messaging_promo_end', '21:00', { group: 'messaging' }),
+          s('messaging_webhook_secret', null, { group: 'messaging', is_secret: true, is_set: false }),
+          s('whatsapp_meta_phone_number_id', '105500000000000', { group: 'messaging' }), s('whatsapp_meta_business_account_id', '900100000000000', { group: 'messaging' }),
+          s('whatsapp_meta_access_token', null, { group: 'messaging', is_secret: true, is_set: true }),
+          s('whatsapp_meta_app_secret', null, { group: 'messaging', is_secret: true, is_set: true }),
+          s('whatsapp_meta_verify_token', null, { group: 'messaging', is_secret: true, is_set: false }),
+          s('whatsapp_gupshup_api_key', null, { group: 'messaging', is_secret: true, is_set: false }), s('whatsapp_gupshup_app_name', null, { group: 'messaging' }),
+          s('whatsapp_gupshup_app_id', null, { group: 'messaging' }), s('whatsapp_gupshup_source', null, { group: 'messaging' }),
+          s('whatsapp_twilio_account_sid', null, { group: 'messaging' }), s('whatsapp_twilio_auth_token', null, { group: 'messaging', is_secret: true, is_set: false }),
+          s('whatsapp_twilio_from', null, { group: 'messaging' }),
+          s('rcs_rbm_agent_id', null, { group: 'messaging' }), s('rcs_rbm_service_account', null, { group: 'messaging', type: 'text', is_secret: true, is_set: false }),
+          s('rcs_rbm_client_token', null, { group: 'messaging', is_secret: true, is_set: false }),
+          s('rcs_gupshup_userid', null, { group: 'messaging' }), s('rcs_gupshup_password', null, { group: 'messaging', is_secret: true, is_set: false }),
+          s('rcs_gupshup_bot_id', null, { group: 'messaging' }),
+          s('push_fcm_service_account', null, { group: 'messaging', type: 'text', is_secret: true, is_set: true }),
+          s('messaging_whatsapp_error', null, { group: 'messaging' }), s('messaging_rcs_error', null, { group: 'messaging' }), s('messaging_push_error', null, { group: 'messaging' }),
+        ],
+        push: [
+          s('push_api_key', 'AIzaMockKey000000000000000000000000000', { group: 'push' }), s('push_project_id', 'technoware-push', { group: 'push' }),
+          s('push_messaging_sender_id', '123456789012', { group: 'push' }), s('push_app_id', '1:123456789012:web:0a1b2c3d4e5f', { group: 'push' }),
+          s('push_vapid_key', 'BMockVapidKey', { group: 'push' }),
         ],
       } });
     }
@@ -2073,6 +2761,79 @@ createServer(async (req, res) => {
     }
 
     /*
+     * Messaging channels. Answered from the fixtures; writes echo what was
+     * sent, the webhooks block's rule.
+     */
+    if (p === '/admin/settings/messaging') return json(res, 200, { data: MESSAGING_STATUS });
+    if (p === '/admin/settings/messaging/test' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      return json(res, 200, { data: { sent_to: body.channel === 'push' ? 'that browser' : '+919820011223', provider: 'Meta WhatsApp Cloud API', id: 'wamid.mock' } });
+    }
+    if (p === '/admin/messaging/templates/sync' && req.method === 'POST') return json(res, 200, { data: { matched: 2, unknown: ['hello_world'] } });
+    if (p === '/admin/messaging/templates') {
+      if (req.method === 'POST') {
+        const body = await readJsonBody(req);
+        return json(res, 201, { data: msgTemplate({ id: 9, channel: body.channel, channel_label: (MSG_CHANNELS.find((c) => c.value === body.channel) || {}).label,
+          key: body.key, name: body.name, body: body.body, approval_status: body.channel === 'whatsapp' ? 'draft' : 'not_required',
+          approval_label: body.channel === 'whatsapp' ? 'Not submitted' : 'No approval needed', sendable: body.channel !== 'whatsapp', placeholders: [] }) });
+      }
+      const channel = url.searchParams.get('channel');
+      const rows = channel ? messageTemplates.filter((t) => t.channel === channel) : messageTemplates;
+      return json(res, 200, { ...paginate(rows), meta: { current_page: 1, last_page: 1, per_page: 50, total: rows.length, ...MSG_TEMPLATE_META } });
+    }
+    {
+      const m = p.match(/^\/admin\/messaging\/templates\/(\d+)(\/submit|\/test)?$/);
+      if (m) {
+        const t = messageTemplates.find((r) => r.id === Number(m[1]));
+        if (!t) return json(res, 404, { message: 'Not found.' });
+        if (m[2] === '/submit') return json(res, 200, { data: { ...t, approval_status: 'pending', approval_label: 'Waiting for approval', sendable: false } });
+        if (m[2] === '/test') return json(res, 200, { data: { sent_to: '+919820011223', id: 'wamid.mock' } });
+        if (req.method === 'PATCH') return json(res, 200, { data: { ...t, ...(await readJsonBody(req)) } });
+        if (req.method === 'DELETE') { res.writeHead(204); return res.end(); }
+        return json(res, 200, { data: t, meta: MSG_TEMPLATE_META });
+      }
+    }
+    if (p === '/admin/messaging/automations') {
+      return json(res, 200, { data: msgAutomationGrid(), meta: msgAutomationMeta(), ...(req.method === 'PUT' ? { message: 'Automations saved.' } : {}) });
+    }
+    if (p === '/admin/messaging/contacts') {
+      const channel = url.searchParams.get('channel');
+      const status = url.searchParams.get('status');
+      const rows = messageContacts.filter((c) => (!channel || c.channel === channel) && (!status || (status === 'active' ? c.is_active : !c.is_active)));
+      return json(res, 200, { ...paginate(rows), meta: { current_page: 1, last_page: 1, per_page: 40, total: rows.length,
+        channels: MSG_CHANNELS.map((c) => ({ value: c.value, label: c.label, active: messageContacts.filter((k) => k.channel === c.value && k.is_active).length })) } });
+    }
+    {
+      const m = p.match(/^\/admin\/messaging\/contacts\/(\d+)\/opt-out$/);
+      if (m) {
+        const c = messageContacts.find((r) => r.id === Number(m[1]));
+        return c ? json(res, 200, { data: { ...c, is_active: false, opted_out_at: '2026-09-25T12:00:00+05:30', opt_out_reason: 'staff' } }) : json(res, 404, { message: 'Not found.' });
+      }
+    }
+    if (p === '/admin/messaging/broadcasts/audience') return json(res, 200, { data: { count: 1 } });
+    if (p === '/admin/messaging/broadcasts') {
+      if (req.method === 'POST') {
+        const body = await readJsonBody(req);
+        return json(res, 201, { data: { ...messageBroadcasts[1], id: 9, name: body.name || 'New broadcast', channel: body.channel || 'whatsapp' } });
+      }
+      const status = url.searchParams.get('status');
+      const rows = status ? messageBroadcasts.filter((b) => b.status === status) : messageBroadcasts;
+      return json(res, 200, { ...paginate(rows.map((b) => Object.fromEntries(Object.entries(b).filter(([k]) => k !== 'report' && k !== 'audience_count')))), meta: { current_page: 1, last_page: 1, per_page: 25, total: rows.length, ...MSG_BROADCAST_META } });
+    }
+    {
+      const m = p.match(/^\/admin\/messaging\/broadcasts\/(\d+)(\/send|\/cancel)?$/);
+      if (m) {
+        const b = messageBroadcasts.find((r) => r.id === Number(m[1]));
+        if (!b) return json(res, 404, { message: 'Not found.' });
+        if (m[2] === '/send') return json(res, 200, { data: { ...b, status: 'sending', status_label: 'Sending', recipient_count: 1 }, starts_at: '2026-09-25T11:00:00+05:30' });
+        if (m[2] === '/cancel') return json(res, 200, { data: { ...b, status: 'cancelled', status_label: 'Cancelled' } });
+        if (req.method === 'PATCH') return json(res, 200, { data: { ...b, ...(await readJsonBody(req)) } });
+        if (req.method === 'DELETE') { res.writeHead(204); return res.end(); }
+        return json(res, 200, { data: b, meta: MSG_BROADCAST_META });
+      }
+    }
+
+    /*
      * Outgoing webhooks. Answered from the fixture rather than mutated, the
      * rule the customers block below keeps — except that the secret rides on
      * the 201 and on a rotate and on nothing else, which is the contract.
@@ -2179,7 +2940,7 @@ createServer(async (req, res) => {
       }
     }
     if (p === '/admin/auth/logout' && req.method === 'POST') return json(res, 200, { message: 'Signed out.' });
-    if (p === '/admin/dashboard') return json(res, 200, { data: buildAdminDashboard() });
+    if (p === '/admin/dashboard') return json(res, 200, { data: buildAdminDashboard(url.searchParams.get('volume') || 'month') });
     if (p === '/admin/users') return json(res, 200, { data: staffList });
 
     if (p === '/admin/tickets' && req.method === 'GET') {
@@ -2424,6 +3185,29 @@ createServer(async (req, res) => {
 
   // Carousels, addressed by slug. 404 for anything unknown, and for a slider
   // with no slides — the frontend's fallback depends on that being a miss.
+  /*
+    Content blocks (2026-09-24). The default CTA is `data: null` in a 200 —
+    the real API's answer for "none chosen", and what keeps every page's
+    closing band as the theme draws it. One sample stat bar answers by slug so
+    a `[stats slug="mock-figures"]` shortcode renders; anything else is a 404,
+    like a draft.
+  */
+  if (p === '/blocks/default/cta') return json(res, 200, { data: null });
+  if (p.startsWith('/blocks/') && req.method === 'GET') {
+    const slug = p.split('/')[2];
+    if (slug === 'mock-figures') {
+      return json(res, 200, { data: {
+        id: 1, type: 'stats', layout: 'row', name: 'Mock figures', slug,
+        content: { items: [{ value: '16 yrs', label: 'In the field' }, { value: '340+', label: 'Sites under AMC' }] },
+        updated_at: '2026-09-24T10:00:00+05:30',
+      } });
+    }
+    return json(res, 404, { message: 'Not found.' });
+  }
+  if (p.startsWith('/blocks/') && p.endsWith('/submit') && req.method === 'POST') {
+    return json(res, 202, { message: 'Thank you.' });
+  }
+
   if (p.startsWith('/sliders/')) {
     const sl = sliders.find(x => x.slug === p.split('/')[2]);
     return sl && sl.slides.length
@@ -2500,7 +3284,9 @@ createServer(async (req, res) => {
 
     orderSeq += 1;
     const number = `ORD-2026-${String(orderSeq).padStart(5, '0')}`;
-    const accessToken = 'mock-order-token-'.padEnd(64, '0');
+    // 64 hex characters, the shape `bin2hex(random_bytes(32))` gives and the
+    // frontend's order cookie refuses anything else (lib/order-access.ts).
+    const accessToken = 'deadbeef'.repeat(8);
 
     const order = {
       order_number: number,
@@ -2578,6 +3364,8 @@ createServer(async (req, res) => {
     let rows = storeProducts;
     if (cat) rows = rows.filter(x => x.category?.slug === cat);
     if (q) rows = rows.filter(x => (x.name + ' ' + (x.sku || '') + ' ' + (x.brand?.name || '')).toLowerCase().includes(q));
+    const specs = specSelection(url.searchParams);
+    if (Object.keys(specs).length) rows = rows.filter(x => matchesSpecs(x, specs));
     if (sort === 'name') rows = [...rows].sort((a, b) => a.name.localeCompare(b.name));
     if (sort === 'price-low') rows = [...rows].sort((a, b) => a.price_paise - b.price_paise);
     if (sort === 'price-high') rows = [...rows].sort((a, b) => b.price_paise - a.price_paise);
@@ -2603,6 +3391,33 @@ createServer(async (req, res) => {
   if (/^\/store\/stock-notices\/[^/]+\/cancel$/.test(p)) {
     return json(res, 200, { message: 'Done. We will not email you about that product.' });
   }
+  /* Reviews: the published page, and the portal's own review and write. */
+  {
+    const m = p.match(/^\/store\/products\/([^/]+)\/reviews(\/mine)?$/);
+    if (m) {
+      const sp = storeProducts.find(x => x.slug === m[1]);
+      if (!sp) return json(res, 404, { message: 'Not found.' });
+      if (m[2]) {
+        if (!auth) return json(res, 401, { message: 'Unauthenticated.' });
+        return json(res, 200, { data: null, meta: { can_review: true, verified: sp.id === 1 } });
+      }
+      if (req.method === 'POST') {
+        if (!auth) return json(res, 401, { message: 'Unauthenticated.' });
+        return json(res, 202, { message: 'Thanks — we will publish it once it has been checked.' });
+      }
+      const sort = REVIEW_SORT[url.searchParams.get('sort')] ? url.searchParams.get('sort') : 'featured';
+      const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
+      const rows = storeReviews.filter(r => r.product_id === sp.id && r.status === 'published').sort(REVIEW_SORT[sort]);
+      const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+      for (const r of rows) distribution[r.rating]++;
+      return json(res, 200, {
+        data: rows.slice((page - 1) * 6, page * 6).map(publicReview),
+        links: { first: null, last: null, prev: null, next: null },
+        meta: { current_page: page, last_page: Math.max(1, Math.ceil(rows.length / 6)), per_page: 6, total: rows.length,
+          sort, average: sp.rating?.average ?? null, count: rows.length, distribution },
+      });
+    }
+  }
   if (p.startsWith('/store/products/')) {
     const sp = storeProducts.find(x => x.slug === p.split('/')[3]);
     // `schema` on the detail read only, gated on `withSchema()` in Laravel.
@@ -2615,6 +3430,9 @@ createServer(async (req, res) => {
       warranty: first ? 'Limited lifetime warranty' : null,
       applications: first ? 'Wiring closets feeding up to two dozen desks, printers and access points.\nBranch offices uplinked to a central core over SFP.' : null,
       services: first ? [{ id: 2, title: services[1].title, slug: services[1].slug }] : [],
+      // Videos (2026-09-26): a YouTube id with no poster, so the facade draws
+      // its own panel — never YouTube's thumbnail.
+      videos: first ? [{ kind: 'youtube', youtube_id: 'dQw4w9WgXcQ', title: 'Unboxing and first set-up' }] : [],
       ...answerContent(first ? STORE_PRODUCT_ANSWER_BLOCKS : [], spFaqs, {
         brand: sp.brand ? { name: sp.brand.name, path: `/store?brand=${sp.brand.slug}` } : null,
         category: sp.category ? { name: sp.category.name, path: `/store/categories/${sp.category.slug}` } : null,
@@ -2624,6 +3442,34 @@ createServer(async (req, res) => {
       }) } });
   }
   if (p === '/store/categories') return json(res, 200, { data: storeCategories });
+  // The category's filters and their counts. `data: []` in a 200 for a
+  // category that offers none, never a 404 (the `/menus/*` rule).
+  if (/^\/store\/categories\/[^/]+\/facets$/.test(p)) {
+    const sc = storeCategories.find(x => x.slug === p.split('/')[3]);
+    if (!sc) return json(res, 404, { message: 'Not found.' });
+    const selection = specSelection(url.searchParams);
+    const inCategory = storeProducts.filter(x => x.category?.slug === sc.slug);
+    const num = (s) => { const m = /^\s*(\d+(?:\.\d+)?)/.exec(s); return m ? Number(m[1]) : null; };
+    const data = (sc.filter_specs || []).map((label) => {
+      const key = specKeyOf(label);
+      const counts = new Map();
+      for (const product of inCategory.filter(x => matchesSpecs(x, selection, key))) {
+        const seen = new Set();
+        for (const [l, v] of specPairsOf(product)) {
+          if (specKeyOf(l) !== key || seen.has(specKeyOf(v))) continue;
+          seen.add(specKeyOf(v));
+          const row = counts.get(specKeyOf(v)) || { value: String(v), key: specKeyOf(v), count: 0, selected: false };
+          row.count += 1;
+          counts.set(specKeyOf(v), row);
+        }
+      }
+      for (const v of selection[key] || []) if (!counts.has(v)) counts.set(v, { value: v, key: v, count: 0, selected: true });
+      const values = [...counts.values()].map(r => ({ ...r, selected: Boolean(selection[key]?.has(r.key)) }))
+        .sort((a, b) => ((num(a.value) ?? Infinity) - (num(b.value) ?? Infinity)) || a.value.localeCompare(b.value, undefined, { numeric: true, sensitivity: 'base' }));
+      return { label, key, values };
+    }).filter(f => f.values.length);
+    return json(res, 200, { data, meta: { category: sc.slug, filtered: Object.keys(selection).length > 0 } });
+  }
   if (p.startsWith('/store/categories/')) {
     const sc = storeCategories.find(x => x.slug === p.split('/')[3]);
     return sc ? json(res, 200, { data: { ...sc, ...answerContent([], [], { solutions: [{ name: solutions[0].title, path: `/solutions/${solutions[0].slug}` }] }) } })
@@ -2634,6 +3480,21 @@ createServer(async (req, res) => {
     const { token, lines } = cartFor(req.headers['x-cart-token']);
 
     if (p === '/cart' && req.method === 'GET') return json(res, 200, { data: summarise(token, lines) });
+    if (p === '/cart/contact' && req.method === 'PATCH') {
+      const body = await readJsonBody(req);
+      const phone = typeof body.phone === 'string' ? body.phone.replace(/\s+/g, ' ').trim() : body.phone;
+      if (phone && !/^(?:\+?91[-\s]?)?0?[6-9](?:[-\s]?\d){9}$/.test(phone)) {
+        return json(res, 422, { message: 'That does not look like a mobile number.', errors: { phone: ['That does not look like a mobile number. Ten digits starting 6 to 9, with or without +91.'] } });
+      }
+      const current = cartContacts.get(token) ?? { email: null, phone: null };
+      if ('email' in body) current.email = body.email ? String(body.email).trim().toLowerCase() : null;
+      if ('phone' in body) current.phone = phone || null;
+      cartContacts.set(token, current);
+      return json(res, 200, { data: summarise(token, lines) });
+    }
+    if (p.startsWith('/cart/restore/') && req.method === 'GET') {
+      return json(res, 404, { message: 'That basket is no longer available.' });
+    }
     if (p === '/cart' && req.method === 'DELETE') {
       lines.length = 0;
       return json(res, 200, { data: summarise(token, lines) });
@@ -2663,6 +3524,63 @@ createServer(async (req, res) => {
       lines.splice(index, 1);
       return json(res, 200, { data: summarise(token, lines) });
     }
+  }
+
+  /* The wishlist -- see the helpers beside the basket's. */
+  if (p === '/wishlist' && req.method === 'GET') return json(res, 200, { data: wishlistSummary(wishlistFor(req)) });
+  if (p === '/wishlist' && req.method === 'PATCH') {
+    const found = wishlistFor(req);
+    if (!found) return json(res, 404, { message: 'Not found.' });
+    const body = await readJsonBody(req);
+    if ('email' in body) {
+      if (found.key === ACCOUNT_WISHLIST) {
+        return json(res, 422, { message: 'Messages about this list go to your account’s address.', errors: { email: ['Messages about this list go to your account’s address.'] } });
+      }
+      found.list.email = body.email ? String(body.email).toLowerCase() : null;
+      if (body.email) found.list.alertsOff = false;
+    }
+    if ('alerts' in body) found.list.alertsOff = !body.alerts;
+    return json(res, 200, { data: wishlistSummary(found) });
+  }
+  if (p === '/wishlist/items' && req.method === 'POST') {
+    const body = await readJsonBody(req);
+    const product = storeProducts.find((x) => x.id === Number(body.product_id));
+    if (!product) return json(res, 422, { message: 'That product is not on sale.' });
+    const found = wishlistFor(req, true);
+    const variationId = Number(body.variation_id) || null;
+    if (!found.list.lines.some((l) => l.product_id === product.id && l.variation_id === variationId)) {
+      const variation = product.variations?.find((v) => v.id === variationId);
+      found.list.lines.unshift({ id: ++wishSeq, product_id: product.id, variation_id: variationId, price_at_save: variation?.price_paise ?? product.price_paise, added_at: new Date().toISOString() });
+    }
+    return json(res, 201, { data: wishlistSummary(found) });
+  }
+  {
+    const m = p.match(/^\/wishlist\/items\/(\d+)(\/move-to-basket)?$/);
+    if (m) {
+      const found = wishlistFor(req);
+      const index = found ? found.list.lines.findIndex((l) => l.id === Number(m[1])) : -1;
+      if (index === -1) return json(res, 404, { message: 'Not found.' });
+      const line = found.list.lines[index];
+      if (m[2] && req.method === 'POST') {
+        const product = storeProducts.find((x) => x.id === line.product_id);
+        if (!line.variation_id && product?.variations?.length) {
+          return json(res, 422, { message: 'Choose an option before adding this to your basket.' });
+        }
+        const { token, lines } = cartFor(req.headers['x-cart-token']);
+        const existing = lines.find((l) => l.product_id === line.product_id && l.variation_id === line.variation_id);
+        if (existing) existing.quantity += 1;
+        else lines.push({ id: lines.length + 1, product_id: line.product_id, variation_id: line.variation_id, quantity: 1 });
+        found.list.lines.splice(index, 1);
+        return json(res, 200, { data: wishlistSummary(found), cart: summarise(token, lines) });
+      }
+      if (!m[2] && req.method === 'DELETE') {
+        found.list.lines.splice(index, 1);
+        return json(res, 200, { data: wishlistSummary(found) });
+      }
+    }
+  }
+  if (/^\/wishlist\/alerts\/[^/]+\/stop$/.test(p)) {
+    return json(res, 200, { message: 'Done. We will not email you about your wishlist again. Your list is still there.' });
   }
 
   if (p === '/blog') {
@@ -2790,12 +3708,33 @@ createServer(async (req, res) => {
       meta: { q: term, min_length: 2 },
     });
   }
+  /* Custom content types: the list, an archive, an entry. */
+  if (p === '/content-types') return json(res, 200, { data: CONTENT_TYPES.map(publicType) });
+  {
+    const m = p.match(/^\/types\/([a-z0-9-]+)(?:\/([a-z0-9-]+))?$/);
+    if (m) {
+      const t = CONTENT_TYPES.find((x) => x.slug === m[1]);
+      if (!t) return json(res, 404, { message: 'Not found.' });
+      if (!m[2]) {
+        const page = paginate(ENTRIES.map(({ body, ...e }) => { void body; return publicEntry(e, t); }));
+        page.meta.type = publicType(t);
+        return json(res, 200, page);
+      }
+      const e = ENTRIES.find((x) => x.slug === m[2]);
+      if (!e) return json(res, 404, { message: 'Not found.' });
+      const path = `${t.path}/${e.slug}`;
+      return json(res, 200, { data: { ...publicEntry(e, t), ...answerContent([], [], {}),
+        schema: { '@context': 'https://schema.org', '@type': 'Article', headline: e.title, url: `https://www.technoware.in${path}` } } });
+    }
+  }
   if (p === '/pages') {
     // Summaries: the real endpoint omits body for exactly this reason.
     return json(res, 200, { data: cmsPages.map(({ id, title, slug, updated_at, seo }) => ({ id, title, slug, updated_at, seo })) });
   }
   if (p.startsWith('/pages/')) {
-    const pg = cmsPages.find(x => x.slug === p.split('/')[2]);
+    const found = cmsPages.find(x => x.slug === p.split('/')[2]);
+    // `blocks` is the console's; the public read carries `sections`, and only for a builder page.
+    const pg = found && { ...found, blocks: undefined, sections: found.template === 'builder' ? found.sections : undefined };
     return pg ? json(res, 200, { data: { ...pg, ...answerContent([], pg.faqs || [], { faq_count: (pg.faqs || []).length }) } })
               : json(res, 404, { message: 'Not found.' });
   }
@@ -2836,6 +3775,32 @@ createServer(async (req, res) => {
       : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/enquiries' && req.method === 'POST') return json(res, 201, { message: 'Thanks', data: { id: 1 } });
+  // Engineer visits (docs/visits.md): what the form offers, a request, and the
+  // guest link — scoped by its token, a wrong one the same 404 as Laravel's.
+  if (p === '/visits/options') {
+    return json(res, 200, { data: {
+      enabled: true, windows: visitWindows, days: [1, 2, 3, 4, 5, 6], min_date: isoDay(1), max_date: isoDay(30),
+      holidays: [], max_preferred: 3,
+      services: services.map((x) => ({ id: x.id, title: x.title, slug: x.slug, location_ids: [] })),
+      solutions: solutions.map((x) => ({ id: x.id, title: x.title, slug: x.slug })),
+      locations: [],
+    } });
+  }
+  if (p === '/visits' && req.method === 'POST') {
+    const body = await readJsonBody(req);
+    if (!Array.isArray(body.preferred) || body.preferred.length === 0) {
+      return json(res, 422, { message: 'Choose at least one date and time that suits you.', errors: { preferred: ['Choose at least one date and time that suits you.'] } });
+    }
+    return json(res, 201, { message: 'Thank you', data: { reference: 'TV-2026-00001', access_token: VISIT_TOKEN } });
+  }
+  const gv = p.match(/^\/visits\/(TV-\d{4}-\d{5})(\/cancel|\/reschedule)?$/);
+  if (gv) {
+    const body = req.method === 'POST' ? await readJsonBody(req) : {};
+    const token = url.searchParams.get('token') ?? body.token;
+    const v = visitRequests.find((x) => x.reference === gv[1]);
+    if (!v || token !== VISIT_TOKEN) return json(res, 404, { message: 'Not found.' });
+    return json(res, 200, { data: customerVisit(v) });
+  }
   // The redirect table the proxy holds in memory, and the per-path lookup
   // it calls on a hit to record it. `/old-privacy` is a CMS page rename at
   // the root — the case the old prefix list could not cover.
@@ -2852,7 +3817,23 @@ createServer(async (req, res) => {
   if (!auth) return json(res, 401, { message: 'Unauthenticated.' });
 
   if (p === '/auth/me') return json(res, 200, { data: customer, meta: { impersonated: bearer === IMPERSONATION_TOKEN } });
+  if (p === '/messaging/preferences') {
+    if (req.method === 'PATCH') {
+      const body = await readJsonBody(req);
+      return json(res, 200, { data: { ...messagingPreferences, channels: messagingPreferences.channels.map((c) => (c.channel in body ? { ...c, opted_in: Boolean(body[c.channel]) } : c)) }, message: 'Your message preferences are saved.' });
+    }
+    return json(res, 200, { data: messagingPreferences });
+  }
   if (p === '/auth/profile' && req.method === 'PATCH') return json(res, 200, { data: customer });
+  if (p === '/my/visits') {
+    const mine = visitRequests.filter((v) => v.customer_id === customer.id).map(customerVisit);
+    return json(res, 200, { data: mine, links: { first: null, last: null, prev: null, next: null }, meta: { current_page: 1, last_page: 1, per_page: 20, total: mine.length } });
+  }
+  const mv = p.match(/^\/my\/visits\/(TV-\d{4}-\d{5})(\/cancel|\/reschedule)?$/);
+  if (mv) {
+    const v = visitRequests.find((x) => x.reference === mv[1] && x.customer_id === customer.id);
+    return v ? json(res, 200, { data: customerVisit(v) }) : json(res, 404, { message: 'Not found.' });
+  }
   if (p === '/tickets/summary') return json(res, 200, { data: { open: 1, in_progress: 1, pending: 1, resolved: 1, closed: 1 } });
 
   if (p === '/tickets' && req.method === 'GET') {

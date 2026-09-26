@@ -14,8 +14,9 @@ import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
+import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import { createArticleAction, updateArticleAction, deleteArticleAction, type ArticleFormState } from "./actions";
-import type { AdminKnowledgeArticle, KnowledgeCategory, AnswerBlockKindOption } from "@/types/api";
+import type { CustomFieldGroupDefinition, AdminKnowledgeArticle, KnowledgeCategory, AnswerBlockKindOption } from "@/types/api";
 
 const initial: ArticleFormState = {};
 
@@ -38,13 +39,15 @@ function toLocalInput(iso: string | null): string {
 }
 
 export function ArticleForm({
-  article, categories, saved, kinds,
+  article, categories, saved, kinds, fieldGroups,
 }: {
   article?: AdminKnowledgeArticle;
   categories: KnowledgeCategory[];
   saved?: boolean;
   /** `meta.answer_block_kinds` from this entity's admin index. */
   kinds: AnswerBlockKindOption[];
+  /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
+  fieldGroups?: CustomFieldGroupDefinition[];
 }) {
   const editing = Boolean(article);
   const [state, formAction, pending] = useActionState(
@@ -58,7 +61,9 @@ export function ArticleForm({
   const rowErr = (prefix: string) =>
     err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
 
-  const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
+  // Custom fields (docs/custom-content.md): the groups that apply, from the API.
+  const customGroups = article?.custom_field_groups ?? fieldGroups ?? [];
+  const { tabs, jumpTo } = buildFormTabs(withFieldsTab(GROUPS, customGroups), state.fieldErrors);
 
   return (
     <Form action={formAction} state={state} noValidate>
@@ -150,6 +155,12 @@ export function ArticleForm({
           <AnswerBlocksField defaultValue={article?.answer_blocks ?? []} kinds={kinds} error={rowErr("answer_blocks")} />
           <FaqField defaultValue={article?.faqs ?? []} error={rowErr("faqs")} />
         </div>
+
+        {/* The Fields tab — last, and only when a custom field group applies. */}
+        {customGroups.length > 0 && (
+          <CustomFieldsPanel groups={customGroups} values={article?.custom_fields} media={article?.custom_field_media}
+            error={customFieldError(state.fieldErrors)} />
+        )}
       </Tabs>
 
       <FormActions>

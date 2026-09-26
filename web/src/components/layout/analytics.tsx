@@ -1,8 +1,22 @@
 "use client";
 
 import Script from "next/script";
+import { usePathname } from "next/navigation";
 import { useConsent } from "@/lib/consent";
 import type { SiteSettings } from "@/lib/site-settings";
+
+/** Paths whose URL is, or once was, a key. The one list; `next.config.ts`
+ *  sends `Referrer-Policy: no-referrer` on the same three. */
+const SECRET_PATHS = ["/order/", "/newsletter/unsubscribe/", "/store/notify/cancel/"];
+
+/**
+ * The URL GA4 is told, built in the page: origin, path, and only the
+ * parameters campaign attribution reads. A string of JavaScript rather than a
+ * function, because it runs inside the tag's inline script.
+ */
+const PAGE_LOCATION = "(function(){var u=new URL(location.href),k=new URLSearchParams();"
+  + "u.searchParams.forEach(function(v,n){if(/^(utm_[a-z_]+|gclid|gbraid|wbraid)$/.test(n))k.append(n,v)});"
+  + "var q=k.toString();return u.origin+u.pathname+(q?'?'+q:'')})()";
 
 /**
  * Google Analytics, Google Tag Manager and the Meta Pixel, each rendered only
@@ -32,6 +46,19 @@ import type { SiteSettings } from "@/lib/site-settings";
  *
  * This is a client component for that reason: the answer lives in
  * localStorage and the server cannot know it.
+ *
+ * **Not on a page a secret addresses** (2026-09-26). An order page, a
+ * newsletter unsubscribe and a back-in-stock cancel are each reached by a
+ * link whose token is the key, and both tags report the page's URL. The order
+ * page no longer carries its token in the address (`lib/order-access.ts`), the
+ * other two carry theirs in the path — so none of the three loads a tag at
+ * all, and `page_location` everywhere else is the origin and path plus the
+ * campaign parameters GA attributes with, never the whole query string (a
+ * search term, a filter, whatever a future link puts there). A tag loaded
+ * earlier in the visit stays loaded across a client-side navigation, and the
+ * checkout's redirect to its order is one — which is safe only because that
+ * address carries nothing secret any more. Unsubscribe and cancel are reached
+ * from email, never from a link on the site.
  */
 export function Analytics({ settings }: { settings: SiteSettings }) {
   const ga = settings.google_analytics_id?.trim();
@@ -46,11 +73,13 @@ export function Analytics({ settings }: { settings: SiteSettings }) {
   // Subscribed rather than read once, so the tags start the moment someone
   // accepts rather than on the next navigation.
   const choice = useConsent();
+  const pathname = usePathname() ?? "";
 
   // Nothing at all unless the answer is yes. The server snapshot is null, so
   // the pre-hydration render emits no tags either — loading first and removing
   // later would already have set the cookies.
   if (gated && choice !== "granted") return null;
+  if (SECRET_PATHS.some((prefix) => pathname.startsWith(prefix))) return null;
 
   return (
     <>
@@ -70,7 +99,7 @@ j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNo
             {`window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
-gtag('config', '${ga}');`}
+gtag('config', '${ga}', { page_location: ${PAGE_LOCATION} });`}
           </Script>
         </>
       )}

@@ -293,6 +293,23 @@ class SliderTest extends TestCase
         $this->getJson('/api/v1/sliders/fan-one')
             ->assertOk()
             ->assertJsonPath('data.layout', 'fan');
+
+        // The cylinder and the ripple (2026-09-24), each reaching the public
+        // read for the same reason, and each offered to the console by meta.
+        foreach (['cylinder', 'ripple'] as $layout) {
+            $this->actingAs($this->editor(), 'sanctum')
+                ->postJson('/api/v1/admin/sliders', $this->payload([
+                    'name' => "{$layout} one", 'slug' => "{$layout}-one", 'status' => 'published', 'layout' => $layout,
+                ]))
+                ->assertCreated()
+                ->assertJsonPath('data.layout', $layout);
+
+            $this->getJson("/api/v1/sliders/{$layout}-one")->assertOk()->assertJsonPath('data.layout', $layout);
+        }
+
+        $offered = array_column($this->actingAs($this->editor(), 'sanctum')->getJson('/api/v1/admin/sliders')->json('meta.layouts') ?? [], 'value');
+        $this->assertContains('cylinder', $offered);
+        $this->assertContains('ripple', $offered);
     }
 
     public function test_a_layout_outside_the_enum_is_refused(): void
@@ -316,7 +333,7 @@ class SliderTest extends TestCase
             ->assertOk();
 
         $this->assertSame(
-            ['full', 'split', 'cards', 'fan'],
+            ['full', 'split', 'cards', 'fan', 'cylinder', 'ripple'],
             array_column($response->json('meta.layouts'), 'value'),
         );
         $this->assertCount(9, $response->json('meta.caption_positions'));

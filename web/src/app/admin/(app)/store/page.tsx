@@ -11,10 +11,11 @@ import { cn } from "@/lib/utils";
 import { orderStatusTone, TONE_BAR } from "@/components/ui/badge";
 import {
   IconChart, IconBox, IconTruck, IconKey, IconTag, IconClock,
-  IconWarehouse, IconGauge, IconArrowRight, IconSearchChart,
+  IconWarehouse, IconGauge, IconArrowRight, IconSearchChart, IconCart, IconMail, IconHeart,
 } from "@/components/icons";
 import type { StoreDashboard } from "@/types/api";
 import type { SVGProps } from "react";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Store", path: "/admin/store", seo: noIndex });
 
@@ -304,6 +305,7 @@ export default async function StoreDashboardPage({
 }: {
   searchParams: Promise<{ days?: string }>;
 }) {
+  await requireScreen();
   const { days: rawDays } = await searchParams;
   const requested = Number(rawDays);
   const days = (WINDOWS as readonly number[]).includes(requested) ? requested : 30;
@@ -320,6 +322,9 @@ export default async function StoreDashboardPage({
   }
 
   const { revenue, orders, catalogue, attention, funnel, series, recent, low_stock, codes_low } = data;
+  // Absent from an API older than the reminders; null when none went out.
+  const recovered = data.recovered ?? null;
+  const mostWished = data.most_wished ?? [];
 
   /*
    * The attention band renders only what is actually waiting.
@@ -348,6 +353,8 @@ export default async function StoreDashboardPage({
     /* Somebody asked to be told when it is back and nobody has: the shelf
        worth reordering first. The same `waiting` scope the list filters on. */
     { key: "waiting", count: attention.awaiting_stock, label: "out of stock with people waiting", href: "/admin/store/products?notices=1", icon: IconWarehouse, tone: "warn" as const },
+    /* Reviews nobody has read: the queue opens on exactly these. */
+    { key: "reviews", count: attention.reviews_pending ?? 0, label: "reviews waiting to be read", href: "/admin/store/reviews", icon: IconTag, tone: "info" as const },
     { key: "refund", count: attention.refund_requested, label: "refund requested", href: "/admin/store/orders?status=refund_requested", icon: IconTag, tone: "warn" as const },
     { key: "unpaid", count: attention.awaiting_payment, label: "never paid for", href: "/admin/store/orders?unpaid=1", icon: IconClock, tone: "info" as const },
   ].filter((w) => w.count > 0);
@@ -466,6 +473,32 @@ export default async function StoreDashboardPage({
                 : "Paid orders over product views"
           }
         />
+        {/*
+          What the basket reminders brought back. A dash while nothing was
+          reminded — switched off, or nobody left a basket with an address —
+          because "0 of 0" reads as a feature that failed rather than one
+          that has not run.
+        */}
+        <Figure
+          label="Baskets recovered"
+          icon={IconCart}
+          value={recovered === null ? "—" : `${recovered.recovered} of ${recovered.reminded}`}
+          footnote={
+            recovered === null
+              ? "No basket reminder went out in the window"
+              : `${(recovered.rate * 100).toFixed(1)}% of reminded baskets became an order`
+          }
+        />
+        <Figure
+          label="Recovered revenue"
+          icon={IconMail}
+          value={recovered === null ? "—" : formatPaise(recovered.revenue_paise)}
+          footnote={
+            recovered === null
+              ? "Switch reminders on in Store → Settings"
+              : "Paid orders placed from a reminded basket"
+          }
+        />
       </section>
 
       <div className="mt-3 grid gap-3 xl:grid-cols-[1fr_340px]">
@@ -510,7 +543,7 @@ export default async function StoreDashboardPage({
         </Panel>
       </div>
 
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+      <div className="mt-3 grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
         <Panel title="Running out of stock" href="/admin/store/products" linkLabel="All products">
           {low_stock.length === 0 ? (
             <p className="py-4 text-13 text-muted">Everything tracked is above {data.low_stock_threshold} in stock.</p>
@@ -561,6 +594,36 @@ export default async function StoreDashboardPage({
                       )}
                     >
                       {p.available === 0 ? "None left" : `${p.available} left`}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+
+        {/*
+          What people would like to buy (2026-09-25): the five products on the
+          most wishlists, counted by list rather than by line. Standing demand
+          rather than an event in the window, so it ignores the period picker —
+          and it is the audience a broadcast to "everybody who saved this"
+          would reach.
+        */}
+        <Panel title="Most wished for">
+          {mostWished.length === 0 ? (
+            <p className="py-4 text-13 text-muted">Nobody has saved anything to a wishlist yet.</p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {mostWished.map((p) => (
+                <li key={p.id}>
+                  <Link
+                    href={`/admin/store/products/${p.id}`}
+                    className="flex items-center gap-3 rounded-md px-1 py-1.5 transition-colors hover:bg-surface-2"
+                  >
+                    <IconHeart aria-hidden className="size-4 shrink-0 text-faint" />
+                    <span className="min-w-0 flex-1 truncate text-13">{p.name}</span>
+                    <span className="shrink-0 text-13 font-semibold tabular-nums">
+                      {p.wishes} {p.wishes === 1 ? "list" : "lists"}
                     </span>
                   </Link>
                 </li>

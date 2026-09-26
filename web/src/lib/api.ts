@@ -1,10 +1,14 @@
 import "server-only";
+import { clientIpHeaders } from "@/lib/client-ip";
+import type { StoreFacetsResponse } from "@/types/store-merch";
 import type {
+  ContentBlock,
   BlogPost,
   PublicComment,
   BlogTaxonomy, Brand, CaseStudy, Certification, Client, Collection, Industry, KnowledgeArticle, Paginated, TeamMember,
   CmsPage, Product, ProductCategory, Service, Single, SiteForm, Slider, Solution,
   CmsPageSummary, Gallery, JobOpening, Popup,
+  ContentEntry, ContentTypeSummary,
   SearchResults,
   LandingPageSummary, LandingPage as LandingPageRecord,
   NavNode,
@@ -65,10 +69,20 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   const url = `${BASE}/api/${VERSION}${path.startsWith("/") ? path : `/${path}`}`;
 
+  /*
+    Who is asking, for the API's per-visitor rate limits — on uncached calls
+    only. A cached read is shared by every visitor and its cache key includes
+    the headers, so naming one visitor there would split the cache per address
+    (and a prerender has no visitor to name). Every throttled endpoint is a
+    write or a no-store read, which is exactly the set this covers.
+  */
+  const forwarded = revalidate === undefined ? await clientIpHeaders() : {};
+
   const res = await fetch(url, {
     ...rest,
     headers: {
       Accept: "application/json",
+      ...forwarded,
       ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
@@ -109,6 +123,7 @@ export async function apiUpload<T>(
     method: options.method ?? "POST",
     headers: {
       Accept: "application/json",
+      ...(await clientIpHeaders()),
       ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
     },
     body: formData,
@@ -254,6 +269,17 @@ export const publicApi = {
       revalidate: 600,
       tags: ["store-categories", `store-category:${slug}`],
     }),
+  /**
+   * A category's specification filters with their counts (2026-09-26).
+   * `query` is `?spec[..]..` or empty. **Cached only when it is empty**: a
+   * combination somebody ticked is a user's query, the rule `storeProducts`
+   * keeps for `?q=` — pass `cache: false` whenever a spec is in it.
+   */
+  storeFacets: (slug: string, query = "", cache = true) =>
+    apiFetch<StoreFacetsResponse>(
+      `/store/categories/${encodeURIComponent(slug)}/facets${query}`,
+      cache ? { revalidate: 300, tags: ["store-products", "store-categories"] } : {},
+    ),
 
   /**
    * Brands that have a published product, for the catalogue filter. Cached
@@ -303,6 +329,22 @@ export const publicApi = {
    */
   slider: (slug: string) =>
     apiFetch<Single<Slider>>(`/sliders/${slug}`, { revalidate: 600, tags: [`slider:${slug}`] }),
+
+  /**
+   * One content block by slug — a `[cta]`, `[stats]`, `[pricing]` or
+   * `[stack]` shortcode. Tagged per slug and with `blocks`, so a console save
+   * refreshes the one block and the default band's read together.
+   */
+  block: (slug: string) =>
+    apiFetch<Single<ContentBlock>>(`/blocks/${slug}`, { revalidate: 600, tags: ["blocks", `block:${slug}`] }),
+
+  /**
+   * The site's default CTA, or `data: null` — a 200 either way (the menu
+   * rule: every page ending on the closing band asks, and Next caches only
+   * a 200).
+   */
+  defaultCta: () =>
+    apiFetch<{ data: ContentBlock | null }>("/blocks/default/cta", { revalidate: 600, tags: ["blocks"] }),
 
   /**
    * One gallery by slug. Cached and tagged exactly like a slider — both are
@@ -428,6 +470,27 @@ export const publicApi = {
     apiFetch<Collection<CmsPageSummary>>("/pages", { revalidate: 600, tags: ["pages"] }),
   page: (slug: string) =>
     apiFetch<Single<CmsPage>>(`/pages/${slug}`, { revalidate: 600, tags: ["pages", `page:${slug}`] }),
+
+  /*
+   * Custom content types (docs/custom-content.md). Tagged
+   * `content-types` for the list and `entries:<type>` for everything under
+   * one type, which is what the console's saves invalidate — an entry
+   * renamed moves the archive, and a type's settings (its sort, its per
+   * page) move every page of it.
+   */
+  contentTypes: () =>
+    apiFetch<Collection<ContentTypeSummary>>("/content-types", { revalidate: 600, tags: ["content-types"] }),
+  /** A type's archive: a page of its published entries, and the type in `meta.type`. */
+  contentArchive: (type: string, query = "") =>
+    apiFetch<Paginated<ContentEntry> & { meta: Paginated<ContentEntry>["meta"] & { type: ContentTypeSummary } }>(
+      `/types/${type}${query}`,
+      { revalidate: 600, tags: ["content-types", `entries:${type}`] },
+    ),
+  entry: (type: string, slug: string) =>
+    apiFetch<Single<ContentEntry>>(`/types/${type}/${slug}`, {
+      revalidate: 600,
+      tags: [`entries:${type}`, `entry:${type}:${slug}`],
+    }),
 
   /**
    * Site-wide search. Never cached, for the reason spelled out on

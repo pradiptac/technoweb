@@ -6,12 +6,15 @@ use App\Casts\SpecSheet;
 use App\Enums\ProductCondition;
 use App\Enums\ProductType;
 use App\Enums\PublishStatus;
+use App\Jobs\SendWishlistPriceDrops;
 use App\Models\Concerns\HasAnswerBlocks;
+use App\Models\Concerns\HasCustomFields;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
 use App\Models\Contracts\Answerable;
 use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
+use App\Support\Store\SpecIndex;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -33,11 +36,11 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  */
 class StoreProduct extends Model implements Answerable, Faqable
 {
-    use HasAnswerBlocks, HasSeo, Sluggable;
+    use HasAnswerBlocks, HasCustomFields, HasSeo, Sluggable;
 
     protected $fillable = [
         'store_category_id', 'brand_id', 'name', 'slug', 'sku', 'gtin', 'mpn', 'type',
-        'short_description', 'description', 'images', 'specifications', 'features',
+        'short_description', 'description', 'images', 'videos', 'specifications', 'features',
         'warranty', 'applications',
         'activation_procedure', 'activation_pdf_path',
         'price_paise', 'compare_at_paise', 'track_stock', 'stock', 'allow_oversell', 'returnable',
@@ -66,6 +69,7 @@ class StoreProduct extends Model implements Answerable, Faqable
         'is_featured' => false,
         'feed_include' => true,
         'condition' => 'new',
+        'rating_count' => 0,
     ];
 
     protected function casts(): array
@@ -76,6 +80,9 @@ class StoreProduct extends Model implements Answerable, Faqable
             'specifications' => SpecSheet::class,
             'features' => 'array',
             'images' => 'array',
+            // A list, so the plain array cast keeps its order (MySQL reorders
+            // object keys, never list items). See `App\Support\Store\ProductVideos`.
+            'videos' => 'array',
             'type' => ProductType::class,
             'condition' => ProductCondition::class,
             'weight_grams' => 'integer',
@@ -88,7 +95,39 @@ class StoreProduct extends Model implements Answerable, Faqable
             'allow_oversell' => 'boolean',
             'returnable' => 'boolean',
             'is_featured' => 'boolean',
+            // Written only by `ReviewSummary`; read by every card.
+            'rating_average' => 'decimal:1',
+            'rating_count' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        /*
+         * A price that came down is news to whoever saved this (2026-09-25).
+         * Here rather than in the product form, because the form, the import
+         * and anything written later all save through the model; the job
+         * re-reads every line and decides who is owed a message.
+         */
+        static::updated(function (self $product) {
+            if ($product->wasChanged('price_paise') && (int) $product->price_paise < (int) $product->getOriginal('price_paise')) {
+                SendWishlistPriceDrops::watch($product->id);
+            }
+        });
+
+        /*
+         * The spec filter's index (2026-09-26). A new product or a changed
+         * sheet is rebuilt after the transaction commits, so the variations
+         * the same save writes are read too — see `SpecIndex::queue()`. A
+         * deleted product's rows cascade; the version moves so the facet
+         * cache does not go on counting it.
+         */
+        static::saved(function (self $product) {
+            if ($product->wasRecentlyCreated || $product->wasChanged('specifications')) {
+                SpecIndex::queue((int) $product->id);
+            }
+        });
+        static::deleted(fn () => SpecIndex::touch());
     }
 
     protected function slugSource(): string
@@ -190,6 +229,18 @@ class StoreProduct extends Model implements Answerable, Faqable
     public function stockNotices(): HasMany
     {
         return $this->hasMany(StockNotice::class);
+    }
+
+    /**
+     * Every review written about this product, in any state. `published()`
+     * narrows it; `ReviewSummary` keeps the product's own two columns in
+     * step with what that narrowing says.
+     *
+     * @return HasMany<ProductReview, $this>
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(ProductReview::class);
     }
 
     /**

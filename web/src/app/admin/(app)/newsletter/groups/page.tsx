@@ -5,10 +5,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { NewsletterGroup } from "@/types/api";
 import { GroupManager } from "./group-manager";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Groups", path: "/admin/newsletter/groups", seo: noIndex });
 
 export default async function GroupsPage() {
+  await requireScreen();
   let groups: NewsletterGroup[];
 
   try {

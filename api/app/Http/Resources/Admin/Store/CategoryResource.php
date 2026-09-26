@@ -5,6 +5,7 @@ namespace App\Http\Resources\Admin\Store;
 use App\Http\Resources\Admin\SeoOverrideArray;
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Models\StoreCategory;
+use App\Support\Store\SpecFilter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -32,6 +33,12 @@ class CategoryResource extends JsonResource
             'is_active' => (bool) $this->is_active,
             'sort_order' => (int) $this->sort_order,
             'product_count' => $this->whenCounted('products'),
+            'filter_specs' => array_values($this->filter_specs ?? []),
+            // The labels the filter picker offers: every spec label this
+            // category's published products carry, with how many carry it,
+            // plus any chosen label nothing carries any more (at 0, so it can
+            // be removed). Detail only — it is a query over the index.
+            'spec_labels' => $this->when($detail, fn () => SpecFilter::labelsInUse($this->resource)),
             'faqs' => $this->adminFaqs(),
             // Every block, drafts included, for the AEO tab's repeater.
             'answer_blocks' => $this->adminAnswerBlocks(),

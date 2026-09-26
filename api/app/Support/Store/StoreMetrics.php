@@ -7,8 +7,11 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ProductType;
 use App\Enums\PublishStatus;
+use App\Models\Cart;
 use App\Models\Order;
+use App\Models\ProductReview;
 use App\Models\StoreProduct;
+use App\Models\WishlistItem;
 use App\Support\Seo\GoogleAnalytics;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -63,10 +66,12 @@ class StoreMetrics
             'catalogue' => self::catalogue(),
             'attention' => self::attention($since),
             'funnel' => self::funnel($since),
+            'recovered' => self::recovered($since),
             'series' => self::series($since, $days),
             'recent' => self::recent(),
             'low_stock' => self::lowStock(),
             'codes_low' => self::codesRunningLow(),
+            'most_wished' => self::mostWished(),
         ];
     }
 
@@ -183,6 +188,11 @@ class StoreMetrics
              * people waiting on it is the one worth reordering first.
              */
             'awaiting_stock' => StoreProduct::whereHas('stockNotices', fn ($q) => $q->waiting())->count(),
+            /*
+             * Reviews nobody has read yet — `ProductReview::waiting()`, the
+             * scope the review queue opens on, which is where this links.
+             */
+            'reviews_pending' => ProductReview::waiting()->count(),
             'refund_requested' => Order::where('status', OrderStatus::RefundRequested)->count(),
             /*
              * Failed payments are counted over the window rather than for ever.
@@ -218,6 +228,41 @@ class StoreMetrics
             'product_views' => $views,
             'paid_orders' => $paid,
             'views_to_orders' => $views !== null && $views > 0 ? round($paid / $views, 4) : null,
+        ];
+    }
+
+    /**
+     * What the basket reminders brought back over the window.
+     *
+     * `reminded` is baskets that had a reminder in the window; `recovered`
+     * those of them that went on to become an order — the checkout stamps
+     * `recovered_order_id` on every basket it orders from, and it counts here
+     * only because a reminder had gone first. `revenue_paise` is those orders'
+     * totals **when paid**, the one definition of paid, so an order placed
+     * from a reminder and never paid for is a recovery and not revenue.
+     *
+     * **Null, not zeros, when nothing was reminded** — reminders switched off,
+     * or nobody left a basket with an address on it. "0 of 0 recovered" reads
+     * as a feature that failed; null reads as one that has not run.
+     *
+     * @return array{reminded: int, recovered: int, revenue_paise: int, rate: float}|null
+     */
+    private static function recovered(Carbon $since): ?array
+    {
+        $reminded = Cart::where('reminders_sent', '>', 0)->where('last_reminded_at', '>=', $since);
+        $count = (clone $reminded)->count();
+
+        if ($count === 0) {
+            return null;
+        }
+
+        $orderIds = (clone $reminded)->whereNotNull('recovered_order_id')->pluck('recovered_order_id');
+
+        return [
+            'reminded' => $count,
+            'recovered' => $orderIds->count(),
+            'revenue_paise' => $orderIds->isEmpty() ? 0 : (int) Order::paid()->whereIn('id', $orderIds)->sum('total_paise'),
+            'rate' => round($orderIds->count() / $count, 4),
         ];
     }
 
@@ -332,6 +377,37 @@ class StoreMetrics
                 'id' => $p->id,
                 'name' => $p->name,
                 'available' => (int) $p->available_codes,
+            ])
+            ->all();
+    }
+
+    /**
+     * The five products on the most wishlists (2026-09-25).
+     *
+     * Counted by list, not by line — a list holding the 24-port and the
+     * 48-port of one switch is one person wanting it — and over every list,
+     * guest or account, since both are somebody who would like to buy it.
+     * All time rather than the window: a wish is standing demand, not an
+     * event in a period. Empty rather than zeroes when nobody has saved
+     * anything.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private static function mostWished(): array
+    {
+        return WishlistItem::query()
+            ->join('store_products', 'store_products.id', '=', 'wishlist_items.store_product_id')
+            ->selectRaw('store_products.id, store_products.name, count(distinct wishlist_items.wishlist_id) as wishes')
+            ->groupBy('store_products.id', 'store_products.name')
+            ->orderByDesc('wishes')
+            ->orderBy('store_products.id')
+            ->limit(5)
+            ->toBase()
+            ->get()
+            ->map(fn (object $row) => [
+                'id' => (int) $row->id,
+                'name' => (string) $row->name,
+                'wishes' => (int) $row->wishes,
             ])
             ->all();
     }

@@ -7,6 +7,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { JobForm } from "../job-form";
 import type { AdminJobOpening, JobExperienceLevelRow, JobQualificationRow } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Vacancy", path: "/admin/jobs", seo: noIndex });
 
@@ -16,6 +17,7 @@ export default async function EditJobPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ done?: string }>;
 }) {
+  await requireScreen();
   const { id } = await params;
   const { done } = await searchParams;
 

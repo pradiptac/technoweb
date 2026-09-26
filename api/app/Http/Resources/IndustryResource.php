@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\IncludesAnswerContent;
+use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\Industry;
@@ -12,7 +13,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Industry */
 class IndustryResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesSchema, IncludesSeo;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSeo;
 
     public function toArray(Request $request): array
     {
@@ -35,6 +36,8 @@ class IndustryResource extends JsonResource
             'entity' => $this->entity(),
             // An FAQPage over the FAQs and question blocks; absent under two entries.
             'faq_schema' => $this->faqSchema(),
+            // Custom fields (docs/custom-content.md) — see IncludesCustomFields.
+            ...$this->publicCustomFields(),
             'seo' => $this->seo(),
         ];
     }

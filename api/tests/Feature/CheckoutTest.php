@@ -64,6 +64,18 @@ class CheckoutTest extends TestCase
         ], $overrides);
     }
 
+    /**
+     * Sign the customer in, the way the checkout's Server Action forwards
+     * the portal token. `withHeader` is sticky, so every request after this
+     * one in the test is theirs.
+     */
+    private function signIn(Customer $customer): void
+    {
+        $customer->forceFill(['email_verified_at' => $customer->email_verified_at ?? now()])->save();
+
+        $this->withHeader('Authorization', 'Bearer '.$customer->createToken('portal', ['portal'])->plainTextToken);
+    }
+
     private function checkout(string $token, array $overrides = [])
     {
         return $this->withHeaders(['X-Cart-Token' => $token])
@@ -331,6 +343,9 @@ class CheckoutTest extends TestCase
             'name' => 'Neil Basu', 'email' => 'neil@example.test',
             'password' => 'password-for-tests', 'status' => CustomerStatus::Suspended,
         ]);
+        // Confirmed: an unconfirmed account is passed over altogether (see
+        // the tests at the end of this file), which is not what this asks.
+        $existing->forceFill(['email_verified_at' => now()])->save();
 
         $product = $this->product();
         $token = $this->basketWith($product);
@@ -611,6 +626,11 @@ class CheckoutTest extends TestCase
         $customer = Checkout::accountFor(Order::latest('id')->firstOrFail());
         $this->assertSame('Unit 4, Sector V', $customer->shipping_address['line1']);
 
+        // The second order is theirs, signed in: only that replaces what the
+        // account holds. A guest order typed with the address only fills a
+        // blank (see the tests below).
+        $this->signIn($customer);
+
         $second = $this->basketWith($this->product());
         $this->checkout($second)->assertCreated();
         Checkout::accountFor(Order::latest('id')->firstOrFail());
@@ -629,7 +649,7 @@ class CheckoutTest extends TestCase
         $first = $this->basketWith($this->product());
         $this->checkout($first)->assertCreated();
         $firstOrder = Order::latest('id')->firstOrFail();
-        Checkout::accountFor($firstOrder);
+        $this->signIn(Checkout::accountFor($firstOrder));
 
         $second = $this->basketWith($this->product());
         $this->checkout($second, [
@@ -647,5 +667,109 @@ class CheckoutTest extends TestCase
         $this->assertSame('90 New Street', $customer->fresh()->billing_address['line1']);
         // …and the first order does not.
         $this->assertSame('12 Example Road', $firstOrder->fresh()->billing_address['line1']);
+    }
+
+    /* -------------------------------- whose account an order joins */
+
+    /**
+     * A signed-in buyer's order is theirs from the moment it is placed.
+     *
+     * The route is public, so the customer is read from the portal token by
+     * guard name — `$request->user()` alone would see a guest.
+     */
+    public function test_a_signed_in_checkout_records_the_customer(): void
+    {
+        $customer = Customer::create([
+            'name' => 'Neil Basu', 'email' => 'neil@example.test',
+            'password' => 'a-password-nobody-uses', 'status' => CustomerStatus::Active,
+        ]);
+        $this->signIn($customer);
+
+        $token = $this->basketWith($this->product());
+        $this->checkout($token)->assertCreated();
+
+        $this->assertSame($customer->id, Order::latest('id')->firstOrFail()->customer_id);
+    }
+
+    /**
+     * A paid guest order is not joined to an account nobody has confirmed.
+     *
+     * Anybody can register anybody's address with a password of their
+     * choosing. Joining the buyer's order to that row put it in front of
+     * whoever registered, the moment the address was confirmed. It joins
+     * when the address is confirmed instead — by whoever reads the mailbox,
+     * and after the registrant's password has been retired.
+     */
+    public function test_a_guest_order_waits_for_an_unconfirmed_account_to_be_confirmed(): void
+    {
+        $registered = Customer::create([
+            'name' => 'Not Neil', 'email' => 'neil@example.test',
+            'password' => 'chosen-by-the-registrant', 'status' => CustomerStatus::Active,
+        ]);
+
+        $token = $this->basketWith($this->product());
+        $this->checkout($token)->assertCreated();
+
+        $order = Order::latest('id')->firstOrFail();
+        $order->forceFill(['paid_at' => now(), 'status' => OrderStatus::Paid])->save();
+
+        $this->assertNull(Checkout::accountFor($order));
+        $this->assertNull($order->fresh()->customer_id);
+        $this->assertNull($registered->fresh()->billing_address, 'A stranger\'s order wrote to the unconfirmed row.');
+
+        $registered->markEmailVerified();
+
+        $this->assertSame($registered->id, $order->fresh()->customer_id);
+    }
+
+    /**
+     * A guest order typed with somebody's address does not rewrite theirs.
+     *
+     * The email is all a guest checkout proves, and anybody can type one.
+     * The saved address and GSTIN are what the owner's next checkout opens
+     * with, so a guest order fills a blank and never replaces a value.
+     */
+    public function test_a_guest_order_does_not_replace_a_confirmed_accounts_saved_details(): void
+    {
+        $customer = Customer::create([
+            'name' => 'Neil Basu', 'email' => 'neil@example.test',
+            'password' => 'a-password-nobody-uses', 'status' => CustomerStatus::Active,
+            'billing_address' => ['line1' => '1 Home Lane', 'city' => 'Kolkata', 'state' => 'West Bengal', 'pin' => '700001', 'country' => 'India'],
+            'gstin' => '19AAPFU0939F1ZV',
+        ]);
+        $customer->forceFill(['email_verified_at' => now()])->save();
+
+        $token = $this->basketWith($this->product());
+        $this->checkout($token, [
+            'address' => ['line1' => '66 Elsewhere Street', 'city' => 'Howrah', 'state' => 'West Bengal', 'pin' => '711101'],
+            'gst_required' => true,
+            'gstin' => '27AAPFU0939F1ZV',
+            'company_name' => 'Somebody Else Ltd',
+        ])->assertCreated();
+
+        $order = Order::latest('id')->firstOrFail();
+        Checkout::accountFor($order);
+
+        $customer->refresh();
+
+        $this->assertSame($customer->id, $order->fresh()->customer_id);
+        $this->assertSame('1 Home Lane', $customer->billing_address['line1']);
+        $this->assertSame('19AAPFU0939F1ZV', $customer->gstin);
+    }
+
+    public function test_a_guest_order_fills_a_confirmed_account_that_has_nothing_saved(): void
+    {
+        $customer = Customer::create([
+            'name' => 'Neil Basu', 'email' => 'neil@example.test',
+            'password' => 'a-password-nobody-uses', 'status' => CustomerStatus::Active,
+        ]);
+        $customer->forceFill(['email_verified_at' => now()])->save();
+
+        $token = $this->basketWith($this->product());
+        $this->checkout($token)->assertCreated();
+
+        Checkout::accountFor(Order::latest('id')->firstOrFail());
+
+        $this->assertSame('12 Example Road', $customer->fresh()->billing_address['line1']);
     }
 }

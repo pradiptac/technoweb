@@ -1,14 +1,16 @@
 import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
-import { getAnswerBlockKinds, getKnowledgeCategories } from "@/lib/admin";
+import { getAnswerBlockKinds, getKnowledgeCategories, getCustomFieldGroups } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ArticleForm } from "../article-form";
 import type { KnowledgeCategory, AnswerBlockKindOption } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New article", path: "/admin/knowledge-base/new", seo: noIndex });
 
 export default async function NewKnowledgeArticlePage() {
+  await requireScreen();
   let categories: KnowledgeCategory[] = [];
   let kinds: AnswerBlockKindOption[] = [];
   try {
@@ -28,7 +30,7 @@ export default async function NewKnowledgeArticlePage() {
         title="New article"
       />
 
-      <ArticleForm categories={categories} kinds={kinds} />
+      <ArticleForm categories={categories} kinds={kinds} fieldGroups={await getCustomFieldGroups("/admin/knowledge-articles")} />
     </>
   );
 }

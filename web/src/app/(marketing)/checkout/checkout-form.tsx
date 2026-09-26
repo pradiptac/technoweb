@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Form } from "@/components/ui/form";
 import { CompanyField } from "@/components/forms/company-field";
 import { AddressFields } from "@/components/forms/address-fields";
@@ -9,7 +9,7 @@ import { brandConfettiColors, confettiBurst } from "@/components/velora/confetti
 import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { formatPaise } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import { placeOrderAction, type CheckoutState } from "./actions";
+import { placeOrderAction, saveCartContactAction, type CheckoutState } from "./actions";
 import type { CartSummary, Customer } from "@/types/api";
 
 const initial: CheckoutState = {};
@@ -53,6 +53,7 @@ export function CheckoutForm({
   cart,
   shippable,
   customer,
+  messagingChannels = [],
 }: {
   cart: CartSummary;
   shippable: boolean;
@@ -66,6 +67,8 @@ export function CheckoutForm({
    * form still submits what is on screen rather than what is on the account.
    */
   customer?: Customer | null;
+  /** The phone channels that can deliver now, from the public settings' live bits. */
+  messagingChannels?: { value: string; label: string }[];
 }) {
   const [state, formAction, pending] = useActionState(placeOrderAction, initial);
   const [gst, setGst] = useState(Boolean(customer?.gstin));
@@ -97,6 +100,49 @@ export function CheckoutForm({
   const chosen = methods.find((m) => m.value === method);
 
   const err = (field: string) => state.fieldErrors?.[field]?.[0];
+
+  /*
+   * The email and the mobile are kept on the basket as each field is left,
+   * before any order exists — the basket that is abandoned is the one that
+   * never became an order, so this is the only moment an address for a
+   * reminder can be kept. Debounced, because tabbing from one field straight
+   * through the other is two blurs and one decision; and skipped when nothing
+   * changed since the last save, so tabbing through a prefilled form sends
+   * nothing at all.
+   */
+  const contactTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastContact = useRef<string | null>(null);
+
+  useEffect(() => () => {
+    if (contactTimer.current) clearTimeout(contactTimer.current);
+  }, []);
+
+  const saveContact = (form: HTMLFormElement | null) => {
+    if (!form) return;
+    if (contactTimer.current) clearTimeout(contactTimer.current);
+
+    contactTimer.current = setTimeout(() => {
+      const read = (name: string) => {
+        const field = form.elements.namedItem(name);
+
+        return field instanceof HTMLInputElement ? field.value : undefined;
+      };
+      const contact = { email: read("email"), phone: read("phone") };
+      const key = JSON.stringify(contact);
+
+      if (key === lastContact.current) return;
+      lastContact.current = key;
+      void saveCartContactAction(contact);
+    }, 400);
+  };
+
+  /*
+   * What this basket already holds comes first: it is what was typed on this
+   * checkout — perhaps before a reminder brought them back — and is newer
+   * than anything on the account.
+   */
+  const savedEmail = cart.contact?.email ?? customer?.email ?? "";
+  const savedPhone = cart.contact?.phone ?? customer?.phone ?? "";
 
   /** Two fields to a row above `sm`, one below it. */
   const pair = "grid gap-x-4 sm:grid-cols-2";
@@ -144,19 +190,50 @@ export function CheckoutForm({
             */}
             <Field label="Mobile" htmlFor="phone" error={err("phone")}>
               <Input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" required
-                defaultValue={customer?.phone ?? ""}
+                defaultValue={savedPhone}
+                onBlur={(e) => saveContact(e.currentTarget.form)}
                 aria-invalid={Boolean(err("phone"))} />
             </Field>
           </div>
+
+          {/*
+            Order updates on the number above, one box per messaging channel
+            the shop can actually deliver on (the API's `messaging_*_live`
+            bits) — none at all while every channel is off. Unticked by
+            default: consent is something a person gives, and a box ticked for
+            them is not it.
+          */}
+          {messagingChannels.length > 0 && (
+            <fieldset className="mb-4 grid gap-1.5">
+              <legend className="sr-only">Order updates on your mobile</legend>
+              {messagingChannels.map((c) => (
+                <label key={c.value} className="flex min-h-6 items-start gap-2.5 text-14">
+                  <input type="checkbox" name="message_opt_in" value={c.value}
+                    className="mt-1 size-4 shrink-0 accent-[var(--color-brand-600)]" />
+                  <span>Send order updates to this number on {c.label}. Reply STOP to end them.</span>
+                </label>
+              ))}
+            </fieldset>
+          )}
 
           {/*
             The email keeps its hint and its own row. It is the only field here
             whose value matters *after* the order — it is the link back to it —
             and that is something nobody knows until they are told.
           */}
+          {/*
+            The second sentence is drawn only while basket reminders are on:
+            it is the notice the API's consent stamp records, and a form must
+            not promise a reminder the shop has switched off.
+          */}
           <Field label="Email" htmlFor="email" error={err("email")}
-            hint="The confirmation goes here, and it is the link back to this order.">
-            <Input id="email" name="email" type="email" autoComplete="email" required defaultValue={customer?.email ?? ""}
+            hint={
+              cart.contact?.reminders
+                ? "The confirmation goes here, and it is the link back to this order. If you do not finish, we may email you a reminder about this basket."
+                : "The confirmation goes here, and it is the link back to this order."
+            }>
+            <Input id="email" name="email" type="email" autoComplete="email" required defaultValue={savedEmail}
+              onBlur={(e) => saveContact(e.currentTarget.form)}
               aria-invalid={Boolean(err("email"))} />
           </Field>
 

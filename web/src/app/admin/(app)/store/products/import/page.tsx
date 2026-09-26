@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { StoreImportWizard } from "./import-wizard";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Import products", path: "/admin/store/products/import", seo: noIndex });
 
@@ -14,7 +15,8 @@ export const metadata = buildMetadata({ title: "Import products", path: "/admin/
  * Nothing is fetched to draw it: the analysis carries the column list, so
  * the screen has nothing to load until a file is chosen.
  */
-export default function StoreImportPage() {
+export default async function StoreImportPage() {
+  await requireScreen();
   return (
     <>
       <PageHeader

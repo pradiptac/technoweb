@@ -6,7 +6,7 @@ import {
   IconArrows, IconBook, IconBox, IconBuilding, IconCert, IconChart,   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
   IconClock, IconHeadset, IconMegaphone, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
-  IconWrench, IconNewspaper, IconBriefcase, IconShield, IconPlug,
+  IconWrench, IconNewspaper, IconBriefcase, IconShield, IconPlug, IconChat,
 } from "@/components/icons";
 
 /**
@@ -30,6 +30,14 @@ type Icon = (p: React.SVGProps<SVGSVGElement>) => React.ReactElement;
  */
 export type RoleSlug = "support_engineer" | "content_manager" | "seo_manager" | "campaign_manager" | "store_manager" | "sales_manager" | "admin";
 
+/**
+ * A row reachable by either of two roles, spelled the way the route's
+ * middleware spells it (`role:campaign_manager,store_manager`), so
+ * `AdminNavRolesTest` compares the two strings as they are. Messaging is the
+ * first: its templates, automations and broadcasts are worked by both desks.
+ */
+export type RoleGate = RoleSlug | `${RoleSlug},${RoleSlug}`;
+
 export type NavLink = {
   href: string;
   label: string;
@@ -46,7 +54,7 @@ export type NavLink = {
    * link that 403s. Omitted means everybody: `/admin/profile` is your own
    * account and every role may reach it.
    */
-  role?: RoleSlug;
+  role?: RoleGate;
 };
 
 export type NavItem =
@@ -107,6 +115,19 @@ export const NAV: NavItem[] = [
     ],
   },
   /*
+    Engineer visits (2026-09-26, docs/visits.md), beside Leads: a queue both
+    the sales desk and the support desk work — a site survey starts a sale
+    and scopes an installation — so the row carries both roles, spelled the
+    way the route's middleware spells them.
+  */
+  {
+    kind: "group", id: "visits", label: "Visits", icon: IconBuilding,
+    links: [
+      { role: "sales_manager,support_engineer", href: "/admin/visits", label: "Visits", icon: IconClock },
+      { role: "admin", href: "/admin/visits/settings", label: "Visit settings", icon: IconSliders },
+    ],
+  },
+  /*
     Top level, and called Campaign rather than Newsletter.
 
     It sat inside Site on the grounds that a fifth section for one module was
@@ -149,6 +170,8 @@ export const NAV: NavItem[] = [
       { role: "store_manager", href: "/admin/store/products", label: "Products", icon: IconBox },
       { role: "store_manager", href: "/admin/store/categories", label: "Categories", icon: IconGrid },
       { role: "store_manager", href: "/admin/store/coupons", label: "Discount codes", icon: IconTag },
+      // Product reviews: the queue opens on what is waiting (docs/store.md, "Reviews").
+      { role: "store_manager", href: "/admin/store/reviews", label: "Reviews", icon: IconChat },
       // The shop front's promo band: eight settings rows behind a store-manager
       // endpoint of their own, so the person running a promotion does not
       // need Settings — which they cannot open. The info bar's shape.
@@ -156,6 +179,23 @@ export const NAV: NavItem[] = [
       { role: "store_manager", href: "/admin/store/stock", label: "Stock", icon: IconBox },
       { role: "store_manager", href: "/admin/store/reports", label: "Reports", icon: IconSearchChart },
       { role: "admin", href: "/admin/store/settings", label: "Settings", icon: IconSliders },
+    ],
+  },
+  {
+    /*
+      WhatsApp, RCS and browser push (Phase 2): what is said on each channel,
+      which event says it, one-off broadcasts, and who agreed to be messaged.
+      Top level beside Campaign and Store because both desks work it — the
+      one section gated on two roles at once — and its settings (the provider
+      keys) are the administrator's, like every module's.
+    */
+    kind: "group", id: "messaging", label: "Messaging", icon: IconChat,
+    links: [
+      { role: "campaign_manager,store_manager", href: "/admin/messaging/templates", label: "Templates", icon: IconPen },
+      { role: "campaign_manager,store_manager", href: "/admin/messaging/automations", label: "Automations", icon: IconSliders },
+      { role: "campaign_manager,store_manager", href: "/admin/messaging/broadcasts", label: "Broadcasts", icon: IconMegaphone },
+      { role: "campaign_manager,store_manager", href: "/admin/messaging/contacts", label: "Contacts", icon: IconUsers },
+      { role: "admin", href: "/admin/messaging/settings", label: "Settings", icon: IconSliders },
     ],
   },
   {
@@ -227,6 +267,16 @@ export const NAV: NavItem[] = [
       { role: "content_manager", href: "/admin/team-members", label: "Team", icon: IconUsers },
       { role: "content_manager", href: "/admin/clients", label: "Clients", icon: IconBuilding },
       { role: "content_manager", href: "/admin/certifications", label: "Certifications", icon: IconShield },
+      // Custom fields (docs/custom-content.md): extra fields on the records above.
+      { role: "content_manager", href: "/admin/custom-fields", label: "Custom fields", icon: IconWrench },
+      /*
+        Custom content types: one row for the types and one for their
+        entries, however many types there are. `/admin/content/{type}/…`
+        resolves to "Custom content" by the longest-match rule, so every
+        entry screen keeps its role gate without a row per type.
+      */
+      { role: "content_manager", href: "/admin/content-types", label: "Content types", icon: IconGrid },
+      { role: "content_manager", href: "/admin/content", label: "Custom content", icon: IconPen },
     ],
   },
   {
@@ -316,6 +366,15 @@ export const NAV: NavItem[] = [
       { role: "content_manager", href: "/admin/sliders", label: "Sliders", icon: IconCamera },
       { role: "content_manager", href: "/admin/galleries", label: "Galleries", icon: IconImage },
       { role: "content_manager", href: "/admin/popups", label: "Popups", icon: IconLayers },
+      /*
+        Content blocks (2026-09-24): one entity, four rows, the kind in the
+        path so each row matches its own list, form and preview — and the
+        role gate finds a row for every one of those screens.
+      */
+      { role: "content_manager", href: "/admin/blocks/cta", label: "CTA banners", icon: IconMegaphone },
+      { role: "content_manager", href: "/admin/blocks/stats", label: "Stat bars", icon: IconChart },
+      { role: "content_manager", href: "/admin/blocks/pricing", label: "Pricing", icon: IconGrid },
+      { role: "content_manager", href: "/admin/blocks/stack", label: "Technology stack", icon: IconLayers },
       /*
         The announcement strip, at the client's request beside Popups — it
         is a thing on the site rather than a setting, whatever table it
@@ -455,11 +514,11 @@ export function neonFor(href: string): string {
  * An `admin` passes every role check on the server, so it passes every one
  * here — one rule, stated once, rather than an `admin` entry on all 24 rows.
  */
-export function permits(roles: string[], role?: RoleSlug): boolean {
+export function permits(roles: string[], role?: RoleGate): boolean {
   if (role === undefined) return true;
   if (roles.includes("admin")) return true;
 
-  return roles.includes(role);
+  return role.split(",").some((r) => roles.includes(r));
 }
 
 
@@ -478,7 +537,7 @@ export function permits(roles: string[], role?: RoleSlug): boolean {
  * profile, a screen added before its row — needs nothing, and the API still
  * has the last word on every one.
  */
-export function screenRole(pathname: string): RoleSlug | undefined {
+export function screenRole(pathname: string): RoleGate | undefined {
   return bestRow(NAV.flatMap((item) => (item.kind === "link" ? [item] : item.links)), pathname)?.role;
 }
 

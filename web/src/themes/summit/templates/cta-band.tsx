@@ -19,6 +19,9 @@ export function CtaBand({
   size = "md",
   className,
   phone,
+  kicker,
+  primary,
+  secondary,
 }: CtaBandProps) {
   return (
     <section className={cn("section-y", className)}>
@@ -26,12 +29,17 @@ export function CtaBand({
         <div data-aos="fade-up" className={cn("relative overflow-hidden rounded-2xl border border-dark-line bg-dark px-7 text-center text-dark-ink", size === "lg" ? "py-16 lg:py-24" : "py-12 lg:py-16")}>
           <div aria-hidden className={cn("pointer-events-none absolute left-1/2 top-0 h-[360px] w-[720px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-25 blur-3xl", tone === "brand" ? "bg-brand-500" : "bg-accent-500")} />
           <div className="relative mx-auto max-w-[46ch]">
+            {kicker && <p className="mb-3 text-12 font-semibold uppercase tracking-[.14em]">{kicker}</p>}
             <h2 className={cn(size === "lg" ? "display-2" : "display-3", "text-balance")}>{title}</h2>
             <p className="mt-4 text-15 leading-relaxed text-dark-muted">{body}</p>
           </div>
           <div className="relative mt-8 flex flex-wrap justify-center gap-3">
-            <ButtonLink href="/contact">Book a demo <IconArrowRight /></ButtonLink>
-            <ButtonLink href={telHref(phone)} variant="onDarkOutline" className="border-white/25 text-white">Call {phone}</ButtonLink>
+            <ButtonLink href={primary?.href || "/contact"}>{primary?.label || "Book a demo"} <IconArrowRight /></ButtonLink>
+            {secondary === null ? null : secondary ? (
+              <ButtonLink href={secondary.href} variant="onDarkOutline" className="border-white/25 text-white">{secondary.label}</ButtonLink>
+            ) : (
+              <ButtonLink href={telHref(phone)} variant="onDarkOutline" className="border-white/25 text-white">Call {phone}</ButtonLink>
+            )}
           </div>
         </div>
       </Container>

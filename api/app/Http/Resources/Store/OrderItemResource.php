@@ -4,6 +4,7 @@ namespace App\Http\Resources\Store;
 
 use App\Models\DigitalCode;
 use App\Models\OrderItem;
+use App\Models\ProductReview;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -47,6 +48,19 @@ class OrderItemResource extends JsonResource
                 ? DigitalCode::where('order_item_id', $this->id)->exists()
                 : false,
             'slug' => $this->whenLoaded('product', fn () => $this->product?->slug),
+
+            /*
+             * The signed-in customer's own review of this product, when the
+             * portal's order read attached one (`myReview`), null when they
+             * have not written one, and absent everywhere else — the guest
+             * link and the admin never carry it.
+             */
+            'my_review' => $this->when(
+                $this->resource->relationLoaded('myReview'),
+                fn () => ($r = $this->resource->getRelation('myReview')) instanceof ProductReview
+                    ? ['status' => $r->status->value, 'status_label' => $r->status->label(), 'rating' => (int) $r->rating]
+                    : null,
+            ),
         ];
     }
 }

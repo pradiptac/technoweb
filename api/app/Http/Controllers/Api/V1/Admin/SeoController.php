@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\Certification;
+use App\Models\Entry;
 use App\Models\Industry;
 use App\Models\JobOpening;
 use App\Models\KnowledgeArticle;
@@ -108,6 +109,13 @@ class SeoController extends Controller
          * to open and fix.
          */
         'store_category' => [StoreCategory::class, 'name', 'store/categories', 'Store categories', ['faqs', 'answerBlocks'], ['description'], 80],
+        /*
+         * Entries of the custom content types (docs/custom-content.md) — one
+         * row per entry. The console route is per type
+         * (`/admin/content/{type}/{id}`), so the record answers `adminPath()`
+         * itself rather than taking the segment here.
+         */
+        'entry' => [Entry::class, 'title', 'content', 'Custom content', ['contentType', 'faqs', 'answerBlocks'], ['body'], 250],
     ];
 
     /** The bands `?aeo=` and `?geo=` may ask for. */
@@ -472,7 +480,7 @@ class SeoController extends Controller
                     // A landing page has no slug of its own — its address is
                     // composed from two or three other records and stored whole.
                     'slug' => $record->slug ?? ltrim($record->publicPath(), '/'),
-                    'admin_path' => "/admin/{$adminPath}/{$record->id}",
+                    'admin_path' => method_exists($record, 'adminPath') ? $record->adminPath() : "/admin/{$adminPath}/{$record->id}",
                     'url' => $resolved['canonical_url'],
                     /*
                      * Where the record lives, as a **path** and not a URL.

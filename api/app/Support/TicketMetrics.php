@@ -62,6 +62,106 @@ class TicketMetrics
         return $series;
     }
 
+    /** The ticket volume chart's periods, and the bucket each is drawn in. */
+    public const VOLUME_PERIODS = [
+        'month' => ['bucket' => 'day', 'count' => 30],
+        'quarter' => ['bucket' => 'week', 'count' => 13],
+        'half' => ['bucket' => 'week', 'count' => 26],
+        'year' => ['bucket' => 'month', 'count' => 12],
+    ];
+
+    /**
+     * Tickets opened and resolved over a period, in buckets that suit it.
+     *
+     * A month is thirty days, a quarter and a half year are weeks (13 and 26,
+     * Monday to Sunday, the last one this week), a year is twelve calendar
+     * months ending with this one. Three hundred and sixty-five daily points
+     * would be a line too dense to read a spike off, and a spike is the only
+     * question the chart is asked.
+     *
+     * Counted per day in SQL and bucketed here, so the grouping is the same
+     * on every database and there is still no gap: every bucket is present,
+     * empty ones as zero — the `dailyVolume` rule, one level up.
+     *
+     * An unknown period falls back to `month`, the catalogue's `?sort=` rule:
+     * it arrives from a link, and the chart is a better answer than a 422.
+     *
+     * @return array{period:string,bucket:string,points:list<array{date:string,end:string,created:int,resolved:int}>}
+     */
+    public static function volume(string $period): array
+    {
+        $period = array_key_exists($period, self::VOLUME_PERIODS) ? $period : 'month';
+        ['bucket' => $bucket, 'count' => $count] = self::VOLUME_PERIODS[$period];
+
+        if ($bucket === 'day') {
+            $points = array_map(fn (array $d) => [
+                'date' => $d['date'], 'end' => $d['date'], 'created' => $d['created'], 'resolved' => $d['resolved'],
+            ], self::dailyVolume($count));
+
+            return ['period' => $period, 'bucket' => $bucket, 'points' => $points];
+        }
+
+        $today = CarbonImmutable::today();
+        $starts = [];
+        if ($bucket === 'week') {
+            $first = $today->startOfWeek(CarbonImmutable::MONDAY)->subWeeks($count - 1);
+            for ($i = 0; $i < $count; $i++) {
+                $starts[] = $first->addWeeks($i);
+            }
+        } else {
+            $first = $today->startOfMonth()->subMonthsNoOverflow($count - 1);
+            for ($i = 0; $i < $count; $i++) {
+                $starts[] = $first->addMonthsNoOverflow($i);
+            }
+        }
+
+        $from = $starts[0];
+        $created = self::perDay('created_at', $from);
+        $resolved = self::perDay('resolved_at', $from);
+
+        $points = [];
+        foreach ($starts as $i => $start) {
+            $next = $starts[$i + 1] ?? ($bucket === 'week' ? $start->addWeek() : $start->addMonthNoOverflow());
+            $end = $next->subDay();
+            $points[] = [
+                'date' => $start->toDateString(),
+                'end' => ($end->greaterThan($today) ? $today : $end)->toDateString(),
+                'created' => self::sumBetween($created, $start, $next),
+                'resolved' => self::sumBetween($resolved, $start, $next),
+            ];
+        }
+
+        return ['period' => $period, 'bucket' => $bucket, 'points' => $points];
+    }
+
+    /** @return array<string,int> day => count, from a date onwards */
+    private static function perDay(string $column, CarbonImmutable $from): array
+    {
+        return Ticket::query()
+            ->whereNotNull($column)
+            ->where($column, '>=', $from)
+            ->selectRaw("DATE({$column}) as day, COUNT(*) as total")
+            ->groupBy('day')
+            ->pluck('total', 'day')
+            ->map(fn ($n) => (int) $n)
+            ->all();
+    }
+
+    /** @param array<string,int> $perDay */
+    private static function sumBetween(array $perDay, CarbonImmutable $from, CarbonImmutable $before): int
+    {
+        $lo = $from->toDateString();
+        $hi = $before->toDateString();
+        $sum = 0;
+        foreach ($perDay as $day => $n) {
+            if ($day >= $lo && $day < $hi) {
+                $sum += $n;
+            }
+        }
+
+        return $sum;
+    }
+
     /**
      * Median hours from a ticket arriving to somebody answering it.
      *

@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import type { StockReport } from "@/types/api";
 import { Card } from "@/components/ui/card";
 import { formatDate } from "@/lib/dates";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Stock in and out", path: "/admin/store/stock", seo: noIndex });
 
@@ -60,6 +61,7 @@ function units(n: number): string {
 }
 
 export default async function StockPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireScreen();
   const params = await searchParams;
 
   let report: StockReport;

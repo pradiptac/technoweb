@@ -6,6 +6,7 @@ use App\Enums\PublishStatus;
 use App\Models\Solution;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
@@ -77,5 +78,43 @@ class SearchTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.total', 0)
             ->assertJsonPath('meta.min_length', 2);
+    }
+
+    /**
+     * `%` and `_` are searched for, not used as wildcards.
+     *
+     * `%%` is two characters, clears the floor, and as a raw LIKE pattern
+     * returned the head of every table on the site.
+     */
+    public function test_like_wildcards_in_the_term_match_only_themselves(): void
+    {
+        $this->solutions(3);
+
+        $this->getJson('/api/v1/search?q='.rawurlencode('%%'))
+            ->assertOk()
+            ->assertJsonPath('data.total', 0);
+
+        $this->getJson('/api/v1/search?q='.rawurlencode('__'))
+            ->assertOk()
+            ->assertJsonPath('data.total', 0);
+    }
+
+    /** A term longer than any search is refused rather than scanned for. */
+    public function test_a_term_past_the_ceiling_is_refused(): void
+    {
+        $this->getJson('/api/v1/search?q='.str_repeat('a', 101))->assertStatus(422);
+    }
+
+    /** Public, unauthenticated and a dozen scans a request: it is throttled. */
+    public function test_search_is_throttled(): void
+    {
+        $route = collect(Route::getRoutes()->getRoutes())
+            ->first(fn ($r) => $r->uri() === 'api/v1/search');
+
+        $this->assertNotNull($route);
+        $this->assertNotEmpty(
+            array_filter($route->gatherMiddleware(), fn ($m) => str_starts_with((string) $m, 'throttle')),
+            'GET /search carries no throttle.',
+        );
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\ProductAvailability;
 use App\Enums\PublishStatus;
+use App\Http\Requests\Concerns\AcceptsCustomFields;
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
 use Illuminate\Foundation\Http\FormRequest;
@@ -11,7 +12,12 @@ use Illuminate\Validation\Rule;
 
 class UpdateProductRequest extends FormRequest
 {
-    use SanitisesRichText;
+    use AcceptsCustomFields, SanitisesRichText;
+
+    protected function customFieldTarget(): string
+    {
+        return 'product';
+    }
 
     protected function richTextFields(): array
     {
@@ -59,6 +65,7 @@ class UpdateProductRequest extends FormRequest
             ...CmsFieldRules::faqs(),
             ...CmsFieldRules::answerBlocks(),
             ...SeoRules::rules(),
+            ...$this->customFieldRules(),
 
             // Appended rather than replacing the ids() rule above, so a bad id
             // is still reported as "does not exist" before this runs.

@@ -22,6 +22,13 @@ use Illuminate\Validation\Rule;
  */
 class CheckoutRequest extends FormRequest
 {
+    /**
+     * An Indian mobile, the shape `phone` is held to — see the rule below.
+     * A constant so the basket's contact endpoint holds the number to the
+     * same rule before an order exists.
+     */
+    public const MOBILE_PATTERN = '/^(?:\+?91[-\s]?)?0?[6-9](?:[-\s]?\d){9}$/';
+
     public function authorize(): bool
     {
         return true;
@@ -54,7 +61,7 @@ class CheckoutRequest extends FormRequest
              */
             'phone' => [
                 'required', 'string', 'max:32',
-                'regex:/^(?:\+?91[-\s]?)?0?[6-9](?:[-\s]?\d){9}$/',
+                'regex:'.self::MOBILE_PATTERN,
             ],
 
             /*
@@ -97,6 +104,11 @@ class CheckoutRequest extends FormRequest
              * this shop offers today is a question with an answer that changes.
              */
             'payment_method' => ['sometimes', 'nullable', Rule::enum(PaymentMethod::class)],
+
+            // The messaging opt-in boxes under the mobile field: which of the
+            // phone channels may carry updates to the number typed above.
+            'message_opt_in' => ['sometimes', 'array', 'max:2'],
+            'message_opt_in.*' => ['string', Rule::in(['whatsapp', 'rcs'])],
 
             'gst_required' => ['sometimes', 'boolean'],
 

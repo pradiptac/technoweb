@@ -36,7 +36,14 @@ class DatabaseSeeder extends Seeder
             // The team, the clients and the certifications — placeholder rows,
             // created only while each table is empty. See CLAUDE.md.
             CompanyProfileSeeder::class,
+            // Sample CTA banners, stat bars, pricing and a technology stack —
+            // drafts, except the default closing band, whose words are the
+            // ones every theme already shows. Create-only.
+            ContentBlockSeeder::class,
             FormSeeder::class,
+            // One draft builder page with a section of every type, after the
+            // blocks, sliders and forms it points at. Create-only.
+            SampleBuilderPageSeeder::class,
             /*
              * Never registered until now, so a fresh install had an empty
              * template gallery and no standing customers group — and the

@@ -8,6 +8,7 @@ use App\Http\Requests\StoreCaseStudyRequest;
 use App\Http\Requests\UpdateCaseStudyRequest;
 use App\Http\Resources\Admin\CaseStudyResource;
 use App\Models\CaseStudy;
+use App\Support\CustomFields\CustomFields;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -40,28 +41,34 @@ class CaseStudyController extends Controller
             ->paginate(min($request->integer('per_page', 20), 100))
             ->withQueryString();
 
-        return CaseStudyResource::collection($studies);
+        // The custom field groups that apply, for the console's Fields tab.
+        return CaseStudyResource::collection($studies)->additional(['meta' => [
+            'custom_field_groups' => CustomFields::definitions('case_study'),
+        ]]);
     }
 
     public function show(CaseStudy $caseStudy): JsonResource
     {
-        return new CaseStudyResource($caseStudy->load(['industry', 'seo']));
+        return new CaseStudyResource($caseStudy->load(['industry', 'seo', 'customValues.field.group']));
     }
 
     public function store(StoreCaseStudyRequest $request): JsonResponse
     {
         $study = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
 
             $study = CaseStudy::create($attributes);
 
             $this->saveSeo($study, $seo);
 
+            $this->saveCustomFields($study, $custom);
+
             return $study;
         });
 
         return response()->json(
-            ['data' => new CaseStudyResource($study->load(['industry', 'seo']))],
+            ['data' => new CaseStudyResource($study->load(['industry', 'seo', 'customValues.field.group']))],
             201
         );
     }
@@ -70,13 +77,16 @@ class CaseStudyController extends Controller
     {
         DB::transaction(function () use ($request, $caseStudy) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
 
             $caseStudy->update($attributes);
 
             $this->saveSeo($caseStudy, $seo);
+
+            $this->saveCustomFields($caseStudy, $custom);
         });
 
-        return new CaseStudyResource($caseStudy->fresh(['industry', 'seo']));
+        return new CaseStudyResource($caseStudy->fresh(['industry', 'seo', 'customValues.field.group']));
     }
 
     public function destroy(CaseStudy $caseStudy): JsonResponse

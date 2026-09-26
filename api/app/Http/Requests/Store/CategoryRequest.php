@@ -5,8 +5,12 @@ namespace App\Http\Requests\Store;
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
 use App\Http\Requests\SeoRules;
+use App\Models\StoreCategory;
+use App\Support\Store\SpecIndex;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * The store's own taxonomy. Flat, small, and plain text throughout — that
@@ -65,6 +69,14 @@ class CategoryRequest extends FormRequest
              * product that sits oddly in its category overrides it.
              */
             'google_product_category' => ['sometimes', 'nullable', 'string', 'max:255'],
+            /*
+             * The specification filters this category offers, in order
+             * (2026-09-26). Labels, not keys — the words shown over each
+             * group — and each has to be one the category's products carry;
+             * see `after()`.
+             */
+            'filter_specs' => ['sometimes', 'nullable', 'array', 'max:12'],
+            'filter_specs.*' => ['required', 'string', 'max:120'],
             'icon_path' => ['sometimes', 'nullable', 'string', 'max:255'],
             'image_path' => ['sometimes', 'nullable', 'string', 'max:255', 'not_regex:/^https?:\/\//i'],
             'is_active' => ['sometimes', 'boolean'],
@@ -74,6 +86,63 @@ class CategoryRequest extends FormRequest
             ...CmsFieldRules::answerBlocks(),
             ...SeoRules::rules(),
         ];
+    }
+
+    /**
+     * A filter is offered only for a label this category's products carry.
+     *
+     * Saved otherwise it is a heading over nothing on the shop — or, once a
+     * product with that label is added, a filter nobody decided to offer. The
+     * console's picker offers exactly the labels in use; this is what holds
+     * when something else posts. Matched on `SpecIndex::key()`, so "PoE" and
+     * "poe" are one label; a repeated one is refused rather than shown twice.
+     *
+     * @return array<int, \Closure>
+     */
+    public function after(): array
+    {
+        return [function (Validator $validator) {
+            $labels = $this->input('filter_specs');
+
+            if (! is_array($labels) || $labels === [] || $validator->errors()->has('filter_specs') || $validator->errors()->has('filter_specs.*')) {
+                return;
+            }
+
+            $category = $this->route('storeCategory');
+            $used = $category instanceof StoreCategory
+                ? DB::table('store_product_specs')
+                    ->join('store_products', 'store_products.id', '=', 'store_product_specs.store_product_id')
+                    ->where('store_products.store_category_id', $category->id)
+                    ->distinct()
+                    ->pluck('store_product_specs.label_key')
+                    ->all()
+                : [];
+
+            // A filter already saved stays saveable after its last product
+            // lost the label — it simply draws nothing — so an unrelated edit
+            // is never refused over it; the picker shows it at 0 to remove.
+            $kept = $category instanceof StoreCategory
+                ? array_map(fn ($l) => SpecIndex::key((string) $l), $category->filter_specs ?? [])
+                : [];
+
+            $seen = [];
+
+            foreach (array_values($labels) as $i => $label) {
+                $key = SpecIndex::key((string) $label);
+
+                if (isset($seen[$key])) {
+                    $validator->errors()->add("filter_specs.{$i}", "“{$label}” is already a filter.");
+
+                    continue;
+                }
+
+                $seen[$key] = true;
+
+                if (! in_array($key, $used, true) && ! in_array($key, $kept, true)) {
+                    $validator->errors()->add("filter_specs.{$i}", "No product in this category has a “{$label}” specification.");
+                }
+            }
+        }];
     }
 
     /** @return array<string, string> */

@@ -44,6 +44,7 @@ const PUBLIC_ROUTES = [
   "/products/cisco-cbs350-24t-4g", "/resources", "/blog", "/case-studies",
   "/team", "/clients", "/certifications",
   "/knowledge-base", "/about", "/contact", "/support", "/privacy", "/terms", "/returns", "/shipping",
+  "/book-a-visit",
   "/search", "/search?q=switch",
   "/this-page-does-not-exist",   // the 404
   "/careers",
@@ -68,6 +69,10 @@ const PORTAL_ROUTES = [
   // The order history, which is the reason most buyers sign in at all.
   "/portal/orders",
   "/portal", "/portal/tickets", "/portal/tickets/new", "/portal/profile",
+  // The account's wishlist (2026-09-25), empty or not.
+  "/portal/wishlist",
+  // Engineer visits (docs/visits.md).
+  "/portal/visits",
   ...(PORTAL_TICKET ? [`/portal/tickets/${PORTAL_TICKET}`] : []),
 ];
 
@@ -86,6 +91,8 @@ const ADMIN_ROUTES = [
   // section checklist plus a targeting summary is a lot of small controls in
   // 320px, which is exactly what this run measures.
   "/admin/popups", "/admin/popups/new",
+  "/admin/blocks/cta", "/admin/blocks/stack/new",
+  "/admin/blocks/cta/showcase", "/admin/blocks/stats/showcase", "/admin/blocks/pricing/showcase", "/admin/blocks/stack/showcase",
   "/admin/team-members", "/admin/team-members/new", "/admin/clients", "/admin/clients/new",
   "/admin/certifications", "/admin/certifications/new",
   /*
@@ -97,6 +104,10 @@ const ADMIN_ROUTES = [
     precisely the shape that gets it wrong.
   */
   "/admin/forms", "/admin/forms/new",
+  // Custom fields and content types (docs/custom-content.md): the field
+  // builder is a column of small controls, which is what 320px tests.
+  "/admin/custom-fields", "/admin/custom-fields/new",
+  "/admin/content-types", "/admin/content-types/new", "/admin/content",
   "/admin/landing-pages", "/admin/landing-pages/opportunities", "/admin/locations",
   "/admin/redirects/new", "/admin/users", "/admin/users/new", "/admin/settings", "/admin/info-bar", "/admin/store/promo", "/admin/themes", "/theme-preview/classic", "/theme-preview/classic/specimen",
   // Outgoing webhooks: the form's event grid is two columns of cards from
@@ -112,13 +123,15 @@ const ADMIN_ROUTES = [
   // to, and that callback is a page nothing links to.
   "/admin/site/settings", "/admin/blog/settings", "/admin/media/settings", "/admin/seo/settings", "/admin/store/settings",
   "/admin/newsletter/settings", "/admin/leads/settings", "/admin/tickets/settings", "/admin/customers/settings", "/admin/chat/settings",
+  // Engineer visits (docs/visits.md).
+  "/admin/visits", "/admin/visits/settings",
   "/admin/settings/tickets/callback",
   // The store: its own catalogue, its own role, and the table with the most
   // columns in the console -- which is where the phone layout bites.
   "/admin/store", "/admin/store?days=7",
   "/admin/store/products", "/admin/store/products/new", "/admin/store/products/import",
   "/admin/store/categories", "/admin/store/categories/new",
-  "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new",
+  "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new", "/admin/store/reviews",
   "/admin/store/reports",
   // The Campaign section, in neither audit until the Verification tab came:
   // its nav strip is seven tabs now, which is what this run is for.
@@ -137,7 +150,12 @@ const ADMIN_ROUTES = [
   and a route that silently redirects to an empty basket would be reported
   clean while never having been looked at.
 */
-const STORE_ROUTES = ["/store", "/cart", "/store/notify/cancel/not-a-real-token"];
+const STORE_ROUTES = [
+  "/store", "/cart", "/store/notify/cancel/not-a-real-token",
+  // The specification filters as a phone draws them (2026-09-26).
+  "/store?category=switches&spec%5BPorts%5D%5B0%5D=24",
+  "/store/wishlist", "/store/wishlist/stop/not-a-real-token",
+];
 
 /*
   The embeddable form, and this script is the one that matters most for it.

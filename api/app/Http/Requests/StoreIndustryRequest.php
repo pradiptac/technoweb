@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\AcceptsCustomFields;
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
 use Illuminate\Foundation\Http\FormRequest;
@@ -9,7 +10,12 @@ use Illuminate\Validation\Rule;
 
 class StoreIndustryRequest extends FormRequest
 {
-    use SanitisesRichText;
+    use AcceptsCustomFields, SanitisesRichText;
+
+    protected function customFieldTarget(): string
+    {
+        return 'industry';
+    }
 
     /**
      * `body` is the rich-text body, as the trait's default says.
@@ -49,6 +55,7 @@ class StoreIndustryRequest extends FormRequest
             ...CmsFieldRules::faqs(),
             ...CmsFieldRules::answerBlocks(),
             ...SeoRules::rules(),
+            ...$this->customFieldRules(),
         ];
     }
 

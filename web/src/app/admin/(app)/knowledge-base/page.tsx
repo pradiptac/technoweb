@@ -12,6 +12,7 @@ import { noIndex } from "@/lib/no-index";
 import type { AdminKnowledgeArticle, KnowledgeCategory, Paginated, PublishStatus } from "@/types/api";
 import type { ReactNode } from "react";
 import { formatTableDate } from "@/lib/dates";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Knowledge base", path: "/admin/knowledge-base", seo: noIndex });
 
@@ -42,6 +43,7 @@ export default async function AdminKnowledgeBasePage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   const queryParams: KnowledgeQueryParams = {

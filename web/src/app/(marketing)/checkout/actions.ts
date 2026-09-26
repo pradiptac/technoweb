@@ -1,11 +1,70 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { ApiError } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
+import { getToken } from "@/lib/auth";
 import { cartToken, clearCartToken } from "@/lib/cart";
 import { placeOrder } from "@/lib/store";
+import { rememberOrderToken } from "@/lib/order-access";
 
 export type CheckoutState = { error?: string; fieldErrors?: Record<string, string[]> };
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** The checkout's own mobile rule (`CheckoutRequest::MOBILE_PATTERN`). */
+const MOBILE = /^(?:\+?91[-\s]?)?0?[6-9](?:[-\s]?\d){9}$/;
+
+/**
+ * Keep what the checkout has typed so far — the email and the mobile — on the
+ * basket, before any order exists.
+ *
+ * Called from the two fields' blur, debounced in the form. The basket that is
+ * abandoned is the one that never became an order, so this is the only moment
+ * an address for a reminder can be kept; the line under the email field says
+ * so when reminders are on. Each field is sent only when it holds something
+ * that could be valid, and a blank is sent as a clear — somebody who deletes
+ * their address has withdrawn it.
+ *
+ * **Never reports anything.** It is a side effect of leaving a field, and a
+ * refusal here (a half-typed number) is one the order's own validation will
+ * word properly when the form is submitted. A toast about a draft would be
+ * noise on the screen that matters most.
+ */
+export async function saveCartContactAction(contact: { email?: string; phone?: string }): Promise<void> {
+  const token = await cartToken();
+
+  if (!token) return;
+
+  const body: { email?: string | null; phone?: string | null } = {};
+  const email = contact.email?.trim();
+  const phone = contact.phone?.replace(/\s+/g, " ").trim();
+
+  // Each is sent only when it could be valid, or cleared when blank. A value
+  // plainly not one yet is left out rather than sent to be refused — a refused
+  // phone would otherwise take a perfectly good email down with it.
+  if (email !== undefined) {
+    if (email === "") body.email = null;
+    else if (EMAIL.test(email)) body.email = email;
+  }
+
+  if (phone !== undefined) {
+    if (phone === "") body.phone = null;
+    else if (MOBILE.test(phone)) body.phone = phone;
+  }
+
+  if (Object.keys(body).length === 0) return;
+
+  try {
+    await apiFetch("/cart/contact", {
+      method: "PATCH",
+      body,
+      headers: { "X-Cart-Token": token },
+      token: await getToken(),
+      cache: "no-store",
+    });
+  } catch {
+    // Deliberately silent — see above.
+  }
+}
 
 /**
  * Place the order, then send the person to it.
@@ -34,6 +93,9 @@ export async function placeOrderAction(
   };
 
   const elsewhere = formData.get("ship_elsewhere") === "1";
+  // Signed in or not: the API reads the portal token to know the order is
+  // theirs, which is what lets it update the address the account keeps.
+  const signedIn = await getToken();
 
   let orderNumber: string;
   let accessToken: string;
@@ -81,13 +143,16 @@ export async function placeOrderAction(
       // the order is made — a form is a suggestion, which is the same reason
       // nothing about money is submitted from here at all.
       payment_method: value("payment_method"),
+      // The messaging boxes under the mobile field: which channels may carry
+      // order updates to that number. The API records only a live channel.
+      message_opt_in: formData.getAll("message_opt_in").map(String),
       gst_required: formData.get("gst_required") === "1",
       gstin: value("gstin"),
       company_name: value("company_name"),
       // The honeypot. Sent as-is so the API refuses it rather than this
       // silently dropping it — one trap, checked in one place.
       website: value("website"),
-    });
+    }, signedIn);
 
     orderNumber = order.order_number;
     accessToken = access;
@@ -117,6 +182,15 @@ export async function placeOrderAction(
   */
   await clearCartToken();
 
+  /*
+    The order's key goes in a cookie scoped to its page, never in the URL.
+
+    It used to be `?token=…` on the redirect, which made it `location.href` on
+    a page that loads Google Analytics and the Meta Pixel — every order's
+    access token, sent to both. `lib/order-access.ts` has the whole account.
+  */
+  await rememberOrderToken(orderNumber, accessToken);
+
   // `placed=1` is what lets the order page celebrate this visit and no other.
-  redirect(`/order/${orderNumber}?token=${encodeURIComponent(accessToken)}&placed=1`);
+  redirect(`/order/${encodeURIComponent(orderNumber)}?placed=1`);
 }

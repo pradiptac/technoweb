@@ -9,6 +9,7 @@ use App\Http\Requests\StoreServiceRequest;
 use App\Http\Requests\UpdateServiceRequest;
 use App\Http\Resources\Admin\ServiceResource;
 use App\Models\Service;
+use App\Support\CustomFields\CustomFields;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -38,44 +39,50 @@ class ServiceController extends Controller
         // select is built from this, the `meta.transitions` rule.
         return ServiceResource::collection($services)->additional(['meta' => [
             'answer_block_kinds' => AnswerBlockKind::options(),
+            // The custom field groups that apply, for the console's Fields tab.
+            'custom_field_groups' => CustomFields::definitions('service'),
         ]]);
     }
 
     public function show(Service $service): JsonResource
     {
-        return new ServiceResource($service->load(['faqs', 'answerBlocks', 'seo']));
+        return new ServiceResource($service->load(['faqs', 'answerBlocks', 'seo', 'customValues.field.group']));
     }
 
     public function store(StoreServiceRequest $request): JsonResponse
     {
         $service = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
             $content = $this->pullAnswerContent($attributes);
 
             $service = Service::create($attributes);
 
             $this->saveAnswerContent($service, $content);
             $this->saveSeo($service, $seo);
+            $this->saveCustomFields($service, $custom);
 
             return $service;
         });
 
-        return response()->json(['data' => new ServiceResource($service->load(['faqs', 'answerBlocks', 'seo']))], 201);
+        return response()->json(['data' => new ServiceResource($service->load(['faqs', 'answerBlocks', 'seo', 'customValues.field.group']))], 201);
     }
 
     public function update(UpdateServiceRequest $request, Service $service): JsonResource
     {
         DB::transaction(function () use ($request, $service) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
             $content = $this->pullAnswerContent($attributes);
 
             $service->update($attributes);
 
             $this->saveAnswerContent($service, $content);
             $this->saveSeo($service, $seo);
+            $this->saveCustomFields($service, $custom);
         });
 
-        return new ServiceResource($service->fresh(['faqs', 'answerBlocks', 'seo']));
+        return new ServiceResource($service->fresh(['faqs', 'answerBlocks', 'seo', 'customValues.field.group']));
     }
 
     public function destroy(Service $service): JsonResponse

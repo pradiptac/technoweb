@@ -12,6 +12,7 @@ import { MergeForm } from "./merge-form";
 import { Alert } from "@/components/ui/input";
 import type { CannedReply, StaffUser, Ticket, TicketMessage } from "@/types/api";
 import { Card } from "@/components/ui/card";
+import { requireScreen } from "@/lib/admin-screen";
 
 export async function generateMetadata({ params }: { params: Promise<{ reference: string }> }) {
   const { reference } = await params;
@@ -117,6 +118,7 @@ export default async function AdminTicketDetailPage({
 }: {
   params: Promise<{ reference: string }>;
 }) {
+  await requireScreen();
   const { reference } = await params;
 
   let ticket: Ticket;

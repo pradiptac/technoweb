@@ -117,14 +117,16 @@ class RegistrationController extends Controller
 
         $customer = Customer::where('email', Str::lower(trim((string) $request->string('email'))))->first();
 
-        if ($customer?->hasVerifiedEmail()) {
-            return response()->json([
-                'message' => 'That address is already confirmed.',
-                'status' => $customer->status->value,
-                'already_verified' => true,
-            ]);
-        }
-
+        /*
+         * The token is checked before anything about the account is said.
+         *
+         * This used to answer "already confirmed" — with the account's status
+         * — to anybody naming a confirmed address, whatever token they sent:
+         * a membership oracle, and a status oracle besides. A confirmed
+         * address has no token left to match, so a second click on a spent
+         * link now gets the same 422 as every other request that does not
+         * carry a live token, and `already_verified` is always false.
+         */
         if (! $customer || ! $customer->verificationTokenMatches((string) $request->string('token'))) {
             // One message for expired, already-used, wrong-token and
             // unknown-address alike, for the same reason the password reset
@@ -136,6 +138,9 @@ class RegistrationController extends Controller
             ], 422);
         }
 
+        // Also replaces the password chosen at registration and ends every
+        // session: the link proves the inbox, not who typed that password.
+        // See `Customer::markEmailVerified()`.
         $customer->markEmailVerified();
 
         Notifier::route('support_email', new CustomerRegistered($customer->fresh()));
@@ -143,7 +148,7 @@ class RegistrationController extends Controller
 
         return response()->json([
             'message' => $customer->status->canSignIn()
-                ? 'Your address is confirmed. You can sign in now.'
+                ? 'Your address is confirmed. Sign in with a one-time code sent to it, or choose a password with "Forgot your password?".'
                 : 'Your address is confirmed. A member of our team will activate your account shortly.',
             'status' => $customer->status->value,
             'already_verified' => false,

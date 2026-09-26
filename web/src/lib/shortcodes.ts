@@ -1,6 +1,8 @@
 /**
  * WordPress-style shortcodes inside CMS bodies: [slider slug="hero"],
- * [gallery slug="recent-work"], [form slug="contact"].
+ * [gallery slug="recent-work"], [form slug="contact"] — and, since
+ * 2026-09-24, the content blocks: [cta …], [stats …], [pricing …],
+ * [stack …].
  *
  * Why this is safe, and what would make it unsafe:
  *
@@ -26,10 +28,14 @@ export type Segment =
   | { type: "html"; html: string }
   | { type: "slider"; slug: string }
   | { type: "gallery"; slug: string }
-  | { type: "form"; slug: string };
+  | { type: "form"; slug: string }
+  | { type: BlockKind; slug: string };
+
+/** The content-block shortcodes; each names its block's type, and a slug of another type renders nothing. */
+export type BlockKind = "cta" | "stats" | "pricing" | "stack";
 
 /** Everything the parser recognises, so a caller cannot ask for a fifth. */
-export type ShortcodeKind = "slider" | "gallery" | "form";
+export type ShortcodeKind = "slider" | "gallery" | "form" | BlockKind;
 
 /**
  * [slider slug="hero"], [gallery slug="work"] and [form slug="contact"] —
@@ -41,7 +47,7 @@ export type ShortcodeKind = "slider" | "gallery" | "form";
  * the text the editor typed rather than as a component with a surprising
  * argument.
  */
-const SHORTCODE = /\[(slider|gallery|form)\s+slug=["']([a-z0-9-]+)["']\s*\]/gi;
+const SHORTCODE = /\[(slider|gallery|form|cta|stats|pricing|stack)\s+slug=["']([a-z0-9-]+)["']\s*\]/gi;
 
 /**
  * Splits a body into HTML runs and the shortcodes between them.

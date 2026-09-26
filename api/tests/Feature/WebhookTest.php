@@ -22,6 +22,7 @@ use App\Models\TicketCategory;
 use App\Models\User;
 use App\Models\Webhook;
 use App\Models\WebhookDelivery;
+use App\Support\Net\PublicHost;
 use App\Support\Webhooks\Webhooks;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
@@ -54,6 +55,15 @@ use Tests\TestCase;
 class WebhookTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Every hook's host resolves to one public address, as a real CRM's
+        // would; the tests about private answers say otherwise themselves.
+        $this->app->instance(PublicHost::RESOLVER, fn (string $host): array => ['93.184.216.34']);
+    }
 
     private function admin(): User
     {
@@ -441,6 +451,59 @@ class WebhookTest extends TestCase
         $this->assertSame('order.paid: https://crm.example.com/hooks/technoware answered 503.', $hook->fresh()->last_error);
     }
 
+    /**
+     * A redirect is a failure, and is not followed.
+     *
+     * Followed, a 302 from a public host to the metadata service took the
+     * request past every check on the hook's URL — and the excerpt of what
+     * the metadata service said was then on the console.
+     */
+    public function test_a_redirect_is_not_followed(): void
+    {
+        Http::fake([
+            'crm.example.com/*' => Http::response('', 302, ['Location' => 'http://169.254.169.254/latest/meta-data/iam/']),
+            '169.254.169.254/*' => Http::response('AKIA-SECRET-ROLE', 200),
+        ]);
+        $delivery = $this->delivery($this->hook());
+
+        try {
+            (new DeliverWebhook($delivery->id))->handle();
+            $this->fail('A redirect should be recorded as a failure.');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('answered 302', $e->getMessage());
+        }
+
+        Http::assertSentCount(1);
+        $delivery->refresh();
+        $this->assertSame(302, $delivery->response_status);
+        $this->assertStringNotContainsString('AKIA', (string) $delivery->response_excerpt);
+        $this->assertNotSame('delivered', $delivery->status);
+    }
+
+    /**
+     * A public name that answers with a private address is not connected to.
+     *
+     * The URL is checked by name when it is saved; what it resolves to is
+     * checked when it is used, and the connection is pinned to the address
+     * that was checked.
+     */
+    public function test_a_host_that_resolves_to_a_private_address_is_not_sent_to(): void
+    {
+        $this->app->instance(PublicHost::RESOLVER, fn (string $host): array => ['10.0.0.5']);
+        Http::fake();
+        $delivery = $this->delivery($this->hook());
+
+        try {
+            (new DeliverWebhook($delivery->id))->handle();
+            $this->fail('A private answer should refuse the delivery.');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('private', $e->getMessage());
+        }
+
+        Http::assertNothingSent();
+        $this->assertStringContainsString('private', (string) $delivery->fresh()->response_excerpt);
+    }
+
     public function test_a_hook_switched_off_between_attempts_is_not_sent_to(): void
     {
         Http::fake();
@@ -542,6 +605,13 @@ class WebhookTest extends TestCase
             'https://intranet/hook',
             'https://db.internal/hook',
             'https://user:pass@crm.example.com/hooks',
+            // Loopback written as numbers the resolver reads and
+            // FILTER_VALIDATE_IP does not call addresses.
+            'https://127.1/hook',
+            'https://0x7f.0.0.1/hook',
+            'https://0177.0.0.1/hook',
+            'https://2130706433/hook',
+            'https://[::ffff:127.0.0.1]/hook',
             'not a url',
         ] as $url) {
             $this->actingAs($admin, 'sanctum')

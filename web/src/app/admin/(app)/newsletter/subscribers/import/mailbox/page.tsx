@@ -5,12 +5,14 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { NewsletterGroup, NewsletterMailboxStatus, QueueHealth } from "@/types/api";
 import { MailboxImportWizard } from "./mailbox-import-wizard";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({
   title: "Import from a mailbox", path: "/admin/newsletter/subscribers/import/mailbox", seo: noIndex,
 });
 
 export default async function MailboxImportPage() {
+  await requireScreen();
   let groups: NewsletterGroup[];
   let status: NewsletterMailboxStatus;
   let queue: QueueHealth | null;

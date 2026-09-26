@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import { createPage, deletePage, updatePage, type CmsPagePayload } from "@/lib/admin";
-import { jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
-import type { AnswerBlock, PublishStatus } from "@/types/api";
+import { customFieldsFromFormData, jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
+import type { AnswerBlock, PublishStatus, StoredSection } from "@/types/api";
 
 export type PageFormState = { error?: string; fieldErrors?: Record<string, string[]> };
 
@@ -13,6 +13,8 @@ function payloadFrom(formData: FormData): CmsPagePayload {
   const seo = seoFromFormData(formData);
 
   return {
+    // Custom fields: absent when no Fields tab was drawn, so the API leaves them alone.
+    ...customFieldsFromFormData(formData),
     title: str(formData, "title") ?? "",
     slug: str(formData, "slug"),
     body: str(formData, "body"),
@@ -20,6 +22,8 @@ function payloadFrom(formData: FormData): CmsPagePayload {
     status: (str(formData, "status") ?? "draft") as PublishStatus,
     published_at: str(formData, "published_at"),
     answer_blocks: jsonListFromFormData<AnswerBlock>(formData, "answer_blocks"),
+    // The builder's sections, one hidden JSON input (docs/page-builder.md).
+    ...(formData.has("blocks") ? { blocks: jsonListFromFormData<StoredSection>(formData, "blocks") } : {}),
     ...(seo ? { seo: seo as CmsPagePayload["seo"] } : {}),
   };
 }
@@ -82,12 +86,16 @@ export async function updatePageAction(_prev: PageFormState, formData: FormData)
 
 export async function deletePageAction(formData: FormData) {
   const id = Number(formData.get("id"));
-  const slug = String(formData.get("slug") ?? "");
   if (!id) return;
 
-  await deletePage(id).catch(() => null);
+  // Only a delete the API accepted may purge anything: a refusal (in use,
+  // a role, a network error) used to purge the caches and report success.
+  const deleted = await deletePage(id).then(() => true, () => false);
+  if (!deleted) redirect("/admin/pages?done=not-deleted");
   updateTag("pages");
   revalidatePath("/admin/pages");
-  if (slug) revalidatePath(`/${slug}`);
+  // No `revalidatePath(`/${slug}`)`: the slug came from the form, so it
+  // was a path of the caller's choosing, and the page's own fetch is
+  // tagged "pages" — which the line above already purged.
   redirect("/admin/pages?deleted=1");
 }

@@ -42,6 +42,14 @@ export function Reveal() {
       (entries) => {
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
+          // Checked here as well as in `observe()`: an async component
+          // streams in as its own chunk, parked in a hidden div at the end of
+          // <body> until React moves it into place — outside the region when
+          // first seen, inside it by the time it can intersect.
+          if (entry.target.closest("[data-reveal-static]")) {
+            observer.unobserve(entry.target);
+            continue;
+          }
           entry.target.setAttribute("data-aos-animate", "");
           observer.unobserve(entry.target);
         }
@@ -51,7 +59,11 @@ export function Reveal() {
       { rootMargin: "0px 0px -8% 0px", threshold: 0.05 },
     );
 
+    // A `data-reveal-static` region (the console's block previews) is left
+    // alone: its markup streams in after hydration, and stamping it would be
+    // a mismatch. globals.css shows it at rest.
     const observe = (el: Element) => {
+      if (el.closest("[data-reveal-static]")) return;
       if (!el.hasAttribute("data-aos-animate")) observer.observe(el);
     };
 

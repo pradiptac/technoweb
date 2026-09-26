@@ -19,6 +19,9 @@ export function CtaBand({
   size = "md",
   className,
   phone,
+  kicker,
+  primary,
+  secondary,
 }: CtaBandProps) {
   return (
     <section className={cn("section-y", className)}>
@@ -33,16 +36,23 @@ export function CtaBand({
         >
           <span className="absolute right-4 top-3 font-mono text-11 uppercase tracking-[.14em] text-dark-muted">{"// next step"}</span>
           <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-12">
+            {kicker && <p className="mb-3 text-12 font-semibold uppercase tracking-[.14em]">{kicker}</p>}
             <h2 className={cn(size === "lg" ? "display-2" : "display-3", "text-balance")}>{title}</h2>
             <div>
               <p className="max-w-[52ch] text-15 leading-relaxed text-dark-muted">{body}</p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <ButtonLink href="/contact" variant="onDark">
-                  Book a site audit <IconArrowRight />
+                <ButtonLink href={primary?.href || "/contact"} variant="onDark">
+                  {primary?.label || "Book a site audit"} <IconArrowRight />
                 </ButtonLink>
-                <ButtonLink href={telHref(phone)} variant="onDarkOutline" className="border-white/25 text-white">
-                  Call {phone}
-                </ButtonLink>
+                {secondary === null ? null : secondary ? (
+                  <ButtonLink href={secondary.href} variant="onDarkOutline" className="border-white/25 text-white">
+                    {secondary.label}
+                  </ButtonLink>
+                ) : (
+                  <ButtonLink href={telHref(phone)} variant="onDarkOutline" className="border-white/25 text-white">
+                    Call {phone}
+                  </ButtonLink>
+                )}
               </div>
             </div>
           </div>

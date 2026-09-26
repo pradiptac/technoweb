@@ -11,6 +11,7 @@ import { formatTableDate } from "@/lib/dates";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminWebhook, Paginated } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Webhooks", path: "/admin/webhooks", seo: noIndex });
 
@@ -21,6 +22,7 @@ export default async function AdminWebhooksPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: Paginated<AdminWebhook>;

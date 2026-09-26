@@ -66,6 +66,11 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Text size",
     hint: "The size of the messages in the panel.",
   },
+  push_api_key: { label: "API key", placeholder: "AIza…" },
+  push_project_id: { label: "Project ID", placeholder: "technoware-push" },
+  push_messaging_sender_id: { label: "Sender ID", placeholder: "123456789012" },
+  push_app_id: { label: "App ID", placeholder: "1:123456789012:web:…" },
+  push_vapid_key: { label: "Web Push certificate key", hint: "Cloud Messaging → Web configuration → the key pair's public key." },
   indexnow_enabled: { label: "Send IndexNow pings", hint: "Switch on at launch. Every published record then reports its own changes." },
   indexnow_key: { label: "Key", hint: "Filled in automatically the first time a ping is sent; served at /indexnow/{key}.txt so the engines can verify it. Leave blank." },
   reviews_embed: {
@@ -164,6 +169,43 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Where it operates",
     hint: "Falls back to the places on the Locations screen, then to the postal address.",
   },
+  /*
+    Engineer visits (2026-09-26, docs/visits.md). Six of the eight reach the
+    public /settings map (`VisitSettings::PUBLIC_KEYS`) because the request
+    form needs them; the desk's address and the default length do not.
+  */
+  visits_enabled: {
+    label: "Take visit requests online",
+    hint: "1 to show the Book a site visit form, 0 to show a line asking people to call instead.",
+  },
+  visit_windows: {
+    label: "Parts of the day",
+    hint: "One per line, as key|Label|start|end on the 24-hour clock — for example morning|Morning|09:00|12:00. The key is stored on every request, so rename the label rather than the key.",
+  },
+  visit_days: {
+    label: "Days engineers visit",
+    hint: "Comma-separated, as mon,tue,wed,thu,fri,sat. A request for any other day is refused.",
+  },
+  visit_min_notice_days: {
+    label: "Notice needed (days)",
+    hint: "The earliest day somebody may ask for, counted from today. 1 means tomorrow.",
+  },
+  visit_max_days: {
+    label: "How far ahead (days)",
+    hint: "The latest day somebody may ask for, counted from today.",
+  },
+  visit_holidays: {
+    label: "Closed dates",
+    hint: "One per line as YYYY-MM-DD, with anything after the date as a note — 2026-10-20 Diwali. Nobody may ask for these.",
+  },
+  visits_email: {
+    label: "Visit requests go to",
+    hint: "The desk's address for new requests and changes. Blank sends them to the sales inbox.",
+  },
+  visit_default_minutes: {
+    label: "Default visit length (minutes)",
+    hint: "What the confirm form suggests, and how long the calendar entry is when nobody says otherwise.",
+  },
   lead_intent_words: {
     label: "More buying words",
     hint: "One word or phrase per line, added to the built-in list. Whole words only, so \"PO\" does not match \"port\"; plurals and -ing forms are matched for you.",
@@ -243,6 +285,43 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Return window, in days",
     hint: "Counted from delivery. Shown on every returnable product and declared to Google as the return policy; a product marked non-returnable ignores it.",
     placeholder: "7",
+  },
+  store_cart_reminders_enabled: {
+    label: "Send basket reminders",
+    hint: "Off by default. On, somebody who leaves a basket with an email in it — typed at the checkout, or on their account — is emailed a reminder, and a second later. Only between the promotional hours, never to an address on the do-not-mail list, and each email carries an unsubscribe.",
+  },
+  store_cart_reminder_1_hours: {
+    label: "First reminder after (hours)",
+    hint: "How long a basket sits untouched before the first email. 1 to 72. A basket left for more than a week before reminders were switched on is not woken.",
+    placeholder: "1",
+  },
+  store_cart_reminder_2_days: {
+    label: "Second reminder after (days)",
+    hint: "Counted from when the basket went quiet, and at least twelve hours after the first. 1 to 25 — an untouched basket is deleted at 30.",
+    placeholder: "1",
+  },
+  store_cart_reminder_coupon: {
+    label: "Coupon in the second reminder",
+    hint: "A code from Store → Discount codes, or blank for none. It is offered only when the basket could actually use it — not expired, not used up, not below its minimum order.",
+    placeholder: "COMEBACK10",
+  },
+  store_price_drop_min_percent: {
+    label: "Wishlist price drop, in per cent",
+    hint: "How far a saved product's price has to fall before whoever saved it is emailed — measured from the price when they saved it, or the last drop they were told about, so one drop is one message. A whole number from 1 to 90.",
+    placeholder: "5",
+  },
+  store_review_requests_enabled: {
+    label: "Ask buyers for a review",
+    hint: "One \"How was it?\" email per order, listing each product they have not reviewed yet. Sent between the promotional hours set under Messaging, never twice, and never to an address that has unsubscribed.",
+  },
+  store_review_request_days: {
+    label: "Ask this many days after delivery",
+    hint: "Counted from dispatch — or from payment, for an order with nothing to ship. An order that has not been dispatched is never asked about.",
+    placeholder: "7",
+  },
+  meta_catalogue_enabled: {
+    label: "Meta catalogue feed",
+    hint: "1 publishes /meta-catalogue.xml and /meta-catalogue.csv for Facebook, Instagram and WhatsApp Business (Commerce Manager); 0 answers both with not found. The same products and prices as the Google feed.",
   },
   store_promo_enabled: { label: "Show the promo banner" },
   store_promo_kicker: { label: "Kicker", hint: "The short line above the heading — a category, an offer, a season.", placeholder: "Business laptops, in stock" },
@@ -395,6 +474,28 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   social_instagram: { label: "Instagram", placeholder: "https://www.instagram.com/…" },
   social_youtube: { label: "YouTube", placeholder: "https://www.youtube.com/@…" },
   social_whatsapp: { label: "WhatsApp", placeholder: "https://wa.me/919876543210" },
+  social_reddit: { label: "Reddit", placeholder: "https://www.reddit.com/r/… or /user/…" },
+  home_stats_block: {
+    label: "Stat bar section",
+    hint: "A published stat bar to show on the homepage (Site → Stat bars). Where it sits, and whether it shows, is on the Themes screen.",
+  },
+  home_stack_block: {
+    label: "Technology stack section",
+    hint: "A published technology stack to show on the homepage (Site → Technology stack).",
+  },
+  home_pricing_block: {
+    label: "Pricing section",
+    hint: "A published pricing table to show on the homepage (Site → Pricing).",
+  },
+  social_style: {
+    label: "How the icons are drawn",
+    hint: "Flip tiles spell the word below and turn into the icons when somebody points at them; phones and touch screens show the icons straight away.",
+  },
+  social_flip_word: {
+    label: "Word on the flip tiles",
+    placeholder: "FOLLOW",
+    hint: "Up to seven letters or digits, one per tile — CONTACT fits. A letter past the last profile gets a tile of its own that is not a link; a profile past the end of the word shows its network's initial.",
+  },
   google_analytics_id: {
     label: "Google Analytics (GA4)",
     hint: "The measurement ID, which starts with G-. Leave blank to load nothing.",
@@ -508,7 +609,7 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
   },
   social: {
     title: "Social profiles",
-    blurb: "Full URLs. Leave one blank and its icon disappears from the footer — better than linking to a profile that does not exist.",
+    blurb: "Full URLs. Leave one blank and its icon disappears from the footer — better than linking to a profile that does not exist. Below them, how the row of icons is drawn.",
   },
   appearance: {
     // "Colour palette" since 2026-09-16, when the site gained Themes (Site →
@@ -540,6 +641,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     blurb: "Who campaigns come from, what the footer says, and how fast they go out. The postal address is not optional — a campaign without one is refused before it sends.",
   },
   seo: { title: "SEO defaults", blurb: "Fallbacks for pages with no override of their own." },
+  visits: {
+    title: "Engineer visits",
+    blurb: "The Book a site visit form: which days and parts of the day it offers, how much notice it needs and how far ahead it reaches, the dates you are closed, and where requests are sent. A request is a wish list — the desk confirms the actual time.",
+  },
   leads: {
     title: "Leads",
     blurb: "How an enquiry is scored on arrival. The built-in list of buying words is tuned for hardware procurement in India — tender, PO, AMC, quotation — and this extends it once real enquiries have been read for a while. A score is taken at intake and not rewritten; `php artisan technoware:rescore-leads --write` restates the whole table on the current words.",
@@ -567,6 +672,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
   store: {
     title: "Store",
     blurb: "Whether the shop is open, which is a different question from whether a gateway is configured — the first is a decision, the second is a deployment that is not finished.",
+  },
+  store_reminders: {
+    title: "Basket reminders",
+    blurb: "Up to two emails to somebody who left something in their basket, the second of which may carry a discount code. The wording is under Settings → Email templates. The dashboard counts a basket as recovered when it became an order after a reminder.",
   },
   indexnow: {
     title: "IndexNow",
@@ -615,6 +724,14 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Media",
     blurb: "How hard the library compresses the images it makes — a resize, a crop, a thumbnail, a rotate. Uploads are stored exactly as they arrive, because re-encoding an original throws away quality nobody can get back, and it is the only copy there is. Changing this affects images edited from now on; it does not go back and re-encode what is already there.",
   },
+  messaging: {
+    title: "Channels",
+    blurb: "A channel with no provider is off: nothing is sent on it and no opt-in is offered for it. Every key here is encrypted, never shown again, and left alone by a blank save.",
+  },
+  push: {
+    title: "Browser push",
+    blurb: "The browser half of Firebase — Project settings → General → your web app, and Cloud Messaging → Web Push certificates for the key pair. Public by nature: a browser cannot subscribe without it. The bell appears on the shop and in the portal once these five and the push provider are all set.",
+  },
   auth: {
     title: "Sign-in",
     blurb: "How people get in. A one-time code by email is the default for both the portal and this console; passwords remain available behind a link. Leave passwords on unless you are certain outgoing mail is reliable — with codes as the only way in, a broken mail configuration locks out every account, including yours.",
@@ -651,7 +768,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
             "chatbot_whatsapp_number", "chatbot_forward_unanswered",
             "chatbot_model", "chatbot_max_message_chars", "chatbot_max_messages",
             "chatbot_context_messages", "chatbot_daily_reply_cap", "chat_retention_days"],
-  homepage: ["hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats", "stats_colour", "stats_size", "stats_animation",
+  homepage: ["hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats", "stats_colour", "stats_size", "stats_animation", "home_stats_block", "home_stack_block", "home_pricing_block",
              "why_kicker", "why_heading", "why_lede", "why_steps",
              "testimonial_enabled", "testimonial_quote", "testimonial_author", "testimonial_role",
              "amc_enabled", "amc_heading", "amc_inclusions", "amc_link_label", "amc_link_href"],
@@ -677,13 +794,18 @@ export const FIELD_ORDER: Record<string, string[]> = {
     out of the command palette, since `settingsPages()` lists fields from
     here. The seeder's own order, which is the order somebody wrote them in.
   */
-  social: ["social_linkedin", "social_facebook", "social_x", "social_instagram", "social_youtube", "social_whatsapp"],
+  social: ["social_linkedin", "social_facebook", "social_x", "social_instagram", "social_youtube", "social_whatsapp", "social_reddit", "social_style", "social_flip_word"],
   blog: ["blog_video_url", "comments_enabled", "comments_closed_after_days"],
   indexnow: ["indexnow_enabled", "indexnow_key"],
   media: ["image_quality", "media_max_kb", "media_max_video_kb", "media_max_megapixels"],
   store: ["store_enabled", "digital_auto_fulfil", "activation_procedure", "activation_pdf_path", "store_shipping_paise",
-          "store_handling_days", "store_shipping_service", "store_transit_days_min", "store_transit_days_max", "store_return_days"],
+          "store_handling_days", "store_shipping_service", "store_transit_days_min", "store_transit_days_max", "store_return_days",
+          "store_price_drop_min_percent", "store_review_requests_enabled", "store_review_request_days", "meta_catalogue_enabled"],
+  store_reminders: ["store_cart_reminders_enabled", "store_cart_reminder_1_hours", "store_cart_reminder_2_days", "store_cart_reminder_coupon"],
   leads: ["lead_intent_words"],
+  visits: ["visits_enabled", "visit_windows", "visit_days", "visit_min_notice_days", "visit_max_days", "visit_holidays",
+           "visits_email", "visit_default_minutes"],
+  push: ["push_api_key", "push_project_id", "push_messaging_sender_id", "push_app_id", "push_vapid_key"],
   embeds: ["reviews_embed", "reviews_kicker", "reviews_heading", "reviews_lede", "body_code"],
   portal: ["portal_enabled", "registration_enabled", "customer_approval_required"],
   auth: ["default_login_method", "otp_login_enabled", "otp_admin_login_enabled", "password_login_enabled"],
@@ -704,6 +826,8 @@ export const FIELD_ORDER: Record<string, string[]> = {
 export const HIDDEN = new Set([
   "newsletter_verify_error", "newsletter_verify_last_run", "gsc_error", "ga4_error", "inbound_mail_error", "inbound_mail_last_run",
   // The consent a mailbox scan spends, written by the import screen and forgotten by the job.
+  // Written by a refused send or test and cleared by a success; the messaging panel shows them.
+  "messaging_whatsapp_error", "messaging_rcs_error", "messaging_push_error",
   "newsletter_oauth_provider", "newsletter_oauth_refresh_token", "newsletter_oauth_account", "newsletter_oauth_connected_at", "newsletter_oauth_error",
 ]);
 
@@ -756,7 +880,7 @@ export type SettingsScreen = {
   lede: string;
   saveLabel: string;
   /** Status reads beyond `getSettings()` that a panel on this screen needs. */
-  needs?: ("mail" | "inbound")[];
+  needs?: ("mail" | "inbound" | "messaging")[];
   /** The groups drawn, in order. A `label` puts a heading over those tabs. */
   sections: { label?: string; groups: string[] }[];
 };
@@ -825,9 +949,9 @@ export const SCREENS: SettingsScreen[] = [
     path: "/admin/store/settings",
     title: "Store settings",
     area: "Store",
-    lede: "Whether the shop is open, what delivery costs and how long it takes, how licences are handed over, and how the shop takes money.",
+    lede: "Whether the shop is open, what delivery costs and how long it takes, how licences are handed over, the basket reminders, and how the shop takes money.",
     saveLabel: "Save store settings",
-    sections: [{ groups: ["store", "payments"] }],
+    sections: [{ groups: ["store", "store_reminders", "payments"] }],
   },
   {
     path: "/admin/newsletter/settings",
@@ -844,6 +968,14 @@ export const SCREENS: SettingsScreen[] = [
     lede: "How an enquiry is scored on arrival — the buying words that mark a lead as hot.",
     saveLabel: "Save scoring",
     sections: [{ groups: ["leads"] }],
+  },
+  {
+    path: "/admin/visits/settings",
+    title: "Visit settings",
+    area: "Visits",
+    lede: "What the Book a site visit form offers — days, parts of the day, notice and closed dates — and where requests go.",
+    saveLabel: "Save visit settings",
+    sections: [{ groups: ["visits"] }],
   },
   {
     path: "/admin/tickets/settings",
@@ -869,6 +1001,15 @@ export const SCREENS: SettingsScreen[] = [
     lede: "What the website assistant is called, how it looks, what it asks before it answers, which model it uses and the ceilings that bound the bill.",
     saveLabel: "Save assistant settings",
     sections: [{ groups: ["chatbot"] }],
+  },
+  {
+    path: "/admin/messaging/settings",
+    title: "Messaging settings",
+    area: "Messaging",
+    lede: "Which provider carries WhatsApp, RCS and browser push, their keys and webhook addresses, a test send per channel, the quiet hours promotional messages keep to, and the browser half of Firebase.",
+    saveLabel: "Save messaging settings",
+    needs: ["messaging"],
+    sections: [{ groups: ["messaging", "push"] }],
   },
 ];
 

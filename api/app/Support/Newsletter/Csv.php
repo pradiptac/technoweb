@@ -47,7 +47,13 @@ class Csv
         fwrite($handle, $contents);
         rewind($handle);
 
-        while (($row = fgetcsv($handle, 0, $delimiter, '"', '\\')) !== false) {
+        /*
+         * `escape: ''` — RFC 4180, the way Excel and every spreadsheet read
+         * a file. PHP's default backslash escape is a dialect nothing else
+         * speaks; see `write()` for what it cost on the way out, and this
+         * reader must agree with that writer about its own files.
+         */
+        while (($row = fgetcsv($handle, 0, $delimiter, '"', '')) !== false) {
             // fgetcsv yields [null] for a blank line, and a trailing newline
             // is normal — without this every file ends in a phantom row that
             // reports as "invalid: 1".
@@ -228,10 +234,19 @@ class Csv
         // mangled. The thing that has to be stripped on the way in is the
         // thing that has to be written on the way out.
         fwrite($handle, "\xEF\xBB\xBF");
-        fputcsv($handle, $headers, ',', '"', '\\');
+        /*
+         * `escape: ''`, never PHP's default backslash.
+         *
+         * With a backslash escape, `Bob\",=HYPERLINK(...)` is written as one
+         * quoted field whose `\"` PHP considers escaped — and Excel, reading
+         * RFC 4180 where `\` means nothing, ends the field at that quote and
+         * starts a new cell with `=HYPERLINK(...)`. The formula guard above
+         * never saw that cell, because it did not exist until Excel made it.
+         */
+        fputcsv($handle, $headers, ',', '"', '');
 
         foreach ($rows as $row) {
-            fputcsv($handle, $escape ? array_map([self::class, 'escape'], $row) : array_map(fn ($v) => (string) $v, $row), ',', '"', '\\');
+            fputcsv($handle, $escape ? array_map([self::class, 'escape'], $row) : array_map(fn ($v) => (string) $v, $row), ',', '"', '');
         }
     }
 }

@@ -307,3 +307,13 @@ plainly there — **measured at 0 previews and 12 empty placeholders on a slider
 that had slides**, and the slide repeater had shipped that way. Both repeaters
 now carry the resource's `url` on the row and strip it before serialising, or
 it would be posted as a field the API does not accept.
+
+## A replacement is checked like an upload (2026-09-26)
+
+`POST /admin/media/{id}/replace` validated only the size, and stored the
+client's `Content-Type` as the file's mime — so markup declared `image/png`
+was an image as far as the library knew. It now carries the upload's own
+`mimes:` rule (the bytes against `MediaUploader::ALLOWED_EXTENSIONS`) and
+stores the type the server detected (`image/svg+xml` for a sanitised SVG).
+The same-extension and image-for-image rules are unchanged.
+

@@ -78,7 +78,9 @@ class PaymentController extends Controller
 
         $outcome = $this->provider($gateway)->verifyReturn($order, $request->all());
 
-        if ($outcome === null) {
+        // A return the gateway has not put a figure to is refused inside
+        // `recordReturn`, never recorded at the order's own total.
+        if ($outcome === null || Settlement::recordReturn($order, $outcome) === null) {
             /*
              * A failed signature is not "payment failed" — the money may well
              * have left. It is "this application will not act on what you said",
@@ -89,8 +91,6 @@ class PaymentController extends Controller
                 'message' => 'We could not confirm that payment. If money has left your account, the order will update shortly.',
             ], 422);
         }
-
-        Settlement::record($order, $outcome);
 
         return response()->json(['data' => new OrderResource($order->fresh()->load(['items', 'payments']))]);
     }

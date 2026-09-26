@@ -1,3 +1,4 @@
+import type { ReviewStatus, StoreRating } from "./reviews";
 /* ------------------------------------------------------------------
    Shapes returned by the Laravel API (api.example.com/api/v1).
    Keep in sync with app/Http/Resources on the backend.
@@ -135,7 +136,7 @@ export type ProductCategory = AnswerContent & {
   seo?: Seo | null;
 };
 
-export type Product = AnswerContent & {
+export type Product = PublicCustomFields & AnswerContent & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -165,7 +166,7 @@ export type Product = AnswerContent & {
   seo?: Seo | null;
 };
 
-export type Solution = AnswerContent & {
+export type Solution = PublicCustomFields & AnswerContent & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -191,7 +192,7 @@ export type Solution = AnswerContent & {
   seo?: Seo | null;
 };
 
-export type Service = AnswerContent & {
+export type Service = PublicCustomFields & AnswerContent & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -257,7 +258,7 @@ export type AnswerContent = {
   faq_schema?: SchemaGraph;
 };
 
-export type Industry = AnswerContent & {
+export type Industry = PublicCustomFields & AnswerContent & {
   id: number;
   name: string;
   slug: string;
@@ -273,7 +274,7 @@ export type Industry = AnswerContent & {
 };
 
 /** A case study carries `entity` and `faq_schema` like the rest, and has no answer blocks or FAQs of its own. */
-export type CaseStudy = Pick<AnswerContent, "entity" | "faq_schema"> & {
+export type CaseStudy = PublicCustomFields & Pick<AnswerContent, "entity" | "faq_schema"> & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -293,7 +294,7 @@ export type CaseStudy = Pick<AnswerContent, "entity" | "faq_schema"> & {
   seo?: Seo | null;
 };
 
-export type KnowledgeArticle = AnswerContent & {
+export type KnowledgeArticle = PublicCustomFields & AnswerContent & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -311,7 +312,7 @@ export type KnowledgeArticle = AnswerContent & {
   seo?: Seo | null;
 };
 
-export type BlogPost = AnswerContent & {
+export type BlogPost = PublicCustomFields & AnswerContent & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -522,7 +523,7 @@ export type StaffUser = {
 
 export type AdminAuthResponse = { token: string; staff: StaffUser };
 
-export type CmsPage = AnswerContent & {
+export type CmsPage = PublicCustomFields & AnswerContent & {
   id: number;
   title: string;
   slug: string;
@@ -532,6 +533,8 @@ export type CmsPage = AnswerContent & {
   updated_at: string;
   faqs?: Faq[];
   seo?: Seo | null;
+  /** A builder page's sections, presented — present only when `template` is `builder` (`docs/page-builder.md`). */
+  sections?: import("./page-sections").PageSection[];
 };
 
 /** What `GET /pages` returns: the same row minus its body. */
@@ -650,6 +653,193 @@ export type AnswerBlockKindOption = {
   asks_question: boolean;
 };
 
+/* ------------------------------------------------------------------ *
+ * Custom fields (docs/custom-content.md). The kinds, the targets and the
+ * definitions all arrive from the API — `meta.kinds`, `meta.targets`,
+ * `custom_field_groups` — and are never retyped here beyond their shape.
+ * ------------------------------------------------------------------ */
+
+export type CustomFieldKind =
+  | "text" | "textarea" | "rich_text" | "number" | "date" | "url" | "email"
+  | "select" | "multi_select" | "boolean" | "image" | "file" | "relation" | "list";
+
+export type CustomFieldKindOption = { value: CustomFieldKind; label: string; blurb: string; has_options: boolean };
+
+export type CustomFieldTargetOption = { value: string; label: string };
+
+export type CustomFieldPlacement = "details" | "hidden";
+
+export type CustomFieldSettings = { min?: number | null; max?: number | null; max_length?: number | null; max_items?: number | null; target?: string | null };
+
+/** One field as the Fields tab draws it. `choices` is filled for a linked-record field. */
+export type CustomFieldDefinition = {
+  id: number;
+  key: string;
+  label: string;
+  kind: CustomFieldKind;
+  help: string | null;
+  required: boolean;
+  options: { value: string; label: string }[];
+  settings: CustomFieldSettings;
+  show_on_page: boolean;
+  choices: { value: number; label: string }[];
+};
+
+export type CustomFieldGroupDefinition = {
+  id: number;
+  name: string;
+  slug: string;
+  placement: CustomFieldPlacement;
+  fields: CustomFieldDefinition[];
+};
+
+/** What an admin detail read carries; absent on a listing. */
+export type AdminCustomFields = {
+  /** Stored values keyed by field key: a path for a picture, an id for a link. */
+  custom_fields?: Record<string, unknown>;
+  /** key => URL for picture and file values. */
+  custom_field_media?: Record<string, string>;
+  /** The groups that apply to this record. */
+  custom_field_groups?: CustomFieldGroupDefinition[];
+};
+
+/** One drawn field on a public page. `value` is resolved: a URL + alt, a {title, path}. */
+export type PublicCustomField = {
+  key: string;
+  label: string;
+  kind: CustomFieldKind;
+  value: unknown;
+  display: string;
+};
+
+/** What a public detail read carries; absent on a listing. */
+export type PublicCustomFields = {
+  /** The fields the page draws — `details` groups, marked to show, non-empty. */
+  custom_fields?: PublicCustomField[];
+  /** Every applicable value, keyed — hidden groups too. Never private. */
+  custom_data?: Record<string, unknown>;
+};
+
+/** A custom field group as the console's Custom fields screen edits it. */
+export type AdminCustomFieldGroup = {
+  id: number;
+  name: string;
+  slug: string;
+  targets: string[];
+  target_labels: string[];
+  placement: CustomFieldPlacement;
+  sort_order: number;
+  is_active: boolean;
+  fields_count?: number;
+  fields?: (Omit<CustomFieldDefinition, "choices"> & { sort_order: number; values_count: number })[];
+  created_at: string;
+  updated_at: string;
+};
+
+/* ------------------------------------------------------------------ *
+ * Custom content types (docs/custom-content.md).
+ * ------------------------------------------------------------------ */
+
+export type ContentTypeSort = "newest" | "title" | "manual";
+
+/** A custom content type as the public site reads it. */
+export type ContentTypeSummary = {
+  name: string;
+  plural: string;
+  slug: string;
+  /** `/{slug}` — the archive. */
+  path: string;
+  icon: string | null;
+  description: string | null;
+  archive_enabled: boolean;
+  per_page: number;
+  sort: ContentTypeSort;
+  schema_type: "Article" | "WebPage";
+  /** The newest published entry's change, for the sitemap. */
+  updated_at?: string | null;
+};
+
+/** One entry of a custom content type, as the public site reads it. */
+export type ContentEntry = PublicCustomFields & AnswerContent & {
+  id: number;
+  title: string;
+  slug: string;
+  /** `/{type}/{slug}`, composed by the API. */
+  path: string;
+  type?: { name: string; plural: string; slug: string; path: string; icon: string | null; archive_enabled: boolean };
+  summary: string | null;
+  /** Detail only. */
+  body?: string | null;
+  image: string | null;
+  image_alt?: string | null;
+  image_focus?: string | null;
+  published_at: string | null;
+  updated_at?: string | null;
+  faqs?: Faq[];
+  seo?: Seo | null;
+  schema?: SchemaGraph;
+};
+
+export type AdminContentType = {
+  id: number;
+  name: string;
+  plural: string;
+  slug: string;
+  path: string;
+  icon: string | null;
+  description: string | null;
+  has_body: boolean;
+  has_image: boolean;
+  archive_enabled: boolean;
+  per_page: number;
+  sort: ContentTypeSort;
+  schema_type: "Article" | "WebPage";
+  sort_order: number;
+  is_active: boolean;
+  entries_count?: number;
+  published_count?: number;
+  /** Detail only: the custom field groups attached to this type. */
+  field_groups?: { id: number; name: string; fields_count: number }[];
+  /** `entry:<slug>` — the key field groups are attached by. */
+  target: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ContentTypeMeta = {
+  sorts: { value: ContentTypeSort; label: string }[];
+  schema_types: { value: "Article" | "WebPage"; label: string }[];
+};
+
+export type AdminEntry = AdminCustomFields & {
+  id: number;
+  content_type_id: number;
+  title: string;
+  slug: string;
+  path: string;
+  summary: string | null;
+  /** Detail-only. */
+  body?: string | null;
+  image_path: string | null;
+  image: string | null;
+  status: PublishStatus;
+  status_label: string;
+  published_at: string | null;
+  sort_order: number;
+  faqs?: FaqItem[];
+  answer_blocks?: AnswerBlock[];
+  seo?: SeoOverride;
+  seo_defaults?: Seo;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CustomFieldGroupMeta = {
+  kinds: CustomFieldKindOption[];
+  targets: CustomFieldTargetOption[];
+  placements: { value: CustomFieldPlacement; label: string; blurb: string }[];
+};
+
 /**
  * One answer block, as the admin detail resources carry it and as the
  * repeater posts it back (without `id` and `sort_order` — the set is replaced
@@ -722,7 +912,7 @@ export type SeoAiMeta = {
  * round-trip. `seo` is what was typed; `seo_defaults` is what the site falls
  * back to, shown as placeholders.
  */
-export type AdminBlogPost = {
+export type AdminBlogPost = AdminCustomFields & {
   id: number;
   title: string;
   slug: string;
@@ -746,7 +936,7 @@ export type AdminBlogPost = {
   updated_at: string;
 };
 
-export type AdminKnowledgeArticle = {
+export type AdminKnowledgeArticle = AdminCustomFields & {
   id: number;
   title: string;
   slug: string;
@@ -776,7 +966,7 @@ export type KnowledgeCategory = { id: number; name: string; slug: string };
 /** A headline stat on a case study: the figure and what it measures. */
 export type CaseStudyResult = { value: string; label: string };
 
-export type AdminCaseStudy = {
+export type AdminCaseStudy = AdminCustomFields & {
   id: number;
   title: string;
   slug: string;
@@ -797,7 +987,7 @@ export type AdminCaseStudy = {
   updated_at: string;
 };
 
-export type AdminPage = {
+export type AdminPage = AdminCustomFields & {
   id: number;
   title: string;
   slug: string;
@@ -809,6 +999,10 @@ export type AdminPage = {
   published_at: string | null;
   /** Detail-only. */
   answer_blocks?: AnswerBlock[];
+  /** Detail-only: the builder's sections as stored, a URL per stored path, and the public shape for the saved preview. */
+  blocks?: import("./page-sections").StoredSection[];
+  blocks_media?: Record<string, string>;
+  sections?: import("./page-sections").PageSection[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
   created_at: string;
@@ -921,7 +1115,7 @@ export type AdminProductCategory = {
   show_in_menu?: boolean;
 };
 
-export type AdminIndustry = {
+export type AdminIndustry = AdminCustomFields & {
   id: number;
   /** `name`, not `title` — this model's slug derives from name. */
   name: string;
@@ -942,7 +1136,7 @@ export type AdminIndustry = {
   show_in_menu?: boolean;
 };
 
-export type AdminService = {
+export type AdminService = AdminCustomFields & {
   id: number;
   title: string;
   slug: string;
@@ -1395,7 +1589,7 @@ export type PickerOption = { id: number; name: string };
  * `images` holds storable paths and `image_urls` the resolved previews — the
  * form submits the former and renders the latter.
  */
-export type AdminProduct = {
+export type AdminProduct = AdminCustomFields & {
   id: number;
   /** schema.org availability, or null when nobody has said. */
   availability?: string | null;
@@ -1441,7 +1635,7 @@ export type AdminProduct = {
  * by parsing the text — see `lib/money.ts`. A decimal on the wire is where a
  * price becomes 1179.9999.
  */
-export type AdminStoreProduct = {
+export type AdminStoreProduct = AdminCustomFields & {
   id: number;
   name: string;
   slug: string;
@@ -1500,6 +1694,8 @@ export type AdminStoreProduct = {
   features?: string[];
   images?: string[];
   image_urls?: string[];
+  /** Detail only (2026-09-26), up to four. */
+  videos?: import("./store-merch").AdminProductVideo[];
   variations?: AdminProductVariation[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
@@ -1569,6 +1765,9 @@ export type AdminStoreCategory = {
   is_active: boolean;
   sort_order: number;
   product_count?: number;
+  /** The specification filters offered, in order, and the labels a picker can offer (detail only). */
+  filter_specs?: string[];
+  spec_labels?: import("./store-merch").AdminSpecLabel[];
   /** Present on a detail response only -- see the API resource's `$detail` gate. */
   seo?: SeoOverride;
   seo_defaults?: Seo;
@@ -1578,7 +1777,7 @@ export type AdminStoreCategory = {
 };
 
 /** What the storefront reads. No stock count — see the API resource. */
-export type StoreProduct = AnswerContent & {
+export type StoreProduct = PublicCustomFields & AnswerContent & {
   id: number;
   name: string;
   slug: string;
@@ -1600,6 +1799,8 @@ export type StoreProduct = AnswerContent & {
   image_alts: (string | null)[];
   /** Parallel to `images` too: each file's focal point as `object-position` wants it, or null. */
   image_focuses?: (string | null)[];
+  /** Detail only (2026-09-26): YouTube ids and media-library files, after the pictures. */
+  videos?: import("./store-merch").ProductVideo[];
   price_paise: number;
   /** Only present when it is genuinely higher than the real price. */
   compare_at_paise?: number;
@@ -1625,6 +1826,8 @@ export type StoreProduct = AnswerContent & {
   brand?: Brand | null;
   variations?: StoreVariation[];
   seo?: Seo;
+  /** The published reviews' summary, or null when nobody has been published (`docs/store.md`, "Reviews"). */
+  rating?: StoreRating | null;
   /** Present on the detail response only — the page's JSON-LD, built server-side. */
   schema?: SchemaGraph;
 };
@@ -1740,6 +1943,12 @@ export type CartSummary = {
     /** Only cash on delivery has one. Null means no ceiling. */
     max_paise?: number | null;
   }[];
+  /**
+   * What the checkout typed on blur (`PATCH /cart/contact`), and whether
+   * basket reminders are switched on — which decides whether the line under
+   * the email field promising one is drawn at all.
+   */
+  contact?: { email: string | null; phone: string | null; reminders: boolean };
 };
 
 /**
@@ -1823,6 +2032,8 @@ export type OrderLine = {
    * open on a shared screen must not print a licence key.
    */
   has_codes: boolean;
+  /** The portal order read only: the customer's own review of this product, or null. */
+  my_review?: { status: ReviewStatus; status_label: string; rating: number } | null;
 };
 
 /**
@@ -1870,6 +2081,8 @@ export type StoreDashboard = {
     awaiting_codes: number;
     /** Products with somebody waiting to hear they are back. Links to `?notices=1`. */
     awaiting_stock: number;
+    /** Reviews waiting for a decision. Links to `/admin/store/reviews`. */
+    reviews_pending?: number;
     refund_requested: number;
     out_of_stock: number;
     codes_exhausted: number;
@@ -1882,6 +2095,12 @@ export type StoreDashboard = {
    * when a measured zero would put nothing under the line.
    */
   funnel: { product_views: number | null; paid_orders: number; views_to_orders: number | null };
+  /**
+   * What the basket reminders brought back over the window: baskets reminded,
+   * how many became an order, those orders' paid total, and the share. Null —
+   * never zeros — when nothing was reminded.
+   */
+  recovered?: { reminded: number; recovered: number; revenue_paise: number; rate: number } | null;
   series: { day: string; revenue_paise: number; orders: number }[];
   recent: {
     order_number: string;
@@ -1893,6 +2112,8 @@ export type StoreDashboard = {
   }[];
   low_stock: { id: number; name: string; stock: number }[];
   codes_low: { id: number; name: string; available: number }[];
+  /** The five products on the most wishlists, counted by list. Empty when nobody has saved anything. */
+  most_wished?: { id: number; name: string; wishes: number }[];
 };
 
 /**
@@ -2150,6 +2371,49 @@ export type CartLine = {
   problem?: string | null;
 };
 
+/**
+ * One thing on a wishlist, priced now. `price_at_save_paise` is what it cost
+ * when it was saved — the figure a price-drop email measures from — and
+ * `saving_paise` is null unless it costs less today.
+ */
+export type WishlistLine = {
+  id: number;
+  product_id: number;
+  variation_id: number | null;
+  name: string;
+  variation_name: string | null;
+  slug: string;
+  image_url: string | null;
+  image_alt: string | null;
+  price_paise: number;
+  price_at_save_paise: number;
+  saving_paise: number | null;
+  in_stock: boolean;
+  /** A product-level line on a product with options: choose one on its page first. */
+  needs_choice: boolean;
+  added_at: string | null;
+};
+
+/**
+ * The wishlist, as `GET /wishlist` answers it.
+ *
+ * `token` is a guest list's own and is **null for an account's list** — the
+ * Next server reads that as "forget the cookie", and the browser never sees
+ * either: `/api/store/wishlist` strips it. `alerts` says whether a
+ * back-in-stock or price-drop email can reach anybody; `alerts_off` whether
+ * the stop link in one was pressed.
+ */
+export type WishlistSummary = {
+  token: string | null;
+  account: boolean;
+  items: WishlistLine[];
+  item_count: number;
+  /** A guest's own "email me about these" address. Null on an account's list. */
+  email: string | null;
+  alerts: boolean;
+  alerts_off?: boolean;
+};
+
 export type StoreCategory = AnswerContent & {
   id: number;
   name: string;
@@ -2165,6 +2429,8 @@ export type StoreCategory = AnswerContent & {
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   image_focus?: string | null;
   product_count?: number;
+  /** The specification labels offered as filters, in order (2026-09-26). */
+  filter_specs?: string[];
   /** Present only on a listing that eager-loaded it -- see the API resource. */
   seo?: Seo;
 };
@@ -2172,7 +2438,7 @@ export type StoreCategory = AnswerContent & {
 /** A FAQ as the CMS edits it. The API replaces the set wholesale, so no id. */
 export type FaqItem = { question: string; answer: string };
 
-export type AdminSolution = {
+export type AdminSolution = AdminCustomFields & {
   id: number;
   title: string;
   slug: string;
@@ -2274,16 +2540,33 @@ export type AdminDashboard = {
    * not zeroes: zero is a measurement, this is the absence of one.
    */
   leads: { new: number; open: number; overdue: number; unassigned: number } | null;
+  /**
+   * Engineer visits (2026-09-26): waiting for a time, and in today's diary.
+   * Null for a role that cannot open the queue; optional for an older API.
+   */
+  visits?: { awaiting: number; today: number } | null;
   recent_tickets: Ticket[];
   high_priority: Ticket[];
   status_breakdown: Record<string, number>;
   metrics: DashboardMetrics;
 };
 
+export type VolumePeriod = "month" | "quarter" | "half" | "year";
+
 export type DashboardMetrics = {
   window_days: number;
   /** One entry per day in the window, oldest first, gaps filled with zeroes. */
   volume: { date: string; created: number; resolved: number }[];
+  /**
+   * What the volume chart draws, over the period asked for with `?volume=`:
+   * 30 days, 13 or 26 Monday weeks, or 12 calendar months. `date` is each
+   * bucket's first day and `end` its last (never past today).
+   */
+  volume_series: {
+    period: VolumePeriod;
+    bucket: "day" | "week" | "month";
+    points: { date: string; end: string; created: number; resolved: number }[];
+  };
   /** `change` is null when the previous window was empty — see TicketMetrics. */
   volume_trend: { current: number; previous: number; change: number | null };
   /** Medians, not means, and null when nothing has been measured yet. */
@@ -3362,3 +3645,9 @@ export type MailTemplateDetail = {
   };
   meta: { message: MailTemplateMessage };
 };
+
+export * from "./blocks";
+export * from "./messaging";
+export * from "./reviews";
+export * from "./page-sections";
+export * from "./visits";

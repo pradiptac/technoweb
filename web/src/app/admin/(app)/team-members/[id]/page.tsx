@@ -10,10 +10,12 @@ import { noIndex } from "@/lib/no-index";
 import { TeamMemberForm } from "../team-member-form";
 import { deleteTeamMemberAction } from "../actions";
 import type { AdminTeamMember } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Edit team member", path: "/admin/team-members", seo: noIndex });
 
 export default async function EditTeamMemberPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireScreen();
   const { id } = await params;
   const numericId = Number(id);
   if (!Number.isInteger(numericId) || numericId <= 0) notFound();

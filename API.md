@@ -37,6 +37,15 @@ record exists), 422 validation, 429 rate limited.
 throttles per email+IP after 5 failures, so one attacker cannot lock out a
 whole office.
 
+**Every limit is per route and per caller** (2026-09-26). A caller is the
+signed-in principal, or the client IP; `throttle:N,M` is
+`ThrottleRequestsPerRoute`, which adds the route to the key — the framework's
+own shared one counter across every throttled route. The client IP is the
+connecting address, or `X-Forwarded-For` when the connection comes from
+`TRUSTED_PROXIES` (the Next server; `api/config/trustedproxy.php`) — no other
+forwarded header is believed from anybody. A direct caller cannot choose its
+bucket by sending the header.
+
 ---
 
 ## Authentication
@@ -122,6 +131,15 @@ back is exactly the proof `POST /auth/verify-email` asks for, so
 `CustomerRegistered` to `support_email`, or a customer would confirm, wait for
 approval, and be in nobody's queue.
 
+**The first confirmation retires the password it did not prove.** However an
+address is confirmed — the link, a code, mail piped in from it — the password
+on the row is replaced with one nobody knows, every token is deleted, and then
+the paid guest orders under the address are joined to it. `/auth/register`
+stores a password the caller chose before anybody proved the mailbox, and
+anybody can register anybody's address; the code and the link prove the
+inbox, never who typed that password. The owner signs in with a code or sets
+a password through `POST /auth/forgot-password`.
+
 **Staff attempts reach the activity log**: `login` on success,
 `login_failed` with `bad_code` or `account_inactive`, and
 `login_code_requested` for *every* address a code is asked for. `user_id` stays
@@ -134,6 +152,13 @@ They are public because both sign-in screens render before anybody is
 authenticated. `password_login_enabled` is the escape hatch: mail is configured
 from the console and can be misconfigured from it, so an install that has
 turned passwords off and then broken SMTP has locked itself out.
+
+**Switched off, it is enforced by both login endpoints**, not only by the
+screens: `POST /auth/login` and `POST /admin/auth/login` answer **403** with
+`reason: password_login_disabled` before the credentials are read, one answer
+for every address. `AUTH_PASSWORD_BREAK_GLASS=true` in `api/.env` re-opens the
+**staff** endpoint only — the way back in when mail is broken — and the
+console's refusal is logged as `login_failed` with that reason.
 
 **Delivery is a channel, and email is the only one installed.**
 `App\Enums\SignInChannel` owns the list the way `MailTransport` does. SMS is
@@ -210,7 +235,10 @@ not something a wrong password earns.
 
 **Confirmation tokens are hashed at rest**, single-use, and expire in 24 hours.
 A wrong token, an expired one, an already-spent one and an unknown address all
-return the same 422 — the same rule the password reset follows.
+return the same 422 — the same rule the password reset follows. **The token is
+checked before anything else**: a confirmed address answered 200 with
+`already_verified` and the account's `status` whatever token was sent, so a
+spent link is now the same 422 and `already_verified` is always `false`.
 
 **The support desk is notified when an address is confirmed**, not when the
 form is submitted. An unconfirmed row is noise, and a form open to the internet
@@ -265,12 +293,12 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/case-studies/{slug}` | Includes the `results` figures |
 | `GET` | `/knowledge-base` | Paginated. `?q=` search, `?category=` |
 | `GET` | `/knowledge-base/{slug}` | |
-| `POST` | `/knowledge-base/{slug}/helpful` | "Was this helpful?" Throttled 10/min. **204 always** — a draft counts nothing and answers the same |
+| `POST` | `/knowledge-base/{slug}/helpful` | "Was this helpful?" Throttled 10/min. **204 always** — a draft counts nothing and answers the same, and so does a slug nobody wrote (it used to 404, which made a draft's 204 the tell) |
 | `GET` | `/pages` | Published CMS pages, **without bodies**. For the sitemap |
-| `GET` | `/pages/{slug}` | CMS pages — `/privacy`, `/terms`, `/downloads` |
+| `GET` | `/pages/{slug}` | CMS pages — `/privacy`, `/terms`, `/downloads`. A `builder` page adds `sections` (see "The section page builder") |
 | `GET` | `/ticket-categories` | Powers the submit-a-ticket form |
 | `GET` | `/settings` | Site settings. **Whitelisted by group**, see below |
-| `GET` | `/search?q=` | Site-wide search, grouped by type. Min 2 characters, 5 per group |
+| `GET` | `/search?q=` | Site-wide search, grouped by type. Min 2 characters, **max 100** (422 above), 5 per group. `%` and `_` match themselves. Throttled 240/min under the `search` key — every visitor reaches it through the one Next server |
 | `GET` | `/companies/suggest?q=` | Company names already on file. Prefix, min 3 chars, max 5. Throttled 20/min |
 | `GET` | `/redirects` | Every active redirect as `{from,to,status}` rows. `Cache-Control: max-age=60`. What the frontend proxy holds in memory |
 | `GET` | `/redirects/lookup?path=/blog/old-slug` | 200 with `{data:{to,status}}`, or 404. **Records the hit** — the proxy calls it only on a match |
@@ -554,6 +582,11 @@ because the index pages need everything. `show_in_menu` defaults to true, so a
 record is in the navigation until somebody decides otherwise — the opposite
 default would empty the menu on the migration that adds the column.
 
+**Three `store` rows are not published**: `activation_procedure`,
+`activation_pdf_path` (and its `_url`) and `digital_auto_fulfil` —
+`PublicSettings::PRIVATE_KEYS`. The group is public for the shop's switch and
+its shipping figures; the procedure is what a buyer receives after paying.
+
 **`/settings` returns a whitelist, not a filtered dump.** Only the `general`,
 `contact`, `social` and the other groups `PublicSettings::GROUPS` names —
 `announcement` among them — are public; the same table also holds SEO
@@ -827,6 +860,255 @@ AMC, NAS, PoE and VPN are most of what this catalogue is asked.
 
 ---
 
+## Content blocks
+
+CTA banners, stat bars, pricing tables and technology stacks (2026-09-24).
+See `docs/blocks.md`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/blocks/default/cta` | The default CTA, or **`{data: null}` in a 200** when none is chosen. Declared above `blocks/{slug}` |
+| `GET` | `/blocks/{slug}` | One published block: `{id, type, layout, name, slug, content, updated_at}`. 404 when a draft, unknown or empty |
+| `POST` | `/blocks/{slug}/submit` | A CTA's form (`newsletter`, `gated_download`, `webinar` only; 404 otherwise). `email`, `name` (required for a webinar), `company`, `phone`, honeypot `website`, the `_source_*` envelope. Throttled 10/min. Download: 200 with `data.url` — the only place the file's URL appears. Webinar: 202. Newsletter: 202 always, 403 while signup is off |
+| `GET`/`POST` | `/admin/blocks` | `role:content_manager`. `?type=`, `?status=`, `?q=`, `?per_page=` (max 100); default first, then by name. `meta.types`, `meta.layouts[type]` (value, label, blurb) |
+| `GET`/`PATCH`/`DELETE` | `/admin/blocks/{id}` | Bound by **id**. `type` is prohibited on PATCH; a new `layout` must come with `content` |
+| `POST` | `/admin/blocks/{id}/duplicate` | 201: a draft copy under a free slug, never the default |
+
+**The field is `content`, not `data`.** A resource whose array holds a `data`
+key is not wrapped, so the block's content travels as `content` and every
+read keeps its `{data: …}` envelope. Its shape is per type and layout
+(`App\Support\Blocks\BlockRules`); 422s are keyed `content.items.0.value`.
+
+**The admin read** carries `content` as stored (paths, brand ids), `media`
+(a URL for every stored `*_path`), `preview` (the public shape), `status`,
+`is_default` and `shortcode`. **The public read** resolves paths to URLs with
+alt text and focal points, gives a stack node naming a brand that brand's
+name and logo (dropping a node whose brand is gone), and never carries a
+gated download's file — `has_download: true` stands in for it.
+
+**`is_default`** is accepted on a published CTA only (422 otherwise);
+setting it clears every other default, and unpublishing the default clears
+it. `home_stats_block`, `home_pricing_block` and `home_stack_block` in the
+`homepage` settings group are pickers of published blocks of their kind
+(`options` from the API; anything else is a 422).
+
+---
+
+## Custom fields and content types
+
+ACF-style fields on existing records, and editor-made record types with
+pages of their own (2026-09-26). See `docs/custom-content.md`.
+
+### Public
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/content-types` | Active types: `{name, plural, slug, path, icon, description, archive_enabled, per_page, sort, schema_type, updated_at}` — `updated_at` is the newest published entry's. Plain collection |
+| `GET` | `/types/{type}` | A page of the type's **published** entries (status, `published_at` not in the future) in its `sort`, `?page=`, `?per_page=` (max 100, default the type's). `meta.type`. 404 for an unknown or inactive type. Answers for a type whose archive is off, `meta.type.archive_enabled: false` — the frontend 404s the page; the sitemap walks this |
+| `GET` | `/types/{type}/{slug}` | One entry, the page: `body`, `image` + `image_alt`/`image_focus`, `type`, `faqs`, `answer_blocks`, `entity`, `faq_schema`, `custom_fields`, `custom_data`, `seo`, `schema` (`Article` or `WebPage`, per the type). 404 for a draft, a future date or an inactive type |
+
+**Custom fields on public reads.** The detail read of a page, post,
+knowledge article, case study, solution, service, industry, product, store
+product and entry carries `custom_fields` — `[{key, label, kind, value,
+display}]` for the fields in active `details` groups marked `show_on_page`,
+non-empty, in group then field order — and `custom_data`, every applicable
+value keyed, `hidden` groups included (`hidden` is "not drawn", never
+"private"). `value` is resolved: a picture `{url, alt, focus, width,
+height}`, a file `{url, name, mime}`, a linked record `{title, path}` (absent
+when no longer public), a boolean `true`/`false`, a list or checkboxes an
+array; `display` is the text form (Indian number grouping, `26 September
+2026`, option labels). Index rows carry neither key.
+
+### Admin (`role:content_manager`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET`/`POST` | `/admin/custom-field-groups` | `?q=`, `?target=`, `?per_page=` (max 100). `meta.kinds` (`CustomFieldKind::options()`), `meta.targets` (`Targets::options()`), `meta.placements` |
+| `GET`/`PATCH`/`DELETE` | `/admin/custom-field-groups/{id}` | `name`, `slug`, `targets[]` (≥ 1), `placement` (`details`/`hidden`), `sort_order`, `is_active`, `fields[]` of `{id?, key, label, kind, help, required, show_on_page, options[{value,label}], settings{min,max,max_length,max_items,target}}`. Fields are synced **by id** — a row naming its id is updated, one without is created, one not sent is deleted with its values. Each field carries `values_count`. Deleting the group deletes its fields and their values |
+| `GET`/`POST` | `/admin/content-types` | `?q=`, `?active=`. Rows carry `entries_count`, `published_count`, `target` (`entry:<slug>`). `meta.sorts`, `meta.schema_types` |
+| `GET`/`PATCH`/`DELETE` | `/admin/content-types/{id}` | Bound by **id**. `name`, `plural`, `slug`, `icon`, `description`, `has_body`, `has_image`, `archive_enabled`, `per_page` (1–60), `sort`, `schema_type`, `sort_order`, `is_active`; detail adds `field_groups`. `DELETE` is 422 while the type holds entries |
+| `GET`/`POST` | `/admin/content-types/{type-slug}/entries` | `?q=`, `?status=`, `?per_page=`. `meta.type`, `meta.statuses`, `meta.answer_block_kinds`, `meta.custom_field_groups` |
+| `GET`/`PATCH`/`DELETE` | `/admin/content-types/{type-slug}/entries/{id}` | Scoped: another type's entry id is a 404. `title`, `slug` (unique **within the type**), `summary`, `body` (rich text), `image_path` (a library path), `status`, `published_at`, `sort_order`, `faqs[]`, `answer_blocks[]`, `seo`, `custom_fields` |
+
+**A type's slug** matches `^[a-z][a-z0-9-]*$` and is refused when it is a
+frontend route, an API prefix or a reserved word (`App\Support\ReservedSlugs`)
+or a CMS page's slug. Changing it writes a 301 for `/{old}` and for every
+`/{old}/{entry}`, re-aims redirects already pointing at those addresses, and
+re-attaches field groups and linked-record fields from `entry:<old>` to
+`entry:<new>`. **An entry's slug change** writes its own 301 under the type.
+
+**`custom_fields` on every target's write.** Each of the ten entity
+endpoints above (and `/admin/store/products`, `role:store_manager`) takes
+`custom_fields`, an object keyed by field key, validated from the stored
+definitions of the groups on that record's kind: a dropdown against its
+options, checkboxes as an array of option values, a number against
+`min`/`max`, a date as `Y-m-d`, a link `http(s)` only, a picture a library
+path with an image MIME, a file a library path, a linked record an id of the
+target (an entry of that type). **Omitting the key leaves every value
+alone**, a key not declared is dropped, a key sent `null`/`""` clears that
+field, and a required field is required only when `custom_fields` is sent.
+Errors arrive as `custom_fields.<key>`. Every detail read carries
+`custom_fields` (stored values), `custom_field_media` (key → URL for pictures
+and files) and `custom_field_groups` (the definitions that apply, a
+linked-record field with up to 200 `choices`); every index carries
+`meta.custom_field_groups` for a new record.
+
+**Also registered**: `entry` in the SEO overview (`admin_path`
+`/admin/content/{type}/{id}`), the FAQ owners, site search (a "More from the
+site" group, each result its own `path`), the console palette ("Custom
+content") and the chatbot's retrieval; `entry` and `content_type` (an
+archive) in the menu item types, with `/admin/menu-targets?type=entry`
+labelling each entry with its type.
+
+## Messaging channels — WhatsApp, RCS, push
+
+Phase 2 (2026-09-25). See `docs/messaging.md`. Every event's email is
+unchanged; these channels are called beside it through `Messenger::notify()`.
+
+### Public
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET`/`POST` | `/messaging/webhooks/{channel}/{provider}` | A provider reporting back: `whatsapp` × `meta_cloud`\|`gupshup`\|`twilio`, `rcs` × `google_rbm`\|`gupshup`. **200 always**, un-throttled; nothing is acted on unless it verifies (see below). GET is Meta's subscription handshake |
+| `POST` | `/messaging/push/subscribe` | `token` (an FCM registration token). Throttled 10/min. **202 always**; written only while push is live. A forwarded portal Bearer stamps the customer (read as `$request->user('sanctum')`, never for a "View as" session) |
+| `POST` | `/messaging/push/unsubscribe` | `token`. Throttled 10/min. 202 always |
+
+**Verification fails closed.** Meta: `X-Hub-Signature-256` = `sha256=` HMAC-SHA256 of the raw body with `whatsapp_meta_app_secret`; the GET echoes `hub.challenge` only when `hub.verify_token` equals `whatsapp_meta_verify_token`. Twilio: `X-Twilio-Signature` = base64 HMAC-SHA1, keyed with the auth token, over the URL called and every POST field name+value in name order. Google RBM: `X-Goog-Signature` = base64 HMAC-SHA512 of the base64-decoded `message.data` with `rcs_rbm_client_token`; a body of `{clientToken, secret}` is the configuration handshake and is answered `{secret}` when the token is ours. Both Gupshups sign nothing and require `messaging_webhook_secret` as `?token=` (or `X-Webhook-Secret`). No secret configured accepts nothing.
+
+**What a verified webhook does.** A status (`sent`, `delivered`, `read`, `failed`) moves the matching `message_deliveries` row **forward only**; an inbound STOP (STOP, STOP ALL, UNSUBSCRIBE, CANCEL, END, QUIT, OPT OUT, STOP PROMOTIONS) opts that number out on that channel; a template status update (Meta, Gupshup) sets the template's approval.
+
+`/settings` adds `messaging_whatsapp_live`, `messaging_rcs_live` and `push_live` — `"1"`/`"0"`, whether the checkout may offer a box and the shop a bell — and publishes the `push` group (Firebase's web config: `push_api_key`, `push_project_id`, `push_messaging_sender_id`, `push_app_id`, `push_vapid_key`). No provider or credential is public.
+
+`POST /checkout` accepts `message_opt_in[]` of `whatsapp` and `rcs`: the number typed in `phone` is opted in on each **live** channel (source `checkout`), inside the order's transaction and before the order-placed message is queued. Anything else is a 422; a channel that is off records nothing.
+
+### Portal
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/messaging/preferences` | `{phone, channels: [{channel, label, live, opted_in, devices}]}` — `phone` is the account's number in E.164 or null; `devices` counts active push subscriptions |
+| `PATCH` | `/messaging/preferences` | `whatsapp`, `rcs`, `push` booleans, each optional. On opts the **account's** number in (422 without one; ignored for a channel that is not live); off opts out every number the account holds on it. `push` can only be `false`: off everywhere. A "View as" session may turn a channel off and never on (422). Throttled 20/min |
+
+### Admin — settings (`role:admin`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/settings/messaging` | `channels[]`: `value`, `label`, `setting` (`messaging_<channel>_provider`), `provider`, `ready`, `address_kind` (`phone`\|`token`), `needs_approval`, `error` (the last credential refusal), `providers[]` (`value`, `label`, `blurb`, `fields`, `available`, `configured`, `webhook_url` from the route table, `webhook_secret_param`); `quiet_hours` (`start`, `end`, `open_now`, `next_opening`, `timezone`); `queue` |
+| `POST` | `/admin/settings/messaging/test` | `channel`, `to` (a mobile, or a push token). The fixed test body — Meta's `hello_world` template — to that address; 422 with the provider's own words, written to `messaging_<channel>_error`; a success clears it. Throttled 6/min |
+
+The keys are ordinary rows in the private `messaging` group, saved through `PATCH /admin/settings`: `messaging_{whatsapp,rcs,push}_provider` (an id from the channel's enum or blank for off; `options` carries the list), `messaging_promo_start`/`_end` (`HH:MM`, the end after the start — the quiet-hours window), `messaging_webhook_secret`, and each provider's fields (`whatsapp_meta_*`, `whatsapp_gupshup_*`, `whatsapp_twilio_*`, `rcs_rbm_*`, `rcs_gupshup_*`, `push_fcm_service_account`). Every credential is `is_secret`: encrypted, blank = unchanged, never returned. A service-account key must be Google's JSON file (`client_email`, `private_key`) or it is refused.
+
+### Admin — messaging (`role:campaign_manager,store_manager`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET`/`POST` | `/admin/messaging/templates` | `?channel=`, `?q=`, `?per_page=` (max 100). `meta`: `channels`, `events` (value, label, promotional, placeholders), `common_placeholders`, `samples`, `categories`, `approvals` |
+| `POST` | `/admin/messaging/templates/sync` | `channel`. Reads every template's approval from the provider: `{matched, unknown[]}`. 422 in the provider's words. **Declared above `templates/{id}`** |
+| `GET`/`PATCH`/`DELETE` | `/admin/messaging/templates/{id}` | Bound by **id**. `channel` is fixed once saved (prohibited on PATCH) |
+| `POST` | `/admin/messaging/templates/{id}/submit` | WhatsApp: submit for review; the template becomes `pending`. Throttled 10/min |
+| `POST` | `/admin/messaging/templates/{id}/test` | `to`. This template, filled with `samples`, to one address. Throttled 6/min |
+| `GET` | `/admin/messaging/automations` | The whole grid, every event × channel: `event`, `event_label`, `promotional`, `channel`, `message_template_id`, `is_enabled`, `live`, `reason`. `meta.channels`, `meta.templates` |
+| `PUT` | `/admin/messaging/automations` | `rows[]` of `{event, channel, message_template_id, is_enabled}`, upserted. A template on another channel, or switched on with none, is a 422 on the row |
+| `GET` | `/admin/messaging/contacts` | `?channel=`, `?status=active\|opted_out`, `?q=` (name, customer, or four digits of a number). A push token is shortened to 12 characters. `meta.channels[].active` counts. **No create** |
+| `POST` | `/admin/messaging/contacts/{id}/opt-out` | Records an opt-out said somewhere else (`staff`) |
+| `GET`/`POST` | `/admin/messaging/broadcasts` | `?status=`. `meta`: `channels`, `audiences`, `statuses`, `wishlists` (whether the wishlist tables exist), `groups`, `products`, `templates`, `quiet_hours` |
+| `GET` | `/admin/messaging/broadcasts/audience` | `?channel=&audience=&newsletter_group_id=&store_product_id=` → `{count}`. **Declared above `broadcasts/{id}`** |
+| `GET`/`PATCH`/`DELETE` | `/admin/messaging/broadcasts/{id}` | `name`, `channel`, `message_template_id` (same channel), `audience` (`opt_ins`, `customers`, `newsletter_group`, `wishlist`), `newsletter_group_id`, `store_product_id`. A read of a draft or scheduled one carries `audience_count`; of anything else `report` (`counts` by status, `sent`, `delivery_rate`, `read_rate` — null before anything was sent — and the latest 20 `failures`). PATCH on a draft only; DELETE on a draft or cancelled one |
+| `POST` | `/admin/messaging/broadcasts/{id}/send` | `scheduled_at?`. A future time schedules it; otherwise it is claimed with a conditional UPDATE, frozen into delivery rows and queued in batches of 100 inside the quiet hours. 422 with `errors.send[]` on an unapproved template, a channel off, or nobody in the audience; 422 once already sent. Answers `starts_at` |
+| `POST` | `/admin/messaging/broadcasts/{id}/cancel` | Scheduled or sending: `cancelled`, and every delivery not yet sent `skipped` |
+
+**Every audience is narrowed to active contacts on the broadcast's channel.** `newsletter_group` matches the group's active subscribers to portal customers by email; `wishlist` reads `wishlist_items.store_product_id` joined to `wishlists.customer_id` and is **empty until those tables exist**.
+
+## The section page builder
+
+A CMS page whose `template` is `builder` is a stack of typed sections
+(2026-09-26). See `docs/page-builder.md`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/pages/builder` | `role:content_manager`. `section_types`, `section_presets`, `hero_layouts`, `card_sources`, and the **published** `content_blocks`, `sliders`, `galleries`, `forms`, plus `product_categories` and `store_categories`. Declared above `pages/{page:id}` |
+| `POST` | `/admin/pages/preview` | `role:content_manager`, throttled 60/min. `{blocks, page_id?}` — validated exactly as a save is, presented, **nothing written**. 200 `{data: {sections}}`, or a 422 keyed `blocks.N.data.field` |
+
+**`blocks` on `POST`/`PATCH /admin/pages`** is a list of at most 40
+`{id (uuid), type, hidden, background, data}`; `template` accepts `builder`
+beside `default` and `wide`. `type` is `App\Enums\PageSectionType` — `hero`,
+`rich_text`, `media_text`, `features`, `cards`, `content_block`, `slider`,
+`gallery`, `form`, `faq`, `logos`, `testimonial`, `video`, `divider` — and
+`data` is checked by that type's own rules (`SectionRules`), so a 422 names the
+field: `blocks.3.data.heading`. A picture or video must be in the media
+library and of the right kind; a content block, slider, gallery or form is
+named by id and must exist **and be published**; a YouTube link is stored as
+its id; a background is the Themes screen's section background, checked by
+the same rule; ids are unique. `data.body` on `rich_text` and `media_text` is
+rich text, cleaned on write like any body; every other field is plain text.
+Only declared keys are stored. Absent leaves the sections alone; `[]` clears
+them.
+
+**The admin detail read** carries `blocks` as stored, `blocks_media` (a URL
+for every stored `*_path`) and `sections` — the public shape, hidden ones
+left out — for the saved preview. The index's `meta` carries
+`section_types` and `section_presets`.
+
+**The public read `GET /pages/{slug}`** carries `sections` **only for a
+builder page**: hidden sections omitted; `*_path` → a URL with `*_alt` and
+`*_focus`; a content block inline as `data.block` (the public block
+resource); a slider, gallery or form as its current `slug`, which the
+frontend fetches from its own endpoint; a `cards` section's live list
+resolved as `items` (`title`, `summary`, `path`, `image`, `icon`, `kicker`,
+`meta`) with `index_path`; a `faq` on `source: page` carrying the page's
+FAQs. A section whose reference has been unpublished or deleted, or whose
+list is empty, is dropped. `faq_schema` counts the visible custom questions
+of `faq` sections beside the FAQs and question blocks — still one
+`FAQPage`, absent under two entries. The body is still sent.
+
+## Engineer visits
+
+A customer asks for an engineer on site with up to three preferred times; the
+desk confirms one (2026-09-26, `docs/visits.md`). A request is never a
+booking: only the confirm endpoint sets a time.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/visits/options` | What the form offers: `enabled`, `windows[{value,label,start,end}]`, `days` (ISO weekdays), `min_date`, `max_date`, `holidays` (inside that range), `max_preferred`, published `services[{id,title,slug,location_ids}]`, `solutions`, active `locations`. `Cache-Control: max-age=300`. **Declared above `visits/{reference}`** |
+| `POST` | `/visits` | `name`, `email`, `phone` (an Indian mobile — `CheckoutRequest::MOBILE_PATTERN`), `company?`, `site_address.{line1,line2,city,state,pin,country}` (line1, city, state and a six-digit pin required), `service_id?`/`solution_id?` (published), `location_id?` (active), `notes?` (plain text, 2000), `preferred[{date: Y-m-d, window}]` (1–3), `message_opt_in[]?` (`whatsapp`, `rcs`), honeypot `website`, the `_source_*` envelope. Throttled 5/min. **201** with `reference` and `access_token` — the token here and nowhere else. 403 with a sentence while `visits_enabled` is off |
+| `GET` | `/visits/{reference}?token=` | The request as its customer sees it. A wrong token and a wrong reference are the same 404 |
+| `POST` | `/visits/{reference}/cancel` | `token`. 422 once it is not open |
+| `POST` | `/visits/{reference}/reschedule` | `token`, `preferred[]`, `note?` (500). Back to `requested`; a confirmed time is cleared and kept in the trail |
+| `GET` | `/my/visits` | Portal. The signed-in customer's own, newest first, paginated (`per_page` ≤ 50) |
+| `GET` | `/my/visits/{reference}` | Portal. Another customer's is a 404 |
+| `POST` | `/my/visits/{reference}/cancel` | Portal |
+| `POST` | `/my/visits/{reference}/reschedule` | Portal. `preferred[]`, `note?` |
+| `GET` | `/admin/visits` | `role:sales_manager,support_engineer`. `?status=`, `?open=1`, `?assigned_to=`, `?unassigned=1`, `?from=`/`?to=` (`Y-m-d`, on the appointment), `?q=` (reference, name, email, phone, company), `?sort=created\|scheduled\|name\|status` with `?dir=`, `?per_page=` ≤ 100. Default order: waiting oldest first, then the diary soonest first, then closed newest first. `meta`: `statuses`, `awaiting_count`, `today_count`, `unassigned_count`, `assignees`, `sorts`, `default_minutes`, `windows` |
+| `GET` | `/admin/visits/{reference}` | With `events` (the trail, oldest first) and `allowed_next` |
+| `PATCH` | `/admin/visits/{reference}` | `status` (checked by `VisitStatus::canTransitionTo()`, a 422 naming both states; `confirmed` is always refused here), `assigned_to`, `staff_note`, `cancel_reason`. Cancelling emails `visit_cancelled` with the reason |
+| `POST` | `/admin/visits/{reference}/confirm` | `start_at` (a wall-clock datetime, read in IST), `minutes?` (15–720, default `visit_default_minutes`), `assigned_to?`. `requested` or `confirmed` only. Emails `visit_confirmed` — or `visit_rescheduled` for a visit ever confirmed before — with a `.ics` attachment |
+
+**Statuses** are `requested`, `confirmed`, `completed`, `cancelled`,
+`no_show`. `confirmed` is reached only by confirming; `completed` and
+`no_show` correct to each other; `cancelled` reopens to `requested`.
+`confirmed_at`, `completed_at` and `cancelled_at` are stamped on arrival and
+never cleared.
+
+**The customer's resource** has no `staff_note`, no engineer, no lead, no
+source and no token; `can_cancel` and `can_reschedule` say which buttons a
+POST will accept. The admin resource adds those, `allowed_next`,
+`admin_path` and `lead_id`.
+
+**A signed-in customer is stamped** from `$request->user('sanctum')` narrowed
+to a `Customer` — never an impersonated ("View as") token.
+
+**Every request files a lead** (`channel: visit`), emails the desk
+(`visits_email`, else `sales_email`) and the customer, notifies
+`MessageEvent::VisitRequested` on the opted-in channels and emits the
+`visit.requested` webhook. `technoware:remind-visits`, every fifteen minutes,
+sends `visit_reminder` once to a confirmed visit starting within 24 hours.
+
+**Settings** are the `visits` group at `/admin/visits/settings`
+(`role:admin`): `visits_enabled`, `visit_windows` (`key|Label|09:00|12:00`
+per line), `visit_days` (`mon,tue,…`), `visit_min_notice_days`,
+`visit_max_days`, `visit_holidays` (`Y-m-d` per line), `visits_email`,
+`visit_default_minutes`. The group is private; the first six reach the public
+`/settings` map by name. A value that would parse to nothing is a 422.
+
 ## The store
 
 A **separate catalogue** from `/products`. What the shop sells is maintained
@@ -835,10 +1117,11 @@ here reads `products`.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/store/products` | Paginated. `?q=`, `?category=`, `?type=`, `?sort=`, `?page=` |
-| `GET` | `/store/products/{slug}` | Detail only: `warranty`, `applications`, `services: [{id, title, slug}]`, `faqs`, `answer_blocks`, `entity`, `faq_schema`; the `Product` graph adds `category` as a `Thing`, `additionalProperty` from the spec sheet, `isRelatedTo` (the six the page lists beside it) and `offers.warranty` as a `WarrantyPromise` when one is set |
-| `GET` | `/store/categories` | Only categories with something published in them |
-| `GET` | `/store/categories/{slug}` | |
+| `GET` | `/store/products` | Paginated. `?q=`, `?category=`, `?type=`, `?sort=`, `?page=`, `?spec[<label>][]=<value>` (OR within a label, AND across, matched on normalised keys; a label nothing carries is ignored) |
+| `GET` | `/store/products/{slug}` | Detail only: `warranty`, `applications`, `services: [{id, title, slug}]`, `faqs`, `answer_blocks`, `entity`, `faq_schema`, `videos: [{kind, youtube_id?, url?, title?, poster_url?}]`; the `Product` graph adds `category` as a `Thing`, `additionalProperty` from the spec sheet, `isRelatedTo` (the six the page lists beside it), `offers.warranty` as a `WarrantyPromise` when one is set, and `subjectOf` `VideoObject`s for YouTube videos with an uploaded poster |
+| `GET` | `/store/categories` | Only categories with something published in them. Each carries `filter_specs` |
+| `GET` | `/store/categories/{slug}` | `filter_specs`: the spec labels offered as filters, in order |
+| `GET` | `/store/categories/{slug}/facets` | `?spec[..]` as above. `data: [{label, key, values: [{value, key, count, selected}]}]` — each label counted under the *other* labels' choices; `meta: {category, filtered}`. **`data: []` in a 200** for a category offering none; 404 when inactive. Unfiltered answers cached 5 min, filtered never |
 | `GET` | `/store/feed` | The Google Merchant Center feed, as rows. Paginated. `/store/feed.xml` renders it |
 | `GET` | `/cart` | The basket for `X-Cart-Token`, or a new empty one |
 | `POST` | `/cart/items` | `product_id`, `variation_id`, `quantity`. Throttled 60/min |
@@ -848,10 +1131,13 @@ here reads `products`.
 | `POST` | `/checkout` | Places the order. Throttled 10/min, honeypot `website` |
 | `GET` | `/orders/{number}?token=` | One order, for whoever holds the link |
 | `POST` | `/orders/{number}/pay` | Opens a payment session |
-| `POST` | `/orders/{number}/verify` | What the browser came back with |
+| `POST` | `/orders/{number}/verify` | What the browser came back with. Razorpay: must name the gateway order this order's `/pay` opened, and Razorpay's own record must say captured/authorised, that order, INR — its amount is compared with the total. 422 otherwise |
 | `POST` | `/payments/{gateway}/webhook` | The gateway talking to us. **Un-throttled** |
 | `POST` | `/store/products/{slug}/notify` | "Email me when this is back": `email`, `variation_id?`, honeypot `website`. Throttled 10/min. **202 and one sentence always** |
 | `GET` | `/store/stock-notices/{token}/cancel` | The link in the email. Idempotent; `{message}`, 200 for a token nobody has too |
+| `GET` | `/store/products/{slug}/reviews` | Published reviews, 6 a page. `?sort=featured\|newest\|highest\|lowest` (unknown → featured), `?page=`. `meta`: `sort`, `average` (null with none), `count`, `distribution` `{5..1}`. Rows: `id`, `display_name`, `verified`, `variant_label`, `rating`, `title`, `body`, `published_at` |
+| `GET` | `/store/products/{slug}/reviews/mine` | **Portal token.** The caller's own review in any status, or `data: null`; `meta.can_review`, `meta.verified` |
+| `POST` | `/store/products/{slug}/reviews` | **Portal token.** `rating` 1–5, `title?` (120), `body` (2–2000, plain text), honeypot `website`. Throttled 10/min. **202 and one sentence**; creates or rewrites the caller's one review, always back to `pending` |
 
 **`/store/products/{slug}/notify` answers 202 and one sentence whatever
 happened, the `/auth/register` rule.** A filled honeypot, an address on
@@ -868,6 +1154,18 @@ suppression list, sends `back_in_stock` (editable in the catalogue) through
 `Notifier`, and stamps each row so a second run tells nobody twice. The
 email's cancel link is the frontend's `/store/notify/cancel/<token>`, which
 calls the GET above and shows its sentence.
+
+**`meta_catalogue_enabled`** (`store` group, public, default `1`) decides
+whether `/meta-catalogue.xml` and `/meta-catalogue.csv` answer (2026-09-26).
+Both are rendered by the frontend from `GET /store/feed` — the Google feed's
+rows, mapped for Meta's Commerce Manager (back-order is `available for
+order`; no stock count) — so the API gains nothing but the switch; off, the
+frontend answers 404. See `docs/store.md` "The Meta catalogue".
+
+**`store_product_specs` is derived** (`SpecIndex`): each product's sheet and
+its active variations' options, rebuilt after commit whenever either changes,
+and by `php artisan technoware:rebuild-store-specs` — run once after the
+2026-09-26 migration.
 
 **`GET /store/feed` is the shop as Google Merchant Center reads it, and it is
 data rather than markup.** One row per thing somebody can buy — a variation
@@ -1074,7 +1372,18 @@ of *themselves*, the reason `status_note` is absent from it.
 **An order is read by `access_token`, never by its number alone.** The number is
 printed on paperwork, quoted on the telephone and sequential. The token is
 returned **once**, on the response that creates the order, and appears in no
-other response. A wrong token is a 404, compared with `hash_equals`.
+other response. A wrong token is a 404, compared with `hash_equals`. The links
+the API mails (`Order::url()`) and Cashfree's `return_url` point at the
+frontend's `/order/{n}/open?token=…`, which moves the token into a cookie and
+redirects to the clean `/order/{n}` — never at the order page with the token in
+its address.
+
+**A browser return is bound to its order and priced by the gateway.** `/pay`
+records the Razorpay order it opened on the order (never in a response beyond
+the session itself); `/verify` refuses a triple naming any other, then fetches
+`GET /v1/payments/{id}` from Razorpay and hands *its* amount to settlement. A
+triple from a cheaper order used to verify here and settle at this order's
+total. A return the gateway puts no figure to is refused, never recorded.
 
 **Payment is verified server-side and the webhook is what settles an order.**
 `verify` is a convenience so the person sees the right page at once; the webhook
@@ -1099,11 +1408,45 @@ door leaves somebody `pending`; having paid is a stronger statement than
 anything that queue establishes. An address that already has an account keeps
 whatever status it has.
 
-| `POST` | `/cart/coupon` | Applies a discount code. Throttled 15/min |
+| `POST` | `/cart/coupon` | Applies a discount code. Throttled 15/min. An off, expired or not-yet-started code is answered exactly like an unknown one ("That code is not recognised.") |
 | `DELETE` | `/cart/coupon` | Takes it off |
+| `PATCH` | `/cart/contact` | `email`, `phone` — what the checkout has typed, saved on blur before any order exists. Each optional and written only when sent; a blank clears it. `phone` is held to the checkout's mobile rule. Throttled 20/min. Answers the basket |
+| `GET` | `/cart/restore/{token}` | A basket reminder's link: `{data: {token}}`, the basket's own cart token, for the frontend to put in the cookie. **404** for an unknown token and for a basket that has already become an order. Throttled 30/min |
 | `POST` | `/orders/{number}/items/{item}/reveal` | Hands over an activation code. Throttled 20/min |
 | `GET` | `/my/orders` | The signed-in customer's orders |
 | `GET` | `/my/orders/{number}` | One of them |
+
+**Every basket read carries `contact`** — `{email, phone, reminders}`: what
+`PATCH /cart/contact` stored, and whether basket reminders are switched on.
+The checkout prefills from the first two and draws the line promising a
+reminder only while the third is true. A basket call carrying a portal
+`Authorization: Bearer` claims an unclaimed basket for that customer
+(`carts.customer_id`), read with the guard named since the routes are public;
+a "View as" token claims nothing, and claiming does not move the idle clock.
+
+**Abandoned-basket reminders are two emails at most, and the API decides
+all of it.** `technoware:remind-abandoned-carts`, every ten minutes, off
+until `store_cart_reminders_enabled` (private `store_reminders` group — the
+`store` group is public, and the fourth row is a coupon code). A basket is
+reminded when it has lines, a contact — an address stored with
+`contact_consent_at`, stamped only while reminders are on, or an account —
+no `recovered_order_id`, an address not on `newsletter_suppressions`, and has
+been idle (`updated_at`) past `store_cart_reminder_1_hours` (1–72) for the
+first or `store_cart_reminder_2_days` (1–25, before the 30-day prune) and
+twelve hours after the first for the second; never the first for a basket
+idle over seven days; only while `QuietHours::allows()`. Each is the
+`cart_reminder_1`/`_2` email and `Messenger::notify(CartReminder1|2, …)`;
+the second carries `store_cart_reminder_coupon` only when `refusalFor()`
+passes for that basket and address. The link is
+`/store/basket/restore/{restore_token}`, never the cart token; the email's
+unsubscribe is `/newsletter/unsubscribe/{restore_token}`, which
+`GET`/`POST /newsletter/unsubscribe/{token}` now accept beside a subscriber's
+token and answer by suppressing the address. The checkout stamps
+`recovered_order_id` on the basket it ordered from.
+**A cancelled unpaid order gives its coupon use back.** The use is written at
+checkout (so two tabs cannot spend a single-use code) and, until now, was
+never released — abandoned orders exhausted a limited code. Moving an order
+with no `paid_at` to `cancelled` deletes its usage row; a paid order keeps it.
 
 **The basket stores a coupon *code*, never an amount.** The discount is worked
 out on every read, so adding a line, removing one or the code expiring all
@@ -1138,6 +1481,49 @@ in a link.** Both exist because both cases are real: most buyers here never sign
 in, and the ones who do should not have to keep an email. An order belonging to
 somebody else is a 404 either way.
 
+### The wishlist (2026-09-25)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/wishlist` | The list for `X-Wishlist-Token` and/or the portal bearer. **Never writes**: nothing in hand is an empty summary and no row. Throttled 120/min |
+| `PATCH` | `/wishlist` | `email` (a guest's "email me about these"; 422 on an account's list), `alerts` (boolean). 404 with no list. Throttled 10/min |
+| `POST` | `/wishlist/items` | `product_id`, `variation_id?`. 201 with the list; mints a guest list (or the account's) on the first press; the same line twice is one line. 422 for a draft, another product's option, or a full list (200). Throttled 60/min |
+| `DELETE` | `/wishlist/items/{item}` | A line in somebody else's list is a **404**. Throttled 60/min |
+| `POST` | `/wishlist/items/{item}/move-to-basket` | One into the basket in `X-Cart-Token` (or a new one), off the list: `{data, cart}`. 422 "Choose an option…" for a product-level line on a product with options, which stays on the list. Throttled 30/min |
+| `GET` | `/wishlist/alerts/{token}/stop` | The stop link in a wishlist email: switches the list's emails off. **200 and one sentence for every token.** Throttled 30/min |
+
+The summary is `{token, account, items[], item_count, email, alerts, alerts_off}`;
+each item `{id, product_id, variation_id, name, variation_name, slug, image_url,
+image_alt, price_paise, price_at_save_paise, saving_paise, in_stock,
+needs_choice, added_at}` — priced now, `saving_paise` null unless it is cheaper
+than when it was saved.
+
+**A token reaches a guest list and nothing else.** An account's list is
+addressed by the portal bearer (read with `$request->user('sanctum')`, only
+for a customer who may sign in) and its summary sends **`token: null`** — the
+Next server reads that as "forget the cookie", so a cookie left on a shared
+computer never opens the last customer's list.
+
+**Signing in merges.** A request carrying both a guest token and a bearer
+folds the guest's list into the account's (a line both hold keeps the
+account's row) and deletes the guest's; so do `POST /auth/login` and
+`POST /auth/verify-code` when the Next server forwards `X-Wishlist-Token`.
+**Never under a "View as" token** — that is a staff member's browser, and the
+guest cookie beside it is theirs. The merge is guarded: it never fails a
+sign-in.
+
+**Back in stock and price drop are emails, promotional, and once.** A stock
+movement (`StockLedger::record()`) queues `SyncWishlistStock`, which arms every
+line whose shelf is empty and tells each armed line's holder once when it is
+buyable again (`wishlist_back_in_stock`); a fall in a product's or variation's
+`price_paise` queues `SendWishlistPriceDrops`, which tells a holder once the
+price is at least `store_price_drop_min_percent` (default 5) below the price
+saved or last told (`wishlist_price_drop`). Both claim each line with a
+conditional update, go only to an account that may sign in or a guest list
+with an address, skip the suppression list and a stopped list (leaving the
+line owed), and outside `QuietHours` re-dispatch themselves to its next
+opening. `Messenger::notify()` is called beside each email.
+
 ### Admin — the store (`role:store_manager`)
 
 | Method | Path | Notes |
@@ -1148,9 +1534,9 @@ somebody else is a 404 either way.
 | `GET` | `/admin/store/products/export` | The catalogue as a CSV: one row per product and one per variation (`parent_sku` filled), money as plain rupee decimals, every cell escaped. **Declared above `products/{id}`** |
 | `POST` | `/admin/store/products/import/analyse` | multipart `file` (CSV or `.xlsx`, 10MB) plus `mapping[<field>]=<column index>` once mapped. A dry run: writes nothing, answers `headers`, `fields`, the `mapping` (guessed, or as sent — a blank sent back beats a guess), `counts` per outcome, the first fifty `problems` and a `preview` |
 | `POST` | `/admin/store/products/import` | `file` (the path `analyse` handed back), `mapping`. Commits; 201 with the `store_product_imports` row: `counts`, `problems` |
-| `GET`/`PATCH`/`DELETE` | `/admin/store/products/{id}` | Bound by **id**. `gtin`, `mpn`, `condition`, `google_product_category`, `weight_grams`, `feed_include`, `notices_waiting`; `warranty` (255), `applications` (text), `service_ids[]` (the services that install or support it, replaced wholesale; read back as `service_ids` and `services: [{id, title, slug}]`), `faqs[]`, `answer_blocks[]`; `meta.conditions` and `meta.answer_block_kinds` on the index |
-| `GET`/`POST` | `/admin/store/categories` | |
-| `GET`/`PATCH`/`DELETE` | `/admin/store/categories/{id}` | Deleting keeps the products |
+| `GET`/`PATCH`/`DELETE` | `/admin/store/products/{id}` | Bound by **id**. `gtin`, `mpn`, `condition`, `google_product_category`, `weight_grams`, `feed_include`, `notices_waiting`; `warranty` (255), `applications` (text), `service_ids[]` (the services that install or support it, replaced wholesale; read back as `service_ids` and `services: [{id, title, slug}]`), `faqs[]`, `answer_blocks[]`, `videos[]` (max 4, replaced wholesale: `{kind: youtube, youtube_id: <link or id>}` or `{kind: file, path}` — an MP4/WebM the media library holds — each with `title?` and `poster_path?`, a raster from the library; a link whose host is not YouTube's is a 422 on `videos.N.youtube_id`, and only the id is stored; the detail read adds `url`/`poster_url`); `meta.conditions` and `meta.answer_block_kinds` on the index |
+| `GET`/`POST` | `/admin/store/categories` | `filter_specs[]` (max 12): spec labels offered as filters, in order |
+| `GET`/`PATCH`/`DELETE` | `/admin/store/categories/{id}` | Deleting keeps the products. A `filter_specs` label none of the category's products carries — or one given twice — is a 422 on `filter_specs.N`, unless it is already saved. The detail read carries `spec_labels: [{label, key, products, chosen}]`, what the picker offers |
 
 **The promo band is a narrow door onto the settings table.** Settings as a
 whole are `role:admin` — the SMTP password and the COD ceiling sit in the same
@@ -1207,7 +1593,7 @@ the selectors on the product page would shuffle between two loads.
 | `GET`/`POST` | `/admin/store/products/{id}/codes` | The code inventory. The listing never contains a code |
 | `POST` | `/admin/store/codes/{id}/reveal` | Read one, recorded |
 | `DELETE` | `/admin/store/codes/{id}` | Unsold codes only |
-| `GET` | `/admin/store/dashboard` | The shop at a glance. `?days=` of 7, 30 or 90. `funnel` is `{product_views, paid_orders, views_to_orders}` — the views from Google Analytics over the window, **null** when GA4 is not connected or refused, and the rate (paid orders ÷ views, 0–1 to four places) null with it or over a measured zero |
+| `GET` | `/admin/store/dashboard` | The shop at a glance. `?days=` of 7, 30 or 90. `funnel` is `{product_views, paid_orders, views_to_orders}` — the views from Google Analytics over the window, **null** when GA4 is not connected or refused, and the rate (paid orders ÷ views, 0–1 to four places) null with it or over a measured zero. `recovered` is `{reminded, recovered, revenue_paise, rate}` — baskets given a reminder in the window, how many of those became an order, those orders' total when paid, and the share — or **null** when no reminder went out. `most_wished` is the five products on the most wishlists, `{id, name, wishes}` counted by list, all time, `[]` when nobody has saved anything |
 | `GET` | `/admin/store/reports` | What sold between two dates. `?from=`, `?to=`, `?group=` |
 | `GET` | `/admin/store/reports/export` | The same range as a CSV. `?type=orders` or `products` |
 | `GET` | `/admin/store/stock` | What came in and what went out. `?from=`, `?to=`, `?product=`, `?reason=`, `?direction=in\|out` |
@@ -1352,7 +1738,7 @@ authenticated customer — no code path here can reach another customer's data.
 | `POST` | `/auth/login` | Public. Returns token + customer |
 | `POST` | `/auth/logout` | Revokes the current token |
 | `GET` | `/auth/me` | The signed-in customer, and `meta.impersonated` — true on a token from `POST /admin/customers/{id}/impersonate` |
-| `PATCH` | `/auth/profile` | Name, email, company, phone, password, **billing/delivery address and GSTIN**. Changing the password revokes every other session |
+| `PATCH` | `/auth/profile` | Name, email, company, phone, password, **billing/delivery address and GSTIN**. Changing the password revokes every other session. **Changing the email un-confirms it** and sends the confirmation link to the new address |
 | `GET` | `/tickets` | `?status=`, `?per_page=` (max 50) |
 | `GET` | `/tickets/summary` | Counts by status for the dashboard |
 | `POST` | `/tickets` | multipart. `subject`, `description`, `ticket_category_id`, `priority`, `attachments[]`, `is_sensitive` (the description stored encrypted; see the message rule below) |
@@ -1420,7 +1806,7 @@ existence is what an integration is told. The subject is never sealed.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/dashboard` | Counts, high priority, status breakdown, and a `metrics` block: 30-day volume, trend, median first response and resolution, SLA rate, open by priority and category. `?since=<iso>` adds `new_since` — tickets, enquiries and (for a sales role) leads created after that moment; null when not asked |
+| `GET` | `/admin/dashboard` | Counts, high priority, status breakdown, and a `metrics` block: 30-day volume, trend, median first response and resolution, SLA rate, open by priority and category. `?volume=month\|quarter\|half\|year` picks what `metrics.volume_series` covers — `{period, bucket, points[{date, end, created, resolved}]}` in 30 days, 13 or 26 Monday weeks, or 12 months, every bucket present, an unknown period a month; `metrics.volume` stays the 30-day daily series. `?since=<iso>` adds `new_since` — tickets, enquiries and (for a sales role) leads created after that moment; null when not asked |
 | `GET` | `/admin/new-since?since=<iso>` | The sidebar's poll: `{since, tickets, leads, enquiries}` created after that moment — each **null for a role that cannot open the screen**, never zero. Staff-wide; three counts and nothing else, where `/admin/dashboard` builds thirty days of metrics. 422 without `since` |
 | `GET` | `/admin/search?q=` | The console's command palette. Groups of five — tickets, customers, leads, products, posts, pages, orders, shop products — **each present only for a role that may open it**. Staff-wide, not role-gated; the controller filters. Two-character floor. `admin_path` is a console route |
 | `GET` | `/admin/users` | Active staff, for assignment pickers |
@@ -2018,7 +2404,7 @@ same shape until products gained full CRUD, and went the same way.
 | `POST` | `/admin/media/{id}/resize` | `width`, `height`, `thumbnails[]` of 90/120/180, `as_copy` |
 | `POST` | `/admin/media/{id}/crop` | `x`, `y`, `width`, `height`, optional `out_width`/`out_height`, `as_copy` |
 | `POST` | `/admin/media/{id}/transform` | `operation` of `rotate`/`flip`/`adjust`, plus `degrees`, `axis`, `brightness`, `contrast`, `greyscale`, `as_copy` |
-| `POST` | `/admin/media/{id}/replace` | multipart `file`. Same bytes, **same path** |
+| `POST` | `/admin/media/{id}/replace` | multipart `file`, held to the upload's `mimes:` list by content; the stored `mime` is the detected type. **Same path** |
 | `POST` | `/admin/media/{id}/alt-suggest` | Alt text proposed by the AI SEO assistant (`App\Support\Seo\Ai\AltText`): the picture goes to a vision-capable model as a `data:` URL, one sentence under 125 characters comes back as `{data: {alt}}` — empty for a decorative picture. **Suggest-only**: the field is written through `PATCH`. 422 with the assistant's sentence when it is off, has no key, has hit the day's cap (the same counter), or the file is not a JPEG/PNG/WebP/GIF under 4MB. Throttled 10/min |
 | `GET` | `/admin/media/{id}/versions` | Superseded copies, newest first |
 | `POST` | `/admin/media/{id}/versions/{version}/restore` | Puts an archived copy back |
@@ -2382,7 +2768,7 @@ complaint, which costs the sending domain far more.
 | `POST` | `/admin/newsletter/imports/mailbox/authorize` | `provider`, `redirect_uri` checked exactly against `/admin/newsletter/subscribers/import/mailbox/callback`. 422 naming Settings → Ticketing when no client is saved |
 | `POST` | `/admin/newsletter/imports/mailbox/callback` | `code`, `state` → `{account, provider}`; writes only the `newsletter_oauth_*` rows |
 | `POST` | `/admin/newsletter/imports/mailbox/disconnect` | Forgets the consent |
-| `POST` | `/admin/newsletter/imports/mailbox/scan` | `source` of `connected` or `imap` (with `imap.{host,port,encryption,username,password}` — used for this scan, never stored), `since`/`until` (`Y-m-d`, either optional), `include_junk`. **202** with the import row; 422 while a scan is in flight, when nothing is connected, on a backwards range, or with `errors.queue` when nothing drains the queue. Throttled 6/min |
+| `POST` | `/admin/newsletter/imports/mailbox/scan` | `source` of `connected` or `imap` (with `imap.{host,port,encryption,username,password}` — used for this scan, never stored; `port` 143 or 993, `host` public, 422 on either otherwise, and a failed scan's `error` is one sentence rather than the server's words), `since`/`until` (`Y-m-d`, either optional), `include_junk`. **202** with the import row; 422 while a scan is in flight, when nothing is connected, on a backwards range, or with `errors.queue` when nothing drains the queue. Throttled 6/min |
 | `GET` | `/admin/newsletter/imports/{id}` | The row with `source`, `status` (`pending`, `scanning`, `ready`, `running`, `completed`, `failed`, `cancelled`, `expired`), `progress` (folders, messages, addresses, what was skipped and why, the range), `analysis` once `ready` (the dry run's `counts`, `domains[]` with `kind`/`default`, `roles`, `mapping`, `capped`, `account`), `error`, `expires_at`. What the screen polls |
 | `DELETE` | `/admin/newsletter/imports/{id}` | Discards a mailbox scan not yet imported: the file and the scratch state go, the consent is forgotten, a running chain stops at its next slice |
 | `GET` | `/admin/newsletter/templates` | Without `blocks` or `html` |
@@ -2860,6 +3246,15 @@ publish a host and credentials, so the `smtp` transport reaches any of them with
 no bridge at all. The API transports buy better error reporting and immunity to
 a host that blocks outbound 587, which shared hosting does.
 
+**A stored secret goes only where it was saved for.** `mailgun_endpoint` is
+`api.mailgun.net` or `api.eu.mailgun.net` (422 otherwise); changing `smtp_host`
+or `inbound_imap_host` while a password is stored needs the password in the
+same `PATCH` (422 on the host otherwise); both hosts must be public, and
+`smtp_port`/`inbound_imap_port` one of 25, 465, 587, 2525 / 143, 993. The
+social profile URLs must be http(s), and `google_analytics_id`
+(`G-…`), `google_tag_manager_id` (`GTM-…`) and `meta_pixel_id` (digits) are
+held to their shapes — they are interpolated into inline scripts.
+
 **The API key is `secret` for Mailgun and `key` for Brevo.** Laravel's Mailgun
 factory reads `$config['secret']` with no default, so the name that is right for
 one is `Undefined array key` for the other — at send time, not at save time.
@@ -3100,6 +3495,13 @@ sanitised, deliberately — a snippet that cannot carry a script is useless —
 which is safe only because `role:admin` is the sole writer; the frontend
 reads the app id out of the reviews snippet rather than injecting it.
 
+**The `social` group is public** and holds the seven profile URLs —
+LinkedIn, X, Facebook, Instagram, YouTube, WhatsApp and, since 2026-09-24,
+`social_reddit` — plus how the footer draws them: `social_style` (`flip` or
+`dock`, offered as `options`, refused outside them) and `social_flip_word`
+(letters and digits, at most 7 — one tile each — stored in capitals). A blank URL hides its
+icon.
+
 **The `consent` group is public too**, for the same reason — the banner is
 rendered client-side and needs every string in it.
 
@@ -3137,7 +3539,7 @@ the truth about it.
 
 ### Email templates
 
-Every one of the 27 system emails, editable.
+Every one of the 40 system emails, editable.
 
 | Method | Path | Notes |
 |---|---|---|
@@ -3149,7 +3551,7 @@ Every one of the 27 system emails, editable.
 | `POST` | `/admin/settings/email-templates/{key}/test` | Sends the draft to the caller. Throttled 6/min |
 
 **`{key}` is a plain string, not a bound model.** There is no row for an
-uncustomised message and binding would 404 on 27 of 27 on a fresh install.
+uncustomised message and binding would 404 on 40 of 40 on a fresh install.
 
 **Two switches, and they mean different things.** `is_enabled` is "use my
 wording" — false puts the built-in text back and the message still goes.
@@ -3479,7 +3881,8 @@ decision as the SMTP settings beside it.
 side — never an internal note), `ticket.status_changed` (adds `from`/`to`),
 `order.placed`, `order.paid` (`paid_at` going from null to set, whoever set
 it), `order.status_changed` (adds `from`/`to`), `customer.registered` (the
-address confirmed), `form.submitted` and `subscriber.joined`. `ping` is sent
+address confirmed), `form.submitted`, `subscriber.joined` and `visit.requested`
+(an engineer visit request, never its token). `ping` is sent
 by the ping endpoint only and cannot be subscribed to — a 422 on `events.*`.
 
 **The envelope** is `{id, event, created_at, data}`, where `id` and
@@ -3519,8 +3922,12 @@ existing rules.
 plain `http://`, credentials in the URL, an IP literal in a private or
 reserved range in either family, `localhost`, a bare name with no dot, or a
 `.local`/`.internal`/`.lan`/`.home.arpa` suffix — each a 422 on `url` with a
-sentence saying which. A public name that resolves to a private address is
-not caught; see `docs/admin-console.md`.
+sentence saying which — and a host written as a bare number (`127.1`,
+`0x7f.0.0.1`, `2130706433`) or as `::ffff:` IPv4. **At send time** the host is
+resolved, every answer must be public, and the connection is pinned to those
+addresses; a private answer is recorded as a refusal and retried. **A redirect
+is not followed** — a 3xx is a failed attempt like a 5xx. See
+`docs/admin-console.md`.
 
 **A webhook never fails the request that caused it.** `Webhooks::emit()`
 is guarded like `Notifier`: a failure to write the delivery row is logged at
@@ -3560,6 +3967,14 @@ failure to queue it never fails the request.
 | `POST /auth/verify-email` | `support_email` setting | `CustomerRegistered` — and `customer.registered`; the same pair when a sign-in code confirms the address |
 | `POST /admin/customers/{id}/approve` | The customer | `CustomerApproved` |
 | `POST /admin/customers/{id}/reject` | The customer | `CustomerRejected` |
+| `POST /visits` | `visits_email`, else `sales_email` | `VisitRequestReceived` — and `visit.requested` |
+| `POST /visits` | The customer | `VisitRequested` |
+| A customer cancels or asks for other times | `visits_email`, else `sales_email` | `VisitRequestReceived` (the `visit_request_changed` wording) |
+| A visit is cancelled, by either side | The customer | `VisitCancelled` |
+| `POST /admin/visits/{reference}/confirm` | The customer, with a `.ics` | `VisitConfirmed` (`visit_confirmed` or `visit_rescheduled`) |
+| `technoware:remind-visits` | The customer | `VisitReminder` |
+| a stock movement fills a saved shelf | The wishlist holder, once, inside the quiet hours | `WishlistBackInStock` |
+| a saved product's price falls far enough | The wishlist holder, once per drop, inside the quiet hours | `WishlistPriceDrop` |
 
 **A send failure never fails the request.** `App\Support\Notifier` logs and
 swallows: a committed ticket must still answer 201 when mail is down.
@@ -3589,7 +4004,7 @@ server will send to any address typed into a public form — a reflected-mail
 surface, bounded by the endpoint's 10/min throttle. Fixed content is a nuisance
 to abuse; content the sender supplies is a relay.
 
-**Twenty-one of the twenty-four are queued**, so the request does not wait for
+**All but three are queued**, so the request does not wait for
 SMTP at all — an unreachable host was measured taking a contact-form submission
 from 0.2s to 12.5s. The queue is drained by the scheduler every minute, so a
 message goes out within about a minute of the thing that caused it.
@@ -3647,3 +4062,36 @@ job sitting for an hour is a broken deployment.
 
 Nothing outstanding in the brief. See `PROGRESS.md` for what remains before
 launch, which is content and configuration rather than code.
+
+---
+
+## Store reviews (2026-09-26)
+
+See `docs/store.md`, "Reviews". The public and portal routes are listed under
+"The store".
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/store/reviews` | `role:store_manager`. `?status=` (blank = waiting, `all` = every status), `?rating=`, `?product=` (id), `?verified=0\|1`, `?q=` (words, name, customer email, product), `?sort=created\|rating\|published` with `?dir=`, `?per_page=` (max 100). `meta.statuses`, `meta.pending_count`, `meta.sorts` |
+| `POST` | `/admin/store/reviews/moderate` | `ids[]` (max 200), `status` of `pending`/`published`/`rejected`/`spam`. One row at a time, so `published_at`, the moderator and the product's summary follow. `{moved, pending_count, slugs}` |
+| `PATCH` | `/admin/store/reviews/{id}` | `is_featured` |
+| `DELETE` | `/admin/store/reviews/{id}` | For good; rejecting is the reversible choice |
+
+**Every write goes back to the queue.** A customer's second `POST` rewrites
+their one review, returns it to `pending` and clears `is_featured`;
+`published_at` is never cleared. **Verified** is a line for the product on one
+of the caller's `Order::paid()` orders, re-read on every write.
+
+**`rating` on the store product resource** (index and detail) is
+`{average, count}` from the product's stored summary, or **null** until a
+review is published. The detail's `schema` gains `aggregateRating` and up to
+five `review` nodes under the same condition.
+
+**`GET /my/orders/{number}`** carries `my_review` on each item —
+`{status, status_label, rating}` or null — and `slug` only while the product is
+published. **`/admin/store/dashboard`** carries `attention.reviews_pending`.
+
+**The review request.** `technoware:request-reviews` (hourly) sends
+`review_request` once per order `store_review_request_days` after dispatch
+(or payment, when nothing ships), inside `QuietHours`, while
+`store_review_requests_enabled`; both settings are in the `store` group.

@@ -4,9 +4,11 @@ namespace App\Http\Resources\Admin\Store;
 
 use App\Http\Resources\Admin\SeoOverrideArray;
 use App\Http\Resources\Concerns\IncludesAnswerContent;
+use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Models\StoreProduct;
 use App\Support\Store\ActivationProcedure;
 use App\Support\Store\ProductFeed;
+use App\Support\Store\ProductVideos;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -24,7 +26,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin StoreProduct */
 class ProductResource extends JsonResource
 {
-    use IncludesAnswerContent;
+    use IncludesAnswerContent, IncludesCustomFields;
 
     public function toArray(Request $request): array
     {
@@ -136,6 +138,9 @@ class ProductResource extends JsonResource
             'images' => $this->images ?? [],
             // Resolved for previewing; `images` stays the storable form.
             'image_urls' => collect($this->images ?? [])->map(fn ($p) => asset('storage/'.$p))->all(),
+            // The stored videos with URLs for the previews (2026-09-26).
+            // Detail only, like the body: the list screen draws neither.
+            'videos' => $this->when($detail, fn () => ProductVideos::forAdmin($this->videos)),
 
             'variations' => $this->whenLoaded('variations', fn () => $this->variations->map(fn ($v) => [
                 'id' => $v->id,
@@ -155,6 +160,8 @@ class ProductResource extends JsonResource
             'faqs' => $this->adminFaqs(),
             // Every block, drafts included, for the AEO tab's repeater.
             'answer_blocks' => $this->adminAnswerBlocks(),
+            // Custom fields (docs/custom-content.md) — see IncludesCustomFields.
+            ...$this->adminCustomFields(),
             'seo' => $this->when($detail, fn () => SeoOverrideArray::from($this->seo)),
             'seo_defaults' => $this->when($detail, fn () => $this->resolvedSeo()),
             'created_at' => $this->created_at?->toIso8601String(),

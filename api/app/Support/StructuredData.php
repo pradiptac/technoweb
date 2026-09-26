@@ -8,11 +8,13 @@ use App\Models\AnswerBlock;
 use App\Models\BlogComment;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
+use App\Models\Entry;
 use App\Models\Faq;
 use App\Models\KnowledgeArticle;
 use App\Models\LandingPage;
 use App\Models\Location;
 use App\Models\Product;
+use App\Models\ProductReview;
 use App\Models\Service;
 use App\Models\Setting;
 use App\Models\Solution;
@@ -236,6 +238,7 @@ class StructuredData
                     ->map(fn (StoreProduct $p) => ['@type' => 'Product', 'name' => $p->name, 'url' => self::url($p->publicPath())])
                     ->values()->all()
                 : null,
+            'subjectOf' => self::productVideos($product),
             'offers' => $offer + [
                 'url' => $url,
                 'warranty' => filled($product->warranty)
@@ -264,7 +267,99 @@ class StructuredData
                 'hasMerchantReturnPolicy' => self::returnPolicy($product),
                 'seller' => self::publisher(),
             ],
-        ] + self::relationships(EntityLinks::for($product)));
+        ] + self::reviews($product) + self::relationships(EntityLinks::for($product)));
+    }
+
+    /**
+     * `aggregateRating` and up to five `review` nodes, from published reviews
+     * only — and nothing at all until there is one.
+     *
+     * They were absent from every graph by decision until the shop had
+     * reviews of its own (2026-09-26): inventing them was out of the question
+     * and still is. The average and count are the product's stored summary,
+     * the same two numbers the page and the card print; the reviews are the
+     * ones the page opens on, so the markup names what is on the page.
+     *
+     * @return array<string, mixed>
+     */
+    private static function reviews(StoreProduct $product): array
+    {
+        $count = (int) ($product->rating_count ?? 0);
+
+        if ($count < 1 || $product->rating_average === null) {
+            return [];
+        }
+
+        $reviews = $product->relationLoaded('schemaReviews')
+            ? $product->getRelation('schemaReviews')
+            : collect();
+
+        return [
+            'aggregateRating' => [
+                '@type' => 'AggregateRating',
+                'ratingValue' => (string) $product->rating_average,
+                'reviewCount' => $count,
+                'bestRating' => 5,
+                'worstRating' => 1,
+            ],
+            'review' => $reviews->map(fn (ProductReview $r) => [
+                '@type' => 'Review',
+                'author' => ['@type' => 'Person', 'name' => $r->display_name],
+                'datePublished' => $r->published_at?->toDateString(),
+                'name' => $r->title ?: null,
+                'reviewBody' => $r->body,
+                'reviewRating' => [
+                    '@type' => 'Rating',
+                    'ratingValue' => (int) $r->rating,
+                    'bestRating' => 5,
+                    'worstRating' => 1,
+                ],
+            ])->values()->all() ?: null,
+        ];
+    }
+
+    /**
+     * The product's YouTube videos as `VideoObject`s (2026-09-26) — only
+     * those for which every property Google requires can be filled honestly.
+     *
+     * Required are `name`, `thumbnailUrl` and `uploadDate`. The name is the
+     * video's title, or the product's where none was written — it is the
+     * product's video, on the product's page. **The thumbnail is the uploaded
+     * poster and nothing else**: YouTube's own `i.ytimg.com` frame is never
+     * requested by this site and must not be claimed as one, so a video with
+     * no poster is left out of the graph rather than given an invented
+     * picture. `uploadDate` is when the product — the page carrying the
+     * video — was last changed; the video's own publication date is YouTube's
+     * and not something this application knows. `embedUrl` is the player the
+     * page mounts.
+     *
+     * Uploaded files are left out of the graph: they are drawn on the page
+     * with the same poster, but a self-hosted file has no stable publication
+     * record behind it, and the plan's line was YouTube only. See
+     * `docs/store.md` "Product video and zoom".
+     *
+     * @return array<int, array<string, mixed>>|null
+     */
+    private static function productVideos(StoreProduct $product): ?array
+    {
+        $nodes = collect($product->videos ?? [])
+            ->filter(fn ($v) => is_array($v)
+                && ($v['kind'] ?? null) === 'youtube'
+                && filled($v['youtube_id'] ?? null)
+                && filled($v['poster_path'] ?? null))
+            ->map(fn (array $v) => [
+                '@type' => 'VideoObject',
+                'name' => filled($v['title'] ?? null) ? $v['title'] : $product->name,
+                'description' => filled($v['title'] ?? null) ? $v['title'].' — '.$product->name : $product->name,
+                'thumbnailUrl' => asset('storage/'.$v['poster_path']),
+                'uploadDate' => $product->updated_at?->toIso8601String(),
+                'embedUrl' => 'https://www.youtube-nocookie.com/embed/'.$v['youtube_id'],
+            ])
+            ->filter(fn (array $node) => filled($node['uploadDate']))
+            ->values()
+            ->all();
+
+        return $nodes === [] ? null : $nodes;
     }
 
     /**
@@ -448,6 +543,58 @@ class StructuredData
                 ? (BlogComment::approved()->where('blog_post_id', $record->id)->count() ?: null)
                 : null,
         ] + self::relationships(EntityLinks::for($record)));
+    }
+
+    /* ---------------------------------------------------- custom content */
+
+    /**
+     * An entry of a custom content type: an `Article` or a `WebPage`, as the
+     * type says (`content_types.schema_type`), refined by the entry's own SEO
+     * override where `SchemaTypes` allows it — the rule `article()` follows.
+     *
+     * An Article carries its dates, the publisher as author and the image; a
+     * WebPage carries its name, its description and when it last changed.
+     * Nothing else is claimed: an entry has no author column, so naming a
+     * person would be invented.
+     */
+    public static function entry(Entry $entry): array
+    {
+        $base = $entry->relationLoaded('contentType') && $entry->contentType
+            && in_array($entry->contentType->schema_type, ['Article', 'WebPage'], true)
+            ? $entry->contentType->schema_type
+            : 'Article';
+
+        $url = self::url($entry->publicPath());
+        $description = $entry->summary ? HtmlSanitiser::toText($entry->summary) : null;
+        $image = $entry->image_path ? asset('storage/'.$entry->image_path) : null;
+        $type = SchemaTypes::resolve($base, $entry->seo?->schema_type);
+
+        if ($base === 'WebPage') {
+            return self::graph([
+                '@type' => $type,
+                'name' => $entry->title,
+                'description' => $description,
+                'url' => $url,
+                'image' => $image,
+                'dateModified' => $entry->updated_at?->toIso8601String(),
+                'publisher' => self::publisher(),
+                'speakable' => self::speakable(),
+            ] + self::relationships(EntityLinks::for($entry)));
+        }
+
+        return self::graph([
+            '@type' => $type,
+            'headline' => $entry->title,
+            'description' => $description,
+            'image' => $image,
+            'datePublished' => ($entry->published_at ?? $entry->created_at)?->toIso8601String(),
+            'dateModified' => $entry->updated_at?->toIso8601String(),
+            'author' => self::publisher(),
+            'publisher' => self::publisher(),
+            'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => $url],
+            'url' => $url,
+            'speakable' => self::speakable(),
+        ] + self::relationships(EntityLinks::for($entry)));
     }
 
     /* ---------------------------------------------------------------- FAQ */

@@ -78,6 +78,14 @@ A full CMS for the people who write, without a developer in the loop.
 - **Case studies** with client, industry and a results table.
 - **Standalone pages** (privacy, terms, downloads and anything else) in two
   templates, with shortcodes to drop a slider, gallery or form into any body.
+- **A section page builder**: a page laid out as a stack of ready sections —
+  hero, text, picture or video with text, features, live lists from the
+  catalogue, content blocks, sliders, galleries, forms, questions, logo
+  strips, testimonials, video and dividers — added from a picker or started
+  from a Landing, Service or About preset, then reordered, duplicated, hidden
+  and given a background. Every section's fields are checked before it saves,
+  a live preview shows the unsaved page under the active theme, and every
+  theme draws the sections in its own style.
 - **FAQs** managed in one place and attached to any solution, service, product
   or page — rendered on the page and as `FAQPage` structured data.
 - **Rich-text editor** with the full toolbar — headings, colour, tables,
@@ -88,6 +96,18 @@ A full CMS for the people who write, without a developer in the loop.
   person deciding.
 - **Every form remembers what you typed** if the server refuses a submission.
   A validation error never blanks the screen.
+- **Custom fields** on any page, post, article, case study, solution,
+  service, industry, product or shop product: fourteen kinds — text, rich
+  text, number, date, link, email, dropdown, checkboxes, yes/no, image, file,
+  a linked record, a list — grouped, attached from the console, validated
+  against their own definitions and drawn as a Details section on the page,
+  or kept as data for templates.
+- **Custom content types**: new kinds of record — events, downloads,
+  partners — with an address of their own (`/events`), an archive page, a page
+  per entry with SEO, FAQs and answer blocks, their own custom fields, and a
+  redirect for every address when a type or an entry is renamed. In the
+  sitemap, site search, menus, the SEO overview and the website assistant from
+  the moment they are published.
 
 ## 4. Media library
 
@@ -154,6 +174,10 @@ first rupee.
 - **Stock ledger** recording every movement in and out, with a report and a
   CSV export that Excel can actually sum.
 - **Back-orders** switchable per product or per variation.
+- **Wishlists** for guests and accounts — a heart on every product, merged into
+  the account on sign-in — with a once-only back-in-stock email and a
+  once-per-drop price-drop email, both held to 9am–9pm, and the most-wished
+  products on the store dashboard.
 - **Order management**: status lifecycle, dispatch notice on status change,
   tracking, uploaded invoices, internal notes, manual payment recording.
 - **Sales dashboard and reports** by day, week or month, with medians rather
@@ -184,6 +208,12 @@ The support desk customers log into, and the queue the team works from.
   SLA rate, open by priority and category.
 - **Customer administration**: approve, reject, suspend, resend verification —
   every decision revokes sessions where it should.
+- **Engineer visit requests** at `/book-a-visit`: a customer picks up to three
+  dates and parts of the day, the desk confirms one — emailed with a calendar
+  file, reminded the day before, and on WhatsApp or RCS when they opt in. A
+  guest manages the request from a private link; a signed-in customer under
+  My visits. Days, windows, notice and closed dates are settings; every
+  request files a lead.
 
 ## 8. Leads and sales pipeline
 
@@ -306,7 +336,7 @@ Built in, measured, and never allowed to guess.
 - **Six outgoing transports** chosen in Settings — SMTP, Gmail/Workspace over
   OAuth, Brevo, Mailgun, Amazon SES and a log transport — with a test button
   that returns the server's own words.
-- **Every system email editable** in the console: 25 messages, each with its
+- **Every system email editable** in the console: 40 messages, each with its
   placeholders listed, subject and body.
 - **Acknowledgements to the customer** for tickets, enquiries, form
   submissions and applications.

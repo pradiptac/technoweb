@@ -7,10 +7,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { NewsletterTemplate } from "@/types/api";
 import { TemplateGallery } from "./template-gallery";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Templates", path: "/admin/newsletter/templates", seo: noIndex });
 
 export default async function TemplatesPage() {
+  await requireScreen();
   let templates: NewsletterTemplate[];
 
   try {

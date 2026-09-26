@@ -11,6 +11,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminPage, Paginated, PublishStatus } from "@/types/api";
 import type { ReactNode } from "react";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Pages", path: "/admin/pages", seo: noIndex });
 
@@ -39,6 +40,7 @@ export default async function AdminPagesPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   const queryParams: PageQueryParams = {

@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CustomerOrderController;
+use App\Http\Controllers\Api\V1\CustomerVisitController;
+use App\Http\Controllers\Api\V1\MessagingPreferenceController;
+use App\Http\Controllers\Api\V1\ProductReviewController;
 use App\Http\Controllers\Api\V1\TicketController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +34,30 @@ Route::middleware('customer')->group(function () {
      */
     Route::get('my/orders', [CustomerOrderController::class, 'index'])->name('my.orders.index');
     Route::get('my/orders/{orderNumber}', [CustomerOrderController::class, 'show'])->name('my.orders.show');
+
+    // Their engineer visit requests — `my/` for the `my/orders` reason:
+    // `visits/{reference}` is the guest route, authorised by a token.
+    Route::get('my/visits', [CustomerVisitController::class, 'index'])->name('my.visits.index');
+    Route::get('my/visits/{reference}', [CustomerVisitController::class, 'show'])->name('my.visits.show');
+    Route::post('my/visits/{reference}/cancel', [CustomerVisitController::class, 'cancel'])
+        ->middleware('throttle:10,1')->name('my.visits.cancel');
+    Route::post('my/visits/{reference}/reschedule', [CustomerVisitController::class, 'reschedule'])
+        ->middleware('throttle:10,1')->name('my.visits.reschedule');
+
+    // Which channels this customer is told things on (WhatsApp, RCS, push).
+    Route::get('messaging/preferences', [MessagingPreferenceController::class, 'show'])->name('messaging.preferences.show');
+    Route::patch('messaging/preferences', [MessagingPreferenceController::class, 'update'])
+        ->middleware('throttle:20,1')->name('messaging.preferences.update');
+
+    /*
+     * The caller's own review of a shop product: read it (any status) and
+     * write or rewrite it. Signed-in customers only, by the client's
+     * decision; every write goes back to the queue. `docs/store.md`.
+     */
+    Route::get('store/products/{storeProduct:slug}/reviews/mine', [ProductReviewController::class, 'mine'])
+        ->name('store.products.reviews.mine');
+    Route::post('store/products/{storeProduct:slug}/reviews', [ProductReviewController::class, 'store'])
+        ->middleware('throttle:10,1')->name('store.products.reviews.store');
 
     Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
     Route::get('tickets/summary', [TicketController::class, 'summary'])->name('tickets.summary');

@@ -1,6 +1,8 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { apiUrl } from "@/lib/api";
+import { clientIpFrom } from "@/lib/client-ip";
+import { isSameOrigin } from "@/lib/same-origin";
 
 /**
  * Stream a multipart request through to the API, and hand its answer back.
@@ -21,13 +23,24 @@ import { apiUrl } from "@/lib/api";
  * The API's answer comes back as it was: its status and its JSON. A 422 with
  * `errors` is the same 422 `apiUpload` would have raised, so a form can word
  * the refusal from the API's own sentences and mark the same fields.
+ *
+ * **Refused unless it came from a page on this site** (`isSameOrigin`). Most
+ * callers hold a session cookie — the console's uploads, a ticket reply, the
+ * portal's tickets — and a multipart POST is exactly the request a hostile
+ * page can make a signed-in browser send. `sameSite: "lax"` already keeps
+ * the cookie off it; this does not rely on that.
  */
 export async function proxyMultipart(
   request: Request,
   apiPath: string,
   { token }: { token?: string | null } = {},
 ): Promise<NextResponse> {
+  if (!isSameOrigin(request)) {
+    return NextResponse.json({ message: "This request did not come from this site." }, { status: 403 });
+  }
+
   const contentType = request.headers.get("content-type") ?? "";
+  const visitor = clientIpFrom((name) => request.headers.get(name));
 
   if (!contentType.startsWith("multipart/form-data") || !request.body) {
     return NextResponse.json({ message: "Send the form as multipart form data." }, { status: 400 });
@@ -44,12 +57,11 @@ export async function proxyMultipart(
         "Content-Type": contentType,
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(length ? { "Content-Length": length } : {}),
-        // The API rate-limits public uploads per client, and behind this
+        // The API rate-limits public uploads per visitor, and behind this
         // proxy every one would otherwise arrive from the Next server's own
-        // address. Forwarded the way the frontend's other handlers do.
-        ...(request.headers.get("x-forwarded-for")
-          ? { "X-Forwarded-For": request.headers.get("x-forwarded-for") as string }
-          : {}),
+        // address. The visitor as `lib/client-ip.ts` reads them — never the
+        // header as received, which the visitor writes.
+        ...(visitor ? { "X-Forwarded-For": visitor } : {}),
       },
       body: request.body,
       // @ts-expect-error -- required by Node's fetch for a streamed request

@@ -15,6 +15,8 @@ import { PortalNav } from "./portal-nav";
 import { ImpersonationBanner } from "./impersonation-banner";
 import { knowledgeBaseIcon, portalLinks } from "./portal-links";
 import { Button } from "@/components/ui/button";
+import { PushBell } from "@/components/push/push-bell";
+import { pushConfigFrom } from "@/lib/push";
 
 /**
  * Every route under this layout requires a session. The login page sits
@@ -37,6 +39,7 @@ export default async function PortalLayout({ children }: { children: React.React
   // reason the marketing layout gives. The splash is not here: a splash
   // after signing in is noise.
   const motion = motionFor(settings);
+  const push = pushConfigFrom(settings);
 
   /*
     The toast region wraps the whole area rather than sitting inside <main>.
@@ -65,6 +68,10 @@ export default async function PortalLayout({ children }: { children: React.React
               </p>
             </div>
             <div className="ml-auto flex items-center gap-2">
+              {/* Order and ticket updates in this browser (Phase 2). A staff
+                  member viewing as the customer is not offered it: the
+                  subscription would be their browser, not the customer's. */}
+              {push && !impersonated && <PushBell config={push} consentGated={false} />}
               <Link
                 href="/"
                 className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted transition-colors hover:bg-surface-2 hover:text-ink"

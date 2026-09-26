@@ -28,9 +28,11 @@ export const dynamic = "force-dynamic";
 
 export const metadata = buildMetadata({ title: "Your basket", path: "/cart", seo: noIndex });
 
-export default async function CartPage() {
+export default async function CartPage({ searchParams }: { searchParams: Promise<{ restored?: string }> }) {
   const cart = await getCart();
   const items = cart?.items ?? [];
+  // Set by the reminder email's restore link (`/store/basket/restore/…`).
+  const { restored } = await searchParams;
 
   return (
     <>
@@ -42,6 +44,21 @@ export default async function CartPage() {
 
       <section className="section-y">
         <Container>
+          {/*
+            Arriving from a basket reminder. Said in both directions: a link
+            that silently shows an empty basket reads as a broken link.
+          */}
+          {restored === "1" && items.length > 0 && (
+            <Alert tone="ok" title="Your basket is back">
+              Prices and stock are checked again when you order, so what you see is today&rsquo;s.
+            </Alert>
+          )}
+          {restored === "0" && (
+            <Alert tone="info" title="That basket is no longer available">
+              It may already have become an order, or it has been cleared since the email was sent.
+            </Alert>
+          )}
+
           {items.length === 0 ? (
             <EmptyState icon={<IconCart />} title="Your basket is empty">
               <span className="block">

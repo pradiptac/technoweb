@@ -1,6 +1,11 @@
 @import "tailwindcss";
 /* Every theme's own rules, scoped under [data-theme]; see themes/themes.css for the ordering consequence. */
 @import "../themes/themes.css";
+/* The content blocks' own rules (2026-09-24). Here, not imported by the block
+   components: imported there it became its own CSS chunk, and because every
+   page's closing band can render a block, Next preloaded that chunk on every
+   route and warned it went unused — 143 routes in the audit. */
+@import "../components/blocks/blocks.css";
 
 /* ============================================================
    TECHNOWARE — design tokens
@@ -181,6 +186,15 @@
   --color-err:  #a33232;  --color-err-soft:  #fceded;  --color-err-fill:  #a33232;
   --color-info: #2f5d7c;  --color-info-soft: #eef4f8;  --color-info-fill: #2f5d7c;
 
+  /*
+   * The shop's review stars (`components/store/stars.tsx`): a gold and the
+   * outline of a star not earned. Both are graphics, so 3:1 is the floor,
+   * and both are derived per theme by `ratingFor()` in palette.ts against
+   * the card and surface-2 and emitted with the theme; these are the no-JS
+   * fallback for the house palette. `npm run themes` checks every palette.
+   */
+  --color-rating: #b47d00;  --color-rating-empty: #8d8579;
+
   /* type */
   /*
    * The fallbacks live inside the next/font variables, which already expand
@@ -285,6 +299,14 @@
      curve for something coming to rest, and the same curve run backwards
      reads as a thing that hesitates on its way out. */
   --ease-exit: cubic-bezier(.4,0,1,1);
+  /* A spring, for the one thing asked to move like one (2026-09-26): the
+     footer's flip tiles, re-drawn to Vengeance UI's source, which turns them
+     on a framer-motion spring of stiffness 120 and damping 15 (mass 1,
+     damping ratio .685 — a 5% overshoot that settles). This is that step
+     response sampled at 25 points over 800ms, so CSS runs the same curve
+     without the library. Pair it with `--duration-spring`. */
+  --ease-spring: linear(0, 0.056, 0.188, 0.353, 0.519, 0.67, 0.796, 0.894, 0.964, 1.01, 1.037, 1.05, 1.052, 1.048, 1.041, 1.032, 1.023, 1.016, 1.01, 1.005, 1.001, 0.999, 0.998, 0.997, 1);
+  --duration-spring: 800ms;
   /* One scale rather than a number per rule. `fast` is hover feedback — a
      colour, an underline; `base` is most state changes; `slow` is a panel or
      drawer crossing real distance; `exit` is what leaving takes, ~70% of
@@ -536,6 +558,7 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
   --color-warn: #e0a83c;  --color-warn-soft: #2a1f0c;  --color-warn-fill: #9d6a10;
   --color-err:  #ef8b8b;  --color-err-soft:  #2b1616;  --color-err-fill:  #bf3b3b;
   --color-info: #7fb6d8;  --color-info-soft: #12222c;  --color-info-fill: #37789f;
+  --color-rating: #f5af20;  --color-rating-empty: #877f73;
 
   /*
    * The soft-UI light has to be re-aimed, not merely dimmed.
@@ -860,6 +883,15 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
   html[data-aos-ready] [data-aos="fade-down"] { transform: translateY(-20px); }
   html[data-aos-ready] [data-aos="zoom-in"]   { transform: scale(.97); }
   html[data-aos-ready] [data-aos="fade"]      { transform: none; }
+
+  /*
+   * A reveal-static region — the console's block previews — shows its
+   * content at rest and is never observed (reveal.tsx skips it). The
+   * console streams its pages in behind `loading.tsx`, after the shell has
+   * hydrated, and the observer stamping `data-aos-animate` on that markup is
+   * a hydration mismatch — the note on `loading.tsx` under (marketing).
+   */
+  html[data-aos-ready] [data-reveal-static] [data-aos] { opacity: 1; transform: none; }
 
   html[data-aos-ready] [data-aos][data-aos-animate] {
     opacity: 1;
@@ -3441,5 +3473,96 @@ nav[data-panel-swap] [data-panel-host]:hover > .panel-drop { transition-duration
     .add-basket[data-stage="idle"][data-from="added"] .add-basket__label-added { opacity: 1; }
     .add-basket[data-stage="idle"][data-from="added"] .add-basket__label-idle,
     .add-basket[data-stage="idle"][data-from="added"] .add-basket__arrow { opacity: 0; }
+  }
+}
+
+/*
+ * The footer's social flip tiles — components/layout/social-links.tsx,
+ * re-drawn to Vengeance UI's social flip button (2026-09-26).
+ *
+ * Unlayered like the other motion rules. The turn is the CSS `rotate`
+ * property, never a `transform` utility (the v4 trap): the card turns on the
+ * y axis and each face hides its back, so the letter shows at rest and the
+ * icon once the panel is pointed at or tabbed into — every tile, one after
+ * another (`--i`), on the source's spring (`--ease-spring`). The two streaks
+ * on the panel's edges run in opposite directions for good, as the source's
+ * do; they are 1px, `aria-hidden`, clipped by their own box so they add
+ * nothing to the page's width, and they stop under reduced motion.
+ *
+ * Three cases that do not flip. A device that cannot hover shows the icons
+ * from the start — a word that only turns into icons under a pointer is a
+ * row of letters that goes nowhere on a phone. Reduced motion swaps the two
+ * faces by opacity instead of turning them. And the name tag is shown on
+ * hover and keyboard focus only; it is `aria-hidden`, the link's own label
+ * already names the network.
+ */
+.social-flip__tile { perspective: 1000px; }
+.social-flip__card { transform-style: preserve-3d; }
+.social-flip__face { position: absolute; inset: 0; backface-visibility: hidden; }
+.social-flip__back { rotate: y 180deg; }
+.social-flip:is(:hover, :focus-within) .social-flip__card { rotate: y 180deg; }
+.social-flip__tip { opacity: 0; translate: -50% 10px; scale: .8; }
+.social-flip__tile:is(:hover, :focus-visible) .social-flip__tip { opacity: 1; translate: -50% 0; scale: 1; }
+.social-flip__streak { translate: -100% 0; }
+.social-flip__streak--back { translate: 100% 0; }
+
+@media (hover: none) {
+  .social-flip .social-flip__card { rotate: y 180deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .social-flip .social-flip__card,
+  .social-flip:is(:hover, :focus-within) .social-flip__card { rotate: none; }
+  .social-flip .social-flip__back { rotate: none; opacity: 0; }
+  .social-flip:is(:hover, :focus-within) .social-flip__back { opacity: 1; }
+  .social-flip:is(:hover, :focus-within) .social-flip__face:not(.social-flip__back) { opacity: 0; }
+  .social-flip__streak { translate: 0 0; opacity: .5; }
+}
+@media (prefers-reduced-motion: reduce) and (hover: none) {
+  .social-flip .social-flip__back { opacity: 1; }
+  .social-flip .social-flip__face:not(.social-flip__back) { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .social-flip__streak { animation: flip-streak 2.5s linear infinite; }
+  .social-flip__streak--back { animation-name: flip-streak-back; }
+}
+@keyframes flip-streak { from { translate: -100% 0; } to { translate: 100% 0; } }
+@keyframes flip-streak-back { from { translate: 100% 0; } to { translate: -100% 0; } }
+
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  .social-flip__card {
+    transition: rotate var(--duration-spring) var(--ease-spring) calc(var(--i, 0) * 80ms);
+  }
+  .social-flip__tip {
+    transition:
+      opacity var(--duration-base) var(--ease-brand),
+      translate var(--duration-base) var(--ease-brand),
+      scale var(--duration-base) var(--ease-brand);
+  }
+}
+
+/* ------------------------------------------------------- wishlist heart
+ *
+ * The glyph pops once when a heart is pressed full (2026-09-25). Keyed on
+ * `data-pop`, which `WishlistHeart` sets only from a press and clears on
+ * `animationend` — never from the list arriving after mount, or every saved
+ * heart on a grid would pop together on load. On the **svg**, which carries no
+ * scale utility, so this keyframe's `transform` fights nothing; the button's
+ * own press is Tailwind's `active:scale-*` through a transition on `scale`.
+ * Inside the guard with no start state outside it: under reduced motion the
+ * heart is simply full. `--ease-brand` decelerates, because it is arriving.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes wish-pop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.3); }
+    70%  { transform: scale(.92); }
+    100% { transform: scale(1); }
+  }
+
+  .wish-heart[data-pop] svg {
+    animation: wish-pop var(--duration-slow) var(--ease-brand);
+    transform-origin: 50% 55%;
   }
 }

@@ -5,6 +5,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { LandingPageForm } from "../landing-page-form";
 import type { AdminLandingPage } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Landing page", path: "/admin/landing-pages", seo: noIndex });
 
@@ -14,6 +15,7 @@ export default async function EditLandingPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ saved?: string; drafted?: string }>;
 }) {
+  await requireScreen();
   const { id } = await params;
   const flags = await searchParams;
 

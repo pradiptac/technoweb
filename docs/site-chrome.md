@@ -432,3 +432,26 @@ The logo is a little larger on a phone: 31px tall under `sm` (28 above),
 width cap 120 → 128, still inside the 130px the flanking group leaves at
 320px; the text fallback goes 23 → 25px. `npm run audit:mobile` clean at all
 four widths after.
+
+## Social flip tiles and Reddit (2026-09-24)
+
+The footer's social row is flip tiles by default — `social_style` (`flip` or
+`dock`) and `social_flip_word`, both public in the `social` group, the style
+refused outside its list and the word letters/digits only, stored in
+capitals, at most seven. The word sets the tile count (2026-09-25:
+"CONTACT" over six profiles lost its T): a letter past the last profile is a
+tile that is not a link — `aria-hidden`, out of the tab order — whose back
+repeats the letter; a profile past the end of the word shows its network's
+initial.
+
+CSS only (`.social-flip` in `globals.css`): the card turns with the CSS
+`rotate: y 180deg` property, transitioned as `rotate`, staggered by `--i`,
+on `:hover` of the row and on `:focus-within`. Where nothing can hover the
+icons show from the start; under reduced motion the faces swap by opacity.
+The back face is the dock's hover state (the brand-coloured glyph on the
+dark footer), so its measured contrast holds. The reduced-motion rule has to
+name the hover selector too, or the hover rule outranks it.
+
+Reddit (`social_reddit`) is the seventh profile: `IconReddit` is drawn here
+from filled shapes; `#FF4500` is 5.39:1 on the footer's `#12140d`, but white
+on it is 3.44:1, so the blog sidebar's filled button is `#D93A00` (4.61:1).

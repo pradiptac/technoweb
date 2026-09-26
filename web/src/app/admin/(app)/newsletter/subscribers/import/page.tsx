@@ -5,10 +5,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { NewsletterGroup } from "@/types/api";
 import { ImportWizard } from "./import-wizard";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Import subscribers", path: "/admin/newsletter/subscribers/import", seo: noIndex });
 
 export default async function ImportPage() {
+  await requireScreen();
   let groups: NewsletterGroup[];
 
   try {

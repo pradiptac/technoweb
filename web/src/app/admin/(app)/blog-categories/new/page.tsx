@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { BlogCategoryForm } from "../category-form";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({
   title: "New blog category",
@@ -9,7 +10,8 @@ export const metadata = buildMetadata({
   seo: noIndex,
 });
 
-export default function NewBlogCategoryPage() {
+export default async function NewBlogCategoryPage() {
+  await requireScreen();
   return (
     <>
       <PageHeader

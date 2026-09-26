@@ -3,10 +3,12 @@
 namespace App\Support\Crm;
 
 use App\Models\ChatConversation;
+use App\Models\ContentBlock;
 use App\Models\Enquiry;
 use App\Models\Form;
 use App\Models\FormSubmission;
 use App\Models\Lead;
+use App\Models\VisitRequest;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -114,6 +116,50 @@ class LeadIntake
             'source_path' => $conversation->source_path,
             'source_title' => $conversation->source_title,
         ]);
+    }
+
+    /**
+     * A CTA banner's form — a gated download or a webinar registration
+     * (2026-09-24). Its own channel, `download` or `webinar`, so the queue can
+     * tell somebody who wanted a brochure from somebody who asked to talk;
+     * the banner's name is the form name, so two banners are two answers.
+     * The page comes from the request's envelope, like every public form.
+     *
+     * @param  array<string, string|null>  $contact
+     */
+    public static function fromBlock(ContentBlock $block, string $channel, array $contact, Request $request): ?Lead
+    {
+        return self::create($block, $channel, $block->name, [
+            'name' => $contact['name'] ?? null,
+            'email' => $contact['email'] ?? null,
+            'phone' => $contact['phone'] ?? null,
+            'company' => $contact['company'] ?? null,
+            'subject' => $channel === 'webinar'
+                ? 'Registered for: '.(string) $block->datum('heading', $block->name)
+                : 'Downloaded: '.(string) $block->datum('heading', $block->name),
+            'message' => null,
+        ], $request);
+    }
+
+    /**
+     * An engineer visit request (2026-09-26, `docs/visits.md`).
+     *
+     * A visit request is intake, so it files a lead like every other form
+     * here — channel `visit`, so the queue can tell somebody who asked for an
+     * engineer at their door from somebody who asked a question. The request
+     * itself stays the record the visits desk works; the lead is the sales
+     * side of the same arrival, and each links to the other.
+     */
+    public static function fromVisit(VisitRequest $visit, Request $request): ?Lead
+    {
+        return self::create($visit, 'visit', 'Engineer visit request', [
+            'name' => $visit->name,
+            'email' => $visit->email,
+            'phone' => $visit->phone,
+            'company' => $visit->company,
+            'subject' => 'Visit requested: '.$visit->topic(),
+            'message' => $visit->notes,
+        ], $request);
     }
 
     /**

@@ -1,3 +1,4 @@
+import { homeBlockSections } from "@/components/blocks/home-block-sections";
 import Image from "next/image";
 import Link from "next/link";
 import { Credentials, Partners, TrustedBy } from "@/components/home/sections";
@@ -43,7 +44,7 @@ import { CountUp } from "@/components/ui/count-up";
  * "hero may be full width slider or may be fixed image and text on that".
  */
 export function Home({
-  settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, options,
+  settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
 }: HomeData & { options: ThemeOptions }) {
   const stats = statPairs(settings.hero_stats, heroStats);
   const look = statLookFor(settings);
@@ -217,6 +218,7 @@ export function Home({
         )}
       </>
     ) },
+    ...homeBlockSections(blocks),
     { id: "cta", node: <CtaBand tone="brand" size="lg" className="pt-0" /> },
   ];
 

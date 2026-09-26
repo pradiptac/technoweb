@@ -5,6 +5,8 @@ namespace App\Support\Mail;
 use App\Notifications\ActivationProcedureIssued;
 use App\Notifications\ApplicationAcknowledged;
 use App\Notifications\BackInStock;
+use App\Notifications\BlockLeadCaptured;
+use App\Notifications\CartReminder;
 use App\Notifications\ChatLeadCaptured;
 use App\Notifications\ChatQuestionUnanswered;
 use App\Notifications\CommentAwaitingModeration;
@@ -22,19 +24,31 @@ use App\Notifications\OrderPlaced;
 use App\Notifications\OrderReceived;
 use App\Notifications\RegistrationAttempted;
 use App\Notifications\ResetPassword;
+use App\Notifications\ReviewRequested;
 use App\Notifications\SignInCodeIssued;
 use App\Notifications\TicketAcknowledged;
 use App\Notifications\TicketCreated;
 use App\Notifications\TicketMerged;
 use App\Notifications\TicketReplied;
 use App\Notifications\VerifyCustomerEmail;
+use App\Notifications\VisitCancelled;
+use App\Notifications\VisitConfirmed;
+use App\Notifications\VisitReminder;
+use App\Notifications\VisitRequested;
+use App\Notifications\VisitRequestReceived;
+use App\Notifications\WishlistBackInStock;
+use App\Notifications\WishlistPriceDrop;
 
 /**
- * The 26 entries, kept out of `MessageCatalogue` so that class stays readable.
+ * The 40 entries, kept out of `MessageCatalogue` so that class stays readable.
  *
- * Twenty-six for twenty-five classes: `TicketReplied` is two messages. Its
+ * Forty for thirty-six classes: `TicketReplied` is two messages — its
  * customer and desk versions differ in greeting, action label *and* recipient,
- * and one template cannot say both without lying about one of them.
+ * and one template cannot say both without lying about one of them —
+ * `CartReminder` is two, the first basket reminder and the second, and the
+ * engineer visits (2026-09-26) add two more pairs: `VisitRequestReceived`
+ * (a new request, and a customer changing one) and `VisitConfirmed` (booked,
+ * and moved).
  *
  * **Three are `locked`.** The address verification, the password reset and
  * the sign-in code each carry a credential somebody is waiting for at a form,
@@ -63,10 +77,35 @@ class MessageCatalogueEntries
         return ['about' => $about, 'sample' => $sample, 'html' => true];
     }
 
+    /**
+     * What both basket reminders offer — one list, so the two cannot drift.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private static function cartReminderVariables(): array
+    {
+        return [
+            'customer_name' => ['about' => 'The account holder\'s name, or "there" for a guest.', 'sample' => 'Priya'],
+            'items' => self::details(
+                'What is in the basket, one line each, priced today.',
+                '<ul><li>1 × Aruba 2930F 24G — ₹98,000.00</li></ul>',
+            ),
+            'item_count' => ['about' => 'How many things are in it.', 'sample' => '1'],
+            'basket_total' => ['about' => 'The total today, formatted.', 'sample' => '₹98,000.00'],
+            'basket_url' => ['about' => 'Restores the basket in their browser and opens it.', 'sample' => 'https://www.technoware.in/store/basket/restore/…'],
+            'coupon' => self::details(
+                'A sentence offering the reminder coupon — empty when there is none, or the basket cannot use it.',
+                '<p>Use the code <strong>COMEBACK10</strong> at the checkout for 10% off.</p>',
+            ),
+            'coupon_code' => ['about' => 'The reminder coupon\'s code alone, or blank.', 'sample' => 'COMEBACK10'],
+            'unsubscribe_url' => ['about' => 'Puts the address on the do-not-mail list.', 'sample' => 'https://www.technoware.in/newsletter/unsubscribe/…'],
+        ];
+    }
+
     /** @return array<string, array<string, mixed>> */
     public static function all(): array
     {
-        return array_merge(self::tickets(), self::orders(), self::accounts(), self::enquiries());
+        return array_merge(self::tickets(), self::orders(), self::accounts(), self::enquiries(), self::visits());
     }
 
     /** @return array<string, array<string, mixed>> */
@@ -213,7 +252,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     ),
                     'payment_method' => ['about' => 'The method they chose, by name.', 'sample' => 'Bank transfer (NEFT / IMPS / RTGS)'],
                     'payment_status' => ['about' => 'One phrase for the subject line: payment not yet made, confirmed, pay on delivery, awaiting your transfer, or awaiting your UPI payment.', 'sample' => 'awaiting your transfer'],
-                    'url' => ['about' => 'The order page, reached by the link in this email.', 'sample' => 'https://www.technoware.in/order/TWO-2026-0117?token=…'],
+                    'url' => ['about' => 'The order page, reached by the link in this email.', 'sample' => 'https://www.technoware.in/order/TWO-2026-0117/open?token=…'],
                 ],
                 'subject' => 'Your order {{order_number}} — {{payment_status}}',
                 'body' => '<p>Thanks, {{customer_name}}.</p>'
@@ -243,7 +282,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                         'Anything that applies to this order — an activation code being prepared, tracking to follow, a GST invoice by hand.',
                         '<p>We will email the tracking details as soon as it is dispatched.</p>',
                     ),
-                    'url' => ['about' => 'The order page.', 'sample' => 'https://www.technoware.in/order/TWO-2026-0117?token=…'],
+                    'url' => ['about' => 'The order page.', 'sample' => 'https://www.technoware.in/order/TWO-2026-0117/open?token=…'],
                 ],
                 'subject' => 'Payment received for {{order_number}}',
                 'body' => '<p>Thank you, {{customer_name}}.</p>'
@@ -308,7 +347,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     'customer_name' => $customer,
                     'products' => ['about' => 'What the code is for.', 'sample' => 'Veeam Backup Essentials'],
                     'steps' => self::details('The activation steps written on the product, as text.', '<p>Sign in at the vendor portal and enter the key under Licences.</p>'),
-                    'url' => ['about' => 'The order page, where the code is revealed.', 'sample' => 'https://www.technoware.in/order/TWO-2026-0117?token=…'],
+                    'url' => ['about' => 'The order page, where the code is revealed.', 'sample' => 'https://www.technoware.in/order/TWO-2026-0117/open?token=…'],
                 ],
                 'subject' => 'How to activate your purchase — {{order_number}}',
                 'body' => '<p>Hello {{customer_name}},</p>'
@@ -343,6 +382,111 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     .'<p>You asked us to let you know. This is the one message we will send about it.</p>'
                     .'<p><a href="{{url}}">See the product</a></p>'
                     .'<p>Did not ask for this? <a href="{{cancel_url}}">Cancel the notice</a> and we will not email you about it again.</p>',
+            ],
+
+            /*
+             * The two abandoned-basket reminders (2026-09-25). One class,
+             * `CartReminder`, two messages — the `ticket_replied` shape — so
+             * the first and the second are worded and switched off on their
+             * own. Sent by `technoware:remind-abandoned-carts` inside the
+             * quiet-hours window only, never to an address on the suppression
+             * list, and each carries an unsubscribe that puts it there.
+             * `{{coupon}}` is empty unless the second reminder has a code the
+             * basket could actually use.
+             */
+            'cart_reminder_1' => [
+                'label' => 'Basket reminder, first — to the shopper',
+                'description' => 'Sent once, a set number of hours after a basket with an address on it goes quiet. Store → Settings holds the switch and the delay.',
+                'audience' => self::CUSTOMER,
+                'class' => CartReminder::class,
+                'variables' => self::cartReminderVariables(),
+                'subject' => 'You left something in your basket',
+                'body' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>You started an order with us and did not finish it. Your basket is saved:</p>'
+                    .'{{items}}'
+                    .'<p>Total: <strong>{{basket_total}}</strong> including GST.</p>'
+                    .'<p><a href="{{basket_url}}">Return to your basket</a></p>'
+                    .'<p>Prices and stock are checked again when you order, so the basket shows today\'s figures.</p>'
+                    .'<p>Rather not hear about baskets? <a href="{{unsubscribe_url}}">Unsubscribe</a> and we will not email you about one again.</p>',
+            ],
+
+            'cart_reminder_2' => [
+                'label' => 'Basket reminder, second — to the shopper',
+                'description' => 'The last one, a set number of days after the basket went quiet. Carries the reminder coupon from Store → Settings when one is set and the basket can use it.',
+                'audience' => self::CUSTOMER,
+                'class' => CartReminder::class,
+                'variables' => self::cartReminderVariables(),
+                'subject' => 'Your basket is still waiting',
+                'body' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>The things you chose are still in your basket, and we have kept it for you.</p>'
+                    .'{{items}}'
+                    .'<p>Total: <strong>{{basket_total}}</strong> including GST.</p>'
+                    .'{{coupon}}'
+                    .'<p><a href="{{basket_url}}">Return to your basket</a></p>'
+                    .'<p>This is the last reminder we will send about it.</p>'
+                    .'<p>Rather not hear about baskets? <a href="{{unsubscribe_url}}">Unsubscribe</a> and we will not email you about one again.</p>',
+            ],
+
+            'wishlist_back_in_stock' => [
+                'label' => 'Wishlist item back in stock — to whoever saved it',
+                'description' => 'Sent once when something on a wishlist that had run out has stock again, and again only after it runs out once more. Promotional: held until the quiet-hours window opens.',
+                'audience' => self::CUSTOMER,
+                'class' => WishlistBackInStock::class,
+                'variables' => [
+                    'product_name' => ['about' => 'The product, and the option saved if there was one.', 'sample' => 'Cisco CBS350-24T-4G — 48 port'],
+                    'price' => ['about' => 'The price now, formatted.', 'sample' => '₹23,600'],
+                    'url' => ['about' => 'The product page.', 'sample' => 'https://www.technoware.in/store/products/cisco-cbs350-24t-4g'],
+                    'wishlist_url' => ['about' => 'Their wishlist — the portal’s for an account, the shop’s for a guest.', 'sample' => 'https://www.technoware.in/portal/wishlist'],
+                    'stop_url' => ['about' => 'Stops wishlist emails. Not a newsletter unsubscribe; the list stays.', 'sample' => 'https://www.technoware.in/store/wishlist/stop/…'],
+                ],
+                'subject' => '{{product_name}} is back in stock',
+                'body' => '<p>Good news.</p>'
+                    .'<p><strong>{{product_name}}</strong>, on your wishlist, is back in stock at {{price}}.</p>'
+                    .'<p><a href="{{url}}">See the product</a></p>'
+                    .'<p><a href="{{wishlist_url}}">Your wishlist</a> · <a href="{{stop_url}}">Stop these emails</a> — your list stays as it is.</p>',
+            ],
+            'wishlist_price_drop' => [
+                'label' => 'Wishlist price drop — to whoever saved it',
+                'description' => 'Sent once per drop when something on a wishlist costs at least the Store setting’s percentage less than when it was saved or last announced. Promotional: held until the quiet-hours window opens.',
+                'audience' => self::CUSTOMER,
+                'class' => WishlistPriceDrop::class,
+                'variables' => [
+                    'product_name' => ['about' => 'The product, and the option saved if there was one.', 'sample' => 'Cisco CBS350-24T-4G'],
+                    'old_price' => ['about' => 'What it cost when saved, or when they were last told.', 'sample' => '₹25,000'],
+                    'new_price' => ['about' => 'What it costs now.', 'sample' => '₹22,500'],
+                    'saving_percent' => ['about' => 'How much less, as a whole percentage.', 'sample' => '10'],
+                    'url' => ['about' => 'The product page.', 'sample' => 'https://www.technoware.in/store/products/cisco-cbs350-24t-4g'],
+                    'wishlist_url' => ['about' => 'Their wishlist.', 'sample' => 'https://www.technoware.in/portal/wishlist'],
+                    'stop_url' => ['about' => 'Stops wishlist emails. Not a newsletter unsubscribe; the list stays.', 'sample' => 'https://www.technoware.in/store/wishlist/stop/…'],
+                ],
+                'subject' => '{{product_name}} is now {{new_price}}',
+                'body' => '<p>A price came down.</p>'
+                    .'<p><strong>{{product_name}}</strong>, on your wishlist, was {{old_price}} and is now {{new_price}} — {{saving_percent}}% less.</p>'
+                    .'<p><a href="{{url}}">See the product</a></p>'
+                    .'<p><a href="{{wishlist_url}}">Your wishlist</a> · <a href="{{stop_url}}">Stop these emails</a> — your list stays as it is.</p>',
+            ],
+
+            /*
+             * "How was it?" — once per order, a few days after delivery, by
+             * `technoware:request-reviews`. The list holds only the products
+             * the customer has not reviewed yet, each linking to its page
+             * with the review dialog open.
+             */
+            'review_request' => [
+                'label' => 'How was it? — review request to the customer',
+                'description' => 'Sent once per order, a few days after it was delivered (Store → Settings says how many), asking for a review of each product.',
+                'audience' => self::CUSTOMER,
+                'class' => ReviewRequested::class,
+                'variables' => [
+                    'customer_name' => $customer,
+                    'order_number' => $number,
+                    'products' => self::details('A link to review each product still to be reviewed, as a list.', '<ul><li><a href="https://www.technoware.in/store/products/cisco-cbs350-24t-4g?review=1">Cisco CBS350-24T-4G</a></li></ul>'),
+                ],
+                'subject' => 'How was your order {{order_number}}?',
+                'body' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>We hope everything arrived as it should. A line or two about what you bought helps the next person decide — and tells us what to keep doing.</p>'
+                    .'{{products}}'
+                    .'<p>Every review is read by a person before it appears. Thank you for taking the time.</p>',
             ],
         ];
     }
@@ -656,6 +800,181 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     .'<p><strong>Asked from:</strong> {{source_path}}</p>'
                     .'<p><a href="{{url}}">Read the conversation</a></p>'
                     .'<p>The unanswered list groups this with anyone else who asked the same thing.</p>',
+            ],
+
+            'block_lead_captured' => [
+                'label' => 'Download or webinar sign-up from a banner — to the desk',
+                'description' => 'Sent when somebody downloads a gated file or registers for a webinar through a CTA banner.',
+                'audience' => self::INTERNAL,
+                'class' => BlockLeadCaptured::class,
+                'variables' => [
+                    'name' => ['about' => 'Who it was, or “Somebody”.', 'sample' => 'Priya Sharma'],
+                    'action' => ['about' => '“downloaded” or “registered for”.', 'sample' => 'downloaded'],
+                    'banner' => ['about' => 'The banner’s heading — the file or the event.', 'sample' => 'The 2026 network readiness checklist'],
+                    'details' => self::details('Their email, phone and company, where each was given.', '<p><strong>Email:</strong> priya@meridianfoods.test</p>'),
+                    'source_path' => ['about' => 'The page the banner was on.', 'sample' => '/solutions/networking'],
+                    'url' => ['about' => 'The lead in the console.', 'sample' => 'https://www.technoware.in/admin/leads/42'],
+                ],
+                'subject' => 'New lead: {{name}} {{action}} “{{banner}}”',
+                'body' => '<p>A new lead from a banner on the website.</p>'
+                    .'<p><strong>{{name}}</strong> {{action}} “{{banner}}”.</p>'
+                    .'{{details}}'
+                    .'<p><strong>On the page:</strong> {{source_path}}</p>'
+                    .'<p><a href="{{url}}">Open this lead</a></p>',
+            ],
+        ];
+    }
+
+    /**
+     * Engineer visit requests (2026-09-26, `docs/visits.md`) — seven messages
+     * for five classes.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private static function visits(): array
+    {
+        $reference = ['about' => 'The visit reference, which is what people quote on the phone.', 'sample' => 'TV-2026-00012'];
+        $topic = ['about' => 'What the visit is about — the service or solution chosen, or “Site survey”.', 'sample' => 'Network installation'];
+        $manage = ['about' => 'Their own link to cancel or ask for another time. No sign-in needed.', 'sample' => 'https://www.technoware.in/visit/TV-2026-00012/open?token=…'];
+
+        // The desk's two share one class, so they offer one list.
+        $desk = [
+            'reference' => $reference,
+            'name' => ['about' => 'Who asked.', 'sample' => 'Priya Sharma'],
+            'company' => ['about' => 'Their company, or blank.', 'sample' => 'Meridian Foods'],
+            'email' => ['about' => 'Their address. Replying goes here.', 'sample' => 'priya@meridianfoods.test'],
+            'phone' => ['about' => 'Their mobile.', 'sample' => '+91 98765 43210'],
+            'topic' => $topic,
+            'preferred' => self::details('The dates and parts of the day they asked for, in the order they ranked them.', '<ul><li>Tue 6 Oct — Morning (09:00–12:00)</li></ul>'),
+            'site_address' => ['about' => 'Where the engineer is going.', 'sample' => '14 Park Street, Kolkata, West Bengal, 700016'],
+            'notes' => ['about' => 'The first 800 characters of what they wrote about the site.', 'sample' => 'Two floors, the rack is in the basement.'],
+            'change' => ['about' => 'What the customer did — blank on a new request.', 'sample' => 'They asked for other times.'],
+            'url' => ['about' => 'The request in the console.', 'sample' => 'https://www.technoware.in/admin/visits/TV-2026-00012'],
+            'lead' => self::details('The lead score and a link to the pipeline record — blank on a change.', '<p><strong>Score:</strong> 64 / 100 — warm</p>'),
+        ];
+
+        // Booked, moved and reminded share one list of facts.
+        $booked = [
+            'name' => ['about' => 'Their first name, or “there”.', 'sample' => 'Priya'],
+            'reference' => $reference,
+            'topic' => $topic,
+            'visit_date' => ['about' => 'The day of the visit.', 'sample' => 'Tue 6 Oct 2026'],
+            'visit_time' => ['about' => 'When it starts and ends.', 'sample' => '10:30 – 12:00'],
+            'site_address' => ['about' => 'Where the engineer is going.', 'sample' => '14 Park Street, Kolkata, West Bengal, 700016'],
+            'manage_url' => $manage,
+        ];
+
+        return [
+            'visit_request_received' => [
+                'label' => 'Visit requested — to the desk',
+                'description' => 'Sent to the visits address (else the sales inbox) when somebody requests an engineer visit. Replying goes to the customer.',
+                'audience' => self::INTERNAL,
+                'class' => VisitRequestReceived::class,
+                'variables' => $desk,
+                'subject' => '[{{reference}}] Visit requested: {{topic}}',
+                'body' => '<p>A site visit has been requested.</p>'
+                    .'<p><strong>{{name}}</strong> · {{company}}</p>'
+                    .'<p>{{email}} · {{phone}}</p>'
+                    .'<p><strong>About:</strong> {{topic}}<br><strong>Site:</strong> {{site_address}}</p>'
+                    .'<p><strong>Preferred times:</strong></p>{{preferred}}'
+                    .'<p>{{notes}}</p>'
+                    .'{{lead}}'
+                    .'<p><a href="{{url}}">Confirm a time in the console</a></p>',
+            ],
+
+            'visit_request_changed' => [
+                'label' => 'Visit changed by the customer — to the desk',
+                'description' => 'Sent when a customer cancels their visit or asks for other times, from their own link or the portal.',
+                'audience' => self::INTERNAL,
+                'class' => VisitRequestReceived::class,
+                'variables' => $desk,
+                'subject' => '[{{reference}}] Visit changed by the customer',
+                'body' => '<p>{{change}}</p>'
+                    .'<p><strong>{{name}}</strong> · {{company}} · {{phone}}</p>'
+                    .'<p><strong>About:</strong> {{topic}}</p>'
+                    .'<p><strong>Times they would like now:</strong></p>{{preferred}}'
+                    .'<p><a href="{{url}}">Open it in the console</a></p>',
+            ],
+
+            'visit_requested' => [
+                'label' => 'Visit requested — to the customer',
+                'description' => 'The receipt somebody gets after requesting an engineer visit. It repeats the times they chose, never what they typed.',
+                'audience' => self::CUSTOMER,
+                'class' => VisitRequested::class,
+                'variables' => [
+                    'name' => ['about' => 'Their first name, or “there”.', 'sample' => 'Priya'],
+                    'reference' => $reference,
+                    'topic' => $topic,
+                    'preferred' => self::details('The dates and parts of the day they asked for.', '<ul><li>Tue 6 Oct — Morning (09:00–12:00)</li></ul>'),
+                    'manage_url' => $manage,
+                ],
+                'subject' => '[{{reference}}] We have your visit request',
+                'body' => '<p>Thank you, {{name}}.</p>'
+                    .'<p>We have your request for an engineer visit — <strong>{{topic}}</strong>. Your reference is <strong>{{reference}}</strong>.</p>'
+                    .'<p>You asked for:</p>{{preferred}}'
+                    .'<p>This is a request, not a booking yet. We will confirm the actual time by email once an engineer is free.</p>'
+                    .'<p><a href="{{manage_url}}">Cancel or ask for another time</a></p>',
+            ],
+
+            'visit_confirmed' => [
+                'label' => 'Visit booked — to the customer',
+                'description' => 'Sent when the desk confirms a time. Carries a calendar file.',
+                'audience' => self::CUSTOMER,
+                'class' => VisitConfirmed::class,
+                'variables' => $booked,
+                'subject' => '[{{reference}}] Your engineer visit is booked for {{visit_date}}, {{visit_time}}',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p>An engineer will visit — <strong>{{topic}}</strong> — on <strong>{{visit_date}}, {{visit_time}}</strong>.</p>'
+                    .'<p>At: {{site_address}}</p>'
+                    .'<p>The calendar file attached adds it to your diary. We will remind you the day before.</p>'
+                    .'<p><a href="{{manage_url}}">Cancel or ask for another time</a></p>',
+            ],
+
+            'visit_rescheduled' => [
+                'label' => 'Visit moved — to the customer',
+                'description' => 'Sent when the desk moves a confirmed visit to a new time. Carries a calendar file that updates the old event.',
+                'audience' => self::CUSTOMER,
+                'class' => VisitConfirmed::class,
+                'variables' => $booked,
+                'subject' => '[{{reference}}] Your engineer visit has moved to {{visit_date}}, {{visit_time}}',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p>We have moved your engineer visit — <strong>{{topic}}</strong> — to <strong>{{visit_date}}, {{visit_time}}</strong>.</p>'
+                    .'<p>At: {{site_address}}</p>'
+                    .'<p>The calendar file attached updates the one we sent before.</p>'
+                    .'<p><a href="{{manage_url}}">Cancel or ask for another time</a></p>',
+            ],
+
+            'visit_cancelled' => [
+                'label' => 'Visit cancelled — to the customer',
+                'description' => 'Sent when a visit is cancelled, by the desk or by the customer from their own link.',
+                'audience' => self::CUSTOMER,
+                'class' => VisitCancelled::class,
+                'variables' => [
+                    'name' => ['about' => 'Their first name, or “there”.', 'sample' => 'Priya'],
+                    'reference' => $reference,
+                    'topic' => $topic,
+                    'reason' => ['about' => 'The reason the desk gave — blank when the customer cancelled.', 'sample' => 'The engineer is unwell; we will call to rearrange.'],
+                    'book_url' => ['about' => 'The request form, to ask again.', 'sample' => 'https://www.technoware.in/book-a-visit'],
+                ],
+                'subject' => '[{{reference}}] Your engineer visit is cancelled',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p>Your engineer visit — <strong>{{topic}}</strong>, reference {{reference}} — is cancelled.</p>'
+                    .'<p>{{reason}}</p>'
+                    .'<p>If this is a mistake, or you would still like somebody to come, <a href="{{book_url}}">ask for a new visit</a>.</p>',
+            ],
+
+            'visit_reminder' => [
+                'label' => 'Visit tomorrow — to the customer',
+                'description' => 'Sent once, within the 24 hours before a confirmed visit.',
+                'audience' => self::CUSTOMER,
+                'class' => VisitReminder::class,
+                'variables' => $booked,
+                'subject' => '[{{reference}}] Reminder: engineer visit on {{visit_date}}, {{visit_time}}',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p>A reminder that an engineer visits — <strong>{{topic}}</strong> — on <strong>{{visit_date}}, {{visit_time}}</strong>.</p>'
+                    .'<p>At: {{site_address}}</p>'
+                    .'<p>Please make sure somebody can let them in and show them the equipment.</p>'
+                    .'<p><a href="{{manage_url}}">Cancel or ask for another time</a></p>',
             ],
         ];
     }

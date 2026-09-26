@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Form } from "@/components/ui/form";
 import { FormDraft } from "@/components/admin/form-draft";
 import { FormActions } from "@/components/admin/form-actions";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select } from "@/components/ui/input";
 import { EditorField } from "@/components/admin/editor-field";
@@ -13,8 +13,10 @@ import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
+import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import { createPageAction, updatePageAction, deletePageAction, type PageFormState } from "./actions";
-import type { AdminPage, AnswerBlockKindOption } from "@/types/api";
+import { SectionBuilder } from "./builder/section-builder";
+import type { CustomFieldGroupDefinition, AdminPage, AnswerBlockKindOption, PageBuilderOptions, StoredSection } from "@/types/api";
 
 const initial: PageFormState = {};
 
@@ -22,6 +24,10 @@ const initial: PageFormState = {};
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
     fields: ["title", "slug", "body", "status", "published_at", "template"] },
+  // The section builder (docs/page-builder.md). In the list whatever the
+  // template, so a 422 on `blocks.3.data.heading` always has a tab to land
+  // on; drawn only while the template is Builder.
+  { id: "builder", label: "Builder", fields: ["blocks"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
   // The AEO tab (docs/aeo-geo-contract.md §7). Last, so every tab above keeps its place.
   { id: "aeo", label: "AEO", fields: ["answer_blocks"] },
@@ -35,12 +41,16 @@ function toLocalInput(iso: string | null): string {
 }
 
 export function PageForm({
-  page, saved, kinds,
+  page, saved, kinds, builder, fieldGroups,
 }: {
   page?: AdminPage;
   saved?: boolean;
   /** `meta.answer_block_kinds` from this entity's admin index. */
   kinds: AnswerBlockKindOption[];
+  /** `GET /admin/pages/builder` — the section builder's types, presets and pickers. */
+  builder: PageBuilderOptions;
+  /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
+  fieldGroups?: CustomFieldGroupDefinition[];
 }) {
   const editing = Boolean(page);
   const [state, formAction, pending] = useActionState(
@@ -54,13 +64,53 @@ export function PageForm({
   const rowErr = (prefix: string) =>
     err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
 
-  const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
+  // Custom fields (docs/custom-content.md): the groups that apply, from the API.
+  const customGroups = page?.custom_field_groups ?? fieldGroups ?? [];
+  const { tabs: allTabs, jumpTo } = buildFormTabs(withFieldsTab(GROUPS, customGroups), state.fieldErrors);
+
+  /*
+    The template decides whether the page is its body or its sections, so it
+    is controlled here: the Builder tab is drawn only for `builder`, and the
+    body editor steps aside (still mounted, still posted — switching back
+    loses nothing). The sections live in this component rather than in the
+    tab so a tab that is not drawn cannot take them with it; they post as one
+    hidden JSON input.
+  */
+  const [template, setTemplate] = useState(page?.template ?? "default");
+  const isBuilder = template === "builder";
+  const [sections, setSections] = useState<StoredSection[]>(page?.blocks ?? []);
+  const sectionsInput = useRef<HTMLInputElement>(null);
+  const tabs = isBuilder ? allTabs : allTabs.filter((t) => t.id !== "builder");
+
+  // A structural change — add, move, hide, remove — fires no input event of
+  // its own, so the draft keeper and the leave guard are told here.
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
+    sectionsInput.current?.dispatchEvent(new Event("input", { bubbles: true }));
+  }, [sections]);
+
+  // `FormDraft` writes a restored draft into the hidden input; read it back.
+  useEffect(() => {
+    const input = sectionsInput.current;
+    const form = input?.closest("form");
+    if (!input || !form) return;
+    const restored = () => {
+      try {
+        const parsed = JSON.parse(input.value);
+        if (Array.isArray(parsed)) setSections(parsed as StoredSection[]);
+      } catch { /* not ours to fix */ }
+    };
+    form.addEventListener("tw:draft-restored", restored);
+    return () => form.removeEventListener("tw:draft-restored", restored);
+  }, []);
 
   return (
     <Form action={formAction} state={state} noValidate>
       {/* A draft in localStorage, offered back after a refresh or a crash. */}
       <FormDraft />
       {editing && <input type="hidden" name="id" value={page!.id} />}
+      <input ref={sectionsInput} type="hidden" name="blocks" value={JSON.stringify(sections)} />
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
       {saved && !state.error && (
@@ -71,8 +121,8 @@ export function PageForm({
         </Alert>
       )}
 
-      <Tabs tabs={tabs} jumpTo={jumpTo} jumpNonce={state}>
-        <div className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
+      <Tabs tabs={tabs} jumpTo={jumpTo} jumpNonce={state}>{[
+        <div key="content" className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
           <div className="min-w-0">
             <Field label="Title" htmlFor="title" error={err("title")}>
               <Input id="title" name="title" defaultValue={page?.title} required
@@ -87,7 +137,15 @@ export function PageForm({
                 aria-invalid={Boolean(err("slug"))} />
             </Field>
 
-            <EditorField name="body" defaultValue={page?.body ?? ""} error={err("body")} />
+            {isBuilder && (
+              <p className="mb-[18px] rounded border border-dashed border-line-strong bg-surface px-4 py-3 text-13-5 text-muted">
+                This page is built from sections — see the <strong>Builder</strong> tab. The body below is kept, and
+                comes back if the template is switched.
+              </p>
+            )}
+            <div hidden={isBuilder}>
+              <EditorField name="body" defaultValue={page?.body ?? ""} error={err("body")} />
+            </div>
           </div>
 
           <aside className="grid content-start gap-0">
@@ -107,26 +165,45 @@ export function PageForm({
 
             <Field label="Template" htmlFor="template" error={err("template")}
               variant="float-static"
-              hint="Wide drops the reading-width cap — use it for a page built around a slider or gallery.">
-              <Select id="template" name="template" defaultValue={page?.template ?? "default"}>
+              hint="Wide drops the reading-width cap — use it for a page built around a slider or gallery. Builder lays the page out as sections.">
+              <Select id="template" name="template" value={template} onChange={(e) => setTemplate(e.target.value)}>
                 <option value="default">Default — text width</option>
                 <option value="wide">Wide — full container</option>
+                <option value="builder">Builder — sections</option>
               </Select>
             </Field>
           </aside>
-        </div>
+        </div>,
 
-        <SeoPanel seo={page?.seo} defaults={page?.seo_defaults} error={seoErr} embedded record={page ? { type: 'page', id: page.id } : null} />
+        ...(isBuilder ? [
+          <SectionBuilder
+            key="builder"
+            sections={sections}
+            setSections={setSections}
+            options={builder}
+            media={page?.blocks_media ?? {}}
+            errors={state.fieldErrors ?? {}}
+            pageId={page?.id ?? null}
+          />,
+        ] : []),
 
-        {/*
+        <SeoPanel key="seo" seo={page?.seo} defaults={page?.seo_defaults} error={seoErr} embedded record={page ? { type: 'page', id: page.id } : null} />,
+
+        /*
           The AEO tab, one child: the readiness scores and the assistant on
           top, the answer blocks under them. See docs/aeo-geo-contract.md §7.
-        */}
-        <div>
+        */
+        <div key="aeo">
           <AeoGeoPanel record={page ? { type: 'page', id: page.id } : null} blocks={page?.answer_blocks} />
           <AnswerBlocksField defaultValue={page?.answer_blocks ?? []} kinds={kinds} error={rowErr("answer_blocks")} />
-        </div>
-      </Tabs>
+        </div>,
+
+        /* The Fields tab — last, and only when a custom field group applies. */
+        ...(customGroups.length > 0 ? [
+          <CustomFieldsPanel key="fields" groups={customGroups} values={page?.custom_fields} media={page?.custom_field_media}
+            error={customFieldError(state.fieldErrors)} />,
+        ] : []),
+      ]}</Tabs>
 
       <FormActions>
         <Button type="submit" pending={pending}>

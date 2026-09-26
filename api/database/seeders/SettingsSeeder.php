@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Setting;
+use App\Support\Visits\VisitSettings;
 use Illuminate\Database\Seeder;
 
 class SettingsSeeder extends Seeder
@@ -66,6 +67,11 @@ class SettingsSeeder extends Seeder
             // client asked for counting figures site-wide, so it is the shipped
             // default rather than a choice; `none` is the homepage as it was.
             ['group' => 'homepage', 'key' => 'stats_animation', 'value' => 'count', 'type' => 'string'],
+            // The homepage's block sections (2026-09-24): a block's slug each,
+            // blank for none. Placed and switched on the Themes screen.
+            ['group' => 'homepage', 'key' => 'home_stats_block', 'value' => null, 'type' => 'string'],
+            ['group' => 'homepage', 'key' => 'home_pricing_block', 'value' => null, 'type' => 'string'],
+            ['group' => 'homepage', 'key' => 'home_stack_block', 'value' => null, 'type' => 'string'],
             ['group' => 'homepage', 'key' => 'support_stats', 'value' => '< 4h|First response
 24/7|Critical escalation
 96%|Resolved in SLA
@@ -295,6 +301,27 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * say. Private: it describes how the pipeline judges people.
              */
             ['group' => 'leads', 'key' => 'lead_intent_words', 'value' => null, 'type' => 'text'],
+
+            /*
+             * Engineer visit requests (2026-09-26, docs/visits.md): the
+             * switch, the parts of the day offered, the weekdays, how much
+             * notice and how far ahead, the closed dates, where the desk's
+             * email goes and how long a visit is booked for by default.
+             *
+             * **On by default** — the client asked for the feature, and a
+             * request asks for nothing the desk has not already agreed to
+             * consider. The group is private; `VisitSettings::PUBLIC_KEYS`
+             * names the six the form needs, so the desk's address stays off
+             * the public `/settings` map.
+             */
+            ['group' => 'visits', 'key' => 'visits_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'visits', 'key' => 'visit_windows', 'value' => VisitSettings::DEFAULT_WINDOWS, 'type' => 'text'],
+            ['group' => 'visits', 'key' => 'visit_days', 'value' => VisitSettings::DEFAULT_DAYS, 'type' => 'string'],
+            ['group' => 'visits', 'key' => 'visit_min_notice_days', 'value' => '1', 'type' => 'string'],
+            ['group' => 'visits', 'key' => 'visit_max_days', 'value' => '30', 'type' => 'string'],
+            ['group' => 'visits', 'key' => 'visit_holidays', 'value' => null, 'type' => 'text'],
+            ['group' => 'visits', 'key' => 'visits_email', 'value' => null, 'type' => 'string'],
+            ['group' => 'visits', 'key' => 'visit_default_minutes', 'value' => '90', 'type' => 'string'],
 
             /*
              * Comments, site-wide.
@@ -814,6 +841,54 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'store', 'key' => 'store_return_days', 'value' => '7', 'type' => 'string'],
 
             /*
+             * Abandoned-basket reminders (2026-09-25): the switch, the two
+             * delays and the second reminder's coupon.
+             *
+             * A group of their own rather than `store`, because `store` is
+             * public — the whole group reaches `/settings` — and a coupon code
+             * published to every visitor is a discount handed to anybody who
+             * reads the page source. Drawn on the same Store → Settings screen.
+             *
+             * **Off by default.** An email about a basket is marketing, and a
+             * shop decides to send it; the second delay stops at 25 days so it
+             * always falls before the prune deletes the basket at thirty.
+             */
+            ['group' => 'store_reminders', 'key' => 'store_cart_reminders_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'store_reminders', 'key' => 'store_cart_reminder_1_hours', 'value' => '1', 'type' => 'string'],
+            ['group' => 'store_reminders', 'key' => 'store_cart_reminder_2_days', 'value' => '1', 'type' => 'string'],
+            ['group' => 'store_reminders', 'key' => 'store_cart_reminder_coupon', 'value' => null, 'type' => 'string'],
+
+            /*
+             * How far a price has to fall before somebody who saved the
+             * product is told (2026-09-25). A whole percentage of the price
+             * when it was saved — or when they were last told, so one drop is
+             * one message. Five by default: a rupee off is not news, and a
+             * wishlist that emails every rounding is one people stop reading.
+             * Anything outside 1–90 reads as five.
+             */
+            ['group' => 'store', 'key' => 'store_price_drop_min_percent', 'value' => '5', 'type' => 'string'],
+
+            /*
+             * "How was it?" — the review request (`technoware:request-reviews`).
+             * On by default, because the client asked for it; the delay is
+             * days after dispatch (or after payment, for an order with nothing
+             * to ship). Neither says anything a visitor could use, so both
+             * sit in the public `store` group harmlessly.
+             */
+            ['group' => 'store', 'key' => 'store_review_requests_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'store', 'key' => 'store_review_request_days', 'value' => '7', 'type' => 'string'],
+
+            /*
+             * The Meta catalogue feed (2026-09-26): `/meta-catalogue.xml` and
+             * `.csv`, the Google feed's rows mapped for Commerce Manager,
+             * which also stocks the WhatsApp Business catalogue. On by
+             * default — it publishes nothing the Google feed does not — and
+             * public because the frontend route is what answers 404 when it
+             * is off.
+             */
+            ['group' => 'store', 'key' => 'meta_catalogue_enabled', 'value' => '1', 'type' => 'boolean'],
+
+            /*
              * The storefront's promo band — one static, editable slot rather
              * than a second `Slider`. It is a single fixed block, not a
              * rotating carousel, so a handful of settings fields are less to
@@ -1038,6 +1113,69 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'integrations', 'key' => 'ga4_property_id', 'value' => null, 'type' => 'string'],
             ['group' => 'integrations', 'key' => 'ga4_error', 'value' => null, 'type' => 'string'],
 
+            /*
+             * Messaging channels — WhatsApp, RCS and browser push (Messaging →
+             * Settings, administrators only). Private like `mail`: every
+             * credential here is `is_secret`, blank on a save means unchanged,
+             * and none is ever returned. A channel whose provider is blank is
+             * off. `App\Enums\MessageChannel` and the three provider enums are
+             * the list of what each provider reads.
+             *
+             * `messaging_promo_start` / `_end` are the quiet-hours window
+             * `App\Support\Messaging\QuietHours` reads: promotional messages —
+             * basket reminders, wishlist notes, broadcasts — go out only
+             * inside it, in the app's timezone (IST). Transactional ones go at
+             * any hour.
+             *
+             * `messaging_webhook_secret` verifies the providers that sign
+             * nothing (Gupshup), on the callback URL as `?token=`. Without it
+             * their webhooks accept nothing — a forged STOP would opt people
+             * out in silence, the bounce webhook's argument.
+             */
+            ['group' => 'messaging', 'key' => 'messaging_whatsapp_provider', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'messaging_rcs_provider', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'messaging_push_provider', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'messaging_promo_start', 'value' => '09:00', 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'messaging_promo_end', 'value' => '21:00', 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'messaging_webhook_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'messaging', 'key' => 'whatsapp_meta_phone_number_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'whatsapp_meta_business_account_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'whatsapp_meta_access_token', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'messaging', 'key' => 'whatsapp_meta_app_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'messaging', 'key' => 'whatsapp_meta_verify_token', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'messaging', 'key' => 'whatsapp_gupshup_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'messaging', 'key' => 'whatsapp_gupshup_app_name', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'whatsapp_gupshup_app_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'whatsapp_gupshup_source', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'whatsapp_twilio_account_sid', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'whatsapp_twilio_auth_token', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'messaging', 'key' => 'whatsapp_twilio_from', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'rcs_rbm_agent_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'rcs_rbm_service_account', 'value' => null, 'type' => 'text', 'is_secret' => true],
+            ['group' => 'messaging', 'key' => 'rcs_rbm_client_token', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'messaging', 'key' => 'rcs_gupshup_userid', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'rcs_gupshup_password', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'messaging', 'key' => 'rcs_gupshup_bot_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'push_fcm_service_account', 'value' => null, 'type' => 'text', 'is_secret' => true],
+            // Why a channel last refused its credentials — the `mail_error`
+            // pattern, written by a failed send or test, cleared by a success.
+            ['group' => 'messaging', 'key' => 'messaging_whatsapp_error', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'messaging_rcs_error', 'value' => null, 'type' => 'string'],
+            ['group' => 'messaging', 'key' => 'messaging_push_error', 'value' => null, 'type' => 'string'],
+
+            /*
+             * The browser half of Firebase — public, because a browser cannot
+             * subscribe without it and none of it is a secret (Firebase's web
+             * config is in the page source of every site that uses it). The
+             * service account that *sends* is `push_fcm_service_account`
+             * above, private.
+             */
+            ['group' => 'push', 'key' => 'push_api_key', 'value' => null, 'type' => 'string'],
+            ['group' => 'push', 'key' => 'push_project_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'push', 'key' => 'push_messaging_sender_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'push', 'key' => 'push_app_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'push', 'key' => 'push_vapid_key', 'value' => null, 'type' => 'string'],
+
             // Social profiles. Seeded empty on purpose — a blank value hides
             // the icon, so the footer never links to a profile that does not
             // exist yet. Fill these in from Settings in the admin.
@@ -1047,6 +1185,11 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'social', 'key' => 'social_instagram', 'value' => null, 'type' => 'string'],
             ['group' => 'social', 'key' => 'social_youtube', 'value' => null, 'type' => 'string'],
             ['group' => 'social', 'key' => 'social_whatsapp', 'value' => null, 'type' => 'string'],
+            ['group' => 'social', 'key' => 'social_reddit', 'value' => null, 'type' => 'string'],
+            // How the row is drawn (2026-09-24): letter tiles that flip to the
+            // icons, spelling `social_flip_word`, or the magnifying dock.
+            ['group' => 'social', 'key' => 'social_style', 'value' => 'flip', 'type' => 'string'],
+            ['group' => 'social', 'key' => 'social_flip_word', 'value' => 'FOLLOW', 'type' => 'string'],
         ];
 
         foreach ($settings as $s) {

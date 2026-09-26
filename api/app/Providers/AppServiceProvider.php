@@ -12,10 +12,14 @@ use App\Models\CaseStudy;
 use App\Models\Certification;
 use App\Models\ChatConversation;
 use App\Models\Client;
+use App\Models\ContentBlock;
+use App\Models\ContentType;
 use App\Models\Coupon;
 use App\Models\Customer;
+use App\Models\CustomFieldGroup;
 use App\Models\DigitalCode;
 use App\Models\Enquiry;
+use App\Models\Entry;
 use App\Models\Faq;
 use App\Models\Form;
 use App\Models\FormSubmission;
@@ -34,6 +38,9 @@ use App\Models\Media;
 use App\Models\MediaFolder;
 use App\Models\Menu;
 use App\Models\MenuItem;
+use App\Models\MessageBroadcast;
+use App\Models\MessageContact;
+use App\Models\MessageTemplate;
 use App\Models\NewsletterCampaign;
 use App\Models\NewsletterGroup;
 use App\Models\NewsletterImport;
@@ -48,6 +55,7 @@ use App\Models\Payment;
 use App\Models\Popup;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\ProductReview;
 use App\Models\Redirect;
 use App\Models\SeoSuggestion;
 use App\Models\Service;
@@ -61,6 +69,7 @@ use App\Models\Ticket;
 use App\Models\TicketAttachment;
 use App\Models\TicketCategory;
 use App\Models\User;
+use App\Models\VisitRequest;
 use App\Models\Webhook;
 use App\Models\WebhookDelivery;
 use App\Support\Chat\AiProvider;
@@ -72,6 +81,7 @@ use App\Support\InboundMail\MailboxScanner;
 use App\Support\QueueHealth;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Mail\Markdown;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\URL;
@@ -110,6 +120,20 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        /*
+         * A value in a mail line is text, never Markdown.
+         *
+         * Blade escapes `<`, and then the mail layout runs the whole body
+         * through CommonMark — so a name typed into the contact form as
+         * `[Reset your password](https://evil.example)` arrived in the
+         * acknowledgement as a working link under this company's letterhead:
+         * a phishing relay anybody could drive from `POST /enquiries`. With
+         * secured encoding every `{{ }}` echo inside a mail view escapes `[`
+         * before the parse. A line that means to carry a link has to say so
+         * with an `HtmlString` (see `BackInStock`), which is the point.
+         */
+        Markdown::withSecuredEncoding();
+
         /*
          * A worker's pulse, written by the worker itself.
          *
@@ -189,6 +213,15 @@ class AppServiceProvider extends ServiceProvider
             'popup' => Popup::class,
             'team_member' => TeamMember::class,
             'slider' => Slider::class,
+            'content_block' => ContentBlock::class,
+            // Custom fields (docs/custom-content.md): the group is bound in
+            // an admin route; a value's `fieldable` is one of the aliases above.
+            'custom_field_group' => CustomFieldGroup::class,
+            // Custom content types: an entry carries SEO, FAQs, answer blocks
+            // and custom field values, all polymorphic; a type is bound in an
+            // admin route and a menu item may point at it.
+            'entry' => Entry::class,
+            'content_type' => ContentType::class,
             'form' => Form::class,
             'faq' => Faq::class,
             // The `faqs` shape with a kind; owned by eleven models the way FAQs are.
@@ -225,6 +258,12 @@ class AppServiceProvider extends ServiceProvider
             'newsletter_template' => NewsletterTemplate::class,
             'newsletter_sequence' => NewsletterSequence::class,
             'newsletter_sequence_enrolment' => NewsletterSequenceEnrolment::class,
+            // Messaging channels: bound in admin routes, so activity subjects.
+            'message_template' => MessageTemplate::class,
+            'message_broadcast' => MessageBroadcast::class,
+            'message_contact' => MessageContact::class,
+            // Engineer visits: bound in admin routes, and the source of a lead.
+            'visit_request' => VisitRequest::class,
 
             /*
              * The store's own catalogue. `store_product` rather than
@@ -239,6 +278,9 @@ class AppServiceProvider extends ServiceProvider
             'order_item' => OrderItem::class,
             'payment' => Payment::class,
             'digital_code' => DigitalCode::class,
+            // Bound by the review queue's PATCH and DELETE, so the activity
+            // log can name the review a deletion was aimed at.
+            'product_review' => ProductReview::class,
 
             /*
              * The CRM. `form_submission` is here because a lead's `source`

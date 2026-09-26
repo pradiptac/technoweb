@@ -21,6 +21,9 @@ export function CtaBand({
   size = "md",
   className,
   phone,
+  kicker,
+  primary,
+  secondary,
 }: CtaBandProps) {
   return (
     <section className={cn("section-y", className)}>
@@ -33,18 +36,25 @@ export function CtaBand({
             size === "lg" ? "lg:py-16" : "lg:py-12",
           )}
         >
+          {kicker && <p className="mb-3 text-12 font-semibold uppercase tracking-[.14em]">{kicker}</p>}
           <h2 className={cn("font-display font-normal tracking-[-.01em] text-balance", size === "lg" ? "text-[clamp(30px,3vw+8px,46px)]" : "text-[clamp(26px,2vw+8px,36px)]")}>
             {title}
           </h2>
           <div>
             <p className="max-w-[52ch] text-15 leading-relaxed text-ink-2">{body}</p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <ButtonLink href="/contact">
-                Book a site audit <IconArrowRight />
+              <ButtonLink href={primary?.href || "/contact"}>
+                {primary?.label || "Book a site audit"} <IconArrowRight />
               </ButtonLink>
-              <ButtonLink href={telHref(phone)} variant="secondary">
-                Call {phone}
-              </ButtonLink>
+              {secondary === null ? null : secondary ? (
+                <ButtonLink href={secondary.href} variant="secondary">
+                  {secondary.label}
+                </ButtonLink>
+              ) : (
+                <ButtonLink href={telHref(phone)} variant="secondary">
+                  Call {phone}
+                </ButtonLink>
+              )}
             </div>
           </div>
         </div>

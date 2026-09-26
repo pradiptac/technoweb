@@ -32,6 +32,14 @@ use App\Models\Setting;
  */
 enum MailTransport: string
 {
+    /**
+     * Mailgun's two API hosts. The API key is sent to `mailgun_endpoint`, so
+     * a free value there was a way to post the stored key to any server;
+     * the settings screen refuses anything else and the provider falls back
+     * to the US host if a row somehow holds something else.
+     */
+    public const MAILGUN_ENDPOINTS = ['api.mailgun.net', 'api.eu.mailgun.net'];
+
     case Smtp = 'smtp';
     case Google = 'google';
     case Brevo = 'brevo';

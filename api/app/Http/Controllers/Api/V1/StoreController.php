@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Store\CategoryResource;
 use App\Http\Resources\Store\ProductResource;
+use App\Models\ProductReview;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
 use App\Support\EntityLinks;
 use App\Support\Store\ProductFeed;
+use App\Support\Store\SpecFilter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -37,6 +39,10 @@ class StoreController extends Controller
             ? $request->query('sort')
             : 'featured';
 
+        // `?spec[Ports][]=24 ports` — OR within a label, AND across labels,
+        // labels nothing carries ignored (2026-09-26). See `SpecFilter`.
+        $specs = SpecFilter::parse($request->query('spec'));
+
         $products = StoreProduct::query()
             ->published()
             /*
@@ -55,6 +61,7 @@ class StoreController extends Controller
                 'brand', fn ($b) => $b->where('slug', $request->string('brand'))
             ))
             ->when($request->filled('type'), fn ($q) => $q->where('type', $request->string('type')))
+            ->when($specs !== [], fn ($q) => SpecFilter::apply($q, $specs))
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = $request->string('q')->value();
                 $q->where(fn ($w) => $w->where('name', 'like', "%{$term}%")
@@ -138,7 +145,7 @@ class StoreController extends Controller
     {
         abort_unless($storeProduct->status?->value === 'published', 404);
 
-        $storeProduct->load(['category', 'brand', 'variations', 'services', 'faqs', 'publishedAnswerBlocks', 'seo']);
+        $storeProduct->load(['category', 'brand', 'variations', 'services', 'faqs', 'publishedAnswerBlocks', 'seo', 'customValues.field.group']);
 
         // What the page lists beside it: up to six others from the same
         // category, the storefront's own query. Set as a relation so the
@@ -150,6 +157,17 @@ class StoreController extends Controller
                 ->whereKeyNot($storeProduct->getKey())
                 ->orderByDesc('is_featured')->orderBy('sort_order')->orderBy('name')
                 ->limit(6)->get()
+            : $storeProduct->newCollection());
+        /*
+         * Up to five published reviews for the graph's `review` nodes, in the
+         * order the page opens on (featured first). Set as a relation like
+         * `relatedProducts`, so `StructuredData` reads it through
+         * `relationLoaded` and a nested product never builds one.
+         */
+        $storeProduct->setRelation('schemaReviews', $storeProduct->rating_count > 0
+            ? ProductReview::query()->published()
+                ->where('store_product_id', $storeProduct->id)
+                ->sorted('featured')->limit(5)->get()
             : $storeProduct->newCollection());
         EntityLinks::attach($storeProduct);
 
@@ -178,6 +196,32 @@ class StoreController extends Controller
             ->get();
 
         return CategoryResource::collection($categories);
+    }
+
+    /**
+     * The category's specification filters: for each label it offers, the
+     * values its published products carry and how many products each would
+     * leave under the *other* choices in `?spec` (2026-09-26).
+     *
+     * Unfiltered, the answer is cached for five minutes; with a selection it
+     * is counted fresh every time — a combination somebody ticked is a
+     * user's query, never a cache key. An empty `data` is the ordinary answer
+     * for a category with no filters chosen, in a 200, so the frontend's own
+     * fetch cache can hold it (the `/menus/*` lesson).
+     */
+    public function facets(Request $request, StoreCategory $storeCategory): JsonResponse
+    {
+        abort_unless($storeCategory->is_active, 404);
+
+        $selected = SpecFilter::parse($request->query('spec'));
+
+        return response()->json([
+            'data' => SpecFilter::facets($storeCategory, $selected),
+            'meta' => [
+                'category' => $storeCategory->slug,
+                'filtered' => $selected !== [],
+            ],
+        ]);
     }
 
     public function category(StoreCategory $storeCategory): JsonResource

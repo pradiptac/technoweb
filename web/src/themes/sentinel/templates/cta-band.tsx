@@ -19,6 +19,9 @@ export function CtaBand({
   size = "md",
   className,
   phone,
+  kicker,
+  primary,
+  secondary,
 }: CtaBandProps) {
   const seam = tone === "brand" ? "via-brand-300" : "via-accent-300";
   return (
@@ -27,12 +30,17 @@ export function CtaBand({
       <div aria-hidden className={cn("pointer-events-none absolute -left-32 top-1/2 size-[480px] -translate-y-1/2 rounded-full opacity-20 blur-3xl", tone === "brand" ? "bg-brand-500" : "bg-accent-500")} />
       <Container className={cn("relative grid items-center gap-8 lg:grid-cols-[1.3fr_auto]", size === "lg" ? "py-16 lg:py-24" : "py-12 lg:py-16")}>
         <div className="min-w-0">
+          {kicker && <p className="mb-3 text-12 font-semibold uppercase tracking-[.14em]">{kicker}</p>}
           <h2 className={cn(size === "lg" ? "display-2" : "display-3", "text-balance")}>{title}</h2>
           <p className="mt-4 max-w-[58ch] text-15 leading-relaxed text-dark-muted">{body}</p>
         </div>
         <div className="flex flex-wrap gap-3 lg:justify-end">
-          <ButtonLink href="/contact">Book a site audit <IconArrowRight /></ButtonLink>
-          <ButtonLink href={telHref(phone)} variant="onDarkOutline" className="border-white/25 text-white">Call {phone}</ButtonLink>
+          <ButtonLink href={primary?.href || "/contact"}>{primary?.label || "Book a site audit"} <IconArrowRight /></ButtonLink>
+          {secondary === null ? null : secondary ? (
+            <ButtonLink href={secondary.href} variant="onDarkOutline" className="border-white/25 text-white">{secondary.label}</ButtonLink>
+          ) : (
+            <ButtonLink href={telHref(phone)} variant="onDarkOutline" className="border-white/25 text-white">Call {phone}</ButtonLink>
+          )}
         </div>
       </Container>
     </section>

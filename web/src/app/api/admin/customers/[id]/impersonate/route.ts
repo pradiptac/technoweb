@@ -4,7 +4,7 @@ import { ApiError } from "@/lib/api";
 import { impersonateCustomer } from "@/lib/admin";
 import { getToken } from "@/lib/admin-auth";
 import { IMPERSONATION_COOKIE } from "@/lib/auth";
-import { requestHost } from "@/lib/request-host";
+import { isSameOrigin } from "@/lib/same-origin";
 
 /**
  * "View as": open the customer portal as one customer, in a new tab.
@@ -21,18 +21,15 @@ import { requestHost } from "@/lib/request-host";
  * phishing mail opened by a signed-in engineer would arrive with the admin
  * cookie and mint a portal token for whichever customer the URL named. As a
  * POST the same attempt arrives with no cookie and is refused before
- * anything is minted. The `Origin` check underneath is belt and braces: a
- * browser sends the header on every form POST, and one naming a different
- * host is refused even if a cookie somehow came with it. The host is read
- * the way `proxy.ts` reads it, `x-forwarded-host` first, so Plesk's
- * internal address does not fail every legitimate press.
+ * anything is minted. The `Origin` check underneath is belt and braces —
+ * `isSameOrigin()`, which every cookie-authenticated upload handler now
+ * shares through `proxyMultipart`.
  *
  * A refusal answers as a small page rather than JSON: whatever comes back
  * is what the new tab shows.
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const origin = request.headers.get("origin");
-  if (origin && originHost(origin) !== requestHost(request.headers)) {
+  if (!isSameOrigin(request)) {
     return page(403, "This request did not come from the console.");
   }
 
@@ -58,14 +55,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const response = NextResponse.redirect(new URL("/portal", request.url), 303);
   response.cookies.set(IMPERSONATION_COOKIE.name, minted.token, IMPERSONATION_COOKIE.options());
   return response;
-}
-
-function originHost(origin: string): string | null {
-  try {
-    return new URL(origin).host.toLowerCase();
-  } catch {
-    return null;
-  }
 }
 
 /**

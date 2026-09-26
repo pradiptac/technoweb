@@ -32,10 +32,35 @@ class GoogleServiceAccount
 
     public const SETTING = 'gsc_service_account';
 
-    /** Whether a key file is saved at all — each API adds its own condition on top. */
-    public static function configured(): bool
+    /**
+     * The `project_id` Google wrote into a key file, or null — FCM's send
+     * URL is addressed by project.
+     */
+    public static function projectId(string $setting = self::SETTING): ?string
     {
-        return filled(Setting::get(self::SETTING));
+        $account = json_decode((string) Setting::get($setting), true);
+        $id = is_array($account) ? ($account['project_id'] ?? null) : null;
+
+        return is_string($id) && $id !== '' ? $id : null;
+    }
+
+    /** Forget a cached token, after a key file is replaced. */
+    public static function forget(string $scope, string $setting = self::SETTING): void
+    {
+        Cache::forget('seo:google:token:'.md5($scope).($setting === self::SETTING ? '' : ':'.$setting));
+    }
+
+    /**
+     * Whether a key file is saved at all — each API adds its own condition on top.
+     *
+     * `$setting` names the row: Search Console and GA4 share `gsc_service_account`,
+     * while RCS Business Messaging and Firebase Cloud Messaging each read their own
+     * (`rcs_rbm_service_account`, `push_fcm_service_account`), because those are
+     * different Google projects more often than not.
+     */
+    public static function configured(string $setting = self::SETTING): bool
+    {
+        return filled(Setting::get($setting));
     }
 
     /**
@@ -43,10 +68,14 @@ class GoogleServiceAccount
      * for fifty minutes. Throws with a sentence a person can act on when
      * the key is not Google's file, cannot be read, or Google refuses it.
      */
-    public static function accessToken(string $scope): string
+    public static function accessToken(string $scope, string $setting = self::SETTING): string
     {
-        return Cache::remember('seo:google:token:'.md5($scope), now()->addMinutes(50), function () use ($scope) {
-            $account = json_decode((string) Setting::get(self::SETTING), true);
+        // The key file is part of the cache key as well as the scope: two
+        // service accounts asking for one scope are two tokens.
+        $key = 'seo:google:token:'.md5($scope).($setting === self::SETTING ? '' : ':'.$setting);
+
+        return Cache::remember($key, now()->addMinutes(50), function () use ($scope, $setting) {
+            $account = json_decode((string) Setting::get($setting), true);
 
             if (! is_array($account) || empty($account['client_email']) || empty($account['private_key'])) {
                 throw new RuntimeException('The service account key is not the JSON file Google issued: it needs client_email and private_key.');

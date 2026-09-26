@@ -66,6 +66,11 @@ const ADMIN_ROUTES = [
   "/admin/media", "/admin/products", "/admin/products/new", "/admin/product-categories",
   "/admin/brands", "/admin/solutions", "/admin/services", "/admin/industries",
   "/admin/sliders", "/admin/popups", "/admin/forms", "/admin/seo", "/admin/redirects",
+  // Content blocks (2026-09-24): the four lists, and the four showcases — the
+  // showcases render every seeded layout, drafts included, which is the only
+  // place the audit can reach all of them without a public placeholder page.
+  "/admin/blocks/cta", "/admin/blocks/stats", "/admin/blocks/pricing", "/admin/blocks/stack",
+  "/admin/blocks/cta/showcase", "/admin/blocks/stats/showcase", "/admin/blocks/pricing/showcase", "/admin/blocks/stack/showcase",
   "/admin/team-members", "/admin/clients", "/admin/certifications",
   "/admin/landing-pages", "/admin/landing-pages/opportunities",
   "/admin/locations", "/admin/locations/new",
@@ -85,7 +90,7 @@ const ADMIN_ROUTES = [
   "/admin/store", "/admin/store?days=7",
   "/admin/store/products", "/admin/store/products/new", "/admin/store/products/import",
   "/admin/store/categories", "/admin/store/categories/new",
-  "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new",
+  "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new", "/admin/store/reviews",
   "/admin/store/reports",
   // The Campaign section. Seven screens behind one sidebar entry, and none
   // of them was in this list or the phone one until the Verification tab was
@@ -103,6 +108,7 @@ const ADMIN_ROUTES = [
   "/admin/knowledge-base/new", "/admin/case-studies/new", "/admin/pages/new",
   "/admin/product-categories/new", "/admin/brands/new", "/admin/solutions/new",
   "/admin/services/new", "/admin/industries/new", "/admin/sliders/new",
+  "/admin/blocks/cta/new", "/admin/blocks/stack/new",
   "/admin/popups/new",
   "/admin/team-members/new", "/admin/clients/new", "/admin/certifications/new",
   "/admin/forms/new", "/admin/faqs/new", "/admin/redirects/new", "/admin/users/new",
@@ -110,6 +116,12 @@ const ADMIN_ROUTES = [
   // entry below, because nothing seeds a webhook and its id is whatever an
   // administrator made.
   "/admin/webhooks", "/admin/webhooks/new",
+  // Engineer visits (docs/visits.md): the queue and its settings; the record
+  // screen is a DISCOVER entry, since nothing seeds a visit request.
+  "/admin/visits", "/admin/visits/settings",
+  // Custom fields and content types (docs/custom-content.md).
+  "/admin/custom-fields", "/admin/custom-fields/new",
+  "/admin/content-types", "/admin/content-types/new", "/admin/content",
 ];
 
 /*
@@ -131,6 +143,8 @@ const DISCOVER = [
   // canonical, and it was covered by neither this list nor the route list.
   { from: "/blog", match: /^\/blog\/category\/[^/]+$/ },
   { from: "/careers", match: /^\/careers\/[^/]+$/ },
+  // A store product page: the reviews section, its popovers and the dialog's trigger (docs/store.md, "Reviews").
+  { from: "/store", match: /^\/store\/products\/[^/]+$/ },
   { from: "/case-studies", match: /^\/case-studies\/[^/]+$/ },
   { from: "/knowledge-base", match: /^\/knowledge-base\/[^/]+$/ },
   // `TW-`, not `[^/]+`: the queue's header links to /admin/tickets/saved-replies
@@ -139,12 +153,24 @@ const DISCOVER = [
   // Nothing seeds a saved reply; the edit form exists only once somebody has written one.
   { from: "/admin/tickets/saved-replies", match: /^\/admin\/tickets\/saved-replies\/\d+$/, admin: true },
   { from: "/admin/customers", match: /^\/admin\/customers\/\d+$/, admin: true },
+  // `TV-`, the visit reference — the queue's filters link to itself.
+  { from: "/admin/visits", match: /^\/admin\/visits\/TV-[^/]+$/, admin: true },
   { from: "/admin/blog", match: /^\/admin\/blog\/\d+$/, admin: true },
   { from: "/admin/jobs", match: /^\/admin\/jobs\/\d+$/, admin: true },
   { from: "/admin/applications", match: /^\/admin\/applications\/\d+$/, admin: true },
   { from: "/admin/knowledge-base", match: /^\/admin\/knowledge-base\/\d+$/, admin: true },
   { from: "/admin/case-studies", match: /^\/admin\/case-studies\/\d+$/, admin: true },
   { from: "/admin/pages", match: /^\/admin\/pages\/\d+$/, admin: true },
+  /*
+   * The page builder (2026-09-26): the seeded sample builder page — a draft,
+   * so its public route 404s until somebody publishes it and is audited by
+   * name then (`node scripts/audit.mjs /sample-builder-page`). Its Builder
+   * tab, and its saved preview, which draws every section type through the
+   * public components under the active theme. Found by its slug, since the
+   * index lists pages by title and the first row is somebody else.
+   */
+  { from: "/admin/pages?q=sample-builder-page", match: /^\/admin\/pages\/\d+$/, admin: true, suffix: "?tab=builder" },
+  { from: "/admin/pages?q=sample-builder-page", match: /^\/admin\/pages\/\d+$/, admin: true, suffix: "/preview" },
   { from: "/admin/products", match: /^\/admin\/products\/\d+$/, admin: true },
   { from: "/admin/product-categories", match: /^\/admin\/product-categories\/\d+$/, admin: true },
   { from: "/admin/brands", match: /^\/admin\/brands\/\d+$/, admin: true },
@@ -152,6 +178,11 @@ const DISCOVER = [
   { from: "/admin/services", match: /^\/admin\/services\/\d+$/, admin: true },
   { from: "/admin/industries", match: /^\/admin\/industries\/\d+$/, admin: true },
   { from: "/admin/sliders", match: /^\/admin\/sliders\/\d+$/, admin: true },
+  // One edit form per kind: each draws a different editor.
+  { from: "/admin/blocks/cta", match: /^\/admin\/blocks\/cta\/\d+$/, admin: true },
+  { from: "/admin/blocks/stats", match: /^\/admin\/blocks\/stats\/\d+$/, admin: true },
+  { from: "/admin/blocks/pricing", match: /^\/admin\/blocks\/pricing\/\d+$/, admin: true },
+  { from: "/admin/blocks/stack", match: /^\/admin\/blocks\/stack\/\d+$/, admin: true },
   /*
    * The popup edit form, which is the screen of the pair worth auditing: it
    * carries the section checklist, the targeting summary and the image
@@ -166,6 +197,22 @@ const DISCOVER = [
   { from: "/admin/forms", match: /^\/admin\/forms\/\d+\/submissions$/, admin: true },
   { from: "/admin/faqs", match: /^\/admin\/faqs\/\d+$/, admin: true },
   { from: "/admin/redirects", match: /^\/admin\/redirects\/\d+$/, admin: true },
+  /*
+   * Custom content (docs/custom-content.md). Nothing seeds a content type or a
+   * field group, so every one of these is found from what an editor made.
+   * `via` is a hop: open `from`, follow the first link matching `via`, and
+   * match there — a type's slug is data, so its entries list has no fixed
+   * address. The archive and an entry are found from the console's own
+   * "View on site" and address links; `(?!admin…)` keeps the console's chrome
+   * out of the match.
+   */
+  { from: "/admin/custom-fields", match: /^\/admin\/custom-fields\/\d+$/, admin: true },
+  { from: "/admin/content-types", match: /^\/admin\/content-types\/\d+$/, admin: true },
+  { from: "/admin/content", match: /^\/admin\/content\/[a-z][a-z0-9-]*$/, admin: true },
+  { from: "/admin/content", match: /^\/admin\/content\/[a-z][a-z0-9-]*\/new$/, admin: true },
+  { from: "/admin/content", via: /^\/admin\/content\/[a-z][a-z0-9-]*$/, match: /^\/admin\/content\/[a-z][a-z0-9-]*\/\d+$/, admin: true },
+  { from: "/admin/content", match: /^\/(?!admin$|portal$)[a-z][a-z0-9-]*$/, admin: true },
+  { from: "/admin/content", via: /^\/admin\/content\/[a-z][a-z0-9-]*$/, match: /^\/(?!admin\/|portal\/)[a-z][a-z0-9-]*\/[a-z0-9-]+$/, admin: true },
   // The edit form is where the quality gate is read and acted on, so it is
   // the screen of this pair most worth auditing — and its id comes from the
   // seeder, so it has to be discovered rather than named.
@@ -900,11 +947,31 @@ async function settle(page) {
 async function discover() {
   const found = [];
 
-  for (const { from, match, admin, suffix } of DISCOVER) {
+  const firstLink = (pattern) => desktop.evaluate((source) => {
+    const re = new RegExp(source);
+    for (const a of document.querySelectorAll("a[href]")) {
+      const path = a.getAttribute("href").split("?")[0].split("#")[0];
+      if (re.test(path)) return path;
+    }
+    return null;
+  }, pattern.source);
+
+  for (const { from, via, match, admin, suffix } of DISCOVER) {
     try {
       if (admin) await signIn();
       await desktop.goto(BASE + from, { waitUntil: "load", timeout: 180000 });
       await desktop.waitForTimeout(250);
+
+      // One hop first, for an index whose address is itself data.
+      if (via) {
+        const hop = await firstLink(via);
+        if (!hop) {
+          console.log(`note  ${from.padEnd(38)} nothing to audit (no link to hop through)`);
+          continue;
+        }
+        await desktop.goto(BASE + hop, { waitUntil: "load", timeout: 180000 });
+        await desktop.waitForTimeout(250);
+      }
 
       const href = await desktop.evaluate((pattern) => {
         const re = new RegExp(pattern);

@@ -12,8 +12,13 @@ import type { NextConfig } from "next";
  * false positive: the browser-facing asset origin is a separate fact and has
  * to be stated separately.
  *
- * So `ASSET_ORIGIN` is read first and `API_BASE_URL` is the fallback, since in
- * production they are the same host. A **loopback** origin additionally
+ * So `ASSET_ORIGIN` is read and `API_BASE_URL` is the fallback **only when it
+ * is unset** — the development case, where the two are one host. They used to
+ * be read together, which put an internal `API_BASE_URL` (`http://127.0.0.1:8000`
+ * on a Plesk box) into the browser-facing list in production: an `img-src`
+ * nobody loads from, and — through `assetOriginIsLocal` below — the image
+ * optimiser's private-address guard switched off on the live site. A
+ * **loopback** origin additionally
  * contributes its other spelling, because which of the two a given tool writes
  * is not something either end controls — and no production origin is loopback,
  * so this widens nothing that ships.
@@ -21,7 +26,9 @@ import type { NextConfig } from "next";
 const assetOriginList = ((): string[] => {
   const origins = new Set<string>();
 
-  for (const raw of [process.env.ASSET_ORIGIN, process.env.API_BASE_URL]) {
+  const assetOrigin = process.env.ASSET_ORIGIN?.trim();
+
+  for (const raw of [assetOrigin || process.env.API_BASE_URL]) {
     if (!raw) continue;
     try {
       origins.add(new URL(raw).origin);
@@ -181,6 +188,10 @@ const fullCsp = (dev: boolean, frameAncestors = "'self'") => [
     "https://sdk.cashfree.com https://api.cashfree.com https://sandbox.cashfree.com",
     // The reviews widget fetches its reviews from Elfsight's service.
     "https://core.service.elfsight.com https://*.elfsight.com https://*.elfsightcdn.com",
+    // The push bell, and only after it is pressed: Firebase's installation
+    // and registration endpoints turn a browser's Web Push subscription into
+    // the FCM token the API sends to (`lib/push-client.ts`).
+    "https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com",
     dev ? "ws: wss:" : "",
   ].filter(Boolean).join(" "),
   /*
@@ -209,7 +220,10 @@ const fullCsp = (dev: boolean, frameAncestors = "'self'") => [
     // Cashfree's modal checkout, sandbox and live.
     "https://sdk.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com https://sandbox.cashfree.com https://api.cashfree.com",
   ].join(" "),
-  "media-src 'self'",
+  // A video from the media library is served from the asset origin, like its
+  // pictures: a slide's video, a page-builder `video` section and a store
+  // product's uploaded video (2026-09-26).
+  `media-src 'self' ${assetOrigins}`,
   "worker-src 'self' blob:",
   "manifest-src 'self'",
 ].join("; ");
@@ -472,6 +486,20 @@ const nextConfig: NextConfig = {
         source: "/patterns/:path*",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
+      /*
+        The pages a secret addresses: an order (reached through
+        `/order/{n}/open?token=…`, which trades the token for a cookie), a
+        newsletter unsubscribe and a back-in-stock cancel, whose tokens are in
+        the path. `no-referrer`, so nothing they link to or load — a courier's
+        tracking page, a payment gateway's script — is told the URL. Listed
+        after the site-wide block on purpose: Next merges headers by key and the
+        later entry wins, which is what replaces `strict-origin-when-cross-origin`
+        here and leaves the rest of that block in force.
+      */
+      ...["/order/:path*", "/newsletter/unsubscribe/:path*", "/store/notify/cancel/:path*"].map((source) => ({
+        source,
+        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+      })),
     ];
   },
 };

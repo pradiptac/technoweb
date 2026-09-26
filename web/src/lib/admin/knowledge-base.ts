@@ -14,6 +14,8 @@ export type KnowledgeQueryParams = {
 };
 
 export type KnowledgeArticlePayload = Partial<{
+  /** Custom field values keyed by field key (docs/custom-content.md); absent leaves them alone. */
+  custom_fields: Record<string, unknown>;
   title: string;
   slug: string | null;
   excerpt: string | null;

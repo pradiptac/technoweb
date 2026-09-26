@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import { createSolution, deleteSolution, updateSolution, type SolutionPayload } from "@/lib/admin";
-import { jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
+import { customFieldsFromFormData, jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
 import type { AnswerBlock, FaqItem, PublishStatus } from "@/types/api";
 
 export type SolutionFormState = { error?: string; fieldErrors?: Record<string, string[]> };
@@ -21,6 +21,8 @@ function payloadFrom(formData: FormData): SolutionPayload {
       .filter((n) => Number.isInteger(n) && n > 0);
 
   return {
+    // Custom fields: absent when no Fields tab was drawn, so the API leaves them alone.
+    ...customFieldsFromFormData(formData),
     title: str(formData, "title") ?? "",
     slug: str(formData, "slug"),
     summary: str(formData, "summary"),
@@ -98,7 +100,10 @@ export async function deleteSolutionAction(formData: FormData) {
   const id = Number(formData.get("id"));
   if (!id) return;
 
-  await deleteSolution(id).catch(() => null);
+  // Only a delete the API accepted may purge anything: a refusal (in use,
+  // a role, a network error) used to purge the caches and report success.
+  const deleted = await deleteSolution(id).then(() => true, () => false);
+  if (!deleted) redirect("/admin/solutions?done=not-deleted");
   updateTag("solutions");
   updateTag("menu");
   revalidatePath("/admin/solutions");

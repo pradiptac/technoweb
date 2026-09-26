@@ -3,6 +3,7 @@ import { Container } from "@/components/ui/container";
 import { ButtonLink } from "@/components/ui/button";
 import { CtaBand } from "@/components/ui/cta-band";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { PageHero } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
@@ -80,9 +81,15 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
           { name: service.title, path: `/services/${service.slug}` },
         ]}
       >
-        <ButtonLink href={`/contact?subject=${encodeURIComponent(service.title)}`}>
-          Enquire about {service.title.toLowerCase()} <IconArrowRight />
-        </ButtonLink>
+        <div className="flex flex-wrap gap-3">
+          <ButtonLink href={`/contact?subject=${encodeURIComponent(service.title)}`}>
+            Enquire about {service.title.toLowerCase()} <IconArrowRight />
+          </ButtonLink>
+          {/* An engineer on site, with this service preselected (docs/visits.md). */}
+          <ButtonLink href={`/book-a-visit?service=${encodeURIComponent(service.slug)}`} variant="secondary">
+            Book a site visit
+          </ButtonLink>
+        </div>
       </PageHero>
 
       <Container data-aos="fade-up" className="section-y">
@@ -90,6 +97,8 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
           <div className="min-w-0">
             {service.body && <ProseWithShortcodes html={service.body} />}
             {/* The answer blocks (FAQs merged into their questions), then what the record is connected to. */}
+            {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
+            <CustomFieldDetails fields={service.custom_fields} className="mt-12" />
             <AnswerBlocks blocks={service.answer_blocks} faqs={faqs} className="mt-12" />
             <RelatedEntities entity={service.entity} className="mt-12" />
           </div>

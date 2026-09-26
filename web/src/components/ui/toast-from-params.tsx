@@ -61,6 +61,56 @@ const OUTCOMES: Record<string, Message> = {
     title: "Saved reply deleted",
     body: "It is off every ticket's picker. Replies already sent with it are unchanged.",
   },
+  "block-saved": {
+    tone: "ok",
+    title: "Block saved",
+    body: "Pages embedding its shortcode show the change on their next render.",
+  },
+  "block-copied": {
+    tone: "ok",
+    title: "Copy made",
+    body: "The copy is a draft under its own slug. Rename it, then publish when it is ready.",
+  },
+  "block-not-copied": {
+    tone: "err",
+    title: "Could not make a copy",
+    body: "Nothing was changed. Try again in a moment.",
+  },
+  "block-deleted": {
+    tone: "ok",
+    title: "Block deleted",
+    body: "Anything embedding its shortcode now renders nothing in its place.",
+  },
+  /*
+    The twelve content lists' delete (pages, posts, articles, case studies,
+    solutions, services, industries, products, categories, brands, FAQs,
+    landing pages) when the API refused it. Those actions used to swallow the
+    refusal and report "deleted" — and purge the caches — whatever happened.
+  */
+  "not-deleted": {
+    tone: "err",
+    title: "Could not delete that",
+    body: "Nothing was changed and it is still there. If it keeps failing, something may still depend on it.",
+  },
+  "block-not-deleted": {
+    tone: "err",
+    title: "Could not delete the block",
+    body: "It is still there. Try again in a moment.",
+  },
+  "custom-field-group-deleted": {
+    tone: "ok",
+    title: "Field group deleted",
+    body: "Its fields, and every value typed into them, went with it.",
+  },
+  "content-type-deleted": {
+    tone: "ok",
+    title: "Content type deleted",
+  },
+  "entry-deleted": {
+    tone: "ok",
+    title: "Entry deleted",
+    body: "Its address now answers 404; add a redirect if it was linked from anywhere.",
+  },
   "vacancy-deleted": {
     tone: "ok",
     title: "Vacancy deleted",
@@ -146,6 +196,28 @@ const OUTCOMES: Record<string, Message> = {
     // and nothing in this product tracks what references a path.
     body: "The picture is still in the media library.",
   },
+  "message-template-deleted": {
+    tone: "ok",
+    title: "Template deleted",
+    // Automations that pointed at it now point at nothing, which sends nothing.
+    body: "Any automation that used it is now empty and sends nothing until another is chosen.",
+  },
+  "message-template-not-deleted": { tone: "err", title: "That template could not be deleted", body: "The API refused it. Try again shortly." },
+  "message-template-submitted": {
+    tone: "ok",
+    title: "Submitted for approval",
+    body: "WhatsApp reviews it, usually within minutes and sometimes a day. Nothing is sent against it until it is approved.",
+  },
+  "broadcast-deleted": { tone: "ok", title: "Broadcast deleted" },
+  "broadcast-not-deleted": { tone: "err", title: "That broadcast could not be deleted", body: "One that has been sent or scheduled is kept; cancel a scheduled one first." },
+  "broadcast-queued": {
+    tone: "ok",
+    title: "Broadcast queued",
+    body: "It goes out in batches, inside the quiet-hours window. The report below fills in as the provider answers.",
+  },
+  "broadcast-scheduled": { tone: "ok", title: "Broadcast scheduled", body: "It is queued at the time you chose, and waits for the quiet-hours window if that falls outside it." },
+  "broadcast-cancelled": { tone: "ok", title: "Broadcast cancelled", body: "Nothing more goes out. Anything already sent stays sent." },
+  "contact-opted-out": { tone: "ok", title: "Opt-out recorded", body: "Nothing more is sent to that contact on that channel." },
   "webhook-deleted": {
     tone: "ok",
     title: "Webhook deleted",

@@ -30,12 +30,16 @@ const PRIVATE = [
   "/api/",
   "/theme-preview/",
   "/cart",
+  "/store/basket/",
   "/checkout",
   "/order/",
   "/search",
   "/embed/",
   "/products/compare",
   "/newsletter/unsubscribe/",
+  // A guest's own visit request, opened by a token in a cookie (docs/visits.md).
+  // `/book-a-visit` itself is public and stays allowed.
+  "/visit/",
 ];
 
 const AI_CRAWLERS = [

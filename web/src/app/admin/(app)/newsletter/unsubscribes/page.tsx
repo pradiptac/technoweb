@@ -8,6 +8,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { SuppressionRow, AddSuppression } from "./suppression-controls";
 import { WebhookPanel } from "./webhook-panel";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Unsubscribes", path: "/admin/newsletter/unsubscribes", seo: noIndex });
 
@@ -16,6 +17,7 @@ export default async function UnsubscribesPage({
 }: {
   searchParams: Promise<{ q?: string; page?: string }>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: SuppressionList;

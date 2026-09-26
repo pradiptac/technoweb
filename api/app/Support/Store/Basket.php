@@ -40,6 +40,7 @@ class Basket
      *     gst_rate: string,
      *     has_shippable: bool,
      *     problems: array<int, string>,
+     *     contact: array{email: ?string, phone: ?string, reminders: bool},
      * }
      */
     public static function summarise(Cart $cart, ?int $discountPaise = null): array
@@ -135,6 +136,18 @@ class Basket
             'gst_rate' => number_format(Money::GST_BASIS_POINTS / 100, 0).'%',
             'has_shippable' => $shippable,
             'problems' => $problems,
+            /*
+             * What the checkout typed on blur, so a basket restored from a
+             * reminder opens the checkout with the address already there —
+             * and whether reminders are on, which is what decides if the line
+             * under the email field is drawn at all. A form must not promise
+             * a reminder the shop has switched off.
+             */
+            'contact' => [
+                'email' => $cart->email,
+                'phone' => $cart->phone,
+                'reminders' => CartReminders::enabled(),
+            ],
         ];
     }
 

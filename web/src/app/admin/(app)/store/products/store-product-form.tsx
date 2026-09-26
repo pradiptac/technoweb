@@ -19,13 +19,15 @@ import { SeoPanel } from "@/components/admin/seo-panel";
 import { SpecField } from "@/components/admin/spec-field";
 import { StringListField } from "@/components/admin/string-list-field";
 import { VariationField } from "@/components/admin/variation-field";
+import { VideoField } from "@/components/admin/video-field";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
+import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import { paiseToRupeeInput } from "@/lib/money";
 import {
   createStoreProductAction, deleteStoreProductAction, updateStoreProductAction, type StoreFormState,
 } from "../actions";
-import type { AdminStoreCategory, AdminStoreProduct, AnswerBlockKindOption, PickerOption } from "@/types/api";
+import type { CustomFieldGroupDefinition, AdminStoreCategory, AdminStoreProduct, AnswerBlockKindOption, PickerOption } from "@/types/api";
 
 const initial: StoreFormState = {};
 
@@ -62,7 +64,8 @@ const GROUPS: TabGroup[] = [
     went.
   */
   { id: "activation", label: "Activation", fields: ["activation_procedure", "activation_pdf_path"] },
-  { id: "media", label: "Media", fields: ["images"] },
+  // `videos` too (2026-09-26), or a refused link is charged to Content.
+  { id: "media", label: "Media", fields: ["images", "videos"] },
   // The services that install or support it (docs/aeo-geo-contract.md §3),
   // before SEO the way every other form's Related tab sits.
   { id: "related", label: "Related", fields: ["service_ids"] },
@@ -72,7 +75,7 @@ const GROUPS: TabGroup[] = [
 ];
 
 export function StoreProductForm({
-  product, categories, brands, services, saved, kinds,
+  product, categories, brands, services, saved, kinds, fieldGroups,
 }: {
   product?: AdminStoreProduct;
   categories: AdminStoreCategory[];
@@ -82,6 +85,8 @@ export function StoreProductForm({
   saved?: boolean;
   /** `meta.answer_block_kinds` from this entity's admin index. */
   kinds: AnswerBlockKindOption[];
+  /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
+  fieldGroups?: CustomFieldGroupDefinition[];
 }) {
   const editing = Boolean(product);
   const [state, formAction, pending] = useActionState(
@@ -115,7 +120,9 @@ export function StoreProductForm({
   const rowErr = (prefix: string) =>
     err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
 
-  const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
+  // Custom fields (docs/custom-content.md): the groups that apply, from the API.
+  const customGroups = product?.custom_field_groups ?? fieldGroups ?? [];
+  const { tabs, jumpTo } = buildFormTabs(withFieldsTab(GROUPS, customGroups), state.fieldErrors);
 
   return (
     <Form action={formAction} state={state} noValidate>
@@ -481,6 +488,8 @@ export function StoreProductForm({
             defaultUrls={product?.image_urls ?? []}
             error={rowErr("images")}
           />
+
+          <VideoField defaultValue={product?.videos ?? []} error={rowErr("videos")} />
         </div>
 
         {/*
@@ -511,6 +520,12 @@ export function StoreProductForm({
           <AnswerBlocksField defaultValue={product?.answer_blocks ?? []} kinds={kinds} error={rowErr("answer_blocks")} />
           <FaqField defaultValue={product?.faqs ?? []} error={rowErr("faqs")} />
         </div>
+
+        {/* The Fields tab — last, and only when a custom field group applies. */}
+        {customGroups.length > 0 && (
+          <CustomFieldsPanel groups={customGroups} values={product?.custom_fields} media={product?.custom_field_media}
+            error={customFieldError(state.fieldErrors)} />
+        )}
       </Tabs>
 
       <FormActions>

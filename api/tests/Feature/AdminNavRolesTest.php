@@ -46,6 +46,8 @@ class AdminNavRolesTest extends TestCase
         'store/reports' => 'store/reports',
         // The promo band's own endpoint, under the store manager like the rest of the section.
         'store/promo' => 'store/promo',
+        // Custom fields: the console names the screen, the API what it writes.
+        'custom-fields' => 'custom-field-groups',
         // The info bar is the `announcement` settings group on a screen of its own.
         'info-bar' => 'settings',
         // Themes is the `themes` settings group on a screen of its own, the info bar's shape.
@@ -63,6 +65,7 @@ class AdminNavRolesTest extends TestCase
         'tickets/settings' => 'settings',
         'customers/settings' => 'settings',
         'chat/settings' => 'settings',
+        'messaging/settings' => 'settings',
     ];
 
     /** @return array<int, array{path: string, role: ?string}> */
@@ -79,7 +82,9 @@ class AdminNavRolesTest extends TestCase
         preg_match_all('/\{[^{}]*href:\s*"(\/admin[^"]*)"[^{}]*\}/', $source, $matches, PREG_SET_ORDER);
 
         foreach ($matches as $m) {
-            preg_match('/role:\s*"([a-z_]+)"/', $m[0], $role);
+            // A row may name two roles, `"campaign_manager,store_manager"`,
+            // spelled exactly as the route's `role:` middleware spells them.
+            preg_match('/role:\s*"([a-z_,]+)"/', $m[0], $role);
             $entries[] = ['path' => $m[1], 'role' => $role[1] ?? null];
         }
 
@@ -99,11 +104,13 @@ class AdminNavRolesTest extends TestCase
                 continue;
             }
 
-            $this->assertContains(
-                $entry['role'],
-                $valid,
-                "The sidebar gates {$entry['path']} on '{$entry['role']}', which is not a role.",
-            );
+            foreach (explode(',', $entry['role']) as $role) {
+                $this->assertContains(
+                    $role,
+                    $valid,
+                    "The sidebar gates {$entry['path']} on '{$role}', which is not a role.",
+                );
+            }
         }
     }
 

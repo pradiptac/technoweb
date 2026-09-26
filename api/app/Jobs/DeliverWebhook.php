@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\WebhookDelivery;
+use App\Support\Net\PublicHost;
 use App\Support\Webhooks\Webhooks;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -78,6 +79,33 @@ class DeliverWebhook implements ShouldQueue
         // Counted before the send, so an attempt the worker dies inside still counts as one.
         $delivery->forceFill(['attempts' => $delivery->attempts + 1])->save();
 
+        /*
+         * Where the request may go, decided here and pinned.
+         *
+         * The URL was checked when it was saved, by name; a public name can
+         * still resolve to `127.0.0.1` or the metadata service, and the
+         * response excerpt is shown in the console — which made a webhook a
+         * way to *read* the inside of the network. So the host is resolved
+         * now, every address it answers with must be public, and cURL is
+         * told to use exactly those (`CURLOPT_RESOLVE`), so it cannot ask
+         * DNS a second time and be given a different answer.
+         */
+        $host = (string) parse_url($hook->url, PHP_URL_HOST);
+        $port = (int) (parse_url($hook->url, PHP_URL_PORT) ?: 443);
+        $refusal = PublicHost::refusal($host, requireResolution: true);
+
+        if ($refusal !== null) {
+            $this->recordRefusal($delivery, null, $refusal);
+
+            throw new RuntimeException("{$hook->url}: {$refusal}");
+        }
+
+        // An address literal was checked as itself and needs no pin.
+        $pins = filter_var(trim($host, '[]'), FILTER_VALIDATE_IP) !== false ? [] : array_map(
+            fn (string $ip) => $host.':'.$port.':'.(str_contains($ip, ':') ? '['.$ip.']' : $ip),
+            PublicHost::resolve($host),
+        );
+
         $body = $delivery->envelope();
         $timestamp = time();
 
@@ -91,6 +119,13 @@ class DeliverWebhook implements ShouldQueue
             ])
                 ->withBody($body, 'application/json')
                 ->timeout(10)
+                /*
+                 * A redirect is a failure, not an instruction. Followed, a
+                 * 302 from a public host to `http://169.254.169.254/` took
+                 * the request past every check above — and to plain http.
+                 */
+                ->withoutRedirecting()
+                ->withOptions(['curl' => [CURLOPT_RESOLVE => $pins]])
                 ->post($hook->url);
         } catch (ConnectionException $e) {
             $this->recordRefusal($delivery, null, $e->getMessage());

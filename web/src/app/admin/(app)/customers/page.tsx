@@ -13,6 +13,7 @@ import type { AdminCustomer, Paginated } from "@/types/api";
 import { CustomerStatusBadge, VerifiedBadge } from "./status-badge";
 import { ViewAsForm } from "./view-as-form";
 import { formatDate } from "@/lib/dates";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Customers", path: "/admin/customers", seo: noIndex });
 
@@ -35,6 +36,7 @@ export default async function AdminCustomersPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: Paginated<AdminCustomer> & { meta: { pending_count?: number } };

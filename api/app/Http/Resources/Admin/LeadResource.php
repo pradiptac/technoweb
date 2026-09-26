@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin;
 
 use App\Models\Lead;
+use App\Models\VisitRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -35,6 +36,8 @@ class LeadResource extends JsonResource
 
     public function toArray(Request $request): array
     {
+        $visit = $this->relationLoaded('source') ? $this->source : null;
+
         $base = [
             'id' => $this->id,
             'channel' => $this->channel,
@@ -122,6 +125,12 @@ class LeadResource extends JsonResource
                         'content' => $m->content,
                         'at' => $m->created_at?->toIso8601String(),
                     ])->all(),
+            ),
+            // The engineer visit request a `visit` lead came from (docs/visits.md):
+            // the desk books it there, so the lead links to it.
+            'visit' => $this->when(
+                $visit instanceof VisitRequest,
+                $visit instanceof VisitRequest ? ['reference' => $visit->reference, 'admin_path' => $visit->adminPath()] : null,
             ),
             'submission' => $this->when(
                 $this->relationLoaded('source') && $this->source && $this->channel === 'form',

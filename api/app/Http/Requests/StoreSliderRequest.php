@@ -7,6 +7,7 @@ use App\Enums\SlideCaptionAnimation;
 use App\Enums\SlideCaptionPosition;
 use App\Enums\SliderLayout;
 use App\Enums\SliderTransition;
+use App\Support\LinkPattern;
 use App\Support\YouTube;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -76,7 +77,9 @@ class StoreSliderRequest extends FormRequest
             'slides.*.alt_text' => ['nullable', 'string', 'max:255'],
             'slides.*.heading' => ['nullable', 'string', 'max:150'],
             'slides.*.caption' => ['nullable', 'string', 'max:500'],
-            'slides.*.link_url' => ['nullable', 'string', 'max:255'],
+            // An `href` on the page: held to the menu's shape, or `javascript:`
+            // saved on a slide and ran for whoever pressed it.
+            'slides.*.link_url' => ['nullable', 'string', 'max:255', LinkPattern::RULE],
             'slides.*.link_label' => ['nullable', 'string', 'max:60'],
             // Refused outside the list rather than falling back to the
             // default, the rule `transition` follows: this arrives from a

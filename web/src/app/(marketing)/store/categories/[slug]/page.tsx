@@ -7,11 +7,13 @@ import { CategorySidebar } from "@/components/store/category-sidebar";
 import { CategoryRail } from "@/components/store/category-rail";
 import { CompactProductCard } from "@/components/store/compact-product-card";
 import { StoreFilterBar } from "@/components/store/store-filter-bar";
+import { SpecFilterPanel } from "@/components/store/spec-filter-panel";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { publicApi } from "@/lib/api";
 import { JsonLd, buildMetadata } from "@/lib/seo";
 import type { Paginated, StoreCategory, StoreProduct } from "@/types/api";
+import type { StoreFacet } from "@/types/store-merch";
 
 async function load(slug: string): Promise<StoreCategory | null> {
   try {
@@ -56,11 +58,21 @@ export default async function StoreCategoryPage({ params }: { params: Promise<{ 
 
   let categories: StoreCategory[] = [];
   let products: Paginated<StoreProduct> | null = null;
+  let facets: StoreFacet[] = [];
 
   try {
-    [categories, products] = await Promise.all([
+    [categories, products, facets] = await Promise.all([
       publicApi.storeCategories().then((r) => r.data),
       publicApi.storeProducts(`?category=${encodeURIComponent(slug)}`),
+      /*
+        The specification filters, **unfiltered and cached** (2026-09-26).
+        This page is ISR and must never read `searchParams`, so it cannot
+        hold a selection: its panel counts the whole category and every
+        value links to `/store`, which can.
+      */
+      category.filter_specs?.length
+        ? publicApi.storeFacets(slug).then((r) => r.data).catch(() => [] as StoreFacet[])
+        : Promise.resolve([] as StoreFacet[]),
     ]);
   } catch {
     products = null;
@@ -145,9 +157,23 @@ export default async function StoreCategoryPage({ params }: { params: Promise<{ 
           <CategoryRail categories={categories} />
         </div>
 
-        <div className="mt-8 flex gap-8">
-          <aside className="hidden w-56 shrink-0 lg:block">
-            <CategorySidebar categories={categories} active={category.slug} />
+        {/*
+          A column below `lg` so the filter's disclosure sits above the grid
+          on a phone; the sidebar beside it from `lg`, the category list over
+          the filters.
+        */}
+        <div className="mt-8 flex flex-col gap-8 lg:flex-row">
+          <aside className={facets.length ? "w-full shrink-0 lg:w-56" : "hidden w-56 shrink-0 lg:block"}>
+            <div className="hidden lg:block">
+              <CategorySidebar categories={categories} active={category.slug} />
+            </div>
+            <SpecFilterPanel
+              facets={facets}
+              selection={{}}
+              base={{ category: category.slug }}
+              mode="links"
+              className="lg:mt-6"
+            />
           </aside>
 
           <div className="min-w-0 flex-1">

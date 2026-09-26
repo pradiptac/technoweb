@@ -17,6 +17,9 @@ trait WritesCmsEntities
     // nothing else here applies to.
     use WritesAnswerContent;
 
+    // `pullCustomFields()`/`saveCustomFields()` — see the trait.
+    use WritesCustomFields;
+
     /**
      * Model attributes and the nested SEO override are validated together but
      * must be written separately: preventSilentlyDiscardingAttributes is on,

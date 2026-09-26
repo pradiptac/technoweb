@@ -1,5 +1,7 @@
 "use server";
 
+import { clientIpHeaders } from "@/lib/client-ip";
+
 /**
  * The public newsletter endpoints.
  *
@@ -16,7 +18,7 @@ export async function subscribeAction(
   try {
     const response = await fetch(`${base()}/api/v1/newsletter/subscribe`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: { "Content-Type": "application/json", Accept: "application/json", ...(await clientIpHeaders()) },
       body: JSON.stringify({
         email: String(form.get("email") ?? ""),
         first_name: String(form.get("first_name") ?? "") || null,
@@ -52,7 +54,7 @@ export async function unsubscribeAction(token: string): Promise<{ ok?: string; e
   try {
     const response = await fetch(`${base()}/api/v1/newsletter/unsubscribe/${token}`, {
       method: "POST",
-      headers: { Accept: "application/json" },
+      headers: { Accept: "application/json", ...(await clientIpHeaders()) },
       cache: "no-store",
     });
 

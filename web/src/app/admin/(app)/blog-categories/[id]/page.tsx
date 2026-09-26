@@ -4,6 +4,7 @@ import { BlogCategoryForm } from "../category-form";
 import { getBlogCategory } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({
   title: "Edit blog category",
@@ -17,6 +18,7 @@ export default async function EditBlogCategoryPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ saved?: string }>;
 }) {
+  await requireScreen();
   const { id } = await params;
   const { saved } = await searchParams;
 

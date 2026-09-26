@@ -10,8 +10,9 @@ import type {
  * the httpOnly cookie itself, mirroring lib/portal.ts.
  */
 
-export async function getDashboard(): Promise<AdminDashboard> {
-  const res = await apiFetch<{ data: AdminDashboard }>("/admin/dashboard", { token: await token() });
+export async function getDashboard(volume?: string): Promise<AdminDashboard> {
+  const q = volume ? `?volume=${encodeURIComponent(volume)}` : "";
+  const res = await apiFetch<{ data: AdminDashboard }>(`/admin/dashboard${q}`, { token: await token() });
   return res.data;
 }
 

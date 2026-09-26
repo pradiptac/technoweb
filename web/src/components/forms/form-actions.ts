@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { clientIpHeaders } from "@/lib/client-ip";
 
 export type SubmitState = {
   ok?: boolean;
@@ -31,7 +31,7 @@ export async function submitFormAction(slug: string, _prev: SubmitState, formDat
   try {
     const res = await fetch(`${base}/api/v1/forms/${encodeURIComponent(slug)}`, {
       method: "POST",
-      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      headers: { Accept: "application/json", "Content-Type": "application/json", ...(await clientIpHeaders()) },
       body: JSON.stringify(payload),
       cache: "no-store",
     });
@@ -48,7 +48,6 @@ export async function submitFormAction(slug: string, _prev: SubmitState, formDat
       return { error: "We could not send that. Try again, or call us instead." };
     }
 
-    revalidatePath("/");
     return { ok: true, message: body.message ?? "Thank you — we will be in touch shortly." };
   } catch {
     // The API being unreachable must read as "try again", not as a stack

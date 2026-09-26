@@ -20,6 +20,8 @@ export const PUBLIC_ROUTES = [
   "/industries", "/industries/manufacturing", "/products", "/products/switches",
   "/resources", "/blog", "/case-studies", "/knowledge-base", "/about", "/contact",
   "/team", "/clients", "/certifications",
+  // The engineer visit request form (docs/visits.md), and with a service preselected.
+  "/book-a-visit", "/book-a-visit?service=web-hosting",
   // The assistant links here when somebody with no account has a fault, and
   // nothing had ever loaded it on this audit -- `audit:mobile` covered it and
   // this did not, which is exactly the gap a hard-coded path lives in.
@@ -39,9 +41,16 @@ export const PUBLIC_ROUTES = [
   "/portal/verify-email", "/admin/login",
   // The shop. `/checkout` needs a basket, which PREPARE fills first.
   "/store", "/cart", "/checkout",
+  // A category with its specification filters and one ticked (2026-09-26):
+  // the panel, a chip and the narrowed grid. `switches` is the mock's.
+  "/store?category=switches&spec%5BPorts%5D%5B0%5D=24",
   // The page a back-in-stock email's cancel link lands on. A token nobody
   // has answers the same sentence as a real one, so it renders in full.
   "/store/notify/cancel/not-a-real-token",
+  // The wishlist (2026-09-25): the list page, empty for the audit's fresh
+  // browser, and where a wishlist email's stop link lands — one sentence for
+  // any token, so a made-up one renders the page in full.
+  "/store/wishlist", "/store/wishlist/stop/not-a-real-token",
   /*
     The embeddable form, which is a real public page and would otherwise be
     audited by nothing. It renders outside `(marketing)`, so it has none of the

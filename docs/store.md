@@ -1,6 +1,6 @@
 # The store
 
-A separate catalogue with prices; baskets, checkout, payment, stock, coupons, digital codes, the Merchant Center feed, the catalogue as a spreadsheet, back-in-stock notices.
+A separate catalogue with prices; baskets, checkout, payment, stock, coupons, digital codes, the Merchant Center feed, the catalogue as a spreadsheet, back-in-stock notices, wishlists, specification filters, product video and zoom, the Meta catalogue.
 
 Moved out of `CLAUDE.md` on 2026-09-14, verbatim and in the order they were
 written. Each note is a rule and the measurement behind it; the one-line
@@ -423,10 +423,13 @@ knowing about all four: `PageSeeder` uses `updateOrCreate` keyed on slug, so
 re-running it **overwrites** whatever an editor has written on those pages. It
 always did; there are simply two more pages it now does it to.
 
-**Not built, deliberately:** `AggregateRating` and `Review` are absent from
-every graph in the product. They are a Merchant Center enhancement, not a
-requirement, and inventing them is out of the question — noted so the absence
-reads as a decision rather than a gap.
+**`AggregateRating` and `Review` are real now, and still never invented.**
+They were absent from every graph by decision until the shop had reviews of its
+own (2026-09-26, "Reviews" below). The store Product graph carries
+`aggregateRating` from the product's stored summary and up to five `review`
+nodes — published reviews only, the ones the page opens on — and nothing at
+all until one is published. The marketing catalogue has no reviews and emits
+neither.
 
 **The store's catalogue is not the site's catalogue, and that is the whole
 shape of the module.** `store_products` is its own table: what the shop sells is
@@ -497,6 +500,21 @@ already has an account **keeps whatever status it has** — a purchase does not
 overturn a decision a person made about a person. Either way the order is
 reachable by `access_token` in the confirmation link, never by its number, which
 is printed on paperwork and sequential.
+
+**The token is never the address of a rendered page (2026-09-26).** It was:
+the checkout redirected to `/order/{n}?token=…` and every email linked there,
+on a page inside the marketing layout, where GA4 and the Meta Pixel report
+`location.href` — so every order's key went to two third parties, and to any
+`Referer`. Now `Order::url()` (and Cashfree's `return_url`, `?paid=cashfree`)
+points at `/order/{n}/open?token=…`, a route handler that renders nothing,
+stores the token in an httpOnly cookie with `path=/order/{n}` (lax, secure in
+production, thirty days) and answers 303 to `/order/{n}`; the checkout action
+sets the same cookie and redirects clean. The page and its three actions (pay,
+confirm, reveal) read the cookie (`lib/order-access.ts`); no component takes the
+token as a prop any more. A `?token=` reaching the page itself — an email sent
+before this — is redirected through `/open`, never rendered. Analytics render
+nothing on `/order/*` and the route sends `Referrer-Policy: no-referrer`. The
+token must look like `bin2hex(random_bytes(32))` or the cookie is not set.
 
 **The checkout re-reads and re-prices everything, under a lock.** `lockForUpdate`
 on the products a basket touches, ordered by id — two baskets holding the same
@@ -1003,3 +1021,608 @@ drawn below `sm`, because a heading, a line and a button need more than a
 16:9 box gives them at 320px. `StorePromoTest` covers the order the rows
 come back in, the suffix checks, and a `store_tile_3_*` key being refused
 by name.
+
+## Abandoned baskets (2026-09-25)
+
+Phase 2, stream A (`docs/phase-2-contract.md`). Up to two emails to somebody
+who left something in their basket; the second may carry a coupon.
+
+**The address is kept before any order exists, because that is the basket
+that is abandoned.** The checkout saves the email and the mobile as each
+field loses focus — a debounced Server Action, `saveCartContactAction`, to
+`PATCH /cart/contact` — and says on the line under the email field that a
+reminder may follow if the order is not finished. That line is drawn only
+while reminders are switched on (`contact.reminders` on every basket read),
+and `contact_consent_at` is stamped only then, so an address typed while no
+reminder was promised is never mailed. The mobile is held to the checkout's
+own rule (`CheckoutRequest::MOBILE_PATTERN`); each field is written only when
+sent, and a blank clears it. The action never reports anything — a
+half-typed number is the order form's to word when it is submitted.
+
+**A signed-in customer's basket is claimed from the Bearer.** The Next
+server forwards the portal token on every basket call (`getCart()`, `call()`
+in `components/store/actions.ts`, `placeOrder()`), and the API reads it with
+the guard named — the routes are public, the `$request->user()` trap — and
+stamps `carts.customer_id` on a basket nobody has claimed. A "View as" token
+claims nothing: that browser's basket is the staff member's, and stamping it
+would send the customer reminders about it. Claiming is written with
+timestamps off, so it is not activity. The merge of a guest basket into an
+account's on sign-in is not this stream's (the wishlist stream owns the
+sign-in hook).
+
+**Idle is `carts.updated_at`, and nothing in the reminder path moves it.**
+It is the column every basket action touches and the prune reads. The claim
+on a basket, the reminder stamps, the restore token and the checkout's
+`recovered_order_id` are all written through the query builder or with
+timestamps off; otherwise the second reminder's clock would restart from the
+first and the prune would keep a basket alive by mailing about it.
+
+**Who is reminded** (`CartReminders::due()` then `send()`):
+
+- a basket with lines, whose lines still price (an unpublished product drops out of the summary);
+- with a contact — an address with its consent stamp, or an account (reached at the account's address when the basket has none of its own);
+- no `recovered_order_id`;
+- idle past `store_cart_reminder_1_hours` (1–72) for the first, and not idle over **seven days** — switching reminders on must not wake a month of old baskets at nine the next morning;
+- idle past `store_cart_reminder_2_days` (1–25) for the second, **and** twelve hours after the first, so a first reminder held overnight by the quiet hours is not followed an hour later by the second;
+- whose address is not on `newsletter_suppressions`;
+- only while `store_cart_reminders_enabled` (off by default) and `QuietHours::allows()` — outside the window the run does nothing, and the next run inside it sends.
+
+Each basket is **claimed with a conditional UPDATE** on `reminders_sent`
+before anything is sent, so two overlapping runs cannot tell anybody twice;
+the schedule adds `withoutOverlapping` anyway. A run takes at most 200 per
+stage, second reminders first.
+
+**Each reminder is an email and a `Messenger::notify()`.** `CartReminder` is
+one class and two catalogue messages, `cart_reminder_1` and
+`cart_reminder_2` (the `TicketReplied` arrangement), queued through
+`Notifier`, with the basket priced when the job runs. The second carries
+`store_cart_reminder_coupon` only when `Coupon::refusalFor()` passes for that
+basket's subtotal and address — the same check the basket and the checkout
+make — so an email never offers a code the checkout refuses. The console
+refuses a coupon code that does not exist and stores it normalised.
+
+**The link restores the basket; it never carries the cart token.** The
+first reminder mints `restore_token` (64 hex, unique). The email links to
+`/store/basket/restore/{restore_token}`, a route handler that swaps it for
+the cart token through `GET /cart/restore/{token}`, sets the `tw_cart` cookie
+(`CART_COOKIE` in `lib/cart.ts`, shared with `setCartToken`) and answers 303
+to `/cart?restored=1` — a path, so behind Plesk the browser supplies the
+origin. A basket that has become an order, or an unknown token, is a 404 and
+lands on `/cart?restored=0`, which says why the basket is empty. The basket
+page is `/cart`; the contract's `/store/basket` exists only as the restore
+link's prefix.
+
+**The unsubscribe is the newsletter's own route.**
+`/newsletter/unsubscribe/{restore_token}` — the same page and the same
+`GET`/`POST /newsletter/unsubscribe/{token}` a campaign uses, which now fall
+back to a basket's restore token when no subscriber holds it, and answer by
+putting the address on the suppression list (and marking a subscriber row at
+that address unsubscribed). The email carries `List-Unsubscribe` and
+`List-Unsubscribe-Post` for the same reason every campaign does.
+
+**Recovered means reminded first.** The checkout stamps `recovered_order_id`
+on every basket it orders from, which is what stops reminders; the store
+dashboard's `recovered` counts it only on a basket that had a reminder in the
+window, and `revenue_paise` only for those orders that are paid (the one
+definition). **Null, not zeros, when no reminder went out** — reminders off,
+or nobody left an address. A reminded basket is pruned at **ninety** days,
+not thirty (`technoware:prune-carts --reminded-days`), because its row is
+the only record of the reminder, and the dashboard's longest window is
+ninety days.
+
+**The settings are a group of their own, `store_reminders`, and private.**
+The `store` group is public — all of it reaches `/settings` — and one of
+these rows is a coupon code, which on the public map is a discount for
+anybody who reads the page source. Drawn on Store → Settings beside `store`
+and `payments`; the switch is a two-option select, the delays are refused
+outside their ranges rather than clamped.
+
+`CartReminderTest` covers the contact endpoint, the claim and its "View as"
+exception, every selection rule from both sides, the coupon rule, restore,
+the unsubscribe fallback, recovery stamping, the dashboard figure, the prune
+window and the settings' refusals.
+
+## Wishlists (2026-09-25)
+
+The client asked for a wishlist for **guests and accounts, merged on sign-in**,
+feeding **back-in-stock and price-drop** messages (`docs/phase-2-contract.md`,
+section C). It is the basket's shape everywhere it can be, and the places it
+is not are the interesting ones.
+
+**A guest's list is a token; an account's list is the account.** `wishlists`
+holds a 64-hex `token` from `random_bytes` (the basket's) and a unique,
+nullable `customer_id`. The token reaches a list only while `customer_id` is
+null (`Wishlist::scopeGuest`), and an account's summary sends `token: null`.
+The alternative — a cookie that keeps addressing a list after it joined an
+account — hands the last customer's list to whoever uses the computer next.
+The Next server reads a null token as "forget the cookie" (`rememberWishlist`
+in `lib/wishlist.ts`), which is also how the cookie is cleaned up after a merge
+that happened on a request that was not a sign-in.
+
+**Signing in merges, on either path, never under "View as".** `Wishlists::claim()`
+folds the guest's lines into the account's (a line both hold keeps the
+account's row, whose save price is the older) and deletes the guest's row, in
+one transaction under `lockForUpdate`. It runs from `AuthController::issueToken()`
+— the one place both sign-in endpoints finish — when `lib/auth.ts` forwards
+`X-Wishlist-Token`, and from `Wishlists::resolve()` on the first request that
+carries both a bearer and a token. An impersonation token is refused the merge:
+a staff member's browser holding a guest list of its own must not put their
+shopping into the customer's account. Guarded — a failed merge is reported and
+the sign-in answers as it would have. `WishlistTest` sends a real bearer header
+throughout, for the reason `CLAUDE.md` gives.
+
+**A read never writes.** `GET /wishlist` with nothing in hand is an empty
+summary and no row, unlike `GET /cart`, so it needed no floor under it; the
+first heart pressed mints the list. `technoware:prune-wishlists` deletes guest
+lists untouched for 180 days, the cookie's own life; an account's list stays.
+
+**One line per list, product and variation, and the database says so.**
+MySQL treats NULLs as distinct in a unique index, so "any variation" would
+slip past `(wishlist_id, store_product_id, store_product_variation_id)`.
+`variation_key` is the variation's id or 0, written by `WishlistItem`'s
+`saving` hook, and the unique index is on that. Not a generated column: MySQL
+refuses a CASCADE foreign key on the base column of a stored generated one,
+and a deleted variation has to take its lines with it. A second press is the
+same line; a race that loses to the index reads the winner back.
+
+**A line is a pointer with one remembered number.** Like a basket line it
+shows the price *now*; `price_at_save` is the one figure kept, because a price
+drop has to be measured from something. A product-level line on a product
+with options cannot go straight into a basket — the API answers the basket's
+"Choose an option" 422 and the line stays — so the list offers "Choose
+options" on the product page for it (`needs_choice`).
+
+**The hearts and the count never make a shop page dynamic.** Every heart on a
+card, the product page's Wishlist button and the strip's count are client
+islands (`WishlistHeart`, `WishlistIndicator`) drawn empty by the server and
+filled from `/api/store/wishlist` after mount — the `BasketIndicator` rule —
+and they share one fetch through a module-level store read with
+`useSyncExternalStore` (`lib/wishlist-events.ts`), because forty hearts on a
+grid asking separately is forty requests for one answer. The route handler
+answers 204 with no API call when there is neither a wishlist cookie nor a
+portal session, and strips the token from what it returns. A press is
+optimistic, ignores a second press while the first is in flight, and
+announces `tw:wishlist` with the new list as its `detail`.
+
+**The heart's motion is the `scale` property and one keyframe.** The press is
+`active:scale-*` through `transition-[scale,…]` (the Tailwind v4 trap), and
+becoming saved pops the glyph once through `.wish-heart[data-pop] svg` inside
+the reduced-motion guard. `data-pop` is set only by a press: were it keyed on
+the pressed state, every saved heart on a grid would pop together the moment
+the list arrived.
+
+**Back in stock follows the shelf in both directions.** `StockLedger::record()`
+queues `SyncWishlistStock` (after commit, and only for a product somebody
+saved — one indexed read otherwise) on every movement, and the job trusts
+nothing the movement said: it re-reads the shelf, arms every line whose shelf
+is empty (`awaiting_stock_at`), and tells each armed line that is buyable
+again. A line saved while the shelf was empty is armed at once. So a restock of
+something that never ran out tells nobody, and a sale that empties the shelf
+arms the line for the next arrival — "once, re-arming when it goes out again".
+
+**A price drop is measured from what they were last told.** The product's and
+the variation's `updated` hooks queue `SendWishlistPriceDrops` when
+`price_paise` falls (a variation on any change, since going from the
+product's price to one of its own is a change `price_paise` alone does not
+describe). A line is told when the price now is at least
+`store_price_drop_min_percent` (Settings → Store, default 5, refused outside
+1–90) below its reference — the price saved, or the price last told,
+whichever is lower — and telling it records the price told. So one drop is one
+message, a wobble back up and down to the same figure is not news, and only a
+further fall from there is. Whole paise throughout: `now × 100 ≤ reference ×
+(100 − p)`. A drop on something that cannot be bought waits.
+
+**Once, even with two jobs.** Both jobs claim a line with a conditional update
+before sending — `awaiting_stock_at` not null, or `price_drop_notified_paise`
+unchanged — and only the row that changed gets an email. Two movements a
+second apart, or a deferred job running beside a fresh one at nine o'clock,
+tell each person once.
+
+**Promotional, so quiet hours and the suppression list.** Both events are
+`promotional()`: outside `QuietHours::allows()` the job still arms what it
+must and re-dispatches itself delayed to `QuietHours::nextOpening()` rather
+than sending. An address on `newsletter_suppressions`, a guest list with no
+address, an account that may not sign in and a list whose stop link was
+pressed are all skipped **and left owed** (`WishlistMail::address()`), so a
+lifted suppression or an address given later is still told — the stock
+notice's rule.
+
+**A guest is told only if they ask.** The `/store/wishlist` page offers "Email
+me about these" to a guest whose list has items and no address
+(`PATCH /wishlist {email}`); an account's list refuses an address of its own,
+because its messages go to the account. Each email carries a stop link on
+`alerts_token` — never the list's token, which would let anybody who read the
+email open and edit the list — landing on `/store/wishlist/stop/{token}`,
+which answers one sentence for every token, the cancel link's rule. It stops
+the list's emails and nothing else: it is not a newsletter unsubscribe.
+
+**Both emails are in the catalogue** — `wishlist_back_in_stock` and
+`wishlist_price_drop`, editable in Settings → Email templates (thirty messages
+now) — and `Messenger::notify(WishlistBackInStock|WishlistPriceDrop, …)` is
+called beside each, guarded, for the channels stream B adds.
+
+**Where it is seen.** A heart on both store cards and a Wishlist button under
+Add to basket on the product page (the product as a whole — somebody saving a
+switch has usually not chosen between the ports yet); the count before the
+divider in the store strip, which wraps below `lg` for the one 320px case
+that does not fit; `/store/wishlist`; the portal's "My wishlist" tab beside
+the orders, with the emails switch; and "Most wished for" on the store
+dashboard — five products by the number of *lists*, all time, since a wish is
+standing demand rather than an event in the window.
+
+## Reviews (2026-09-26)
+
+The client asked for reviews on the shop from five reference screenshots, and
+decided four things: **signed-in customers only**, **staff approve every
+review**, **no photos** for now, and **a "How was it?" email after delivery**.
+The plan is `docs/store-reviews-plan.md`.
+
+**One review per customer per product, and a second write edits the first.**
+`product_reviews` is unique on `(store_product_id, customer_id)`;
+`POST /store/products/{slug}/reviews` is a portal route (`auth:sanctum` +
+`customer`) and uses `firstOrNew`. **Every write goes back to `pending`**, an
+edit to a published review included — what staff approved was the text that
+was there — and the featured flag goes with it. `published_at` is stamped on
+the first publish and never cleared, the `approved_at` rule.
+
+**Verified is a paid order, read on every write.** `ReviewPurchase::for()`
+finds a line for the product on one of the customer's `Order::paid()` orders
+(the module's one definition, so a COD order verifies once the cash is banked);
+`order_id` is kept and the variant label is the line's own snapshot —
+`variation_name`, else the options joined "Black / XL" — never the live
+variation, which the shop may have renamed. Somebody who reviews first and
+buys later is verified on their next edit.
+
+**The body is plain text, stored as typed and rendered escaped**, the blog
+comment's rule. The name on a card is a snapshot, "Neil B."
+(`ProductReview::displayNameFor`); the public resource carries no customer id,
+address or order, structurally.
+
+**The summary lives on the product and follows the review from the review's
+own hooks.** `rating_average` (one decimal) and `rating_count` are written only
+by `ReviewSummary`, called from `ProductReview`'s `saved` and `deleted` when a
+review enters or leaves `published` or a published one changes its stars — so
+moderation, an edit sending it back to the queue and a delete all move the
+number, and no card ever aggregates per row. It is a base-query update: the
+product's `updated_at` is its own editorial change, and model events on the
+product have no business firing for a customer's review. Moderation moves rows
+**one at a time** for the same reason the comment queue does. The one path that
+cannot fire an event is a customer deleted by the foreign key, and nothing
+deletes a customer. `rating` on the store product resource is
+`{average, count}` or **null** until something is published — "rated 0" is a
+claim and "not rated" is the truth.
+
+**The public list is six a page and sorts four ways.** `featured` (the
+shop's pick first, then stars, then newest), `newest`, `highest`, `lowest`,
+all in `ProductReview::scopeSorted`, every ordering ending on `id`; an unknown
+sort falls back to featured, the catalogue's rule. `meta` carries the average,
+the count and a distribution with all five keys present.
+
+**The product page stays cacheable.** The first page of reviews is fetched with
+the product (`lib/reviews.ts`, tags `store-reviews` and `store-reviews:<slug>`)
+and rendered on the server; sorting and Show more go through
+`/api/store/reviews`, whose slug, sort and page are an allowlist so the data
+cache holds only real entries. Who is writing is asked of
+`/api/store/reviews/mine` **when the dialog opens** — no cookie, no API call —
+and `?review=1` (the email's link, the portal's) is read by
+`useSyncExternalStore` with a false server snapshot, because the ISR render
+never sees a query string. The console's moderation calls
+`updateTag("store-reviews")` and `updateTag("store-products")`.
+
+**The dialog is `Modal`, and both steps are one `<Form>`.** Step one is the
+five stars as radios (44px targets, arrows move the choice, a press moves on,
+"Dislike it!" and "Love it!" under the ends); step two is the optional title
+and the words with a counter; step three thanks. The first step is hidden,
+not unmounted, so the rating is in the submission — the tabbed-form rule. A
+signed-out visitor sees "Sign in to write a review" linking to
+`/portal/login?return=…`.
+
+**The portal login's `return` is a same-site path or nothing.**
+`safeReturnPath()` (`lib/safe-return.ts`) accepts a path that starts with `/`,
+not `//`, with no backslash or control character anywhere — browsers read `\`
+as `/` and strip tabs and newlines before resolving — and falls back to
+`/portal`. It is read by the page (the already-signed-in redirect) and again by
+both actions, because the hidden field is a request body.
+
+**The stars are two tokens.** `--color-rating` (a gold) and
+`--color-rating-empty` are derived per theme by `ratingFor()` against the card
+and surface-2 and emitted with the theme; `npm run themes` holds both at 3:1 on
+both grounds, in every palette and scheme. `components/store/stars.tsx` draws a
+fraction as the gold clipped over the empty outline.
+
+**Store → Reviews is `role:store_manager`**: waiting by default (`?status=all`
+for everything), one decision or fifty through `POST …/moderate`, the featured
+switch, a delete behind a confirmation, and `attention.reviews_pending` on the
+dashboard linking to it.
+
+**The "How was it?" email is once per order, hourly, inside quiet hours.**
+`technoware:request-reviews` asks about orders that are paid, not cancelled or
+refunded, have a customer account and have had their goods
+`store_review_request_days` (default 7) — from `dispatched_at`, or `paid_at`
+when nothing on the order ships. An order that ships and has not been
+dispatched is never asked. It is stamped (`review_requested_at`) **before** the
+send and whatever happens — a suppressed address, nothing left to review, a
+failed send — so it cannot loop; `Notifier` swallows the failure. Outside
+`QuietHours::allows()` it does nothing and the orders are still due at nine;
+`store_review_requests_enabled` switches it off. The `review_request` template
+lists only the products the customer has not reviewed, each linking to
+`/store/products/{slug}?review=1`.
+
+## The browser's return is bound to the order, and Razorpay says how much (2026-09-26)
+
+The signature on Razorpay's return is over `order_id|payment_id`, which proves
+Razorpay issued the pair — and nothing about which of *our* orders that
+Razorpay order was opened for. The return carried no amount either, so
+`Settlement` skipped its amount check and recorded the payment at the order's
+own total. Paying ₹1 for order A and posting A's signed triple to
+`/orders/B/verify` marked B paid.
+
+Three checks now, in `RazorpayProvider::verifyReturn()`:
+
+1. the signature, as before;
+2. **the binding** — `createSession()` writes the gateway order id to
+   `orders.gateway_order_id` (migration `2026_09_26_100000`), and the return
+   must name exactly that one (`hash_equals`). The latest session wins; a
+   browser coming back from an older dialog is refused and the webhook
+   settles it;
+3. **Razorpay's record** — `GET /v1/payments/{id}`, server to server: status
+   `captured` or `authorized`, `order_id` the one this order opened, currency
+   `INR`, and its `amount` handed to `Settlement`, whose check now runs.
+
+`Settlement::recordReturn()` is what the verify endpoint calls, and it
+**refuses** an outcome with no amount instead of recording it at the order's
+total. Refused rather than recorded as failed: the payment row is keyed on the
+gateway payment id, and a failed row written from a doubtful browser return
+would make the genuine webhook for the same payment a no-op. Cashfree already
+asked its own API by our order number and used its amount; it now also
+requires `INR`. `PaymentTest` pins the cross-order replay, a wrong amount, an
+uncaptured payment, a payment against another Razorpay order, another
+currency, and a return with no session opened.
+
+## A coupon use is released by cancelling an unpaid order (2026-09-26)
+
+The use is taken at checkout so a single-use code cannot be spent in two tabs
+— which left every abandoned order holding a use for ever, and anybody could
+exhaust a limited code with orders they never meant to pay for.
+`Order::moveTo(Cancelled)` now deletes the order's `coupon_usages` row when
+`paid_at` is null; a paid order keeps its use whatever happens to it, because
+its discount is part of what was charged. There is no expiry job for unpaid
+orders; cancelling from the console is the release.
+
+`POST /cart/coupon` answers an **off, expired or not-yet-started** code exactly
+like one that does not exist ("That code is not recognised."), so the endpoint
+is not a list of last month's and next month's codes (`Coupon::isLive()`).
+What it still says in words — the minimum spend, "fully used", "you have
+already used that code" — is about a live code the caller has shown they
+know. A code that expires while it sits on a basket still says "That code has
+expired." on the basket: that person had it when it worked.
+
+## The activation procedure is not public (2026-09-26)
+
+`store` is a public settings group for the shop's switch and its shipping and
+returns figures, and three rows the storefront never reads rode along with it:
+`digital_auto_fulfil`, `activation_procedure` and `activation_pdf_path` (with
+its derived `_url`) — the steps and the document a buyer is sent *after
+paying*. `PublicSettings::PRIVATE_KEYS` names them and `/settings` leaves them
+out; the settings screen reads them through the admin endpoint as before.
+
+## The import commit takes a file name, not a path (2026-09-26)
+
+Both import wizards hand the stored path to the browser and take it back on
+commit. The check was a prefix, and Flysystem collapses `..`, so
+`store-imports/../newsletter-imports/mailbox-3.csv` read another area's
+private file (its rows came back in `problems[]`) and deleted it.
+`App\Support\ImportUpload::resolve()` keeps only the last segment, requires a
+plain file name, and rebuilds the path under the fixed directory — the store
+import and the newsletter import both use it.
+
+
+## Specification filters (2026-09-26)
+
+The client asked for filters **chosen per category from the products' own
+spec sheets** — "Ports", "PoE", "Rack units" — rather than a filter builder
+with its own vocabulary. `docs/store-merch-plan.md` is the plan.
+
+**The index is derived, and rebuilt whole.** A spec sheet is stored on the
+product as ordered pairs (`App\Casts\SpecSheet`) and a variation's options the
+same way: JSON, which cannot be indexed for "every product whose Ports is 24
+or 48". `store_product_specs` holds one row per product, label and value —
+`label`/`value` as typed, `label_key`/`value_key` normalised (trimmed,
+whitespace collapsed, lower-cased), a unique index on the triple and an index
+on `(label_key, value_key)` — and `App\Support\Store\SpecIndex::rebuild()`
+deletes a product's rows and writes them again from what it says now. **A
+product matches when any active variation has the value**: a switch sold as a
+24-port and a 48-port is one somebody filtering by 48 wants to see, and an
+inactive variation cannot be bought, so it offers nothing.
+
+**Rebuilt after the commit, once per product.** The admin form saves the
+product and then each variation inside one transaction, and each save asks for
+a rebuild; rebuilt on the first ask the index would read the variations before
+they were written. `SpecIndex::queue()` defers every ask to `DB::afterCommit`
+(at once outside a transaction), and the first callback to run stamps the
+product so the rest — all asked before that stamp — skip. The guard is a
+timestamp rather than a "pending" set because a rolled-back transaction drops
+its callbacks and would leave a set entry standing for the life of a queue
+worker. The hooks: a product created or with a changed sheet; a variation
+created, deleted, or with changed options or switch; and the admin controller
+asks directly after `saveVariations()`, whose removals are a mass delete that
+fires no event. `technoware:rebuild-store-specs` rebuilds everything — run it
+once after the migration, and after any write that went around the models.
+A failed rebuild is reported and never thrown: the `StockLedger` rule.
+
+**OR within a label, AND across, matched on the keys.** `?spec[Ports][]=24
+ports&spec[Ports][]=48 ports&spec[PoE][]=Yes` is (24 or 48) and PoE — two
+port counts ticked is "either will do", and "24-port and PoE" is one switch
+with both (`App\Support\Store\SpecFilter`). **A label nothing in the shop
+carries is ignored**, not applied: applied it would empty the page, which is
+what a renamed label or a mangled bookmark would do to somebody who did
+nothing wrong. A known label with a value nobody has is a real filter and
+answers nothing. Twelve labels and forty values a request at most.
+
+**Facets are counted under the other labels' choices, never their own.**
+`GET /store/categories/{slug}/facets` answers each of the category's filter
+labels with its values and how many published products each would leave.
+Counted under its own selection, ticking "24 ports" would put 0 against "48
+ports" — which reads as "none" when it means "not ticked yet", and OR within
+a label is exactly the choice those numbers are for. A ticked value emptied by
+the other choices stays at 0 so it can be unticked. Values are in a natural
+order: a leading number as a number ("8 ports" before "24 ports", "1,000
+Mbps" as a thousand), numbers before words, then `strnatcasecmp`.
+
+**Only the unfiltered answer is cached** — five minutes, keyed on the category,
+its filter list and `updated_at`, the newest product in it and the index's
+version (`SpecIndex::touch()`, moved by every rebuild and every product
+deleted: the two changes that alter counts without moving any product's
+`updated_at`). A selection is counted fresh every time; a combination
+somebody ticked is a user's query, the rule `?q=` keeps. The frontend's
+`publicApi.storeFacets()` takes the same `cache` flag and the page passes
+`false` whenever a spec is in the address — and `storeProducts()` likewise.
+A category with no filters answers `data: []` in a 200, the `/menus/*` rule.
+
+**The labels a category offers are chosen from what its products carry.**
+`store_categories.filter_specs` is an ordered list of labels, edited on the
+category form's Filters tab (`SpecFilterPicker`): chips of every label its
+published products carry with how many carry it, most common first, ticked
+into a list reordered with `ReorderButtons`. `Store\CategoryRequest::after()`
+refuses a label none of the category's products carries and a label twice
+(on the key) — **except a label already saved**, which stays saveable after
+its last product lost it, so an unrelated edit is never refused over it; the
+picker lists it at 0 to take off. A new category has no products and so can
+offer no filter yet. The admin detail read carries `spec_labels`; both
+category resources carry `filter_specs`.
+
+**`/store` filters; the category page links.** `/store` is dynamic already, so
+its panel is a GET form through `AutoApplyForm` — a tick applies at once and
+pushes the address the form would have submitted — beside the grid from `lg`
+(which drops to four columns) and a disclosure above it below `lg`
+(`SpecFilterDisclosure`: a button with `aria-expanded` and the `hidden`
+*class*, because a closed `<details>` cannot be opened again by a breakpoint).
+Chosen values are chips over the grid, each removing itself, with "Clear all".
+`/store/categories/[slug]` is ISR and **must not read `searchParams`** — a
+request-time API in that render is a 500, not a fallback — so its panel is
+built from the cached unfiltered counts and every value is a link to
+`/store?category=<slug>&spec[..]`: `nofollow` (a filtered view is
+`noindex, follow` through `listingMetadata`, where `spec` is a filter) and
+`prefetch={false}` (forty prefetched dynamic renders per category page is
+forty renders nobody asked for).
+
+**The address is indexed, `spec[Label][i]`, not `spec[Label][]`.** Every pair
+is then its own key, so `Pagination`'s flat `params`, the chips' links and the
+filter bar's hidden inputs can all carry a selection (`lib/store-specs.ts`);
+PHP reads both forms the same. The filter bar keeps the selection through a
+change of sort (`keep`, hidden inputs); **only the labels the chosen category
+offers narrow the listing**, so a selection carried across a change of
+category is ignored unless the new category offers the same label, in which
+case its panel shows it ticked. A label containing `[` or `]` does not survive
+PHP's bracket parsing — none in this catalogue does.
+
+## Product video and zoom (2026-09-26)
+
+**Videos are YouTube links and uploaded MP4/WebM files, up to four.**
+`store_products.videos` is a list of `{kind, youtube_id | path, title,
+poster_path}` (`App\Support\Store\ProductVideos`, a plain `array` cast — a list
+keeps its order in MySQL, object keys inside it do not, and nothing reads
+them in order). **A YouTube link is stored as its id**: validated through
+`YouTube::id()`, which compares the host exactly and so refuses
+`youtube.com.attacker.test`, and normalised in the controller so the link
+itself is never written. **A file is a media-library path with a video
+extension** the library holds; a PDF, an unknown path or a URL is refused. A
+poster is a JPEG, PNG, WebP or GIF from the library — not an SVG, since a
+poster is a frame. `StoreProductVideoTest` pins each refusal.
+
+**The console edits them on the Media tab** (`VideoField`): a row per video —
+a YouTube link or a file chosen through `MediaBrowser` (the Files half, which
+holds video), a title, a poster — reordered and removed with `ReorderButtons`,
+posted as one hidden JSON list and replaced wholesale. `videos` is in the
+Media tab's `fields` list, or a refused link would be charged to Content.
+
+**On the page they follow the pictures** in `ProductGallery`, whose shop-only
+behaviour is behind `store` — the catalogue's product page passes nothing and
+is unchanged. A video's thumbnail is its poster or a drawn panel with a play
+mark; in the well a YouTube video is **the click-to-play facade**
+(`ProductVideoPlayer`): the uploaded poster or the brand panel, and
+`youtube-nocookie.com` mounted on the press with `autoplay`. **Never
+`i.ytimg.com`** — YouTube's thumbnail would be the third-party request the
+facade exists to avoid, and it is not in `img-src`. A file is `<video controls
+preload="none" playsInline poster>`; `media-src` now names the asset origins,
+so a file from the API's storage is not a report-only violation (a slider's
+uploaded video benefits too). A video's well is a `div`, not the lightbox's
+button — a player inside a button is two controls fighting over one press —
+and is keyed on the slot, so moving between two videos starts each at its
+facade. The store also shows **every** picture's thumbnail in a strip that
+scrolls past five (`w-0 min-w-full`, the grid-item rule), where the catalogue
+still shows the first five.
+
+**The hover magnifier is `scale` and a following `transform-origin`.** In the
+store's well, from `lg` on a device that hovers with a fine pointer (asked of
+`matchMedia` on each entry, so a resized window behaves), the picture scales
+to 2× inside the well with its origin under the pointer. Written to the
+`<img>`'s style directly rather than through state — sixty renders a second of
+the whole gallery otherwise — and transitioned as `transition-[scale]`, never
+`transition-transform` (the Tailwind v4 trap); the global reduced-motion rule
+removes the transition and keeps the zoom. The well stays the lightbox's
+button, and a click resets the magnifier first.
+
+**The lightbox zooms 1× to 3× and pans** (`components/ui/gallery.tsx`, so a
+CMS gallery's lightbox gains it too). A click zooms to 2× at the point pressed
+and a second click puts it back (the second press of a double-click is
+ignored, so a double-click zooms in); `+`/`=`, `-` and `0` on the dialog;
+Ctrl + wheel, which is also a trackpad's pinch, through a non-passive listener
+(React's `onWheel` is passive and cannot stop the page zooming instead); a
+two-finger pinch on touch; drag to pan under pointer capture, clamped so the
+picture's edge never comes away from the frame. Zoom holds the point under the
+pointer still — `t' = (q − c) − (s'/s)(q − c − t)`, since `scale` then
+`translate` place a point at `c + s(p − c) + t`. Zoom and pan live in the
+lightbox and `go()` resets both, so every way of moving to another picture —
+arrows, keys, a thumbnail, the slideshow — arrives whole. The zoomed picture
+asks for a `200vw` variant. "Zoom in", "Zoom out" and "Reset zoom" are
+labelled controls in the top bar, disabled at the ends, and a polite live
+region says the percentage.
+
+**`subjectOf` names a YouTube video only when every required property is
+honest.** Google requires `name`, `thumbnailUrl` and `uploadDate` for a
+`VideoObject`. The name is the video's title or the product's; the thumbnail
+is **the uploaded poster and nothing else** — YouTube's own frame is never
+requested by this site and is not claimed — so a video without a poster is
+left out of the graph; `uploadDate` is the product's `updated_at`, the page
+carrying it (the video's own publication date is YouTube's, and not something
+this application knows); `embedUrl` is the nocookie player the page mounts.
+Uploaded files are drawn on the page and left out of the graph, per the plan.
+
+## The Meta catalogue: Facebook, Instagram and WhatsApp (2026-09-26)
+
+**One source, two sinks.** Meta's Commerce Manager — which also stocks the
+WhatsApp Business catalogue — reads a scheduled data feed, and accepts
+Google's RSS format. `/meta-catalogue.xml` and `/meta-catalogue.csv` are built
+from the same rows as the Google feed (`GET /api/v1/store/feed`,
+`ProductFeed::build`), mapped at the frontend sink in `lib/meta-catalogue.ts`:
+so what is listed, each item's id, which price is the regular one and which
+the sale, and whether a shelf is in stock cannot differ between the two
+platforms, which suspend accounts over the same mismatches.
+
+**What the mapping changes.** `availability` in Meta's words — `in stock`,
+`out of stock`, and **`available for order` for a back-order**, which is what
+an empty shelf the shop has agreed to take orders for is. Google-only
+attributes (`identifier_exists`, the shipping block, handling times,
+`product_detail`) are left out. `size` and `color` come from the variation
+options the Google feed already maps. **No `quantity_to_sell_on_facebook`**:
+no stock count is ever published. A product the Google feed leaves out —
+withheld, a service, no raster picture — is left out of both. A product with
+no brand is sent without one; Meta reports it rather than being told an
+invented one.
+
+**Each format is escaped at its own sink**: XML text escaping in the XML, and
+in the CSV RFC 4180 quoting plus the formula guard `Csv::escape` keeps on the
+API side (a cell opening `=`, `+`, `-`, `@`, a tab or a carriage return gains
+an apostrophe). Several additional pictures share one CSV cell,
+comma-separated, which is Meta's form. Both are cached for an hour and fail
+the Google feed's way — an empty feed, never a 500.
+
+**`meta_catalogue_enabled`** (`store` group, public, on by default — it
+publishes nothing the Google feed does not) switches both routes to a 404.
+The store products screen's feed card (`StoreFeedsCard`) lists the Google
+address, both Meta addresses and the catalogue export, each with a copy
+button and a plain `<a download>` (never a `Link`: it would prefetch a route
+handler that builds the whole feed), and a "How to connect" disclosure:
+Commerce Manager → Data sources → Data feed → Scheduled feed; WhatsApp
+Business Manager → Catalogue → connect the same catalogue.

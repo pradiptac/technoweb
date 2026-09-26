@@ -21,6 +21,12 @@ import { getCart } from "@/lib/cart";
  * `no-store`, because a basket is one person's and changes on every action;
  * the browser must not answer this from its own cache after a line is
  * removed.
+ *
+ * **Without the token.** The cart token lives in an httpOnly cookie so that
+ * browser JavaScript never holds it — and this response is read by browser
+ * JavaScript. It used to hand the token straight back inside `data`; nothing
+ * on the client needs it (the Server Actions read the cookie themselves), so
+ * it is removed here rather than trusted to go unread.
  */
 export async function GET() {
   const cart = await getCart();
@@ -29,5 +35,8 @@ export async function GET() {
     return new NextResponse(null, { status: 204, headers: { "Cache-Control": "no-store" } });
   }
 
-  return NextResponse.json({ data: cart }, { headers: { "Cache-Control": "no-store" } });
+  const { token, ...basket } = cart;
+  void token;
+
+  return NextResponse.json({ data: basket }, { headers: { "Cache-Control": "no-store" } });
 }

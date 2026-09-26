@@ -4,6 +4,10 @@ import { Select } from "@/components/ui/input";
 import { StoreSearch } from "@/components/store/store-search";
 import { cn } from "@/lib/utils";
 import { BasketIndicator } from "@/components/store/basket-bar";
+import { WishlistIndicator } from "@/components/store/wishlist-indicator";
+import { PushBell } from "@/components/push/push-bell";
+import { getSiteSettings } from "@/lib/settings";
+import { consentGateFrom, pushConfigFrom } from "@/lib/push";
 import type { StoreCategory } from "@/types/api";
 
 /**
@@ -30,7 +34,7 @@ import type { StoreCategory } from "@/types/api";
  * a basket cannot be cached.
  */
 export async function StoreFilterBar({
-  categories, q, category, sort, sticky = true, className,
+  categories, q, category, sort, sticky = true, className, keep = [],
 }: {
   categories: StoreCategory[];
   q?: string;
@@ -63,8 +67,17 @@ export async function StoreFilterBar({
    * merged last, so `mx-auto` beats the base `-mx-1`.
    */
   className?: string;
+  /**
+   * Query pairs to carry through the form as hidden inputs — the shop's
+   * `spec[Label][i]` selection (2026-09-26), so changing the sort does not
+   * drop the filters somebody ticked.
+   */
+  keep?: [string, string][];
 }) {
   const filtered = Boolean(q || category);
+  // Cached with the rest of the settings (600s), so the shop stays cacheable.
+  const settings = await getSiteSettings();
+  const push = pushConfigFrom(settings);
 
   return (
     /*
@@ -156,6 +169,10 @@ export async function StoreFilterBar({
           strip plus two 176px selects, Apply and the basket is a little more
           than the row — it is the search that gives, not the controls.
         */}
+        {keep.map(([name, value]) => (
+          <input key={`${name}=${value}`} type="hidden" name={name} value={value} />
+        ))}
+
         <div className="col-span-2 min-w-0 lg:flex-[0_1_50%]">
           {/*
             `sr-only`, not deleted. The magnifier and the placeholder are enough
@@ -232,7 +249,7 @@ export async function StoreFilterBar({
           as well, or at 1440 the group is handed less than its content and
           "Basket is empty" wraps to three lines; it is the search that gives.
         */}
-        <div className="col-span-2 flex items-center gap-3 lg:col-span-1 lg:flex-1 lg:shrink-0">
+        <div className="col-span-2 flex flex-wrap items-center gap-3 lg:col-span-1 lg:flex-1 lg:shrink-0 lg:flex-nowrap">
           <button
             type="submit"
             className="h-11 shrink-0 rounded-lg bg-brand-600 px-6 text-14 font-semibold text-brand-on transition-colors duration-(--duration-base) hover:bg-brand-700"
@@ -260,10 +277,25 @@ export async function StoreFilterBar({
             once they are genuinely on one line; below that it would be a mark
             separating nothing.
           */}
-          <span aria-hidden className="ml-auto hidden h-7 w-px bg-line-strong lg:block" />
-          <div className="ml-auto lg:ml-0">
+          {/*
+            The wishlist's count, before the divider (2026-09-25): a heart
+            and a number, 40px, so the phone row — Apply, Clear, the basket —
+            gains one disc rather than a label. `ml-auto` moves here from the
+            divider and the basket, so at every width the heart, the rule and
+            the basket travel together to the far end opposite Apply. The row
+            wraps below `lg` for the one case that does not fit 320px — Apply,
+            Clear, the heart and "Basket is empty" together — where the
+            basket drops to a second line rather than past the screen's edge.
+          */}
+          <div className="ml-auto">
+            <WishlistIndicator />
+          </div>
+          <span aria-hidden className="hidden h-7 w-px bg-line-strong lg:block" />
+          <div>
             <BasketIndicator />
           </div>
+          {/* The push bell, beside the basket (Phase 2). Drawn only while push can deliver. */}
+          {push && <PushBell config={push} consentGated={consentGateFrom(settings)} />}
         </div>
       </AutoApplyForm>
     </div>

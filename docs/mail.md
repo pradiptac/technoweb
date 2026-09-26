@@ -197,6 +197,14 @@ desk merges one of their tickets into another, queued like the rest and
 naming both references so the one to quote is the one in the subject line.
 See `docs/tickets.md`.)
 
+**The engineer visits make forty (2026-09-26)** — seven messages for five classes: `visit_request_received` and `visit_request_changed` to the desk (one class, `VisitRequestReceived`), `visit_requested` the customer's receipt (their chosen times, never their notes), `visit_confirmed` and `visit_rescheduled` (one class, `VisitConfirmed`, each carrying an `.ics`), `visit_cancelled` and `visit_reminder`. All queued, all through `Notifier`; the desk's go to `visits_email`, else `sales_email`. `docs/visits.md`.
+
+**`review_request` is the thirty-third (2026-09-26)** — the "How was it?" email, once per order a few days after dispatch, listing each product not yet reviewed, promotional so held to the quiet-hours window (`docs/store.md`, "Reviews").
+
+**`wishlist_back_in_stock` and `wishlist_price_drop` make thirty-two (2026-09-25)** — two classes, sent once per restock or per price drop to whoever saved the product, promotional so held to the quiet-hours window, each with a stop link that leaves the list alone (`docs/store.md`, "Wishlists").
+
+**`cart_reminder_1` and `cart_reminder_2` make thirty (2026-09-25)** — the twenty-eighth was `block_lead_captured` (`docs/blocks.md`). One class, `CartReminder`, and two messages, the `ticket_replied` shape: the abandoned-basket reminders, sent by `technoware:remind-abandoned-carts` only inside the quiet-hours window and never to the suppression list, each carrying an unsubscribe that puts the address on it. `docs/store.md`, "Abandoned baskets".
+
 **`back_in_stock` is the twenty-seventh (2026-09-20).** Sent by `SendStockNotices` to whoever asked to hear a store product is back, queued and templated like the rest, with the price read on the day it goes and a cancel link that removes that one notice — not an unsubscribe, and the wording says so. `docs/store.md`, "Back-in-stock notices".
 
 **The recipient is found by field *kind*, never by name.**
@@ -324,3 +332,37 @@ calls `$logger->debug(...)`, and both `.env` files ship `LOG_LEVEL=warning` — 
 choosing "write to the log" produced a cheerful "sent" and nothing on disk
 anywhere. It now writes to `storage/logs/mail.log` on a channel pinned to
 `debug`. Exactly the trap the password-reset audit line was already caught by.
+
+## Where a stored secret may go (2026-09-26)
+
+The settings screen never shows a stored secret, and until now three rows
+could send one somewhere else: `mailgun_endpoint` is the host the Mailgun API
+key is posted to, `smtp_host` receives `smtp_password` in the AUTH, and
+`inbound_imap_host` receives `inbound_imap_password`. Change the host, press
+Test, and the key arrives at a server of your choosing. `SettingController::
+validateMailServers()` closes all three, and the hosts with them:
+
+- **`mailgun_endpoint` is `api.mailgun.net` or `api.eu.mailgun.net`**
+  (`MailTransport::MAILGUN_ENDPOINTS`), refused otherwise on write, and
+  `MailSettingsProvider` falls back to the US host for any other stored value.
+- **A new SMTP or IMAP host needs its password typed again in the same
+  save.** Only somebody who knows it can move it.
+- **Both hosts must be public** (`App\Support\Net\PublicHost`) and on a
+  port the protocol is served on — SMTP 25/465/587/2525, IMAP 143/993 — since
+  the server connects to them from inside the network and the connection
+  tests report what answered.
+
+## Mail lines are text (2026-09-26)
+
+Blade escaped `<` in a notification line and the mail layout then ran the
+whole body through CommonMark, so a name typed into the contact form as
+`[Reset your password](https://evil.example)` came back in the
+acknowledgement as a working link under the letterhead — sent to whatever
+address the form was given. `Markdown::withSecuredEncoding()` in
+`AppServiceProvider::boot()` escapes `[` in every `{{ }}` echo inside a mail
+view; a line that means to carry a link says so with an `HtmlString`
+(`BackInStock`'s cancel link is the one). An editor's wording goes through
+`Placeholders::fill()`, whose values now have `[ ] ( ) !` written as
+entities as well as HTML escaped, because that body reaches the same parse
+through `{!! !!}`. `MailMarkdownInjectionTest` covers both.
+

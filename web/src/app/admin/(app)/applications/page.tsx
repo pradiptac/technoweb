@@ -11,6 +11,7 @@ import { noIndex } from "@/lib/no-index";
 import type { AdminJobApplication, Paginated } from "@/types/api";
 import { ApplicationStatusBadge } from "./status-badge";
 import { formatDate } from "@/lib/dates";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Applications", path: "/admin/applications", seo: noIndex });
 
@@ -31,6 +32,7 @@ export default async function AdminApplicationsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: Paginated<AdminJobApplication> & { meta: { new_count: number; retention_days: number } };

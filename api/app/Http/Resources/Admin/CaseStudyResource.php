@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Models\CaseStudy;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -9,6 +10,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin CaseStudy */
 class CaseStudyResource extends JsonResource
 {
+    use IncludesCustomFields;
+
     public function toArray(Request $request): array
     {
         $detail = $request->routeIs('*.show', '*.store', '*.update');
@@ -32,6 +35,8 @@ class CaseStudyResource extends JsonResource
                 'id' => $this->industry->id,
                 'name' => $this->industry->name,
             ] : null),
+            // Custom fields (docs/custom-content.md) — see IncludesCustomFields.
+            ...$this->adminCustomFields(),
             'seo' => $this->when($detail, fn () => SeoOverrideArray::from($this->seo)),
             'seo_defaults' => $this->when($detail, fn () => $this->resolvedSeo()),
             'created_at' => $this->created_at?->toIso8601String(),

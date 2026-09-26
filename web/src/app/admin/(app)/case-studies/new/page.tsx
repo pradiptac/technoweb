@@ -1,14 +1,16 @@
 import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
-import { getIndustries } from "@/lib/admin";
+import { getIndustries, getCustomFieldGroups } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { CaseStudyForm } from "../case-study-form";
 import type { AdminIndustry } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New case study", path: "/admin/case-studies/new", seo: noIndex });
 
 export default async function NewCaseStudyPage() {
+  await requireScreen();
   let industries: AdminIndustry[] = [];
   try {
     industries = await getIndustries();
@@ -27,7 +29,7 @@ export default async function NewCaseStudyPage() {
         title="New case study"
       />
 
-      <CaseStudyForm industries={industries} />
+      <CaseStudyForm industries={industries} fieldGroups={await getCustomFieldGroups("/admin/case-studies")} />
     </>
   );
 }

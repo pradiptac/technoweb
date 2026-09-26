@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { cache } from "react";
 import { apiFetch } from "@/lib/api";
+import { getToken } from "@/lib/auth";
 import type { CartSummary, Single } from "@/types/api";
 
 const COOKIE = "tw_cart";
@@ -36,10 +37,22 @@ export async function cartToken(): Promise<string | undefined> {
 export async function setCartToken(token: string) {
   const jar = await cookies();
 
-  jar.set(COOKIE, token, {
+  jar.set(COOKIE, token, CART_COOKIE.options());
+}
+
+/**
+ * The basket cookie's name and options, for the one writer that cannot use
+ * `setCartToken()`: the reminder's restore link, a route handler that answers
+ * with a redirect and has to put the cookie on that response. One object, so
+ * the two writes cannot drift on `httpOnly`, `sameSite` or the thirty days —
+ * the `IMPERSONATION_COOKIE` arrangement in `lib/auth.ts`.
+ */
+export const CART_COOKIE = {
+  name: COOKIE,
+  options: () => ({
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "lax" as const,
     path: "/",
     // Long, because a basket is a shopping list somebody comes back to. This
     // is how long the browser offers to remember one; `technoware:prune-carts`
@@ -47,8 +60,8 @@ export async function setCartToken(token: string) {
     // out from under a cookie that still points at it. The two numbers are one
     // fact and want to stay in step.
     maxAge: 60 * 60 * 24 * 30,
-  });
-}
+  }),
+};
 
 export async function clearCartToken() {
   const jar = await cookies();
@@ -74,6 +87,10 @@ export const getCart = cache(async (): Promise<CartSummary | null> => {
   try {
     const res = await apiFetch<Single<CartSummary>>("/cart", {
       headers: { "X-Cart-Token": token },
+      // The portal session, when there is one, so the API can claim this
+      // basket for the account — which is what lets a basket reminder reach
+      // a signed-in customer who never typed an address at the checkout.
+      token: await getToken(),
       cache: "no-store",
     });
 

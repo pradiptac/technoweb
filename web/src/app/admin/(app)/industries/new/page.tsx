@@ -1,14 +1,16 @@
 import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
-import { getAnswerBlockKinds, getSolutionOptions } from "@/lib/admin";
+import { getAnswerBlockKinds, getSolutionOptions, getCustomFieldGroups } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import type { AnswerBlockKindOption } from "@/types/api";
 import { noIndex } from "@/lib/no-index";
 import { IndustryForm } from "../industry-form";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New industry", path: "/admin/industries/new", seo: noIndex });
 
 export default async function NewIndustryPage() {
+  await requireScreen();
   let solutions: { id: number; name: string }[] = [];
   let kinds: AnswerBlockKindOption[] = [];
   try {
@@ -28,7 +30,7 @@ export default async function NewIndustryPage() {
         title="New industry"
       />
 
-      <IndustryForm solutions={solutions} kinds={kinds} />
+      <IndustryForm solutions={solutions} kinds={kinds} fieldGroups={await getCustomFieldGroups("/admin/industries")} />
     </>
   );
 }

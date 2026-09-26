@@ -11,21 +11,27 @@ use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\ClientErrorController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanySuggestionController;
+use App\Http\Controllers\Api\V1\ContentBlockController;
 use App\Http\Controllers\Api\V1\ContentController;
+use App\Http\Controllers\Api\V1\ContentTypeController as PublicContentTypeController;
 use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\FormController;
 use App\Http\Controllers\Api\V1\GalleryController;
 use App\Http\Controllers\Api\V1\LandingPageController;
+use App\Http\Controllers\Api\V1\MessagingController;
 use App\Http\Controllers\Api\V1\NewsletterController;
 use App\Http\Controllers\Api\V1\OrderCodeController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PopupController;
+use App\Http\Controllers\Api\V1\ProductReviewController;
 use App\Http\Controllers\Api\V1\RedirectController;
 use App\Http\Controllers\Api\V1\RegistrationController;
 use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SliderController;
 use App\Http\Controllers\Api\V1\StockNoticeController;
 use App\Http\Controllers\Api\V1\StoreController;
+use App\Http\Controllers\Api\V1\VisitController;
+use App\Http\Controllers\Api\V1\WishlistController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -69,6 +75,10 @@ Route::get('store/products', [StoreController::class, 'products'])->name('store.
 Route::get('store/products/{storeProduct:slug}', [StoreController::class, 'product'])->name('store.products.show');
 Route::get('store/categories', [StoreController::class, 'categories'])->name('store.categories.index');
 Route::get('store/categories/{storeCategory:slug}', [StoreController::class, 'category'])->name('store.categories.show');
+// The category's specification filters with their counts (2026-09-26).
+// Un-throttled like the listing beside it: the caller is the Next server,
+// one address for every visitor.
+Route::get('store/categories/{storeCategory:slug}/facets', [StoreController::class, 'facets'])->name('store.categories.facets');
 
 /*
  * "Email me when this is back." 202 and one sentence whatever happened —
@@ -81,6 +91,15 @@ Route::post('store/products/{storeProduct:slug}/notify', [StockNoticeController:
     ->middleware('throttle:10,1')->name('store.products.notify');
 Route::get('store/stock-notices/{token}/cancel', [StockNoticeController::class, 'cancel'])
     ->middleware('throttle:30,1')->name('store.stock-notices.cancel');
+
+/*
+ * Published reviews of one product, six a page (`docs/store.md`, "Reviews").
+ * `?sort=` of featured, newest, highest or lowest; `meta` carries the
+ * average, the count and the five-row distribution. Writing one is a portal
+ * route — see `portal.php`.
+ */
+Route::get('store/products/{storeProduct:slug}/reviews', [ProductReviewController::class, 'index'])
+    ->middleware('throttle:120,1')->name('store.products.reviews.index');
 
 /*
  * The basket.
@@ -133,6 +152,24 @@ Route::delete('cart/coupon', [CartController::class, 'removeCoupon'])
     ->middleware('throttle:30,1')->name('cart.coupon.remove');
 
 /*
+ * Abandoned-basket reminders.
+ *
+ * `contact` is what the checkout has typed so far — the email and mobile,
+ * saved on blur, before any order exists, because the basket that is
+ * abandoned is the one that never became one. Throttled like a form rather
+ * than like a basket: it is written a few times per checkout, never sixty.
+ *
+ * `restore` swaps the token in a reminder's link for the basket's own, which
+ * the Next route handler puts in the cookie. The link never carries the cart
+ * token itself. Throttled because a token is a guessable-in-principle path
+ * segment, the stock-notice cancel link's rule.
+ */
+Route::patch('cart/contact', [CartController::class, 'contact'])
+    ->middleware('throttle:20,1')->name('cart.contact');
+Route::get('cart/restore/{token}', [CartController::class, 'restore'])
+    ->middleware('throttle:30,1')->name('cart.restore');
+
+/*
  * The checkout.
  *
  * Public, because guest checkout is a requirement — a portal account is
@@ -181,6 +218,32 @@ Route::post('orders/{orderNumber}/items/{item}/reveal', [OrderCodeController::cl
     ->middleware('throttle:20,1')->name('orders.reveal');
 
 /*
+ * The wishlist (2026-09-25).
+ *
+ * A guest's list is addressed by `X-Wishlist-Token`, which the Next server
+ * holds in an httpOnly cookie and forwards like the basket's; a signed-in
+ * customer's by the portal bearer, read from the guard by name because the
+ * routes are public. A request carrying both merges the guest's list into
+ * the account's (never under a staff member's "View as"). See `Wishlists`.
+ *
+ * `GET` never writes — a visitor with nothing gets an empty summary and no
+ * row — so it is throttled like any read; the writes like the basket's.
+ * The stop link answers one sentence for every token, used or not.
+ */
+Route::get('wishlist', [WishlistController::class, 'show'])
+    ->middleware('throttle:120,1')->name('wishlist.show');
+Route::patch('wishlist', [WishlistController::class, 'update'])
+    ->middleware('throttle:10,1')->name('wishlist.update');
+Route::post('wishlist/items', [WishlistController::class, 'addItem'])
+    ->middleware('throttle:60,1')->name('wishlist.items.store');
+Route::delete('wishlist/items/{item}', [WishlistController::class, 'removeItem'])
+    ->whereNumber('item')->middleware('throttle:60,1')->name('wishlist.items.destroy');
+Route::post('wishlist/items/{item}/move-to-basket', [WishlistController::class, 'moveToBasket'])
+    ->whereNumber('item')->middleware('throttle:30,1')->name('wishlist.items.move');
+Route::get('wishlist/alerts/{token}/stop', [WishlistController::class, 'stopAlerts'])
+    ->middleware('throttle:30,1')->name('wishlist.alerts.stop');
+
+/*
  * Every popup that is live right now, for the whole site.
  *
  * A collection and never a 404, unlike a slider or a gallery: no popups is
@@ -194,12 +257,22 @@ Route::get('popups', [PopupController::class, 'index'])->name('popups.index');
 // Carousels, addressed by slug from a [slider] shortcode or the hero.
 Route::get('sliders/{slug}', [SliderController::class, 'show'])->name('sliders.show');
 
+// Content blocks (2026-09-24), addressed by slug from a [cta], [stats],
+// [pricing] or [stack] shortcode. `default/cta` is declared first, or
+// `{slug}` would bind the literal "default". The default is `data: null` in
+// a 200 when none is chosen — the menu rule, since every page asks.
+Route::get('blocks/default/cta', [ContentBlockController::class, 'defaultCta'])->name('blocks.default');
+Route::get('blocks/{slug}', [ContentBlockController::class, 'show'])->name('blocks.show');
+Route::post('blocks/{slug}/submit', [ContentBlockController::class, 'submit'])
+    ->middleware('throttle:10,1')->name('blocks.submit');
+
 // Picture sets, addressed by slug from a [gallery] shortcode. 404 when
 // unpublished or empty, exactly like a slider.
 Route::get('galleries/{slug}', [GalleryController::class, 'show'])->name('galleries.show');
 
-// Editor-built forms. The submit shares the enquiry throttle: both are an
-// anonymous POST that ends in somebody's inbox.
+// Editor-built forms. The submit has the enquiry throttle's numbers — both are
+// an anonymous POST that ends in somebody's inbox — and its own counter, like
+// every `throttle:` here (ThrottleRequestsPerRoute).
 Route::get('forms/{slug}', [FormController::class, 'show'])->name('forms.show');
 Route::post('forms/{slug}', [FormController::class, 'store'])
     ->middleware('throttle:10,1')
@@ -266,9 +339,15 @@ Route::post('knowledge-base/{article}/helpful', [ContentController::class, 'know
 Route::get('pages', [ContentController::class, 'pages'])->name('pages.index');
 Route::get('pages/{page}', [ContentController::class, 'page'])->name('pages.show');
 
+// Custom content types (docs/custom-content.md): the active types, a type's
+// archive, one entry. `types.show` is the detail read (`body` rides on it).
+Route::get('content-types', [PublicContentTypeController::class, 'index'])->name('content-types.index');
+Route::get('types/{type}', [PublicContentTypeController::class, 'archive'])->name('types.archive');
+Route::get('types/{type}/{slug}', [PublicContentTypeController::class, 'show'])->name('types.show');
+
 // Site-wide search. Public and uncached — see the note in API.md about
 // why a search response must never be ISR-cached.
-Route::get('search', SearchController::class)->name('search');
+Route::get('search', SearchController::class)->middleware('throttle:240,1,search')->name('search');
 
 Route::get('ticket-categories', [ContentController::class, 'ticketCategories'])->name('ticket-categories.index');
 
@@ -322,6 +401,26 @@ Route::post('newsletter/webhooks/{provider}', [NewsletterController::class, 'bou
     ->name('newsletter.webhook');
 
 /*
+ * Messaging providers reporting back — delivered, read, a STOP, a template
+ * approved. GET as well, for Meta's subscription handshake. Un-throttled for
+ * the bounce webhook's reason, and nothing is acted on without the
+ * provider's signature or the shared secret (`MessagingWebhook`).
+ */
+Route::match(['get', 'post'], 'messaging/webhooks/{channel}/{provider}', [MessagingController::class, 'webhook'])
+    ->where(['channel' => 'whatsapp|rcs|push', 'provider' => '[a-z_]+'])
+    ->name('messaging.webhook');
+
+/*
+ * The push bell: a browser handing over its FCM token, or taking it back.
+ * Public — guests may subscribe to broadcasts — and a forwarded portal
+ * token stamps the customer. 202 whatever happened.
+ */
+Route::post('messaging/push/subscribe', [MessagingController::class, 'subscribe'])
+    ->middleware('throttle:10,1')->name('messaging.push.subscribe');
+Route::post('messaging/push/unsubscribe', [MessagingController::class, 'unsubscribe'])
+    ->middleware('throttle:10,1')->name('messaging.push.unsubscribe');
+
+/*
  * A browser reporting that its JavaScript failed.
  *
  * Public, because that is where the errors are: a visitor has no session,
@@ -372,6 +471,24 @@ Route::post('careers/{job_opening}/apply', [CareersController::class, 'apply'])
 Route::post('enquiries', [EnquiryController::class, 'store'])
     ->middleware('throttle:10,1')
     ->name('enquiries.store');
+
+/*
+ * Engineer visit requests (2026-09-26, docs/visits.md). A request is a wish
+ * list the desk confirms, never a booking. `options` is what the form offers
+ * and is cacheable; the guest routes are authorised by the token handed out
+ * once on create, and a wrong token is the same 404 as a wrong reference.
+ * `visits/options` is declared above `visits/{reference}` or it would bind.
+ */
+Route::get('visits/options', [VisitController::class, 'options'])->name('visits.options');
+Route::post('visits', [VisitController::class, 'store'])
+    ->middleware('throttle:5,1')
+    ->name('visits.store');
+Route::get('visits/{reference}', [VisitController::class, 'show'])
+    ->middleware('throttle:30,1')->name('visits.show');
+Route::post('visits/{reference}/cancel', [VisitController::class, 'cancel'])
+    ->middleware('throttle:10,1')->name('visits.cancel');
+Route::post('visits/{reference}/reschedule', [VisitController::class, 'reschedule'])
+    ->middleware('throttle:10,1')->name('visits.reschedule');
 
 /*
  * The website assistant.

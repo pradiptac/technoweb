@@ -155,6 +155,8 @@ class CompanyProfileSeeder extends Seeder
     private function team(): void
     {
         if (TeamMember::query()->exists()) {
+            $this->redrawTeamPlaceholders();
+
             return;
         }
 
@@ -190,7 +192,9 @@ class CompanyProfileSeeder extends Seeder
                 'department' => $row['department'],
                 // The name as the tile's title: it is also what the library records
                 // as the alt text, and "AM" is no description of a photograph.
-                'photo_path' => $this->tileImage($row['name'], $row['designation'], 'team/'.str($row['name'])->slug()),
+                // Portrait, because the card draws a 4:5 well: a landscape tile
+                // cropped to it cut the role and name off at the left edge.
+                'photo_path' => $this->portraitImage($row['name'], $row['designation'], 'team/'.str($row['name'])->slug()),
                 'bio' => $row['bio'],
                 'status' => PublishStatus::Published,
                 'sort_order' => $i,
@@ -199,6 +203,32 @@ class CompanyProfileSeeder extends Seeder
             foreach ($row['certifications'] as $n => $cert) {
                 $member->certifications()->create($cert + ['sort_order' => $n]);
             }
+        }
+    }
+
+    /**
+     * Redraws a member's placeholder as a portrait — only while the photo is
+     * still this seeder's own `media/seed/team/<slug>.svg`.
+     *
+     * The first seeds were landscape tiles with the role and name drawn at
+     * the left, and the team card's 4:5 crop cut both off (the client saw
+     * "RINCIPAL ENGINEER" on 2026-09-24). The stored path is the
+     * discriminator, the brand-logo rule: an uploaded photo has another path
+     * and is never touched. The path does not change and the team resource
+     * does not version its URL, so a browser holding the old tile keeps it
+     * until its cache turns over — acceptable for placeholder art that is on
+     * the must-not-ship list anyway.
+     */
+    private function redrawTeamPlaceholders(): void
+    {
+        foreach (TeamMember::query()->get() as $member) {
+            $key = 'team/'.str($member->name)->slug();
+
+            if ($member->photo_path !== "media/seed/{$key}.svg") {
+                continue;
+            }
+
+            $this->portraitImage($member->name, (string) $member->designation, $key);
         }
     }
 

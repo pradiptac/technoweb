@@ -91,7 +91,10 @@ export async function deleteLandingPageAction(formData: FormData) {
   const id = Number(formData.get("id"));
   if (!id) return;
 
-  await deleteLandingPage(id).catch(() => null);
+  // Only a delete the API accepted may purge anything: a refusal (in use,
+  // a role, a network error) used to purge the caches and report success.
+  const deleted = await deleteLandingPage(id).then(() => true, () => false);
+  if (!deleted) redirect("/admin/landing-pages?done=not-deleted");
   revalidatePath("/admin/landing-pages");
   updateTag("landing-pages");
   redirect("/admin/landing-pages?deleted=1");

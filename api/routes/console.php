@@ -34,6 +34,23 @@ Schedule::command('technoware:prune-applications')->dailyAt('03:25');
  */
 Schedule::command('technoware:prune-carts')->dailyAt('03:30');
 
+// Guest wishlists, for the same reason: a heart pressed by anybody mints a
+// row. Six months, the wishlist cookie's life. Accounts' lists are kept.
+Schedule::command('technoware:prune-wishlists')->dailyAt('03:32');
+
+/*
+ * Reminders about those baskets, while they are still worth one.
+ *
+ * Every ten minutes, so a first reminder lands close to the delay the shop
+ * chose. The switch and the quiet-hours window are the command's first two
+ * questions, so a run outside either costs one settings read; the claim on
+ * each basket is a conditional UPDATE, and `withoutOverlapping` is belt to
+ * that brace.
+ */
+Schedule::command('technoware:remind-abandoned-carts')
+    ->everyTenMinutes()
+    ->withoutOverlapping();
+
 /*
  * JavaScript failures nobody has seen for a month.
  *
@@ -83,6 +100,13 @@ Schedule::command('technoware:prune-seo-suggestions')->dailyAt('03:50');
  * quiet hook to be noticed. See PruneWebhookDeliveries.
  */
 Schedule::command('technoware:prune-webhook-deliveries')->dailyAt('03:55');
+
+/*
+ * "How was it?" — the review request, once per order, a few days after
+ * delivery. Hourly, and the command itself waits out the quiet hours, so an
+ * order that falls due at 2am is asked at nine. See RequestReviews.
+ */
+Schedule::command('technoware:request-reviews')->hourly()->withoutOverlapping();
 
 /*
  * Spent and expired sign-in codes.
@@ -208,4 +232,28 @@ Schedule::command('technoware:decide-subject-tests')
 // the mail itself leaves through the worker the scheduler already drains.
 Schedule::command('technoware:run-sequences')
     ->everyTenMinutes()
+    ->withoutOverlapping();
+
+// Messaging broadcasts (WhatsApp, RCS, push) whose scheduled time has come.
+// `Broadcasts::queue()` claims each with a conditional update, so overlapping
+// runs cannot freeze one audience twice; the batches wait for the quiet-hours
+// window themselves.
+Schedule::command('technoware:send-broadcasts')
+    ->everyMinute()
+    ->withoutOverlapping();
+
+// Delivery rows are a log of what was attempted, not a record anybody edits;
+// ninety days answers "did that customer get the dispatch notice".
+Schedule::command('technoware:prune-message-deliveries')->dailyAt('03:58');
+
+/*
+ * Engineer visits (2026-09-26, docs/visits.md): the day-before reminder,
+ * once per appointment. Every fifteen minutes, so a visit is reminded about
+ * a day ahead whatever time it is booked for; each visit is claimed with a
+ * conditional UPDATE on `reminded_at` before anything is sent, and
+ * `withoutOverlapping` is belt to that brace. Transactional, so no
+ * quiet-hours gate.
+ */
+Schedule::command('technoware:remind-visits')
+    ->everyFifteenMinutes()
     ->withoutOverlapping();

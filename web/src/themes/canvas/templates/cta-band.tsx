@@ -20,6 +20,9 @@ export function CtaBand({
   size = "md",
   className,
   phone,
+  kicker,
+  primary,
+  secondary,
 }: CtaBandProps) {
   const coral = tone === "brand";
   return (
@@ -35,16 +38,23 @@ export function CtaBand({
         >
           <div className="grid items-center gap-8 lg:grid-cols-[1.3fr_auto]">
             <div>
+              {kicker && <p className="mb-3 text-12 font-semibold uppercase tracking-[.14em]">{kicker}</p>}
               <h2 className={cn(size === "lg" ? "display-2" : "display-3", "text-balance")}>{title}</h2>
               <p className={cn("mt-4 text-15 leading-relaxed", coral ? "opacity-90" : "text-dark-muted")}>{body}</p>
             </div>
             <div className="flex flex-wrap gap-3 lg:justify-end">
-              <ButtonLink href="/contact" variant={coral ? "onDark" : "primary"} className={coral ? "bg-page text-ink hover:bg-page/90" : undefined}>
-                Book a site audit <IconArrowRight />
+              <ButtonLink href={primary?.href || "/contact"} variant={coral ? "onDark" : "primary"} className={coral ? "bg-page text-ink hover:bg-page/90" : undefined}>
+                {primary?.label || "Book a site audit"} <IconArrowRight />
               </ButtonLink>
-              <ButtonLink href={telHref(phone)} variant="onDarkOutline" className={coral ? "border-brand-on/40 text-brand-on" : "border-white/25 text-white"}>
-                Call {phone}
-              </ButtonLink>
+              {secondary === null ? null : secondary ? (
+                <ButtonLink href={secondary.href} variant="onDarkOutline" className={coral ? "border-brand-on/40 text-brand-on" : "border-white/25 text-white"}>
+                  {secondary.label}
+                </ButtonLink>
+              ) : (
+                <ButtonLink href={telHref(phone)} variant="onDarkOutline" className={coral ? "border-brand-on/40 text-brand-on" : "border-white/25 text-white"}>
+                  Call {phone}
+                </ButtonLink>
+              )}
             </div>
           </div>
         </div>

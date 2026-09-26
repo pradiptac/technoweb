@@ -15,6 +15,7 @@ import { SortTh } from "@/components/admin/sort-th";
 import type { Paginated, StaffUser, Ticket, TicketPriority, TicketStatus } from "@/types/api";
 import type { ReactNode } from "react";
 import { formatTableDate } from "@/lib/dates";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Tickets", path: "/admin/tickets", seo: noIndex });
 
@@ -53,6 +54,7 @@ export default async function AdminTicketsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   const queryParams: TicketQueueParams = {

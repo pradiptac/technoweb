@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { GalleryForm } from "../gallery-form";
 import { deleteGalleryAction } from "../actions";
 import type { Gallery } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Edit gallery", path: "/admin/galleries", seo: noIndex });
 
@@ -18,6 +19,7 @@ export default async function EditGalleryPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ saved?: string }>;
 }) {
+  await requireScreen();
   const { id } = await params;
   const { saved } = await searchParams;
 

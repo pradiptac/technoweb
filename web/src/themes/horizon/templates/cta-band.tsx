@@ -19,6 +19,9 @@ export function CtaBand({
   size = "md",
   className,
   phone,
+  kicker,
+  primary,
+  secondary,
 }: CtaBandProps) {
   return (
     <section className={cn("section-y", className)}>
@@ -32,12 +35,17 @@ export function CtaBand({
           )}
         >
           <div>
+            {kicker && <p className="mb-3 text-12 font-semibold uppercase tracking-[.14em]">{kicker}</p>}
             <h2 className={cn(size === "lg" ? "display-2" : "display-3", "text-balance")}>{title}</h2>
             <p className="mt-3 text-15 leading-relaxed text-muted">{body}</p>
           </div>
           <div className="flex flex-wrap gap-3 lg:justify-end">
-            <ButtonLink href="/contact">Book a demo <IconArrowRight /></ButtonLink>
-            <ButtonLink href={telHref(phone)} variant="secondary">Call {phone}</ButtonLink>
+            <ButtonLink href={primary?.href || "/contact"}>{primary?.label || "Book a demo"} <IconArrowRight /></ButtonLink>
+            {secondary === null ? null : secondary ? (
+              <ButtonLink href={secondary.href} variant="secondary">{secondary.label}</ButtonLink>
+            ) : (
+              <ButtonLink href={telHref(phone)} variant="secondary">Call {phone}</ButtonLink>
+            )}
           </div>
         </div>
       </Container>

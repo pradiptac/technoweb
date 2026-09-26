@@ -37,6 +37,8 @@ enum SliderLayout: string
     case Split = 'split';
     case Cards = 'cards';
     case Fan = 'fan';
+    case Cylinder = 'cylinder';
+    case Ripple = 'ripple';
 
     public function label(): string
     {
@@ -45,6 +47,8 @@ enum SliderLayout: string
             self::Split => 'Split — words beside the picture',
             self::Cards => 'Stacked cards',
             self::Fan => 'Fanned photos',
+            self::Cylinder => 'Cylinder carousel',
+            self::Ripple => 'Ripple — full width, rippling between slides',
         };
     }
 
@@ -69,6 +73,16 @@ enum SliderLayout: string
                 .'Pressing any picture brings it to the front. The transition setting and the '
                 .'caption position of each slide are ignored. Needs at least two slides, or it shows '
                 .'as a plain banner.',
+            self::Cylinder => 'The pictures stand as cards around a ring seen in perspective, the '
+                .'current one in front; the ring turns one card at a time on its own or with '
+                .'the arrows, and pressing a card brings it round. The heading and caption sit '
+                .'under the front card. The transition setting and caption positions are '
+                .'ignored. Needs at least five slides, or it shows as a plain banner.',
+            self::Ripple => 'Like Full width — the picture fills the box and the words sit on it — '
+                .'but each change is a ripple spreading from the centre, the old picture bending '
+                .'under the wave as the new one takes its place. Falls back to a crossfade on '
+                .'devices that cannot draw it and for visitors who ask for less motion. The '
+                .'transition setting is ignored. Needs at least two slides.',
         };
     }
 

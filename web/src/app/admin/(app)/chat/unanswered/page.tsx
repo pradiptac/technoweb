@@ -7,6 +7,7 @@ import { noIndex } from "@/lib/no-index";
 import { BriefButton } from "./brief-button";
 import { ResolveButton } from "./resolve-button";
 import { formatDate } from "@/lib/dates";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({
   title: "Questions the site could not answer",
@@ -30,6 +31,7 @@ export default async function UnansweredPage({
 }: {
   searchParams: Promise<{ all?: string }>;
 }) {
+  await requireScreen();
   const { all } = await searchParams;
   const rows = await getChatUnanswered({ all: all === "1" }).catch(() => null);
 

@@ -7,7 +7,7 @@ import {
   createKnowledgeArticle, deleteKnowledgeArticle, updateKnowledgeArticle,
   type KnowledgeArticlePayload,
 } from "@/lib/admin";
-import { jsonListFromFormData, seoFromFormData, str, tagsFromFormData } from "@/lib/admin-form";
+import { customFieldsFromFormData, jsonListFromFormData, seoFromFormData, str, tagsFromFormData } from "@/lib/admin-form";
 import type { AnswerBlock, FaqItem, PublishStatus } from "@/types/api";
 
 export type ArticleFormState = { error?: string; fieldErrors?: Record<string, string[]> };
@@ -17,6 +17,8 @@ function payloadFrom(formData: FormData): KnowledgeArticlePayload {
   const categoryId = str(formData, "knowledge_category_id");
 
   return {
+    // Custom fields: absent when no Fields tab was drawn, so the API leaves them alone.
+    ...customFieldsFromFormData(formData),
     title: str(formData, "title") ?? "",
     slug: str(formData, "slug"),
     excerpt: str(formData, "excerpt"),
@@ -84,7 +86,10 @@ export async function deleteArticleAction(formData: FormData) {
   const id = Number(formData.get("id"));
   if (!id) return;
 
-  await deleteKnowledgeArticle(id).catch(() => null);
+  // Only a delete the API accepted may purge anything: a refusal (in use,
+  // a role, a network error) used to purge the caches and report success.
+  const deleted = await deleteKnowledgeArticle(id).then(() => true, () => false);
+  if (!deleted) redirect("/admin/knowledge-base?done=not-deleted");
   updateTag("kb");
   revalidatePath("/admin/knowledge-base");
   redirect("/admin/knowledge-base?deleted=1");

@@ -7,6 +7,10 @@ use App\Http\Controllers\Api\V1\Admin\BrandController as AdminBrandController;
 use App\Http\Controllers\Api\V1\Admin\CaseStudyController as AdminCaseStudyController;
 use App\Http\Controllers\Api\V1\Admin\CertificationController as AdminCertificationController;
 use App\Http\Controllers\Api\V1\Admin\ClientController as AdminClientController;
+use App\Http\Controllers\Api\V1\Admin\ContentBlockController as AdminContentBlockController;
+use App\Http\Controllers\Api\V1\Admin\ContentTypeController;
+use App\Http\Controllers\Api\V1\Admin\CustomFieldGroupController;
+use App\Http\Controllers\Api\V1\Admin\EntryController;
 use App\Http\Controllers\Api\V1\Admin\FaqController as AdminFaqController;
 use App\Http\Controllers\Api\V1\Admin\FormController as AdminFormController;
 use App\Http\Controllers\Api\V1\Admin\GalleryController as AdminGalleryController;
@@ -131,6 +135,11 @@ Route::middleware('role:content_manager')->group(function () {
 
     Route::get('pages', [AdminPageController::class, 'index'])->name('pages.index');
     Route::post('pages', [AdminPageController::class, 'store'])->name('pages.store');
+    // The section builder (2026-09-26): its pickers, and the unsaved-draft
+    // preview. Declared above `pages/{page:id}`, or the id binding reads
+    // "builder" as a page and 404s.
+    Route::get('pages/builder', [AdminPageController::class, 'builder'])->name('pages.builder');
+    Route::post('pages/preview', [AdminPageController::class, 'preview'])->middleware('throttle:60,1')->name('pages.preview');
     Route::get('pages/{page:id}', [AdminPageController::class, 'show'])->name('pages.show');
     Route::patch('pages/{page:id}', [AdminPageController::class, 'update'])->name('pages.update');
     Route::delete('pages/{page:id}', [AdminPageController::class, 'destroy'])->name('pages.destroy');
@@ -164,6 +173,16 @@ Route::middleware('role:content_manager')->group(function () {
     Route::get('team-members/{team_member:id}', [AdminTeamMemberController::class, 'show'])->name('team-members.show');
     Route::patch('team-members/{team_member:id}', [AdminTeamMemberController::class, 'update'])->name('team-members.update');
     Route::delete('team-members/{team_member:id}', [AdminTeamMemberController::class, 'destroy'])->name('team-members.destroy');
+
+    // Content blocks (2026-09-24): CTA banners, stat bars, pricing and
+    // technology stacks, one entity filtered by `?type=`. Bound by id, the
+    // slug being the shortcode's contract that the form may change.
+    Route::get('blocks', [AdminContentBlockController::class, 'index'])->name('blocks.index');
+    Route::post('blocks', [AdminContentBlockController::class, 'store'])->name('blocks.store');
+    Route::get('blocks/{content_block:id}', [AdminContentBlockController::class, 'show'])->name('blocks.show');
+    Route::patch('blocks/{content_block:id}', [AdminContentBlockController::class, 'update'])->name('blocks.update');
+    Route::post('blocks/{content_block:id}/duplicate', [AdminContentBlockController::class, 'duplicate'])->name('blocks.duplicate');
+    Route::delete('blocks/{content_block:id}', [AdminContentBlockController::class, 'destroy'])->name('blocks.destroy');
 
     // Bound by id, not slug: the edit form can change the slug it
     // is addressed by, the same reason every other CMS entity does.
@@ -225,6 +244,39 @@ Route::middleware('role:content_manager')->group(function () {
     Route::patch('forms/{form:id}', [AdminFormController::class, 'update'])->name('forms.update');
     Route::delete('forms/{form:id}', [AdminFormController::class, 'destroy'])->name('forms.destroy');
     Route::get('forms/{form:id}/submissions', [AdminFormController::class, 'submissions'])->name('forms.submissions');
+
+    /*
+     * Custom field groups (docs/custom-content.md). The console calls the
+     * screen "Custom fields" (`/admin/custom-fields`); the API names what it
+     * writes, which is a group of them — `AdminNavRolesTest::RENAMED` maps
+     * one to the other.
+     */
+    Route::get('custom-field-groups', [CustomFieldGroupController::class, 'index'])->name('custom-field-groups.index');
+    Route::post('custom-field-groups', [CustomFieldGroupController::class, 'store'])->name('custom-field-groups.store');
+    Route::get('custom-field-groups/{custom_field_group:id}', [CustomFieldGroupController::class, 'show'])->name('custom-field-groups.show');
+    Route::patch('custom-field-groups/{custom_field_group:id}', [CustomFieldGroupController::class, 'update'])->name('custom-field-groups.update');
+    Route::delete('custom-field-groups/{custom_field_group:id}', [CustomFieldGroupController::class, 'destroy'])->name('custom-field-groups.destroy');
+
+    /*
+     * Custom content types and their entries (docs/custom-content.md). A type
+     * is bound by id — its edit form changes its slug. Its entries are nested
+     * under its **slug**, the console's own URL (`/admin/content/{type}`),
+     * which nothing on an entry's form can change; an entry is bound by id
+     * and scoped to its type, so another type's entry id answers 404.
+     */
+    Route::get('content-types', [ContentTypeController::class, 'index'])->name('content-types.index');
+    Route::post('content-types', [ContentTypeController::class, 'store'])->name('content-types.store');
+    Route::get('content-types/{content_type:id}', [ContentTypeController::class, 'show'])->name('content-types.show');
+    Route::patch('content-types/{content_type:id}', [ContentTypeController::class, 'update'])->name('content-types.update');
+    Route::delete('content-types/{content_type:id}', [ContentTypeController::class, 'destroy'])->name('content-types.destroy');
+
+    Route::scopeBindings()->group(function () {
+        Route::get('content-types/{content_type:slug}/entries', [EntryController::class, 'index'])->name('entries.index');
+        Route::post('content-types/{content_type:slug}/entries', [EntryController::class, 'store'])->name('entries.store');
+        Route::get('content-types/{content_type:slug}/entries/{entry:id}', [EntryController::class, 'show'])->name('entries.show');
+        Route::patch('content-types/{content_type:slug}/entries/{entry:id}', [EntryController::class, 'update'])->name('entries.update');
+        Route::delete('content-types/{content_type:slug}/entries/{entry:id}', [EntryController::class, 'destroy'])->name('entries.destroy');
+    });
 
     // Index doubles as the parent picker and the product form's
     // category select — one endpoint per resource, as with industries.

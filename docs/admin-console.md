@@ -139,6 +139,27 @@ authenticated to authenticate. A *failed* sign-in is recorded too, and
 `user_id` stays null even when the address matches a real account: the row is
 about an attempt, not about that person.
 
+**The volume chart has a period, and the API decides the buckets (the
+client, 2026-09-24).** Monthly, Quarterly, Half-yearly and Yearly are links to
+`/admin?volume=…`, not a client toggle: the dashboard is a server component
+fed by `/admin/dashboard`, and a choice in the URL survives a refresh and a
+shared link. `TicketMetrics::VOLUME_PERIODS` is the one list — thirty days,
+13 and 26 Monday weeks, twelve calendar months — because 365 daily points is
+a line nobody can read a spike off. Counts are taken per day in SQL and
+bucketed in PHP, so the grouping is identical on every database, and every
+bucket is present as zero when empty (the `dailyVolume` rule one level up).
+Each period is cached for a minute under its own key beside the metrics
+block; `metrics.volume` stays the thirty-day series the tiles are measured
+over. The axis labels one bucket in N so six or seven fit at 320px, and the
+last label is anchored to the row as "Today" / "This week" / "This month",
+for the reason the note below gives.
+
+**An icon picker is a field and a dialog.** `IconField` is one row — the
+glyph, its name, browse and clear — and the ~130 tiles open in a `Modal`
+with the name under each and the search focused; picking closes it. The
+inline grid it replaced was eight rows per homepage statistic. The hidden
+input is unchanged, so the entity forms' Server Actions did not move.
+
 **The ticket volume is two curves, and this is the one chart here that is SVG
 (the client, 2026-09-23).** Opened and resolved as smooth lines with a gradient
 fading under each, in the `--color-info` and `--color-ok` the legend already
@@ -352,6 +373,22 @@ a content manager: `/admin` → `/admin/blog`, `/admin/users` and
 `/admin/settings` and `/admin/store/orders` 404, `/admin/blog` and
 `/admin/profile` 200.
 
+**It had three holes, closed 2026-09-26.** A `Purpose: prefetch` request
+skipped the proxy (the matcher's `missing` rule), so `x-pathname` reached the
+layout as the browser sent it — or not at all, and a missing path skipped the
+check. A client-side navigation never re-ran it, because the layout is kept
+across navigations and the browser's router state decides which segments the
+server renders. And the path was matched undecoded, so `/admin/%73ettings`
+rendered Settings while matching no row. Now: `proxy.ts` has a second matcher
+entry, `/admin/:path*` with no `missing` rule, and overwrites `x-pathname` on
+every console request (and strips one sent anywhere else); the check is
+`requireScreen()` in `lib/admin-screen.ts`, called by the layout and as the
+first line of **every page** under `admin/(app)` (158 of them — a new page must
+do the same), and it decodes and folds the path through `screenPath()` in
+`nav-match.ts` and refuses when there is none. Pages rather than per-section
+layouts, because any layout can be skipped by a request whose router state
+claims to hold it; the page is the one segment always rendered.
+
 **The media library's Bin is its glyph, and its lid moves (2026-09-20).**
 `IconBin` in `icons-ui.tsx`, drawn in two groups so `globals.css` can lift
 and tilt the lid on hover and hold it open while the bin is the view — the
@@ -430,10 +467,26 @@ besides; the create test asserts the row holds no trace of it.
 https only, no credentials in the URL, no IP literal in a private or
 reserved range in either family (`FILTER_FLAG_NO_PRIV_RANGE |
 NO_RES_RANGE`, so the ranges are PHP's list), no `localhost`, no bare name
-without a dot, no `.local`/`.internal`/`.lan`/`.home.arpa`. A public name
-that *resolves* to a private address still passes — closing that means
-resolving at send time and pinning the address, which is written down here
-rather than half-done.
+without a dot, no `.local`/`.internal`/`.lan`/`.home.arpa` — and, since
+2026-09-26, no address written as a bare number (`127.1`, `0x7f.0.0.1`,
+`0177.0.0.1`, `2130706433`) or as IPv4-in-IPv6 (`::ffff:127.0.0.1`), which
+`FILTER_VALIDATE_IP` does not call addresses and the resolver reads as
+loopback.
+
+**And at send time, the address is resolved, checked and pinned
+(2026-09-26).** The response excerpt is shown in the console, so a webhook
+that reached `169.254.169.254` or a service on the LAN was a way to *read*
+the inside of the network. `DeliverWebhook` resolves the host through
+`App\Support\Net\PublicHost`, refuses any private, reserved, loopback,
+link-local, CGNAT or IPv4-mapped answer (recorded like any other refusal and
+retried), and hands cURL exactly the addresses it checked
+(`CURLOPT_RESOLVE`), so a second DNS answer cannot be substituted. **A
+redirect is a failure** (`withoutRedirecting()`): followed, a 302 from a
+public host to the metadata service took the request past every check and
+down to plain http. `PublicHost` is the one definition of "a host this server
+may connect to on somebody's say-so", shared with the newsletter's mailbox
+scan and the SMTP/IMAP settings; tests bind `PublicHost::RESOLVER` so no test
+performs a DNS lookup.
 
 **Retries through the queue: five attempts, `[60, 300, 1800, 7200, 43200]`
 seconds.** Anything but a 2xx — a 4xx, a 5xx, a refused connection, a

@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateKnowledgeArticleRequest;
 use App\Http\Resources\Admin\KnowledgeArticleResource;
 use App\Models\KnowledgeArticle;
 use App\Models\KnowledgeCategory;
+use App\Support\CustomFields\CustomFields;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -47,6 +48,8 @@ class KnowledgeArticleController extends Controller
         // select is built from this, the `meta.transitions` rule.
         return KnowledgeArticleResource::collection($articles)->additional(['meta' => [
             'answer_block_kinds' => AnswerBlockKind::options(),
+            // The custom field groups that apply, for the console's Fields tab.
+            'custom_field_groups' => CustomFields::definitions('knowledge_article'),
         ]]);
     }
 
@@ -61,25 +64,27 @@ class KnowledgeArticleController extends Controller
 
     public function show(KnowledgeArticle $knowledgeArticle): JsonResource
     {
-        return new KnowledgeArticleResource($knowledgeArticle->load(['category', 'faqs', 'answerBlocks', 'seo']));
+        return new KnowledgeArticleResource($knowledgeArticle->load(['category', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group']));
     }
 
     public function store(StoreKnowledgeArticleRequest $request): JsonResponse
     {
         $article = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
             $content = $this->pullAnswerContent($attributes);
 
             $article = KnowledgeArticle::create($this->withPublishedAt($attributes));
 
             $this->saveAnswerContent($article, $content);
             $this->saveSeo($article, $seo);
+            $this->saveCustomFields($article, $custom);
 
             return $article;
         });
 
         return response()->json(
-            ['data' => new KnowledgeArticleResource($article->load(['category', 'faqs', 'answerBlocks', 'seo']))],
+            ['data' => new KnowledgeArticleResource($article->load(['category', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group']))],
             201
         );
     }
@@ -88,15 +93,17 @@ class KnowledgeArticleController extends Controller
     {
         DB::transaction(function () use ($request, $knowledgeArticle) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
             $content = $this->pullAnswerContent($attributes);
 
             $knowledgeArticle->update($this->withPublishedAt($attributes, $knowledgeArticle));
 
             $this->saveAnswerContent($knowledgeArticle, $content);
             $this->saveSeo($knowledgeArticle, $seo);
+            $this->saveCustomFields($knowledgeArticle, $custom);
         });
 
-        return new KnowledgeArticleResource($knowledgeArticle->fresh(['category', 'faqs', 'answerBlocks', 'seo']));
+        return new KnowledgeArticleResource($knowledgeArticle->fresh(['category', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group']));
     }
 
     public function destroy(KnowledgeArticle $knowledgeArticle): JsonResponse

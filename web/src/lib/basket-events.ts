@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import type { CartSummary } from "@/types/api";
 
+/** The basket as the browser is given it: everything but the token. */
+export type BasketView = Omit<CartSummary, "token">;
+
 /**
  * How the basket indicator learns that the basket changed.
  *
@@ -19,7 +22,8 @@ export function announceBasketChange(): void {
 }
 
 /**
- * The basket as `/api/store/basket` reports it: `null` until the first
+ * The basket as `/api/store/basket` reports it — without its token, which
+ * stays in the httpOnly cookie: `null` until the first
  * answer, and `null` again for a visitor with no basket at all.
  *
  * Fetched after mount and on every announcement. The first render — the
@@ -28,15 +32,15 @@ export function announceBasketChange(): void {
  * cached. A failed fetch leaves whatever was showing: a basket that briefly
  * reads stale is better than one that blinks empty because a request timed out.
  */
-export function useBasket(): CartSummary | null {
-  const [cart, setCart] = useState<CartSummary | null>(null);
+export function useBasket(): BasketView | null {
+  const [cart, setCart] = useState<BasketView | null>(null);
 
   const refresh = useCallback(() => {
     fetch("/api/store/basket", { headers: { Accept: "application/json" }, cache: "no-store" })
       .then(async (res) => {
         if (res.status === 204) return null;
         if (!res.ok) throw new Error(String(res.status));
-        return ((await res.json()) as { data: CartSummary }).data;
+        return ((await res.json()) as { data: BasketView }).data;
       })
       .then((next) => setCart(next))
       .catch(() => {});

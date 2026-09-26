@@ -131,3 +131,12 @@ meta description, and that is what a search engine showed. `toText` spaces
 **block** tags only: doing it for every tag breaks the other way, since
 `<strong>ten</strong>ths` is one word. It feeds all nine `defaultSeo()`
 descriptions and the plain-text half of the notification emails.
+
+**A builder page's rich text is the same editor and the same allowlist.**
+The `rich_text` and `media_text` sections of the page builder
+(`docs/page-builder.md`) draw `EditorField` bound to the section's
+`data.body`, and the page requests name `blocks.*.data.body` in
+`richTextFields()` — `SanitisesRichText` reads the dotted path after the
+wildcard since 2026-09-26 — so a section body is cleaned by `HtmlSanitiser`
+before validation exactly as a page body is, and rendered through
+`ProseWithShortcodes`. Every other section field is plain text.

@@ -3,16 +3,28 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\AiModel;
+use App\Enums\ContentBlockType;
 use App\Enums\ImageQuality;
+use App\Enums\MailTransport;
+use App\Enums\MessageChannel;
 use App\Enums\PaymentGateway;
 use App\Http\Controllers\Controller;
+use App\Models\ContentBlock;
+use App\Models\Coupon;
 use App\Models\Setting;
 use App\Support\Announcement;
 use App\Support\Chat\ChatSettings;
 use App\Support\HtmlSanitiser;
 use App\Support\InboundMail\InboundMail;
+use App\Support\Messaging\ProviderOption;
+use App\Support\Messaging\Providers\Fcm;
+use App\Support\Messaging\Providers\GoogleRbm;
+use App\Support\Net\PublicHost;
+use App\Support\Seo\GoogleServiceAccount;
+use App\Support\Store\CartReminders;
 use App\Support\ThemeOptions;
 use App\Support\UploadLimits;
+use App\Support\Visits\VisitSettings;
 use App\Support\YouTube;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -138,6 +150,39 @@ class SettingController extends Controller
         ['value' => 'large', 'label' => 'Large', 'description' => 'Display-sized figures that carry the row.'],
     ];
 
+    /** Which setting chooses which kind of homepage block. */
+    public const HOME_BLOCKS = [
+        'home_stats_block' => ContentBlockType::Stats,
+        'home_pricing_block' => ContentBlockType::Pricing,
+        'home_stack_block' => ContentBlockType::Stack,
+    ];
+
+    /**
+     * A homepage block setting's choices: none, then every published block of
+     * that kind by name. A picker, not a slug typed by hand — a typo would
+     * save, report saved and draw nothing.
+     *
+     * @return list<array{value: string, label: string, description: string}>
+     */
+    private static function blockOptions(ContentBlockType $type): array
+    {
+        return [
+            ['value' => '', 'label' => 'None', 'description' => 'No section on the homepage.'],
+            ...ContentBlock::query()->published()->where('type', $type)->orderBy('name')->get(['slug', 'name', 'layout'])
+                ->map(fn (ContentBlock $b) => ['value' => $b->slug, 'label' => $b->name, 'description' => '['.$type->value.' slug="'.$b->slug.'"]'])
+                ->all(),
+        ];
+    }
+
+    /**
+     * How the footer's social links are drawn (the client, 2026-09-24). The
+     * frontend's `SocialLinks` reads the value and falls back to `flip`.
+     */
+    public const SOCIAL_STYLES = [
+        ['value' => 'flip', 'label' => 'Flip tiles', 'description' => 'A letter on each tile, spelling the word below; pointing at the row flips them one after another to the icons. Phones show the icons.'],
+        ['value' => 'dock', 'label' => 'Magnifying dock', 'description' => 'The icons in bordered tiles that grow under the pointer, each taking its brand colour.'],
+    ];
+
     /**
      * How a statistic's figure arrives the first time it scrolls into view.
      * Drawn by the frontend's `StatValue`; the list is here because the
@@ -155,6 +200,12 @@ class SettingController extends Controller
     {
         return match ($key) {
             'image_quality' => ImageQuality::options(),
+            // Two words rather than "1 or 0" in a text box: this one decides
+            // whether customers are emailed, which is not a thing to typo.
+            'store_cart_reminders_enabled' => [
+                ['value' => '0', 'label' => 'Off', 'description' => 'Nobody is emailed about a basket they left.'],
+                ['value' => '1', 'label' => 'On', 'description' => 'Up to two reminders, inside the promotional hours, never to the do-not-mail list.'],
+            ],
             // The gateway list comes from the enum, which also knows which of
             // them this server can actually use. One list, as with the mail
             // transports.
@@ -208,14 +259,39 @@ class SettingController extends Controller
             'chatbot_font_size' => ChatSettings::FONT_SIZES,
             'chatbot_animation' => ChatSettings::ANIMATIONS,
             'stats_size' => self::STAT_SIZES,
+            'social_style' => self::SOCIAL_STYLES,
+            'home_stats_block' => self::blockOptions(ContentBlockType::Stats),
+            'home_pricing_block' => self::blockOptions(ContentBlockType::Pricing),
+            'home_stack_block' => self::blockOptions(ContentBlockType::Stack),
             'stats_animation' => self::STAT_ANIMATIONS,
             'chatbot_model' => AiModel::options(
                 (string) Setting::query()->where('key', 'chatbot_model')->value('value'),
             ),
+            'messaging_whatsapp_provider' => self::messagingOptions(MessageChannel::WhatsApp),
+            'messaging_rcs_provider' => self::messagingOptions(MessageChannel::Rcs),
+            'messaging_push_provider' => self::messagingOptions(MessageChannel::Push),
             // The support mailbox's choices: provider, what to do with a
             // processed message, unknown senders, priority, encryption.
             default => InboundMail::options()[$key] ?? null,
         };
+    }
+
+    /**
+     * A channel's providers as a select: off, then each provider the enum
+     * lists — the mail transports' rule, one list on one side of the wire.
+     *
+     * @return list<array{value: string, label: string, description: string}>
+     */
+    private static function messagingOptions(MessageChannel $channel): array
+    {
+        return [
+            ['value' => '', 'label' => 'Off', 'description' => "Nothing is sent on {$channel->label()} and no opt-in is offered for it."],
+            ...array_map(fn (ProviderOption $p) => [
+                'value' => $p->id(),
+                'label' => $p->label(),
+                'description' => $p->isAvailable() ? $p->blurb() : 'Needs the OpenSSL extension, which the PHP on this server does not have.',
+            ], $channel->providers()),
+        ];
     }
 
     /**
@@ -273,11 +349,15 @@ class SettingController extends Controller
         // or anyone who takes one over — framing an arbitrary page inside the
         // site's own origin.
         $this->validateMapEmbed($request);
+        $this->validateProfilesAndTagIds($request);
+        $this->validateMailServers($request, $existing);
         $this->validateBlogVideo($request);
         $this->validateAppearance($request);
         $this->validateMotion($request);
         $this->validateSiteTheme($request);
         $this->validateAnnouncement($request, $existing);
+        $this->validateMessaging($request, $existing);
+        $this->validateVisits($request);
 
         /*
          * A setting with a fixed set of choices is checked against that set.
@@ -304,6 +384,39 @@ class SettingController extends Controller
             if ($row['key'] === 'ga4_property_id' && filled($row['value']) && ! preg_match('/^\d{1,20}$/', $row['value'])) {
                 throw ValidationException::withMessages([
                     "settings.{$i}.value" => 'The GA4 property id is the number shown under Admin → Property details, such as 123456789 — not the G- measurement id.',
+                ]);
+            }
+
+            /*
+             * The basket reminders' delays, refused outside their range
+             * rather than clamped: the second has to land before the prune
+             * deletes the basket at thirty days, and a number the console
+             * accepted and the command then quietly ignored is a setting
+             * that lies about what it does.
+             */
+            $delays = [
+                'store_cart_reminder_1_hours' => [CartReminders::MAX_FIRST_HOURS, 'The first reminder goes between 1 and '.CartReminders::MAX_FIRST_HOURS.' hours after the basket goes quiet.'],
+                'store_cart_reminder_2_days' => [CartReminders::MAX_SECOND_DAYS, 'The second reminder goes between 1 and '.CartReminders::MAX_SECOND_DAYS.' days after — an untouched basket is deleted at 30.'],
+            ];
+
+            if ($row['key'] === 'store_cart_reminders_enabled' && ! in_array((string) $row['value'], ['0', '1'], true)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'Basket reminders are on (1) or off (0).']);
+            }
+
+            if (isset($delays[$row['key']]) && filled($row['value'])) {
+                [$max, $message] = $delays[$row['key']];
+
+                if (! ctype_digit((string) $row['value']) || (int) $row['value'] < 1 || (int) $row['value'] > $max) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => $message]);
+                }
+            }
+
+            // A reminder coupon has to be a code the shop has, or the second
+            // reminder would offer a discount the checkout refuses.
+            if ($row['key'] === 'store_cart_reminder_coupon' && filled($row['value'])
+                && ! Coupon::where('code', Coupon::normalise($row['value']))->exists()) {
+                throw ValidationException::withMessages([
+                    "settings.{$i}.value" => 'There is no discount code called '.Coupon::normalise($row['value']).'. Make it under Store → Discount codes first.',
                 ]);
             }
 
@@ -366,6 +479,15 @@ class SettingController extends Controller
                     ]);
                 }
             }
+
+            // The wishlist price-drop threshold: a whole percentage, refused
+            // outside 1–90 rather than read as five without saying so.
+            if ($row['key'] === 'store_price_drop_min_percent' && filled($row['value'])
+                && (! ctype_digit((string) $row['value']) || (int) $row['value'] < 1 || (int) $row['value'] > 90)) {
+                throw ValidationException::withMessages([
+                    "settings.{$i}.value" => 'Give a whole percentage between 1 and 90.',
+                ]);
+            }
         }
 
         DB::transaction(function () use ($validated, $existing) {
@@ -382,6 +504,11 @@ class SettingController extends Controller
                 // lower-case so `#2563EB` and `#2563eb` are one value.
                 if (in_array($row['key'], self::COLOUR_KEYS, true) && filled($value)) {
                     $value = strtolower((string) $value);
+                }
+
+                // A coupon is matched on its normalised code; store it that way.
+                if ($row['key'] === 'store_cart_reminder_coupon' && filled($value)) {
+                    $value = Coupon::normalise((string) $value);
                 }
 
                 // A blank secret means "leave it alone", not "clear it".
@@ -590,6 +717,21 @@ class SettingController extends Controller
                 $rows[$i]['value'] = strtolower((string) $value);
             }
 
+            if (isset(self::HOME_BLOCKS[$key]) && filled($value)
+                && ! ContentBlock::query()->published()->where('type', self::HOME_BLOCKS[$key])->where('slug', $value)->exists()) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a published block of this kind, or None.']);
+            }
+            if ($key === 'social_style' && filled($value) && ! in_array($value, array_column(self::SOCIAL_STYLES, 'value'), true)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a style from the list.']);
+            }
+            // One letter per tile, so letters and digits only; stored upper-case
+            // because the tiles are capitals whatever was typed.
+            if ($key === 'social_flip_word' && filled($value)) {
+                if (! preg_match('/^[A-Za-z0-9]{1,7}$/', (string) $value)) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'Letters and digits only, no spaces, at most 7 — one per tile.']);
+                }
+                $rows[$i]['value'] = strtoupper((string) $value);
+            }
             if ($key === 'stats_size' && filled($value) && ! in_array($value, array_column(self::STAT_SIZES, 'value'), true)) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a size from the list.']);
             }
@@ -692,6 +834,192 @@ class SettingController extends Controller
             $i = $sent['announcement_ends_at']['i'] ?? $sent['announcement_starts_at']['i'] ?? 0;
 
             throw ValidationException::withMessages(["settings.{$i}.value" => 'The end is before the start, so this would never show.']);
+        }
+    }
+
+    /**
+     * The messaging group: a provider from the channel's own enum or blank
+     * for off, a quiet-hours window as two HH:MM times the right way round,
+     * and a service-account key that is Google's JSON file — refused here
+     * rather than at the first send, the mail transports' rule. A replaced
+     * key forgets the token cached for the old one.
+     *
+     * @param  Collection<string, Setting>  $existing
+     */
+    private function validateMessaging(Request $request, $existing): void
+    {
+        $sent = [];
+
+        foreach ($request->input('settings', []) as $i => $row) {
+            $key = (string) ($row['key'] ?? '');
+            $value = $row['value'] ?? null;
+            $sent[$key] = ['i' => $i, 'value' => $value];
+
+            foreach (MessageChannel::cases() as $channel) {
+                if ($key === $channel->settingKey() && filled($value) && $channel->provider((string) $value) === null) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a provider from the list, or Off.']);
+                }
+            }
+
+            if (in_array($key, ['messaging_promo_start', 'messaging_promo_end'], true) && filled($value)
+                && ! preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', (string) $value)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'A time on the 24-hour clock, such as 09:00 or 21:00.']);
+            }
+
+            if (in_array($key, [GoogleRbm::KEY, Fcm::KEY], true) && filled($value)) {
+                $json = json_decode((string) $value, true);
+
+                if (! is_array($json) || empty($json['client_email']) || empty($json['private_key'])) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'Paste the whole JSON key file Google issued for the service account — it holds client_email and private_key.']);
+                }
+
+                GoogleServiceAccount::forget($key === Fcm::KEY ? Fcm::SCOPE : GoogleRbm::SCOPE, $key);
+            }
+        }
+
+        $start = array_key_exists('messaging_promo_start', $sent) ? $sent['messaging_promo_start']['value'] : $existing->get('messaging_promo_start')?->value;
+        $end = array_key_exists('messaging_promo_end', $sent) ? $sent['messaging_promo_end']['value'] : $existing->get('messaging_promo_end')?->value;
+
+        if (filled($start) && filled($end) && (string) $end <= (string) $start) {
+            $i = $sent['messaging_promo_end']['i'] ?? $sent['messaging_promo_start']['i'] ?? 0;
+
+            throw ValidationException::withMessages(["settings.{$i}.value" => 'The window closes before it opens. Promotional messages go out between the two times on the same day.']);
+        }
+    }
+
+    /**
+     * The social profiles and the three analytics ids, held to their shape.
+     *
+     * A profile URL becomes an `href` in every page's footer, so it is an
+     * http(s) address and nothing else — `javascript:` saved there ran for
+     * whoever pressed the icon. The analytics ids are interpolated into
+     * inline scripts on every public page; each has a published shape, and
+     * anything outside it is a way to write script into the site from the
+     * settings screen.
+     */
+    private function validateProfilesAndTagIds(Request $request): void
+    {
+        $shapes = [
+            'google_analytics_id' => ['/^G-[A-Z0-9]+$/', 'A GA4 measurement id looks like G-XXXXXXXXXX.'],
+            'google_tag_manager_id' => ['/^GTM-[A-Z0-9]+$/', 'A Tag Manager container id looks like GTM-XXXXXXX.'],
+            'meta_pixel_id' => ['/^\d+$/', 'A Meta Pixel id is digits only.'],
+        ];
+
+        foreach ($request->input('settings', []) as $i => $row) {
+            $key = (string) ($row['key'] ?? '');
+            $value = $row['value'] ?? null;
+
+            if (blank($value)) {
+                continue;
+            }
+
+            if (str_starts_with($key, 'social_') && ! in_array($key, ['social_style', 'social_flip_word'], true)
+                && ! preg_match('#^https?://[^\s/]+[^\s]*$#i', (string) $value)) {
+                throw ValidationException::withMessages([
+                    "settings.{$i}.value" => 'A profile is a web address starting https://, or blank to hide the icon.',
+                ]);
+            }
+
+            if (isset($shapes[$key]) && ! preg_match($shapes[$key][0], (string) $value)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => $shapes[$key][1]]);
+            }
+        }
+    }
+
+    /** Where each stored mail secret is sent, host key => secret key. */
+    private const MAIL_SECRETS = [
+        'smtp_host' => 'smtp_password',
+        'inbound_imap_host' => 'inbound_imap_password',
+    ];
+
+    /** The ports each protocol is served on, and nothing else. */
+    private const MAIL_PORTS = [
+        'smtp_port' => [25, 465, 587, 2525],
+        'inbound_imap_port' => [143, 993],
+    ];
+
+    /**
+     * The servers mail is sent through and read from.
+     *
+     * Three rules, each closing a way this screen could be turned on the
+     * network or on its own secrets:
+     *
+     *  - **A public host on a mail port.** The server connects from inside
+     *    the network, and the connection test reports what answered — any
+     *    host and port made it a scanner of the LAN.
+     *  - **Mailgun is one of Mailgun's two hosts.** The API key is sent to
+     *    `mailgun_endpoint`; left free, an administrator's session could
+     *    point it at a server of their own and read the stored key off the
+     *    first send, though the console never shows it.
+     *  - **A new host needs the password typed again.** The same trick for
+     *    SMTP and IMAP: change the host, keep the stored password, press
+     *    Test, and the password is delivered to the new host. Requiring it
+     *    in the same save means only somebody who knows it can move it.
+     *
+     * @param  Collection<string, Setting>  $existing
+     */
+    private function validateMailServers(Request $request, $existing): void
+    {
+        $rows = collect($request->input('settings', []));
+        $sent = $rows->mapWithKeys(fn ($row, $i) => [(string) ($row['key'] ?? '') => ['i' => $i, 'value' => $row['value'] ?? null]]);
+
+        foreach (array_keys(self::MAIL_SECRETS) as $hostKey) {
+            $host = trim((string) ($sent[$hostKey]['value'] ?? ''));
+
+            if ($host !== '' && ($refusal = PublicHost::refusal($host))) {
+                throw ValidationException::withMessages(["settings.{$sent[$hostKey]['i']}.value" => $refusal.' A mail server has to be a public host.']);
+            }
+        }
+
+        foreach (self::MAIL_PORTS as $portKey => $ports) {
+            $port = $sent[$portKey]['value'] ?? null;
+
+            if (filled($port) && ! in_array((int) $port, $ports, true)) {
+                throw ValidationException::withMessages([
+                    "settings.{$sent[$portKey]['i']}.value" => 'Use one of the ports this is served on: '.implode(', ', $ports).'.',
+                ]);
+            }
+        }
+
+        $endpoint = $sent['mailgun_endpoint']['value'] ?? null;
+
+        if (filled($endpoint) && ! in_array(strtolower(trim((string) $endpoint)), MailTransport::MAILGUN_ENDPOINTS, true)) {
+            throw ValidationException::withMessages([
+                "settings.{$sent['mailgun_endpoint']['i']}.value" => 'Mailgun is api.mailgun.net, or api.eu.mailgun.net for an EU account.',
+            ]);
+        }
+
+        foreach (self::MAIL_SECRETS as $hostKey => $secretKey) {
+            if (! isset($sent[$hostKey])) {
+                continue;
+            }
+
+            $before = strtolower(trim((string) $existing->get($hostKey)?->value));
+            $after = strtolower(trim((string) $sent[$hostKey]['value']));
+            $stored = filled($existing->get($secretKey)?->value);
+            $retyped = filled($sent[$secretKey]['value'] ?? null);
+
+            if ($after !== '' && $after !== $before && $stored && ! $retyped) {
+                throw ValidationException::withMessages([
+                    "settings.{$sent[$hostKey]['i']}.value" => 'Type the password again with the new server — the stored one is only ever sent to the server it was saved for.',
+                ]);
+            }
+        }
+    }
+
+    /**
+     * The `visits` group: the lines and numbers `VisitSettings` parses,
+     * refused with the reason rather than saved and quietly read as the
+     * default (2026-09-26, docs/visits.md).
+     */
+    private function validateVisits(Request $request): void
+    {
+        foreach ($request->input('settings', []) as $i => $row) {
+            $refusal = VisitSettings::refusalFor((string) ($row['key'] ?? ''), $row['value'] ?? null);
+
+            if ($refusal !== null) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => $refusal]);
+            }
         }
     }
 

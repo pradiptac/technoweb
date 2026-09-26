@@ -26,7 +26,7 @@ phases are done and verified in a browser — the public site, the customer
 portal, the ticket/RBAC domain, the admin console and email notifications.
 
 Ten entities have full CRUD (blog, knowledge base, case studies, solutions,
-services, industries, pages, products, brands, product categories), alongside
+services, industries, pages — including a section page builder — products, brands, product categories), alongside
 FAQs, the media library, redirects, an SEO overview, staff accounts, **portal
 customers and their approval queue**, and site settings. Everything the public site renders is editable from the console,
 including the homepage hero and its statistics.
@@ -143,6 +143,11 @@ Contents:
   - Site themes — `docs/themes.md`
   - Email to ticket — `docs/tickets.md`
   - Icon packs — `docs/icons.md`
+  - Content blocks — `docs/blocks.md`
+  - The section page builder — `docs/page-builder.md`
+  - Messaging — `docs/messaging.md`
+  - Engineer visits — `docs/visits.md`
+  - Custom fields and content types — `docs/custom-content.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -182,7 +187,9 @@ and again on the `tw:cart` window event that Add to basket and Remove
 announce. And **`revalidatePath("/store", "layout")` must not come back** to
 the cart actions: it would purge every cached shop page for every visitor on
 each Add to basket. `/api/store/basket` answers 204 with no API call when
-there is no cookie, so a crawler still never mints a cart.
+there is no cookie, so a crawler still never mints a cart — and it answers
+**without the cart's token** (`BasketView`), which it used to hand to browser
+JavaScript from inside `data` while the cookie holding it was httpOnly.
 
 **A console save has to `updateTag` the collection, and ten action files
 never did.** Every detail fetch carries its collection's tag as well as its
@@ -192,7 +199,13 @@ services, solutions, FAQs and the store's products and categories calls
 `updateTag(<collection>)` — before that, an edit reached the public page only
 when the fetch's revalidate window ran out, five to ten minutes, which a probe
 renaming a solution through the real form proved. Verified after: HIT before
-the save, the new title on the next request.
+the save, the new title on the next request. **A delete purges only once the
+API accepted it**: the twelve content lists' delete actions ran
+`deleteX(id).catch(() => null)` and then purged and reported "deleted" whatever
+happened; a refusal now redirects with `?done=not-deleted` and purges nothing,
+and the pages delete no longer calls `revalidatePath` on a slug taken from the
+form (2026-09-26). An anonymous form submission purges nothing at all —
+`submitFormAction` carried a `revalidatePath("/")` nothing needed.
 
 **The proxy holds the redirect table in memory.** `proxy.ts` used to call
 `/redirects/lookup` on every request under ten content prefixes — pages that
@@ -264,7 +277,9 @@ public site does without, and its detail routes are ISR-cached anyway.
 **Never ISR-cache a user's search query.** `publicApi.products()` and
 `publicApi.knowledgeArticles()` take a `cache` flag — pass `false` when `q` is
 present. Caching search fills the cache with single-use entries and serves a
-stale empty result for the whole revalidate window.
+stale empty result for the whole revalidate window. The registration form's
+company lookup (`/api/companies`) was the one route handler still doing it
+(`revalidate: 300`); it is `no-store` since 2026-09-26.
 
 **Portal auth guard is on `web/src/app/portal/(app)/layout.tsx`.**
 `portal/login/` sits *outside* that route group deliberately — guarding it too
@@ -328,7 +343,21 @@ the static constants in `content/site.ts` when one is unset.
 console or the portal. Tracking staff pollutes the client's numbers, and a
 tracker on a signed-in support page sends ticket URLs — which contain a
 customer reference — to a third party. Each tag renders only when its ID is
-set.
+set. **And not on a page a secret addresses** (2026-09-26): `/order/*`,
+`/newsletter/unsubscribe/*` and `/store/notify/cancel/*` render no tag, carry
+`Referrer-Policy: no-referrer` (`next.config.ts`), and GA4's `page_location`
+everywhere is origin + path + the campaign parameters only. The order page
+used to be `/order/{n}?token=…` — its access token reported to GA4 and the
+Meta Pixel on every confirmation.
+
+**An order's token lives in a cookie, never in a rendered URL.** Links (the
+emails, Cashfree's return URL, `Order::url()`) go to `/order/{n}/open?token=…`,
+a route handler that sets an httpOnly cookie scoped to `/order/{n}` and 303s
+to the clean page; the checkout action sets the same cookie and redirects clean;
+the page, `PayButton`, `RevealCode` and their actions read it
+(`lib/order-access.ts`) and never take the token as a prop. A `?token=` still
+arriving at the page (an old email) is redirected through `/open`, never
+rendered with. The token must be 64 hex characters — the mock's is too.
 
 **Consent gates the trackers for real.** With `cookie_consent_enabled` on —
 the default — `Analytics` renders nothing at all until someone accepts: no
@@ -387,7 +416,10 @@ things that came with switching:
   it, because it filtered "Failed to load resource" out of its console check.
   The exception is granted only when a configured asset origin is loopback or
   RFC 1918; `ASSET_ORIGIN=https://api.technoware.in` keeps the guard. **The
-  audit now fails a route on any 4xx/5xx image response from this origin.**
+  asset origins are `ASSET_ORIGIN`, or `API_BASE_URL` only when that is
+  unset** — they were both, always, so a production build with an internal
+  `API_BASE_URL=http://127.0.0.1:8000` switched the guard off (2026-09-26).
+  **The audit now fails a route on any 4xx/5xx image response from this origin.**
 - **React Flight emits a preload hint for every non-lazy raw `<img>` in a
   server component, and a `<Link>` prefetch executes it.** With a raw `<img>`
   in `PageHero`, every page linking to `/support` and `/resources` in its nav
@@ -619,6 +651,22 @@ perfectly correct in development, where the retained port is the one the browser
 wanted. The host is read from `x-forwarded-host` before `host` for the same
 family of reason: compare the internal host and the check never matches, which
 is an infinite redirect.
+
+**The API sees the visitor's address only because the Next server tells it,
+and believes it only from the Next server.** Every public request reaches
+Laravel from Next, so until 2026-09-26 `$request->ip()` was the Next host for
+everybody: every per-IP throttle was one bucket for the site, and five wrong
+passwords locked an account (staff too) for all. Now every uncached API call
+— `apiFetch` without `revalidate`, `apiUpload`, `proxyMultipart` and the route
+handlers that fetch directly — sends `X-Forwarded-For: <visitor>` from
+`clientIpHeaders()` (`lib/client-ip.ts`), which takes the rightmost
+non-loopback entry the edge appended, **never the header as received**
+(`CLIENT_IP_HEADER=x-real-ip` for an edge that sets that instead). Laravel
+believes `X-Forwarded-For` — and no other forwarded header — from
+`TRUSTED_PROXIES` only (`api/config/trustedproxy.php`, default loopback). A
+cached read never carries it: its cache key includes the headers. Get
+`TRUSTED_PROXIES` wrong and the site is back to one bucket, silently — the
+README's deploy section says how to check.
 
 ### Type, measure and overflow
 
@@ -1548,6 +1596,13 @@ and a product legitimately called `A <> B` should still work.
 not enough on its own: a breakout splits one block into two that both parse
 cleanly, which is how it went unnoticed.
 
+**A cookie-authenticated route handler that changes something checks
+`Origin` first** — `isSameOrigin()` in `lib/same-origin.ts`, inside
+`proxyMultipart` for every upload handler and in the impersonation handler.
+`sameSite: "lax"` already keeps the session cookies off a cross-site POST; the
+check does not rely on that. An absent `Origin` passes (not a browser), a
+`null` one does not.
+
 **Two settings groups are private and must stay that way.** `mail` holds the
 SMTP credentials and `integrations` holds the API key. They are excluded from
 the public `/settings` whitelist, marked `is_secret`, encrypted at rest, and
@@ -1556,11 +1611,30 @@ is set. A blank submit means "unchanged", because the form can never show the
 current value; clearing one is a separate endpoint. When adding a setting, ask
 which of those two lists it belongs on before adding it to the seeder.
 
+**Every `href` an editor types is `App\Support\LinkPattern`.** A path, an
+http(s) URL, `mailto:` or `tel:` — and the path branch refuses `//host` and
+`/\host`, which a browser reads as another site. Menus, popups, content
+blocks, the promo band, slider slides and gallery items all use it; the last
+two took any string, so `javascript:` saved on a slide ran for whoever
+pressed it. Social profiles must be http(s), and the three analytics ids are
+held to their published shapes, since they are interpolated into inline
+scripts. An FAQ answer saved through any entity form's `faqs[]` is sanitised
+(`SanitisesRichText` adds `faqs.*.answer` to every request), as it always was
+on the FAQ screen.
+
 **A map embed URL is validated against Google's host on write.** It becomes an
 `iframe src` on the contact page, and an unchecked one is somebody else's page
 rendered inside ours.
 
 ### Laravel conventions
+
+**`throttle:N,M` counts per route.** The framework's unnamed limit keys on the
+caller alone, so all ~80 throttled routes shared one counter per caller —
+twenty JavaScript error reports answered 429 on `auth/login`.
+`ThrottleRequestsPerRoute` is registered over the `throttle` alias in
+`bootstrap/app.php` and adds the route's name (methods + URI without one), so a
+new route gets its own counter by writing `throttle:N,M` as before; nothing
+per-route to remember. `RateLimitScopeTest` pins it with the proxy rule above.
 
 **A log line an operator needs must clear the shipped `LOG_LEVEL`.** Both
 `.env` and `.env.example` ship `LOG_LEVEL=warning`, so `logger()->info(...)` is
@@ -1850,10 +1924,11 @@ new rule goes in both places.
 
 ### The store — `docs/store.md`
 
-A separate catalogue with prices; baskets, checkout, payment, stock, coupons, digital codes, the Merchant Center feed.
+A separate catalogue with prices; baskets, checkout, payment, stock, coupons, digital codes, the Merchant Center feed, wishlists, spec filters, product video, the Meta catalogue.
 
 - "Paid" has one definition and three screens read it.
 - The public order page's alert reads `paid_at` too: a cash-on-delivery order is confirmed and unpaid, and it said "Payment received" until 2026-09-16.
+- An order's token is never the address of a rendered page (2026-09-26): links go to `/order/{n}/open?token=`, which sets an httpOnly cookie at `path=/order/{n}` and 303s clean; the page and its actions read the cookie (`lib/order-access.ts`), Analytics skip `/order/*`, `no-referrer` there.
 - "Out of stock" has one definition too, and it is the one the tile links to.
 - Overselling is a switch on the shelf, so it lives where the stock does.
 - With oversell on, `inStock()`, `scopeOutOfStock()`, `CartItem::availableQuantity()`, the checkout gate and `Settlement::takeStock()` all agree, and stock goes negative on purpose.
@@ -1913,7 +1988,7 @@ A separate catalogue with prices; baskets, checkout, payment, stock, coupons, di
 - Google rejects SVG, and this library is largely SVG placeholder art.
 - Delivery, handling and the return window are three settings read from one place.
 - `/returns` and `/shipping` are seeded placeholders, and `PageSeeder` overwrites all four policy pages on re-run.
-- `AggregateRating` and `Review` are absent from every graph, deliberately.
+- `AggregateRating` and `Review` are emitted on the store Product graph from published reviews only (2026-09-26), never invented; the catalogue has neither.
 - The promo band on the shop front is `/admin/store/promo` under Store, a store manager's screen, not a run of fields at the foot of Settings → Store (2026-09-20): its rows are the `store_promo` settings group, left out of the settings strip like the info bar, written through `PATCH /admin/store/promo`, which refuses any key outside the eight by name — settings as a whole stay `role:admin`.
 - Two tiles sit above the band (2026-09-21): seven `store_tile_{1,2}_*` rows each in a `store_tiles` group, the same screen and the same endpoint, whose per-key checks run by suffix; a tile draws only when switched on with a heading or a picture, one alone takes the whole row, the ratio applies from `lg` only.
 - The store products screen shows the feed's production address with a copy button and a plain `<a download>` at the path (never a `Link` — it prefetches, and this handler builds the whole feed).
@@ -1948,7 +2023,16 @@ A separate catalogue with prices; baskets, checkout, payment, stock, coupons, di
 - Place order fires Velora's confetti from the press, only when the form passes the browser's own validation; the order page's larger burst on arrival stays.
 - A refund is a `payments` row with status `refunded` (`ManualRefund`, `POST …/orders/{number}/refunds`): an amount, a reference, who confirmed it; partial refunds add up, the amount completing what was paid makes the order `refunded`, and nothing calls a gateway (2026-09-20).
 - The catalogue imports and exports (2026-09-20, `CatalogueExport`/`CatalogueImport`): one CSV row per product and per variation with `parent_sku`, money as plain decimals; the import is a dry run then a commit, matched by SKU — a variation's SKU updates the variation, a product's the product, an unknown one creates a product, and nothing ever creates a variation; a blank cell leaves a column alone; stock moves through `StockLedger::adjusted` with the import named; a store-specific column guesser, because the newsletter's reads "name" as a first name.
+- Reviews (2026-09-26, `docs/store.md` "Reviews"): one per customer per product (a second write edits it), signed-in customers only, every write back to `pending`; Verified is a line on the customer's `Order::paid()` order, variant from the line's snapshot; the product's `rating_average`/`rating_count` are written only by `ReviewSummary` from the review's own hooks; the product page renders the first page from the ISR cache and asks `/api/store/reviews` and `/api/store/reviews/mine` after mount; stars are `--color-rating`/`--color-rating-empty` from `ratingFor()`, gated at 3:1.
+- The portal login's `?return=` is a same-site path or `/portal` (`safeReturnPath`), read by the page and again by both actions.
+- `technoware:request-reviews` is hourly, inside quiet hours, once per order (`review_requested_at` stamped before the send, whatever happens), `store_review_request_days` after dispatch — or after payment when nothing ships — and never for an order still waiting to be dispatched.
+- Specification filters are chosen per category from the labels its products carry (2026-09-26, `filter_specs`, the category form's Filters tab): `store_product_specs` is a derived index of each product's sheet and its active variations' options on normalised keys, rebuilt after commit and once per product (`SpecIndex::queue`, a timestamp guard, never a pending set) and by `technoware:rebuild-store-specs`; `?spec[Label][i]=` is OR within a label and AND across, a label nothing carries ignored; `/store/categories/{slug}/facets` counts each label under the *other* choices, and only the unfiltered answer is cached. `/store` filters through `AutoApplyForm`; the ISR category page never reads `searchParams` and links to `/store` instead.
+- A store product's videos (2026-09-26, up to four, `ProductVideos`): a YouTube link is stored as its id through `YouTube::id()`, a file is an MP4/WebM the media library holds, the poster a raster from it; the gallery's shop mode (`store`) draws them after the pictures as a nocookie click-to-play facade (never `i.ytimg.com`) or `<video preload="none">`, `media-src` names the asset origins, and `subjectOf` names a YouTube video only when a poster was uploaded. The well magnifies with `scale` and a following `transform-origin` from `lg` with a fine pointer; the lightbox zooms 1–3× (click, keys, Ctrl-wheel, pinch, drag to pan) and `go()` resets it.
+- The Meta catalogue (2026-09-26): `/meta-catalogue.xml` and `.csv` are the Google feed's rows mapped at the frontend sink (`lib/meta-catalogue.ts`) — back-order is `available for order`, no stock count, the CSV formula-guarded — behind `meta_catalogue_enabled` (public `store` group, on; off is a 404), listed with copy buttons and plain `<a download>` on the store products screen with a "How to connect".
 - A back-in-stock notice is a row that is stamped once (2026-09-20, `stock_notices`): `POST /store/products/{slug}/notify` answers 202 whatever happened, `StockLedger::record()` on a positive delta dispatches `SendStockNotices` after commit, and the job re-checks `inStock()` when it runs, skips the suppression list, sends `back_in_stock` and stamps `notified_at`; a repeat request re-arms. `notices_waiting` on the admin product, `?notices=1`, `attention.awaiting_stock`.
+- Abandoned-basket reminders (2026-09-25, `docs/store.md` "Abandoned baskets"): the checkout saves email and mobile on blur (`PATCH /cart/contact`, `contact_consent_at` stamped only while reminders are on), a portal Bearer claims an unclaimed basket (never a "View as"), and `technoware:remind-abandoned-carts` sends `cart_reminder_1`/`_2` plus `Messenger::notify` — idle on `updated_at`, which nothing in the reminder path moves (query-builder writes); claimed by a conditional UPDATE; inside `QuietHours`; never to the suppression list. The link carries `restore_token`, never the cart token; the unsubscribe is the newsletter's own route taking that token. Settings are the private `store_reminders` group because `store` is public and one row is a coupon code. A reminded basket is pruned at 90 days, not 30, so the dashboard's `recovered` (null when none reminded) counts over its whole window.
+- A wishlist is a basket-shaped token for a guest and the account for a customer (2026-09-25, `wishlists`/`wishlist_items`, `Wishlists`): a token never reaches an account's list (its summary sends `token: null`, which makes the Next server forget the cookie), a request carrying both — and `issueToken()` at sign-in, when `lib/auth.ts` forwards `X-Wishlist-Token` — merges the guest's in, never under "View as"; the hearts and the strip's count are client islands fed by one `useSyncExternalStore` fetch of `/api/store/wishlist` (204 with nothing in hand), so the shop stays cached; `SyncWishlistStock` from every `StockLedger::record()` arms empty shelves and tells armed lines once, `SendWishlistPriceDrops` from the product/variation `updated` hooks tells once per drop of `store_price_drop_min_percent`, both claimed by a conditional update, inside `QuietHours` (re-dispatched to `nextOpening()` otherwise) and off the suppression list.
+- The browser's Razorpay return is bound to the order (2026-09-26): `createSession()` writes `orders.gateway_order_id`, the return must name it (`hash_equals`), and `GET /v1/payments/{id}` must say captured or authorised, that order, INR — its `amount` goes to `Settlement`, whose check a return without one used to skip. `Settlement::recordReturn()` refuses a return with no amount rather than recording it (a failed row would make the genuine webhook a no-op). Cancelling an unpaid order releases its coupon use; `POST /cart/coupon` answers an off, expired or not-yet-started code like an unknown one (`Coupon::isLive()`). A guest order only fills blank saved details; `/checkout` reads the portal token by guard name, forwarded by the Server Action. `activation_procedure`, `activation_pdf_path` and `digital_auto_fulfil` are out of public `/settings` (`PublicSettings::PRIVATE_KEYS`); an import commit's file is rebuilt from its last segment (`ImportUpload`).
 
 ### Customers and addresses — `docs/customers.md`
 
@@ -1971,10 +2055,12 @@ Account lifecycle, registration, the one address definition, company suggestions
 - If that stops being true the fix is one line.
 - It is a `<datalist>`, not a combobox.
 - "View as" (2026-09-21) mints an `impersonation` token of its own for an hour, never a `portal` one and never through `issueToken()`; `/auth/me` reports `meta.impersonated`; the console reaches it through a POST-only route handler because both cookies are `sameSite: lax`.
+- An unconfirmed account is passed over (2026-09-26): `Checkout::accountFor()` does not join a guest order to one, `TicketPiper` confirms it before attaching mail, and the first confirmation — link, code or piped mail — replaces the password nobody proved, ends every session, then joins the address's paid guest orders (`Customer::markEmailVerified()`, `Checkout::claimOrders()`). A portal email change un-confirms the address and mails the new one. `verify-email` checks the token before it answers, so a confirmed address and an unknown one get the same 422; `already_verified` is always false.
 
 ### Sign-in — `docs/auth.md`
 
 Codes, passwords, the two principals and what they must never share.
+- Fifteen sign-in backgrounds since 2026-09-24: the seven after Vengeance UI (wave grid, aurora, fluid morph, twisting ribbon, animated rays, perspective grid, light lines) are re-drawn on the same 2D canvas — no three.js, no framer-motion — in `components/layout/backdrop-scenes/`, the loop and palette staying in `auth-backdrop.tsx`; scenes receive the pointer (the wave grid ripples from it).
 
 - `default_login_method` decides which step a sign-in form opens on.
 - The two principals must not share anything keyed on a value they both hold.
@@ -1987,6 +2073,7 @@ Codes, passwords, the two principals and what they must never share.
 - One input for the code, never six boxes.
 - Both doors render one form: `components/auth/sign-in-form.tsx` takes the three Server Actions, the reset path and the register path as props, and `admin/login/login-form.tsx` and `portal/login/login-form.tsx` are the two wrappers that pass them. The refusal panel (`pending_approval`, `email_unverified`) is in the shared form and simply never fires for the console, whose actions set no `reason`.
 - Beside the sign-in form is a setting (`login` group, Settings → Sign-in screen): the picture or one of eight canvas animations drawn in the theme's own tokens over `bg-dark`, intensity and speed beside it; `lib/login-backdrop-choices.ts` is the one list, shape-checked by the API, `auth-backdrop.tsx` draws it, still under reduced motion. `login_message` is rich text (`cms` profile) drawn centred over it through `Prose onDark` in place of the tagline.
+- `password_login_enabled` is enforced by both login endpoints (2026-09-26): 403 `reason: password_login_disabled` before the credentials are read; `AUTH_PASSWORD_BREAK_GLASS=true` in `api/.env` re-opens *staff* passwords only, for the day mail is broken. A sign-in code's attempt is claimed with a conditional UPDATE before bcrypt runs, so parallel guesses cannot outrun the cap of five.
 
 ### Leads — `docs/leads.md`
 
@@ -2062,6 +2149,7 @@ Subscribers, groups, imports, campaigns, tracking, Hunter verification, bounces.
 - A subject test (`subject_b`, `ab_test_percent`, `ab_wait_hours`) sends a slice under each line and holds the rest as recipient status `held`; `CampaignSender::decide()` picks by opens (tie to A) with a conditional update, from `technoware:decide-subject-tests` every ten minutes or the Send tab's "Decide now"; a campaign under test is still `sending` (2026-09-20).
 - A resend is a copy whose audience is the original's non-openers (2026-09-20): `POST …/campaigns/{id}/resend {subject}`, `resend_of_id` unique so the one-resend rule is the index, the set re-filtered through `AudienceResolver::freezeFrom` and the health gate run before anything is written; `TrackingRewriter::unprepare()` puts a copy's links and pixel back, which `duplicate` had never done.
 - A sequence step is a campaign row (2026-09-20, `docs/newsletter.md` "Sequences"): `sequence_id`/`sequence_position`/`delay_days` and status `automation`, hidden from the campaigns index and refused by `queue()`, so it has the editor, tracking, unsubscribe and a report for nothing; enrolment is once per subscriber per sequence (a unique index) from `SubscriberIntake`, the group screen or by hand; `technoware:run-sequences` every ten minutes sends, advances, completes or cancels — the scheduler, not a listener, because a delay is a date.
+- Hardening, 2026-09-26: a Mailgun bounce `token` is accepted once (`Cache::add` after the signature); the CSV writer and reader use `escape: ''` (RFC 4180 — a backslash-quote smuggled a formula cell past `Csv::escape()`); an xlsx part inflates to at most 50MB and a reference past XFD is skipped; a typed IMAP scan is port 143/993 on a public host (`PublicHost`) and fails with one sentence, not the socket's words.
 
 ### Outgoing mail — `docs/mail.md`
 
@@ -2101,6 +2189,7 @@ The queue, the scheduler, transports chosen in Settings, email templates, acknow
 - A mail settings change takes effect on the next request.
 - The `log` transport gets its own channel at `debug`.
 - Every ticket notification carries `Auto-Submitted` and `X-Auto-Response-Suppress` (`MailHeaders::machine()`), piping on or off; the Reply-To points at the support mailbox only while it is being read (`InboundMail::replyTo()`), and the acknowledgement's closing line follows the same switch.
+- Mail lines are text (2026-09-26): `Markdown::withSecuredEncoding()` in `AppServiceProvider`, so `[x](https://evil)` typed into a public form is not a link in the acknowledgement; a line that means a link is an `HtmlString` (`BackInStock`); `Placeholders::fill()` entity-encodes `[ ] ( ) !` too. A stored secret goes only where it was saved for: `mailgun_endpoint` is one of `MailTransport::MAILGUN_ENDPOINTS`, a new `smtp_host`/`inbound_imap_host` needs its password typed again in the same save, and both hosts are public on a mail port (SMTP 25/465/587/2525, IMAP 143/993).
 
 ### The website assistant — `docs/chatbot.md`
 
@@ -2136,6 +2225,7 @@ Retrieval, grounding, intake, the console. `docs/chatbot-architecture.md` is the
 - The thread's ground is `chatbot_background` (`--chat-bg` / `--chat-bg-ink`, ink derived, blank = `brand-50`); the typing dots are `currentColor` so they read on it.
 - The launcher's animation is `chatbot_animation`, eleven styles from `ChatSettings::ANIMATIONS` keyed by `data-chat-motion` on the disc while nothing has opened the panel; every one stops the same way and sits inside the reduced-motion guard.
 - The widget's name, colour, icon, text size and name-on-the-launcher are public `chatbot_*` settings handed in by the layout as a `ChatLook` (`lib/chat-look.ts`); a chosen colour becomes `--chat-accent`/`--chat-accent-ink` with the ink derived server-side, and the launcher's hover glow is `.assistant-launcher:hover` in `globals.css`.
+- The fence marker is stripped until nothing changes (a nested `---WEBSITE ---WEBSITE COPY---COPY---` made one), and the title and labelled fields sit inside the fence with the excerpt; only the label is outside (2026-09-26).
 
 ### SEO: structured data, scores and the AI assistant — `docs/seo.md`
 
@@ -2301,6 +2391,7 @@ Targeting, matching in the browser, the seen rules, the audit's dismissal.
 ### Sliders and galleries — `docs/sliders.md`
 
 Transitions, layouts, captions, the crossfade rules, the lightbox.
+- Cylinder and Ripple are the fifth and sixth slider layouts (2026-09-24, after Vengeance UI, MIT, re-drawn): the cylinder places cards with the `transform` function list (`rotateY` then `translateZ` — the individual properties compose the other way) and turns the ring with the `rotate` property one card per step on an unbounded counter; the ripple draws each change with raw WebGL from same-origin `/_next/image` textures (an API-origin image taints the canvas) over the real `<img>`, crossfading without WebGL, on reduced motion or for an SVG. Short sliders fall back to a banner, the cards/fan convention.
 
 - A gallery's transition is a per-gallery setting, and the list is the API's.
 - The transition keyframes write `transform`, and must not be mixed with Tailwind's utilities.
@@ -2359,6 +2450,7 @@ Upload paths, limits, the SVG sanitiser, in-place edits, the bin, alt text.
 - A `CoverField` needs the URL, not just the path.
 - A form-mode `FileDrop` takes a paste, lists rows and appends (2026-09-21): `paste` listens on the surrounding form for `kind === "file"` items and renames the clipboard's `image.png` to `pasted-<stamp>.png` (the file's name, not the field's); every file is a row with a thumbnail, the size and a 24px remove, keyed by an id given on arrival; a pick, a drop and a paste each *append* and the hidden input is rebuilt through `DataTransfer`; `max`/`maxBytes` restate the API's caps from `lib/ticket-attachments.ts`; the list empties on the form's `reset`. A thumbnail's object URL is made and revoked in one effect and written straight to the `<img>`. `scripts/probes/ticket-paste.mjs`.
 - Files sent with the ticket itself hang off `tickets`, not a message, and were drawn on neither ticket page until 2026-09-21.
+- A replacement carries the upload's `mimes:` check and stores the detected mime, never the client's `Content-Type` (2026-09-26).
 
 ### The rich-text editor and CMS pages — `docs/editor.md`
 
@@ -2411,21 +2503,24 @@ Role-filtered sidebar, the settings strip, the activity log, dashboard charts, c
 - A dashboard tile is a link to the list that produced its number, filtered the way the API counted it.
 - Ticket volume is two smooth curves rather than sixty bars (the client, 2026-09-23): SVG with `preserveAspectRatio="none"` and `vector-effect="non-scaling-stroke"`, `var(--color-info)`/`var(--color-ok)` in the gradient stops so nothing is a hex, and a Catmull-Rom spline at a sixth-of-the-span tension so the line never bows past a value nobody recorded. **The labels stay HTML** — the hero diagram's rule: SVG text scales with the viewBox.
 - The console keeps its dense desktop scale and steps one rung down below `sm` (the client, 2026-09-23): the stat tiles' 26px figure and 32px corner glyph, sized for six across, shout across a card the width of a 390px screen. "Sign out" is `IconSignOut` below `sm` with the words from `sm`, `aria-label` on the button either way — two words wrapped the header to a second row at 320px.
+- The volume chart takes a period (the client, 2026-09-24): `?volume=` on `/admin`, links rather than a client toggle so the page stays server-rendered, buckets chosen by the API (`TicketMetrics::VOLUME_PERIODS` — days, weeks, weeks, months) and cached per period; the tiles stay on thirty days. An icon picker is a one-row field whose grid opens in a `Modal` — never ~130 tiles inline on a page (same day).
 - A column heading sorts, and it is a link — `SortTh`, `?sort=`/`?dir=`, allowlisted per list by `ListSort`.
 - The ticket queue has a selection bar, and the selection is a module-level store read through `useSyncExternalStore`.
 - Ctrl/⌘ K opens a command palette, and its pages are the sidebar's rows plus every settings tab and every setting (`settingsPages()`, from `settings-copy.ts`; `?tab=` opens the panel and `#setting__<key>` scrolls to the field, with `scroll-margin-top` for the sticky header); records come through `/api/admin/search`.
 - The sidebar and the tab's title say what arrived while the console was open — `new-since.tsx`, one poll a minute, null for a role that cannot open the screen.
-- The screens are guarded by role too: `proxy.ts` forwards `x-pathname` under `/admin`, the layout asks `screenRole()` (the sidebar's own map) and sends `/admin` to `landingFor()` or answers 404; the API still refuses the data regardless (2026-09-20).
+- The screens are guarded by role too: `proxy.ts` overwrites `x-pathname` on every `/admin` request (its own matcher entry, prefetches included), and `requireScreen()` (`lib/admin-screen.ts`) — called by the `(app)` layout **and every page**, because a layout is not re-rendered on a client-side navigation and the browser's router state decides which segments are — decodes it (`screenPath()`), refuses a missing one, asks `screenRole()` and sends `/admin` to `landingFor()` or answers 404; the API still refuses the data regardless (2026-09-20, per page 2026-09-26). A new console page starts with `await requireScreen();`.
 - Outgoing webhooks (2026-09-20, `docs/admin-console.md` "Webhooks"): `Webhooks::emit()` is guarded like `Notifier` and never fails the request, takes a closure so the payload is built only when a hook is subscribed, writes one delivery per hook and dispatches `DeliverWebhook` after commit; five attempts with backoff, `X-Technoware-Signature: sha256=` HMAC over `timestamp.body` on the exact bytes sent; the secret is shown once on create and on rotate and never read back; https only and no private host; emitters are model hooks except `order.placed` (from `Checkout`, after the lines exist) and `customer.registered`; deliveries pruned at 30 days.
 - The header's palette trigger is hidden below 360px (2026-09-21): the account row is 332px in a 320px screen's 304, and every console screen scrolled by 8px.
 - The Bin tab is `IconBin` with a lid that lifts on hover and stays open on the bin view (`.bin-tab`, `transform-box: fill-box`); deleting a folder asks for `YES` typed (2026-09-20).
 - Every entity form that carries answer blocks ends on an **AEO** tab (2026-09-21, `docs/aeo-geo-contract.md` §7): `AeoGeoPanel` (the two readiness scores from `GET /admin/seo/{type}/{id}`, "Not scored yet" when absent, plus the assistant scoped to `AEO_ACTIONS` — the keys are the contract, the labels the API's, an unknown action is drawn nowhere), then `AnswerBlocksField` (kinds from the entity's own index's `meta.answer_block_kinds`, hidden JSON `answer_blocks` replaced wholesale like `faqs`, the row key never in the markup or it is a hydration error), then `FaqField` where FAQs are new; Apply reaches the repeaters through `tw:answer-blocks-suggested`/`tw:faqs-suggested` on the form, as drafts. `/admin/seo` sorts and filters on `aeo`/`geo`. `docs/admin-console.md`.
 - **Improvement suggestions** sit under each readiness score, in two layers (2026-09-21): the rubric's own — every failed check with its weight and the hint that would earn it, always — and the assistant's "Suggest improvements" (`aeo_analyze`/`geo_analyze`, drawn inline as summary, gaps, what to do, what is already strong; the newest stored analysis on load), only while the assistant is on with a key. The run goes through `AiSeoPanel`'s handle (`ref.run`, `onReady`/`onHistory`/`onSuggestion`) so there is one run, one cap counter and one history, and a quiet run opens no dialog. "Improve an answer" carries a picker of the record's *saved* blocks and posts `block_id`; a row added this session has no id and is not offered. The overview's site card draws "AEO — biggest wins" and "GEO — biggest wins" beside the SEO strip, each chip `?aeo_check=`/`?geo_check=`.
 - The portal's ticket thread is a chat (`components/portal/ticket-thread.tsx`): staff on the left with an initials disc, the customer on the right, stacked below `sm`; a staff reply carries five radio-button stars and a report form (`reply-verdict.tsx`, optimistic value with no prop-to-state effect), and a quote glyph that announces `tw:quote` for the reply form to prepend `> ` lines. The verdict lives on the message row (`rating`, `report_reason`, timestamps); only a visible staff reply on the customer's own ticket may be judged, 404 otherwise; the queue filters `?reported=1` and the console shows the stars and the reason under the reply.
+- A webhook's host is resolved at send time, every answer must be public, and cURL is pinned to the checked addresses (`CURLOPT_RESOLVE`); a redirect is a failure (`withoutRedirecting()`); on write, a host written as a bare number (`127.1`, `0x7f.0.0.1`) or `::ffff:` is refused. `App\Support\Net\PublicHost` is the one definition, shared with the mailbox scan and the mail settings; tests bind `PublicHost::RESOLVER` so none resolves DNS (2026-09-26).
 
 ### The public site's chrome — `docs/site-chrome.md`
 
 Header, footer, banners, the logo cap, phone-width reversals.
+- The footer's social links are flip tiles by default (`social_style` `flip`|`dock`, `social_flip_word` of up to 7 letters that sets the tile count — a letter past the last profile is a non-link tile, 2026-09-24/25): letters that turn to the icons on hover or focus-within via the CSS `rotate` property, icons shown outright where nothing can hover, an opacity swap under reduced motion. Reddit is the seventh profile (`social_reddit`, `IconReddit` drawn here; `#FF4500` on the footer 5.39:1, `#D93A00` behind white in the blog sidebar, 4.61:1).
 
 - The site header's desktop nav appears at 1280px, not 1160.
 - The footer's newsletter signup is a band, not a column widget.
@@ -2568,6 +2663,97 @@ Five packs measured, what each yielded and why the rest were refused.
 - A wholesale import would have failed invisibly.
 - Icon packs are vendored, never depended on — `@tailgrids/icons` declares Babel and SVGR as runtime dependencies.
 
+### Content blocks — `docs/blocks.md`
+
+CTA banners, stat bars, pricing tables and technology stacks (2026-09-24): one entity, shortcodes, the default closing band, three homepage sections.
+
+- One table, `content_blocks`, with a `type`; each type its own layout enum, all with `options()` in the `SliderLayout` shape, sent as `meta.layouts`. The type is fixed once saved — a shortcode names the kind.
+- The wire field is `content`, the column `data`: a resource array holding a `data` key is not wrapped, and every read came back without its envelope.
+- `BlockRules::for($type, $layout)` asks each layout for exactly what it draws; `after()` checks media that exists, a priced plan, one comparison cell per plan, one picture per stack node. Every text field is plain text; buttons take `PopupRequest`'s link shape.
+- A gated download's file never appears in the public read (`has_download: true`); its URL is handed out only by `POST /blocks/{slug}/submit`, which also files `download`/`webinar` leads through `LeadIntake::fromBlock` and mails `block_lead_captured`.
+- One published CTA is the default (`makeDefault()`, drafts refused, unpublishing clears it); `GET /blocks/default/cta` is `{data: null}` in a 200. `CtaBand` draws a `band` default through the theme (`ThemeBand`, `kicker`/`primary`/`secondary` on all twelve templates) and any other layout through `CtaBlock`; pages that pass their own `title`/`body` keep them.
+- `newsletter_signup_enabled` is a `boolean` row — `Setting::get()` returns `false`, never `'0'`; `/newsletter/subscribe` compared it to `'0'` and never refused anybody until 2026-09-24.
+- A scroller holding sr-only children is `relative` (the comparison table, 188px at 360); a stack disc takes no percentage padding (it resolves against the parent's width — the logo box measured 0px in the wide detail card).
+- Console at `/admin/blocks/{type}` — the kind in the path, because `?type=` matched no sidebar row and `screenRole()` 404s a screen no row matches. Previews and showcases are `data-reveal-static`: the observer skips them, re-checked at intersection time because an async component streams as its own chunk outside the region first.
+- `home_stats_block`/`home_pricing_block`/`home_stack_block` are pickers of published blocks of that kind (API options, anything else refused); `homeBlockSections()` returns only chosen blocks, so none chosen draws no empty band; `HOME_SECTIONS` places them.
+
+### Custom fields and content types — `docs/custom-content.md`
+
+ACF-style fields on existing records and editor-made record types with pages of their own (2026-09-26).
+
+- A group's `targets` is a list of target keys — the morph alias (`page`, `solution`, …, `store_product`) or `entry:<type-slug>` — and `App\Support\CustomFields\Targets` (with `EntryTargets`) is the one list the checklist, the relation select, its choices and the existence rule read.
+- `CustomFields` is the one implementation: `rules()` generated from the stored definitions (options a whitelist, a link `http(s)` only, a picture in the library with an image MIME, a linked record in its table), `save()`, `adminValues()`/`definitions()`, `publicFields()`/`publicData()`. A key nobody declared is dropped.
+- **Absent `custom_fields` leaves every value alone**: `AcceptsCustomFields` spreads the rules only when the request carries the key, `save()` touches only the keys sent, and a key sent blank clears that field. Rich text is cleaned in `SanitisesRichText` through the request's `customFieldTarget()`.
+- A field key is unique across every group on a target (the payload is keyed by it), and `CustomFields::RESERVED_KEYS` (`title`, `slug`, `website`…) are refused.
+- Fields are synced **by id**, never replaced wholesale — values cascade with the field row — and a field's kind is fixed once it holds values.
+- `hidden` placement means not drawn, never private: `custom_data` on the public read carries every applicable value. The drawn list (`custom_fields`) resolves pictures through `MediaMeta`, links to `{title, path}` and drops a link whose record is no longer public.
+- Every target's admin index sends `meta.custom_field_groups` for its "new" form, the `answer_block_kinds` rule; a detail read sends the record's own `custom_field_groups`, `custom_fields` and `custom_field_media`.
+- The Fields tab is `CustomFieldsPanel`, **last** and only when a group applies (`Tabs` reads children by position). Its controls are the ordinary primitives named `cf__<key>` plus a hidden `custom_fields_schema`; `customFieldsFromFormData()` rebuilds the object — one hidden JSON value would be an input `<Form>` and `FormDraft` could not restore.
+- `CustomFieldDetails` draws the list after the body on the nine target pages and every entry; nothing when empty.
+- A content type's slug is a top-level address: refused when it is a frontend route, an API prefix or a server word (`ReservedSlugs`, pinned by `ReservedSlugsTest` reading `web/src/app`), or a CMS page's slug. The catch-all asks for a page first, so a page made later wins.
+- An entry's slug is unique **per type** (`Entry::generateUniqueSlug` and a scoped `unique`); `Sluggable`'s 301 works because `urlPrefix()` is the type's slug, read through `typeSlug()` and never a lazy `contentType`.
+- Renaming a type writes a redirect for the archive and each entry, re-aims redirects already pointing at the old addresses, and re-attaches `entry:<old>` field groups and relation fields (`ContentType::moveSlug`).
+- A type with entries is refused deletion; switching it off 404s the archive and every entry. `Entry::scopePublished` (status, `published_at` not in the future, type active) is the one definition.
+- Admin: types bound by id, entries at `/admin/content-types/{type-slug}/entries/{id}`, scoped. Console: `/admin/content-types` and `/admin/content`; two static sidebar rows serve every type by the longest-match rule.
+- `[slug]/[entry]/page.tsx` exports an empty `generateStaticParams` (tags `entries:<type>`, `entry:<type>:<slug>`) and reads no request-time API; the archive is a branch of `[slug]/page.tsx` after the page lookup.
+- Registered in `SeoController::ENTITIES` (`adminPath()` on the record), `MenuItemType` (`entry`, `content_type`; `Menu::tree()` `morphWith`s the type), menu targets, both searches, FAQ owners, the chatbot retriever, `StructuredData::entry()` (Article or WebPage), the sitemap and `llms.ts`. `AeoScore`/`GeoScore` needed nothing: their lists are catalogue-specific.
+
+### Messaging — `docs/messaging.md`
+
+WhatsApp, RCS and browser push beside the email (Phase 2, 2026-09-25): providers per channel, contacts and opt-in, templates, automations, broadcasts, `Messenger::notify()`.
+
+- `MessageChannel` and one provider enum per channel on the `MailTransport` model (`meta_cloud`/`gupshup`/`twilio`, `google_rbm`/`gupshup`, `fcm`); one `ChannelProvider` per provider over Laravel's HTTP client, no SDK, every one tested with `Http::fake()`. A channel whose provider is blank is off, and `ready()` is the one answer to "may this send".
+- Nothing is sent without an enabled automation, a sendable template (WhatsApp approved; RCS and push `not_required`), a ready channel and an **active contact** — and consent comes only from the person: the checkout box, the portal switch, the bell. No console route creates a contact; "View as" may switch a channel off, never on.
+- A phone channel reaches the number the caller holds (the checkout's), and the customer's own numbers only when it holds none; push reaches a customer's own browsers only — a guest's token is broadcast-only.
+- `notify()` never fails its caller, writes a delivery row per contact and dispatches `afterCommit()`; a promotional event is delayed to `QuietHours::nextOpening()` and `ChannelSender` checks the window again when it runs; with nothing draining the queue a transactional one is sent after the commit (`Notifier`'s rule).
+- The worker re-checks contact, template approval and channel at the moment of sending and marks a stale one `skipped`, not `failed`; only `pending` rows send; a delivery's status only moves forward (`rank()`), because callbacks arrive out of order.
+- Provider webhooks (`/messaging/webhooks/{channel}/{provider}`) answer 200 always and fail closed: Meta's `X-Hub-Signature-256`, Twilio's `X-Twilio-Signature`, Google's `X-Goog-Signature`, and `messaging_webhook_secret` as `?token=` for the two Gupshups, which sign nothing. A forged STOP would opt people out in silence.
+- STOP (and its synonyms, `Contacts::isStop()`) opts the number out; FCM `UNREGISTERED` opts the token out; a Google RBM 404 is a failed message, not an opt-out. A 401/403 writes `messaging_<channel>_error`, the `mail_error` pattern, and a success clears it.
+- Templates are plain text through `Placeholders::fillText`. WhatsApp at Meta is named-parameter (`parameter_format: NAMED`); Gupshup and Twilio are numbered, so the body is renumbered by first use (`positionalBody()`) and sent by `provider_template_id`. Editing a reviewed field of a submitted WhatsApp template puts it back to draft.
+- Placeholder chips and the phone preview read `MessageEvent::placeholders()` and the API's `meta.samples` (`Samples::value()`), the same values a template test and a provider's review example use — never a list in TypeScript.
+- Broadcast audiences are always narrowed to active contacts on the channel; the wishlist source is a no-op until `wishlist_items` exists. Claimed with a conditional UPDATE, frozen into delivery rows, `SendBroadcastBatch` in hundreds; a send is refused on an unapproved template, a channel off or nobody in the audience; cancelling skips what has not gone.
+- `role:campaign_manager,store_manager` for templates, automations, broadcasts and contacts (`routes/api/admin-messaging.php`); provider keys and the test send are `role:admin`. The sidebar's `role` takes the same comma-joined pair (`RoleGate`) and `AdminNavRolesTest` compares it as written.
+- `GoogleServiceAccount` is parameterised by setting key (`rcs_rbm_service_account`, `push_fcm_service_account`), its cache keyed on both; a replaced key file forgets its token.
+- The public `push` group is Firebase's web config; `messaging_whatsapp_live`, `messaging_rcs_live` and `push_live` are derived public bits, so the checkout offers a box and the shop a bell only for a channel that can deliver.
+- Push has **no Firebase SDK**: `lib/push-client.ts`, imported on the bell's press, does the installation and registration calls the SDK makes (both hosts in `connect-src`), and `public/firebase-messaging-sw.js` handles the push itself with its fallbacks from `/push/sw-config`. The bell asks nothing on load, waits for the cookie answer where the banner is drawn, and renders inert on the server so the shop stays cached.
+
+### The section page builder — `docs/page-builder.md`
+
+A CMS page laid out as a stack of typed sections (2026-09-26): `pages.blocks` is the list, `template: builder` renders it; no free-form canvas, by the client's choice.
+
+- `pages.blocks` is a list of `{id, type, hidden, background, data}`; `PageSectionType` is the fourteen types, sent as `meta.section_types` and never listed in TypeScript. This reverses the "`blocks` is deliberately absent" comments: their objection was raw JSON in a text field, and a builder validated per type is the editor they asked for.
+- `SectionRules::forPayload()` generates rules per row from that row's type, so a 422 is keyed `blocks.N.data.field`; `after()` checks media that exists and is the right kind, references that exist **and are published**, a YouTube link `App\Support\YouTube` can read, unique ids, and the background through `ThemeOptions::background()` — extracted from the homepage-section cleaner so the two cannot drift.
+- `normalise()` is what is stored — declared keys only, because `validated()` hands back each `data` whole once the wildcard carries a rule; references are stored as ids, so renaming a slug moves nothing.
+- `SanitisesRichText` reads a dotted path after its wildcard (`blocks.*.data.body`); `SanitisesRichTextTest` pins it and the one-level form. A plain-text section field is never rendered as markup.
+- `SectionPresenter` is the public shape: hidden sections gone, paths as URLs with alt and focus, a content block inline, a slider/gallery/form as its **current slug** fetched from its own public endpoint, `cards` resolved to the live list now; a dead reference, an empty list or an empty FAQ drops its section.
+- A builder page's `faq_schema` counts its visible custom `faq` sections' questions beside its FAQs and question blocks — still one `FAQPage`, still under two entries none; `FaqSection` emits no graph.
+- One `h1` either way: an opening `hero` section is the `h1` and draws `Breadcrumbs`, and the route skips `PageHero`; otherwise `PageHero` opens the page. Section headings are `h2`; a tile's or feature's title is `h3` only under a section heading.
+- Every section sits in `SectionBg` and carries `data-page-section="<type>"`; a `cards` section is a `Collection` of `Tile`s, so every theme's idiom draws it. `STRIP_MODES` in `page-sections/embed-sections.tsx` mirrors each theme's homepage strip `mode` — change both together.
+- The closing `CtaBand` is skipped when a `content_block` section already closes the page with a CTA; page FAQs are left out of the answer blocks when a `faq` section shows them.
+- The console keeps the list in the page form (not the Builder tab, which is drawn only for `builder`) and posts it as one hidden JSON input; structural changes dispatch an `input` event on it for `FormDraft` and the leave guard, and `tw:draft-restored` reads it back. `GROUPS` lists the Builder tab whatever the template, so a 422 always has a tab.
+- Section fields are the content blocks' editor primitives, unnamed; `blocks/editors/shared.tsx` has an optional `idPrefix`, because many sections of one type on one form would share every id.
+- Previews: the unsaved one is a Server Action posting to `POST /admin/pages/preview` (nothing written) and returning the sections drawn by the public components into an `xl` `Modal`; `/admin/pages/{id}/preview` draws the saved ones. Both inside `SectionsFrame` with `ownsH1={false}`, so a hero is an `h2` under the console's own `h1`.
+- `SampleBuilderPageSeeder` is one **draft**, create-only, after the blocks/sliders/forms it points at; the audit discovers its Builder tab and saved preview, and its public route is audited by name once published.
+- `media-src` names the asset origins (a library video — a builder `video` section or a slide — is served from there).
+
+### Engineer visits — `docs/visits.md`
+
+A customer asks for an engineer on site with up to three preferred times; the desk confirms one (2026-09-26).
+
+- It is a request, not a booking — the client's choice over a live calendar: `preferred` (what was asked, a JSON **list** of `{date, window}`, best first, the window stored by key) and `scheduled_start_at` (what the desk agreed) are separate answers, and only `POST /admin/visits/{reference}/confirm` sets a time.
+- `App\Support\Visits\VisitSettings` is the one reader of the `visits` group, falling back per field; the console refuses a value that would parse to nothing (`refusalFor`); six keys are public by name (`PUBLIC_KEYS`), `visits_email` and `visit_default_minutes` are not.
+- `PreferredTimes::check()` refuses short notice, the horizon, a day not offered, a closed date, an unknown window and a repeat — each on `preferred.{i}.date`/`.window`, the names the form's inputs carry, rows keyed by an id so removing one re-numbers the names and not the values.
+- The guest's 64-hex token is answered once on create, compared with `hash_equals`, absent from every resource and webhook; a wrong token is the same 404 as a wrong reference. The email link is `/visit/{reference}/open?token=`, a route handler that moves it into an httpOnly cookie scoped to `/visit/{reference}` and 303s (a **relative** `Location`) to the clean page.
+- A signed-in customer is stamped from `$request->user('sanctum')` narrowed to `Customer`, never an impersonated token; the Server Action forwards the portal token. `my/visits` is scoped by `customer_id` alone.
+- Three doors (guest link, portal, console), one `VisitActions`: cancel, reschedule, confirm, move — mail through `Notifier`, channels through `Messenger`, webhooks through `Webhooks`.
+- A reschedule is not a state: the desk moving a confirmed visit keeps it `confirmed` (event `rescheduled`, email `visit_rescheduled`); a customer asking for other times returns it to `requested` and clears the agreed time. Confirming a visit ever confirmed before is a move.
+- `Confirmed` is never in `allowed_next` and `PATCH` refuses it — a time is what confirms. `confirmed_at`/`completed_at`/`cancelled_at` are never cleared; `reminded_at` is cleared when the time changes, and stamped at confirmation inside 24 hours so no reminder follows the booking.
+- The `.ics` is by hand (`Visits\Ics`): UTC with `Z`, `UID` = the reference so a move updates the event, CRLF and 75-octet folding, escaped text, `METHOD:PUBLISH`; attached to the built-in message, so an edited wording keeps it.
+- `technoware:remind-visits` every fifteen minutes, claimed with a conditional UPDATE on `reminded_at`, transactional (no quiet hours).
+- Seven emails for five classes (`VisitRequestReceived` and `VisitConfirmed` two each); the customer's receipt repeats their chosen times and never their notes. `MessageEvent` gains `VisitRequested`, `VisitConfirmed`, `VisitReminder`; the opt-in is the checkout's, sourced `visit`.
+- It files a lead, channel `visit` (`LeadIntake::fromVisit()`); `visit_request` is in the morph map, and the lead links back.
+- `role:sales_manager,support_engineer` (`routes/api/admin-visits.php`, one comma-joined row in `nav-items.tsx`); settings `role:admin` at `/admin/visits/settings`; `staff_note` is on the admin resource only.
+
 ## Conventions
 
 - Never hard-code a hex. If a colour is not in `globals.css`, it does not ship.
@@ -2699,6 +2885,12 @@ suggested, and why"). The invoice is uploaded, not generated — a decision
 about GST compliance rather than about scope, and one the feature-ideas
 document reopens.
 
+**Amended 2026-09-26: engineer visit requests.** The client asked for customers
+to request a site visit and for staff to confirm the time (`docs/visits.md`).
+That is intake, not a CRM: a request files a lead like every other form, and
+the desk confirms or cancels it. Still not a scheduling system — there is no
+availability calendar, no slot capacity and no engineer calendar sync.
+
 ---
 
 ## Known risks and placeholders
@@ -2722,6 +2914,13 @@ document reopens.
     certificate numbers, and the partner tiers on Cisco and Fortinet — the
     last being a claim about a third party. All create-only, so replacing
     them in the console is permanent.
+  - The sample builder page from `SampleBuilderPageSeeder` (2026-09-26) at
+    `/sample-builder-page` — a draft, every word a placeholder, and a
+    Big Buck Bunny YouTube id standing in for a real video.
+  - The sample content blocks from `ContentBlockSeeder` (2026-09-24): every
+    one a draft except `site-audit`, the default closing band, whose words
+    are the band's own; the stat samples reuse the hero's invented figures
+    and the pricing sample (AMC plans) is invented outright.
 - **The logo is a text placeholder.** `#4A5A2A` is sampled from a screenshot,
   not the real file. See `web/src/components/layout/logo.tsx`.
 - **`/privacy` and `/terms` are placeholder copy.** They read as real policy

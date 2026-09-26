@@ -17,6 +17,7 @@ import { PostNav } from "@/components/blog/post-nav";
 import { ShareLinks } from "@/components/ui/share-links";
 import { Comments } from "@/components/blog/comments";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, SITE, buildMetadata } from "@/lib/seo";
@@ -202,6 +203,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             </div>
 
             {/* The answer blocks and FAQs, then what the post is about — after the body, before the neighbours. */}
+            {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
+            <CustomFieldDetails fields={post.custom_fields} className="mt-10" />
             <AnswerBlocks blocks={post.answer_blocks} faqs={post.faqs ?? []} className="mt-10" />
             <RelatedEntities entity={post.entity} className="mt-10" />
 

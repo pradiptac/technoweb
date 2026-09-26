@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\CustomerStatus;
 use App\Support\Newsletter\CustomerGroupSync;
+use App\Support\Store\Checkout;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -184,13 +185,45 @@ class Customer extends Authenticatable
         });
     }
 
-    /** Mark the address verified and burn the token. */
+    /**
+     * Mark the address verified and burn the token.
+     *
+     * **An unconfirmed account's password is not the mailbox owner's.**
+     * `/auth/register` stores whatever password the caller chose before
+     * anybody has proved they read the address, and a confirmation — the
+     * emailed link, a sign-in code, a message piped in from that address —
+     * proves the mailbox and nothing about who typed the password. Left
+     * alone, somebody could register a stranger's address, wait for the
+     * stranger to click the link they were sent (or sign in with a code),
+     * and then sign in with the password they had set, into an account now
+     * holding the stranger's orders and tickets.
+     *
+     * So the transition from unconfirmed to confirmed replaces the password
+     * with one nobody knows, ends every session, and only then joins the paid
+     * guest orders placed under the address (`Checkout::claimOrders()`). The
+     * owner signs in with a code, or chooses a password through "Forgot your
+     * password?", which is itself a mailbox proof. A second confirmation of
+     * an already-confirmed address changes nothing.
+     */
     public function markEmailVerified(): void
     {
-        $this->forceFill([
+        $firstConfirmation = ! $this->hasVerifiedEmail();
+
+        $attributes = [
             'email_verified_at' => now(),
             'email_verification_token' => null,
             'email_verification_sent_at' => null,
-        ])->save();
+        ];
+
+        if ($firstConfirmation) {
+            $attributes['password'] = Str::random(64);
+        }
+
+        $this->forceFill($attributes)->save();
+
+        if ($firstConfirmation) {
+            $this->tokens()->delete();
+            Checkout::claimOrders($this);
+        }
     }
 }

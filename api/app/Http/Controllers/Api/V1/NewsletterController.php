@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Enums\SubscriberStatus;
 use App\Enums\SuppressionReason;
 use App\Http\Controllers\Controller;
+use App\Models\Cart;
 use App\Models\NewsletterCampaignRecipient;
 use App\Models\NewsletterEvent;
 use App\Models\NewsletterGroup;
@@ -60,7 +61,10 @@ class NewsletterController extends Controller
             return $answer;
         }
 
-        if (Setting::get('newsletter_signup_enabled') === '0') {
+        // A `boolean` row: `Setting::get()` casts it, so off is `false`, never
+        // the string '0' this compared against until 2026-09-24 — when
+        // switching signup off refused nothing.
+        if (! filter_var(Setting::get('newsletter_signup_enabled', true), FILTER_VALIDATE_BOOL)) {
             return response()->json(['message' => 'Newsletter signup is closed.'], 403);
         }
 
@@ -188,7 +192,16 @@ class NewsletterController extends Controller
         $subscriber = NewsletterSubscriber::where('unsubscribe_token', $token)->first();
 
         if ($subscriber === null) {
-            return response()->json(['message' => 'That link is no longer valid.'], 404);
+            $email = self::basketAddress($token);
+
+            if ($email === null) {
+                return response()->json(['message' => 'That link is no longer valid.'], 404);
+            }
+
+            return response()->json(['data' => [
+                'email' => $email,
+                'already' => NewsletterSuppression::has($email),
+            ]]);
         }
 
         return response()->json(['data' => [
@@ -233,8 +246,35 @@ class NewsletterController extends Controller
     {
         $subscriber = NewsletterSubscriber::where('unsubscribe_token', $token)->first();
 
+        /*
+         * A basket reminder's unsubscribe link arrives here too, carrying the
+         * basket's restore token rather than a subscriber's — the person may
+         * never have joined the newsletter. The answer is the same act: the
+         * address goes on the suppression list, which every campaign, stock
+         * notice and basket reminder reads, and a subscriber row at that
+         * address, if there is one, is marked unsubscribed with it.
+         */
         if ($subscriber === null) {
-            return response()->json(['message' => 'That link is no longer valid.'], 404);
+            $email = self::basketAddress($token);
+
+            if ($email === null) {
+                return response()->json(['message' => 'That link is no longer valid.'], 404);
+            }
+
+            NewsletterSuppression::add($email, SuppressionReason::Unsubscribed, 'From a basket reminder.');
+
+            NewsletterSubscriber::where('email', strtolower($email))
+                ->get()
+                ->filter(fn (NewsletterSubscriber $s) => $s->status->canReceive())
+                ->each(fn (NewsletterSubscriber $s) => $s->update([
+                    'status' => SubscriberStatus::Unsubscribed,
+                    'unsubscribed_at' => now(),
+                ]));
+
+            return response()->json([
+                'data' => ['email' => $email],
+                'message' => 'You have been unsubscribed. You will no longer receive marketing emails from us.',
+            ]);
         }
 
         if ($subscriber->status->canReceive()) {
@@ -258,5 +298,21 @@ class NewsletterController extends Controller
             'data' => ['email' => $subscriber->email],
             'message' => 'You have been unsubscribed. You will no longer receive marketing emails from us.',
         ]);
+    }
+
+    /**
+     * The address a basket reminder went to, found by the basket's restore
+     * token — the only token its email carries. Null for an unknown token,
+     * which answers exactly as an unknown subscriber token does.
+     */
+    private static function basketAddress(string $token): ?string
+    {
+        if (strlen($token) !== 64) {
+            return null;
+        }
+
+        $cart = Cart::with('customer')->where('restore_token', $token)->first();
+
+        return $cart?->reminderEmail();
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
+use App\Models\Entry;
 use App\Models\Industry;
 use App\Models\KnowledgeArticle;
 use App\Models\Page;
@@ -37,11 +38,26 @@ class SearchController extends Controller
     /** Below this a term matches most of the catalogue and helps nobody. */
     private const MIN_TERM = 2;
 
+    /** Above this a term is not a search, it is load. */
+    private const MAX_TERM = 100;
+
     /** Per group, so one crowded type cannot fill the page. */
     private const PER_GROUP = 5;
 
     public function __invoke(Request $request): JsonResponse
     {
+        /*
+         * A ceiling on the term, and LIKE's own metacharacters escaped.
+         *
+         * Each request is a dozen `%term%` scans over body columns, public
+         * and unauthenticated, so a 5,000-character term is work nobody
+         * asked for; nobody searches a hardware catalogue with more than a
+         * sentence. And a bare `%` or `_` is a wildcard to MySQL — `%%` is
+         * two characters, clears the floor below and returns the head of
+         * every table. Escaped, it searches for a percent sign.
+         */
+        $request->validate(['q' => ['nullable', 'string', 'max:'.self::MAX_TERM]]);
+
         $term = trim((string) $request->string('q')->value());
 
         if (mb_strlen($term) < self::MIN_TERM) {
@@ -51,7 +67,7 @@ class SearchController extends Controller
             ]);
         }
 
-        $like = '%'.$term.'%';
+        $like = '%'.addcslashes($term, '%_\\').'%';
 
         $groups = collect([
             $this->products($term, $like),
@@ -94,6 +110,7 @@ class SearchController extends Controller
                 ->where(fn ($q) => $q->where('title', 'like', $like)
                     ->orWhere('body', 'like', $like)),
                 'title', 'body'),
+            $this->entries($like),
         ])->filter(fn (?array $g) => $g !== null)->values();
 
         return response()->json([
@@ -169,6 +186,28 @@ class SearchController extends Controller
                 'path' => '/store/products/'.$p->slug,
             ];
         });
+    }
+
+    /**
+     * Entries of the custom content types (docs/custom-content.md), in one
+     * group whatever their type — each result names its type and carries its
+     * own path, since `/events/…` and `/downloads/…` share no prefix.
+     */
+    private function entries(string $like): ?array
+    {
+        $query = Entry::query()->published()
+            ->with('contentType')
+            ->where(fn ($q) => $q->where('title', 'like', $like)
+                ->orWhere('summary', 'like', $like)
+                ->orWhere('body', 'like', $like))
+            ->orderByDesc('published_at');
+
+        return $this->build('entry', 'More from the site', '', $query, fn (Entry $e) => [
+            'title' => (string) $e->title,
+            'excerpt' => $this->trim($e->summary ?: $e->body),
+            'path' => $e->publicPath(),
+            'kicker' => $e->contentType?->name,
+        ]);
     }
 
     /** @param  \Illuminate\Database\Eloquent\Builder<*>  $query */

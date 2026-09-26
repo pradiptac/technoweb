@@ -2,12 +2,14 @@
 
 namespace App\Support;
 
+use App\Enums\MessageChannel;
 use App\Enums\PaymentGateway;
 use App\Models\Location;
 use App\Models\Media;
 use App\Models\Setting;
 use App\Models\Solution;
 use App\Support\Chat\ChatSettings;
+use App\Support\Visits\VisitSettings;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
@@ -28,7 +30,19 @@ class PublicSettings
      * `payments`, `newsletter`, `chatbot`, `seo`, `media`, `security` — stays
      * server-side unless a key below names it deliberately.
      */
-    public const GROUPS = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'login', 'banners', 'announcement', 'themes', 'portal', 'auth', 'store', 'store_promo', 'store_tiles', 'blog', 'embeds', 'indexnow'];
+    public const GROUPS = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'login', 'banners', 'announcement', 'themes', 'portal', 'auth', 'store', 'store_promo', 'store_tiles', 'blog', 'embeds', 'indexnow', 'push'];
+
+    /**
+     * Rows in a public group that are nobody's business on this endpoint.
+     *
+     * `store` said for months that it held one key; it holds the digital
+     * fulfilment switch and the activation procedure with its PDF — the
+     * steps and the document a buyer receives *after paying*, published to
+     * anybody who asked `/settings`. Named rather than moved to a new group,
+     * because the settings screen reads them from `store` and a migration
+     * of the rows would be a second change for the same fact.
+     */
+    public const PRIVATE_KEYS = ['activation_procedure', 'activation_pdf_path', 'digital_auto_fulfil'];
 
     /** @return array<string, string> */
     public static function build(): array
@@ -39,8 +53,10 @@ class PublicSettings
         // `auth` says which sign-in methods are offered, never anything about
         // a credential. Both login screens are unauthenticated, so they cannot
         // render the right first step without it.
-        // `store` holds one key and it says whether the shop is open. The
-        // *payment* keys are in `payments`, which is private like `mail`.
+        // `store` is public for the shop's switch and its shipping, handling
+        // and returns figures, which the storefront prints; the *payment*
+        // keys are in `payments`, private like `mail`. It also holds three
+        // rows the storefront never reads — see `PRIVATE_KEYS`.
         // `banners` is nine media paths and a switch — the picture behind each
         // section's page heading. It has to be public for the same reason
         // `appearance` is: the heading is painted before anybody signs in.
@@ -57,7 +73,7 @@ class PublicSettings
         $rows = collect(Setting::rows_cached());
 
         $values = $rows
-            ->filter(fn (array $row) => in_array($row['group'], $public, true))
+            ->filter(fn (array $row, string $key) => in_array($row['group'], $public, true) && ! in_array($key, self::PRIVATE_KEYS, true))
             ->map(fn (array $row) => $row['value'])
             ->filter(fn ($v) => $v !== null && $v !== '');
 
@@ -98,6 +114,20 @@ class PublicSettings
         }
 
         /*
+         * The engineer-visit form's six, named for the same reason: the
+         * `visits` group also holds the desk's email address and the default
+         * booking length, neither of which is a visitor's business
+         * (`VisitSettings::PUBLIC_KEYS`, 2026-09-26).
+         */
+        foreach (VisitSettings::PUBLIC_KEYS as $key) {
+            $value = $rows[$key]['value'] ?? null;
+
+            if ($value !== null && $value !== '') {
+                $values[$key] = $value;
+            }
+        }
+
+        /*
          * Whether the shop can actually take money, which is not a setting.
          *
          * It is derived: a gateway is chosen *and* this server has its keys.
@@ -116,6 +146,19 @@ class PublicSettings
          * them against a visitor's clock. One bit, like the one above.
          */
         $values['announcement_live'] = Announcement::isLive($values->all()) ? '1' : '0';
+
+        /*
+         * Which messaging channels the site may offer an opt-in for: the
+         * checkout's WhatsApp and RCS boxes, the push bell. One bit each —
+         * the provider and its keys are private (`messaging`), and a box
+         * offered for a channel that cannot deliver is a promise broken at
+         * the first order. Push also needs the browser half of Firebase,
+         * the public `push` group, or the bell has nothing to subscribe with.
+         */
+        $values['messaging_whatsapp_live'] = MessageChannel::WhatsApp->ready() ? '1' : '0';
+        $values['messaging_rcs_live'] = MessageChannel::Rcs->ready() ? '1' : '0';
+        $values['push_live'] = MessageChannel::Push->ready() && collect(['push_api_key', 'push_project_id', 'push_messaging_sender_id', 'push_app_id', 'push_vapid_key'])
+            ->every(fn (string $k) => filled($values[$k] ?? null)) ? '1' : '0';
 
         // A media path inside the theme options JSON needs its URL the way
         // every `_path` setting gets one below; the row is rewritten with an

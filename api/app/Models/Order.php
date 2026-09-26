@@ -152,12 +152,20 @@ class Order extends Model
      * Addressed by `access_token`, never by the number alone: the number is
      * printed on paperwork, quoted on the telephone and sequential, so a link
      * without the token is somebody else's order for whoever counts upwards.
+     *
+     * To `/order/{n}/open`, not the page itself (2026-09-26). That route
+     * renders nothing: it puts the token in a cookie scoped to the order's
+     * path and redirects to the clean `/order/{n}`, so the token is never the
+     * address of a page — which it was, on a page that loads Google Analytics
+     * and the Meta Pixel, both of which report the full URL.
+     * `$paidBy` names a gateway coming back (Cashfree's return URL).
      */
-    public function url(): string
+    public function url(?string $paidBy = null): string
     {
         return rtrim((string) config('app.frontend_url'), '/')
-            .'/order/'.$this->order_number
-            .'?token='.$this->access_token;
+            .'/order/'.$this->order_number.'/open'
+            .'?token='.$this->access_token
+            .($paidBy !== null ? '&paid='.rawurlencode($paidBy) : '');
     }
 
     public function getRouteKeyName(): string
@@ -228,6 +236,20 @@ class Order extends Model
         };
 
         $this->save();
+
+        /*
+         * An unpaid order that is cancelled gives its coupon use back.
+         *
+         * The use is taken at checkout, not at payment, so a single-use code
+         * cannot be spent twice in two tabs — which left every abandoned
+         * basket holding a use for ever, and anybody could exhaust a limited
+         * code by placing orders they never meant to pay for. Released only
+         * when nothing was paid: a paid order's discount is part of what the
+         * customer was charged, and its usage row is the record of why.
+         */
+        if ($status === OrderStatus::Cancelled && $this->paid_at === null && $this->coupon_id !== null) {
+            CouponUsage::where('order_id', $this->id)->delete();
+        }
 
         $this->history()->create([
             'from_status' => $from?->value,

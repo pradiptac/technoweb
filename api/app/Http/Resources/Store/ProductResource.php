@@ -4,11 +4,14 @@ namespace App\Http\Resources\Store;
 
 use App\Http\Resources\BrandResource;
 use App\Http\Resources\Concerns\IncludesAnswerContent;
+use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\SeoResource;
 use App\Models\StoreProduct;
 use App\Support\MediaMeta;
 use App\Support\Store\Fulfilment;
+use App\Support\Store\ProductVideos;
+use App\Support\Store\ReviewSummary;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -28,7 +31,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin StoreProduct */
 class ProductResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesSchema;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema;
 
     public function toArray(Request $request): array
     {
@@ -78,6 +81,13 @@ class ProductResource extends JsonResource
             'image_alts' => MediaMeta::alts($this->images),
             // Parallel to `image_alts`, same order and length: the focal point of each, or null.
             'image_focuses' => MediaMeta::focuses($this->images),
+            /*
+             * The product's videos, after the pictures in its gallery
+             * (2026-09-26). A YouTube video is its id and never a thumbnail
+             * URL of YouTube's — the page draws its own poster and contacts
+             * nobody until play is pressed. Detail only: a card has no player.
+             */
+            'videos' => $this->when($detail, fn () => ProductVideos::forPublic($this->videos)),
 
             'price_paise' => $this->price_paise,
             'compare_at_paise' => $this->when(
@@ -104,6 +114,14 @@ class ProductResource extends JsonResource
             'returnable' => (bool) $this->returnable,
 
             'is_featured' => (bool) $this->is_featured,
+            /*
+             * The published reviews' summary, `{average, count}`, or null
+             * when nobody has been published yet — read off the product's own
+             * two columns (`ReviewSummary`), so a grid of cards never
+             * aggregates per row. On the index and the detail alike: the card
+             * draws the pill from it.
+             */
+            'rating' => ReviewSummary::publicShape($this->resource),
             // Unconditional, not detail-gated: the storefront's "New" ribbon
             // has to be computable from the listing grid, not only the PDP.
             'created_at' => $this->created_at?->toIso8601String(),
@@ -134,6 +152,8 @@ class ProductResource extends JsonResource
             'entity' => $this->entity(),
             // An FAQPage over the FAQs and question blocks; absent under two entries.
             'faq_schema' => $this->faqSchema(),
+            // Custom fields (docs/custom-content.md) — see IncludesCustomFields.
+            ...$this->publicCustomFields(),
             'seo' => $this->when(
                 $this->resource->relationLoaded('seo'),
                 fn () => new SeoResource($this->resolvedSeo()),

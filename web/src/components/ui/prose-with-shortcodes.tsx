@@ -2,9 +2,10 @@ import { Prose } from "@/components/ui/prose";
 import { SliderFor } from "@/components/ui/slider-for";
 import { Gallery } from "@/components/ui/gallery";
 import { FormBlock } from "@/components/forms/form-block";
+import { BlockView } from "@/components/blocks/block-view";
 import { publicApi } from "@/lib/api";
 import { parseShortcodes, slugsIn } from "@/lib/shortcodes";
-import type { Gallery as GalleryData, SiteForm, Slider as SliderData } from "@/types/api";
+import type { ContentBlock, Gallery as GalleryData, SiteForm, Slider as SliderData } from "@/types/api";
 
 /**
  * A CMS body with `[slider slug="…"]`, `[gallery slug="…"]` and
@@ -35,6 +36,8 @@ export async function ProseWithShortcodes({ html, className }: { html: string; c
   const sliders = new Map<string, SliderData>();
   const galleries = new Map<string, GalleryData>();
   const forms = new Map<string, SiteForm>();
+  const blocks = new Map<string, ContentBlock>();
+  const blockKinds = ["cta", "stats", "pricing", "stack"] as const;
 
   await Promise.all([
     ...slugsIn(html, "slider").map(async (slug) => {
@@ -55,6 +58,15 @@ export async function ProseWithShortcodes({ html, className }: { html: string; c
         // API answers 404 for an empty one deliberately, so this is the branch
         // that turns "somebody has not added the pictures yet" into a section
         // that is simply absent rather than a tab strip with nothing under it.
+      }
+    }),
+    // One fetch per distinct block slug, whichever of the four shortcodes named it.
+    ...[...new Set(blockKinds.flatMap((kind) => slugsIn(html, kind)))].map(async (slug) => {
+      try {
+        const { data } = await publicApi.block(slug);
+        blocks.set(slug, data);
+      } catch {
+        // A draft, an unknown slug or an empty block renders nothing.
       }
     }),
     ...slugsIn(html, "form").map(async (slug) => {
@@ -84,6 +96,13 @@ export async function ProseWithShortcodes({ html, className }: { html: string; c
         if (segment.type === "gallery") {
           const gallery = galleries.get(segment.slug);
           return gallery ? <Gallery key={i} gallery={gallery} className="my-8" /> : null;
+        }
+
+        if (segment.type === "cta" || segment.type === "stats" || segment.type === "pricing" || segment.type === "stack") {
+          const block = blocks.get(segment.slug);
+          // `[cta slug="x"]` naming a stat bar renders nothing: the shortcode
+          // is a claim about what the block is, and a mismatch is a typo.
+          return block && block.type === segment.type ? <BlockView key={i} block={block} embedded /> : null;
         }
 
         const form = forms.get(segment.slug);
