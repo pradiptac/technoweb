@@ -1557,6 +1557,17 @@ is set. A blank submit means "unchanged", because the form can never show the
 current value; clearing one is a separate endpoint. When adding a setting, ask
 which of those two lists it belongs on before adding it to the seeder.
 
+**Every `href` an editor types is `App\Support\LinkPattern`.** A path, an
+http(s) URL, `mailto:` or `tel:` — and the path branch refuses `//host` and
+`/\host`, which a browser reads as another site. Menus, popups, content
+blocks, the promo band, slider slides and gallery items all use it; the last
+two took any string, so `javascript:` saved on a slide ran for whoever
+pressed it. Social profiles must be http(s), and the three analytics ids are
+held to their published shapes, since they are interpolated into inline
+scripts. An FAQ answer saved through any entity form's `faqs[]` is sanitised
+(`SanitisesRichText` adds `faqs.*.answer` to every request), as it always was
+on the FAQ screen.
+
 **A map embed URL is validated against Google's host on write.** It becomes an
 `iframe src` on the contact page, and an unchecked one is somebody else's page
 rendered inside ours.
@@ -1950,6 +1961,7 @@ A separate catalogue with prices; baskets, checkout, payment, stock, coupons, di
 - A refund is a `payments` row with status `refunded` (`ManualRefund`, `POST …/orders/{number}/refunds`): an amount, a reference, who confirmed it; partial refunds add up, the amount completing what was paid makes the order `refunded`, and nothing calls a gateway (2026-09-20).
 - The catalogue imports and exports (2026-09-20, `CatalogueExport`/`CatalogueImport`): one CSV row per product and per variation with `parent_sku`, money as plain decimals; the import is a dry run then a commit, matched by SKU — a variation's SKU updates the variation, a product's the product, an unknown one creates a product, and nothing ever creates a variation; a blank cell leaves a column alone; stock moves through `StockLedger::adjusted` with the import named; a store-specific column guesser, because the newsletter's reads "name" as a first name.
 - A back-in-stock notice is a row that is stamped once (2026-09-20, `stock_notices`): `POST /store/products/{slug}/notify` answers 202 whatever happened, `StockLedger::record()` on a positive delta dispatches `SendStockNotices` after commit, and the job re-checks `inStock()` when it runs, skips the suppression list, sends `back_in_stock` and stamps `notified_at`; a repeat request re-arms. `notices_waiting` on the admin product, `?notices=1`, `attention.awaiting_stock`.
+- The browser's Razorpay return is bound to the order (2026-09-26): `createSession()` writes `orders.gateway_order_id`, the return must name it (`hash_equals`), and `GET /v1/payments/{id}` must say captured or authorised, that order, INR — its `amount` goes to `Settlement`, whose check a return without one used to skip. `Settlement::recordReturn()` refuses a return with no amount rather than recording it (a failed row would make the genuine webhook a no-op). Cancelling an unpaid order releases its coupon use; `POST /cart/coupon` answers an off, expired or not-yet-started code like an unknown one (`Coupon::isLive()`). A guest order only fills blank saved details; `/checkout` reads the portal token by guard name, forwarded by the Server Action. `activation_procedure`, `activation_pdf_path` and `digital_auto_fulfil` are out of public `/settings` (`PublicSettings::PRIVATE_KEYS`); an import commit's file is rebuilt from its last segment (`ImportUpload`).
 
 ### Customers and addresses — `docs/customers.md`
 
@@ -1972,6 +1984,7 @@ Account lifecycle, registration, the one address definition, company suggestions
 - If that stops being true the fix is one line.
 - It is a `<datalist>`, not a combobox.
 - "View as" (2026-09-21) mints an `impersonation` token of its own for an hour, never a `portal` one and never through `issueToken()`; `/auth/me` reports `meta.impersonated`; the console reaches it through a POST-only route handler because both cookies are `sameSite: lax`.
+- An unconfirmed account is passed over (2026-09-26): `Checkout::accountFor()` does not join a guest order to one, `TicketPiper` confirms it before attaching mail, and the first confirmation — link, code or piped mail — replaces the password nobody proved, ends every session, then joins the address's paid guest orders (`Customer::markEmailVerified()`, `Checkout::claimOrders()`). A portal email change un-confirms the address and mails the new one. `verify-email` checks the token before it answers, so a confirmed address and an unknown one get the same 422; `already_verified` is always false.
 
 ### Sign-in — `docs/auth.md`
 
@@ -1989,6 +2002,7 @@ Codes, passwords, the two principals and what they must never share.
 - One input for the code, never six boxes.
 - Both doors render one form: `components/auth/sign-in-form.tsx` takes the three Server Actions, the reset path and the register path as props, and `admin/login/login-form.tsx` and `portal/login/login-form.tsx` are the two wrappers that pass them. The refusal panel (`pending_approval`, `email_unverified`) is in the shared form and simply never fires for the console, whose actions set no `reason`.
 - Beside the sign-in form is a setting (`login` group, Settings → Sign-in screen): the picture or one of eight canvas animations drawn in the theme's own tokens over `bg-dark`, intensity and speed beside it; `lib/login-backdrop-choices.ts` is the one list, shape-checked by the API, `auth-backdrop.tsx` draws it, still under reduced motion. `login_message` is rich text (`cms` profile) drawn centred over it through `Prose onDark` in place of the tagline.
+- `password_login_enabled` is enforced by both login endpoints (2026-09-26): 403 `reason: password_login_disabled` before the credentials are read; `AUTH_PASSWORD_BREAK_GLASS=true` in `api/.env` re-opens *staff* passwords only, for the day mail is broken. A sign-in code's attempt is claimed with a conditional UPDATE before bcrypt runs, so parallel guesses cannot outrun the cap of five.
 
 ### Leads — `docs/leads.md`
 
@@ -2064,6 +2078,7 @@ Subscribers, groups, imports, campaigns, tracking, Hunter verification, bounces.
 - A subject test (`subject_b`, `ab_test_percent`, `ab_wait_hours`) sends a slice under each line and holds the rest as recipient status `held`; `CampaignSender::decide()` picks by opens (tie to A) with a conditional update, from `technoware:decide-subject-tests` every ten minutes or the Send tab's "Decide now"; a campaign under test is still `sending` (2026-09-20).
 - A resend is a copy whose audience is the original's non-openers (2026-09-20): `POST …/campaigns/{id}/resend {subject}`, `resend_of_id` unique so the one-resend rule is the index, the set re-filtered through `AudienceResolver::freezeFrom` and the health gate run before anything is written; `TrackingRewriter::unprepare()` puts a copy's links and pixel back, which `duplicate` had never done.
 - A sequence step is a campaign row (2026-09-20, `docs/newsletter.md` "Sequences"): `sequence_id`/`sequence_position`/`delay_days` and status `automation`, hidden from the campaigns index and refused by `queue()`, so it has the editor, tracking, unsubscribe and a report for nothing; enrolment is once per subscriber per sequence (a unique index) from `SubscriberIntake`, the group screen or by hand; `technoware:run-sequences` every ten minutes sends, advances, completes or cancels — the scheduler, not a listener, because a delay is a date.
+- Hardening, 2026-09-26: a Mailgun bounce `token` is accepted once (`Cache::add` after the signature); the CSV writer and reader use `escape: ''` (RFC 4180 — a backslash-quote smuggled a formula cell past `Csv::escape()`); an xlsx part inflates to at most 50MB and a reference past XFD is skipped; a typed IMAP scan is port 143/993 on a public host (`PublicHost`) and fails with one sentence, not the socket's words.
 
 ### Outgoing mail — `docs/mail.md`
 
@@ -2103,6 +2118,7 @@ The queue, the scheduler, transports chosen in Settings, email templates, acknow
 - A mail settings change takes effect on the next request.
 - The `log` transport gets its own channel at `debug`.
 - Every ticket notification carries `Auto-Submitted` and `X-Auto-Response-Suppress` (`MailHeaders::machine()`), piping on or off; the Reply-To points at the support mailbox only while it is being read (`InboundMail::replyTo()`), and the acknowledgement's closing line follows the same switch.
+- Mail lines are text (2026-09-26): `Markdown::withSecuredEncoding()` in `AppServiceProvider`, so `[x](https://evil)` typed into a public form is not a link in the acknowledgement; a line that means a link is an `HtmlString` (`BackInStock`); `Placeholders::fill()` entity-encodes `[ ] ( ) !` too. A stored secret goes only where it was saved for: `mailgun_endpoint` is one of `MailTransport::MAILGUN_ENDPOINTS`, a new `smtp_host`/`inbound_imap_host` needs its password typed again in the same save, and both hosts are public on a mail port (SMTP 25/465/587/2525, IMAP 143/993).
 
 ### The website assistant — `docs/chatbot.md`
 
@@ -2138,6 +2154,7 @@ Retrieval, grounding, intake, the console. `docs/chatbot-architecture.md` is the
 - The thread's ground is `chatbot_background` (`--chat-bg` / `--chat-bg-ink`, ink derived, blank = `brand-50`); the typing dots are `currentColor` so they read on it.
 - The launcher's animation is `chatbot_animation`, eleven styles from `ChatSettings::ANIMATIONS` keyed by `data-chat-motion` on the disc while nothing has opened the panel; every one stops the same way and sits inside the reduced-motion guard.
 - The widget's name, colour, icon, text size and name-on-the-launcher are public `chatbot_*` settings handed in by the layout as a `ChatLook` (`lib/chat-look.ts`); a chosen colour becomes `--chat-accent`/`--chat-accent-ink` with the ink derived server-side, and the launcher's hover glow is `.assistant-launcher:hover` in `globals.css`.
+- The fence marker is stripped until nothing changes (a nested `---WEBSITE ---WEBSITE COPY---COPY---` made one), and the title and labelled fields sit inside the fence with the excerpt; only the label is outside (2026-09-26).
 
 ### SEO: structured data, scores and the AI assistant — `docs/seo.md`
 
@@ -2362,6 +2379,7 @@ Upload paths, limits, the SVG sanitiser, in-place edits, the bin, alt text.
 - A `CoverField` needs the URL, not just the path.
 - A form-mode `FileDrop` takes a paste, lists rows and appends (2026-09-21): `paste` listens on the surrounding form for `kind === "file"` items and renames the clipboard's `image.png` to `pasted-<stamp>.png` (the file's name, not the field's); every file is a row with a thumbnail, the size and a 24px remove, keyed by an id given on arrival; a pick, a drop and a paste each *append* and the hidden input is rebuilt through `DataTransfer`; `max`/`maxBytes` restate the API's caps from `lib/ticket-attachments.ts`; the list empties on the form's `reset`. A thumbnail's object URL is made and revoked in one effect and written straight to the `<img>`. `scripts/probes/ticket-paste.mjs`.
 - Files sent with the ticket itself hang off `tickets`, not a message, and were drawn on neither ticket page until 2026-09-21.
+- A replacement carries the upload's `mimes:` check and stores the detected mime, never the client's `Content-Type` (2026-09-26).
 
 ### The rich-text editor and CMS pages — `docs/editor.md`
 
@@ -2426,6 +2444,7 @@ Role-filtered sidebar, the settings strip, the activity log, dashboard charts, c
 - Every entity form that carries answer blocks ends on an **AEO** tab (2026-09-21, `docs/aeo-geo-contract.md` §7): `AeoGeoPanel` (the two readiness scores from `GET /admin/seo/{type}/{id}`, "Not scored yet" when absent, plus the assistant scoped to `AEO_ACTIONS` — the keys are the contract, the labels the API's, an unknown action is drawn nowhere), then `AnswerBlocksField` (kinds from the entity's own index's `meta.answer_block_kinds`, hidden JSON `answer_blocks` replaced wholesale like `faqs`, the row key never in the markup or it is a hydration error), then `FaqField` where FAQs are new; Apply reaches the repeaters through `tw:answer-blocks-suggested`/`tw:faqs-suggested` on the form, as drafts. `/admin/seo` sorts and filters on `aeo`/`geo`. `docs/admin-console.md`.
 - **Improvement suggestions** sit under each readiness score, in two layers (2026-09-21): the rubric's own — every failed check with its weight and the hint that would earn it, always — and the assistant's "Suggest improvements" (`aeo_analyze`/`geo_analyze`, drawn inline as summary, gaps, what to do, what is already strong; the newest stored analysis on load), only while the assistant is on with a key. The run goes through `AiSeoPanel`'s handle (`ref.run`, `onReady`/`onHistory`/`onSuggestion`) so there is one run, one cap counter and one history, and a quiet run opens no dialog. "Improve an answer" carries a picker of the record's *saved* blocks and posts `block_id`; a row added this session has no id and is not offered. The overview's site card draws "AEO — biggest wins" and "GEO — biggest wins" beside the SEO strip, each chip `?aeo_check=`/`?geo_check=`.
 - The portal's ticket thread is a chat (`components/portal/ticket-thread.tsx`): staff on the left with an initials disc, the customer on the right, stacked below `sm`; a staff reply carries five radio-button stars and a report form (`reply-verdict.tsx`, optimistic value with no prop-to-state effect), and a quote glyph that announces `tw:quote` for the reply form to prepend `> ` lines. The verdict lives on the message row (`rating`, `report_reason`, timestamps); only a visible staff reply on the customer's own ticket may be judged, 404 otherwise; the queue filters `?reported=1` and the console shows the stars and the reason under the reply.
+- A webhook's host is resolved at send time, every answer must be public, and cURL is pinned to the checked addresses (`CURLOPT_RESOLVE`); a redirect is a failure (`withoutRedirecting()`); on write, a host written as a bare number (`127.1`, `0x7f.0.0.1`) or `::ffff:` is refused. `App\Support\Net\PublicHost` is the one definition, shared with the mailbox scan and the mail settings; tests bind `PublicHost::RESOLVER` so none resolves DNS (2026-09-26).
 
 ### The public site's chrome — `docs/site-chrome.md`
 

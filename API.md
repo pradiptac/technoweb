@@ -122,6 +122,15 @@ back is exactly the proof `POST /auth/verify-email` asks for, so
 `CustomerRegistered` to `support_email`, or a customer would confirm, wait for
 approval, and be in nobody's queue.
 
+**The first confirmation retires the password it did not prove.** However an
+address is confirmed — the link, a code, mail piped in from it — the password
+on the row is replaced with one nobody knows, every token is deleted, and then
+the paid guest orders under the address are joined to it. `/auth/register`
+stores a password the caller chose before anybody proved the mailbox, and
+anybody can register anybody's address; the code and the link prove the
+inbox, never who typed that password. The owner signs in with a code or sets
+a password through `POST /auth/forgot-password`.
+
 **Staff attempts reach the activity log**: `login` on success,
 `login_failed` with `bad_code` or `account_inactive`, and
 `login_code_requested` for *every* address a code is asked for. `user_id` stays
@@ -134,6 +143,13 @@ They are public because both sign-in screens render before anybody is
 authenticated. `password_login_enabled` is the escape hatch: mail is configured
 from the console and can be misconfigured from it, so an install that has
 turned passwords off and then broken SMTP has locked itself out.
+
+**Switched off, it is enforced by both login endpoints**, not only by the
+screens: `POST /auth/login` and `POST /admin/auth/login` answer **403** with
+`reason: password_login_disabled` before the credentials are read, one answer
+for every address. `AUTH_PASSWORD_BREAK_GLASS=true` in `api/.env` re-opens the
+**staff** endpoint only — the way back in when mail is broken — and the
+console's refusal is logged as `login_failed` with that reason.
 
 **Delivery is a channel, and email is the only one installed.**
 `App\Enums\SignInChannel` owns the list the way `MailTransport` does. SMS is
@@ -210,7 +226,10 @@ not something a wrong password earns.
 
 **Confirmation tokens are hashed at rest**, single-use, and expire in 24 hours.
 A wrong token, an expired one, an already-spent one and an unknown address all
-return the same 422 — the same rule the password reset follows.
+return the same 422 — the same rule the password reset follows. **The token is
+checked before anything else**: a confirmed address answered 200 with
+`already_verified` and the account's `status` whatever token was sent, so a
+spent link is now the same 422 and `already_verified` is always `false`.
 
 **The support desk is notified when an address is confirmed**, not when the
 form is submitted. An unconfirmed row is noise, and a form open to the internet
@@ -265,12 +284,12 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/case-studies/{slug}` | Includes the `results` figures |
 | `GET` | `/knowledge-base` | Paginated. `?q=` search, `?category=` |
 | `GET` | `/knowledge-base/{slug}` | |
-| `POST` | `/knowledge-base/{slug}/helpful` | "Was this helpful?" Throttled 10/min. **204 always** — a draft counts nothing and answers the same |
+| `POST` | `/knowledge-base/{slug}/helpful` | "Was this helpful?" Throttled 10/min. **204 always** — a draft counts nothing and answers the same, and so does a slug nobody wrote (it used to 404, which made a draft's 204 the tell) |
 | `GET` | `/pages` | Published CMS pages, **without bodies**. For the sitemap |
 | `GET` | `/pages/{slug}` | CMS pages — `/privacy`, `/terms`, `/downloads` |
 | `GET` | `/ticket-categories` | Powers the submit-a-ticket form |
 | `GET` | `/settings` | Site settings. **Whitelisted by group**, see below |
-| `GET` | `/search?q=` | Site-wide search, grouped by type. Min 2 characters, 5 per group |
+| `GET` | `/search?q=` | Site-wide search, grouped by type. Min 2 characters, **max 100** (422 above), 5 per group. `%` and `_` match themselves. Throttled 240/min under the `search` key — every visitor reaches it through the one Next server |
 | `GET` | `/companies/suggest?q=` | Company names already on file. Prefix, min 3 chars, max 5. Throttled 20/min |
 | `GET` | `/redirects` | Every active redirect as `{from,to,status}` rows. `Cache-Control: max-age=60`. What the frontend proxy holds in memory |
 | `GET` | `/redirects/lookup?path=/blog/old-slug` | 200 with `{data:{to,status}}`, or 404. **Records the hit** — the proxy calls it only on a match |
@@ -553,6 +572,11 @@ endpoints that feed the mega menu accept it; without it they return everything,
 because the index pages need everything. `show_in_menu` defaults to true, so a
 record is in the navigation until somebody decides otherwise — the opposite
 default would empty the menu on the migration that adds the column.
+
+**Three `store` rows are not published**: `activation_procedure`,
+`activation_pdf_path` (and its `_url`) and `digital_auto_fulfil` —
+`PublicSettings::PRIVATE_KEYS`. The group is public for the shop's switch and
+its shipping figures; the procedure is what a buyer receives after paying.
 
 **`/settings` returns a whitelist, not a filtered dump.** Only the `general`,
 `contact`, `social` and the other groups `PublicSettings::GROUPS` names —
@@ -882,7 +906,7 @@ here reads `products`.
 | `POST` | `/checkout` | Places the order. Throttled 10/min, honeypot `website` |
 | `GET` | `/orders/{number}?token=` | One order, for whoever holds the link |
 | `POST` | `/orders/{number}/pay` | Opens a payment session |
-| `POST` | `/orders/{number}/verify` | What the browser came back with |
+| `POST` | `/orders/{number}/verify` | What the browser came back with. Razorpay: must name the gateway order this order's `/pay` opened, and Razorpay's own record must say captured/authorised, that order, INR — its amount is compared with the total. 422 otherwise |
 | `POST` | `/payments/{gateway}/webhook` | The gateway talking to us. **Un-throttled** |
 | `POST` | `/store/products/{slug}/notify` | "Email me when this is back": `email`, `variation_id?`, honeypot `website`. Throttled 10/min. **202 and one sentence always** |
 | `GET` | `/store/stock-notices/{token}/cancel` | The link in the email. Idempotent; `{message}`, 200 for a token nobody has too |
@@ -1110,6 +1134,13 @@ printed on paperwork, quoted on the telephone and sequential. The token is
 returned **once**, on the response that creates the order, and appears in no
 other response. A wrong token is a 404, compared with `hash_equals`.
 
+**A browser return is bound to its order and priced by the gateway.** `/pay`
+records the Razorpay order it opened on the order (never in a response beyond
+the session itself); `/verify` refuses a triple naming any other, then fetches
+`GET /v1/payments/{id}` from Razorpay and hands *its* amount to settlement. A
+triple from a cheaper order used to verify here and settle at this order's
+total. A return the gateway puts no figure to is refused, never recorded.
+
 **Payment is verified server-side and the webhook is what settles an order.**
 `verify` is a convenience so the person sees the right page at once; the webhook
 arrives whether or not the browser survived the redirect. Both go through one
@@ -1133,11 +1164,16 @@ door leaves somebody `pending`; having paid is a stronger statement than
 anything that queue establishes. An address that already has an account keeps
 whatever status it has.
 
-| `POST` | `/cart/coupon` | Applies a discount code. Throttled 15/min |
+| `POST` | `/cart/coupon` | Applies a discount code. Throttled 15/min. An off, expired or not-yet-started code is answered exactly like an unknown one ("That code is not recognised.") |
 | `DELETE` | `/cart/coupon` | Takes it off |
 | `POST` | `/orders/{number}/items/{item}/reveal` | Hands over an activation code. Throttled 20/min |
 | `GET` | `/my/orders` | The signed-in customer's orders |
 | `GET` | `/my/orders/{number}` | One of them |
+
+**A cancelled unpaid order gives its coupon use back.** The use is written at
+checkout (so two tabs cannot spend a single-use code) and, until now, was
+never released — abandoned orders exhausted a limited code. Moving an order
+with no `paid_at` to `cancelled` deletes its usage row; a paid order keeps it.
 
 **The basket stores a coupon *code*, never an amount.** The discount is worked
 out on every read, so adding a line, removing one or the code expiring all
@@ -1386,7 +1422,7 @@ authenticated customer — no code path here can reach another customer's data.
 | `POST` | `/auth/login` | Public. Returns token + customer |
 | `POST` | `/auth/logout` | Revokes the current token |
 | `GET` | `/auth/me` | The signed-in customer, and `meta.impersonated` — true on a token from `POST /admin/customers/{id}/impersonate` |
-| `PATCH` | `/auth/profile` | Name, email, company, phone, password, **billing/delivery address and GSTIN**. Changing the password revokes every other session |
+| `PATCH` | `/auth/profile` | Name, email, company, phone, password, **billing/delivery address and GSTIN**. Changing the password revokes every other session. **Changing the email un-confirms it** and sends the confirmation link to the new address |
 | `GET` | `/tickets` | `?status=`, `?per_page=` (max 50) |
 | `GET` | `/tickets/summary` | Counts by status for the dashboard |
 | `POST` | `/tickets` | multipart. `subject`, `description`, `ticket_category_id`, `priority`, `attachments[]`, `is_sensitive` (the description stored encrypted; see the message rule below) |
@@ -2052,7 +2088,7 @@ same shape until products gained full CRUD, and went the same way.
 | `POST` | `/admin/media/{id}/resize` | `width`, `height`, `thumbnails[]` of 90/120/180, `as_copy` |
 | `POST` | `/admin/media/{id}/crop` | `x`, `y`, `width`, `height`, optional `out_width`/`out_height`, `as_copy` |
 | `POST` | `/admin/media/{id}/transform` | `operation` of `rotate`/`flip`/`adjust`, plus `degrees`, `axis`, `brightness`, `contrast`, `greyscale`, `as_copy` |
-| `POST` | `/admin/media/{id}/replace` | multipart `file`. Same bytes, **same path** |
+| `POST` | `/admin/media/{id}/replace` | multipart `file`, held to the upload's `mimes:` list by content; the stored `mime` is the detected type. **Same path** |
 | `POST` | `/admin/media/{id}/alt-suggest` | Alt text proposed by the AI SEO assistant (`App\Support\Seo\Ai\AltText`): the picture goes to a vision-capable model as a `data:` URL, one sentence under 125 characters comes back as `{data: {alt}}` — empty for a decorative picture. **Suggest-only**: the field is written through `PATCH`. 422 with the assistant's sentence when it is off, has no key, has hit the day's cap (the same counter), or the file is not a JPEG/PNG/WebP/GIF under 4MB. Throttled 10/min |
 | `GET` | `/admin/media/{id}/versions` | Superseded copies, newest first |
 | `POST` | `/admin/media/{id}/versions/{version}/restore` | Puts an archived copy back |
@@ -2416,7 +2452,7 @@ complaint, which costs the sending domain far more.
 | `POST` | `/admin/newsletter/imports/mailbox/authorize` | `provider`, `redirect_uri` checked exactly against `/admin/newsletter/subscribers/import/mailbox/callback`. 422 naming Settings → Ticketing when no client is saved |
 | `POST` | `/admin/newsletter/imports/mailbox/callback` | `code`, `state` → `{account, provider}`; writes only the `newsletter_oauth_*` rows |
 | `POST` | `/admin/newsletter/imports/mailbox/disconnect` | Forgets the consent |
-| `POST` | `/admin/newsletter/imports/mailbox/scan` | `source` of `connected` or `imap` (with `imap.{host,port,encryption,username,password}` — used for this scan, never stored), `since`/`until` (`Y-m-d`, either optional), `include_junk`. **202** with the import row; 422 while a scan is in flight, when nothing is connected, on a backwards range, or with `errors.queue` when nothing drains the queue. Throttled 6/min |
+| `POST` | `/admin/newsletter/imports/mailbox/scan` | `source` of `connected` or `imap` (with `imap.{host,port,encryption,username,password}` — used for this scan, never stored; `port` 143 or 993, `host` public, 422 on either otherwise, and a failed scan's `error` is one sentence rather than the server's words), `since`/`until` (`Y-m-d`, either optional), `include_junk`. **202** with the import row; 422 while a scan is in flight, when nothing is connected, on a backwards range, or with `errors.queue` when nothing drains the queue. Throttled 6/min |
 | `GET` | `/admin/newsletter/imports/{id}` | The row with `source`, `status` (`pending`, `scanning`, `ready`, `running`, `completed`, `failed`, `cancelled`, `expired`), `progress` (folders, messages, addresses, what was skipped and why, the range), `analysis` once `ready` (the dry run's `counts`, `domains[]` with `kind`/`default`, `roles`, `mapping`, `capped`, `account`), `error`, `expires_at`. What the screen polls |
 | `DELETE` | `/admin/newsletter/imports/{id}` | Discards a mailbox scan not yet imported: the file and the scratch state go, the consent is forgotten, a running chain stops at its next slice |
 | `GET` | `/admin/newsletter/templates` | Without `blocks` or `html` |
@@ -2893,6 +2929,15 @@ the command — never a class-not-found on the next ticket receipt.
 publish a host and credentials, so the `smtp` transport reaches any of them with
 no bridge at all. The API transports buy better error reporting and immunity to
 a host that blocks outbound 587, which shared hosting does.
+
+**A stored secret goes only where it was saved for.** `mailgun_endpoint` is
+`api.mailgun.net` or `api.eu.mailgun.net` (422 otherwise); changing `smtp_host`
+or `inbound_imap_host` while a password is stored needs the password in the
+same `PATCH` (422 on the host otherwise); both hosts must be public, and
+`smtp_port`/`inbound_imap_port` one of 25, 465, 587, 2525 / 143, 993. The
+social profile URLs must be http(s), and `google_analytics_id`
+(`G-…`), `google_tag_manager_id` (`GTM-…`) and `meta_pixel_id` (digits) are
+held to their shapes — they are interpolated into inline scripts.
 
 **The API key is `secret` for Mailgun and `key` for Brevo.** Laravel's Mailgun
 factory reads `$config['secret']` with no default, so the name that is right for
@@ -3560,8 +3605,12 @@ existing rules.
 plain `http://`, credentials in the URL, an IP literal in a private or
 reserved range in either family, `localhost`, a bare name with no dot, or a
 `.local`/`.internal`/`.lan`/`.home.arpa` suffix — each a 422 on `url` with a
-sentence saying which. A public name that resolves to a private address is
-not caught; see `docs/admin-console.md`.
+sentence saying which — and a host written as a bare number (`127.1`,
+`0x7f.0.0.1`, `2130706433`) or as `::ffff:` IPv4. **At send time** the host is
+resolved, every answer must be public, and the connection is pinned to those
+addresses; a private answer is recorded as a refusal and retried. **A redirect
+is not followed** — a 3xx is a failed attempt like a 5xx. See
+`docs/admin-console.md`.
 
 **A webhook never fails the request that caused it.** `Webhooks::emit()`
 is guarded like `Notifier`: a failure to write the delivery row is logged at

@@ -1003,3 +1003,72 @@ drawn below `sm`, because a heading, a line and a button need more than a
 16:9 box gives them at 320px. `StorePromoTest` covers the order the rows
 come back in, the suffix checks, and a `store_tile_3_*` key being refused
 by name.
+
+## The browser's return is bound to the order, and Razorpay says how much (2026-09-26)
+
+The signature on Razorpay's return is over `order_id|payment_id`, which proves
+Razorpay issued the pair — and nothing about which of *our* orders that
+Razorpay order was opened for. The return carried no amount either, so
+`Settlement` skipped its amount check and recorded the payment at the order's
+own total. Paying ₹1 for order A and posting A's signed triple to
+`/orders/B/verify` marked B paid.
+
+Three checks now, in `RazorpayProvider::verifyReturn()`:
+
+1. the signature, as before;
+2. **the binding** — `createSession()` writes the gateway order id to
+   `orders.gateway_order_id` (migration `2026_09_26_100000`), and the return
+   must name exactly that one (`hash_equals`). The latest session wins; a
+   browser coming back from an older dialog is refused and the webhook
+   settles it;
+3. **Razorpay's record** — `GET /v1/payments/{id}`, server to server: status
+   `captured` or `authorized`, `order_id` the one this order opened, currency
+   `INR`, and its `amount` handed to `Settlement`, whose check now runs.
+
+`Settlement::recordReturn()` is what the verify endpoint calls, and it
+**refuses** an outcome with no amount instead of recording it at the order's
+total. Refused rather than recorded as failed: the payment row is keyed on the
+gateway payment id, and a failed row written from a doubtful browser return
+would make the genuine webhook for the same payment a no-op. Cashfree already
+asked its own API by our order number and used its amount; it now also
+requires `INR`. `PaymentTest` pins the cross-order replay, a wrong amount, an
+uncaptured payment, a payment against another Razorpay order, another
+currency, and a return with no session opened.
+
+## A coupon use is released by cancelling an unpaid order (2026-09-26)
+
+The use is taken at checkout so a single-use code cannot be spent in two tabs
+— which left every abandoned order holding a use for ever, and anybody could
+exhaust a limited code with orders they never meant to pay for.
+`Order::moveTo(Cancelled)` now deletes the order's `coupon_usages` row when
+`paid_at` is null; a paid order keeps its use whatever happens to it, because
+its discount is part of what was charged. There is no expiry job for unpaid
+orders; cancelling from the console is the release.
+
+`POST /cart/coupon` answers an **off, expired or not-yet-started** code exactly
+like one that does not exist ("That code is not recognised."), so the endpoint
+is not a list of last month's and next month's codes (`Coupon::isLive()`).
+What it still says in words — the minimum spend, "fully used", "you have
+already used that code" — is about a live code the caller has shown they
+know. A code that expires while it sits on a basket still says "That code has
+expired." on the basket: that person had it when it worked.
+
+## The activation procedure is not public (2026-09-26)
+
+`store` is a public settings group for the shop's switch and its shipping and
+returns figures, and three rows the storefront never reads rode along with it:
+`digital_auto_fulfil`, `activation_procedure` and `activation_pdf_path` (with
+its derived `_url`) — the steps and the document a buyer is sent *after
+paying*. `PublicSettings::PRIVATE_KEYS` names them and `/settings` leaves them
+out; the settings screen reads them through the admin endpoint as before.
+
+## The import commit takes a file name, not a path (2026-09-26)
+
+Both import wizards hand the stored path to the browser and take it back on
+commit. The check was a prefix, and Flysystem collapses `..`, so
+`store-imports/../newsletter-imports/mailbox-3.csv` read another area's
+private file (its rows came back in `problems[]`) and deleted it.
+`App\Support\ImportUpload::resolve()` keeps only the last segment, requires a
+plain file name, and rebuilds the path under the fixed directory — the store
+import and the newsletter import both use it.
+
