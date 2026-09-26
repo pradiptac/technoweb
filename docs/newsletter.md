@@ -569,3 +569,23 @@ gained `status` in its in-memory defaults on the way: `enrol()` asks a row
 created and enrolled in one breath, and the column's default is not on the
 model until it is re-read — null there read as "not active" and enrolled
 nobody, the trap `StoreProduct` records for `track_stock`.
+
+## Hardening from the 2026-09-26 review
+
+- **A bounce delivery is accepted once.** Mailgun's `token` is random per
+  delivery; after the signature passes, it is remembered with `Cache::add`
+  for thirty minutes (twice the replay window), so a captured delivery posted
+  again straight after staff lift the suppression it caused changes nothing.
+- **The CSV writer and reader speak RFC 4180** (`escape: ''`). With PHP's
+  backslash escape, `Bob\",=HYPERLINK(…)` was one field to PHP and two cells
+  to Excel — a formula cell `Csv::escape()` never saw. `HarvestState` writes
+  and `Csv::read` reads with the same setting. `tests/Unit/CsvFormulaTest`.
+- **An xlsx part inflates to at most 50MB** (`Xlsx::MAX_INFLATED_BYTES`), and
+  a cell reference past column XFD is skipped rather than padded out to.
+  `tests/Unit/XlsxLimitsTest`.
+- **A mailbox scan is not a port scanner.** A typed IMAP source is port 143
+  or 993 on a public host (`PublicHost`), and a failed one-off scan shows one
+  sentence rather than the socket's words; the log keeps those.
+- **The import commit takes a file name** — see `docs/store.md`,
+  `ImportUpload`.
+

@@ -26,6 +26,20 @@ namespace App\Support\Newsletter;
 class Xlsx
 {
     /** The magic bytes every ZIP — and so every xlsx — starts with. */
+    /**
+     * The most one part of the file may inflate to. The shared strings or
+     * the sheet of a real contact list is a few megabytes; fifty is generous
+     * and still a bound.
+     */
+    public const MAX_INFLATED_BYTES = 52428800;
+
+    /**
+     * XFD, the last column Excel has. A reference past it is not a real
+     * cell, and `r="ZZZZZZZZZZ1"` would otherwise ask `rows()` to pad a row
+     * out to twenty-six to the tenth empty strings.
+     */
+    public const MAX_COLUMN = 16383;
+
     public const SIGNATURE = "PK\x03\x04";
 
     public static function looksLikeXlsx(string $path): bool
@@ -152,9 +166,18 @@ class Xlsx
             return null;
         }
 
-        $inflated = @gzinflate($bytes);
+        /*
+         * With a ceiling. Deflate compresses a run of one byte about a
+         * thousand to one, so a 10MB upload inflates to gigabytes and takes
+         * the worker's memory with it — the zip bomb, from a campaign
+         * manager's upload box. `gzinflate` stops at the limit and fails,
+         * and a sheet that big is not a mailing list anyway.
+         */
+        $inflated = @gzinflate($bytes, self::MAX_INFLATED_BYTES);
 
-        return $inflated === false ? null : $inflated;
+        // zlib honours the limit to the nearest buffer, not the byte, so the
+        // length is checked as well as the failure.
+        return $inflated === false || strlen($inflated) > self::MAX_INFLATED_BYTES ? null : $inflated;
     }
 
     /**
@@ -254,6 +277,11 @@ class Xlsx
 
             foreach ($row->c as $cell) {
                 $column = self::columnIndex((string) $cell['r']);
+
+                if ($column < 0) {
+                    continue;
+                }
+
                 $type = (string) $cell['t'];
 
                 $value = match ($type) {
@@ -309,7 +337,11 @@ class Xlsx
         return $rows;
     }
 
-    /** `AB12` -> 27. Zero-based, so column A is 0. */
+    /**
+     * `AB12` -> 27. Zero-based, so column A is 0; -1 for a reference no
+     * spreadsheet can hold (more than three letters, or past XFD), which
+     * the caller skips.
+     */
     private static function columnIndex(string $reference): int
     {
         $letters = rtrim($reference, '0123456789');
@@ -318,12 +350,16 @@ class Xlsx
             return 0;
         }
 
+        if (strlen($letters) > 3 || ! ctype_alpha($letters)) {
+            return -1;
+        }
+
         $index = 0;
 
         foreach (str_split(strtoupper($letters)) as $letter) {
             $index = $index * 26 + (ord($letter) - 64);
         }
 
-        return $index - 1;
+        return $index - 1 > self::MAX_COLUMN ? -1 : $index - 1;
     }
 }
