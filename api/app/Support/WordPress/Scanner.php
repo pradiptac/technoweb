@@ -189,6 +189,10 @@ class Scanner
         if ($woo && in_array('catalogue', $sections, true)) {
             array_push($tasks,
                 self::task('product_categories', 'wc/v3/products/categories', []),
+                // The same terms from WordPress's side, for their addresses:
+                // WooCommerce's category records carry none, and a shop may
+                // have renamed `/product-category/` (or use Plain permalinks).
+                self::task('product_cat_terms', 'wp/v2/product_cat', [], optional: true),
                 self::task('brands', 'wc/v3/products/brands', [], optional: true),
                 self::task('products', 'wc/v3/products', ['status' => 'any']),
                 self::task('reviews', 'wc/v3/products/reviews', ['status' => 'all'], optional: true),

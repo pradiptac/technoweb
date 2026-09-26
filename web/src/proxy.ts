@@ -218,20 +218,61 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
     event.waitUntil(loadTable(base).catch(() => {}));
   }
 
-  const hit = table.map.get(pathname);
+  let key = pathname;
+  let hit = table.map.get(pathname);
+  let rest = search;
+
+  // A WordPress site on "Plain" permalinks addressed records by query —
+  // `/?p=62`, `/?page_id=5`, `/?product=cap` — and the importer stores those
+  // old addresses in exactly that shape. Only ever on the home path, so a
+  // real page's own query (`/store?category=…`) is never read as one.
+  if (!hit && search !== "" && (pathname === "/" || pathname === "/index.php")) {
+    for (const candidate of wordpressKeys(request.nextUrl.searchParams)) {
+      const found = table.map.get(candidate.key);
+
+      if (found) {
+        [key, hit, rest] = [candidate.key, found, candidate.rest];
+        break;
+      }
+    }
+  }
+
   if (!hit) return pass();
 
   // The hit is counted by the API, after the response — the one call that
   // still goes to `lookup`, and only ever on a redirect.
   event.waitUntil(
-    fetch(`${base}/api/v1/redirects/lookup?path=${encodeURIComponent(pathname)}`, {
+    fetch(`${base}/api/v1/redirects/lookup?path=${encodeURIComponent(key)}`, {
       headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(TABLE_FETCH_TIMEOUT_MS),
     }).catch(() => {}),
   );
 
-  const target = new URL(hit.to + search, request.url);
+  const target = new URL(hit.to + rest, request.url);
   return NextResponse.redirect(target, hit.status === 302 ? 302 : 301);
+}
+
+/**
+ * Each query parameter as the key a WordPress "Plain" permalink was stored
+ * under (`/?p=62`), with the rest of the query — tracking tags and all — kept
+ * for the destination. The value is the decoded one, as the importer stores
+ * it (`LinksStep::normalise`).
+ */
+function wordpressKeys(params: URLSearchParams): { key: string; rest: string }[] {
+  const out: { key: string; rest: string }[] = [];
+
+  for (const [name, value] of params) {
+    if (value === "" || !/^[a-z0-9_-]+$/i.test(name) || name === "post_type" || name === "preview") continue;
+
+    const others = new URLSearchParams(params);
+    others.delete(name);
+    others.delete("post_type");
+    const rest = others.toString();
+
+    out.push({ key: `/?${name}=${value}`, rest: rest === "" ? "" : `?${rest}` });
+  }
+
+  return out;
 }
 
 /**

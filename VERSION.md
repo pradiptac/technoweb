@@ -44,6 +44,9 @@ coupons, orders with their payments, refunds and notes, and reviews.
   an application password is enough, the WooCommerce key is optional; the
   site is read only at public addresses (`SafeHttp`, now shared with webhook
   delivery).
+- Old addresses on "Plain" permalinks — `?p=123`, `?page_id=`, `?product=`
+  — are redirected too, and a shop that renamed `/product-category/` gets
+  its categories' real old addresses.
 - Run against a real WordPress with WooCommerce's sample shop before
   shipping: Yoast data that belongs to another page is now left out with a
   warning, and the old site's administrators are not imported as customers.

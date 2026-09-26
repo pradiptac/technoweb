@@ -82,7 +82,7 @@ Laragon WordPress on this machine be the source, and is ignored unless
 | Comments | `BlogComment` (one level of replies) | pingbacks; comments on pages and products |
 | Menus | `Menu`, **unassigned** | items nested past three levels are lifted to the third |
 | Links | old-site `href`s in imported bodies rewritten to new paths; linked upload files brought into the library | — |
-| Redirects | a 301 from every imported record's old address, plus `/shop` → `/store` | `?p=123` addresses; any old path that collides with a route, page or archive here |
+| Redirects | a 301 from every imported record's old address — "Plain" permalinks' `/?p=123`, `/?page_id=`, `/?product=`, `/?cat=` included — plus `/shop` → `/store` | any old path that collides with a route, page or archive here |
 
 ## Rules worth knowing
 
@@ -138,6 +138,23 @@ Laragon WordPress on this machine be the source, and is ignored unless
   names the running sequences that would then email them.
 - **Staff are never created.** An author matches a staff account by address
   or is left blank.
+
+## Redirects from query addresses
+
+A site on WordPress's "Plain" permalinks reports each record's address as a
+query — `?p=62`, `?page_id=5`, `?product=cap`, `?product_cat=hoodies`.
+`LinksStep::normalise()` keeps that as the old address in one shape,
+`/?{name}={decoded value}`, and `proxy.ts` looks a request up in the same
+shape **only on the home path** (`/` or `/index.php`): each parameter is tried
+as a key, the one that matches is dropped, and the rest of the query (tracking
+tags) rides along to the destination. A real page's own query —
+`/store?category=…` — is never read as one. Body links in the query form are
+rewritten the same way.
+
+A shop category's old address comes from WordPress's own `wp/v2/product_cat`
+(same term id): WooCommerce's REST record carries none, and a shop may have
+renamed `/product-category/` or use Plain permalinks. Only when WordPress will
+not say is the default base assumed.
 
 ## Operations
 

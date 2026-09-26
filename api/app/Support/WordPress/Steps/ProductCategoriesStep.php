@@ -79,11 +79,21 @@ class ProductCategoriesStep extends Step
         $ctx->map->put('product_cat', $record['id'], $category, $this->link($ctx, $record));
     }
 
-    /** WooCommerce's category address; its REST record carries no permalink. */
+    /**
+     * The category's address on the old site. WooCommerce's REST record
+     * carries none, so it is read from the same term on WordPress's side
+     * (`wp/v2/product_cat`, same id) — which knows a renamed category base
+     * and Plain permalinks alike. Only when WordPress would not say is the
+     * default base assumed.
+     */
     private function link(Context $ctx, array $record): string
     {
-        $base = trim((string) $ctx->wc('woocommerce_permalinks_category_base', ''), '/') ?: 'product-category';
+        $term = $ctx->record('product_cat_terms', $record['id'] ?? null);
 
-        return rtrim((string) ($ctx->site()['url'] ?? $ctx->import->site_url), '/').'/'.$base.'/'.rawurldecode((string) $record['slug']).'/';
+        if (is_string($term['link'] ?? null) && $term['link'] !== '') {
+            return $term['link'];
+        }
+
+        return rtrim((string) ($ctx->site()['url'] ?? $ctx->import->site_url), '/').'/product-category/'.rawurldecode((string) $record['slug']).'/';
     }
 }

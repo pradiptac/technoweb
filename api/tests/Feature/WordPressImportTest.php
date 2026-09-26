@@ -483,6 +483,39 @@ class WordPressImportTest extends TestCase
         $this->assertFalse(BlogCategory::query()->where('slug', 'uncategorized')->exists());
     }
 
+    /**
+     * A site on "Plain" permalinks reports `?p=`-style addresses; a shop may
+     * have renamed `/product-category/`. Both redirect, and a body link in the
+     * query form is rewritten like any other.
+     */
+    public function test_plain_permalinks_and_a_renamed_category_base_are_redirected(): void
+    {
+        $site = $this->site();
+        $site['wp/v2/posts'][0]['link'] = self::SITE.'/?p=21';
+        $site['wp/v2/posts'][0]['yoast_head_json']['canonical'] = self::SITE.'/?p=21';
+        $site['wp/v2/posts'][0]['content']['rendered'] = '<p>See <a href="'.self::SITE.'/?page_id=31">our services</a>.</p>';
+        $site['wp/v2/pages'][0]['link'] = self::SITE.'/?page_id=31';
+        $site['wc/v3/products'][0]['permalink'] = self::SITE.'/?product=cbs350';
+        $site['wc/v3/products/categories'][] = ['id' => 52, 'name' => 'Routers', 'slug' => 'routers', 'parent' => 0];
+        $site['wp/v2/product_cat'] = [
+            ['id' => 51, 'slug' => 'switches', 'link' => self::SITE.'/?product_cat=switches'],
+            ['id' => 52, 'slug' => 'routers', 'link' => self::SITE.'/shop/category/routers/'],
+        ];
+        $this->fakeSite($site);
+
+        $this->commit($this->start());
+
+        $to = fn (string $from) => Redirect::query()->where('from_path', $from)->value('to_path');
+        $this->assertSame('/blog/cabling-guide', $to('/?p=21'));
+        $this->assertSame('/services-2', $to('/?page_id=31'));
+        $this->assertSame('/store/products/cbs350', $to('/?product=cbs350'));
+        $this->assertSame('/store/categories/switches', $to('/?product_cat=switches'));
+        $this->assertSame('/store/categories/routers', $to('/shop/category/routers'), 'the address WordPress reports, not the default base');
+        $this->assertNull($to('/product-category/routers'));
+
+        $this->assertStringContainsString('href="/services-2"', (string) BlogPost::query()->where('slug', 'cabling-guide')->value('body'));
+    }
+
     public function test_the_sync_queue_counts_as_draining(): void
     {
         Cache::forget(QueueHealth::HEARTBEAT_KEY);

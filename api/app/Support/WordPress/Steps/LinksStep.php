@@ -108,16 +108,31 @@ class LinksStep extends Step
         });
     }
 
-    /** An old-site URL or path as a comparable path: leading slash, no trailing one, no query. */
+    /**
+     * An old-site URL or path as a comparable key: a path with a leading
+     * slash and no trailing one — or, for a site on WordPress's "Plain"
+     * permalinks, the one query parameter that names the record, as
+     * `/?p=62`, `/?page_id=5`, `/?product=cap`, `/?cat=3`. That shape is what
+     * the proxy looks up on the home path (`proxy.ts`, `wordpressKeys`), with
+     * the value decoded on both sides.
+     */
     public static function normalise(string $url): ?string
     {
-        $path = parse_url($url, PHP_URL_PATH);
+        $path = '/'.trim((string) parse_url($url, PHP_URL_PATH), '/');
+        $query = (string) parse_url($url, PHP_URL_QUERY);
 
-        if (! is_string($path)) {
+        if (($path === '/' || $path === '/index.php') && $query !== '') {
+            parse_str($query, $params);
+            unset($params['post_type'], $params['preview']);
+
+            foreach ($params as $key => $value) {
+                if (is_string($value) && $value !== '' && preg_match('/^[a-z0-9_-]+$/i', (string) $key)) {
+                    return '/?'.$key.'='.$value;
+                }
+            }
+
             return null;
         }
-
-        $path = '/'.trim($path, '/');
 
         return $path === '/' ? null : $path;
     }

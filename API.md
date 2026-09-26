@@ -907,6 +907,12 @@ Scan, review, commit (2026-09-27). See `docs/wordpress-import.md`.
 | `POST` | `/admin/imports/wordpress/{id}/commit` | `ready`, or `failed` with a commit cursor (resume). **202**. Throttled 6/min |
 | `DELETE` | `/admin/imports/wordpress/{id}` | Cancels a scan or a commit, or discards a review; deletes the harvest. What a commit already wrote stays. 422 on a completed import |
 
+**Old addresses in the query form are redirected too.** A site on "Plain"
+permalinks is redirected from `/?p=62`, `/?page_id=5`, `/?product=cap` and
+the like: the importer stores them as `/?{name}={value}` rows in `redirects`
+(so `GET /redirects` and `GET /redirects/lookup?path=/?p=62` carry them as
+they are), and the frontend proxy looks them up on the home path only.
+
 **Nothing is sent and nothing is re-done.** Orders are inserted as they
 stand — no checkout, settlement, mail, message, webhook or stock movement —
 numbered `WC-{number}`, with `review_requested_at` stamped; a second import

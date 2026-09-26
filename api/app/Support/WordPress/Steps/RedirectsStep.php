@@ -26,8 +26,10 @@ use App\Support\WordPress\Outcome;
  * shortened the way `ContentType::moveSlug` shortens them, and a redirect
  * that would point at itself is removed.
  *
- * `?p=123`-style addresses cannot be redirected: the proxy matches paths,
- * and the query string is not part of one. The review says so once.
+ * A site on "Plain" permalinks addresses its records by query — `/?p=62`,
+ * `/?page_id=5`, `/?product=cap` — and those are redirected too: the old
+ * address is stored in that shape (`LinksStep::normalise`) and the proxy
+ * looks it up when a request for the home path carries a query.
  */
 class RedirectsStep extends Step
 {
@@ -49,7 +51,7 @@ class RedirectsStep extends Step
     public function applies(Context $ctx): bool
     {
         if ($ctx->dryRun) {
-            $ctx->report->notice('Every imported page, post, product and category gets a redirect from its old address. Old "?p=123" links cannot be redirected.');
+            $ctx->report->notice('Every imported page, post, product and category gets a redirect from its old address, "?p=123" addresses included.');
         }
 
         return true;
