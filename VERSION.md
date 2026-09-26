@@ -21,6 +21,33 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.90.0 — 2026-09-27
+
+**Import a WordPress site.** System → WordPress import reads a WordPress
+site, and its WooCommerce shop, over the REST API: posts, pages, categories,
+comments, menus, media, Yoast/Rank Math metadata, custom post types and ACF
+values; products with their options, categories, brands and stock; customers,
+coupons, orders with their payments, refunds and notes, and reviews.
+- Nothing is written until the review has shown what will come across and
+  what will not, grouped by reason with examples — downloadable and grouped
+  products, "any value" variations, coupon conditions the store cannot
+  express, ACF repeaters, page-builder layouts, reviews by guests.
+- Choices on the review: add GST to prices when WooCommerce added tax on
+  top, the whole media library or only what is used, the address of each
+  custom post type, the kind of each ACF field.
+- Orders arrive as history: nothing is emailed, no webhook fires, no stock
+  moves, numbers are `WC-…`. Customers sign in by emailed code. Every old
+  address gets a 301.
+- Importing the same site again before switching over brings in what
+  changed and updates rather than copies.
+- The WordPress credentials are used for the one scan and never stored;
+  the site is read only at public addresses (`SafeHttp`, now shared with
+  webhook delivery).
+
+Deploy: `php artisan migrate --force`. `docs/wordpress-import.md`.
+
+---
+
 ## 0.89.0 — 2026-09-26
 
 **A security review of the whole codebase, and everything it found is

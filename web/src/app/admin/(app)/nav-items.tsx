@@ -453,6 +453,13 @@ export const NAV: NavItem[] = [
         `AdminNavRolesTest` maps this row to `admin/webhooks` directly.
       */
       { role: "admin", href: "/admin/webhooks", label: "Webhooks", icon: IconPlug },
+      /*
+        Importing a WordPress / WooCommerce site. `role:admin` because one
+        import writes content, the shop's catalogue and customer accounts at
+        once. The console path is the API's, so `AdminNavRolesTest` maps it
+        to `admin/imports/wordpress` directly.
+      */
+      { role: "admin", href: "/admin/imports/wordpress", label: "WordPress import", icon: IconArrows },
       // Beside Staff: both answer questions about people rather than content.
       { role: "admin", href: "/admin/activity", label: "Activity", icon: IconClock },
       /*

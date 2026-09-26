@@ -1677,3 +1677,28 @@ alone. What still wants a person in a browser, per the branch reports: the
 builder's unsaved preview Modal, the visit and review dialogs end to end, the
 spec filter panel with real category filters chosen, and the three messaging
 providers against real accounts (tested only against faked responses).
+
+## WordPress / WooCommerce import — done (0.90.0, 2026-09-27)
+
+- [x] Scan over `wp/v2` and `wc/v3`, sliced on the queue, credentials sealed
+      for the scan only; optional endpoints the site refuses are named, not
+      fatal
+- [x] Dry run and review: per-step counts and every reason something is
+      skipped or loses something; tax basis, media scope, custom post type
+      addresses and ACF kinds decided there, the dry run re-run on each change
+- [x] Commit: content, custom post types and ACF, catalogue with variations
+      and stock, customers, coupons, orders as history, reviews, comments,
+      menus (unassigned), links between pages rewritten, 301s from every old
+      address; resumable, and a second run updates rather than copies
+- [x] `SafeHttp` for every request to an address somebody typed, shared with
+      webhook delivery
+
+Verified: `WordPressImportTest` (13, against a faked site: the review, the
+commit's every mapping, nothing sent and no webhook, a second run, `add_gst`,
+a foreign currency, menus, private hosts and a redirect into the network
+refused), the webhook, activity, IndexNow, media, mailbox-import and
+nav-role suites (91, 832 assertions), Larastan and Pint; the console screen
+with a ready import seeded through the real API, `npm run audit` light and
+dark and `audit:mobile` at 320–414 clean; tsc and eslint. **Not yet run
+against a real WordPress site** — the next check is a Laragon WordPress with
+WooCommerce's sample data (`WORDPRESS_IMPORT_ALLOW_PRIVATE=true`).

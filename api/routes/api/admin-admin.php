@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\Admin\MessagingSettingsController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\V1\Admin\UserAdminController;
 use App\Http\Controllers\Api\V1\Admin\WebhookController;
+use App\Http\Controllers\Api\V1\Admin\WordPressImportController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -26,6 +27,22 @@ Route::middleware('role:admin')->group(function () {
      * nothing.
      */
     Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
+
+    /*
+     * Importing a WordPress / WooCommerce site. `role:admin` because one
+     * import writes content, the store's catalogue and customer accounts at
+     * once. The scan reads an address an administrator typed, through
+     * `SafeHttp`, and its credentials never outlive it. See
+     * `docs/wordpress-import.md`.
+     */
+    Route::get('imports/wordpress', [WordPressImportController::class, 'index'])->name('imports.wordpress.index');
+    Route::post('imports/wordpress', [WordPressImportController::class, 'store'])
+        ->middleware('throttle:6,1')->name('imports.wordpress.store');
+    Route::get('imports/wordpress/{wordpressImport}', [WordPressImportController::class, 'show'])->name('imports.wordpress.show');
+    Route::patch('imports/wordpress/{wordpressImport}', [WordPressImportController::class, 'update'])->name('imports.wordpress.update');
+    Route::post('imports/wordpress/{wordpressImport}/commit', [WordPressImportController::class, 'commit'])
+        ->middleware('throttle:6,1')->name('imports.wordpress.commit');
+    Route::delete('imports/wordpress/{wordpressImport}', [WordPressImportController::class, 'destroy'])->name('imports.wordpress.destroy');
 
     /*
      * JavaScript failures, grouped by bug rather than listed by

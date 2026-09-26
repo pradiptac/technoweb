@@ -894,6 +894,33 @@ it. `home_stats_block`, `home_pricing_block` and `home_stack_block` in the
 
 ---
 
+## Importing a WordPress site (`role:admin`)
+
+Scan, review, commit (2026-09-27). See `docs/wordpress-import.md`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/imports/wordpress` | The last twenty imports, newest first. `meta.active` — the import in flight, ready or failed, in full, or null; `meta.delivering`; `meta.sections` |
+| `POST` | `/admin/imports/wordpress` | `site_url`, `sections[]` of `content`, `catalogue`, `customers`, `custom`, `wp_user`, `wp_password` (an application password), `wc_key` (`ck_…`) and `wc_secret` (`cs_…`, both required for `catalogue` or `customers`). **202**; the scan and then the dry run run on the queue. 422 on `site_url` for a private, numeric or unresolvable host or plain http, on `queue` when nothing drains it, and while another import is in flight. Throttled 6/min. An import of any site still `ready` is cancelled |
+| `GET` | `/admin/imports/wordpress/{id}` | The import: `status` (`pending`, `scanning`, `analysing`, `ready`, `running`, `completed`, `failed`, `cancelled`, `expired`), `progress`, `site` (name, WooCommerce/ACF/Yoast found, counts, `missing` — optional endpoints the site refused, in its words), `analysis` (`steps[]` of `{key, label, create, update, skip, warn, reasons[{reason, count, kind, examples}]}`, `notices[]`, `decisions` — the review's options), `result` (the commit's steps), `can_resume` |
+| `PATCH` | `/admin/imports/wordpress/{id}` | `decisions`: `media_scope` (`referenced`/`all`), `tax_basis` (`keep`/`add_gst`), `type_slugs{wp slug: address or ""}`, `acf_kinds{target: {field: kind or "skip"}}`. `ready` only; **202**, the dry run re-runs |
+| `POST` | `/admin/imports/wordpress/{id}/commit` | `ready`, or `failed` with a commit cursor (resume). **202**. Throttled 6/min |
+| `DELETE` | `/admin/imports/wordpress/{id}` | Cancels a scan or a commit, or discards a review; deletes the harvest. What a commit already wrote stays. 422 on a completed import |
+
+**Nothing is sent and nothing is re-done.** Orders are inserted as they
+stand — no checkout, settlement, mail, message, webhook or stock movement —
+numbered `WC-{number}`, with `review_requested_at` stamped; a second import
+of the same site updates what the first wrote, through
+`wordpress_import_map`. Per-record IndexNow pings are held for the commit.
+Customers are created `active` and unconfirmed with a random password, and
+join the newsletter's customer group through their own hook.
+
+**The site's credentials never outlive the scan**: sealed in the cache
+under a key only its job chain carries, forgotten when it stops, and never
+on the import row or in a job payload. Every request to the site — and to
+its upload URLs — goes through `SafeHttp`: public addresses, pinned, at most
+three redirects checked hop by hop, credentials never sent to another host.
+
 ## Custom fields and content types
 
 ACF-style fields on existing records, and editor-made record types with

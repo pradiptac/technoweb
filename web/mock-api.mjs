@@ -2716,6 +2716,59 @@ createServer(async (req, res) => {
     /* The activity log. Read-only in the real API too -- there is no store,
        update or destroy, and a mock that offered one would have the console
        built against a write path that does not exist. */
+    /* Importing a WordPress site. The index reports one import already read
+       and waiting for review, so the review — the choices, the ACF table and
+       the plan with its reasons — renders in CI; starting a scan answers
+       what a stopped queue answers. The contract is `WordPressImportController`. */
+    const wpImport = (status) => ({
+      id: 1, site_url: 'https://shop.example', status, sections: ['content', 'catalogue', 'customers', 'custom'],
+      error: null, uploaded_by: 'Admin', created_at: '2026-09-27T09:00:00+05:30', completed_at: null,
+      expires_at: '2026-09-30T09:00:00+05:30', can_resume: false, decisions: {},
+      progress: { collections: { posts: 42, pages: 9, products: 120, orders: 860 }, totals: {}, requests: 118, current: null, tasks_done: 12, tasks_total: 12, analyse_step: null, analyse_percent: 100, commit_step: null, commit_percent: 0 },
+      site: { name: 'Old Shop', url: 'https://shop.example', woocommerce: true, acf: true, yoast: true, counts: { posts: 42, pages: 9, products: 120, orders: 860, customers: 310 }, missing: { menus: 'The credentials are not allowed to read this (wp/v2/menus).' } },
+      analysis: {
+        analysed_at: '2026-09-27T09:02:00+05:30',
+        notices: ['Every imported page, post, product and category gets a redirect from its old address. Old "?p=123" links cannot be redirected.'],
+        decisions: {
+          media_scope: { value: 'referenced', library: 1480 },
+          currency: 'INR',
+          tax_basis: { value: 'keep', choices: ['keep', 'add_gst'] },
+          content_types: [{ source: 'portfolio', name: 'Portfolio', slug: 'portfolio', problem: null, imported: false, entries: 14 }],
+          acf: { blog_post: [
+            { source: 'subtitle', key: 'subtitle', label: 'Subtitle', kind: 'text', unsupported: null, count: 30 },
+            { source: 'rows', key: 'rows', label: 'Rows', kind: null, unsupported: 'a repeater or flexible content', count: 4 },
+          ] },
+          acf_exposed: true,
+          newsletter: { customers: 310, group: 'Existing customers', sequences: ['Welcome series'] },
+        },
+        steps: [
+          { key: 'posts', label: 'Blog posts', create: 40, update: 0, skip: 2, warn: 6, reasons: [
+            { reason: 'In the bin on the old site.', count: 2, kind: 'skip', examples: ['Old launch notes'] },
+            { reason: 'Had tags, which are not kept: the blog has categories only.', count: 6, kind: 'warn', examples: ['Cabling guide', 'Wi-Fi survey'] },
+          ] },
+          { key: 'media', label: 'Files and pictures', create: 212, update: 0, skip: 1, warn: 0, reasons: [
+            { reason: 'Not a file type the library accepts (.psd).', count: 1, kind: 'skip', examples: ['brochure.psd'] },
+          ] },
+          { key: 'products', label: 'Products', create: 112, update: 0, skip: 8, warn: 3, reasons: [
+            { reason: 'Downloadable: the store delivers activation codes, not files.', count: 5, kind: 'skip', examples: ['Install manual'] },
+            { reason: 'A grouped product; the store has no product made of other products.', count: 3, kind: 'skip', examples: ['Starter kit'] },
+          ] },
+          { key: 'orders', label: 'Orders', create: 860, update: 0, skip: 0, warn: 0, reasons: [] },
+        ],
+      },
+      result: null,
+    });
+    if (p === '/admin/imports/wordpress' && req.method === 'GET') {
+      return json(res, 200, { data: [], meta: { active: wpImport('ready'), delivering: false, sections: ['content', 'catalogue', 'customers', 'custom'] } });
+    }
+    if (p === '/admin/imports/wordpress' && req.method === 'POST') {
+      return json(res, 422, { message: 'Nothing is draining the queue, so the scan would never start.', errors: { queue: ['Nothing is draining the queue, so the scan would never start.'] } });
+    }
+    if (/^\/admin\/imports\/wordpress\/\d+$/.test(p) && req.method === 'GET') return json(res, 200, { data: wpImport('ready') });
+    if (/^\/admin\/imports\/wordpress\/\d+$/.test(p) && req.method === 'PATCH') return json(res, 202, { data: wpImport('analysing') });
+    if (/^\/admin\/imports\/wordpress\/\d+$/.test(p) && req.method === 'DELETE') return json(res, 200, { data: wpImport('cancelled') });
+    if (/^\/admin\/imports\/wordpress\/\d+\/commit$/.test(p) && req.method === 'POST') return json(res, 202, { data: wpImport('running') });
+
     /* Importing subscribers from a mailbox. Not connected, no client saved,
        the queue not delivering — the shapes the screen has to draw before
        anything works — and one scan fixture that is ready to review, so the

@@ -1785,6 +1785,32 @@ test. 333 tests, 1,233 assertions.
 
 ---
 
+## Importing from WordPress
+
+System → WordPress import reads a WordPress site — and its WooCommerce shop —
+over the REST API and brings across what has a home here, after showing
+exactly what will and will not come across. See `docs/wordpress-import.md`.
+
+On the WordPress site:
+
+- **An application password** for an administrator (Users → Profile →
+  Application Passwords, WordPress 5.6+). It lets the import see drafts,
+  private pages, authors and menus. The site must be served over https.
+- **A WooCommerce REST key**, read access only (WooCommerce → Settings →
+  Advanced → REST API), when the shop or its customers are being imported.
+- **ACF**: switch on "Show in REST API" in each field group, or its values
+  are not visible.
+
+Here: `php artisan migrate --force` (the `wordpress_imports` and
+`wordpress_import_map` tables) and the scheduler's cron entry, which runs the
+scan and the import. Both credentials are used for the one scan and never
+stored. Import again before switching the domain over to pick up what changed
+since — the second run updates rather than copies.
+
+To test against a WordPress on this machine (Laragon), set
+`WORDPRESS_IMPORT_ALLOW_PRIVATE=true` in `api/.env`; it is ignored unless
+`APP_ENV=local`.
+
 ## Importing subscribers from a mailbox
 
 Campaign → Subscribers → **From a mailbox** scans the To and Cc lines of every

@@ -39,6 +39,33 @@ class IndexNow
 {
     public const ENDPOINT = 'https://api.indexnow.org/indexnow';
 
+    /** Set while a bulk write runs that must not ping per record (the WordPress importer). */
+    private static bool $suppressed = false;
+
+    /**
+     * Run `$work` with per-record pings held back.
+     *
+     * An import writes thousands of published records in minutes; a ping for
+     * each is thousands of queued jobs naming URLs the engines would fetch
+     * mid-import. The importer pings once, at the end, with what it wrote.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $work
+     * @return T
+     */
+    public static function suppressed(callable $work): mixed
+    {
+        $previous = self::$suppressed;
+        self::$suppressed = true;
+
+        try {
+            return $work();
+        } finally {
+            self::$suppressed = $previous;
+        }
+    }
+
     public static function enabled(): bool
     {
         return (bool) Setting::get('indexnow_enabled', false);
@@ -71,7 +98,7 @@ class IndexNow
     /** A record was saved or deleted: ping its public URL if that is worth doing. */
     public static function record(Model $model, bool $deleted = false): void
     {
-        if (! self::enabled() || ! method_exists($model, 'publicPath')) {
+        if (self::$suppressed || ! self::enabled() || ! method_exists($model, 'publicPath')) {
             return;
         }
 
