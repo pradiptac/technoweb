@@ -65,6 +65,7 @@ class ScanMailboxForSubscribers implements ShouldQueue
         }
 
         $state = null;
+        $connection = null;
 
         try {
             $connection = ScanCredentials::read($this->credentialsKey)
@@ -109,7 +110,19 @@ class ScanMailboxForSubscribers implements ShouldQueue
                 'expires_at' => now()->addDay(),
             ]);
         } catch (Throwable $e) {
-            $import->update(['status' => 'failed', 'error' => mb_substr($e->getMessage(), 0, 500)]);
+            /*
+             * For a one-off IMAP source the row says one sentence, not the
+             * socket's words. "Connection refused" against "timed out"
+             * against a server's banner is a port scan read back through the
+             * screen, and the person reading it is a campaign manager rather
+             * than whoever runs the server. The words go to the log; a
+             * consent source keeps the provider's, which name no host.
+             */
+            $imap = ($connection['source'] ?? null) === 'imap';
+
+            $import->update(['status' => 'failed', 'error' => $imap
+                ? 'The mailbox could not be read. Check the server name, the port, the username and the password, then start again.'
+                : mb_substr($e->getMessage(), 0, 500)]);
             Log::warning('A mailbox scan for subscribers failed', ['import' => $this->importId, 'error' => $e->getMessage()]);
         } finally {
             if ($import->fresh()?->status !== 'scanning') {

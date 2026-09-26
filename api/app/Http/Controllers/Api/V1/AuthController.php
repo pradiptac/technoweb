@@ -16,6 +16,7 @@ use App\Http\Resources\CustomerResource;
 use App\Models\Customer;
 use App\Models\Setting;
 use App\Notifications\CustomerRegistered;
+use App\Notifications\VerifyCustomerEmail;
 use App\Support\Address;
 use App\Support\Notifier;
 use App\Support\SignInCodes;
@@ -26,6 +27,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -48,6 +50,22 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): JsonResponse
     {
+        /*
+         * `password_login_enabled` is enforced here, not only by the form.
+         *
+         * It used to decide which step the sign-in screen opened on and
+         * nothing else, so a switch that read "passwords are off" left the
+         * endpoint taking them from anybody who posted to it. Refused before
+         * the credentials are looked at, with one answer for every address,
+         * so the refusal says nothing about which accounts exist.
+         */
+        if (! Setting::get('password_login_enabled', true)) {
+            return $this->refuse(
+                'Signing in with a password is switched off. Ask for a sign-in code instead.',
+                'password_login_disabled',
+            );
+        }
+
         $request->ensureIsNotRateLimited();
 
         $customer = Customer::where('email', $request->string('email'))->first();
@@ -179,6 +197,9 @@ class AuthController extends Controller
         }
 
         if (! $customer->hasVerifiedEmail()) {
+            // The code proves the mailbox, not who set the password on this
+            // unconfirmed row — so the password is replaced and every other
+            // session ends. See `Customer::markEmailVerified()`.
             $customer->markEmailVerified();
 
             Notifier::route('support_email', new CustomerRegistered($customer->fresh()));
@@ -343,7 +364,32 @@ class AuthController extends Controller
         // not a column, and `update()` would throw on it.
         unset($data['shipping_same']);
 
+        /*
+         * A new address is unconfirmed until its inbox says otherwise.
+         *
+         * The old confirmation proved somebody reads a different mailbox.
+         * Carried over, an edit here would point a confirmed account at any
+         * address at all — and a confirmed account is what guest orders and
+         * emailed tickets under that address are joined to. The console's
+         * own edit has always done this (`CustomerAdminController::update`);
+         * the portal's did not. The link goes to the new address, and
+         * confirming it is a first confirmation, so `markEmailVerified()`
+         * then replaces the password and ends every session.
+         */
+        $newEmail = isset($data['email']) ? Str::lower(trim((string) $data['email'])) : null;
+        $emailChanged = $newEmail !== null && $newEmail !== Str::lower((string) $customer->email);
+
+        if ($newEmail !== null) {
+            $data['email'] = $newEmail;
+        }
+
         $customer->update($data);
+
+        if ($emailChanged) {
+            $customer->forceFill(['email_verified_at' => null])->save();
+
+            Notifier::send($customer, new VerifyCustomerEmail($customer->issueVerificationToken(), $customer->email));
+        }
 
         return response()->json(['data' => new CustomerResource($customer->fresh())]);
     }

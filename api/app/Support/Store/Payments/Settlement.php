@@ -40,6 +40,35 @@ use Illuminate\Support\Facades\Log;
 class Settlement
 {
     /**
+     * Record what a *browser* came back with, or refuse to.
+     *
+     * The webhook is server to server and always carries the gateway's own
+     * amount; a browser return carries none, and `record()` below skips the
+     * amount check when there is nothing to compare — which is right for a
+     * webhook that happens to omit a field and wrong here, where it meant
+     * "recorded at the order's total" for a payment of any size. So a return
+     * with no amount confirmed by the gateway is refused outright.
+     *
+     * Refused rather than recorded as failed: the row is keyed on the payment
+     * id, and a failed row written now would make the genuine webhook for the
+     * same payment a no-op. The webhook settles it; this only declines to.
+     */
+    public static function recordReturn(Order $order, PaymentOutcome $outcome): ?Payment
+    {
+        if ($outcome->amountPaise === null) {
+            Log::warning('A payment return without a confirmed amount was not recorded', [
+                'order' => $order->order_number,
+                'gateway' => $outcome->gateway,
+                'payment' => $outcome->paymentId,
+            ]);
+
+            return null;
+        }
+
+        return self::record($order, $outcome);
+    }
+
+    /**
      * Record an outcome against an order.
      *
      * @return Payment the payment row, new or the one already held

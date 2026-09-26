@@ -123,13 +123,28 @@ final class SignInCodes
             return false;
         }
 
-        if ($row->expires_at->isPast() || $row->attempts >= self::MAX_ATTEMPTS) {
+        /*
+         * The attempt is claimed before the code is compared.
+         *
+         * Read-compare-increment let every request that arrived while the
+         * count was still under the cap through to a comparison: bcrypt takes
+         * long enough that fifty guesses sent at once all read "0 attempts"
+         * and were all checked, and the cap of five meant nothing. One
+         * conditional UPDATE decides whether this request gets a guess at
+         * all, and only the requests that changed a row compare.
+         */
+        $claimedAttempt = SignInCode::query()
+            ->whereKey($row->id)
+            ->whereNull('consumed_at')
+            ->where('attempts', '<', self::MAX_ATTEMPTS)
+            ->where('expires_at', '>', now())
+            ->increment('attempts');
+
+        if ($claimedAttempt !== 1) {
             return false;
         }
 
         if (! Hash::check($code, $row->code_hash)) {
-            $row->increment('attempts');
-
             return false;
         }
 

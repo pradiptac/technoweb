@@ -37,11 +37,26 @@ class SearchController extends Controller
     /** Below this a term matches most of the catalogue and helps nobody. */
     private const MIN_TERM = 2;
 
+    /** Above this a term is not a search, it is load. */
+    private const MAX_TERM = 100;
+
     /** Per group, so one crowded type cannot fill the page. */
     private const PER_GROUP = 5;
 
     public function __invoke(Request $request): JsonResponse
     {
+        /*
+         * A ceiling on the term, and LIKE's own metacharacters escaped.
+         *
+         * Each request is a dozen `%term%` scans over body columns, public
+         * and unauthenticated, so a 5,000-character term is work nobody
+         * asked for; nobody searches a hardware catalogue with more than a
+         * sentence. And a bare `%` or `_` is a wildcard to MySQL — `%%` is
+         * two characters, clears the floor below and returns the head of
+         * every table. Escaped, it searches for a percent sign.
+         */
+        $request->validate(['q' => ['nullable', 'string', 'max:'.self::MAX_TERM]]);
+
         $term = trim((string) $request->string('q')->value());
 
         if (mb_strlen($term) < self::MIN_TERM) {
@@ -51,7 +66,7 @@ class SearchController extends Controller
             ]);
         }
 
-        $like = '%'.$term.'%';
+        $like = '%'.addcslashes($term, '%_\\').'%';
 
         $groups = collect([
             $this->products($term, $like),

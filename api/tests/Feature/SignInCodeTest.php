@@ -12,6 +12,7 @@ use App\Notifications\CustomerRegistered;
 use App\Notifications\SignInCodeIssued;
 use App\Support\SignInCodes;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -432,5 +433,168 @@ class SignInCodeTest extends TestCase
         $this->getJson('/api/v1/settings')
             ->assertOk()
             ->assertJsonPath('data.default_login_method', 'password');
+    }
+
+    /* ------------------------------------------ what a confirmation retires */
+
+    /**
+     * A code that confirms an address retires the password set before it.
+     *
+     * The code proves the mailbox, not who chose the password on an account
+     * nobody had confirmed — which is `/auth/register` for anybody's address.
+     * Before, the owner signing in by code switched on the registrant's
+     * password beside them, and every session the row already had.
+     */
+    public function test_a_code_that_confirms_an_address_retires_the_password_set_before_it(): void
+    {
+        $customer = $this->customer(['email_verified_at' => null]);
+        $customer->createToken('elsewhere', ['portal']);
+
+        $this->requestCode($customer->email);
+        $this->verifyCode($customer->email, $this->sentCode($customer->email))->assertOk();
+
+        $this->postJson('/api/v1/auth/login', ['email' => $customer->email, 'password' => self::PASSWORD])
+            ->assertStatus(401);
+
+        // The token the code just issued, and nothing from before it.
+        $this->assertSame(0, $customer->tokens()->where('name', 'elsewhere')->count());
+    }
+
+    /** An address already confirmed keeps its password: nothing is proved anew. */
+    public function test_a_code_for_a_confirmed_address_leaves_its_password_alone(): void
+    {
+        $customer = $this->customer();
+
+        $this->requestCode($customer->email);
+        $this->verifyCode($customer->email, $this->sentCode($customer->email))->assertOk();
+
+        $this->postJson('/api/v1/auth/login', ['email' => $customer->email, 'password' => self::PASSWORD])
+            ->assertOk();
+    }
+
+    /* ------------------------------------------- passwords switched off */
+
+    /**
+     * `password_login_enabled` is enforced by the endpoint, not the form.
+     *
+     * It only ever decided which step the sign-in screen opened on, so a
+     * script posting to `/auth/login` signed in with a password on an install
+     * that had switched passwords off.
+     */
+    public function test_the_portal_refuses_a_password_when_passwords_are_switched_off(): void
+    {
+        Setting::create(['group' => 'auth', 'key' => 'password_login_enabled', 'value' => '0', 'type' => 'boolean']);
+        $customer = $this->customer();
+
+        $this->postJson('/api/v1/auth/login', ['email' => $customer->email, 'password' => self::PASSWORD])
+            ->assertStatus(403)
+            ->assertJsonPath('reason', 'password_login_disabled')
+            ->assertJsonMissingPath('token');
+
+        // One answer for every address, so the refusal names no account.
+        $this->postJson('/api/v1/auth/login', ['email' => 'nobody@example.test', 'password' => 'whatever-it-is'])
+            ->assertStatus(403)
+            ->assertJsonPath('reason', 'password_login_disabled');
+    }
+
+    public function test_the_console_refuses_a_password_when_passwords_are_switched_off(): void
+    {
+        Setting::create(['group' => 'auth', 'key' => 'password_login_enabled', 'value' => '0', 'type' => 'boolean']);
+        $user = $this->staff();
+
+        $this->postJson('/api/v1/admin/auth/login', ['email' => $user->email, 'password' => self::PASSWORD])
+            ->assertStatus(403)
+            ->assertJsonPath('reason', 'password_login_disabled')
+            ->assertJsonMissingPath('token');
+    }
+
+    /**
+     * The break-glass re-opens the console's password door, and only that.
+     *
+     * Mail is configured from the console; an install with passwords off and
+     * broken SMTP has no code that can arrive, so the way back in is a flag in
+     * `api/.env` rather than a setting nobody can reach.
+     */
+    public function test_the_break_glass_reopens_staff_passwords_and_not_the_portals(): void
+    {
+        Setting::create(['group' => 'auth', 'key' => 'password_login_enabled', 'value' => '0', 'type' => 'boolean']);
+        config(['auth.password_break_glass' => true]);
+
+        $user = $this->staff();
+        $customer = $this->customer();
+
+        $this->postJson('/api/v1/admin/auth/login', ['email' => $user->email, 'password' => self::PASSWORD])
+            ->assertOk()
+            ->assertJsonStructure(['token']);
+
+        $this->postJson('/api/v1/auth/login', ['email' => $customer->email, 'password' => self::PASSWORD])
+            ->assertStatus(403)
+            ->assertJsonPath('reason', 'password_login_disabled');
+    }
+
+    /* ------------------------------------------------ guesses in parallel */
+
+    /**
+     * Guesses arriving together get no more comparisons than the cap.
+     *
+     * The count was read, the code hashed, and the count incremented after —
+     * so every guess that arrived while the first was still being hashed read
+     * the same count and was compared. Staged here by answering the first
+     * comparison with seven more guesses, which is what a burst of parallel
+     * requests does to a bcrypt check.
+     */
+    public function test_guesses_arriving_together_get_no_more_than_the_cap(): void
+    {
+        $customer = $this->customer();
+        $this->requestCode($customer->email);
+        $wrong = $this->otherThan($this->sentCode($customer->email));
+        $hash = SignInCode::query()->latest('id')->firstOrFail()->code_hash;
+
+        $real = Hash::getFacadeRoot();
+        $comparisons = 0;
+
+        $racing = new class($real)
+        {
+            /** @var callable|null */
+            public $onCheck = null;
+
+            public function __construct(private readonly object $real) {}
+
+            public function check($value, $hashedValue, array $options = []): bool
+            {
+                if ($this->onCheck !== null) {
+                    ($this->onCheck)($hashedValue);
+                }
+
+                return $this->real->check($value, $hashedValue, $options);
+            }
+
+            public function __call(string $method, array $arguments): mixed
+            {
+                return $this->real->{$method}(...$arguments);
+            }
+        };
+
+        $racing->onCheck = function (string $hashed) use (&$comparisons, $hash, $customer, $wrong): void {
+            if ($hashed !== $hash) {
+                return;
+            }
+
+            if (++$comparisons === 1) {
+                for ($i = 0; $i < 7; $i++) {
+                    SignInCodes::consume(SignInAudience::Portal, $customer->email, $wrong);
+                }
+            }
+        };
+
+        Hash::swap($racing);
+
+        try {
+            SignInCodes::consume(SignInAudience::Portal, $customer->email, $wrong);
+        } finally {
+            Hash::swap($real);
+        }
+
+        $this->assertLessThanOrEqual(SignInCodes::MAX_ATTEMPTS, $comparisons);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Enums\AiModel;
 use App\Enums\ContentBlockType;
 use App\Enums\ImageQuality;
+use App\Enums\MailTransport;
 use App\Enums\MessageChannel;
 use App\Enums\PaymentGateway;
 use App\Http\Controllers\Controller;
@@ -15,11 +16,12 @@ use App\Support\Announcement;
 use App\Support\Chat\ChatSettings;
 use App\Support\HtmlSanitiser;
 use App\Support\InboundMail\InboundMail;
-use App\Support\Store\CartReminders;
 use App\Support\Messaging\ProviderOption;
 use App\Support\Messaging\Providers\Fcm;
 use App\Support\Messaging\Providers\GoogleRbm;
+use App\Support\Net\PublicHost;
 use App\Support\Seo\GoogleServiceAccount;
+use App\Support\Store\CartReminders;
 use App\Support\ThemeOptions;
 use App\Support\UploadLimits;
 use App\Support\YouTube;
@@ -346,6 +348,8 @@ class SettingController extends Controller
         // or anyone who takes one over — framing an arbitrary page inside the
         // site's own origin.
         $this->validateMapEmbed($request);
+        $this->validateProfilesAndTagIds($request);
+        $this->validateMailServers($request, $existing);
         $this->validateBlogVideo($request);
         $this->validateAppearance($request);
         $this->validateMotion($request);
@@ -878,6 +882,126 @@ class SettingController extends Controller
             $i = $sent['messaging_promo_end']['i'] ?? $sent['messaging_promo_start']['i'] ?? 0;
 
             throw ValidationException::withMessages(["settings.{$i}.value" => 'The window closes before it opens. Promotional messages go out between the two times on the same day.']);
+        }
+    }
+
+    /**
+     * The social profiles and the three analytics ids, held to their shape.
+     *
+     * A profile URL becomes an `href` in every page's footer, so it is an
+     * http(s) address and nothing else — `javascript:` saved there ran for
+     * whoever pressed the icon. The analytics ids are interpolated into
+     * inline scripts on every public page; each has a published shape, and
+     * anything outside it is a way to write script into the site from the
+     * settings screen.
+     */
+    private function validateProfilesAndTagIds(Request $request): void
+    {
+        $shapes = [
+            'google_analytics_id' => ['/^G-[A-Z0-9]+$/', 'A GA4 measurement id looks like G-XXXXXXXXXX.'],
+            'google_tag_manager_id' => ['/^GTM-[A-Z0-9]+$/', 'A Tag Manager container id looks like GTM-XXXXXXX.'],
+            'meta_pixel_id' => ['/^\d+$/', 'A Meta Pixel id is digits only.'],
+        ];
+
+        foreach ($request->input('settings', []) as $i => $row) {
+            $key = (string) ($row['key'] ?? '');
+            $value = $row['value'] ?? null;
+
+            if (blank($value)) {
+                continue;
+            }
+
+            if (str_starts_with($key, 'social_') && ! in_array($key, ['social_style', 'social_flip_word'], true)
+                && ! preg_match('#^https?://[^\s/]+[^\s]*$#i', (string) $value)) {
+                throw ValidationException::withMessages([
+                    "settings.{$i}.value" => 'A profile is a web address starting https://, or blank to hide the icon.',
+                ]);
+            }
+
+            if (isset($shapes[$key]) && ! preg_match($shapes[$key][0], (string) $value)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => $shapes[$key][1]]);
+            }
+        }
+    }
+
+    /** Where each stored mail secret is sent, host key => secret key. */
+    private const MAIL_SECRETS = [
+        'smtp_host' => 'smtp_password',
+        'inbound_imap_host' => 'inbound_imap_password',
+    ];
+
+    /** The ports each protocol is served on, and nothing else. */
+    private const MAIL_PORTS = [
+        'smtp_port' => [25, 465, 587, 2525],
+        'inbound_imap_port' => [143, 993],
+    ];
+
+    /**
+     * The servers mail is sent through and read from.
+     *
+     * Three rules, each closing a way this screen could be turned on the
+     * network or on its own secrets:
+     *
+     *  - **A public host on a mail port.** The server connects from inside
+     *    the network, and the connection test reports what answered — any
+     *    host and port made it a scanner of the LAN.
+     *  - **Mailgun is one of Mailgun's two hosts.** The API key is sent to
+     *    `mailgun_endpoint`; left free, an administrator's session could
+     *    point it at a server of their own and read the stored key off the
+     *    first send, though the console never shows it.
+     *  - **A new host needs the password typed again.** The same trick for
+     *    SMTP and IMAP: change the host, keep the stored password, press
+     *    Test, and the password is delivered to the new host. Requiring it
+     *    in the same save means only somebody who knows it can move it.
+     *
+     * @param  Collection<string, Setting>  $existing
+     */
+    private function validateMailServers(Request $request, $existing): void
+    {
+        $rows = collect($request->input('settings', []));
+        $sent = $rows->mapWithKeys(fn ($row, $i) => [(string) ($row['key'] ?? '') => ['i' => $i, 'value' => $row['value'] ?? null]]);
+
+        foreach (array_keys(self::MAIL_SECRETS) as $hostKey) {
+            $host = trim((string) ($sent[$hostKey]['value'] ?? ''));
+
+            if ($host !== '' && ($refusal = PublicHost::refusal($host))) {
+                throw ValidationException::withMessages(["settings.{$sent[$hostKey]['i']}.value" => $refusal.' A mail server has to be a public host.']);
+            }
+        }
+
+        foreach (self::MAIL_PORTS as $portKey => $ports) {
+            $port = $sent[$portKey]['value'] ?? null;
+
+            if (filled($port) && ! in_array((int) $port, $ports, true)) {
+                throw ValidationException::withMessages([
+                    "settings.{$sent[$portKey]['i']}.value" => 'Use one of the ports this is served on: '.implode(', ', $ports).'.',
+                ]);
+            }
+        }
+
+        $endpoint = $sent['mailgun_endpoint']['value'] ?? null;
+
+        if (filled($endpoint) && ! in_array(strtolower(trim((string) $endpoint)), MailTransport::MAILGUN_ENDPOINTS, true)) {
+            throw ValidationException::withMessages([
+                "settings.{$sent['mailgun_endpoint']['i']}.value" => 'Mailgun is api.mailgun.net, or api.eu.mailgun.net for an EU account.',
+            ]);
+        }
+
+        foreach (self::MAIL_SECRETS as $hostKey => $secretKey) {
+            if (! isset($sent[$hostKey])) {
+                continue;
+            }
+
+            $before = strtolower(trim((string) $existing->get($hostKey)?->value));
+            $after = strtolower(trim((string) $sent[$hostKey]['value']));
+            $stored = filled($existing->get($secretKey)?->value);
+            $retyped = filled($sent[$secretKey]['value'] ?? null);
+
+            if ($after !== '' && $after !== $before && $stored && ! $retyped) {
+                throw ValidationException::withMessages([
+                    "settings.{$sent[$hostKey]['i']}.value" => 'Type the password again with the new server — the stored one is only ever sent to the server it was saved for.',
+                ]);
+            }
         }
     }
 

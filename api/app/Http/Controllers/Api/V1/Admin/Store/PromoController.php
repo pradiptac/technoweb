@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin\Store;
 use App\Http\Controllers\Controller;
 use App\Models\Media;
 use App\Models\Setting;
+use App\Support\LinkPattern;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -90,7 +91,7 @@ class PromoController extends Controller
             // http(s) URL, a mailto or a tel — the shape a menu's custom link
             // and a popup's link are held to, and nothing else.
             if (str_ends_with($row['key'], '_cta_href')
-                && ! preg_match('#^(/[^\s]*|https?://[^\s]+|mailto:[^\s]+|tel:[^\s]+)$#i', $value)) {
+                && ! LinkPattern::allows($value)) {
                 throw ValidationException::withMessages([
                     "settings.{$i}.value" => 'The button link is a path such as /store/categories/laptops, or a full http(s) address.',
                 ]);

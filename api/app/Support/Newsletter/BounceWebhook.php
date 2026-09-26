@@ -7,6 +7,7 @@ use App\Models\NewsletterCampaignRecipient;
 use App\Models\NewsletterSuppression;
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -133,10 +134,23 @@ class BounceWebhook
                 return false;
             }
 
-            return hash_equals(
-                hash_hmac('sha256', $timestamp.$token, $secret),
-                $given
-            );
+            if (! hash_equals(hash_hmac('sha256', $timestamp.$token, $secret), $given)) {
+                return false;
+            }
+
+            /*
+             * And once only, inside the window.
+             *
+             * Fifteen minutes still lets a captured delivery be posted again
+             * straight after staff lift the suppression it caused. Mailgun's
+             * `token` is random per delivery, so a token seen before is a
+             * replay; it is remembered for twice the window, which outlives
+             * every timestamp the check above would still accept. `add()`
+             * writes only when the key is absent, so two copies racing each
+             * other cannot both pass. Checked after the signature, so an
+             * unsigned request cannot spend a token it does not own.
+             */
+            return Cache::add('newsletter-bounce:mailgun:'.hash('sha256', $token), true, now()->addSeconds(1800));
         }
 
         // Brevo publishes no signature, so the secret travels in a header the

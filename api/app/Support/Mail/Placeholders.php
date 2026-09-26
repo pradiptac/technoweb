@@ -45,7 +45,7 @@ class Placeholders
             $value = (string) $value;
 
             if (! in_array($key, $raw, true)) {
-                $value = htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                $value = self::escape($value);
             }
 
             // Both spellings, because an editor types whichever looks tidier
@@ -54,6 +54,27 @@ class Placeholders
         }
 
         return self::strip($template);
+    }
+
+    /**
+     * A value made safe for HTML *and* for the Markdown pass after it.
+     *
+     * The filled body goes into the mail layout, which runs it through
+     * CommonMark: escaping `<` stops a tag, and does nothing about
+     * `[Reset your password](https://evil.example)`, which the parse turns
+     * into a working link. So the characters Markdown builds links and images
+     * from are written as entities too — CommonMark reads `&#91;` as a
+     * literal `[`, and the reader sees exactly what was typed.
+     */
+    public static function escape(string $value): string
+    {
+        return strtr(htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), [
+            '[' => '&#91;',
+            ']' => '&#93;',
+            '(' => '&#40;',
+            ')' => '&#41;',
+            '!' => '&#33;',
+        ]);
     }
 
     /**

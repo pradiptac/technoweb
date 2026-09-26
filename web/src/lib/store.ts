@@ -13,7 +13,14 @@ import type { Order, PaymentSession, Single } from "@/types/api";
  * moment a stale read would be read as a failed payment.
  */
 
-/** Place the order. The basket is identified by its token, not by the payload. */
+/**
+ * Place the order. The basket is identified by its token, not by the payload.
+ *
+ * The portal token rides along when somebody is signed in, the way
+ * `requestStockNotice` forwards it: `/checkout` is public, and the token is
+ * the only thing that tells the API the order is theirs — which decides
+ * whether it may replace the address their account has saved.
+ */
 export async function placeOrder(
   cartToken: string,
   details: Record<string, unknown>,
@@ -26,6 +33,7 @@ export async function placeOrder(
     // Forwarded like every other basket call, so the API sees who is buying.
     token: portalToken,
     cache: "no-store",
+    ...(portalToken ? { token: portalToken } : {}),
   });
 
   return { order: res.data, accessToken: res.meta?.access_token ?? "" };

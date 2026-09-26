@@ -77,6 +77,7 @@ use App\Support\InboundMail\MailboxScanner;
 use App\Support\QueueHealth;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Mail\Markdown;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\URL;
@@ -115,6 +116,20 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        /*
+         * A value in a mail line is text, never Markdown.
+         *
+         * Blade escapes `<`, and then the mail layout runs the whole body
+         * through CommonMark — so a name typed into the contact form as
+         * `[Reset your password](https://evil.example)` arrived in the
+         * acknowledgement as a working link under this company's letterhead:
+         * a phishing relay anybody could drive from `POST /enquiries`. With
+         * secured encoding every `{{ }}` echo inside a mail view escapes `[`
+         * before the parse. A line that means to carry a link has to say so
+         * with an `HtmlString` (see `BackInStock`), which is the point.
+         */
+        Markdown::withSecuredEncoding();
+
         /*
          * A worker's pulse, written by the worker itself.
          *

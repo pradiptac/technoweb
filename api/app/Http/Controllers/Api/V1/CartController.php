@@ -205,7 +205,11 @@ class CartController extends Controller
 
         $coupon = Coupon::where('code', Coupon::normalise($data['code']))->first();
 
-        if ($coupon === null) {
+        // A code that is off, not started or over is "not recognised" too: to
+        // somebody typing guesses, the difference is a list of real codes.
+        // A code that stops while it sits on a basket still says it expired —
+        // that person already knew it. See `Coupon::isLive()`.
+        if ($coupon === null || ! $coupon->isLive()) {
             return response()->json(['message' => 'That code is not recognised.'], 422);
         }
 

@@ -227,9 +227,122 @@ class CustomerRegistrationTest extends TestCase
 
         $this->postJson('/api/v1/auth/verify-email', ['email' => 'priya@example.test', 'token' => $token])->assertOk();
 
+        // A spent link is refused like any other: "already confirmed" was an
+        // answer about the account to anybody who named its address.
+        $again = $this->postJson('/api/v1/auth/verify-email', ['email' => 'priya@example.test', 'token' => $token]);
+        $unknown = $this->postJson('/api/v1/auth/verify-email', ['email' => 'nobody@example.test', 'token' => $token]);
+
+        $again->assertStatus(422);
+        $this->assertSame($unknown->json(), $again->json());
+    }
+
+    /**
+     * A confirmed address tells a wrong token nothing.
+     *
+     * The status check came before the token check, so posting any token at
+     * all for a confirmed address answered 200 with `already_verified` and
+     * the account's status — whether the address has an account, and whether
+     * it has been approved, suspended or rejected.
+     */
+    public function test_a_confirmed_address_and_an_unknown_one_answer_a_wrong_token_the_same(): void
+    {
+        Notification::fake();
+        $this->register();
+
+        Customer::where('email', 'priya@example.test')->firstOrFail()->markEmailVerified();
+
+        $confirmed = $this->postJson('/api/v1/auth/verify-email', ['email' => 'priya@example.test', 'token' => 'nope']);
+        $unknown = $this->postJson('/api/v1/auth/verify-email', ['email' => 'nobody@example.test', 'token' => 'nope']);
+
+        $confirmed->assertStatus(422);
+        $this->assertSame($unknown->json(), $confirmed->json());
+        $this->assertArrayNotHasKey('status', $confirmed->json());
+    }
+
+    /**
+     * The password chosen at registration does not survive the confirmation.
+     *
+     * Anybody can register anybody's address and choose the password. The
+     * link goes to the address's owner, who may well click it — and before
+     * this, clicking it switched on an account the *registrant* could sign in
+     * to, holding the owner's orders and tickets from then on.
+     */
+    public function test_confirming_by_link_retires_the_password_chosen_at_registration(): void
+    {
+        Notification::fake();
+        Setting::where('key', 'customer_approval_required')->update(['value' => '0']);
+        Setting::flushCache();
+
+        $this->register();
+
+        $customer = Customer::where('email', 'priya@example.test')->firstOrFail();
+        $customer->createToken('portal', ['portal']);
+        $token = $customer->issueVerificationToken();
+
         $this->postJson('/api/v1/auth/verify-email', ['email' => 'priya@example.test', 'token' => $token])
             ->assertOk()
-            ->assertJson(['already_verified' => true]);
+            ->assertJsonPath('status', 'active');
+
+        $this->postJson('/api/v1/auth/login', ['email' => 'priya@example.test', 'password' => self::PASSWORD])
+            ->assertStatus(401);
+
+        $this->assertSame(0, $customer->tokens()->count(), 'A session opened before the confirmation outlived it.');
+    }
+
+    /**
+     * Changing the address from the portal needs the new inbox to say so.
+     *
+     * The console's edit always un-confirmed the address; the portal's own
+     * profile form kept the old confirmation, so a signed-in account could be
+     * pointed at a stranger's address and stay confirmed — and a confirmed
+     * account is what guest orders and emailed tickets under that address
+     * are joined to.
+     */
+    public function test_changing_the_address_from_the_portal_requires_reconfirmation(): void
+    {
+        Notification::fake();
+
+        $customer = Customer::create([
+            'name' => 'Priya Raman',
+            'email' => 'priya@example.test',
+            'password' => self::PASSWORD,
+            'status' => CustomerStatus::Active,
+        ]);
+        $customer->forceFill(['email_verified_at' => now()])->save();
+
+        $bearer = $customer->createToken('portal', ['portal'])->plainTextToken;
+
+        $this->withHeader('Authorization', 'Bearer '.$bearer)
+            ->patchJson('/api/v1/auth/profile', ['email' => 'Someone.Else@example.test'])
+            ->assertOk();
+
+        $customer->refresh();
+
+        $this->assertSame('someone.else@example.test', $customer->email);
+        $this->assertNull($customer->email_verified_at);
+        Notification::assertSentTo($customer, VerifyCustomerEmail::class);
+    }
+
+    public function test_saving_the_profile_with_the_same_address_keeps_the_confirmation(): void
+    {
+        Notification::fake();
+
+        $customer = Customer::create([
+            'name' => 'Priya Raman',
+            'email' => 'priya@example.test',
+            'password' => self::PASSWORD,
+            'status' => CustomerStatus::Active,
+        ]);
+        $customer->forceFill(['email_verified_at' => now()])->save();
+
+        $bearer = $customer->createToken('portal', ['portal'])->plainTextToken;
+
+        $this->withHeader('Authorization', 'Bearer '.$bearer)
+            ->patchJson('/api/v1/auth/profile', ['email' => 'priya@example.test', 'name' => 'Priya R.'])
+            ->assertOk();
+
+        $this->assertNotNull($customer->fresh()->email_verified_at);
+        Notification::assertNotSentTo($customer, VerifyCustomerEmail::class);
     }
 
     public function test_an_expired_token_is_refused(): void
@@ -281,6 +394,9 @@ class CustomerRegistrationTest extends TestCase
 
         $customer = Customer::where('email', 'priya@example.test')->firstOrFail();
         $customer->markEmailVerified();
+        // Confirming retires the registration password; the owner chooses
+        // one through "Forgot your password?", which this stands in for.
+        $customer->forceFill(['password' => self::PASSWORD])->save();
 
         $this->postJson('/api/v1/auth/login', ['email' => 'priya@example.test', 'password' => self::PASSWORD])
             ->assertStatus(403)
@@ -323,6 +439,8 @@ class CustomerRegistrationTest extends TestCase
 
         $customer = Customer::where('email', 'priya@example.test')->firstOrFail();
         $customer->markEmailVerified();
+        // See above: the registration password does not survive confirmation.
+        $customer->forceFill(['password' => self::PASSWORD])->save();
 
         $staff = $this->staff();
 

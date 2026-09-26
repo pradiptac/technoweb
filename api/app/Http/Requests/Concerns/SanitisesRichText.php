@@ -30,7 +30,19 @@ trait SanitisesRichText
     {
         $clean = [];
 
-        foreach ($this->richTextFields() as $field) {
+        /*
+         * An FAQ answer is rich text wherever it is written.
+         *
+         * The FAQ screen's own request declares `answer`; the eleven entity
+         * forms that carry an `faqs[]` repeater declared nothing for it, so
+         * the same answer, rendered through the same `Prose`, was cleaned
+         * when saved on one screen and stored as typed on the other. Added
+         * here, once, rather than to eleven lists that each have to
+         * remember it — a request with no `faqs` key is untouched.
+         */
+        $fields = array_values(array_unique([...$this->richTextFields(), 'faqs.*.answer']));
+
+        foreach ($fields as $field) {
             if (str_contains($field, '.*.')) {
                 [$list, $column] = explode('.*.', $field, 2);
                 $rows = $this->input($list);

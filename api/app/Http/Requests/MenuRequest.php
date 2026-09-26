@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\MenuItemType;
 use App\Enums\MenuLocation;
 use App\Support\CatalogueList;
+use App\Support\LinkPattern;
 use App\Support\SiteSection;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -93,7 +94,7 @@ class MenuRequest extends FormRequest
              * for a link that goes nowhere, and a blank address on a custom
              * item means a **heading** — see the check in `withValidator`.
              */
-            "$prefix.url" => ['nullable', 'string', 'max:2048', 'regex:#^(\#|/[^\s]*|https?://[^\s]+|mailto:[^\s]+|tel:[^\s]+)$#i'],
+            "$prefix.url" => ['nullable', 'string', 'max:2048', 'regex:'.LinkPattern::MENU_REGEX],
 
             "$prefix.icon" => ['nullable', 'string', 'max:60'],
             "$prefix.description" => ['nullable', 'string', 'max:160'],

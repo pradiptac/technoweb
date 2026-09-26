@@ -54,4 +54,13 @@ return [
     ],
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
+
+    /*
+     * Re-opens *staff* password sign-in while the `password_login_enabled`
+     * setting has it switched off. For the day mail is broken and codes
+     * cannot arrive: the setting lives in a console nobody can reach, so the
+     * way back in has to be a file on the server. Off by default; switch it
+     * off again once mail works. See docs/auth.md.
+     */
+    'password_break_glass' => (bool) env('AUTH_PASSWORD_BREAK_GLASS', false),
 ];

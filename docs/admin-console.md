@@ -467,10 +467,26 @@ besides; the create test asserts the row holds no trace of it.
 https only, no credentials in the URL, no IP literal in a private or
 reserved range in either family (`FILTER_FLAG_NO_PRIV_RANGE |
 NO_RES_RANGE`, so the ranges are PHP's list), no `localhost`, no bare name
-without a dot, no `.local`/`.internal`/`.lan`/`.home.arpa`. A public name
-that *resolves* to a private address still passes — closing that means
-resolving at send time and pinning the address, which is written down here
-rather than half-done.
+without a dot, no `.local`/`.internal`/`.lan`/`.home.arpa` — and, since
+2026-09-26, no address written as a bare number (`127.1`, `0x7f.0.0.1`,
+`0177.0.0.1`, `2130706433`) or as IPv4-in-IPv6 (`::ffff:127.0.0.1`), which
+`FILTER_VALIDATE_IP` does not call addresses and the resolver reads as
+loopback.
+
+**And at send time, the address is resolved, checked and pinned
+(2026-09-26).** The response excerpt is shown in the console, so a webhook
+that reached `169.254.169.254` or a service on the LAN was a way to *read*
+the inside of the network. `DeliverWebhook` resolves the host through
+`App\Support\Net\PublicHost`, refuses any private, reserved, loopback,
+link-local, CGNAT or IPv4-mapped answer (recorded like any other refusal and
+retried), and hands cURL exactly the addresses it checked
+(`CURLOPT_RESOLVE`), so a second DNS answer cannot be substituted. **A
+redirect is a failure** (`withoutRedirecting()`): followed, a 302 from a
+public host to the metadata service took the request past every check and
+down to plain http. `PublicHost` is the one definition of "a host this server
+may connect to on somebody's say-so", shared with the newsletter's mailbox
+scan and the SMTP/IMAP settings; tests bind `PublicHost::RESOLVER` so no test
+performs a DNS lookup.
 
 **Retries through the queue: five attempts, `[60, 300, 1800, 7200, 43200]`
 seconds.** Anything but a 2xx — a 4xx, a 5xx, a refused connection, a

@@ -329,3 +329,14 @@ to stand on: knowledge-base articles for the questions the unanswered list
 product pages, a fuller `chatbot_welcome` and quick actions, and the
 WhatsApp hand-off for the rest. The judge makes the *collecting* sharp; the
 content makes the *answering* good.
+
+## The fence holds under nesting, and holds the title too (2026-09-26)
+
+One `str_replace` of the marker is not enough: removing it from
+`---WEBSITE ---WEBSITE COPY---COPY---` makes one, which closed the fence
+exactly as a plain marker would. `Assistant::unfenced()` repeats until nothing
+changes. And the retrieved **title** and labelled fields are editors' words as
+much as the excerpt: they sat on the numbered line at instruction level. Only
+the label, which is ours, stays outside; the title, excerpt and fields sit
+inside one fence per source.
+

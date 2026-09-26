@@ -86,6 +86,19 @@ class RazorpayProvider implements PaymentProvider
             throw new RuntimeException($message);
         }
 
+        /*
+         * Remember which Razorpay order this is.
+         *
+         * The browser's return is signed over `order_id|payment_id`, which
+         * proves Razorpay issued the pair and says nothing about which of
+         * *our* orders it was opened for. Without this a ₹1 order's signed
+         * triple, posted to a dear order's verify, paid the dear one. The
+         * latest session wins: a browser coming back from an older dialog is
+         * refused here and settled by the webhook, which carries the order
+         * number Razorpay was given.
+         */
+        $order->forceFill(['gateway_order_id' => (string) $response->json('id')])->save();
+
         return [
             'gateway' => 'razorpay',
             'gateway_order_id' => $response->json('id'),
@@ -108,20 +121,34 @@ class RazorpayProvider implements PaymentProvider
     /**
      * What the browser hands back after the Razorpay dialog closes.
      *
-     * The signature is HMAC-SHA256 of `order_id|payment_id` with the key
-     * secret. Without checking it, "payment successful" is a string a browser
-     * sent — which is the single most common way a shop is robbed, and the
-     * brief says so twice.
+     * Three checks, and each closes a different way of being lied to:
+     *
+     * 1. **The signature** — HMAC-SHA256 of `order_id|payment_id` with the key
+     *    secret. Without it "payment successful" is a string a browser sent.
+     * 2. **The binding** — the `order_id` must be the Razorpay order *this*
+     *    order opened (`orders.gateway_order_id`). The signature is valid for
+     *    any pair Razorpay ever issued, so without this a cheap order's
+     *    triple paid a dear one.
+     * 3. **Razorpay's own record** — `GET /payments/{id}`, server to server:
+     *    captured or authorised, against that same order, in rupees, and its
+     *    `amount` is handed to `Settlement`, which compares it with the
+     *    order's total. The browser carries no amount, so before this the
+     *    comparison was skipped and the payment recorded at whatever the
+     *    order said it cost.
+     *
+     * Any doubt is `null`: "not confirmed", never "not paid". The webhook
+     * settles the order if the money did leave.
      */
     public function verifyReturn(Order $order, array $payload): ?PaymentOutcome
     {
+        $keyId = (string) Setting::get('razorpay_key_id');
         $secret = (string) Setting::get('razorpay_key_secret');
 
         $paymentId = (string) ($payload['razorpay_payment_id'] ?? '');
         $gatewayOrderId = (string) ($payload['razorpay_order_id'] ?? '');
         $signature = (string) ($payload['razorpay_signature'] ?? '');
 
-        if (blank($secret) || blank($paymentId) || blank($gatewayOrderId) || blank($signature)) {
+        if (blank($keyId) || blank($secret) || blank($paymentId) || blank($gatewayOrderId) || blank($signature)) {
             return null;
         }
 
@@ -136,23 +163,72 @@ class RazorpayProvider implements PaymentProvider
             return null;
         }
 
+        $opened = (string) $order->gateway_order_id;
+
+        if ($opened === '' || ! hash_equals($opened, $gatewayOrderId)) {
+            Log::warning('Razorpay return names a gateway order this order did not open', [
+                'order' => $order->order_number,
+                'gateway_order' => $gatewayOrderId,
+            ]);
+
+            return null;
+        }
+
+        $payment = $this->fetchPayment($keyId, $secret, $paymentId);
+
+        if ($payment === null
+            || ! in_array($payment['status'] ?? null, ['captured', 'authorized'], true)
+            || ! hash_equals($opened, (string) ($payment['order_id'] ?? ''))
+            || ($payment['currency'] ?? null) !== 'INR'
+            || ! is_numeric($payment['amount'] ?? null)) {
+            Log::warning('Razorpay does not confirm the returned payment', [
+                'order' => $order->order_number,
+                'payment' => $paymentId,
+                'status' => $payment['status'] ?? null,
+            ]);
+
+            return null;
+        }
+
         return new PaymentOutcome(
             gateway: 'razorpay',
             status: PaymentStatus::Paid,
             paymentId: $paymentId,
             gatewayOrderId: $gatewayOrderId,
-            /*
-             * The amount is *not* taken from the browser.
-             *
-             * Razorpay's return payload does not carry one, and if it did it
-             * would be the last thing to believe. `Settlement` compares against
-             * the order's own total; the webhook, which is server-to-server,
-             * is where a real amount arrives.
-             */
-            amountPaise: null,
+            // Razorpay's figure, in paise, never the browser's. `Settlement`
+            // compares it with the order's total.
+            amountPaise: (int) $payment['amount'],
+            method: $payment['method'] ?? null,
             signature: $signature,
             orderNumber: $order->order_number,
         );
+    }
+
+    /**
+     * Razorpay's record of one payment, or null when it cannot be read.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function fetchPayment(string $keyId, string $secret, string $paymentId): ?array
+    {
+        try {
+            $response = Http::withBasicAuth($keyId, $secret)
+                ->acceptJson()
+                ->timeout(10)
+                ->get(self::API.'/payments/'.rawurlencode($paymentId));
+        } catch (\Throwable $e) {
+            Log::warning('Razorpay payment lookup failed', ['payment' => $paymentId, 'error' => $e->getMessage()]);
+
+            return null;
+        }
+
+        if (! $response->successful() || ! is_array($response->json())) {
+            Log::warning('Razorpay payment lookup refused', ['payment' => $paymentId, 'status' => $response->status()]);
+
+            return null;
+        }
+
+        return $response->json();
     }
 
     /**

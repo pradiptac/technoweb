@@ -13,6 +13,7 @@ use App\Models\Payment;
 use App\Models\Setting;
 use App\Models\StoreProduct;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -169,6 +170,9 @@ class PaymentTest extends TestCase
     {
         [$order, $access] = $this->order();
 
+        $this->openSession($order, $access);
+        $this->fakePayment('pay_test123', 'order_test123', $order->total_paise);
+
         $payload = $this->signedReturn($order->order_number);
 
         $this->postJson("/api/v1/orders/{$order->order_number}/verify", ['token' => $access] + $payload)
@@ -179,6 +183,108 @@ class PaymentTest extends TestCase
 
         $this->assertSame(OrderStatus::Paid, $order->status);
         $this->assertNotNull($order->paid_at);
+    }
+
+    /**
+     * A signed triple from a cheap order cannot pay for a dear one.
+     *
+     * The signature proves Razorpay issued `order_id|payment_id` — it says
+     * nothing about which of *our* orders that Razorpay order was opened for.
+     * Before the binding, paying ₹1 for order A and posting A's triple to
+     * `/orders/B/verify` marked B paid at B's total.
+     */
+    public function test_a_signed_return_from_another_order_does_not_pay_this_one(): void
+    {
+        [$cheap, $cheapAccess] = $this->order(['price_paise' => 100]);
+        [$dear, $dearAccess] = $this->order();
+
+        $this->openSession($cheap, $cheapAccess, 'order_cheap');
+        $this->openSession($dear, $dearAccess, 'order_dear');
+
+        // Razorpay would say the payment is real, captured, and ₹1.
+        $this->fakePayment('pay_cheap', 'order_cheap', 100);
+
+        $this->postJson("/api/v1/orders/{$dear->order_number}/verify", ['token' => $dearAccess]
+            + $this->signedReturn($dear->order_number, 'pay_cheap', 'order_cheap'))
+            ->assertStatus(422);
+
+        $this->assertSame(OrderStatus::PendingPayment, $dear->fresh()->status);
+        $this->assertSame(0, Payment::count());
+    }
+
+    /**
+     * The amount is Razorpay's, fetched server to server, and it is checked.
+     *
+     * A browser return carries no amount, so without the fetch `Settlement`
+     * had nothing to compare and recorded whatever the order said it cost.
+     */
+    public function test_a_signed_return_for_the_wrong_amount_does_not_settle(): void
+    {
+        [$order, $access] = $this->order();
+
+        $this->openSession($order, $access);
+        $this->fakePayment('pay_test123', 'order_test123', 100);
+
+        $this->postJson("/api/v1/orders/{$order->order_number}/verify", ['token' => $access] + $this->signedReturn($order->order_number))
+            ->assertOk();
+
+        $this->assertSame(OrderStatus::PendingPayment, $order->fresh()->status);
+        $this->assertSame(PaymentStatus::Failed, Payment::firstOrFail()->status);
+        $this->assertSame(100, Payment::firstOrFail()->amount_paise);
+    }
+
+    public function test_a_signed_return_razorpay_has_not_captured_settles_nothing(): void
+    {
+        [$order, $access] = $this->order();
+
+        $this->openSession($order, $access);
+        $this->fakePayment('pay_test123', 'order_test123', 1180000, status: 'failed');
+
+        $this->postJson("/api/v1/orders/{$order->order_number}/verify", ['token' => $access] + $this->signedReturn($order->order_number))
+            ->assertStatus(422);
+
+        $this->assertSame(OrderStatus::PendingPayment, $order->fresh()->status);
+        $this->assertSame(0, Payment::count());
+    }
+
+    public function test_a_signed_return_whose_payment_belongs_to_another_razorpay_order_settles_nothing(): void
+    {
+        [$order, $access] = $this->order();
+
+        $this->openSession($order, $access);
+        // The triple is signed for this order, but Razorpay says the payment
+        // was made against a different one -- or in a different currency.
+        $this->fakePayment('pay_test123', 'order_elsewhere', 1180000);
+
+        $this->postJson("/api/v1/orders/{$order->order_number}/verify", ['token' => $access] + $this->signedReturn($order->order_number))
+            ->assertStatus(422);
+
+        $this->assertSame(0, Payment::count());
+    }
+
+    public function test_a_signed_return_in_another_currency_settles_nothing(): void
+    {
+        [$order, $access] = $this->order();
+
+        $this->openSession($order, $access);
+        $this->fakePayment('pay_test123', 'order_test123', 1180000, currency: 'USD');
+
+        $this->postJson("/api/v1/orders/{$order->order_number}/verify", ['token' => $access] + $this->signedReturn($order->order_number))
+            ->assertStatus(422);
+
+        $this->assertSame(0, Payment::count());
+    }
+
+    public function test_a_signed_return_before_any_session_was_opened_settles_nothing(): void
+    {
+        [$order, $access] = $this->order();
+
+        $this->fakePayment('pay_test123', 'order_test123', 1180000);
+
+        $this->postJson("/api/v1/orders/{$order->order_number}/verify", ['token' => $access] + $this->signedReturn($order->order_number))
+            ->assertStatus(422);
+
+        $this->assertSame(0, Payment::count());
     }
 
     // ------------------------------------------------------ the webhook
@@ -314,6 +420,9 @@ class PaymentTest extends TestCase
     {
         [$order, $access] = $this->order();
 
+        $this->openSession($order, $access);
+        $this->fakePayment('pay_test123', 'order_test123', $order->total_paise);
+
         $payload = $this->signedReturn($order->order_number);
 
         $this->postJson("/api/v1/orders/{$order->order_number}/verify", ['token' => $access] + $payload)->assertOk();
@@ -325,11 +434,42 @@ class PaymentTest extends TestCase
 
     // ------------------------------------------------------ helpers
 
-    /** @return array<string, string> */
-    private function signedReturn(string $orderNumber, string $paymentId = 'pay_test123'): array
+    /**
+     * Press Pay: Razorpay opens `$gatewayOrderId` for this order, and the API
+     * remembers which one it was.
+     */
+    private function openSession(Order $order, string $access, string $gatewayOrderId = 'order_test123'): void
     {
-        $gatewayOrderId = 'order_test123';
+        // Fakes stack and the first match wins, so a second session would be
+        // answered with the first one's id. Each session starts from nothing.
+        Http::swap(new HttpFactory);
 
+        Http::fake([
+            'api.razorpay.com/v1/orders' => Http::response(['id' => $gatewayOrderId, 'amount' => $order->total_paise], 200),
+        ]);
+
+        $this->postJson("/api/v1/orders/{$order->order_number}/pay", ['token' => $access])->assertOk();
+    }
+
+    /** What `GET /v1/payments/{id}` answers: Razorpay's own record of the payment. */
+    private function fakePayment(string $paymentId, string $gatewayOrderId, int $amount, string $status = 'captured', string $currency = 'INR'): void
+    {
+        Http::fake([
+            'api.razorpay.com/v1/payments/'.$paymentId => Http::response([
+                'id' => $paymentId,
+                'entity' => 'payment',
+                'amount' => $amount,
+                'currency' => $currency,
+                'status' => $status,
+                'order_id' => $gatewayOrderId,
+                'method' => 'upi',
+            ], 200),
+        ]);
+    }
+
+    /** @return array<string, string> */
+    private function signedReturn(string $orderNumber, string $paymentId = 'pay_test123', string $gatewayOrderId = 'order_test123'): array
+    {
         return [
             'razorpay_payment_id' => $paymentId,
             'razorpay_order_id' => $gatewayOrderId,

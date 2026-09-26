@@ -75,6 +75,27 @@ class FaqOwnersTest extends TestCase
         $this->assertSame(2, Faq::where('faqable_type', 'brand')->count());
     }
 
+    /**
+     * An answer saved through an entity's own form is cleaned like one saved
+     * on the FAQ screen. It renders through the same `Prose` either way, and
+     * the entity forms declared nothing for it.
+     */
+    public function test_an_answer_saved_through_an_entity_form_is_sanitised(): void
+    {
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/brands', [
+                'name' => 'Cisco', 'slug' => 'cisco',
+                'faqs' => [['question' => 'Is it covered?', 'answer' => '<p>Yes.<script>alert(1)</script><img src=x onerror=alert(2)></p>']],
+            ])
+            ->assertCreated();
+
+        $answer = Faq::where('faqable_type', 'brand')->sole()->answer;
+
+        $this->assertStringContainsString('Yes.', $answer);
+        $this->assertStringNotContainsString('<script', $answer);
+        $this->assertStringNotContainsString('onerror', $answer);
+    }
+
     public function test_a_knowledge_article_takes_faqs_through_its_own_form(): void
     {
         $article = $this->article();

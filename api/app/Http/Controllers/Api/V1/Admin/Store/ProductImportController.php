@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Admin\Store;
 
 use App\Http\Controllers\Controller;
 use App\Models\StoreProductImport;
+use App\Support\ImportUpload;
 use App\Support\Newsletter\Csv;
 use App\Support\Newsletter\Spreadsheet;
 use App\Support\Store\CatalogueExport;
@@ -137,11 +138,18 @@ class ProductImportController extends Controller
         /*
          * The path is checked rather than trusted: it comes back from the
          * browser, and without this it is a caller-supplied filesystem path.
-         * Pinned to the directory `analyse` writes to, and existence-checked.
+         * Pinned to the directory `analyse` writes to, and existence-checked —
+         * rebuilt from its last segment, because a prefix check let
+         * `store-imports/../newsletter-imports/mailbox-3.csv` read (and
+         * delete) another area's file. See `ImportUpload`.
          */
-        if (! str_starts_with((string) $data['file'], 'store-imports/') || ! Storage::disk('local')->exists((string) $data['file'])) {
+        $file = ImportUpload::resolve('store-imports', (string) $data['file']);
+
+        if ($file === null) {
             return response()->json(['message' => 'That upload has expired. Choose the file again.'], 422);
         }
+
+        $data['file'] = $file;
 
         $mapping = array_map(fn ($v) => $v === null ? null : (int) $v, $data['mapping']);
 

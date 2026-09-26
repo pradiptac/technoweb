@@ -327,6 +327,35 @@ class StoreProductImportTest extends TestCase
         @unlink($path);
     }
 
+    /**
+     * The file named on commit is ours, and only ours.
+     *
+     * The path comes back from the browser. A prefix check let
+     * `store-imports/../newsletter-imports/…` through — Flysystem collapses
+     * the `..` — so a store manager could read another area's private file
+     * (its rows came back in `problems[]`) and delete it.
+     */
+    public function test_a_file_outside_the_import_directory_cannot_be_committed(): void
+    {
+        Storage::disk('local')->put('newsletter-imports/mailbox-3.csv', "sku,name\nX-1,Secret list\n");
+
+        foreach ([
+            'store-imports/../newsletter-imports/mailbox-3.csv',
+            'store-imports/..\\newsletter-imports\\mailbox-3.csv',
+            'store-imports/sub/../../newsletter-imports/mailbox-3.csv',
+        ] as $path) {
+            $this->actingAs($this->manager(), 'sanctum')
+                ->postJson('/api/v1/admin/store/products/import', [
+                    'file' => $path,
+                    'mapping' => ['sku' => 0, 'name' => 1],
+                ])
+                ->assertStatus(422);
+        }
+
+        Storage::disk('local')->assertExists('newsletter-imports/mailbox-3.csv');
+        $this->assertSame(0, StoreProduct::count());
+    }
+
     public function test_the_import_is_store_manager_work(): void
     {
         $editor = User::create(['name' => 'Editor', 'email' => 'cm-import@example.test', 'password' => 'password-for-tests', 'is_active' => true]);
