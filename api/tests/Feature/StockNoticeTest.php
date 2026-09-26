@@ -250,6 +250,9 @@ class StockNoticeTest extends TestCase
         $this->assertStringContainsString('₹23,600', $rendered);
         $this->assertStringContainsString('https://www.technoware.in/store/products/cisco-cbs350', $rendered);
         $this->assertStringContainsString("https://www.technoware.in/store/notify/cancel/{$notice->token}", $rendered);
+        // Still a link: mail lines are text under secured encoding, and this
+        // is the one line that deliberately carries Markdown.
+        $this->assertStringContainsString("href=\"https://www.technoware.in/store/notify/cancel/{$notice->token}\"", $rendered);
     }
 
     // -------------------------------------------------------------- cancel
