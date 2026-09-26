@@ -9,6 +9,7 @@ use App\Enums\ProductType;
 use App\Enums\PublishStatus;
 use App\Models\Cart;
 use App\Models\Order;
+use App\Models\ProductReview;
 use App\Models\StoreProduct;
 use App\Models\WishlistItem;
 use App\Support\Seo\GoogleAnalytics;
@@ -187,6 +188,11 @@ class StoreMetrics
              * people waiting on it is the one worth reordering first.
              */
             'awaiting_stock' => StoreProduct::whereHas('stockNotices', fn ($q) => $q->waiting())->count(),
+            /*
+             * Reviews nobody has read yet — `ProductReview::waiting()`, the
+             * scope the review queue opens on, which is where this links.
+             */
+            'reviews_pending' => ProductReview::waiting()->count(),
             'refund_requested' => Order::where('status', OrderStatus::RefundRequested)->count(),
             /*
              * Failed payments are counted over the window rather than for ever.

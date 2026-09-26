@@ -8,6 +8,7 @@ import { CardImages } from "@/components/store/card-images";
 import { QuickAdd } from "@/components/store/quick-add";
 import { QuickView } from "@/components/store/quick-view";
 import { WishlistHeart } from "@/components/store/wishlist-heart";
+import { RatingPill } from "@/components/store/rating-pill";
 import type { StoreProduct } from "@/types/api";
 
 /**
@@ -141,6 +142,7 @@ export function StoreProductCard({
           empty heart and the list fills it after mount.
         */}
         <WishlistHeart productId={product.id} name={product.name} className="absolute right-2.5 top-2.5 z-10" />
+        <RatingPill rating={product.rating} />
       </div>
 
       <div data-tile-body className="flex min-w-0 flex-1 flex-col gap-2 p-4">

@@ -27,7 +27,7 @@
  * differ today.
  */
 
-import { composite, contrast, darkNeutrals, darkRamp, hueOf, neonFor, ramp, rotated, tagFills, tagsFor, topBarBand, type Band, type Ramp } from "./palette.ts";
+import { composite, contrast, darkNeutrals, darkRamp, hueOf, neonFor, ramp, ratingFor, rotated, tagFills, tagsFor, topBarBand, type Band, type Ramp } from "./palette.ts";
 import { AURORA_ALPHA } from "./motion-choices.ts";
 
 export type ThemeFont = {
@@ -218,6 +218,11 @@ function rampPairs(prefix: string, r: Ramp): [string, string][] {
   ];
 }
 
+function ratingPairs(card: string, surface2: string): [string, string][] {
+  const r = ratingFor(card, surface2);
+  return [["--color-rating", r.star], ["--color-rating-empty", r.empty]];
+}
+
 /**
  * The theme as custom-property pairs — what `themeCss()` serialises, and what
  * the settings picker sets as inline `style` on a preview wrapper so real
@@ -247,6 +252,8 @@ export function themeVars(theme: Theme, scheme: Scheme = "light"): Record<string
     ...x.neon.map((hex, i): [string, string] => [`--color-neon-${i + 1}`, hex]),
     ...x.tags.map((hex, i): [string, string] => [`--color-tag-${i + 1}`, hex]),
     ...tagFills().map((hex, i): [string, string] => [`--color-tag-fill-${i + 1}`, hex]),
+    // The review stars, walked against this palette's card and surface-2 (`ratingFor`).
+    ...ratingPairs(c.card, c.surface2),
     ["--aurora-alpha", String(auroraAlpha(theme, scheme))],
     ["--font-display", `var(${theme.fonts.display.variable})`],
     ["--font-sans", `var(${theme.fonts.body.variable})`],

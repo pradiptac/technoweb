@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Store\CategoryResource;
 use App\Http\Resources\Store\ProductResource;
+use App\Models\ProductReview;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
 use App\Support\EntityLinks;
@@ -150,6 +151,17 @@ class StoreController extends Controller
                 ->whereKeyNot($storeProduct->getKey())
                 ->orderByDesc('is_featured')->orderBy('sort_order')->orderBy('name')
                 ->limit(6)->get()
+            : $storeProduct->newCollection());
+        /*
+         * Up to five published reviews for the graph's `review` nodes, in the
+         * order the page opens on (featured first). Set as a relation like
+         * `relatedProducts`, so `StructuredData` reads it through
+         * `relationLoaded` and a nested product never builds one.
+         */
+        $storeProduct->setRelation('schemaReviews', $storeProduct->rating_count > 0
+            ? ProductReview::query()->published()
+                ->where('store_product_id', $storeProduct->id)
+                ->sorted('featured')->limit(5)->get()
             : $storeProduct->newCollection());
         EntityLinks::attach($storeProduct);
 

@@ -440,6 +440,32 @@ const storeProducts = [
     category: storeCategories[1], brand: null, variations: [] },
 ];
 
+/*
+ * Store reviews (docs/store.md, "Reviews"): three published on the first
+ * product, and one waiting in the console's queue. `rating` is the summary
+ * the API keeps on the product — null until something is published.
+ */
+const storeReviews = [
+  { id: 901, product_id: 1, display_name: 'Asha R.', verified: true, variant_label: '24-Port', rating: 5, title: 'Quiet and simple', body: 'Racked it on a Friday, VLANs up in an hour. Fanless means the office never hears it.', published_at: '2026-09-02T10:00:00+05:30', status: 'published', is_featured: true },
+  { id: 902, product_id: 1, display_name: 'Vikram S.', verified: true, variant_label: '48-Port', rating: 4, title: null, body: 'Does what it says. The web UI is slow to load but everything is there.', published_at: '2026-09-10T15:30:00+05:30', status: 'published', is_featured: false },
+  { id: 903, product_id: 1, display_name: 'Meera K.', verified: false, variant_label: null, rating: 4, title: 'Good value', body: 'Bought through a reseller, supported here anyway.', published_at: '2026-09-18T09:12:00+05:30', status: 'published', is_featured: false },
+  { id: 904, product_id: 2, display_name: 'Neil B.', verified: true, variant_label: null, rating: 2, title: null, body: 'Arrived with a bent bracket.', published_at: null, status: 'pending', is_featured: false },
+];
+for (const sp of storeProducts) sp.rating = null;
+storeProducts[0].rating = { average: 4.3, count: 3 };
+const REVIEW_SORT = {
+  featured: (a, b) => (b.is_featured - a.is_featured) || (b.rating - a.rating) || b.published_at.localeCompare(a.published_at),
+  newest: (a, b) => b.published_at.localeCompare(a.published_at),
+  highest: (a, b) => (b.rating - a.rating) || b.published_at.localeCompare(a.published_at),
+  lowest: (a, b) => (a.rating - b.rating) || b.published_at.localeCompare(a.published_at),
+};
+const publicReview = (r) => ({ id: r.id, display_name: r.display_name, verified: r.verified, variant_label: r.variant_label, rating: r.rating, title: r.title, body: r.body, published_at: r.published_at });
+const adminReview = (r) => {
+  const sp = storeProducts.find((x) => x.id === r.product_id);
+  const labels = { pending: 'Waiting', published: 'Published', rejected: 'Rejected', spam: 'Spam' };
+  return { ...publicReview(r), product: sp ? { id: sp.id, name: sp.name, slug: sp.slug } : null, customer: { id: 1, name: r.display_name, email: 'reviewer@example.test' }, order_id: r.verified ? 1 : null, status: r.status, status_label: labels[r.status], is_featured: r.is_featured, moderated_at: null, moderated_by: null, created_at: r.published_at ?? '2026-09-25T10:00:00+05:30', updated_at: r.published_at ?? '2026-09-25T10:00:00+05:30' };
+};
+
 /* The basket, held in memory and keyed by token -- enough for the frontend to
    be built and audited against, and deliberately not persisted: a mock that
    survived a restart would hide the fact that a real cart is a database row. */
@@ -1963,6 +1989,28 @@ createServer(async (req, res) => {
       return json(res, 200, { data: rows });
     }
 
+    /* The review queue: waiting by default, `all` for everything. */
+    if (p === '/admin/store/reviews' && req.method === 'GET') {
+      const status = url.searchParams.get('status') || 'pending';
+      const rows = storeReviews.filter(r => status === 'all' || r.status === status).map(adminReview);
+      return json(res, 200, { ...paginate(rows), meta: { ...paginate(rows).meta, statuses: [
+        { value: 'pending', label: 'Waiting' }, { value: 'published', label: 'Published' }, { value: 'rejected', label: 'Rejected' }, { value: 'spam', label: 'Spam' },
+      ], pending_count: storeReviews.filter(r => r.status === 'pending').length, sorts: ['created', 'rating', 'published'] } });
+    }
+    if (p === '/admin/store/reviews/moderate' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const moved = storeReviews.filter(r => (body.ids || []).includes(r.id) && r.status !== body.status);
+      for (const r of moved) { r.status = body.status; if (body.status === 'published') r.published_at ??= new Date().toISOString(); }
+      return json(res, 200, { data: { moved: moved.length, pending_count: storeReviews.filter(r => r.status === 'pending').length, slugs: [] } });
+    }
+    {
+      const m = p.match(/^\/admin\/store\/reviews\/(\d+)$/);
+      const r = m && storeReviews.find(x => x.id === Number(m[1]));
+      if (m && !r) return json(res, 404, { message: 'Not found.' });
+      if (r && req.method === 'PATCH') { r.is_featured = Boolean((await readJsonBody(req)).is_featured); return json(res, 200, { data: adminReview(r) }); }
+      if (r && req.method === 'DELETE') { storeReviews.splice(storeReviews.indexOf(r), 1); res.writeHead(204); return res.end(); }
+    }
+
     if (p === '/admin/store/dashboard' && req.method === 'GET') {
       const days = [7, 30, 90].includes(Number(url.searchParams.get('days'))) ? Number(url.searchParams.get('days')) : 30;
       const series = Array.from({ length: days }, (_, i) => {
@@ -1974,7 +2022,7 @@ createServer(async (req, res) => {
         orders: { total: 0, paid: 0, pending_payment: 0, cancelled: 0, period: 0, with_physical: 0, with_digital: 0 },
         revenue: { total_paise: 0, period_paise: 0, gst_paise: 0, discount_paise: 0, refunded_paise: 0, average_paise: null, sample: 0 },
         catalogue: { products: 0, published: 0, out_of_stock: 0 },
-        attention: { awaiting_payment: 0, awaiting_dispatch: 0, awaiting_codes: 0, refund_requested: 0, out_of_stock: 0, codes_exhausted: 0, failed_payments: 0 },
+        attention: { awaiting_payment: 0, awaiting_dispatch: 0, awaiting_codes: 0, reviews_pending: 1, refund_requested: 0, out_of_stock: 0, codes_exhausted: 0, failed_payments: 0 },
         funnel: { product_views: null, paid_orders: 0, views_to_orders: null },
         // Null, not zeros: the mock never reminds anybody about a basket.
         recovered: null,
@@ -2988,6 +3036,33 @@ createServer(async (req, res) => {
   }
   if (/^\/store\/stock-notices\/[^/]+\/cancel$/.test(p)) {
     return json(res, 200, { message: 'Done. We will not email you about that product.' });
+  }
+  /* Reviews: the published page, and the portal's own review and write. */
+  {
+    const m = p.match(/^\/store\/products\/([^/]+)\/reviews(\/mine)?$/);
+    if (m) {
+      const sp = storeProducts.find(x => x.slug === m[1]);
+      if (!sp) return json(res, 404, { message: 'Not found.' });
+      if (m[2]) {
+        if (!auth) return json(res, 401, { message: 'Unauthenticated.' });
+        return json(res, 200, { data: null, meta: { can_review: true, verified: sp.id === 1 } });
+      }
+      if (req.method === 'POST') {
+        if (!auth) return json(res, 401, { message: 'Unauthenticated.' });
+        return json(res, 202, { message: 'Thanks — we will publish it once it has been checked.' });
+      }
+      const sort = REVIEW_SORT[url.searchParams.get('sort')] ? url.searchParams.get('sort') : 'featured';
+      const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
+      const rows = storeReviews.filter(r => r.product_id === sp.id && r.status === 'published').sort(REVIEW_SORT[sort]);
+      const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+      for (const r of rows) distribution[r.rating]++;
+      return json(res, 200, {
+        data: rows.slice((page - 1) * 6, page * 6).map(publicReview),
+        links: { first: null, last: null, prev: null, next: null },
+        meta: { current_page: page, last_page: Math.max(1, Math.ceil(rows.length / 6)), per_page: 6, total: rows.length,
+          sort, average: sp.rating?.average ?? null, count: rows.length, distribution },
+      });
+    }
   }
   if (p.startsWith('/store/products/')) {
     const sp = storeProducts.find(x => x.slug === p.split('/')[3]);

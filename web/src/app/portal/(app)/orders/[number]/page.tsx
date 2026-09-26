@@ -79,6 +79,17 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
                   {!line.returnable && (
                     <p className="mt-1 text-12 font-medium text-warn">Non-returnable</p>
                   )}
+                  {/*
+                    A review, once the order is paid (`Order::paid()`, which is
+                    what makes it Verified) and while the product is still on
+                    sale — `slug` is null when it is not. `?review=1` opens the
+                    product page's reviews and the dialog.
+                  */}
+                  {order.paid_at && line.slug && (
+                    <Link href={`/store/products/${line.slug}?review=1`} className="mt-1.5 inline-flex min-h-6 items-center text-13 font-semibold text-brand-ink hover:underline">
+                      {line.my_review ? `Edit your review (${line.my_review.status_label.toLowerCase()})` : "Write a review"}
+                    </Link>
+                  )}
                 </div>
                 <p className="tabular-nums">{formatPaise(line.line_total_paise)}</p>
               </li>

@@ -423,10 +423,13 @@ knowing about all four: `PageSeeder` uses `updateOrCreate` keyed on slug, so
 re-running it **overwrites** whatever an editor has written on those pages. It
 always did; there are simply two more pages it now does it to.
 
-**Not built, deliberately:** `AggregateRating` and `Review` are absent from
-every graph in the product. They are a Merchant Center enhancement, not a
-requirement, and inventing them is out of the question — noted so the absence
-reads as a decision rather than a gap.
+**`AggregateRating` and `Review` are real now, and still never invented.**
+They were absent from every graph by decision until the shop had reviews of its
+own (2026-09-26, "Reviews" below). The store Product graph carries
+`aggregateRating` from the product's stored summary and up to five `review`
+nodes — published reviews only, the ones the page opens on — and nothing at
+all until one is published. The marketing catalogue has no reviews and emits
+neither.
 
 **The store's catalogue is not the site's catalogue, and that is the whole
 shape of the module.** `store_products` is its own table: what the shop sells is
@@ -1246,3 +1249,101 @@ that does not fit; `/store/wishlist`; the portal's "My wishlist" tab beside
 the orders, with the emails switch; and "Most wished for" on the store
 dashboard — five products by the number of *lists*, all time, since a wish is
 standing demand rather than an event in the window.
+
+## Reviews (2026-09-26)
+
+The client asked for reviews on the shop from five reference screenshots, and
+decided four things: **signed-in customers only**, **staff approve every
+review**, **no photos** for now, and **a "How was it?" email after delivery**.
+The plan is `docs/store-reviews-plan.md`.
+
+**One review per customer per product, and a second write edits the first.**
+`product_reviews` is unique on `(store_product_id, customer_id)`;
+`POST /store/products/{slug}/reviews` is a portal route (`auth:sanctum` +
+`customer`) and uses `firstOrNew`. **Every write goes back to `pending`**, an
+edit to a published review included — what staff approved was the text that
+was there — and the featured flag goes with it. `published_at` is stamped on
+the first publish and never cleared, the `approved_at` rule.
+
+**Verified is a paid order, read on every write.** `ReviewPurchase::for()`
+finds a line for the product on one of the customer's `Order::paid()` orders
+(the module's one definition, so a COD order verifies once the cash is banked);
+`order_id` is kept and the variant label is the line's own snapshot —
+`variation_name`, else the options joined "Black / XL" — never the live
+variation, which the shop may have renamed. Somebody who reviews first and
+buys later is verified on their next edit.
+
+**The body is plain text, stored as typed and rendered escaped**, the blog
+comment's rule. The name on a card is a snapshot, "Neil B."
+(`ProductReview::displayNameFor`); the public resource carries no customer id,
+address or order, structurally.
+
+**The summary lives on the product and follows the review from the review's
+own hooks.** `rating_average` (one decimal) and `rating_count` are written only
+by `ReviewSummary`, called from `ProductReview`'s `saved` and `deleted` when a
+review enters or leaves `published` or a published one changes its stars — so
+moderation, an edit sending it back to the queue and a delete all move the
+number, and no card ever aggregates per row. It is a base-query update: the
+product's `updated_at` is its own editorial change, and model events on the
+product have no business firing for a customer's review. Moderation moves rows
+**one at a time** for the same reason the comment queue does. The one path that
+cannot fire an event is a customer deleted by the foreign key, and nothing
+deletes a customer. `rating` on the store product resource is
+`{average, count}` or **null** until something is published — "rated 0" is a
+claim and "not rated" is the truth.
+
+**The public list is six a page and sorts four ways.** `featured` (the
+shop's pick first, then stars, then newest), `newest`, `highest`, `lowest`,
+all in `ProductReview::scopeSorted`, every ordering ending on `id`; an unknown
+sort falls back to featured, the catalogue's rule. `meta` carries the average,
+the count and a distribution with all five keys present.
+
+**The product page stays cacheable.** The first page of reviews is fetched with
+the product (`lib/reviews.ts`, tags `store-reviews` and `store-reviews:<slug>`)
+and rendered on the server; sorting and Show more go through
+`/api/store/reviews`, whose slug, sort and page are an allowlist so the data
+cache holds only real entries. Who is writing is asked of
+`/api/store/reviews/mine` **when the dialog opens** — no cookie, no API call —
+and `?review=1` (the email's link, the portal's) is read by
+`useSyncExternalStore` with a false server snapshot, because the ISR render
+never sees a query string. The console's moderation calls
+`updateTag("store-reviews")` and `updateTag("store-products")`.
+
+**The dialog is `Modal`, and both steps are one `<Form>`.** Step one is the
+five stars as radios (44px targets, arrows move the choice, a press moves on,
+"Dislike it!" and "Love it!" under the ends); step two is the optional title
+and the words with a counter; step three thanks. The first step is hidden,
+not unmounted, so the rating is in the submission — the tabbed-form rule. A
+signed-out visitor sees "Sign in to write a review" linking to
+`/portal/login?return=…`.
+
+**The portal login's `return` is a same-site path or nothing.**
+`safeReturnPath()` (`lib/safe-return.ts`) accepts a path that starts with `/`,
+not `//`, with no backslash or control character anywhere — browsers read `\`
+as `/` and strip tabs and newlines before resolving — and falls back to
+`/portal`. It is read by the page (the already-signed-in redirect) and again by
+both actions, because the hidden field is a request body.
+
+**The stars are two tokens.** `--color-rating` (a gold) and
+`--color-rating-empty` are derived per theme by `ratingFor()` against the card
+and surface-2 and emitted with the theme; `npm run themes` holds both at 3:1 on
+both grounds, in every palette and scheme. `components/store/stars.tsx` draws a
+fraction as the gold clipped over the empty outline.
+
+**Store → Reviews is `role:store_manager`**: waiting by default (`?status=all`
+for everything), one decision or fifty through `POST …/moderate`, the featured
+switch, a delete behind a confirmation, and `attention.reviews_pending` on the
+dashboard linking to it.
+
+**The "How was it?" email is once per order, hourly, inside quiet hours.**
+`technoware:request-reviews` asks about orders that are paid, not cancelled or
+refunded, have a customer account and have had their goods
+`store_review_request_days` (default 7) — from `dispatched_at`, or `paid_at`
+when nothing on the order ships. An order that ships and has not been
+dispatched is never asked. It is stamped (`review_requested_at`) **before** the
+send and whatever happens — a suppressed address, nothing left to review, a
+failed send — so it cannot loop; `Notifier` swallows the failure. Outside
+`QuietHours::allows()` it does nothing and the orders are still due at nine;
+`store_review_requests_enabled` switches it off. The `review_request` template
+lists only the products the customer has not reviewed, each linking to
+`/store/products/{slug}?review=1`.

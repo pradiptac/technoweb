@@ -353,6 +353,8 @@ export default async function StoreDashboardPage({
     /* Somebody asked to be told when it is back and nobody has: the shelf
        worth reordering first. The same `waiting` scope the list filters on. */
     { key: "waiting", count: attention.awaiting_stock, label: "out of stock with people waiting", href: "/admin/store/products?notices=1", icon: IconWarehouse, tone: "warn" as const },
+    /* Reviews nobody has read: the queue opens on exactly these. */
+    { key: "reviews", count: attention.reviews_pending ?? 0, label: "reviews waiting to be read", href: "/admin/store/reviews", icon: IconTag, tone: "info" as const },
     { key: "refund", count: attention.refund_requested, label: "refund requested", href: "/admin/store/orders?status=refund_requested", icon: IconTag, tone: "warn" as const },
     { key: "unpaid", count: attention.awaiting_payment, label: "never paid for", href: "/admin/store/orders?unpaid=1", icon: IconClock, tone: "info" as const },
   ].filter((w) => w.count > 0);

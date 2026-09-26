@@ -13,6 +13,7 @@ use App\Models\KnowledgeArticle;
 use App\Models\LandingPage;
 use App\Models\Location;
 use App\Models\Product;
+use App\Models\ProductReview;
 use App\Models\Service;
 use App\Models\Setting;
 use App\Models\Solution;
@@ -264,7 +265,55 @@ class StructuredData
                 'hasMerchantReturnPolicy' => self::returnPolicy($product),
                 'seller' => self::publisher(),
             ],
-        ] + self::relationships(EntityLinks::for($product)));
+        ] + self::reviews($product) + self::relationships(EntityLinks::for($product)));
+    }
+
+    /**
+     * `aggregateRating` and up to five `review` nodes, from published reviews
+     * only — and nothing at all until there is one.
+     *
+     * They were absent from every graph by decision until the shop had
+     * reviews of its own (2026-09-26): inventing them was out of the question
+     * and still is. The average and count are the product's stored summary,
+     * the same two numbers the page and the card print; the reviews are the
+     * ones the page opens on, so the markup names what is on the page.
+     *
+     * @return array<string, mixed>
+     */
+    private static function reviews(StoreProduct $product): array
+    {
+        $count = (int) ($product->rating_count ?? 0);
+
+        if ($count < 1 || $product->rating_average === null) {
+            return [];
+        }
+
+        $reviews = $product->relationLoaded('schemaReviews')
+            ? $product->getRelation('schemaReviews')
+            : collect();
+
+        return [
+            'aggregateRating' => [
+                '@type' => 'AggregateRating',
+                'ratingValue' => (string) $product->rating_average,
+                'reviewCount' => $count,
+                'bestRating' => 5,
+                'worstRating' => 1,
+            ],
+            'review' => $reviews->map(fn (ProductReview $r) => [
+                '@type' => 'Review',
+                'author' => ['@type' => 'Person', 'name' => $r->display_name],
+                'datePublished' => $r->published_at?->toDateString(),
+                'name' => $r->title ?: null,
+                'reviewBody' => $r->body,
+                'reviewRating' => [
+                    '@type' => 'Rating',
+                    'ratingValue' => (int) $r->rating,
+                    'bestRating' => 5,
+                    'worstRating' => 1,
+                ],
+            ])->values()->all() ?: null,
+        ];
     }
 
     /**

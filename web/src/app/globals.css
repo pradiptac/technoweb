@@ -186,6 +186,15 @@
   --color-err:  #a33232;  --color-err-soft:  #fceded;  --color-err-fill:  #a33232;
   --color-info: #2f5d7c;  --color-info-soft: #eef4f8;  --color-info-fill: #2f5d7c;
 
+  /*
+   * The shop's review stars (`components/store/stars.tsx`): a gold and the
+   * outline of a star not earned. Both are graphics, so 3:1 is the floor,
+   * and both are derived per theme by `ratingFor()` in palette.ts against
+   * the card and surface-2 and emitted with the theme; these are the no-JS
+   * fallback for the house palette. `npm run themes` checks every palette.
+   */
+  --color-rating: #b47d00;  --color-rating-empty: #8d8579;
+
   /* type */
   /*
    * The fallbacks live inside the next/font variables, which already expand
@@ -549,6 +558,7 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
   --color-warn: #e0a83c;  --color-warn-soft: #2a1f0c;  --color-warn-fill: #9d6a10;
   --color-err:  #ef8b8b;  --color-err-soft:  #2b1616;  --color-err-fill:  #bf3b3b;
   --color-info: #7fb6d8;  --color-info-soft: #12222c;  --color-info-fill: #37789f;
+  --color-rating: #f5af20;  --color-rating-empty: #877f73;
 
   /*
    * The soft-UI light has to be re-aimed, not merely dimmed.

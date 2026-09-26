@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CustomerOrderController;
 use App\Http\Controllers\Api\V1\MessagingPreferenceController;
+use App\Http\Controllers\Api\V1\ProductReviewController;
 use App\Http\Controllers\Api\V1\TicketController;
 use Illuminate\Support\Facades\Route;
 
@@ -37,6 +38,16 @@ Route::middleware('customer')->group(function () {
     Route::get('messaging/preferences', [MessagingPreferenceController::class, 'show'])->name('messaging.preferences.show');
     Route::patch('messaging/preferences', [MessagingPreferenceController::class, 'update'])
         ->middleware('throttle:20,1')->name('messaging.preferences.update');
+
+    /*
+     * The caller's own review of a shop product: read it (any status) and
+     * write or rewrite it. Signed-in customers only, by the client's
+     * decision; every write goes back to the queue. `docs/store.md`.
+     */
+    Route::get('store/products/{storeProduct:slug}/reviews/mine', [ProductReviewController::class, 'mine'])
+        ->name('store.products.reviews.mine');
+    Route::post('store/products/{storeProduct:slug}/reviews', [ProductReviewController::class, 'store'])
+        ->middleware('throttle:10,1')->name('store.products.reviews.store');
 
     Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
     Route::get('tickets/summary', [TicketController::class, 'summary'])->name('tickets.summary');

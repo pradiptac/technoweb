@@ -104,6 +104,11 @@ const pairs = (c) => [
   // card, and the same hues as a fill under white on the lead's caption.
   ...c.tags.map((hex, i) => [`tag-${i + 1} on card`, hex, c.card, 4.5]),
   ...c.tagFills.map((hex, i) => [`white on tag-fill-${i + 1}`, WHITE, hex, 4.5]),
+  // The review stars are graphics on a card whose gradient ends on surface-2: 3:1 on both.
+  ["rating on card", c.rating, c.card, 3.0],
+  ["rating on surface-2", c.rating, c.surface2, 3.0],
+  ["rating-empty on card", c.ratingEmpty, c.card, 3.0],
+  ["rating-empty on surface-2", c.ratingEmpty, c.surface2, 3.0],
 ];
 
 /** The scheme's values, read back out of the CSS themeCss actually emits. */
@@ -135,6 +140,7 @@ const paletteFor = (theme, scheme) => {
     neon: Array.from({ length: 12 }, (_, i) => read(`--color-neon-${i + 1}`)),
     tags: Array.from({ length: 12 }, (_, i) => read(`--color-tag-${i + 1}`)),
     tagFills: Array.from({ length: 12 }, (_, i) => read(`--color-tag-fill-${i + 1}`)),
+    rating: read("--color-rating"), ratingEmpty: read("--color-rating-empty"),
   };
 };
 

@@ -197,6 +197,8 @@ desk merges one of their tickets into another, queued like the rest and
 naming both references so the one to quote is the one in the subject line.
 See `docs/tickets.md`.)
 
+**`review_request` is the thirty-third (2026-09-26)** — the "How was it?" email, once per order a few days after dispatch, listing each product not yet reviewed, promotional so held to the quiet-hours window (`docs/store.md`, "Reviews").
+
 **`wishlist_back_in_stock` and `wishlist_price_drop` make thirty-two (2026-09-25)** — two classes, sent once per restock or per price drop to whoever saved the product, promotional so held to the quiet-hours window, each with a stop link that leaves the list alone (`docs/store.md`, "Wishlists").
 
 **`cart_reminder_1` and `cart_reminder_2` make thirty (2026-09-25)** — the twenty-eighth was `block_lead_captured` (`docs/blocks.md`). One class, `CartReminder`, and two messages, the `ticket_replied` shape: the abandoned-basket reminders, sent by `technoware:remind-abandoned-carts` only inside the quiet-hours window and never to the suppression list, each carrying an unsubscribe that puts the address on it. `docs/store.md`, "Abandoned baskets".

@@ -24,6 +24,7 @@ use App\Notifications\OrderPlaced;
 use App\Notifications\OrderReceived;
 use App\Notifications\RegistrationAttempted;
 use App\Notifications\ResetPassword;
+use App\Notifications\ReviewRequested;
 use App\Notifications\SignInCodeIssued;
 use App\Notifications\TicketAcknowledged;
 use App\Notifications\TicketCreated;
@@ -34,9 +35,9 @@ use App\Notifications\WishlistBackInStock;
 use App\Notifications\WishlistPriceDrop;
 
 /**
- * The 32 entries, kept out of `MessageCatalogue` so that class stays readable.
+ * The 33 entries, kept out of `MessageCatalogue` so that class stays readable.
  *
- * Thirty-two for thirty classes: `TicketReplied` is two messages — its
+ * Thirty-three for thirty-one classes: `TicketReplied` is two messages — its
  * customer and desk versions differ in greeting, action label *and* recipient,
  * and one template cannot say both without lying about one of them — and
  * `CartReminder` is two, the first basket reminder and the second.
@@ -455,6 +456,29 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     .'<p><strong>{{product_name}}</strong>, on your wishlist, was {{old_price}} and is now {{new_price}} — {{saving_percent}}% less.</p>'
                     .'<p><a href="{{url}}">See the product</a></p>'
                     .'<p><a href="{{wishlist_url}}">Your wishlist</a> · <a href="{{stop_url}}">Stop these emails</a> — your list stays as it is.</p>',
+            ],
+
+            /*
+             * "How was it?" — once per order, a few days after delivery, by
+             * `technoware:request-reviews`. The list holds only the products
+             * the customer has not reviewed yet, each linking to its page
+             * with the review dialog open.
+             */
+            'review_request' => [
+                'label' => 'How was it? — review request to the customer',
+                'description' => 'Sent once per order, a few days after it was delivered (Store → Settings says how many), asking for a review of each product.',
+                'audience' => self::CUSTOMER,
+                'class' => ReviewRequested::class,
+                'variables' => [
+                    'customer_name' => $customer,
+                    'order_number' => $number,
+                    'products' => self::details('A link to review each product still to be reviewed, as a list.', '<ul><li><a href="https://www.technoware.in/store/products/cisco-cbs350-24t-4g?review=1">Cisco CBS350-24T-4G</a></li></ul>'),
+                ],
+                'subject' => 'How was your order {{order_number}}?',
+                'body' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>We hope everything arrived as it should. A line or two about what you bought helps the next person decide — and tells us what to keep doing.</p>'
+                    .'{{products}}'
+                    .'<p>Every review is read by a person before it appears. Thank you for taking the time.</p>',
             ],
         ];
     }

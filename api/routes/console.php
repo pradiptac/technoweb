@@ -102,6 +102,13 @@ Schedule::command('technoware:prune-seo-suggestions')->dailyAt('03:50');
 Schedule::command('technoware:prune-webhook-deliveries')->dailyAt('03:55');
 
 /*
+ * "How was it?" — the review request, once per order, a few days after
+ * delivery. Hourly, and the command itself waits out the quiet hours, so an
+ * order that falls due at 2am is asked at nine. See RequestReviews.
+ */
+Schedule::command('technoware:request-reviews')->hourly()->withoutOverlapping();
+
+/*
  * Spent and expired sign-in codes.
  *
  * Housekeeping rather than retention — nothing is promised about these and

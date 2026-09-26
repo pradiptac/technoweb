@@ -310,7 +310,7 @@ Built in, measured, and never allowed to guess.
 - **Six outgoing transports** chosen in Settings — SMTP, Gmail/Workspace over
   OAuth, Brevo, Mailgun, Amazon SES and a log transport — with a test button
   that returns the server's own words.
-- **Every system email editable** in the console: 32 messages, each with its
+- **Every system email editable** in the console: 33 messages, each with its
   placeholders listed, subject and body.
 - **Acknowledgements to the customer** for tickets, enquiries, form
   submissions and applications.

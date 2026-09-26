@@ -1,3 +1,4 @@
+import type { ReviewStatus, StoreRating } from "./reviews";
 /* ------------------------------------------------------------------
    Shapes returned by the Laravel API (api.example.com/api/v1).
    Keep in sync with app/Http/Resources on the backend.
@@ -1625,6 +1626,8 @@ export type StoreProduct = AnswerContent & {
   brand?: Brand | null;
   variations?: StoreVariation[];
   seo?: Seo;
+  /** The published reviews' summary, or null when nobody has been published (`docs/store.md`, "Reviews"). */
+  rating?: StoreRating | null;
   /** Present on the detail response only — the page's JSON-LD, built server-side. */
   schema?: SchemaGraph;
 };
@@ -1829,6 +1832,8 @@ export type OrderLine = {
    * open on a shared screen must not print a licence key.
    */
   has_codes: boolean;
+  /** The portal order read only: the customer's own review of this product, or null. */
+  my_review?: { status: ReviewStatus; status_label: string; rating: number } | null;
 };
 
 /**
@@ -1876,6 +1881,8 @@ export type StoreDashboard = {
     awaiting_codes: number;
     /** Products with somebody waiting to hear they are back. Links to `?notices=1`. */
     awaiting_stock: number;
+    /** Reviews waiting for a decision. Links to `/admin/store/reviews`. */
+    reviews_pending?: number;
     refund_requested: number;
     out_of_stock: number;
     codes_exhausted: number;
@@ -3434,3 +3441,4 @@ export type MailTemplateDetail = {
 
 export * from "./blocks";
 export * from "./messaging";
+export * from "./reviews";

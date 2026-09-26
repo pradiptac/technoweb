@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Admin\Store\ProductController as AdminStoreProdu
 use App\Http\Controllers\Api\V1\Admin\Store\ProductImportController as AdminStoreProductImportController;
 use App\Http\Controllers\Api\V1\Admin\Store\PromoController as AdminStorePromoController;
 use App\Http\Controllers\Api\V1\Admin\Store\ReportController as AdminStoreReportController;
+use App\Http\Controllers\Api\V1\Admin\Store\ReviewController as AdminStoreReviewController;
 use App\Http\Controllers\Api\V1\Admin\Store\StockController as AdminStoreStockController;
 use Illuminate\Support\Facades\Route;
 
@@ -43,6 +44,16 @@ Route::middleware('role:store_manager')->group(function () {
     Route::get('store/stock', [AdminStoreStockController::class, 'index'])->name('store.stock');
     Route::get('store/stock/export', [AdminStoreStockController::class, 'export'])->name('store.stock.export');
     Route::get('store/stock/movements', [AdminStoreStockController::class, 'movements'])->name('store.stock.movements');
+
+    /*
+     * Product reviews: the queue, one door for one decision or fifty, the
+     * featured switch and a delete. `moderate` is declared above
+     * `store/reviews/{review}` — Laravel matches in declaration order.
+     */
+    Route::get('store/reviews', [AdminStoreReviewController::class, 'index'])->name('store.reviews.index');
+    Route::post('store/reviews/moderate', [AdminStoreReviewController::class, 'moderate'])->name('store.reviews.moderate');
+    Route::patch('store/reviews/{review}', [AdminStoreReviewController::class, 'update'])->name('store.reviews.update');
+    Route::delete('store/reviews/{review}', [AdminStoreReviewController::class, 'destroy'])->name('store.reviews.destroy');
 
     Route::get('store/categories', [AdminStoreCategoryController::class, 'index'])->name('store.categories.index');
     Route::post('store/categories', [AdminStoreCategoryController::class, 'store'])->name('store.categories.store');

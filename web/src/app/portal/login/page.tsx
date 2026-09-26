@@ -7,6 +7,7 @@ import { settingEnabled } from "@/lib/site-settings";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { LoginForm } from "./login-form";
+import { safeReturnPath } from "@/lib/safe-return";
 
 export const metadata = buildMetadata({
   title: "Customer login",
@@ -15,10 +16,17 @@ export const metadata = buildMetadata({
   seo: noIndex,
 });
 
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ return?: string }> }) {
+  /*
+    Where to go afterwards — a same-site path only (`safeReturnPath`), so a
+    link mailed to somebody cannot use this form to send them off-site. The
+    shop's "Sign in to write a review" is what passes one.
+  */
+  const returnTo = safeReturnPath((await searchParams).return);
+
   // Already signed in — no reason to show the form again.
   // `…OrNull`, so an unreachable API renders the form rather than a 500.
-  if (await getCurrentCustomerOrNull()) redirect("/portal");
+  if (await getCurrentCustomerOrNull()) redirect(returnTo);
 
   const settings = await getSiteSettings();
   const canRegister = settingEnabled(settings, "registration_enabled");
@@ -62,6 +70,7 @@ export default async function LoginPage() {
         defaultMethod={settings.default_login_method === "password" ? "password" : "otp"}
         passwordEnabled={settingEnabled(settings, "password_login_enabled")}
         canRegister={canRegister}
+        returnTo={returnTo === "/portal" ? undefined : returnTo}
       />
     </AuthLayout>
   );

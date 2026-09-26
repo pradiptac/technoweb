@@ -574,6 +574,32 @@ export function tagFills(): string[] {
   return NEON_HUES.map((h) => pushUntil({ L: 0.55, C: 0.17, h }, "#ffffff", 4.6, -1));
 }
 
+/* -------------------------------------------------------------- rating */
+
+/**
+ * The shop's review stars: a gold, and the outline of a star not earned.
+ *
+ * Both are **graphics**, so the floor is WCAG 1.4.11's 3:1, and both are
+ * walked against the two grounds a star sits on — the review card's `card`
+ * and the `surface-2` its gradient ends on — so a star is legible wherever
+ * on the card it lands. 3.2 rather than 3.0 for the margin the card's
+ * gradient needs. The gold keeps its hue and gives up lightness: darker on a
+ * light ground, lighter on a dark one, the direction read off the card's own
+ * luminance for the reason `tagsFor` gives. The empty star is the same hue
+ * with the chroma taken out, so four gold stars and one grey read as four
+ * out of five rather than as two colours of star.
+ */
+export function ratingFor(card: string, surface2: string): { star: string; empty: string } {
+  const dark = luminance(card) < 0.18;
+  const dir = dark ? 1 : -1;
+  const walk = (start: Lch): string => pushUntil(hexToLch(pushUntil(start, surface2, 3.2, dir)), card, 3.2, dir);
+
+  return {
+    star: walk({ L: dark ? 0.8 : 0.74, C: 0.16, h: 78 }),
+    empty: walk({ L: dark ? 0.6 : 0.72, C: 0.02, h: 78 }),
+  };
+}
+
 /* ------------------------------------------------------ hue rotation */
 
 /** A related hue for a theme that did not name one — used for the 25 legacy themes. */

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { ApiError } from "@/lib/api";
 import { login, requestSignInCode, signInWithCode } from "@/lib/auth";
+import { safeReturnPath } from "@/lib/safe-return";
 
 export type LoginState = {
   error?: string;
@@ -45,7 +46,8 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
   }
 
   // redirect() throws by design — keep it outside the try block's catch path.
-  redirect("/portal");
+  // `return` is a same-site path or nothing (`safeReturnPath`).
+  redirect(safeReturnPath(formData.get("return")));
 }
 
 /* ---------------------------------------------------------- sign-in codes */
@@ -128,5 +130,5 @@ export async function verifyCodeAction(_prev: CodeState, formData: FormData): Pr
     return { step: "code", email, remember, error: "We could not reach the support system. Try again shortly." };
   }
 
-  redirect("/portal");
+  redirect(safeReturnPath(formData.get("return")));
 }

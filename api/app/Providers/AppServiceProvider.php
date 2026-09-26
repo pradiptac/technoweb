@@ -52,6 +52,7 @@ use App\Models\Payment;
 use App\Models\Popup;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\ProductReview;
 use App\Models\Redirect;
 use App\Models\SeoSuggestion;
 use App\Models\Service;
@@ -248,6 +249,9 @@ class AppServiceProvider extends ServiceProvider
             'order_item' => OrderItem::class,
             'payment' => Payment::class,
             'digital_code' => DigitalCode::class,
+            // Bound by the review queue's PATCH and DELETE, so the activity
+            // log can name the review a deletion was aimed at.
+            'product_review' => ProductReview::class,
 
             /*
              * The CRM. `form_submission` is here because a lead's `source`
