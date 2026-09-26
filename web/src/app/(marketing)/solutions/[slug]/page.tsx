@@ -90,6 +90,10 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
             Talk to an engineer <IconArrowRight />
           </ButtonLink>
           <ButtonLink href="/products" variant="secondary">Browse related hardware</ButtonLink>
+          {/* An engineer on site, with this solution noted (docs/visits.md). */}
+          <ButtonLink href={`/book-a-visit?solution=${encodeURIComponent(solution.slug)}`} variant="secondary">
+            Book a site visit
+          </ButtonLink>
         </div>
       </PageHero>
 

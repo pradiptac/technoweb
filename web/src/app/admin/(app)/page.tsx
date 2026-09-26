@@ -6,7 +6,8 @@ import { getDashboard } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
-import { IconTicket, IconClock, IconUsers, IconBox, IconPen, IconMail } from "@/components/icons";
+import { IconTicket, IconClock, IconUsers, IconBox, IconPen, IconMail, IconTools } from "@/components/icons";
+import { istDate } from "@/lib/visit-dates";
 import { StatTile, type Tone } from "@/components/admin/stat-tile";
 import { DashboardMetricsPanel } from "./metrics";
 import type { AdminDashboard, Ticket, TicketStatus } from "@/types/api";
@@ -137,6 +138,29 @@ export default async function AdminDashboardPage({ searchParams }: {
         href: "/admin/leads?unassigned=1&open=1",
         tone: "info",
         icon: IconUsers,
+      },
+    );
+  }
+
+  /*
+    Engineer visits (2026-09-26): requests waiting for somebody to pick a
+    time, and what is in today's diary. Null for a role that cannot open the
+    queue, the rule the leads tiles follow; each href is the queue's filter.
+  */
+  if (dashboard.visits) {
+    const todayIst = istDate();
+    tiles.push(
+      {
+        label: "Visits to confirm", value: n(dashboard.visits.awaiting),
+        href: "/admin/visits?status=requested",
+        tone: dashboard.visits.awaiting > 0 ? "warn" : "info",
+        icon: IconClock,
+      },
+      {
+        label: "Visits today", value: n(dashboard.visits.today),
+        href: `/admin/visits?status=confirmed&from=${todayIst}&to=${todayIst}`,
+        tone: "info",
+        icon: IconTools,
       },
     );
   }

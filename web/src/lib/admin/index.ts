@@ -30,4 +30,5 @@ export * from "./settings";
 export * from "./site";
 export * from "./store";
 export * from "./tickets";
+export * from "./visits";
 export * from "./webhooks";

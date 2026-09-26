@@ -80,9 +80,15 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
           { name: service.title, path: `/services/${service.slug}` },
         ]}
       >
-        <ButtonLink href={`/contact?subject=${encodeURIComponent(service.title)}`}>
-          Enquire about {service.title.toLowerCase()} <IconArrowRight />
-        </ButtonLink>
+        <div className="flex flex-wrap gap-3">
+          <ButtonLink href={`/contact?subject=${encodeURIComponent(service.title)}`}>
+            Enquire about {service.title.toLowerCase()} <IconArrowRight />
+          </ButtonLink>
+          {/* An engineer on site, with this service preselected (docs/visits.md). */}
+          <ButtonLink href={`/book-a-visit?service=${encodeURIComponent(service.slug)}`} variant="secondary">
+            Book a site visit
+          </ButtonLink>
+        </div>
       </PageHero>
 
       <Container data-aos="fade-up" className="section-y">

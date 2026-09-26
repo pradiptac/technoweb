@@ -20,6 +20,8 @@ export const PUBLIC_ROUTES = [
   "/industries", "/industries/manufacturing", "/products", "/products/switches",
   "/resources", "/blog", "/case-studies", "/knowledge-base", "/about", "/contact",
   "/team", "/clients", "/certifications",
+  // The engineer visit request form (docs/visits.md), and with a service preselected.
+  "/book-a-visit", "/book-a-visit?service=web-hosting",
   // The assistant links here when somebody with no account has a fault, and
   // nothing had ever loaded it on this audit -- `audit:mobile` covered it and
   // this did not, which is exactly the gap a hard-coded path lives in.

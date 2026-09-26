@@ -116,6 +116,9 @@ const ADMIN_ROUTES = [
   // entry below, because nothing seeds a webhook and its id is whatever an
   // administrator made.
   "/admin/webhooks", "/admin/webhooks/new",
+  // Engineer visits (docs/visits.md): the queue and its settings; the record
+  // screen is a DISCOVER entry, since nothing seeds a visit request.
+  "/admin/visits", "/admin/visits/settings",
 ];
 
 /*
@@ -145,6 +148,8 @@ const DISCOVER = [
   // Nothing seeds a saved reply; the edit form exists only once somebody has written one.
   { from: "/admin/tickets/saved-replies", match: /^\/admin\/tickets\/saved-replies\/\d+$/, admin: true },
   { from: "/admin/customers", match: /^\/admin\/customers\/\d+$/, admin: true },
+  // `TV-`, the visit reference — the queue's filters link to itself.
+  { from: "/admin/visits", match: /^\/admin\/visits\/TV-[^/]+$/, admin: true },
   { from: "/admin/blog", match: /^\/admin\/blog\/\d+$/, admin: true },
   { from: "/admin/jobs", match: /^\/admin\/jobs\/\d+$/, admin: true },
   { from: "/admin/applications", match: /^\/admin\/applications\/\d+$/, admin: true },

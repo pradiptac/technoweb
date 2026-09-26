@@ -138,6 +138,8 @@ function buildAdminDashboard(volumePeriod = 'month') {
      * anyone without `sales_manager`, so the console must handle both.
      */
     leads: { new: 2, open: 3, overdue: 1, unassigned: 1 },
+    // Engineer visits (docs/visits.md): null for a role that cannot open the queue.
+    visits: { awaiting: visitRequests.filter((v) => v.status === 'requested').length, today: 0 },
     recent_tickets: tickets.slice(0, 8),
     high_priority: openTickets.filter((t) => t.priority === 'critical' || t.priority === 'high').slice(0, 5),
     status_breakdown: breakdown,
@@ -748,6 +750,57 @@ const webhookDeliveries = [
     response_status: 404, response_excerpt: 'no_service', next_attempt_at: null, delivered_at: null,
     created_at: '2026-09-18T15:40:00+05:30', updated_at: '2026-09-19T05:40:00+05:30' },
 ];
+
+/* Engineer visit requests (docs/visits.md). The mock's copy of the shapes
+   `GET /visits/options`, the guest and portal reads and the console answer;
+   the token is fixed so a browser check can open the guest page through
+   `/visit/TV-2026-00001/open?token=…`. */
+const VISIT_TOKEN = 'a'.repeat(64);
+const visitWindows = [
+  { value: 'morning', label: 'Morning', start: '09:00', end: '12:00' },
+  { value: 'afternoon', label: 'Afternoon', start: '12:00', end: '15:00' },
+  { value: 'evening', label: 'Evening', start: '15:00', end: '18:00' },
+];
+const isoDay = (offset) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
+const visitRequests = [
+  {
+    id: 1, reference: 'TV-2026-00001', status: 'requested', status_label: 'Requested', is_open: true,
+    allowed_next: [{ value: 'requested', label: 'Requested' }, { value: 'cancelled', label: 'Cancelled' }],
+    topic: 'Network installation', name: 'Priya Sharma', email: 'priya@meridianfoods.test', phone: '+91 98765 43210',
+    company: 'Meridian Foods', customer_id: 1,
+    site_address: { line1: '14 Park Street', line2: null, city: 'Kolkata', state: 'West Bengal', pin: '700016', country: 'India' },
+    service: { id: 1, title: 'Network installation', slug: 'network-installation' }, solution: null, location: null,
+    notes: 'Two floors; the rack is in the basement.',
+    preferred: [
+      { date: isoDay(2), window: 'morning', label: 'Morning (09:00–12:00)' },
+      { date: isoDay(3), window: 'afternoon', label: 'Afternoon (12:00–15:00)' },
+    ],
+    scheduled_start_at: null, scheduled_end_at: null, visit_date: '', visit_time: '',
+    assigned_to: null, assignee_name: null, staff_note: null, cancel_reason: null,
+    confirmed_at: null, completed_at: null, cancelled_at: null, reminded_at: null, lead_id: 1,
+    source_url: 'https://www.technoware.in/book-a-visit', source_path: '/book-a-visit', source_title: 'Book a site visit',
+    utm_source: null, utm_medium: null, utm_campaign: null, admin_path: '/admin/visits/TV-2026-00001',
+    events: [{ id: 1, type: 'requested', from: null, to: null, note: '2 preferred times', actor_name: null, created_at: new Date().toISOString() }],
+    created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+  },
+];
+const customerVisit = (v) => ({
+  reference: v.reference, status: v.status, status_label: v.status_label, topic: v.topic,
+  name: v.name, email: v.email, phone: v.phone, company: v.company, site_address: v.site_address, notes: v.notes,
+  preferred: v.preferred, scheduled_start_at: v.scheduled_start_at, scheduled_end_at: v.scheduled_end_at,
+  visit_date: v.visit_date, visit_time: v.visit_time, cancel_reason: v.status === 'cancelled' ? v.cancel_reason : null,
+  can_cancel: v.is_open, can_reschedule: v.is_open, created_at: v.created_at,
+});
+const visitMeta = {
+  statuses: [
+    { value: 'requested', label: 'Requested', open: true }, { value: 'confirmed', label: 'Confirmed', open: true },
+    { value: 'completed', label: 'Completed', open: false }, { value: 'cancelled', label: 'Cancelled', open: false },
+    { value: 'no_show', label: 'No-show', open: false },
+  ],
+  awaiting_count: 1, today_count: 0, unassigned_count: 0,
+  assignees: [{ id: 1, name: 'Ada Admin' }], sorts: ['created', 'scheduled', 'name', 'status'],
+  default_minutes: 90, windows: visitWindows,
+};
 
 const leadMeta = {
   statuses: [
@@ -1726,6 +1779,33 @@ createServer(async (req, res) => {
        TypeScript, so a mock that omitted them would render a screen with
        empty dropdowns and no error. Indented into the `/admin/` block — below
        it nothing is reachable, since that block answers every admin path. */
+    if (p === '/admin/visits' && req.method === 'GET') {
+      return json(res, 200, {
+        data: visitRequests,
+        meta: { ...visitMeta, current_page: 1, last_page: 1, per_page: 20, total: visitRequests.length },
+        links: {},
+      });
+    }
+    const av = p.match(/^\/admin\/visits\/(TV-\d{4}-\d{5})(\/confirm)?$/);
+    if (av) {
+      const v = visitRequests.find((x) => x.reference === av[1]);
+      if (!v) return json(res, 404, { message: 'Not found.' });
+      if (req.method === 'POST' && av[2]) {
+        const body = await readJsonBody(req);
+        Object.assign(v, {
+          status: 'confirmed', status_label: 'Confirmed', scheduled_start_at: `${body.start_at}:00+05:30`,
+          visit_date: body.start_at?.slice(0, 10) ?? '', visit_time: body.start_at?.slice(11, 16) ?? '',
+          allowed_next: [{ value: 'confirmed', label: 'Confirmed' }, { value: 'requested', label: 'Requested' }, { value: 'completed', label: 'Completed' }, { value: 'no_show', label: 'No-show' }, { value: 'cancelled', label: 'Cancelled' }],
+        });
+      } else if (req.method === 'PATCH') {
+        const body = await readJsonBody(req);
+        if (body.status === 'confirmed' && v.status !== 'confirmed') {
+          return json(res, 422, { message: 'Set a time to confirm it.', errors: { status: ['A visit cannot go from Requested to Confirmed here — set a time to confirm it.'] } });
+        }
+        if ('staff_note' in body) v.staff_note = body.staff_note;
+      }
+      return json(res, 200, { data: v });
+    }
     if (p === '/admin/leads' && req.method === 'GET') {
       return json(res, 200, {
         data: leads,
@@ -3292,6 +3372,32 @@ createServer(async (req, res) => {
       : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/enquiries' && req.method === 'POST') return json(res, 201, { message: 'Thanks', data: { id: 1 } });
+  // Engineer visits (docs/visits.md): what the form offers, a request, and the
+  // guest link — scoped by its token, a wrong one the same 404 as Laravel's.
+  if (p === '/visits/options') {
+    return json(res, 200, { data: {
+      enabled: true, windows: visitWindows, days: [1, 2, 3, 4, 5, 6], min_date: isoDay(1), max_date: isoDay(30),
+      holidays: [], max_preferred: 3,
+      services: services.map((x) => ({ id: x.id, title: x.title, slug: x.slug, location_ids: [] })),
+      solutions: solutions.map((x) => ({ id: x.id, title: x.title, slug: x.slug })),
+      locations: [],
+    } });
+  }
+  if (p === '/visits' && req.method === 'POST') {
+    const body = await readJsonBody(req);
+    if (!Array.isArray(body.preferred) || body.preferred.length === 0) {
+      return json(res, 422, { message: 'Choose at least one date and time that suits you.', errors: { preferred: ['Choose at least one date and time that suits you.'] } });
+    }
+    return json(res, 201, { message: 'Thank you', data: { reference: 'TV-2026-00001', access_token: VISIT_TOKEN } });
+  }
+  const gv = p.match(/^\/visits\/(TV-\d{4}-\d{5})(\/cancel|\/reschedule)?$/);
+  if (gv) {
+    const body = req.method === 'POST' ? await readJsonBody(req) : {};
+    const token = url.searchParams.get('token') ?? body.token;
+    const v = visitRequests.find((x) => x.reference === gv[1]);
+    if (!v || token !== VISIT_TOKEN) return json(res, 404, { message: 'Not found.' });
+    return json(res, 200, { data: customerVisit(v) });
+  }
   // The redirect table the proxy holds in memory, and the per-path lookup
   // it calls on a hit to record it. `/old-privacy` is a CMS page rename at
   // the root — the case the old prefix list could not cover.
@@ -3316,6 +3422,15 @@ createServer(async (req, res) => {
     return json(res, 200, { data: messagingPreferences });
   }
   if (p === '/auth/profile' && req.method === 'PATCH') return json(res, 200, { data: customer });
+  if (p === '/my/visits') {
+    const mine = visitRequests.filter((v) => v.customer_id === customer.id).map(customerVisit);
+    return json(res, 200, { data: mine, links: { first: null, last: null, prev: null, next: null }, meta: { current_page: 1, last_page: 1, per_page: 20, total: mine.length } });
+  }
+  const mv = p.match(/^\/my\/visits\/(TV-\d{4}-\d{5})(\/cancel|\/reschedule)?$/);
+  if (mv) {
+    const v = visitRequests.find((x) => x.reference === mv[1] && x.customer_id === customer.id);
+    return v ? json(res, 200, { data: customerVisit(v) }) : json(res, 404, { message: 'Not found.' });
+  }
   if (p === '/tickets/summary') return json(res, 200, { data: { open: 1, in_progress: 1, pending: 1, resolved: 1, closed: 1 } });
 
   if (p === '/tickets' && req.method === 'GET') {

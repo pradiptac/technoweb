@@ -1,7 +1,7 @@
 import "server-only";
 import { apiFetch, apiUpload } from "@/lib/api";
 import { getToken } from "@/lib/auth";
-import type { MessagingPreferences, Order, Paginated, Ticket, TicketMessage, TicketSummary } from "@/types/api";
+import type { CustomerVisit, MessagingPreferences, Order, Paginated, Ticket, TicketMessage, TicketSummary } from "@/types/api";
 
 /**
  * Authenticated portal reads and writes. Every function pulls the token from
@@ -111,5 +111,31 @@ export async function getMessagingPreferences(): Promise<MessagingPreferences> {
 
 export async function updateMessagingPreferences(body: Partial<Record<"whatsapp" | "rcs" | "push", boolean>>): Promise<MessagingPreferences> {
   const res = await apiFetch<{ data: MessagingPreferences }>("/messaging/preferences", { method: "PATCH", body, token: await token() });
+  return res.data;
+}
+
+/**
+ * The customer's own engineer visit requests — `my/visits`, for the
+ * `my/orders` reason: `visits/{reference}` is the guest route, authorised by
+ * a token in a link. Never cached: a visit changes when the desk confirms it.
+ */
+export async function getMyVisits(page = 1) {
+  return apiFetch<Paginated<CustomerVisit>>(`/my/visits?page=${page}`, { token: await token(), cache: "no-store" });
+}
+
+export async function getMyVisit(reference: string): Promise<CustomerVisit> {
+  const res = await apiFetch<{ data: CustomerVisit }>(`/my/visits/${encodeURIComponent(reference)}`, { token: await token(), cache: "no-store" });
+  return res.data;
+}
+
+export async function cancelMyVisit(reference: string): Promise<CustomerVisit> {
+  const res = await apiFetch<{ data: CustomerVisit }>(`/my/visits/${encodeURIComponent(reference)}/cancel`, { method: "POST", token: await token() });
+  return res.data;
+}
+
+export async function rescheduleMyVisit(reference: string, preferred: { date: string; window: string }[], note?: string): Promise<CustomerVisit> {
+  const res = await apiFetch<{ data: CustomerVisit }>(`/my/visits/${encodeURIComponent(reference)}/reschedule`, {
+    method: "POST", body: { preferred, note }, token: await token(),
+  });
   return res.data;
 }
