@@ -88,6 +88,18 @@ A full CMS for the people who write, without a developer in the loop.
   person deciding.
 - **Every form remembers what you typed** if the server refuses a submission.
   A validation error never blanks the screen.
+- **Custom fields** on any page, post, article, case study, solution,
+  service, industry, product or shop product: fourteen kinds — text, rich
+  text, number, date, link, email, dropdown, checkboxes, yes/no, image, file,
+  a linked record, a list — grouped, attached from the console, validated
+  against their own definitions and drawn as a Details section on the page,
+  or kept as data for templates.
+- **Custom content types**: new kinds of record — events, downloads,
+  partners — with an address of their own (`/events`), an archive page, a page
+  per entry with SEO, FAQs and answer blocks, their own custom fields, and a
+  redirect for every address when a type or an entry is renamed. In the
+  sitemap, site search, menus, the SEO overview and the website assistant from
+  the moment they are published.
 
 ## 4. Media library
 

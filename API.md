@@ -861,6 +861,72 @@ it. `home_stats_block`, `home_pricing_block` and `home_stack_block` in the
 
 ---
 
+## Custom fields and content types
+
+ACF-style fields on existing records, and editor-made record types with
+pages of their own (2026-09-26). See `docs/custom-content.md`.
+
+### Public
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/content-types` | Active types: `{name, plural, slug, path, icon, description, archive_enabled, per_page, sort, schema_type, updated_at}` — `updated_at` is the newest published entry's. Plain collection |
+| `GET` | `/types/{type}` | A page of the type's **published** entries (status, `published_at` not in the future) in its `sort`, `?page=`, `?per_page=` (max 100, default the type's). `meta.type`. 404 for an unknown or inactive type. Answers for a type whose archive is off, `meta.type.archive_enabled: false` — the frontend 404s the page; the sitemap walks this |
+| `GET` | `/types/{type}/{slug}` | One entry, the page: `body`, `image` + `image_alt`/`image_focus`, `type`, `faqs`, `answer_blocks`, `entity`, `faq_schema`, `custom_fields`, `custom_data`, `seo`, `schema` (`Article` or `WebPage`, per the type). 404 for a draft, a future date or an inactive type |
+
+**Custom fields on public reads.** The detail read of a page, post,
+knowledge article, case study, solution, service, industry, product, store
+product and entry carries `custom_fields` — `[{key, label, kind, value,
+display}]` for the fields in active `details` groups marked `show_on_page`,
+non-empty, in group then field order — and `custom_data`, every applicable
+value keyed, `hidden` groups included (`hidden` is "not drawn", never
+"private"). `value` is resolved: a picture `{url, alt, focus, width,
+height}`, a file `{url, name, mime}`, a linked record `{title, path}` (absent
+when no longer public), a boolean `true`/`false`, a list or checkboxes an
+array; `display` is the text form (Indian number grouping, `26 September
+2026`, option labels). Index rows carry neither key.
+
+### Admin (`role:content_manager`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET`/`POST` | `/admin/custom-field-groups` | `?q=`, `?target=`, `?per_page=` (max 100). `meta.kinds` (`CustomFieldKind::options()`), `meta.targets` (`Targets::options()`), `meta.placements` |
+| `GET`/`PATCH`/`DELETE` | `/admin/custom-field-groups/{id}` | `name`, `slug`, `targets[]` (≥ 1), `placement` (`details`/`hidden`), `sort_order`, `is_active`, `fields[]` of `{id?, key, label, kind, help, required, show_on_page, options[{value,label}], settings{min,max,max_length,max_items,target}}`. Fields are synced **by id** — a row naming its id is updated, one without is created, one not sent is deleted with its values. Each field carries `values_count`. Deleting the group deletes its fields and their values |
+| `GET`/`POST` | `/admin/content-types` | `?q=`, `?active=`. Rows carry `entries_count`, `published_count`, `target` (`entry:<slug>`). `meta.sorts`, `meta.schema_types` |
+| `GET`/`PATCH`/`DELETE` | `/admin/content-types/{id}` | Bound by **id**. `name`, `plural`, `slug`, `icon`, `description`, `has_body`, `has_image`, `archive_enabled`, `per_page` (1–60), `sort`, `schema_type`, `sort_order`, `is_active`; detail adds `field_groups`. `DELETE` is 422 while the type holds entries |
+| `GET`/`POST` | `/admin/content-types/{type-slug}/entries` | `?q=`, `?status=`, `?per_page=`. `meta.type`, `meta.statuses`, `meta.answer_block_kinds`, `meta.custom_field_groups` |
+| `GET`/`PATCH`/`DELETE` | `/admin/content-types/{type-slug}/entries/{id}` | Scoped: another type's entry id is a 404. `title`, `slug` (unique **within the type**), `summary`, `body` (rich text), `image_path` (a library path), `status`, `published_at`, `sort_order`, `faqs[]`, `answer_blocks[]`, `seo`, `custom_fields` |
+
+**A type's slug** matches `^[a-z][a-z0-9-]*$` and is refused when it is a
+frontend route, an API prefix or a reserved word (`App\Support\ReservedSlugs`)
+or a CMS page's slug. Changing it writes a 301 for `/{old}` and for every
+`/{old}/{entry}`, re-aims redirects already pointing at those addresses, and
+re-attaches field groups and linked-record fields from `entry:<old>` to
+`entry:<new>`. **An entry's slug change** writes its own 301 under the type.
+
+**`custom_fields` on every target's write.** Each of the ten entity
+endpoints above (and `/admin/store/products`, `role:store_manager`) takes
+`custom_fields`, an object keyed by field key, validated from the stored
+definitions of the groups on that record's kind: a dropdown against its
+options, checkboxes as an array of option values, a number against
+`min`/`max`, a date as `Y-m-d`, a link `http(s)` only, a picture a library
+path with an image MIME, a file a library path, a linked record an id of the
+target (an entry of that type). **Omitting the key leaves every value
+alone**, a key not declared is dropped, a key sent `null`/`""` clears that
+field, and a required field is required only when `custom_fields` is sent.
+Errors arrive as `custom_fields.<key>`. Every detail read carries
+`custom_fields` (stored values), `custom_field_media` (key → URL for pictures
+and files) and `custom_field_groups` (the definitions that apply, a
+linked-record field with up to 200 `choices`); every index carries
+`meta.custom_field_groups` for a new record.
+
+**Also registered**: `entry` in the SEO overview (`admin_path`
+`/admin/content/{type}/{id}`), the FAQ owners, site search (a "More from the
+site" group, each result its own `path`), the console palette ("Custom
+content") and the chatbot's retrieval; `entry` and `content_type` (an
+archive) in the menu item types, with `/admin/menu-targets?type=entry`
+labelling each entry with its type.
+
 ## Messaging channels — WhatsApp, RCS, push
 
 Phase 2 (2026-09-25). See `docs/messaging.md`. Every event's email is

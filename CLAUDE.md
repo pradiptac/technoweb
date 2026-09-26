@@ -145,6 +145,7 @@ Contents:
   - Icon packs — `docs/icons.md`
   - Content blocks — `docs/blocks.md`
   - Messaging — `docs/messaging.md`
+  - Custom fields and content types — `docs/custom-content.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -2589,6 +2590,27 @@ CTA banners, stat bars, pricing tables and technology stacks (2026-09-24): one e
 - A scroller holding sr-only children is `relative` (the comparison table, 188px at 360); a stack disc takes no percentage padding (it resolves against the parent's width — the logo box measured 0px in the wide detail card).
 - Console at `/admin/blocks/{type}` — the kind in the path, because `?type=` matched no sidebar row and `screenRole()` 404s a screen no row matches. Previews and showcases are `data-reveal-static`: the observer skips them, re-checked at intersection time because an async component streams as its own chunk outside the region first.
 - `home_stats_block`/`home_pricing_block`/`home_stack_block` are pickers of published blocks of that kind (API options, anything else refused); `homeBlockSections()` returns only chosen blocks, so none chosen draws no empty band; `HOME_SECTIONS` places them.
+
+### Custom fields and content types — `docs/custom-content.md`
+
+ACF-style fields on existing records and editor-made record types with pages of their own (2026-09-26).
+
+- A group's `targets` is a list of target keys — the morph alias (`page`, `solution`, …, `store_product`) or `entry:<type-slug>` — and `App\Support\CustomFields\Targets` (with `EntryTargets`) is the one list the checklist, the relation select, its choices and the existence rule read.
+- `CustomFields` is the one implementation: `rules()` generated from the stored definitions (options a whitelist, a link `http(s)` only, a picture in the library with an image MIME, a linked record in its table), `save()`, `adminValues()`/`definitions()`, `publicFields()`/`publicData()`. A key nobody declared is dropped.
+- **Absent `custom_fields` leaves every value alone**: `AcceptsCustomFields` spreads the rules only when the request carries the key, `save()` touches only the keys sent, and a key sent blank clears that field. Rich text is cleaned in `SanitisesRichText` through the request's `customFieldTarget()`.
+- A field key is unique across every group on a target (the payload is keyed by it), and `CustomFields::RESERVED_KEYS` (`title`, `slug`, `website`…) are refused.
+- Fields are synced **by id**, never replaced wholesale — values cascade with the field row — and a field's kind is fixed once it holds values.
+- `hidden` placement means not drawn, never private: `custom_data` on the public read carries every applicable value. The drawn list (`custom_fields`) resolves pictures through `MediaMeta`, links to `{title, path}` and drops a link whose record is no longer public.
+- Every target's admin index sends `meta.custom_field_groups` for its "new" form, the `answer_block_kinds` rule; a detail read sends the record's own `custom_field_groups`, `custom_fields` and `custom_field_media`.
+- The Fields tab is `CustomFieldsPanel`, **last** and only when a group applies (`Tabs` reads children by position). Its controls are the ordinary primitives named `cf__<key>` plus a hidden `custom_fields_schema`; `customFieldsFromFormData()` rebuilds the object — one hidden JSON value would be an input `<Form>` and `FormDraft` could not restore.
+- `CustomFieldDetails` draws the list after the body on the nine target pages and every entry; nothing when empty.
+- A content type's slug is a top-level address: refused when it is a frontend route, an API prefix or a server word (`ReservedSlugs`, pinned by `ReservedSlugsTest` reading `web/src/app`), or a CMS page's slug. The catch-all asks for a page first, so a page made later wins.
+- An entry's slug is unique **per type** (`Entry::generateUniqueSlug` and a scoped `unique`); `Sluggable`'s 301 works because `urlPrefix()` is the type's slug, read through `typeSlug()` and never a lazy `contentType`.
+- Renaming a type writes a redirect for the archive and each entry, re-aims redirects already pointing at the old addresses, and re-attaches `entry:<old>` field groups and relation fields (`ContentType::moveSlug`).
+- A type with entries is refused deletion; switching it off 404s the archive and every entry. `Entry::scopePublished` (status, `published_at` not in the future, type active) is the one definition.
+- Admin: types bound by id, entries at `/admin/content-types/{type-slug}/entries/{id}`, scoped. Console: `/admin/content-types` and `/admin/content`; two static sidebar rows serve every type by the longest-match rule.
+- `[slug]/[entry]/page.tsx` exports an empty `generateStaticParams` (tags `entries:<type>`, `entry:<type>:<slug>`) and reads no request-time API; the archive is a branch of `[slug]/page.tsx` after the page lookup.
+- Registered in `SeoController::ENTITIES` (`adminPath()` on the record), `MenuItemType` (`entry`, `content_type`; `Menu::tree()` `morphWith`s the type), menu targets, both searches, FAQ owners, the chatbot retriever, `StructuredData::entry()` (Article or WebPage), the sitemap and `llms.ts`. `AeoScore`/`GeoScore` needed nothing: their lists are catalogue-specific.
 
 ### Messaging — `docs/messaging.md`
 
