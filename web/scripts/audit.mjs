@@ -151,6 +151,16 @@ const DISCOVER = [
   { from: "/admin/knowledge-base", match: /^\/admin\/knowledge-base\/\d+$/, admin: true },
   { from: "/admin/case-studies", match: /^\/admin\/case-studies\/\d+$/, admin: true },
   { from: "/admin/pages", match: /^\/admin\/pages\/\d+$/, admin: true },
+  /*
+   * The page builder (2026-09-26): the seeded sample builder page — a draft,
+   * so its public route 404s until somebody publishes it and is audited by
+   * name then (`node scripts/audit.mjs /sample-builder-page`). Its Builder
+   * tab, and its saved preview, which draws every section type through the
+   * public components under the active theme. Found by its slug, since the
+   * index lists pages by title and the first row is somebody else.
+   */
+  { from: "/admin/pages?q=sample-builder-page", match: /^\/admin\/pages\/\d+$/, admin: true, suffix: "?tab=builder" },
+  { from: "/admin/pages?q=sample-builder-page", match: /^\/admin\/pages\/\d+$/, admin: true, suffix: "/preview" },
   { from: "/admin/products", match: /^\/admin\/products\/\d+$/, admin: true },
   { from: "/admin/product-categories", match: /^\/admin\/product-categories\/\d+$/, admin: true },
   { from: "/admin/brands", match: /^\/admin\/brands\/\d+$/, admin: true },

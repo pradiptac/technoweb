@@ -56,6 +56,13 @@ type Ctx = {
   /** A URL for every stored path, from the API, so an image field can show what it holds. */
   media: Record<string, string>;
   brands: { id: number; name: string }[];
+  /**
+   * Prefixes every control's id. The page builder (2026-09-26) draws many
+   * sections of one type on one form, and two hero editors both saying
+   * `b-heading` is two labels pointing at the first input. Absent, it is
+   * `b`, which is every block form's id as it always was.
+   */
+  idPrefix?: string;
 };
 
 const BlockCtx = createContext<Ctx | null>(null);
@@ -67,14 +74,14 @@ export function useBlock(): Ctx {
   return ctx;
 }
 
-const idFor = (path: Path) => `b-${path.join("-")}`;
+const idFor = (path: Path, prefix = "b") => `${prefix}-${path.join("-")}`;
 
 export function Text({ path, label, hint, placeholder, multiline, required, type = "text" }: {
   path: Path; label: string; hint?: ReactNode; placeholder?: string; multiline?: boolean; required?: boolean; type?: string;
 }) {
-  const { content, set, err } = useBlock();
+  const { content, set, err, idPrefix } = useBlock();
   const value = getIn(content, path);
-  const id = idFor(path);
+  const id = idFor(path, idPrefix);
   const props = {
     id,
     // A `datetime-local` input shows `YYYY-MM-DDTHH:MM` and nothing else, so a
@@ -98,9 +105,9 @@ export function NumberInput({ path, label, hint, min, max, step, scale = 1 }: {
   /** Stored value = typed value × scale — rupees typed, paise stored. */
   scale?: number;
 }) {
-  const { content, set, err } = useBlock();
+  const { content, set, err, idPrefix } = useBlock();
   const value = getIn(content, path);
-  const id = idFor(path);
+  const id = idFor(path, idPrefix);
   return (
     <Field label={label} htmlFor={id} hint={hint} error={err(path)}>
       <Input
@@ -121,8 +128,8 @@ export function NumberInput({ path, label, hint, min, max, step, scale = 1 }: {
 }
 
 export function Toggle({ path, label, hint }: { path: Path; label: string; hint?: ReactNode }) {
-  const { content, set } = useBlock();
-  const id = idFor(path);
+  const { content, set, idPrefix } = useBlock();
+  const id = idFor(path, idPrefix);
   return (
     <div className="mb-[18px]">
       <label htmlFor={id} className="inline-flex min-h-6 cursor-pointer items-center gap-2 text-13-5">
@@ -137,9 +144,9 @@ export function Toggle({ path, label, hint }: { path: Path; label: string; hint?
 export function Choice({ path, label, options, hint, fallback }: {
   path: Path; label: string; options: { value: string; label: string }[]; hint?: ReactNode; fallback?: string;
 }) {
-  const { content, set, err } = useBlock();
+  const { content, set, err, idPrefix } = useBlock();
   const value = getIn(content, path);
-  const id = idFor(path);
+  const id = idFor(path, idPrefix);
   return (
     <Field label={label} htmlFor={id} hint={hint} error={err(path)} variant="float-static">
       <Select id={id} value={typeof value === "string" ? value : fallback ?? options[0]?.value} onChange={(e) => set(path, e.target.value)}>
@@ -150,14 +157,14 @@ export function Choice({ path, label, options, hint, fallback }: {
 }
 
 export function ImagePath({ path, label, hint }: { path: Path; label: string; hint?: string }) {
-  const { content, set, err, media } = useBlock();
+  const { content, set, err, media, idPrefix } = useBlock();
   const value = getIn(content, path);
   const stored = typeof value === "string" ? value : null;
   const message = err(path);
   return (
     <div>
       <CoverField
-        name={`_media_${idFor(path)}`}
+        name={`_media_${idFor(path, idPrefix)}`}
         label={label}
         hint={hint}
         defaultPath={stored}
@@ -194,9 +201,9 @@ export function FilePath({ path, label, hint }: { path: Path; label: string; hin
 }
 
 export function IconPick({ path, label = "Icon" }: { path: Path; label?: string }) {
-  const { content, set } = useBlock();
+  const { content, set, idPrefix } = useBlock();
   const value = getIn(content, path);
-  return <IconField id={idFor(path)} label={label} value={typeof value === "string" ? value : ""} onChange={(v) => set(path, v || undefined)} />;
+  return <IconField id={idFor(path, idPrefix)} label={label} value={typeof value === "string" ? value : ""} onChange={(v) => set(path, v || undefined)} />;
 }
 
 /** A list of rows, each drawn by `row`, with reorder, remove and add. */
