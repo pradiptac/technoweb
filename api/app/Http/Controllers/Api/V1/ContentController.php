@@ -423,11 +423,16 @@ class ContentController extends Controller
      * the rest, and a count that can be nudged by a determined visitor is a
      * hint for the desk, not a figure anybody banks.
      */
-    public function knowledgeArticleHelpful(KnowledgeArticle $article): Response
+    public function knowledgeArticleHelpful(string $article): Response
     {
-        if (KnowledgeArticle::published()->whereKey($article->getKey())->exists()) {
-            $article->increment('helpful_count');
-        }
+        /*
+         * A slug, not a bound model, on purpose: route-model binding answered
+         * 404 for a slug that exists nowhere and 204 for a draft, which was
+         * exactly the published-or-not tell the sentence above says this
+         * avoids — a script could list draft slugs by asking. Scoped to
+         * published, and 204 whatever it finds.
+         */
+        KnowledgeArticle::published()->where('slug', $article)->first()?->increment('helpful_count');
 
         return response()->noContent();
     }

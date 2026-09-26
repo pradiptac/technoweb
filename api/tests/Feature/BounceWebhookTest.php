@@ -53,7 +53,8 @@ class BounceWebhookTest extends TestCase
     private function mailgunPayload(string $email, string $event, string $severity = 'permanent', ?int $timestamp = null): array
     {
         $timestamp = $timestamp ?? time();
-        $token = 'a-token';
+        // Random per delivery, as Mailgun's is: a token seen twice is a replay.
+        $token = bin2hex(random_bytes(25));
 
         return [
             'signature' => [
@@ -228,6 +229,30 @@ class BounceWebhookTest extends TestCase
             ->assertOk();
 
         $this->assertTrue(NewsletterSuppression::has('other@example.in'));
+    }
+
+    /**
+     * A captured delivery cannot be posted again inside the window.
+     *
+     * The fifteen-minute check stops a replay next year, not one straight
+     * after staff lift the suppression it caused. Mailgun's token is random
+     * per delivery, so the second sight of one is the replay.
+     */
+    public function test_a_replayed_mailgun_delivery_suppresses_nothing_the_second_time(): void
+    {
+        $this->withSecret();
+
+        $delivery = $this->mailgunPayload('lifted@example.in', 'failed');
+
+        $this->postJson('/api/v1/newsletter/webhooks/mailgun', $delivery)->assertOk();
+        $this->assertTrue(NewsletterSuppression::has('lifted@example.in'));
+
+        // Staff decide the bounce was a mistake and lift it.
+        NewsletterSuppression::where('email', 'lifted@example.in')->delete();
+
+        $this->postJson('/api/v1/newsletter/webhooks/mailgun', $delivery)->assertOk();
+
+        $this->assertFalse(NewsletterSuppression::has('lifted@example.in'), 'The replay re-suppressed a lifted address.');
     }
 
     /** An unknown provider is answered, not acted on. */

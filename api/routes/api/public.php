@@ -278,7 +278,7 @@ Route::get('pages/{page}', [ContentController::class, 'page'])->name('pages.show
 
 // Site-wide search. Public and uncached — see the note in API.md about
 // why a search response must never be ISR-cached.
-Route::get('search', SearchController::class)->name('search');
+Route::get('search', SearchController::class)->middleware('throttle:240,1,search')->name('search');
 
 Route::get('ticket-categories', [ContentController::class, 'ticketCategories'])->name('ticket-categories.index');
 

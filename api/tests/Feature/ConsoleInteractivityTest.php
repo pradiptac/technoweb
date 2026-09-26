@@ -121,6 +121,10 @@ class ConsoleInteractivityTest extends TestCase
         // must not tell a published slug from an unpublished one.
         $this->postJson('/api/v1/knowledge-base/not-yet/helpful')->assertNoContent();
         $this->assertSame(0, $draft->fresh()->helpful_count);
+
+        // And so does a slug nobody wrote. Route-model binding answered 404
+        // here, which made a draft's 204 the tell that its slug exists.
+        $this->postJson('/api/v1/knowledge-base/no-such-article/helpful')->assertNoContent();
     }
 
     public function test_the_portal_sees_the_ticket_trail_and_no_note_in_it(): void
