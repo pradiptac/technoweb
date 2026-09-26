@@ -64,6 +64,23 @@ class Coupon extends Model
     }
 
     /**
+     * Whether the code is switched on and inside its window.
+     *
+     * What a stranger typing codes at `POST /cart/coupon` may learn about is
+     * only a *live* code: a switched-off, not-yet-started or expired one is
+     * answered exactly like a code that does not exist, or the endpoint
+     * enumerates the shop's campaign codes, past and future. Everything
+     * `refusalFor()` says beyond this — the minimum spend, "fully used",
+     * "already used by you" — is about a code the caller has shown they know.
+     */
+    public function isLive(): bool
+    {
+        return $this->is_active
+            && ($this->starts_at === null || ! $this->starts_at->isFuture())
+            && ($this->ends_at === null || ! $this->ends_at->isPast());
+    }
+
+    /**
      * Why this coupon cannot be used on this basket, or null if it can.
      *
      * One method, so the basket and the checkout cannot disagree — and it takes

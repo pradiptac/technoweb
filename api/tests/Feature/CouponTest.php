@@ -2,12 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Enums\OrderStatus;
 use App\Enums\ProductType;
 use App\Enums\PublishStatus;
+use App\Enums\Role as RoleEnum;
 use App\Models\Coupon;
 use App\Models\CouponUsage;
 use App\Models\Order;
+use App\Models\Role;
 use App\Models\StoreProduct;
+use App\Models\User;
 use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -137,15 +141,28 @@ class CouponTest extends TestCase
             ->assertJsonPath('message', 'That code is not recognised.');
     }
 
-    public function test_an_expired_code_says_so(): void
+    /**
+     * A code that is over, not started or switched off is "not recognised".
+     *
+     * Typed at the door by somebody guessing, "That code has expired" and
+     * "That code is not active yet" are a list of the shop's real codes —
+     * last month's, and next month's before it is announced. The code that
+     * expires while it sits on a basket still says so (below): that person
+     * had it when it worked.
+     */
+    public function test_an_expired_code_is_answered_like_an_unknown_one(): void
     {
         Coupon::create(['code' => 'OLD', 'type' => 'percentage', 'value' => 10, 'ends_at' => now()->subDay()]);
+        Coupon::create(['code' => 'SOONER', 'type' => 'percentage', 'value' => 10, 'starts_at' => now()->addWeek()]);
+        Coupon::create(['code' => 'OFFLINE', 'type' => 'percentage', 'value' => 10, 'is_active' => false]);
 
         $token = $this->basket($this->product());
 
-        $this->apply($token, 'OLD')
-            ->assertStatus(422)
-            ->assertJsonPath('message', 'That code has expired.');
+        $unknown = $this->apply($token, 'NOPE')->assertStatus(422)->json();
+
+        foreach (['OLD', 'SOONER', 'OFFLINE'] as $code) {
+            $this->assertSame($unknown, $this->apply($token, $code)->assertStatus(422)->json(), $code);
+        }
     }
 
     /**
@@ -286,6 +303,69 @@ class CouponTest extends TestCase
         $this->apply($second, 'ONCE')
             ->assertStatus(422)
             ->assertJsonPath('message', 'That code has been fully used.');
+    }
+
+    /**
+     * An unpaid order that is cancelled gives its use back.
+     *
+     * The use is taken at checkout so a single-use code cannot be spent in two
+     * tabs at once — which left every abandoned order holding a use for ever,
+     * and let anybody exhaust a limited code with orders they never paid for.
+     */
+    public function test_cancelling_an_unpaid_order_releases_its_coupon_use(): void
+    {
+        Coupon::create(['code' => 'ONCE', 'type' => 'fixed', 'value' => 10000, 'usage_limit' => 1]);
+
+        $product = $this->product();
+
+        $first = $this->basket($product);
+        $this->apply($first, 'ONCE')->assertOk();
+        $number = $this->checkout($first)->assertCreated()->json('data.order_number');
+
+        // The next basket is filled first: `actingAs` sticks for the rest of
+        // the test, and the shop's own requests are a visitor's, not staff's.
+        $second = $this->basket($product);
+        $this->apply($second, 'ONCE')->assertStatus(422);
+
+        $this->actingAs($this->manager(), 'sanctum')
+            ->postJson("/api/v1/admin/store/orders/{$number}/status", ['status' => OrderStatus::Cancelled->value])
+            ->assertOk();
+
+        $this->assertSame(0, CouponUsage::count());
+
+        $this->app['auth']->forgetGuards();
+        $this->apply($second, 'ONCE')->assertOk();
+    }
+
+    /** A paid order keeps its use: the discount is part of what was charged. */
+    public function test_a_paid_order_keeps_its_coupon_use_whatever_happens_to_it(): void
+    {
+        Coupon::create(['code' => 'ONCE', 'type' => 'fixed', 'value' => 10000, 'usage_limit' => 1]);
+
+        $token = $this->basket($this->product());
+        $this->apply($token, 'ONCE')->assertOk();
+        $number = $this->checkout($token)->assertCreated()->json('data.order_number');
+
+        $order = Order::where('order_number', $number)->firstOrFail();
+        $order->forceFill(['paid_at' => now()])->save();
+        $order->moveTo(OrderStatus::Cancelled, 'Refunded by hand.');
+
+        $this->assertSame(1, CouponUsage::count());
+    }
+
+    private function manager(): User
+    {
+        $user = User::create([
+            'name' => 'Store Manager', 'email' => 'store-coupons@example.test',
+            'password' => 'password-for-tests', 'is_active' => true,
+        ]);
+
+        $user->roles()->attach(Role::firstOrCreate(
+            ['slug' => RoleEnum::StoreManager->value],
+            ['name' => RoleEnum::StoreManager->label()],
+        ));
+
+        return $user;
     }
 
     /**
