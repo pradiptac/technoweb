@@ -6,6 +6,7 @@ import type {
   BlogTaxonomy, Brand, CaseStudy, Certification, Client, Collection, Industry, KnowledgeArticle, Paginated, TeamMember,
   CmsPage, Product, ProductCategory, Service, Single, SiteForm, Slider, Solution,
   CmsPageSummary, Gallery, JobOpening, Popup,
+  ContentEntry, ContentTypeSummary,
   SearchResults,
   LandingPageSummary, LandingPage as LandingPageRecord,
   NavNode,
@@ -445,6 +446,27 @@ export const publicApi = {
     apiFetch<Collection<CmsPageSummary>>("/pages", { revalidate: 600, tags: ["pages"] }),
   page: (slug: string) =>
     apiFetch<Single<CmsPage>>(`/pages/${slug}`, { revalidate: 600, tags: ["pages", `page:${slug}`] }),
+
+  /*
+   * Custom content types (docs/custom-content.md). Tagged
+   * `content-types` for the list and `entries:<type>` for everything under
+   * one type, which is what the console's saves invalidate — an entry
+   * renamed moves the archive, and a type's settings (its sort, its per
+   * page) move every page of it.
+   */
+  contentTypes: () =>
+    apiFetch<Collection<ContentTypeSummary>>("/content-types", { revalidate: 600, tags: ["content-types"] }),
+  /** A type's archive: a page of its published entries, and the type in `meta.type`. */
+  contentArchive: (type: string, query = "") =>
+    apiFetch<Paginated<ContentEntry> & { meta: Paginated<ContentEntry>["meta"] & { type: ContentTypeSummary } }>(
+      `/types/${type}${query}`,
+      { revalidate: 600, tags: ["content-types", `entries:${type}`] },
+    ),
+  entry: (type: string, slug: string) =>
+    apiFetch<Single<ContentEntry>>(`/types/${type}/${slug}`, {
+      revalidate: 600,
+      tags: [`entries:${type}`, `entry:${type}:${slug}`],
+    }),
 
   /**
    * Site-wide search. Never cached, for the reason spelled out on

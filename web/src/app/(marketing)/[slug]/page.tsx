@@ -3,12 +3,15 @@ import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { CtaBand } from "@/components/ui/cta-band";
 import { ApiError, publicApi } from "@/lib/api";
-import { JsonLd, buildMetadata } from "@/lib/seo";
+import { JsonLd, buildMetadata, listingMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { CmsPage } from "@/types/api";
+import { ContentArchive } from "@/components/content/content-archive";
+import { loadArchive } from "./archive";
 
 /**
  * CMS-managed standalone pages — privacy, terms, downloads and anything else
@@ -29,20 +32,35 @@ async function load(slug: string): Promise<CmsPage | null> {
   }
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+type SearchParams = Promise<Record<string, string | undefined>>;
+
+export async function generateMetadata({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: SearchParams }) {
   const { slug } = await params;
   const page = await load(slug);
 
-  if (!page) return buildMetadata({ title: "Not found", path: `/${slug}`, seo: noIndex });
+  if (!page) {
+    // A custom content type's archive, when no page answers (./archive.ts).
+    const sp = await searchParams;
+    const archive = await loadArchive(slug, sp.page);
+    if (archive) {
+      return listingMetadata({ title: archive.type.plural, description: archive.type.description, path: archive.type.path, searchParams: sp });
+    }
+    return buildMetadata({ title: "Not found", path: `/${slug}`, seo: noIndex });
+  }
 
   return buildMetadata({ title: page.title, path: `/${slug}`, seo: page.seo });
 }
 
-export default async function CmsPageRoute({ params }: { params: Promise<{ slug: string }> }) {
+export default async function CmsPageRoute({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: SearchParams }) {
   const { slug } = await params;
   const page = await load(slug);
 
-  if (!page) notFound();
+  if (!page) {
+    // A custom content type's archive, when no page answers (./archive.ts).
+    const archive = await loadArchive(slug, (await searchParams).page);
+    if (archive) return <ContentArchive type={archive.type} entries={archive.entries} />;
+    notFound();
+  }
 
   const updated = new Intl.DateTimeFormat("en-IN", {
     day: "numeric", month: "long", year: "numeric",
@@ -70,6 +88,9 @@ export default async function CmsPageRoute({ params }: { params: Promise<{ slug:
       <Container className="section-y" data-aos="fade-up">
         <div data-template={page.template}>
           {page.body ? <ProseWithShortcodes html={page.body} /> : null}
+
+          {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
+          <CustomFieldDetails fields={page.custom_fields} className="mt-12" />
 
           {/* The answer blocks with the FAQs merged into their questions, then what the page is connected to. */}
           <AnswerBlocks blocks={page.answer_blocks} faqs={page.faqs ?? []} className="mt-12" />
