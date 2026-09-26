@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -19,18 +19,18 @@ export function PreviewDialog({ sections, pageId, onErrors }: {
   onErrors: (errors: Record<string, string[]> | null) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [node, setNode] = useState<ReactNode>(null);
+  const [draft, setDraft] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   const run = () => {
     setOpen(true);
-    setNode(null);
+    setDraft(null);
     setError(null);
     start(async () => {
       const result = await previewSectionsAction(JSON.stringify(sections), pageId);
-      if (result.node) {
-        setNode(result.node);
+      if (result.id) {
+        setDraft(result.id);
         onErrors(null);
       } else {
         setError(result.error ?? "The preview could not be drawn.");
@@ -52,7 +52,17 @@ export function PreviewDialog({ sections, pageId, onErrors }: {
             {error} The sections that need attention are marked on the Builder tab.
           </Alert>
         )}
-        {!pending && node}
+        {/*
+          A framed page rather than JSX from the action: a page loads the
+          client code every section needs (lib/admin/preview-drafts.ts).
+        */}
+        {!pending && draft && (
+          <iframe
+            src={`/admin/draft-preview/${draft}`}
+            title="Unsaved preview of the sections"
+            className="block h-[70vh] w-full rounded border border-line bg-page"
+          />
+        )}
       </Modal>
     </>
   );
