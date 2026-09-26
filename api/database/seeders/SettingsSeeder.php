@@ -847,6 +847,16 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'store', 'key' => 'store_price_drop_min_percent', 'value' => '5', 'type' => 'string'],
 
             /*
+             * The Meta catalogue feed (2026-09-26): `/meta-catalogue.xml` and
+             * `.csv`, the Google feed's rows mapped for Commerce Manager,
+             * which also stocks the WhatsApp Business catalogue. On by
+             * default — it publishes nothing the Google feed does not — and
+             * public because the frontend route is what answers 404 when it
+             * is off.
+             */
+            ['group' => 'store', 'key' => 'meta_catalogue_enabled', 'value' => '1', 'type' => 'boolean'],
+
+            /*
              * The storefront's promo band — one static, editable slot rather
              * than a second `Slider`. It is a single fixed block, not a
              * rotating carousel, so a handful of settings fields are less to
