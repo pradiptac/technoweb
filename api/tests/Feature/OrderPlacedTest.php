@@ -92,6 +92,25 @@ class OrderPlacedTest extends TestCase
         }
     }
 
+    /**
+     * The link goes to `/order/{n}/open`, which trades the token for a cookie
+     * and redirects to the clean page — never to the page itself with the
+     * token in its address, where Analytics would report it.
+     */
+    public function test_the_order_link_goes_through_the_open_handler(): void
+    {
+        $order = $this->order(PaymentMethod::Gateway);
+        $expected = rtrim((string) config('app.frontend_url'), '/')
+            ."/order/{$order->order_number}/open?token={$order->access_token}";
+
+        $this->assertSame($expected, $order->url());
+        $this->assertSame($expected.'&paid=cashfree', $order->url('cashfree'));
+
+        $html = $this->render($order);
+        $this->assertStringContainsString(e($expected), $html);
+        $this->assertStringNotContainsString("/order/{$order->order_number}?token=", $html);
+    }
+
     public function test_a_gateway_order_asks_to_be_paid(): void
     {
         $order = $this->order(PaymentMethod::Gateway);

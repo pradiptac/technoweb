@@ -15,6 +15,7 @@ import {
 } from "@/components/icons";
 import type { StoreDashboard } from "@/types/api";
 import type { SVGProps } from "react";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Store", path: "/admin/store", seo: noIndex });
 
@@ -304,6 +305,7 @@ export default async function StoreDashboardPage({
 }: {
   searchParams: Promise<{ days?: string }>;
 }) {
+  await requireScreen();
   const { days: rawDays } = await searchParams;
   const requested = Number(rawDays);
   const days = (WINDOWS as readonly number[]).includes(requested) ? requested : 30;

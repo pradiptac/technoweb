@@ -19,6 +19,7 @@ import { DropZone } from "./drop-zone";
 import { UploadProvider } from "./upload-context";
 import type { MediaFolder } from "@/types/api";
 import type { MediaListResponse } from "@/lib/admin";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Media", path: "/admin/media", seo: noIndex });
 
@@ -75,6 +76,7 @@ export default async function AdminMediaPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
   const kind = params.kind === "file" ? "file" : "image";
   const trashed = params.trashed === "1";

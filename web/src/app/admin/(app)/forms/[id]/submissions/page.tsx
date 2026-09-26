@@ -8,6 +8,7 @@ import { getForm, getFormSubmissions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { FormSubmission, Paginated, SiteForm } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Submissions", path: "/admin/forms", seo: noIndex });
 
@@ -17,6 +18,7 @@ export default async function SubmissionsPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ page?: string; per_page?: string }>;
 }) {
+  await requireScreen();
   const { id } = await params;
   const sp = await searchParams;
 

@@ -5,10 +5,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { StaffForm } from "../staff-form";
 import type { RoleOption } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New staff account", path: "/admin/users/new", seo: noIndex });
 
 export default async function NewStaffPage() {
+  await requireScreen();
   let roles: RoleOption[] = [];
   try {
     roles = await getStaffRoles();

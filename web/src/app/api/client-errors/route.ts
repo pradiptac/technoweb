@@ -1,3 +1,5 @@
+import { clientIpHeaders } from "@/lib/client-ip";
+
 /**
  * Forwards a browser's error report to the API.
  *
@@ -28,6 +30,8 @@ export async function POST(request: Request) {
          * happens in Safari 17" is most of a diagnosis.
          */
         "User-Agent": request.headers.get("user-agent") ?? "unknown",
+        // The reader, for the per-visitor throttle, rather than this server.
+        ...(await clientIpHeaders()),
       },
       body: JSON.stringify({
         area: typeof body?.area === "string" ? body.area : "site",

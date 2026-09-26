@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { finishNewsletterConnection } from "../mailbox-actions";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({
   title: "Connecting a mailbox to scan", path: "/admin/newsletter/subscribers/import/mailbox/callback", seo: noIndex,
@@ -25,6 +26,7 @@ export default async function MailboxScanCallbackPage({
 }: {
   searchParams: Promise<{ code?: string; state?: string; error?: string; error_description?: string }>;
 }) {
+  await requireScreen();
   const params = await searchParams;
   const back = "/admin/newsletter/subscribers/import/mailbox";
 

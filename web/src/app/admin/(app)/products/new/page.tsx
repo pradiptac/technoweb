@@ -7,10 +7,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ProductForm } from "../product-form";
 import type { PickerOption, AnswerBlockKindOption } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New product", path: "/admin/products/new", seo: noIndex });
 
 export default async function NewProductPage() {
+  await requireScreen();
   let brands: PickerOption[] = [];
   let categories: PickerOption[] = [];
   let solutions: PickerOption[] = [];

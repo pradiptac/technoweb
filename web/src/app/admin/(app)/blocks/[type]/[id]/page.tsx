@@ -9,10 +9,12 @@ import { noIndex } from "@/lib/no-index";
 import type { AdminContentBlock, BlockMeta } from "@/types/api";
 import { BlockForm } from "../../block-form";
 import { deleteBlockAction, duplicateBlockAction, updateBlockAction } from "../../actions";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Edit block", path: "/admin/blocks", seo: noIndex });
 
 export default async function EditBlockPage({ params }: { params: Promise<{ type: string; id: string }> }) {
+  await requireScreen();
   const { type, id } = await params;
 
   let block: AdminContentBlock;

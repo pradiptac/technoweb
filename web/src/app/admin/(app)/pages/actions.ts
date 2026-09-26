@@ -82,12 +82,16 @@ export async function updatePageAction(_prev: PageFormState, formData: FormData)
 
 export async function deletePageAction(formData: FormData) {
   const id = Number(formData.get("id"));
-  const slug = String(formData.get("slug") ?? "");
   if (!id) return;
 
-  await deletePage(id).catch(() => null);
+  // Only a delete the API accepted may purge anything: a refusal (in use,
+  // a role, a network error) used to purge the caches and report success.
+  const deleted = await deletePage(id).then(() => true, () => false);
+  if (!deleted) redirect("/admin/pages?done=not-deleted");
   updateTag("pages");
   revalidatePath("/admin/pages");
-  if (slug) revalidatePath(`/${slug}`);
+  // No `revalidatePath(`/${slug}`)`: the slug came from the form, so it
+  // was a path of the caller's choosing, and the page's own fetch is
+  // tagged "pages" — which the line above already purged.
   redirect("/admin/pages?deleted=1");
 }

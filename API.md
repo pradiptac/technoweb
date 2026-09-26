@@ -37,6 +37,15 @@ record exists), 422 validation, 429 rate limited.
 throttles per email+IP after 5 failures, so one attacker cannot lock out a
 whole office.
 
+**Every limit is per route and per caller** (2026-09-26). A caller is the
+signed-in principal, or the client IP; `throttle:N,M` is
+`ThrottleRequestsPerRoute`, which adds the route to the key — the framework's
+own shared one counter across every throttled route. The client IP is the
+connecting address, or `X-Forwarded-For` when the connection comes from
+`TRUSTED_PROXIES` (the Next server; `api/config/trustedproxy.php`) — no other
+forwarded header is believed from anybody. A direct caller cannot choose its
+bucket by sending the header.
+
 ---
 
 ## Authentication
@@ -1166,7 +1175,11 @@ of *themselves*, the reason `status_note` is absent from it.
 **An order is read by `access_token`, never by its number alone.** The number is
 printed on paperwork, quoted on the telephone and sequential. The token is
 returned **once**, on the response that creates the order, and appears in no
-other response. A wrong token is a 404, compared with `hash_equals`.
+other response. A wrong token is a 404, compared with `hash_equals`. The links
+the API mails (`Order::url()`) and Cashfree's `return_url` point at the
+frontend's `/order/{n}/open?token=…`, which moves the token into a cookie and
+redirects to the clean `/order/{n}` — never at the order page with the token in
+its address.
 
 **Payment is verified server-side and the webhook is what settles an order.**
 `verify` is a convenience so the person sees the right page at once; the webhook

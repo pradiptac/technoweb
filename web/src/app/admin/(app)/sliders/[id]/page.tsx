@@ -9,6 +9,7 @@ import { Alert } from "@/components/ui/input";
 import { SliderForm } from "../slider-form";
 import { DeleteSlider } from "../delete-slider";
 import type { Slider } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Edit slider", path: "/admin/sliders", seo: noIndex });
 
@@ -18,6 +19,7 @@ export default async function EditSliderPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ saved?: string; kept?: string }>;
 }) {
+  await requireScreen();
   const { id } = await params;
   const { saved, kept } = await searchParams;
 

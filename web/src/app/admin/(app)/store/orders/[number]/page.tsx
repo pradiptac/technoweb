@@ -15,6 +15,7 @@ import {
 import type { AdminOrder } from "@/types/api";
 import { Card } from "@/components/ui/card";
 import { formatDate } from "@/lib/dates";
+import { requireScreen } from "@/lib/admin-screen";
 
 /*
   One map from status to colour, shared with the list — the argument `TONE_BAR`
@@ -41,6 +42,7 @@ export async function generateMetadata({ params }: { params: Promise<{ number: s
 }
 
 export default async function AdminOrderPage({ params }: { params: Promise<{ number: string }> }) {
+  await requireScreen();
   const { number } = await params;
 
   let order: AdminOrder;

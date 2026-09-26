@@ -7,6 +7,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Conversation", path: "/admin/chat", seo: noIndex });
 
@@ -19,6 +20,7 @@ export const metadata = buildMetadata({ title: "Conversation", path: "/admin/cha
  * one stops being true.
  */
 export default async function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireScreen();
   const { id } = await params;
   const conversation = await getChatConversation(Number(id)).catch(() => null);
 

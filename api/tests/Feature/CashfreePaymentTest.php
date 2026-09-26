@@ -148,7 +148,9 @@ class CashfreePaymentTest extends TestCase
             && $request['order_amount'] === CashfreeProvider::rupees($order->total_paise)
             && $request['order_currency'] === 'INR'
             // Digits only, the country code stripped.
-            && $request['customer_details']['customer_phone'] === '9876543210');
+            && $request['customer_details']['customer_phone'] === '9876543210'
+            // Back through the handler that trades the token for a cookie.
+            && $request['order_meta']['return_url'] === $order->url('cashfree'));
     }
 
     public function test_production_keys_go_to_the_production_host(): void

@@ -28,10 +28,9 @@ type Revealed = {
  * same licence.
  */
 export function RevealCode({
-  orderNumber, token, itemId,
+  orderNumber, itemId,
 }: {
   orderNumber: string;
-  token: string;
   itemId: number;
 }) {
   const [revealed, setRevealed] = useState<Revealed | null>(null);
@@ -43,7 +42,7 @@ export function RevealCode({
     setMessage(null);
 
     try {
-      const result = await revealCodeAction(orderNumber, token, itemId);
+      const result = await revealCodeAction(orderNumber, itemId);
 
       if (result.ok) {
         setRevealed({ codes: result.codes, procedure: result.procedure });

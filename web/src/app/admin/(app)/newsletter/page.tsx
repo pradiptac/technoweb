@@ -13,10 +13,12 @@ import {
   IconArrowRight, IconShield,
 } from "@/components/icons";
 import type { NewsletterDashboard } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Campaign", path: "/admin/newsletter", seo: noIndex });
 
 export default async function NewsletterDashboardPage() {
+  await requireScreen();
   let data: NewsletterDashboard;
 
   try {

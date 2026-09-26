@@ -6,6 +6,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { CouponForm } from "../coupon-form";
 import type { AdminCoupon } from "@/lib/admin";
+import { requireScreen } from "@/lib/admin-screen";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,6 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 }
 
 export default async function EditCouponPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireScreen();
   const { id } = await params;
 
   const numericId = Number(id);

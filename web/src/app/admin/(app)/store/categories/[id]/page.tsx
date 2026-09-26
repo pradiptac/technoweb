@@ -6,6 +6,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { StoreCategoryForm } from "../category-form";
 import type { AdminStoreCategory, AnswerBlockKindOption } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,6 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 }
 
 export default async function EditStoreCategoryPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireScreen();
   const { id } = await params;
 
   const numericId = Number(id);

@@ -3,28 +3,33 @@
 import { revalidatePath } from "next/cache";
 import { apiFetch, ApiError } from "@/lib/api";
 import { createPaymentSession, verifyPayment } from "@/lib/store";
+import { orderToken } from "@/lib/order-access";
 import type { PaymentSession } from "@/types/api";
 
 /**
  * The two halves of paying.
  *
- * Both take the order's access token, and it is passed rather than hidden. An
- * earlier cut kept it in a cookie so it would not reach the browser, which
- * sounds better and buys nothing: the token is in the URL the customer was
- * emailed, so it is already in that browser's address bar, history and
- * `window.location`. Adding a cookie dance would have been ceremony around a
- * secret the page is *addressed by*.
+ * Neither takes the order's access token: each reads it from the httpOnly
+ * cookie `/order/{n}/open` set (`lib/order-access.ts`). This comment used to
+ * argue the opposite — that the token was already in the page's URL, so
+ * handing it to the browser cost nothing. The URL was the problem: it was
+ * `location.href` on a page that loads Google Analytics and the Meta Pixel, so
+ * every order's key went to both. With the URL clean, the token stays on the
+ * server; the actions post to the page's own path, so the cookie arrives.
  *
- * What matters is what the token can do, and the answer is: read this one
- * order, and pay it. The API checks it with `hash_equals` and answers 404 —
- * never 403 — for a wrong one, so it cannot be used to discover which order
- * numbers exist.
+ * What the token can do is read this one order, and pay it. The API checks it
+ * with `hash_equals` and answers 404 — never 403 — for a wrong one, so it
+ * cannot be used to discover which order numbers exist.
  */
+
+const NO_ACCESS = "This order is no longer open in this browser. Use the link in your order email.";
 
 export async function openPaymentAction(
   orderNumber: string,
-  token: string,
 ): Promise<PaymentSession | { error: string }> {
+  const token = await orderToken(orderNumber);
+  if (!token) return { error: NO_ACCESS };
+
   try {
     return await createPaymentSession(orderNumber, token);
   } catch (error) {
@@ -41,9 +46,11 @@ export async function openPaymentAction(
 
 export async function confirmPaymentAction(
   orderNumber: string,
-  token: string,
   payload: Record<string, string>,
 ): Promise<{ error?: string }> {
+  const token = await orderToken(orderNumber);
+  if (!token) return { error: NO_ACCESS };
+
   try {
     await verifyPayment(orderNumber, token, payload);
   } catch (error) {
@@ -73,9 +80,9 @@ export async function confirmPaymentAction(
  * Revealing an activation code.
  *
  * A Server Action for the same reason the two above are: the API base URL is an
- * internal address the browser cannot reach. It takes the order's token as an
- * argument rather than reading a cookie, because this page is addressed by a
- * link and most people who buy here never sign in.
+ * internal address the browser cannot reach. The order's token comes from the
+ * path-scoped cookie, like the two above — most people who buy here never sign
+ * in, so the link's token is the only key there is.
  *
  * The activation procedure comes back with the code. Both are the same stored
  * text the email is built from, so the screen and the message cannot say
@@ -83,12 +90,14 @@ export async function confirmPaymentAction(
  */
 export async function revealCodeAction(
   orderNumber: string,
-  token: string,
   itemId: number,
 ): Promise<
   | { ok: true; codes: { id: number; code: string }[]; procedure: { html: string | null; pdf_url: string | null; pdf_name: string | null } }
   | { ok: false; message: string }
 > {
+  const token = await orderToken(orderNumber);
+  if (!token) return { ok: false, message: NO_ACCESS };
+
   try {
     const res = await apiFetch<{
       data: { id: number; code: string }[];

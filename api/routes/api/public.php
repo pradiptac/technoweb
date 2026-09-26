@@ -254,8 +254,9 @@ Route::post('blocks/{slug}/submit', [ContentBlockController::class, 'submit'])
 // unpublished or empty, exactly like a slider.
 Route::get('galleries/{slug}', [GalleryController::class, 'show'])->name('galleries.show');
 
-// Editor-built forms. The submit shares the enquiry throttle: both are an
-// anonymous POST that ends in somebody's inbox.
+// Editor-built forms. The submit has the enquiry throttle's numbers — both are
+// an anonymous POST that ends in somebody's inbox — and its own counter, like
+// every `throttle:` here (ThrottleRequestsPerRoute).
 Route::get('forms/{slug}', [FormController::class, 'show'])->name('forms.show');
 Route::post('forms/{slug}', [FormController::class, 'store'])
     ->middleware('throttle:10,1')

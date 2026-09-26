@@ -8,10 +8,12 @@ import { getStoreCategories } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminStoreCategory } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Store categories", path: "/admin/store/categories", seo: noIndex });
 
 export default async function StoreCategoriesPage() {
+  await requireScreen();
   let categories: AdminStoreCategory[];
 
   try {

@@ -8,6 +8,7 @@ import { IconBook } from "@/components/icons";
 import { getBlogCategoryList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({
   title: "Blog categories",
@@ -22,6 +23,7 @@ export default async function BlogCategoriesPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   const list = await getBlogCategoryList({

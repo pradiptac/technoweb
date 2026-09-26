@@ -498,6 +498,21 @@ overturn a decision a person made about a person. Either way the order is
 reachable by `access_token` in the confirmation link, never by its number, which
 is printed on paperwork and sequential.
 
+**The token is never the address of a rendered page (2026-09-26).** It was:
+the checkout redirected to `/order/{n}?token=…` and every email linked there,
+on a page inside the marketing layout, where GA4 and the Meta Pixel report
+`location.href` — so every order's key went to two third parties, and to any
+`Referer`. Now `Order::url()` (and Cashfree's `return_url`, `?paid=cashfree`)
+points at `/order/{n}/open?token=…`, a route handler that renders nothing,
+stores the token in an httpOnly cookie with `path=/order/{n}` (lax, secure in
+production, thirty days) and answers 303 to `/order/{n}`; the checkout action
+sets the same cookie and redirects clean. The page and its three actions (pay,
+confirm, reveal) read the cookie (`lib/order-access.ts`); no component takes the
+token as a prop any more. A `?token=` reaching the page itself — an email sent
+before this — is redirected through `/open`, never rendered. Analytics render
+nothing on `/order/*` and the route sends `Referrer-Policy: no-referrer`. The
+token must look like `bin2hex(random_bytes(32))` or the cookie is not set.
+
 **The checkout re-reads and re-prices everything, under a lock.** `lockForUpdate`
 on the products a basket touches, ordered by id — two baskets holding the same
 two products in opposite orders would otherwise deadlock, which is the classic

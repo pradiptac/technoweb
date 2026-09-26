@@ -11,6 +11,7 @@ import type { AdminCustomer } from "@/types/api";
 import { CustomerStatusBadge, VerifiedBadge } from "../status-badge";
 import { CustomerActions } from "./customer-actions";
 import { DetailsForm } from "./details-form";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Customer", path: "/admin/customers", seo: noIndex });
 
@@ -47,6 +48,7 @@ export default async function AdminCustomerPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireScreen();
   const { id } = await params;
 
   let customer: AdminCustomer;

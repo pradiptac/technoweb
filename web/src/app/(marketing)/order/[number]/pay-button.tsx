@@ -37,12 +37,10 @@ import type { PaymentSession } from "@/types/api";
  * rather than allowing a wildcard on a payment provider's domain.
  */
 export function PayButton({
-  orderNumber, token, totalPaise,
+  orderNumber, totalPaise,
 }: {
   orderNumber: string;
-  /** The order's access token — already in this page's URL, so no secret is
-   *  being newly exposed by handing it to the button that uses it. */
-  token: string;
+  /* No token: the actions read it from the order's httpOnly cookie. */
   totalPaise: number;
 }) {
   const [state, setState] = useState<"idle" | "opening" | "open" | "confirming" | "failed">("idle");
@@ -52,7 +50,7 @@ export function PayButton({
     setState("opening");
     setMessage(null);
 
-    const session = await openPaymentAction(orderNumber, token);
+    const session = await openPaymentAction(orderNumber);
 
     if ("error" in session) {
       setState("failed");
@@ -93,7 +91,7 @@ export function PayButton({
       handler: async (response: Record<string, string>) => {
         setState("confirming");
 
-        const result = await confirmPaymentAction(orderNumber, token, response);
+        const result = await confirmPaymentAction(orderNumber, response);
 
         if (result.error) {
           setState("failed");
@@ -146,7 +144,7 @@ export function PayButton({
     setState("confirming");
     // Nothing the SDK resolved with is trusted: the API asks Cashfree whether
     // this order has a successful payment, with the secret the browser never had.
-    const confirmed = await confirmPaymentAction(orderNumber, token, { gateway: "cashfree" });
+    const confirmed = await confirmPaymentAction(orderNumber, { gateway: "cashfree" });
 
     if (confirmed.error) {
       setState("failed");

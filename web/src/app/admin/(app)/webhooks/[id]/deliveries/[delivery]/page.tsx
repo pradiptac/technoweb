@@ -11,6 +11,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { redeliverAction } from "../../../actions";
 import type { WebhookDelivery } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string; delivery: string }> }) {
   const { id, delivery } = await params;
@@ -30,6 +31,7 @@ export default async function WebhookDeliveryPage({
 }: {
   params: Promise<{ id: string; delivery: string }>;
 }) {
+  await requireScreen();
   const { id, delivery: deliveryId } = await params;
   const webhookId = Number(id);
   const numericId = Number(deliveryId);

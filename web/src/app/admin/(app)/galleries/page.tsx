@@ -10,6 +10,7 @@ import { getGalleryList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { Gallery, Paginated } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Galleries", path: "/admin/galleries", seo: noIndex });
 
@@ -18,6 +19,7 @@ export default async function AdminGalleriesPage({
 }: {
   searchParams: Promise<{ q?: string; page?: string; per_page?: string; deleted?: string }>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: Paginated<Gallery>;

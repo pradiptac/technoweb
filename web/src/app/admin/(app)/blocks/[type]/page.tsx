@@ -12,6 +12,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminContentBlock, BlockMeta, Paginated } from "@/types/api";
 import { blockType } from "../types";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Blocks", path: "/admin/blocks", seo: noIndex });
 
@@ -29,6 +30,7 @@ export default async function AdminBlocksPage({
   params: Promise<{ type: string }>;
   searchParams: Promise<{ q?: string; status?: string; page?: string; per_page?: string }>;
 }) {
+  await requireScreen();
   const type = blockType((await params).type);
   if (!type) notFound();
   const query = await searchParams;

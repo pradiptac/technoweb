@@ -7,6 +7,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { draftOpportunityAction } from "../actions";
 import type { LandingOpportunity } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({
   title: "Landing page opportunities", path: "/admin/landing-pages/opportunities", seo: noIndex,
@@ -30,6 +31,7 @@ export default async function OpportunitiesPage({
 }: {
   searchParams: Promise<{ failed?: string }>;
 }) {
+  await requireScreen();
   const flags = await searchParams;
 
   let result: Awaited<ReturnType<typeof getLandingOpportunities>>;

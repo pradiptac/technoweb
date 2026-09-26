@@ -5,6 +5,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { QualificationList, LevelList } from "./reference-lists";
 import type { JobExperienceLevelRow, JobQualificationRow } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({
   title: "Qualifications & experience", path: "/admin/jobs/reference", seo: noIndex,
@@ -18,6 +19,7 @@ export const metadata = buildMetadata({
  * screens would be chrome around four fields.
  */
 export default async function JobReferencePage() {
+  await requireScreen();
   let qualifications: JobQualificationRow[];
   let levels: JobExperienceLevelRow[];
   try {

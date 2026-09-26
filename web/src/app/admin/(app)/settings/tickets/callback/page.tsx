@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { finishInboundConnection } from "../../tickets-actions";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({
   title: "Connecting the support mailbox", path: "/admin/settings/tickets/callback", seo: noIndex,
@@ -26,6 +27,7 @@ export default async function TicketsCallbackPage({
 }: {
   searchParams: Promise<{ code?: string; state?: string; error?: string; error_description?: string }>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   const declined = params.error === "access_denied";

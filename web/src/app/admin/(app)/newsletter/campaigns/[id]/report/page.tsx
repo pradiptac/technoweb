@@ -12,10 +12,12 @@ import { noIndex } from "@/lib/no-index";
 import type { NewsletterReport } from "@/types/api";
 import { Card } from "@/components/ui/card";
 import { ResendPanel } from "../../resend-panel";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Campaign report", path: "/admin/newsletter/campaigns", seo: noIndex });
 
 export default async function CampaignReportPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireScreen();
   const { id } = await params;
 
   let report: NewsletterReport;

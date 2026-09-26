@@ -8,6 +8,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Website assistant", path: "/admin/chat", seo: noIndex });
 
@@ -42,6 +43,7 @@ function Total({ label, value, note, tone }: {
 const pct = (n: number | null) => (n === null ? "—" : `${n}%`);
 
 export default async function ChatDashboardPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireScreen();
   const params = await searchParams;
 
   const report = await getChatDashboard(params).catch(() => null);

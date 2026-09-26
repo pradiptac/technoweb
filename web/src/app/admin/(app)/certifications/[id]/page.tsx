@@ -10,10 +10,12 @@ import { noIndex } from "@/lib/no-index";
 import { CertificationForm } from "../certification-form";
 import { deleteCertificationAction } from "../actions";
 import type { AdminCertification } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Edit certification", path: "/admin/certifications", seo: noIndex });
 
 export default async function EditCertificationPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireScreen();
   const { id } = await params;
   const numericId = Number(id);
   if (!Number.isInteger(numericId) || numericId <= 0) notFound();

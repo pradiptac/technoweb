@@ -15,6 +15,7 @@ import { CopyLink } from "@/components/ui/copy-link";
 import { noIndex } from "@/lib/no-index";
 import type { StoreProductIndex } from "@/lib/admin";
 import type { PublishStatus } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Store products", path: "/admin/store/products", seo: noIndex });
 
@@ -30,6 +31,7 @@ export default async function StoreProductsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: StoreProductIndex;

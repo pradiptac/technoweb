@@ -11,6 +11,7 @@ import { noIndex } from "@/lib/no-index";
 import { LeadDelete, LeadNotes, LeadPipeline, LeadScorePanel } from "../lead-panels";
 import { Card } from "@/components/ui/card";
 import { formatDate } from "@/lib/dates";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Lead", path: "/admin/leads", seo: noIndex });
 
@@ -27,6 +28,7 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
 }
 
 export default async function LeadPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireScreen();
   const { id } = await params;
 
   let lead: AdminLead;

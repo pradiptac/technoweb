@@ -12,6 +12,7 @@ import { WebhookForm } from "../webhook-form";
 import { pingWebhookAction } from "../actions";
 import { DeliveriesPanel } from "./deliveries-panel";
 import type { AdminWebhook, Paginated, WebhookDelivery, WebhookEventOption } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,6 +33,7 @@ export default async function EditWebhookPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ tab?: string; status?: string; page?: string; per_page?: string }>;
 }) {
+  await requireScreen();
   const { id } = await params;
   const { status, page, per_page } = await searchParams;
 

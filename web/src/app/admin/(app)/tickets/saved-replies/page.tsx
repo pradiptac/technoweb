@@ -9,6 +9,7 @@ import { getCannedReplies } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { formatDate } from "@/lib/dates";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Saved replies", path: "/admin/tickets/saved-replies", seo: noIndex });
 
@@ -21,6 +22,7 @@ function preview(body: string): string {
 }
 
 export default async function SavedRepliesPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: Awaited<ReturnType<typeof getCannedReplies>>;

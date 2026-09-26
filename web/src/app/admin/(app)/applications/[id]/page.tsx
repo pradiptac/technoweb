@@ -10,6 +10,7 @@ import { noIndex } from "@/lib/no-index";
 import type { AdminJobApplication } from "@/types/api";
 import { ApplicationStatusBadge } from "../status-badge";
 import { StatusForm } from "./status-form";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Application", path: "/admin/applications", seo: noIndex });
 
@@ -34,6 +35,7 @@ export default async function ApplicationPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ done?: string }>;
 }) {
+  await requireScreen();
   const { id } = await params;
   const { done } = await searchParams;
 

@@ -5,6 +5,7 @@ import { getSettings, type SettingsPayload } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { InfoBarForm } from "./info-bar-form";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Info bar", path: "/admin/info-bar", seo: noIndex });
 
@@ -18,6 +19,7 @@ export const metadata = buildMetadata({ title: "Info bar", path: "/admin/info-ba
  * so a form carrying nine of them saves nine and touches nothing else.
  */
 export default async function AdminInfoBarPage() {
+  await requireScreen();
   let settings: SettingsPayload;
   try {
     settings = await getSettings();

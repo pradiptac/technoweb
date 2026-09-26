@@ -7,6 +7,7 @@ import { getComments, type CommentList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ModerationList } from "./moderation-list";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({
   title: "Comments",
@@ -21,6 +22,7 @@ export default async function BlogCommentsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: CommentList;

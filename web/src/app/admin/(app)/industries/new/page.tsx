@@ -5,10 +5,12 @@ import { buildMetadata } from "@/lib/seo";
 import type { AnswerBlockKindOption } from "@/types/api";
 import { noIndex } from "@/lib/no-index";
 import { IndustryForm } from "../industry-form";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New industry", path: "/admin/industries/new", seo: noIndex });
 
 export default async function NewIndustryPage() {
+  await requireScreen();
   let solutions: { id: number; name: string }[] = [];
   let kinds: AnswerBlockKindOption[] = [];
   try {

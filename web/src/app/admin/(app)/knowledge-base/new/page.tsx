@@ -5,10 +5,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ArticleForm } from "../article-form";
 import type { KnowledgeCategory, AnswerBlockKindOption } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New article", path: "/admin/knowledge-base/new", seo: noIndex });
 
 export default async function NewKnowledgeArticlePage() {
+  await requireScreen();
   let categories: KnowledgeCategory[] = [];
   let kinds: AnswerBlockKindOption[] = [];
   try {

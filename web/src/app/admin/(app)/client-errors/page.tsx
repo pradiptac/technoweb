@@ -9,6 +9,7 @@ import { getClientErrors, type ClientErrorList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ResolveButton } from "./resolve-button";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({
   title: "JavaScript errors",
@@ -33,6 +34,7 @@ export default async function ClientErrorsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: ClientErrorList;

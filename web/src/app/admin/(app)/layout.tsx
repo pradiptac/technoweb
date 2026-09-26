@@ -2,8 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { CreditLine } from "@/components/layout/credit-line";
 import { SchemeToggle } from "@/components/ui/scheme-toggle";
-import { headers } from "next/headers";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { ToastProvider } from "@/components/ui/toast";
 import { AlertsAsToastsProvider } from "@/components/ui/alert-mode";
@@ -11,14 +10,14 @@ import { ToastFromParams } from "@/components/ui/toast-from-params";
 import { Logo } from "@/components/layout/logo";
 import { IconSignOut } from "@/components/icons-ui";
 import { getCurrentStaff } from "@/lib/admin-auth";
-import { landingFor } from "@/lib/admin-landing";
+import { requireScreen } from "@/lib/admin-screen";
 import { getSiteSettings } from "@/lib/settings";
 import { APP_VERSION, VERSION_LABEL } from "@/lib/version";
 import { ScrollTop } from "@/components/ui/scroll-top";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "./actions";
 import { AdminNav } from "./admin-nav";
-import { palettePages, permits, renderNav, screenRole } from "./nav-items";
+import { palettePages, renderNav } from "./nav-items";
 import { CommandPalette } from "./command-palette";
 import { NewSincePoller } from "./new-since";
 
@@ -54,20 +53,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!staff) redirect("/admin/login");
 
   /*
-    The screen itself, not only the sidebar. `proxy.ts` forwards the path as
-    `x-pathname` for `/admin`; a role that cannot reach the row this path
-    belongs to is sent to its own landing from the dashboard (the one screen
-    every sign-in passes through) and gets a 404 from anywhere else — the
-    answer a screen that does not exist for this account should give, rather
-    than rendering and then failing to load. The API still refuses the data
-    regardless; this is the page agreeing with it.
+    The screen itself, not only the sidebar. A role that cannot reach the row
+    this path belongs to is sent to its own landing from the dashboard (the
+    one screen every sign-in passes through) and gets a 404 from anywhere else
+    — the answer a screen that does not exist for this account should give.
+    Here for the first load, where it runs before anything streams; every page
+    makes the same call too, because this layout is not re-rendered on a
+    client-side navigation (`lib/admin-screen.ts`). The API still refuses the
+    data regardless; this is the page agreeing with it.
   */
-  const slugs = staff.roles.map((r) => r.slug);
-  const pathname = (await headers()).get("x-pathname");
-  if (pathname !== null && !permits(slugs, screenRole(pathname))) {
-    if (pathname === "/admin") redirect(landingFor(slugs));
-    notFound();
-  }
+  await requireScreen();
 
   const roles = staff.roles.map((r) => r.label).join(", ");
 

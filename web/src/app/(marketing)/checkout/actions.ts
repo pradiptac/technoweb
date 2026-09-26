@@ -5,6 +5,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import { cartToken, clearCartToken } from "@/lib/cart";
 import { placeOrder } from "@/lib/store";
+import { rememberOrderToken } from "@/lib/order-access";
 
 export type CheckoutState = { error?: string; fieldErrors?: Record<string, string[]> };
 
@@ -178,6 +179,15 @@ export async function placeOrderAction(
   */
   await clearCartToken();
 
+  /*
+    The order's key goes in a cookie scoped to its page, never in the URL.
+
+    It used to be `?token=…` on the redirect, which made it `location.href` on
+    a page that loads Google Analytics and the Meta Pixel — every order's
+    access token, sent to both. `lib/order-access.ts` has the whole account.
+  */
+  await rememberOrderToken(orderNumber, accessToken);
+
   // `placed=1` is what lets the order page celebrate this visit and no other.
-  redirect(`/order/${orderNumber}?token=${encodeURIComponent(accessToken)}&placed=1`);
+  redirect(`/order/${encodeURIComponent(orderNumber)}?placed=1`);
 }

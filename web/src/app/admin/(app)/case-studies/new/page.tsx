@@ -5,10 +5,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { CaseStudyForm } from "../case-study-form";
 import type { AdminIndustry } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New case study", path: "/admin/case-studies/new", seo: noIndex });
 
 export default async function NewCaseStudyPage() {
+  await requireScreen();
   let industries: AdminIndustry[] = [];
   try {
     industries = await getIndustries();

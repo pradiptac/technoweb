@@ -4,10 +4,12 @@ import { getSliderList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { SliderForm } from "../slider-form";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New slider", path: "/admin/sliders/new", seo: noIndex });
 
 export default async function NewSliderPage() {
+  await requireScreen();
   /*
     The index is fetched for its `meta` alone — the transitions. They are sent
     by the API rather than listed in TypeScript, the same rule

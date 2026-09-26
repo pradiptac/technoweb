@@ -4,10 +4,12 @@ import { getGalleryList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { GalleryForm } from "../gallery-form";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New gallery", path: "/admin/galleries/new", seo: noIndex });
 
 export default async function NewGalleryPage() {
+  await requireScreen();
   /*
     The index is fetched for its `meta` alone — the transitions. They are sent
     by the API rather than listed in TypeScript, the same rule

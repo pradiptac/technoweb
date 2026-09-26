@@ -8,10 +8,12 @@ import type { BlockMeta } from "@/types/api";
 import { BlockForm } from "../../block-form";
 import { createBlockAction } from "../../actions";
 import { blockType } from "../../types";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New block", path: "/admin/blocks", seo: noIndex });
 
 export default async function NewBlockPage({ params }: { params: Promise<{ type: string }> }) {
+  await requireScreen();
   const type = blockType((await params).type);
   if (!type) notFound();
 

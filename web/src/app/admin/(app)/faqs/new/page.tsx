@@ -5,10 +5,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { FaqForm } from "../faq-form";
 import type { FaqOwnerGroup } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New FAQ", path: "/admin/faqs/new", seo: noIndex });
 
 export default async function NewFaqPage() {
+  await requireScreen();
   let owners: FaqOwnerGroup[] = [];
   try {
     owners = await getFaqOwners();

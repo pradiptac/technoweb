@@ -12,6 +12,7 @@ import { LeadRowActions } from "./lead-row";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { relativeTime } from "@/lib/dates";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Leads", path: "/admin/leads", seo: noIndex });
 
@@ -23,6 +24,7 @@ type SearchParams = {
 
 /** Relative where it is useful and absolute where it is not. */
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireScreen();
   const params = await searchParams;
 
   const query = {

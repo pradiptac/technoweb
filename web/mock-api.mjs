@@ -2884,7 +2884,9 @@ createServer(async (req, res) => {
 
     orderSeq += 1;
     const number = `ORD-2026-${String(orderSeq).padStart(5, '0')}`;
-    const accessToken = 'mock-order-token-'.padEnd(64, '0');
+    // 64 hex characters, the shape `bin2hex(random_bytes(32))` gives and the
+    // frontend's order cookie refuses anything else (lib/order-access.ts).
+    const accessToken = 'deadbeef'.repeat(8);
 
     const order = {
       order_number: number,
