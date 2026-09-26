@@ -282,7 +282,12 @@ class MailSettingsProvider extends ServiceProvider
             // The EU region is a different host, and a US endpoint with EU
             // credentials fails as an authentication error rather than as the
             // region mistake it is.
-            'endpoint' => (string) (Setting::get('mailgun_endpoint') ?: 'api.mailgun.net'),
+            // One of Mailgun's two hosts, whatever the row says: the key is
+            // sent to this host, and a free one was a way to read the key.
+            // The settings screen refuses anything else on write.
+            'endpoint' => in_array(Setting::get('mailgun_endpoint'), MailTransport::MAILGUN_ENDPOINTS, true)
+                ? (string) Setting::get('mailgun_endpoint')
+                : 'api.mailgun.net',
             'scheme' => 'https',
         ]);
     }

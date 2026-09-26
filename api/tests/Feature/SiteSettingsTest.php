@@ -154,6 +154,33 @@ class SiteSettingsTest extends TestCase
     }
 
     /**
+     * The activation procedure is what a buyer gets after paying, not public.
+     *
+     * `store` is a public group for the shop's switch and its shipping
+     * figures, and three rows the storefront never reads rode along with it:
+     * the fulfilment switch, the procedure and its PDF.
+     */
+    public function test_the_stores_activation_rows_are_not_published(): void
+    {
+        foreach ([
+            'store_enabled' => '1',
+            'digital_auto_fulfil' => '1',
+            'activation_procedure' => '<p>Open the licence portal and paste the key.</p>',
+            'activation_pdf_path' => 'media/2026/09/activation.pdf',
+        ] as $key => $value) {
+            Setting::updateOrCreate(['key' => $key], ['value' => $value, 'group' => 'store', 'type' => 'string']);
+        }
+
+        $data = $this->getJson('/api/v1/settings')->assertOk()->json('data');
+
+        $this->assertSame('1', $data['store_enabled']);
+        $this->assertArrayNotHasKey('digital_auto_fulfil', $data);
+        $this->assertArrayNotHasKey('activation_procedure', $data);
+        $this->assertArrayNotHasKey('activation_pdf_path', $data);
+        $this->assertArrayNotHasKey('activation_pdf_url', $data);
+    }
+
+    /**
      * The banner group reaches the site, because the heading is painted before
      * anybody authenticates.
      */

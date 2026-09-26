@@ -30,6 +30,18 @@ class PublicSettings
      */
     public const GROUPS = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'login', 'banners', 'announcement', 'themes', 'portal', 'auth', 'store', 'store_promo', 'store_tiles', 'blog', 'embeds', 'indexnow'];
 
+    /**
+     * Rows in a public group that are nobody's business on this endpoint.
+     *
+     * `store` said for months that it held one key; it holds the digital
+     * fulfilment switch and the activation procedure with its PDF — the
+     * steps and the document a buyer receives *after paying*, published to
+     * anybody who asked `/settings`. Named rather than moved to a new group,
+     * because the settings screen reads them from `store` and a migration
+     * of the rows would be a second change for the same fact.
+     */
+    public const PRIVATE_KEYS = ['activation_procedure', 'activation_pdf_path', 'digital_auto_fulfil'];
+
     /** @return array<string, string> */
     public static function build(): array
     {
@@ -39,8 +51,10 @@ class PublicSettings
         // `auth` says which sign-in methods are offered, never anything about
         // a credential. Both login screens are unauthenticated, so they cannot
         // render the right first step without it.
-        // `store` holds one key and it says whether the shop is open. The
-        // *payment* keys are in `payments`, which is private like `mail`.
+        // `store` is public for the shop's switch and its shipping, handling
+        // and returns figures, which the storefront prints; the *payment*
+        // keys are in `payments`, private like `mail`. It also holds three
+        // rows the storefront never reads — see `PRIVATE_KEYS`.
         // `banners` is nine media paths and a switch — the picture behind each
         // section's page heading. It has to be public for the same reason
         // `appearance` is: the heading is painted before anybody signs in.
@@ -57,7 +71,7 @@ class PublicSettings
         $rows = collect(Setting::rows_cached());
 
         $values = $rows
-            ->filter(fn (array $row) => in_array($row['group'], $public, true))
+            ->filter(fn (array $row, string $key) => in_array($row['group'], $public, true) && ! in_array($key, self::PRIVATE_KEYS, true))
             ->map(fn (array $row) => $row['value'])
             ->filter(fn ($v) => $v !== null && $v !== '');
 

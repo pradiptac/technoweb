@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Jobs\ScanMailboxForSubscribers;
 use App\Models\NewsletterImport;
 use App\Models\Setting;
+use App\Support\ImportUpload;
+use App\Support\Net\PublicHost;
 use App\Support\Newsletter\Csv;
 use App\Support\Newsletter\CsvImporter;
 use App\Support\Newsletter\MailboxImport;
@@ -159,11 +161,17 @@ class NewsletterImportController extends Controller
          * It comes back from the browser, so without this it is a
          * caller-supplied filesystem path — `../../.env` would be read and its
          * first column treated as email addresses. Pinned to the directory
-         * this endpoint writes to, and existence-checked.
+         * this endpoint writes to, and existence-checked — by rebuilding it
+         * from its last segment, since a prefix check alone let
+         * `newsletter-imports/../store-imports/…` through. See `ImportUpload`.
          */
-        if (! str_starts_with((string) $data['file'], 'newsletter-imports/') || ! Storage::disk('local')->exists((string) $data['file'])) {
+        $file = ImportUpload::resolve('newsletter-imports', (string) $data['file']);
+
+        if ($file === null) {
             return response()->json(['message' => 'That upload has expired. Choose the file again.'], 422);
         }
+
+        $data['file'] = $file;
 
         $import = NewsletterImport::create([
             'uploaded_by' => $request->user()?->id,
@@ -235,7 +243,13 @@ class NewsletterImportController extends Controller
             'include_junk' => ['sometimes', 'boolean'],
             'imap' => ['required_if:source,imap', 'array'],
             'imap.host' => ['required_if:source,imap', 'string', 'max:255'],
-            'imap.port' => ['required_if:source,imap', 'integer', 'min:1', 'max:65535'],
+            /*
+             * The two ports IMAP is served on, and nothing else: with any
+             * port and any host, "scan this mailbox" was a campaign
+             * manager's way to probe what answers inside the network, the
+             * error telling open from closed.
+             */
+            'imap.port' => ['required_if:source,imap', 'integer', Rule::in([143, 993])],
             'imap.encryption' => ['required_if:source,imap', Rule::in(['ssl', 'tls', 'none'])],
             'imap.username' => ['required_if:source,imap', 'string', 'max:255'],
             'imap.password' => ['required_if:source,imap', 'string', 'max:1000'],
@@ -264,6 +278,12 @@ class NewsletterImportController extends Controller
             $account = (string) Setting::get('newsletter_oauth_account');
             $connection = ['source' => $provider->value];
         } else {
+            // A public host only: the server connects to it from inside the
+            // network, on the say-so of whoever typed it.
+            if ($refusal = PublicHost::refusal(trim((string) $data['imap']['host']))) {
+                throw ValidationException::withMessages(['imap.host' => $refusal.' A mailbox has to be on a public host.']);
+            }
+
             $account = trim((string) $data['imap']['username']);
             $connection = [
                 'source' => 'imap',

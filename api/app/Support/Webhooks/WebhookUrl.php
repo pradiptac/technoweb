@@ -2,6 +2,7 @@
 
 namespace App\Support\Webhooks;
 
+use App\Support\Net\PublicHost;
 use Illuminate\Support\Str;
 
 /**
@@ -26,11 +27,14 @@ use Illuminate\Support\Str;
  *  - **No name that only resolves locally**: `localhost`, a bare hostname
  *    with no dot, or a `.local`/`.internal`/`.lan`/`.home.arpa` suffix.
  *
- * What it does not do, and says so: a public name that *resolves* to a
- * private address (a DNS rebind, or an internal name published in public
- * DNS) passes. Closing that means resolving at send time and pinning the
- * address, which is a different size of change and is written down in
- * docs/admin-console.md rather than half-done here.
+ * A fourth, since 2026-09-26: **no address written as a bare number** —
+ * `127.1`, `0x7f.0.0.1`, `0177.0.0.1` are loopback to the resolver and were
+ * not IP literals to `FILTER_VALIDATE_IP`, so they passed as names.
+ *
+ * A public name that *resolves* to a private address is caught at send
+ * time instead: `DeliverWebhook` resolves the host, refuses a private
+ * answer, and pins the address it checked so the connection cannot be made
+ * to a different one. See `App\Support\Net\PublicHost`.
  */
 class WebhookUrl
 {
@@ -61,12 +65,16 @@ class WebhookUrl
             return 'The URL has no host.';
         }
 
-        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
-            if (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false || str_starts_with($host, '::ffff:')) {
+            if (! PublicHost::isPublicIp($host)) {
                 return 'That address is private or local to this server. A webhook has to point at a public host.';
             }
 
             return null;
+        }
+
+        if (PublicHost::isNumericForm($host)) {
+            return 'Write the host as a name, or as an ordinary address. A number in another form reads as a private one.';
         }
 
         if ($host === 'localhost' || ! str_contains($host, '.') || Str::endsWith($host, self::LOCAL_SUFFIXES)) {

@@ -14,6 +14,7 @@ use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;
 use App\Support\InboundMail\MailboxScanner;
+use App\Support\Net\PublicHost;
 use App\Support\Newsletter\HarvestState;
 use App\Support\Newsletter\MailboxHarvester;
 use App\Support\Newsletter\ScanCredentials;
@@ -322,6 +323,44 @@ class NewsletterMailboxImportTest extends TestCase
         $this->assertSame($import->id, $this->as($manager)->getJson(self::STATUS)->json('data.active.id'));
     }
 
+    /**
+     * A scan is not a port scanner.
+     *
+     * The server connects to whatever host and port the form names, from
+     * inside the network; with any of each, and the socket's own error on the
+     * screen, a campaign manager could map what answers on the LAN. IMAP's
+     * two ports, a public host, and nothing queued otherwise.
+     */
+    public function test_a_scan_refuses_a_private_host_and_a_port_imap_is_not_served_on(): void
+    {
+        Queue::fake();
+        $this->draining();
+        $manager = $this->manager();
+
+        // Three, not five: the scan endpoint allows six requests a minute.
+        foreach (['127.0.0.1', '169.254.169.254', '0x7f.0.0.1'] as $host) {
+            $this->as($manager)->postJson(self::STATUS.'/scan', [
+                'source' => 'imap',
+                'imap' => ['host' => $host, 'port' => 993, 'encryption' => 'ssl', 'username' => 'u', 'password' => 'p'],
+            ])->assertStatus(422)->assertJsonValidationErrors(['imap.host']);
+        }
+
+        $this->app->instance(PublicHost::RESOLVER, fn (string $host): array => ['192.168.1.20']);
+        $this->as($manager)->postJson(self::STATUS.'/scan', [
+            'source' => 'imap',
+            'imap' => ['host' => 'mail.example.test', 'port' => 993, 'encryption' => 'ssl', 'username' => 'u', 'password' => 'p'],
+        ])->assertStatus(422)->assertJsonValidationErrors(['imap.host']);
+
+        $this->app->instance(PublicHost::RESOLVER, fn (string $host): array => []);
+        $this->as($manager)->postJson(self::STATUS.'/scan', [
+            'source' => 'imap',
+            'imap' => ['host' => 'mail.example.test', 'port' => 6379, 'encryption' => 'none', 'username' => 'u', 'password' => 'p'],
+        ])->assertStatus(422)->assertJsonValidationErrors(['imap.port']);
+
+        $this->assertSame(0, NewsletterImport::count());
+        Queue::assertNothingPushed();
+    }
+
     /* --------------------------------------------------------------- the scan */
 
     public function test_the_scan_collects_to_and_cc_from_every_folder_the_policy_allows(): void
@@ -461,7 +500,10 @@ class NewsletterMailboxImportTest extends TestCase
 
         $import->refresh();
         $this->assertSame('failed', $import->status);
-        $this->assertSame('NO [AUTHENTICATIONFAILED] Invalid credentials (Failure)', $import->error);
+        // One sentence for a typed IMAP source, never the socket's words: those
+        // tell a campaign manager which hosts and ports answer inside the network.
+        $this->assertStringStartsWith('The mailbox could not be read.', (string) $import->error);
+        $this->assertStringNotContainsString('AUTHENTICATIONFAILED', (string) $import->error);
         $this->assertNull($import->file);
         $this->assertNull(Cache::get($key));
     }

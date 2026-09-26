@@ -324,3 +324,37 @@ calls `$logger->debug(...)`, and both `.env` files ship `LOG_LEVEL=warning` — 
 choosing "write to the log" produced a cheerful "sent" and nothing on disk
 anywhere. It now writes to `storage/logs/mail.log` on a channel pinned to
 `debug`. Exactly the trap the password-reset audit line was already caught by.
+
+## Where a stored secret may go (2026-09-26)
+
+The settings screen never shows a stored secret, and until now three rows
+could send one somewhere else: `mailgun_endpoint` is the host the Mailgun API
+key is posted to, `smtp_host` receives `smtp_password` in the AUTH, and
+`inbound_imap_host` receives `inbound_imap_password`. Change the host, press
+Test, and the key arrives at a server of your choosing. `SettingController::
+validateMailServers()` closes all three, and the hosts with them:
+
+- **`mailgun_endpoint` is `api.mailgun.net` or `api.eu.mailgun.net`**
+  (`MailTransport::MAILGUN_ENDPOINTS`), refused otherwise on write, and
+  `MailSettingsProvider` falls back to the US host for any other stored value.
+- **A new SMTP or IMAP host needs its password typed again in the same
+  save.** Only somebody who knows it can move it.
+- **Both hosts must be public** (`App\Support\Net\PublicHost`) and on a
+  port the protocol is served on — SMTP 25/465/587/2525, IMAP 143/993 — since
+  the server connects to them from inside the network and the connection
+  tests report what answered.
+
+## Mail lines are text (2026-09-26)
+
+Blade escaped `<` in a notification line and the mail layout then ran the
+whole body through CommonMark, so a name typed into the contact form as
+`[Reset your password](https://evil.example)` came back in the
+acknowledgement as a working link under the letterhead — sent to whatever
+address the form was given. `Markdown::withSecuredEncoding()` in
+`AppServiceProvider::boot()` escapes `[` in every `{{ }}` echo inside a mail
+view; a line that means to carry a link says so with an `HtmlString`
+(`BackInStock`'s cancel link is the one). An editor's wording goes through
+`Placeholders::fill()`, whose values now have `[ ] ( ) !` written as
+entities as well as HTML escaped, because that body reaches the same parse
+through `{!! !!}`. `MailMarkdownInjectionTest` covers both.
+
