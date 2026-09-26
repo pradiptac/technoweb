@@ -634,6 +634,35 @@ class MediaLibraryTest extends TestCase
     }
 
     /**
+     * A replacement is checked like an upload, and typed by its bytes.
+     *
+     * It took any content under any declared type, and stored the client's
+     * `Content-Type` as the file's mime — markup declared `image/png` was an
+     * image as far as the library knew.
+     */
+    public function test_a_replacement_is_checked_by_its_content_not_its_label(): void
+    {
+        Storage::fake('public');
+        $media = $this->realImage();
+
+        // A real file, so the type is read from the bytes: a fake's
+        // `mimeType()` would stand in for the detection being tested.
+        $path = tempnam(sys_get_temp_dir(), 'replace');
+        file_put_contents($path, '<html><body><script>alert(1)</script></body></html>');
+        $disguised = new UploadedFile($path, 'other.png', 'image/png', null, true);
+
+        $this->actingAs($this->staff(), 'sanctum')
+            ->post("/api/v1/admin/media/{$media->id}/replace", ['file' => $disguised], ['Accept' => 'application/json'])
+            ->assertStatus(422);
+
+        $this->actingAs($this->staff(), 'sanctum')
+            ->post("/api/v1/admin/media/{$media->id}/replace", ['file' => UploadedFile::fake()->image('other.png', 10, 10)])
+            ->assertSuccessful();
+
+        $this->assertSame('image/png', $media->fresh()->mime);
+    }
+
+    /**
      * The extension cannot change, because it is part of the address every
      * record already points at.
      */
