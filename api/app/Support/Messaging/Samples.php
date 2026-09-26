@@ -28,6 +28,9 @@ final class Samples
             'item_count' => '2',
             'coupon_code' => 'COMEBACK10',
             'product_name' => 'Aruba 6100 48G switch',
+            'service_name' => 'Network installation',
+            'visit_date' => 'Tue 6 Oct',
+            'visit_time' => '10:30',
             default => str_ends_with($name, '_url') ? rtrim((string) config('app.frontend_url'), '/').'/store' : 'example',
         };
     }

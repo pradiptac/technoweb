@@ -65,6 +65,7 @@ use App\Models\Ticket;
 use App\Models\TicketAttachment;
 use App\Models\TicketCategory;
 use App\Models\User;
+use App\Models\VisitRequest;
 use App\Models\Webhook;
 use App\Models\WebhookDelivery;
 use App\Support\Chat\AiProvider;
@@ -234,6 +235,8 @@ class AppServiceProvider extends ServiceProvider
             'message_template' => MessageTemplate::class,
             'message_broadcast' => MessageBroadcast::class,
             'message_contact' => MessageContact::class,
+            // Engineer visits: bound in admin routes, and the source of a lead.
+            'visit_request' => VisitRequest::class,
 
             /*
              * The store's own catalogue. `store_product` rather than

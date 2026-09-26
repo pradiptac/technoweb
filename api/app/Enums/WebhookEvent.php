@@ -27,6 +27,7 @@ enum WebhookEvent: string
     case CustomerRegistered = 'customer.registered';
     case FormSubmitted = 'form.submitted';
     case SubscriberJoined = 'subscriber.joined';
+    case VisitRequested = 'visit.requested';
 
     public function label(): string
     {
@@ -42,6 +43,7 @@ enum WebhookEvent: string
             self::CustomerRegistered => 'A customer confirmed their address',
             self::FormSubmitted => 'A form was submitted',
             self::SubscriberJoined => 'A newsletter subscriber joined',
+            self::VisitRequested => 'An engineer visit was requested',
         };
     }
 
@@ -60,6 +62,7 @@ enum WebhookEvent: string
             self::CustomerRegistered => 'A portal account whose address has just been confirmed.',
             self::FormSubmitted => 'The raw answers to an editor-built form.',
             self::SubscriberJoined => 'A newsletter subscriber row being created, however it arrived.',
+            self::VisitRequested => 'A site visit request, with the times asked for. Never the access token.',
         };
     }
 

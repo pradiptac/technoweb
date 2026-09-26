@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Setting;
+use App\Support\Visits\VisitSettings;
 use Illuminate\Database\Seeder;
 
 class SettingsSeeder extends Seeder
@@ -300,6 +301,27 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * say. Private: it describes how the pipeline judges people.
              */
             ['group' => 'leads', 'key' => 'lead_intent_words', 'value' => null, 'type' => 'text'],
+
+            /*
+             * Engineer visit requests (2026-09-26, docs/visits.md): the
+             * switch, the parts of the day offered, the weekdays, how much
+             * notice and how far ahead, the closed dates, where the desk's
+             * email goes and how long a visit is booked for by default.
+             *
+             * **On by default** — the client asked for the feature, and a
+             * request asks for nothing the desk has not already agreed to
+             * consider. The group is private; `VisitSettings::PUBLIC_KEYS`
+             * names the six the form needs, so the desk's address stays off
+             * the public `/settings` map.
+             */
+            ['group' => 'visits', 'key' => 'visits_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'visits', 'key' => 'visit_windows', 'value' => VisitSettings::DEFAULT_WINDOWS, 'type' => 'text'],
+            ['group' => 'visits', 'key' => 'visit_days', 'value' => VisitSettings::DEFAULT_DAYS, 'type' => 'string'],
+            ['group' => 'visits', 'key' => 'visit_min_notice_days', 'value' => '1', 'type' => 'string'],
+            ['group' => 'visits', 'key' => 'visit_max_days', 'value' => '30', 'type' => 'string'],
+            ['group' => 'visits', 'key' => 'visit_holidays', 'value' => null, 'type' => 'text'],
+            ['group' => 'visits', 'key' => 'visits_email', 'value' => null, 'type' => 'string'],
+            ['group' => 'visits', 'key' => 'visit_default_minutes', 'value' => '90', 'type' => 'string'],
 
             /*
              * Comments, site-wide.

@@ -9,6 +9,7 @@ use App\Models\Media;
 use App\Models\Setting;
 use App\Models\Solution;
 use App\Support\Chat\ChatSettings;
+use App\Support\Visits\VisitSettings;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
@@ -91,6 +92,20 @@ class PublicSettings
          * what it says when it cannot help. See `ChatSettings::PUBLIC_KEYS`.
          */
         foreach (ChatSettings::PUBLIC_KEYS as $key) {
+            $value = $rows[$key]['value'] ?? null;
+
+            if ($value !== null && $value !== '') {
+                $values[$key] = $value;
+            }
+        }
+
+        /*
+         * The engineer-visit form's six, named for the same reason: the
+         * `visits` group also holds the desk's email address and the default
+         * booking length, neither of which is a visitor's business
+         * (`VisitSettings::PUBLIC_KEYS`, 2026-09-26).
+         */
+        foreach (VisitSettings::PUBLIC_KEYS as $key) {
             $value = $rows[$key]['value'] ?? null;
 
             if ($value !== null && $value !== '') {

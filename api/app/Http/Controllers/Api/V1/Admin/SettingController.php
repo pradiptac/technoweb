@@ -15,13 +15,14 @@ use App\Support\Announcement;
 use App\Support\Chat\ChatSettings;
 use App\Support\HtmlSanitiser;
 use App\Support\InboundMail\InboundMail;
-use App\Support\Store\CartReminders;
 use App\Support\Messaging\ProviderOption;
 use App\Support\Messaging\Providers\Fcm;
 use App\Support\Messaging\Providers\GoogleRbm;
 use App\Support\Seo\GoogleServiceAccount;
+use App\Support\Store\CartReminders;
 use App\Support\ThemeOptions;
 use App\Support\UploadLimits;
+use App\Support\Visits\VisitSettings;
 use App\Support\YouTube;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -352,6 +353,7 @@ class SettingController extends Controller
         $this->validateSiteTheme($request);
         $this->validateAnnouncement($request, $existing);
         $this->validateMessaging($request, $existing);
+        $this->validateVisits($request);
 
         /*
          * A setting with a fixed set of choices is checked against that set.
@@ -878,6 +880,22 @@ class SettingController extends Controller
             $i = $sent['messaging_promo_end']['i'] ?? $sent['messaging_promo_start']['i'] ?? 0;
 
             throw ValidationException::withMessages(["settings.{$i}.value" => 'The window closes before it opens. Promotional messages go out between the two times on the same day.']);
+        }
+    }
+
+    /**
+     * The `visits` group: the lines and numbers `VisitSettings` parses,
+     * refused with the reason rather than saved and quietly read as the
+     * default (2026-09-26, docs/visits.md).
+     */
+    private function validateVisits(Request $request): void
+    {
+        foreach ($request->input('settings', []) as $i => $row) {
+            $refusal = VisitSettings::refusalFor((string) ($row['key'] ?? ''), $row['value'] ?? null);
+
+            if ($refusal !== null) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => $refusal]);
+            }
         }
     }
 

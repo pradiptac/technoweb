@@ -238,3 +238,15 @@ Schedule::command('technoware:send-broadcasts')
 // Delivery rows are a log of what was attempted, not a record anybody edits;
 // ninety days answers "did that customer get the dispatch notice".
 Schedule::command('technoware:prune-message-deliveries')->dailyAt('03:58');
+
+/*
+ * Engineer visits (2026-09-26, docs/visits.md): the day-before reminder,
+ * once per appointment. Every fifteen minutes, so a visit is reminded about
+ * a day ahead whatever time it is booked for; each visit is claimed with a
+ * conditional UPDATE on `reminded_at` before anything is sent, and
+ * `withoutOverlapping` is belt to that brace. Transactional, so no
+ * quiet-hours gate.
+ */
+Schedule::command('technoware:remind-visits')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping();

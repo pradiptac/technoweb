@@ -77,6 +77,8 @@ class SiteSection
 
         'support' => ['label' => 'Support', 'path' => '/support'],
         'contact' => ['label' => 'Contact', 'path' => '/contact'],
+        // The engineer visit request form (2026-09-26, docs/visits.md).
+        'book_visit' => ['label' => 'Book a site visit', 'path' => '/book-a-visit'],
         'about' => ['label' => 'About us', 'path' => '/about'],
         'team' => ['label' => 'Our team', 'path' => '/team'],
         'clients' => ['label' => 'Clients', 'path' => '/clients'],

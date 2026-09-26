@@ -5,6 +5,7 @@ namespace App\Support\Webhooks;
 use App\Http\Resources\Admin\LeadResource;
 use App\Http\Resources\Admin\NewsletterSubscriberResource;
 use App\Http\Resources\Admin\Store\OrderResource;
+use App\Http\Resources\Admin\VisitRequestResource;
 use App\Http\Resources\CustomerResource;
 use App\Http\Resources\FormSubmissionResource;
 use App\Http\Resources\TicketMessageResource;
@@ -16,6 +17,7 @@ use App\Models\NewsletterSubscriber;
 use App\Models\Order;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
+use App\Models\VisitRequest;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -119,6 +121,15 @@ class WebhookPayload
         $subscriber->loadMissing(['groups']);
 
         return self::resolve(new NewsletterSubscriberResource($subscriber));
+    }
+
+    /** @return array<string, mixed> */
+    public static function visit(VisitRequest $visit): array
+    {
+        self::settled($visit, 'status');
+        $visit->loadMissing(['service', 'solution', 'location', 'assignee']);
+
+        return self::resolve(new VisitRequestResource($visit));
     }
 
     /**

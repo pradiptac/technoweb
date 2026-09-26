@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SliderController;
 use App\Http\Controllers\Api\V1\StockNoticeController;
 use App\Http\Controllers\Api\V1\StoreController;
+use App\Http\Controllers\Api\V1\VisitController;
 use App\Http\Controllers\Api\V1\WishlistController;
 use Illuminate\Support\Facades\Route;
 
@@ -448,6 +449,24 @@ Route::post('careers/{job_opening}/apply', [CareersController::class, 'apply'])
 Route::post('enquiries', [EnquiryController::class, 'store'])
     ->middleware('throttle:10,1')
     ->name('enquiries.store');
+
+/*
+ * Engineer visit requests (2026-09-26, docs/visits.md). A request is a wish
+ * list the desk confirms, never a booking. `options` is what the form offers
+ * and is cacheable; the guest routes are authorised by the token handed out
+ * once on create, and a wrong token is the same 404 as a wrong reference.
+ * `visits/options` is declared above `visits/{reference}` or it would bind.
+ */
+Route::get('visits/options', [VisitController::class, 'options'])->name('visits.options');
+Route::post('visits', [VisitController::class, 'store'])
+    ->middleware('throttle:5,1')
+    ->name('visits.store');
+Route::get('visits/{reference}', [VisitController::class, 'show'])
+    ->middleware('throttle:30,1')->name('visits.show');
+Route::post('visits/{reference}/cancel', [VisitController::class, 'cancel'])
+    ->middleware('throttle:10,1')->name('visits.cancel');
+Route::post('visits/{reference}/reschedule', [VisitController::class, 'reschedule'])
+    ->middleware('throttle:10,1')->name('visits.reschedule');
 
 /*
  * The website assistant.
