@@ -1500,6 +1500,8 @@ export type AdminStoreProduct = {
   features?: string[];
   images?: string[];
   image_urls?: string[];
+  /** Detail only (2026-09-26), up to four. */
+  videos?: import("./store-merch").AdminProductVideo[];
   variations?: AdminProductVariation[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
@@ -1603,6 +1605,8 @@ export type StoreProduct = AnswerContent & {
   image_alts: (string | null)[];
   /** Parallel to `images` too: each file's focal point as `object-position` wants it, or null. */
   image_focuses?: (string | null)[];
+  /** Detail only (2026-09-26): YouTube ids and media-library files, after the pictures. */
+  videos?: import("./store-merch").ProductVideo[];
   price_paise: number;
   /** Only present when it is genuinely higher than the real price. */
   compare_at_paise?: number;

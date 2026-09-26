@@ -9,6 +9,7 @@ import {
 } from "@/lib/admin";
 import { jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
 import { rupeesToPaise } from "@/lib/money";
+import type { AdminProductVideo } from "@/types/store-merch";
 import type { AdminProductVariation, AnswerBlock, FaqItem, PublishStatus, StoreImportAnalysis, StoreImportResult, StoreProductType } from "@/types/api";
 
 export type StoreFormState = { error?: string; fieldErrors?: Record<string, string[]> };
@@ -71,6 +72,9 @@ function productPayload(formData: FormData): Record<string, unknown> {
     specifications,
     features: jsonListFromFormData<string>(formData, "features"),
     images: formData.getAll("images").map(String).filter(Boolean),
+    // Up to four, replaced wholesale (2026-09-26). A pasted YouTube link
+    // travels as typed; the API keeps the id and refuses anything else.
+    videos: jsonListFromFormData<AdminProductVideo>(formData, "videos"),
     variations: jsonListFromFormData<AdminProductVariation>(formData, "variations"),
     // Product AEO (docs/aeo-geo-contract.md §3). `service_ids` is the
     // RelationPicker's one-entry-per-box convention, read back with getAll().

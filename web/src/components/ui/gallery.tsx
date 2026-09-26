@@ -297,10 +297,70 @@ export function Lightbox({
   const playing = override ?? (motionOk && autoplay);
 
   const count = items.length;
+  /*
+    Zoom (2026-09-26): 1x to 3x on the current picture, and where it has been
+    dragged to. Held here rather than in the picture, so every way of moving
+    to another one — the arrows, the keys, a thumbnail, the slideshow —
+    passes through `go`, which puts both back: a new picture always arrives
+    whole. See `zoomTo()` for the arithmetic.
+  */
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const picture = useRef<HTMLImageElement | null>(null);
+  const stage = useRef<HTMLDivElement | null>(null);
+  // The latest zoom and pan for the listeners bound outside React (the
+  // wheel, the keys), written after each render rather than during it.
+  const view = useRef({ zoom: 1, pan: { x: 0, y: 0 } });
+  useEffect(() => { view.current = { zoom, pan }; }, [zoom, pan]);
+  const gesture = useRef<{
+    pointers: Map<number, { x: number; y: number }>;
+    start: { x: number; y: number; pan: { x: number; y: number } } | null;
+    pinch: { distance: number; zoom: number } | null;
+    moved: boolean;
+  }>({ pointers: new Map(), start: null, pinch: null, moved: false });
+
   // The direction is no longer state: the flow's placement is derived from
   // the offset alone, so "3 after 2" and "3 after 4" both put the picture in
   // the middle, and the neighbours say where it came from.
-  const go = useCallback((next: number) => setIndex(wrapIndex(next, count)), [count]);
+  const go = useCallback((next: number) => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+    setIndex(wrapIndex(next, count));
+  }, [count]);
+
+  /*
+    Zoom to `next`, keeping the point under `at` (a client coordinate) where
+    it is — or the middle, from a button or a key.
+
+    The picture is scaled about its own centre and then translated
+    (`scale` and `translate`, the individual properties, which compose in
+    that order), so a point `p` lands at `c + s(p - c) + t`. Holding the point
+    under the pointer still across a change from `s` to `s'` gives
+    `t' = (q - c) - (s'/s)(q - c - t)`; the centre `c` is the transformed box's
+    centre less the current translation, since scaling about the centre does
+    not move it. Then the translation is clamped so the picture cannot be
+    dragged off its own edge: at most `(s - 1) x size / 2` either way.
+  */
+  const zoomTo = useCallback((next: number, at?: { x: number; y: number }) => {
+    const img = picture.current;
+    const { zoom: s, pan: t } = view.current;
+    const target = Math.min(3, Math.max(1, next));
+    if (!img || target === 1) {
+      setZoom(1);
+      setPan({ x: 0, y: 0 });
+      return;
+    }
+    const box = img.getBoundingClientRect();
+    const c = { x: box.left + box.width / 2 - t.x, y: box.top + box.height / 2 - t.y };
+    const q = at ?? { x: c.x + t.x, y: c.y + t.y };
+    const k = target / s;
+    setZoom(target);
+    setPan(clampPan({
+      x: (q.x - c.x) - k * (q.x - c.x - t.x),
+      y: (q.y - c.y) - k * (q.y - c.y - t.y),
+    }, target, img));
+  }, []);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -356,6 +416,14 @@ export function Lightbox({
     if (!dialog) return;
 
     const onKey = (e: KeyboardEvent) => {
+      // `+`, `-` and `0` zoom the current picture — the keys every image
+      // viewer uses. `=` too, since `+` is a shifted `=` on most keyboards.
+      if (!e.ctrlKey && !e.metaKey && !e.altKey && ["+", "=", "-", "0"].includes(e.key)) {
+        e.preventDefault();
+        const { zoom: z } = view.current;
+        zoomTo(e.key === "0" ? 1 : e.key === "-" ? z - 0.5 : z + 0.5);
+        return;
+      }
       if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
       e.preventDefault();
       setOverride(false);
@@ -365,7 +433,24 @@ export function Lightbox({
 
     dialog.addEventListener("keydown", onKey);
     return () => dialog.removeEventListener("keydown", onKey);
-  }, [go, index]);
+  }, [go, index, zoomTo]);
+
+  /*
+    Ctrl + wheel zooms — which is also what a trackpad's pinch sends. Bound
+    here rather than through React's `onWheel`, which is passive and so
+    cannot stop the browser zooming the whole page instead.
+  */
+  useEffect(() => {
+    const el = stage.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      zoomTo(view.current.zoom * Math.exp(-e.deltaY * 0.01), { x: e.clientX, y: e.clientY });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [zoomTo]);
 
   const advance = useCallback(() => go(index + 1), [go, index]);
   useAutoplay(playing && count > 1, intervalMs, advance);
@@ -407,7 +492,7 @@ export function Lightbox({
     behind the global reduced-motion rule, which disables them all.
   */
   const flow = transition === "slide" || transition === "zoom" ? "flow" : transition === "fade" ? "fade" : "none";
-  const zoom = transition === "zoom";
+  const zoomFlow = transition === "zoom";
   const moveClass =
     flow === "flow" ? "transition-[translate,rotate,filter,opacity,scale] duration-(--duration-slow) ease-brand"
     : flow === "fade" ? "transition-[filter,opacity] duration-(--duration-slow) ease-brand"
@@ -443,7 +528,25 @@ export function Lightbox({
             {index + 1} / {count}
           </span>
 
+          {/* Announced as it changes; the figure itself is for a screen reader. */}
+          <span className="sr-only" aria-live="polite">{zoom > 1 ? `Zoomed to ${Math.round(zoom * 100)}%` : ""}</span>
+
           <div className="ml-auto flex items-center gap-1.5">
+            <Control onClick={() => zoomTo(zoom - 0.5)} label="Zoom out" disabled={zoom <= 1}>
+              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="6.5" /><path d="M8 11h6M16 16l4 4" />
+              </svg>
+            </Control>
+            <Control onClick={() => zoomTo(zoom + 0.5)} label="Zoom in" disabled={zoom >= 3}>
+              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="6.5" /><path d="M8 11h6M11 8v6M16 16l4 4" />
+              </svg>
+            </Control>
+            {zoom > 1 && (
+              <Control onClick={() => zoomTo(1)} label="Reset zoom">
+                <span aria-hidden="true" className="font-mono text-12 tabular-nums">1:1</span>
+              </Control>
+            )}
             {count > 1 && (
               <Control
                 onClick={() => setOverride(!playing)}
@@ -477,7 +580,7 @@ export function Lightbox({
           it by design; the dialog is fixed, so nothing can widen the page
           either way.
         */}
-        <div className="relative min-h-0 overflow-hidden [perspective:1400px]">
+        <div ref={stage} className="relative min-h-0 overflow-hidden [perspective:1400px]">
           <div className="stage3d absolute inset-0 [transform-style:preserve-3d]">
             {items.map((it, i) => {
               // The shortest way round the ring, so the stage is symmetric.
@@ -502,7 +605,7 @@ export function Lightbox({
                     // perspective; the blur and the dimming grow with it.
                     translate: `calc(-50% + ${offset} * 70%) 0 calc(${-away} * 180px)`,
                     rotate: `y ${-offset * 18}deg`,
-                    scale: zoom ? String(1 - away * 0.12) : undefined,
+                    scale: zoomFlow ? String(1 - away * 0.12) : undefined,
                     filter: away ? `blur(${away * 2}px) brightness(${1 - away * 0.28})` : undefined,
                     opacity: away === 0 ? 1 : away === 1 ? 0.75 : 0.35,
                     zIndex: 3 - away,
@@ -529,12 +632,83 @@ export function Lightbox({
                       with the natural ratio on load.
                     */
                     <Image
+                      ref={picture}
                       src={it.url}
                       alt={it.alt ?? ""}
                       width={1600}
                       height={1200}
-                      sizes="(min-width: 640px) 64vw, 86vw"
-                      className="absolute inset-0 m-auto h-auto max-h-full w-auto max-w-full rounded-xl object-contain"
+                      /*
+                        A wider variant once zoomed: at 3x the picture is
+                        drawn three times the width it was chosen for, and
+                        the 64vw file would be enlarged rather than detailed.
+                      */
+                      sizes={zoom > 1 ? "200vw" : "(min-width: 640px) 64vw, 86vw"}
+                      draggable={false}
+                      className={cn(
+                        "absolute inset-0 m-auto h-auto max-h-full w-auto max-w-full touch-none rounded-xl object-contain select-none",
+                        zoom > 1 ? (dragging ? "cursor-grabbing" : "cursor-grab") : "cursor-zoom-in",
+                        // `scale` and `translate` — never `transition-transform`,
+                        // which would animate neither (the Tailwind v4 trap).
+                        !dragging && "transition-[scale,translate] duration-(--duration-base) ease-brand",
+                      )}
+                      style={{ scale: String(zoom), translate: `${pan.x}px ${pan.y}px` }}
+                      /*
+                        A click zooms to 2x at the point pressed, and a second
+                        click puts it back; the second press of a double-click
+                        is ignored, so a double-click zooms in too. A press
+                        that turned into a drag is not a click.
+                      */
+                      onClick={(e) => {
+                        if (gesture.current.moved || e.detail > 1) return;
+                        if (zoom > 1) zoomTo(1);
+                        else zoomTo(2, { x: e.clientX, y: e.clientY });
+                      }}
+                      onPointerDown={(e) => {
+                        const g = gesture.current;
+                        g.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                        g.moved = false;
+                        e.currentTarget.setPointerCapture(e.pointerId);
+                        if (g.pointers.size === 2) {
+                          const [a, b] = [...g.pointers.values()];
+                          g.pinch = { distance: Math.hypot(a.x - b.x, a.y - b.y) || 1, zoom };
+                          g.start = null;
+                        } else if (zoom > 1) {
+                          g.start = { x: e.clientX, y: e.clientY, pan };
+                          setDragging(true);
+                        }
+                      }}
+                      onPointerMove={(e) => {
+                        const g = gesture.current;
+                        if (!g.pointers.has(e.pointerId)) return;
+                        g.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                        if (g.pinch && g.pointers.size >= 2) {
+                          const [a, b] = [...g.pointers.values()];
+                          g.moved = true;
+                          zoomTo(g.pinch.zoom * (Math.hypot(a.x - b.x, a.y - b.y) / g.pinch.distance), {
+                            x: (a.x + b.x) / 2, y: (a.y + b.y) / 2,
+                          });
+                          return;
+                        }
+                        if (!g.start || !picture.current) return;
+                        const dx = e.clientX - g.start.x;
+                        const dy = e.clientY - g.start.y;
+                        if (Math.abs(dx) + Math.abs(dy) > 4) g.moved = true;
+                        setPan(clampPan({ x: g.start.pan.x + dx, y: g.start.pan.y + dy }, zoom, picture.current));
+                      }}
+                      onPointerUp={(e) => {
+                        const g = gesture.current;
+                        g.pointers.delete(e.pointerId);
+                        if (g.pointers.size < 2) g.pinch = null;
+                        g.start = null;
+                        setDragging(false);
+                      }}
+                      onPointerCancel={(e) => {
+                        const g = gesture.current;
+                        g.pointers.delete(e.pointerId);
+                        g.pinch = null;
+                        g.start = null;
+                        setDragging(false);
+                      }}
                     />
                   ) : (
                     // The neighbours are previews, so they fill their card
@@ -605,15 +779,30 @@ export function Lightbox({
   );
 }
 
+/**
+ * How far a picture zoomed to `zoom` may be dragged before its edge comes
+ * away from the frame: half of what the zoom added, either way. Read from
+ * the element's layout size, which transforms do not change.
+ */
+function clampPan(pan: { x: number; y: number }, zoom: number, img: HTMLImageElement) {
+  const maxX = ((zoom - 1) * img.offsetWidth) / 2;
+  const maxY = ((zoom - 1) * img.offsetHeight) / 2;
+  return {
+    x: Math.min(maxX, Math.max(-maxX, pan.x)),
+    y: Math.min(maxY, Math.max(-maxY, pan.y)),
+  };
+}
+
 function Control({
-  onClick, label, children,
-}: { onClick: () => void; label: string; children: React.ReactNode }) {
+  onClick, label, children, disabled,
+}: { onClick: () => void; label: string; children: React.ReactNode; disabled?: boolean }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="grid size-9 cursor-pointer place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+      disabled={disabled}
+      className="grid size-9 cursor-pointer place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 disabled:cursor-default disabled:opacity-40 disabled:hover:bg-white/10"
     >
       {children}
     </button>

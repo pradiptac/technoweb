@@ -236,6 +236,7 @@ class StructuredData
                     ->map(fn (StoreProduct $p) => ['@type' => 'Product', 'name' => $p->name, 'url' => self::url($p->publicPath())])
                     ->values()->all()
                 : null,
+            'subjectOf' => self::productVideos($product),
             'offers' => $offer + [
                 'url' => $url,
                 'warranty' => filled($product->warranty)
@@ -265,6 +266,50 @@ class StructuredData
                 'seller' => self::publisher(),
             ],
         ] + self::relationships(EntityLinks::for($product)));
+    }
+
+    /**
+     * The product's YouTube videos as `VideoObject`s (2026-09-26) — only
+     * those for which every property Google requires can be filled honestly.
+     *
+     * Required are `name`, `thumbnailUrl` and `uploadDate`. The name is the
+     * video's title, or the product's where none was written — it is the
+     * product's video, on the product's page. **The thumbnail is the uploaded
+     * poster and nothing else**: YouTube's own `i.ytimg.com` frame is never
+     * requested by this site and must not be claimed as one, so a video with
+     * no poster is left out of the graph rather than given an invented
+     * picture. `uploadDate` is when the product — the page carrying the
+     * video — was last changed; the video's own publication date is YouTube's
+     * and not something this application knows. `embedUrl` is the player the
+     * page mounts.
+     *
+     * Uploaded files are left out of the graph: they are drawn on the page
+     * with the same poster, but a self-hosted file has no stable publication
+     * record behind it, and the plan's line was YouTube only. See
+     * `docs/store.md` "Product video and zoom".
+     *
+     * @return array<int, array<string, mixed>>|null
+     */
+    private static function productVideos(StoreProduct $product): ?array
+    {
+        $nodes = collect($product->videos ?? [])
+            ->filter(fn ($v) => is_array($v)
+                && ($v['kind'] ?? null) === 'youtube'
+                && filled($v['youtube_id'] ?? null)
+                && filled($v['poster_path'] ?? null))
+            ->map(fn (array $v) => [
+                '@type' => 'VideoObject',
+                'name' => filled($v['title'] ?? null) ? $v['title'] : $product->name,
+                'description' => filled($v['title'] ?? null) ? $v['title'].' — '.$product->name : $product->name,
+                'thumbnailUrl' => asset('storage/'.$v['poster_path']),
+                'uploadDate' => $product->updated_at?->toIso8601String(),
+                'embedUrl' => 'https://www.youtube-nocookie.com/embed/'.$v['youtube_id'],
+            ])
+            ->filter(fn (array $node) => filled($node['uploadDate']))
+            ->values()
+            ->all();
+
+        return $nodes === [] ? null : $nodes;
     }
 
     /**

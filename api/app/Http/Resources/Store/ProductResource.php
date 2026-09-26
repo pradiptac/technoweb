@@ -9,6 +9,7 @@ use App\Http\Resources\SeoResource;
 use App\Models\StoreProduct;
 use App\Support\MediaMeta;
 use App\Support\Store\Fulfilment;
+use App\Support\Store\ProductVideos;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -78,6 +79,13 @@ class ProductResource extends JsonResource
             'image_alts' => MediaMeta::alts($this->images),
             // Parallel to `image_alts`, same order and length: the focal point of each, or null.
             'image_focuses' => MediaMeta::focuses($this->images),
+            /*
+             * The product's videos, after the pictures in its gallery
+             * (2026-09-26). A YouTube video is its id and never a thumbnail
+             * URL of YouTube's — the page draws its own poster and contacts
+             * nobody until play is pressed. Detail only: a card has no player.
+             */
+            'videos' => $this->when($detail, fn () => ProductVideos::forPublic($this->videos)),
 
             'price_paise' => $this->price_paise,
             'compare_at_paise' => $this->when(

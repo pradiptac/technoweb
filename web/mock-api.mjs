@@ -3028,6 +3028,9 @@ createServer(async (req, res) => {
       warranty: first ? 'Limited lifetime warranty' : null,
       applications: first ? 'Wiring closets feeding up to two dozen desks, printers and access points.\nBranch offices uplinked to a central core over SFP.' : null,
       services: first ? [{ id: 2, title: services[1].title, slug: services[1].slug }] : [],
+      // Videos (2026-09-26): a YouTube id with no poster, so the facade draws
+      // its own panel — never YouTube's thumbnail.
+      videos: first ? [{ kind: 'youtube', youtube_id: 'dQw4w9WgXcQ', title: 'Unboxing and first set-up' }] : [],
       ...answerContent(first ? STORE_PRODUCT_ANSWER_BLOCKS : [], spFaqs, {
         brand: sp.brand ? { name: sp.brand.name, path: `/store?brand=${sp.brand.slug}` } : null,
         category: sp.category ? { name: sp.category.name, path: `/store/categories/${sp.category.slug}` } : null,

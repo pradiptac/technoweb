@@ -39,8 +39,13 @@ class ProductVideos
             'videos' => ['sometimes', 'nullable', 'array', 'max:'.self::MAX],
             'videos.*' => ['array'],
             'videos.*.kind' => ['required', 'in:youtube,file'],
+            /*
+             * `exclude_unless`, so a key the kind does not use is dropped
+             * before it is checked — a file row carrying a stray link is not
+             * refused over it, and it never reaches the stored row.
+             */
             'videos.*.youtube_id' => [
-                'nullable', 'string', 'max:255', 'required_if:videos.*.kind,youtube',
+                'exclude_unless:videos.*.kind,youtube', 'required', 'string', 'max:255',
                 function (string $attribute, mixed $value, Closure $fail) {
                     if (filled($value) && YouTube::id(is_string($value) ? $value : null) === null) {
                         $fail('That is not a YouTube video link. Paste the address of the video itself — a watch, share or embed link.');
@@ -48,7 +53,7 @@ class ProductVideos
                 },
             ],
             'videos.*.path' => [
-                'nullable', 'string', 'max:255', 'required_if:videos.*.kind,file',
+                'exclude_unless:videos.*.kind,file', 'required', 'string', 'max:255',
                 function (string $attribute, mixed $value, Closure $fail) {
                     if (filled($value) && ! self::isLibraryFile((string) $value, MediaUploader::VIDEO_EXTENSIONS)) {
                         $fail('Choose an MP4 or WebM video from the media library.');
@@ -73,8 +78,8 @@ class ProductVideos
         return [
             'videos.max' => 'A product can carry up to '.self::MAX.' videos.',
             'videos.*.kind.in' => 'A video is either a YouTube link or a file from the media library.',
-            'videos.*.youtube_id.required_if' => 'Paste the YouTube link.',
-            'videos.*.path.required_if' => 'Choose the video file.',
+            'videos.*.youtube_id.required' => 'Paste the YouTube link.',
+            'videos.*.path.required' => 'Choose the video file.',
         ];
     }
 

@@ -7,6 +7,7 @@ use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Models\StoreProduct;
 use App\Support\Store\ActivationProcedure;
 use App\Support\Store\ProductFeed;
+use App\Support\Store\ProductVideos;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -136,6 +137,9 @@ class ProductResource extends JsonResource
             'images' => $this->images ?? [],
             // Resolved for previewing; `images` stays the storable form.
             'image_urls' => collect($this->images ?? [])->map(fn ($p) => asset('storage/'.$p))->all(),
+            // The stored videos with URLs for the previews (2026-09-26).
+            // Detail only, like the body: the list screen draws neither.
+            'videos' => $this->when($detail, fn () => ProductVideos::forAdmin($this->videos)),
 
             'variations' => $this->whenLoaded('variations', fn () => $this->variations->map(fn ($v) => [
                 'id' => $v->id,

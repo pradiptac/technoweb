@@ -213,7 +213,9 @@ const fullCsp = (dev: boolean, frameAncestors = "'self'") => [
     // Cashfree's modal checkout, sandbox and live.
     "https://sdk.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com https://sandbox.cashfree.com https://api.cashfree.com",
   ].join(" "),
-  "media-src 'self'",
+  // A store product's uploaded video (2026-09-26) is served from the API's
+  // storage, the same origins `img-src` names for its poster.
+  `media-src 'self' ${assetOrigins}`,
   "worker-src 'self' blob:",
   "manifest-src 'self'",
 ].join("; ");
