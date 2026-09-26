@@ -197,6 +197,8 @@ desk merges one of their tickets into another, queued like the rest and
 naming both references so the one to quote is the one in the subject line.
 See `docs/tickets.md`.)
 
+**The engineer visits make thirty-nine (2026-09-26)** — seven messages for five classes: `visit_request_received` and `visit_request_changed` to the desk (one class, `VisitRequestReceived`), `visit_requested` the customer's receipt (their chosen times, never their notes), `visit_confirmed` and `visit_rescheduled` (one class, `VisitConfirmed`, each carrying an `.ics`), `visit_cancelled` and `visit_reminder`. All queued, all through `Notifier`; the desk's go to `visits_email`, else `sales_email`. `docs/visits.md`.
+
 **`wishlist_back_in_stock` and `wishlist_price_drop` make thirty-two (2026-09-25)** — two classes, sent once per restock or per price drop to whoever saved the product, promotional so held to the quiet-hours window, each with a stop link that leaves the list alone (`docs/store.md`, "Wishlists").
 
 **`cart_reminder_1` and `cart_reminder_2` make thirty (2026-09-25)** — the twenty-eighth was `block_lead_captured` (`docs/blocks.md`). One class, `CartReminder`, and two messages, the `ticket_replied` shape: the abandoned-basket reminders, sent by `technoware:remind-abandoned-carts` only inside the quiet-hours window and never to the suppression list, each carrying an unsubscribe that puts the address on it. `docs/store.md`, "Abandoned baskets".

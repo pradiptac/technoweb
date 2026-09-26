@@ -188,6 +188,12 @@ The support desk customers log into, and the queue the team works from.
   SLA rate, open by priority and category.
 - **Customer administration**: approve, reject, suspend, resend verification —
   every decision revokes sessions where it should.
+- **Engineer visit requests** at `/book-a-visit`: a customer picks up to three
+  dates and parts of the day, the desk confirms one — emailed with a calendar
+  file, reminded the day before, and on WhatsApp or RCS when they opt in. A
+  guest manages the request from a private link; a signed-in customer under
+  My visits. Days, windows, notice and closed dates are settings; every
+  request files a lead.
 
 ## 8. Leads and sales pipeline
 
@@ -310,7 +316,7 @@ Built in, measured, and never allowed to guess.
 - **Six outgoing transports** chosen in Settings — SMTP, Gmail/Workspace over
   OAuth, Brevo, Mailgun, Amazon SES and a log transport — with a test button
   that returns the server's own words.
-- **Every system email editable** in the console: 32 messages, each with its
+- **Every system email editable** in the console: 39 messages, each with its
   placeholders listed, subject and body.
 - **Acknowledgements to the customer** for tickets, enquiries, form
   submissions and applications.

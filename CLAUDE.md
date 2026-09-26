@@ -145,6 +145,7 @@ Contents:
   - Icon packs — `docs/icons.md`
   - Content blocks — `docs/blocks.md`
   - Messaging — `docs/messaging.md`
+  - Engineer visits — `docs/visits.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -2609,6 +2610,24 @@ WhatsApp, RCS and browser push beside the email (Phase 2, 2026-09-25): providers
 - The public `push` group is Firebase's web config; `messaging_whatsapp_live`, `messaging_rcs_live` and `push_live` are derived public bits, so the checkout offers a box and the shop a bell only for a channel that can deliver.
 - Push has **no Firebase SDK**: `lib/push-client.ts`, imported on the bell's press, does the installation and registration calls the SDK makes (both hosts in `connect-src`), and `public/firebase-messaging-sw.js` handles the push itself with its fallbacks from `/push/sw-config`. The bell asks nothing on load, waits for the cookie answer where the banner is drawn, and renders inert on the server so the shop stays cached.
 
+### Engineer visits — `docs/visits.md`
+
+A customer asks for an engineer on site with up to three preferred times; the desk confirms one (2026-09-26).
+
+- It is a request, not a booking — the client's choice over a live calendar: `preferred` (what was asked, a JSON **list** of `{date, window}`, best first, the window stored by key) and `scheduled_start_at` (what the desk agreed) are separate answers, and only `POST /admin/visits/{reference}/confirm` sets a time.
+- `App\Support\Visits\VisitSettings` is the one reader of the `visits` group, falling back per field; the console refuses a value that would parse to nothing (`refusalFor`); six keys are public by name (`PUBLIC_KEYS`), `visits_email` and `visit_default_minutes` are not.
+- `PreferredTimes::check()` refuses short notice, the horizon, a day not offered, a closed date, an unknown window and a repeat — each on `preferred.{i}.date`/`.window`, the names the form's inputs carry, rows keyed by an id so removing one re-numbers the names and not the values.
+- The guest's 64-hex token is answered once on create, compared with `hash_equals`, absent from every resource and webhook; a wrong token is the same 404 as a wrong reference. The email link is `/visit/{reference}/open?token=`, a route handler that moves it into an httpOnly cookie scoped to `/visit/{reference}` and 303s (a **relative** `Location`) to the clean page.
+- A signed-in customer is stamped from `$request->user('sanctum')` narrowed to `Customer`, never an impersonated token; the Server Action forwards the portal token. `my/visits` is scoped by `customer_id` alone.
+- Three doors (guest link, portal, console), one `VisitActions`: cancel, reschedule, confirm, move — mail through `Notifier`, channels through `Messenger`, webhooks through `Webhooks`.
+- A reschedule is not a state: the desk moving a confirmed visit keeps it `confirmed` (event `rescheduled`, email `visit_rescheduled`); a customer asking for other times returns it to `requested` and clears the agreed time. Confirming a visit ever confirmed before is a move.
+- `Confirmed` is never in `allowed_next` and `PATCH` refuses it — a time is what confirms. `confirmed_at`/`completed_at`/`cancelled_at` are never cleared; `reminded_at` is cleared when the time changes, and stamped at confirmation inside 24 hours so no reminder follows the booking.
+- The `.ics` is by hand (`Visits\Ics`): UTC with `Z`, `UID` = the reference so a move updates the event, CRLF and 75-octet folding, escaped text, `METHOD:PUBLISH`; attached to the built-in message, so an edited wording keeps it.
+- `technoware:remind-visits` every fifteen minutes, claimed with a conditional UPDATE on `reminded_at`, transactional (no quiet hours).
+- Seven emails for five classes (`VisitRequestReceived` and `VisitConfirmed` two each); the customer's receipt repeats their chosen times and never their notes. `MessageEvent` gains `VisitRequested`, `VisitConfirmed`, `VisitReminder`; the opt-in is the checkout's, sourced `visit`.
+- It files a lead, channel `visit` (`LeadIntake::fromVisit()`); `visit_request` is in the morph map, and the lead links back.
+- `role:sales_manager,support_engineer` (`routes/api/admin-visits.php`, one comma-joined row in `nav-items.tsx`); settings `role:admin` at `/admin/visits/settings`; `staff_note` is on the admin resource only.
+
 ## Conventions
 
 - Never hard-code a hex. If a colour is not in `globals.css`, it does not ship.
@@ -2739,6 +2758,12 @@ and a CRM beyond the lead pipeline (`docs/feature-ideas-2026-09-20.md`, "Not
 suggested, and why"). The invoice is uploaded, not generated — a decision
 about GST compliance rather than about scope, and one the feature-ideas
 document reopens.
+
+**Amended 2026-09-26: engineer visit requests.** The client asked for customers
+to request a site visit and for staff to confirm the time (`docs/visits.md`).
+That is intake, not a CRM: a request files a lead like every other form, and
+the desk confirms or cancels it. Still not a scheduling system — there is no
+availability calendar, no slot capacity and no engineer calendar sync.
 
 ---
 
