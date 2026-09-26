@@ -132,6 +132,11 @@ Route::middleware('role:content_manager')->group(function () {
 
     Route::get('pages', [AdminPageController::class, 'index'])->name('pages.index');
     Route::post('pages', [AdminPageController::class, 'store'])->name('pages.store');
+    // The section builder (2026-09-26): its pickers, and the unsaved-draft
+    // preview. Declared above `pages/{page:id}`, or the id binding reads
+    // "builder" as a page and 404s.
+    Route::get('pages/builder', [AdminPageController::class, 'builder'])->name('pages.builder');
+    Route::post('pages/preview', [AdminPageController::class, 'preview'])->middleware('throttle:60,1')->name('pages.preview');
     Route::get('pages/{page:id}', [AdminPageController::class, 'show'])->name('pages.show');
     Route::patch('pages/{page:id}', [AdminPageController::class, 'update'])->name('pages.update');
     Route::delete('pages/{page:id}', [AdminPageController::class, 'destroy'])->name('pages.destroy');
