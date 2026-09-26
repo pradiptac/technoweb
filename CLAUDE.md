@@ -26,7 +26,7 @@ phases are done and verified in a browser — the public site, the customer
 portal, the ticket/RBAC domain, the admin console and email notifications.
 
 Ten entities have full CRUD (blog, knowledge base, case studies, solutions,
-services, industries, pages, products, brands, product categories), alongside
+services, industries, pages — including a section page builder — products, brands, product categories), alongside
 FAQs, the media library, redirects, an SEO overview, staff accounts, **portal
 customers and their approval queue**, and site settings. Everything the public site renders is editable from the console,
 including the homepage hero and its statistics.
@@ -144,6 +144,7 @@ Contents:
   - Email to ticket — `docs/tickets.md`
   - Icon packs — `docs/icons.md`
   - Content blocks — `docs/blocks.md`
+  - The section page builder — `docs/page-builder.md`
   - Messaging — `docs/messaging.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
@@ -2690,6 +2691,25 @@ WhatsApp, RCS and browser push beside the email (Phase 2, 2026-09-25): providers
 - The public `push` group is Firebase's web config; `messaging_whatsapp_live`, `messaging_rcs_live` and `push_live` are derived public bits, so the checkout offers a box and the shop a bell only for a channel that can deliver.
 - Push has **no Firebase SDK**: `lib/push-client.ts`, imported on the bell's press, does the installation and registration calls the SDK makes (both hosts in `connect-src`), and `public/firebase-messaging-sw.js` handles the push itself with its fallbacks from `/push/sw-config`. The bell asks nothing on load, waits for the cookie answer where the banner is drawn, and renders inert on the server so the shop stays cached.
 
+### The section page builder — `docs/page-builder.md`
+
+A CMS page laid out as a stack of typed sections (2026-09-26): `pages.blocks` is the list, `template: builder` renders it; no free-form canvas, by the client's choice.
+
+- `pages.blocks` is a list of `{id, type, hidden, background, data}`; `PageSectionType` is the fourteen types, sent as `meta.section_types` and never listed in TypeScript. This reverses the "`blocks` is deliberately absent" comments: their objection was raw JSON in a text field, and a builder validated per type is the editor they asked for.
+- `SectionRules::forPayload()` generates rules per row from that row's type, so a 422 is keyed `blocks.N.data.field`; `after()` checks media that exists and is the right kind, references that exist **and are published**, a YouTube link `App\Support\YouTube` can read, unique ids, and the background through `ThemeOptions::background()` — extracted from the homepage-section cleaner so the two cannot drift.
+- `normalise()` is what is stored — declared keys only, because `validated()` hands back each `data` whole once the wildcard carries a rule; references are stored as ids, so renaming a slug moves nothing.
+- `SanitisesRichText` reads a dotted path after its wildcard (`blocks.*.data.body`); `SanitisesRichTextTest` pins it and the one-level form. A plain-text section field is never rendered as markup.
+- `SectionPresenter` is the public shape: hidden sections gone, paths as URLs with alt and focus, a content block inline, a slider/gallery/form as its **current slug** fetched from its own public endpoint, `cards` resolved to the live list now; a dead reference, an empty list or an empty FAQ drops its section.
+- A builder page's `faq_schema` counts its visible custom `faq` sections' questions beside its FAQs and question blocks — still one `FAQPage`, still under two entries none; `FaqSection` emits no graph.
+- One `h1` either way: an opening `hero` section is the `h1` and draws `Breadcrumbs`, and the route skips `PageHero`; otherwise `PageHero` opens the page. Section headings are `h2`; a tile's or feature's title is `h3` only under a section heading.
+- Every section sits in `SectionBg` and carries `data-page-section="<type>"`; a `cards` section is a `Collection` of `Tile`s, so every theme's idiom draws it. `STRIP_MODES` in `page-sections/embed-sections.tsx` mirrors each theme's homepage strip `mode` — change both together.
+- The closing `CtaBand` is skipped when a `content_block` section already closes the page with a CTA; page FAQs are left out of the answer blocks when a `faq` section shows them.
+- The console keeps the list in the page form (not the Builder tab, which is drawn only for `builder`) and posts it as one hidden JSON input; structural changes dispatch an `input` event on it for `FormDraft` and the leave guard, and `tw:draft-restored` reads it back. `GROUPS` lists the Builder tab whatever the template, so a 422 always has a tab.
+- Section fields are the content blocks' editor primitives, unnamed; `blocks/editors/shared.tsx` has an optional `idPrefix`, because many sections of one type on one form would share every id.
+- Previews: the unsaved one is a Server Action posting to `POST /admin/pages/preview` (nothing written) and returning the sections drawn by the public components into an `xl` `Modal`; `/admin/pages/{id}/preview` draws the saved ones. Both inside `SectionsFrame` with `ownsH1={false}`, so a hero is an `h2` under the console's own `h1`.
+- `SampleBuilderPageSeeder` is one **draft**, create-only, after the blocks/sliders/forms it points at; the audit discovers its Builder tab and saved preview, and its public route is audited by name once published.
+- `media-src` names the asset origins (a library video — a builder `video` section or a slide — is served from there).
+
 ## Conventions
 
 - Never hard-code a hex. If a colour is not in `globals.css`, it does not ship.
@@ -2844,6 +2864,9 @@ document reopens.
     certificate numbers, and the partner tiers on Cisco and Fortinet — the
     last being a claim about a third party. All create-only, so replacing
     them in the console is permanent.
+  - The sample builder page from `SampleBuilderPageSeeder` (2026-09-26) at
+    `/sample-builder-page` — a draft, every word a placeholder, and a
+    Big Buck Bunny YouTube id standing in for a real video.
   - The sample content blocks from `ContentBlockSeeder` (2026-09-24): every
     one a draft except `site-audit`, the default closing band, whose words
     are the band's own; the stat samples reuse the hero's invented figures

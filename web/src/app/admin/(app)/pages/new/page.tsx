@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/admin/page-header";
-import { getAnswerBlockKinds } from "@/lib/admin";
+import { getAnswerBlockKinds, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { PageForm } from "../page-form";
@@ -9,7 +9,7 @@ export const metadata = buildMetadata({ title: "New page", path: "/admin/pages/n
 
 export default async function NewCmsPage() {
   await requireScreen();
-  const kinds = await getAnswerBlockKinds("/admin/pages");
+  const [kinds, builder] = await Promise.all([getAnswerBlockKinds("/admin/pages"), getPageBuilderOptions()]);
 
   return (
     <>
@@ -18,7 +18,7 @@ export default async function NewCmsPage() {
         title="New page"
       />
 
-      <PageForm kinds={kinds} />
+      <PageForm kinds={kinds} builder={builder} />
     </>
   );
 }

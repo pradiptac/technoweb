@@ -5,6 +5,7 @@ import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { CtaBand } from "@/components/ui/cta-band";
+import { PageSections, startsWithHero } from "@/components/page-sections/page-sections";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -43,6 +44,11 @@ export default async function CmsPageRoute({ params }: { params: Promise<{ slug:
   const page = await load(slug);
 
   if (!page) notFound();
+
+  // A builder page (2026-09-26, docs/page-builder.md) renders its sections
+  // instead of the body. Its own branch, so the default and wide templates
+  // below are untouched.
+  if (page.template === "builder") return <BuilderPage page={page} slug={slug} />;
 
   const updated = new Intl.DateTimeFormat("en-IN", {
     day: "numeric", month: "long", year: "numeric",
@@ -84,6 +90,38 @@ export default async function CmsPageRoute({ params }: { params: Promise<{ slug:
       <CtaBand />
 
       {/* The FAQPage over the FAQs and question blocks — the API's, absent under two entries, and the only one on the page. */}
+      {page.faq_schema && <JsonLd data={page.faq_schema} />}
+    </>
+  );
+}
+
+/**
+ * A builder page: `PageHero` only when the first section is not a hero —
+ * a hero that opens the page is its `h1` and draws the breadcrumb trail, so
+ * there is exactly one of each either way — then the sections, then the
+ * page's answer blocks and connections, then the closing band unless a
+ * section already closes the page with a CTA of its own. The page's FAQs
+ * are drawn by the answer blocks unless a `faq` section already shows them.
+ */
+function BuilderPage({ page, slug }: { page: CmsPage; slug: string }) {
+  const sections = page.sections ?? [];
+  const crumbs = [{ name: page.title, path: `/${slug}` }];
+  const showsPageFaqs = sections.some((s) => s.type === "faq" && s.data.source === "page");
+  const closesItself = sections.some((s) => s.type === "content_block" && s.data.block.type === "cta");
+
+  return (
+    <>
+      {!startsWithHero(sections) && <PageHero title={page.title} crumbs={crumbs} />}
+
+      <PageSections sections={sections} crumbs={crumbs} />
+
+      <Container className="pb-16 empty:hidden" data-aos="fade-up">
+        <AnswerBlocks blocks={page.answer_blocks} faqs={showsPageFaqs ? [] : page.faqs ?? []} className="mt-12" />
+        <RelatedEntities entity={page.entity} className="mt-12" />
+      </Container>
+
+      {!closesItself && <CtaBand />}
+
       {page.faq_schema && <JsonLd data={page.faq_schema} />}
     </>
   );

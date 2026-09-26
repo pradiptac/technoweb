@@ -1344,6 +1344,94 @@ const adminOf = (r, extra = {}) => ({
   created_at: '2026-01-15T00:00:00Z', updated_at: '2026-01-15T00:00:00Z',
   ...r, ...extra,
 });
+/*
+ * The section page builder (2026-09-26, docs/page-builder.md). A builder
+ * page's public read carries `sections` (presented: hidden ones gone, paths
+ * as URLs, live lists resolved); the admin read carries `blocks` as stored,
+ * `blocks_media` and the same `sections`. `GET /admin/pages/builder` is the
+ * builder's pickers and `POST /admin/pages/preview` presents without writing.
+ */
+const SECTION_TYPES = [
+  { value: 'hero', label: 'Hero', blurb: 'The opening band: a heading, a line under it, a picture and up to two buttons.' },
+  { value: 'rich_text', label: 'Text', blurb: 'A heading and a body from the editor.' },
+  { value: 'media_text', label: 'Picture or video with text', blurb: 'A picture or a video on one side and words on the other.' },
+  { value: 'features', label: 'Features', blurb: 'Up to twelve short points in columns, each with an icon.' },
+  { value: 'cards', label: 'Cards from the catalogue', blurb: 'A live list drawn as the theme draws its grids.' },
+  { value: 'content_block', label: 'Content block', blurb: 'A published CTA banner, stat bar, pricing table or technology stack.' },
+  { value: 'slider', label: 'Slider', blurb: 'A published slider.' },
+  { value: 'gallery', label: 'Gallery', blurb: 'A published gallery.' },
+  { value: 'form', label: 'Form', blurb: 'A published form, with a heading above it.' },
+  { value: 'faq', label: 'Questions', blurb: 'Questions that open, written here or taken from this page’s FAQs.' },
+  { value: 'logos', label: 'Logo strip', blurb: 'Client logos or the brands you carry.' },
+  { value: 'testimonial', label: 'Testimonial', blurb: 'One quotation, with who said it and a photo.' },
+  { value: 'video', label: 'Video', blurb: 'A YouTube video or a video from the library.' },
+  { value: 'divider', label: 'Divider', blurb: 'Space between two sections, with or without a rule.' },
+];
+const SECTION_PRESETS = [
+  { value: 'landing', label: 'Landing page', blurb: 'A hero, three reasons, a live list of solutions, questions and a close.', sections: [
+    { type: 'hero', hidden: false, background: null, data: { heading: 'The promise, in one line', layout: 'centered', primary: { label: 'Talk to us', href: '/contact' } } },
+    { type: 'features', hidden: false, background: null, data: { heading: 'Why it works', columns: 3, items: [{ icon: 'shield', title: 'The first reason' }] } },
+    { type: 'cards', hidden: false, background: null, data: { heading: 'What we build', source: 'solutions', limit: 6, columns: 3 } },
+  ] },
+];
+const BUILDER_OPTIONS = {
+  section_types: SECTION_TYPES,
+  section_presets: SECTION_PRESETS,
+  hero_layouts: [
+    { value: 'centered', label: 'Centred', blurb: 'The words centred on the section’s ground.' },
+    { value: 'split', label: 'Split', blurb: 'The words on one side, the picture framed on the other.' },
+    { value: 'cover', label: 'Cover', blurb: 'The picture fills the band under a dark overlay.' },
+  ],
+  card_sources: [
+    { value: 'solutions', label: 'Solutions' }, { value: 'services', label: 'Services' }, { value: 'industries', label: 'Industries' },
+    { value: 'case_studies', label: 'Case studies' }, { value: 'blog', label: 'Blog posts' }, { value: 'knowledge', label: 'Knowledge base articles' },
+    { value: 'products', label: 'Products (catalogue)' }, { value: 'store_products', label: 'Products (shop)' },
+  ],
+  content_blocks: [], sliders: [], galleries: [], forms: [],
+  product_categories: productCategories.map(({ id, name, slug }) => ({ id, name, slug })),
+  store_categories: storeCategories.map(({ id, name, slug }) => ({ id, name, slug })),
+};
+const SAMPLE_BUILDER_BLOCKS = [
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000001', type: 'hero', hidden: false, background: null, data: {
+    kicker: 'Sample page', heading: 'A page built from sections', layout: 'centered',
+    lede: 'Every kind of section the builder offers, in one place.',
+    primary: { label: 'Talk to us', href: '/contact' }, secondary: { label: 'See the solutions', href: '/solutions' } } },
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000002', type: 'rich_text', hidden: false, background: null, data: {
+    heading: 'Text from the editor', body: '<p>A section of ordinary text with <strong>bold</strong> and <a href="/about">links</a>.</p>' } },
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000003', type: 'features', hidden: false, background: { kind: 'page' }, data: {
+    heading: 'Short points in columns', columns: 3, items: [
+      { icon: 'shield', title: 'Secure by default', body: 'One sentence about it.' },
+      { icon: 'clock', title: 'Fast to respond', body: 'One sentence about it.', href: '/support', link_label: 'Support' },
+      { icon: 'users', title: 'People you know', body: 'One sentence about it.' },
+    ] } },
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000004', type: 'cards', hidden: false, background: null, data: {
+    heading: 'A live list', source: 'solutions', limit: 3, columns: 3 } },
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000005', type: 'testimonial', hidden: false, background: null, data: {
+    quote: 'A customer’s words go here, with their permission.', name: 'A customer', role: 'Their role, their company' } },
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000006', type: 'logos', hidden: false, background: null, data: { heading: 'Trusted by', source: 'clients' } },
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000007', type: 'video', hidden: false, background: null, data: { heading: 'A video', source: 'youtube', youtube: 'aqz-KE-bpKQ', caption: 'A placeholder.' } },
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000008', type: 'divider', hidden: false, background: null, data: { size: 'medium', rule: true } },
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000009', type: 'faq', hidden: false, background: null, data: { heading: 'Questions', source: 'custom', items: [
+    { question: 'Can a section be hidden?', answer: 'Yes — it stays with the page and is left off the public site.' },
+    { question: 'Can sections be reordered?', answer: 'Yes, with the arrows on each section.' },
+  ] } },
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000010', type: 'rich_text', hidden: true, background: null, data: { heading: 'Hidden', body: '<p>Not drawn.</p>' } },
+];
+/** The presenter's shape, for this mock's few types: hidden ones gone, a live list resolved. */
+function presentSections(blocks) {
+  return blocks.filter((b) => !b.hidden).map((b) => {
+    if (b.type !== 'cards') return { id: b.id, type: b.type, background: b.background, data: b.data };
+    const items = solutions.slice(0, b.data.limit || 6).map((s) => ({
+      title: s.title, summary: s.summary ?? null, path: `/solutions/${s.slug}`,
+      image: null, image_alt: null, image_focus: null, icon: s.icon ?? null, kicker: null, meta: null,
+    }));
+    return { id: b.id, type: b.type, background: b.background, data: { ...b.data, items, index_path: '/solutions' } };
+  });
+}
+cmsPages.push({ id: 6, title: 'Sample builder page', slug: 'sample-builder-page', template: 'builder', body: null,
+  published_at: '2026-09-26T09:00:00Z', updated_at: '2026-09-26T09:00:00Z', faqs: [], seo: null,
+  blocks: SAMPLE_BUILDER_BLOCKS, sections: presentSections(SAMPLE_BUILDER_BLOCKS) });
+
 const ADMIN_CMS = [
   { base: '/admin/solutions', rows: solutions, detail: (r) => adminOf(r, r.id === 1
     ? { problem_statement: solutionDetail.problem_statement, overview: solutionDetail.overview,
@@ -1361,7 +1449,7 @@ const ADMIN_CMS = [
       product_category_id: r.category?.id ?? null, category_name: r.category?.name ?? null,
       image_urls: [], datasheet_path: null, is_featured: false, solution_ids: [1], related_product_ids: [],
       faqs: (r.faqs || []).map(({ question, answer }) => ({ question, answer })) }) },
-  { base: '/admin/pages', rows: cmsPages, detail: (r) => adminOf(r) },
+  { base: '/admin/pages', rows: cmsPages, detail: (r) => adminOf(r, { blocks: r.blocks ?? [], blocks_media: {}, sections: r.sections ?? [] }) },
   { base: '/admin/blog-posts', rows: posts, detail: (r) => adminOf(r, { cover_image_path: null, author_id: 3 }) },
   { base: '/admin/knowledge-articles', rows: kbArticles, detail: (r) => adminOf(r, { knowledge_category_id: 1, view_count: 0, helpful_count: 0 }) },
   { base: '/admin/store/categories', rows: storeCategories, detail: (r) => adminOf(r, { is_active: true, icon_path: null, image_path: null }) },
@@ -1898,13 +1986,27 @@ createServer(async (req, res) => {
       }
     }
 
+    /* The page builder's pickers and its unsaved-draft preview (docs/page-builder.md). */
+    if (p === '/admin/pages/builder' && req.method === 'GET') return json(res, 200, { data: BUILDER_OPTIONS });
+    if (p === '/admin/pages/preview' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const blocks = Array.isArray(body.blocks) ? body.blocks : [];
+      const bad = blocks.findIndex((b) => !SECTION_TYPES.some((t) => t.value === b.type));
+      if (bad !== -1) return json(res, 422, { message: 'That is not a kind of section this site can draw.', errors: { [`blocks.${bad}.type`]: ['That is not a kind of section this site can draw.'] } });
+      return json(res, 200, { data: { sections: presentSections(blocks) } });
+    }
+
     /* The admin CMS indexes and details, from `ADMIN_CMS`. */
     for (const entity of ADMIN_CMS) {
       if (p === entity.base && req.method === 'GET') {
         const q = (url.searchParams.get('q') || '').toLowerCase();
-        const rows = q ? entity.rows.filter((r) => (r.title || r.name || '').toLowerCase().includes(q)) : entity.rows;
+        const rows = q ? entity.rows.filter((r) => `${r.title || r.name || ''} ${r.slug || ''}`.toLowerCase().includes(q)) : entity.rows;
         const page = paginate(rows.map((r) => entity.detail(r)));
         page.meta.answer_block_kinds = ANSWER_BLOCK_KINDS;
+        if (entity.base === '/admin/pages') {
+          page.meta.section_types = SECTION_TYPES;
+          page.meta.section_presets = SECTION_PRESETS;
+        }
         if (entity.base === '/admin/store/products') {
           page.meta.types = [{ value: 'physical', label: 'Physical', description: 'Shipped.' }, { value: 'digital', label: 'Digital', description: 'A code.' }, { value: 'service', label: 'Service', description: 'Work.' }];
           page.meta.statuses = [{ value: 'draft', label: 'Draft' }, { value: 'published', label: 'Published' }, { value: 'archived', label: 'Archived' }];
@@ -3328,7 +3430,9 @@ createServer(async (req, res) => {
     return json(res, 200, { data: cmsPages.map(({ id, title, slug, updated_at, seo }) => ({ id, title, slug, updated_at, seo })) });
   }
   if (p.startsWith('/pages/')) {
-    const pg = cmsPages.find(x => x.slug === p.split('/')[2]);
+    const found = cmsPages.find(x => x.slug === p.split('/')[2]);
+    // `blocks` is the console's; the public read carries `sections`, and only for a builder page.
+    const pg = found && { ...found, blocks: undefined, sections: found.template === 'builder' ? found.sections : undefined };
     return pg ? json(res, 200, { data: { ...pg, ...answerContent([], pg.faqs || [], { faq_count: (pg.faqs || []).length }) } })
               : json(res, 404, { message: 'Not found.' });
   }

@@ -1,0 +1,198 @@
+import Image from "next/image";
+import { BlockView } from "@/components/blocks/block-view";
+import { LogoMarquee, type StripMode } from "@/components/company/logo-marquee";
+import { FormBlock } from "@/components/forms/form-block";
+import { ArrowLink } from "@/components/ui/button";
+import { Collection, Tile } from "@/components/ui/collection";
+import { Container } from "@/components/ui/container";
+import { QuestionAccordion } from "@/components/ui/faq";
+import { Gallery } from "@/components/ui/gallery";
+import { IconTile, hueForIcon } from "@/components/ui/icon-tile";
+import { SliderFor } from "@/components/ui/slider-for";
+import { publicApi } from "@/lib/api";
+import type {
+  CardsSectionData, ContentBlockSectionData, EmbedSectionData, FaqSectionData, LogosSectionData,
+} from "@/types/api";
+import { SectionFrame, SectionHead } from "./section-parts";
+
+/**
+ * The sections that draw something that lives elsewhere: a live list, a
+ * content block, a slider, a gallery, a form, the FAQs, a logo strip.
+ *
+ * A slider, gallery or form arrives as its **current slug** and is fetched
+ * from its own public endpoint here, exactly as a shortcode is
+ * (`ProseWithShortcodes`) — so "published and not empty" has one definition,
+ * and a fetch that fails renders nothing rather than failing the page. A
+ * content block arrives inline (`BlockView`), the one the shortcode renders.
+ */
+
+/** What each `cards` source is to a theme's collection idiom. */
+const KIND: Record<string, string> = {
+  solutions: "solutions", services: "services", industries: "industries", case_studies: "case-studies",
+  blog: "posts", knowledge: "articles", products: "products", store_products: "products",
+};
+
+/**
+ * A live list as the theme draws its grids — `Collection` of `Tile`s, so
+ * Editorial rules it, Datacenter racks it and Terminal lists it without a
+ * line here knowing. A tile's title is an `h3` under the section's `h2`, or
+ * a `b` when the section has no heading.
+ */
+export function CardsSection({ data, eager }: { data: CardsSectionData; eager: boolean }) {
+  const cols = data.columns ?? 3;
+
+  return (
+    <SectionFrame type="cards">
+      <Container>
+        <SectionHead kicker={data.kicker} heading={data.heading} lede={data.lede} />
+        <Collection kind={KIND[data.source] ?? "related"} cols={cols}>
+          {data.items.map((item) => (
+            <Tile
+              key={item.path}
+              href={item.path}
+              titleAs={data.heading ? "h3" : "b"}
+              title={item.title}
+              kicker={item.kicker ?? undefined}
+              summary={item.summary ?? undefined}
+              meta={item.meta ?? undefined}
+              icon={item.icon ? <IconTile name={item.icon} /> : undefined}
+              hue={item.icon ? hueForIcon(item.icon) : undefined}
+              focus={item.image_focus}
+              media={item.image ? (
+                <Image
+                  src={item.image}
+                  alt={item.image_alt ?? ""}
+                  fill
+                  sizes={cols === 4 ? "(min-width: 1024px) 22vw, (min-width: 640px) 45vw, 90vw" : "(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 90vw"}
+                  loading={eager ? "eager" : undefined}
+                  className="object-cover"
+                />
+              ) : undefined}
+              cta="Learn more"
+            />
+          ))}
+        </Collection>
+        {data.index_path && (
+          <p className="mt-8"><ArrowLink href={data.index_path}>See them all</ArrowLink></p>
+        )}
+      </Container>
+    </SectionFrame>
+  );
+}
+
+/** A published content block, drawn as a page section — `BlockView` brings its own band. */
+export function ContentBlockSection({ data }: { data: ContentBlockSectionData }) {
+  return <div data-page-section="content_block"><BlockView block={data.block} /></div>;
+}
+
+export async function SliderSection({ data }: { data: EmbedSectionData }) {
+  const slider = await publicApi.slider(data.slug).then((r) => r.data).catch(() => null);
+  if (!slider) return null;
+
+  return (
+    <SectionFrame type="slider">
+      <Container>
+        <SectionHead heading={data.heading} />
+        <SliderFor slider={slider} aspect="aspect-[16/9]" />
+      </Container>
+    </SectionFrame>
+  );
+}
+
+export async function GallerySection({ data }: { data: EmbedSectionData }) {
+  const gallery = await publicApi.gallery(data.slug).then((r) => r.data).catch(() => null);
+  if (!gallery) return null;
+
+  return (
+    <SectionFrame type="gallery">
+      <Container>
+        <SectionHead heading={data.heading} />
+        <Gallery gallery={gallery} />
+      </Container>
+    </SectionFrame>
+  );
+}
+
+export async function FormSection({ data }: { data: EmbedSectionData }) {
+  const form = await publicApi.form(data.slug).then((r) => r.data).catch(() => null);
+  if (!form) return null;
+
+  return (
+    <SectionFrame type="form">
+      <Container>
+        <div className="mx-auto max-w-3xl">
+          <SectionHead heading={data.heading} lede={data.lede} />
+          <FormBlock form={form} />
+        </div>
+      </Container>
+    </SectionFrame>
+  );
+}
+
+/**
+ * Questions that open — the same `<details>` accordion the FAQs and the
+ * question blocks use. No `FAQPage` here: the API's `faq_schema` already
+ * counts these questions, and the page renders that one graph.
+ */
+export function FaqSection({ data }: { data: FaqSectionData }) {
+  if (!data.items.length) return null;
+
+  return (
+    <SectionFrame type="faq">
+      <Container>
+        <SectionHead heading={data.heading || "Common questions"} />
+        <QuestionAccordion items={data.items.map((q, i) => ({ key: i, question: q.question, answer: q.answer }))} />
+      </Container>
+    </SectionFrame>
+  );
+}
+
+/**
+ * How each theme moves its two strips on the homepage — `partners` (the
+ * brands) and `clients` (Trusted by) — read here so a builder page's strip
+ * moves the way the theme's homepage does. Mirrors the `mode` each theme's
+ * `templates/home.tsx` passes; a theme missing here draws the strip as it
+ * shipped (the marquee, and the flip wall for clients).
+ */
+const STRIP_MODES: Record<string, { brands?: StripMode; clients?: StripMode }> = {
+  canvas: { brands: "rise", clients: "deal" },
+  datacenter: { brands: "parallax", clients: "pulse" },
+  editorial: { brands: "cascade", clients: "wipe" },
+  enterprise: { brands: "ring", clients: "cascade" },
+  horizon: { brands: "drift", clients: "spotlight" },
+  keystone: { brands: "deal", clients: "lens" },
+  launch: { brands: "lens", clients: "rise" },
+  sentinel: { brands: "pulse", clients: "ring" },
+  summit: { brands: "spotlight", clients: "bob" },
+  terminal: { brands: "flicker", clients: "drift" },
+  vantage: { brands: "bob", clients: "parallax" },
+};
+
+export async function LogosSection({ data, themeId }: { data: LogosSectionData; themeId: string }) {
+  const mode = STRIP_MODES[themeId]?.[data.source];
+
+  if (data.source === "clients") {
+    const clients = await publicApi.clients().then((r) => r.data).catch(() => []);
+    const featured = clients.filter((c) => c.is_featured);
+    const shown = (featured.length ? featured : clients).slice(0, 12);
+
+    return (
+      <div data-page-section="logos">
+        <LogoMarquee
+          items={shown.map((c) => ({ id: c.id, name: c.name, logo: c.logo, detail: c.industry?.name ?? null }))}
+          caption={data.heading || undefined}
+          variant={mode ? "logos" : "flip"}
+          size="lg"
+          mode={mode ?? "marquee"}
+        />
+      </div>
+    );
+  }
+
+  const brands = await publicApi.brands().then((r) => r.data).catch(() => []);
+  return (
+    <div data-page-section="logos">
+      <LogoMarquee items={brands} caption={data.heading || undefined} mode={mode ?? "marquee"} />
+    </div>
+  );
+}

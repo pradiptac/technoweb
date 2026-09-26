@@ -220,7 +220,9 @@ const fullCsp = (dev: boolean, frameAncestors = "'self'") => [
     // Cashfree's modal checkout, sandbox and live.
     "https://sdk.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com https://sandbox.cashfree.com https://api.cashfree.com",
   ].join(" "),
-  "media-src 'self'",
+  // A video from the media library is served from the asset origin, like its
+  // pictures: a slide's video and a page-builder `video` section (2026-09-26).
+  `media-src 'self' ${assetOrigins}`,
   "worker-src 'self' blob:",
   "manifest-src 'self'",
 ].join("; ");

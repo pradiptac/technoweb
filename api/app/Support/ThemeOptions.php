@@ -126,90 +126,105 @@ final class ThemeOptions
                 throw new \InvalidArgumentException("\"{$section}\" is not the shape of a section id.");
             }
 
-            if (! is_array($bg)) {
-                throw new \InvalidArgumentException("The background for \"{$section}\" must be an object.");
-            }
-
-            $kind = $bg['kind'] ?? 'default';
-
-            if (! in_array($kind, self::KINDS, true)) {
-                throw new \InvalidArgumentException("A section background is solid, gradient, image, page or default — not \"{$kind}\".");
-            }
-
-            // Whether the section renders at all. Anything but an explicit
-            // false is on: the switch must never be tripped by a value that
-            // arrived as a string, a number or by accident.
-            $enabled = ($bg['enabled'] ?? true) !== false;
-
-            // A default carries nothing, so a row that is both default and
-            // switched on stores nothing; a switched-off default is kept for
-            // the switch alone.
-            if ($kind === 'default') {
-                if (! $enabled) {
-                    $out[$section] = ['kind' => 'default', 'enabled' => false];
-                }
-
-                continue;
-            }
-
-            $row = ['kind' => $kind];
-            if (! $enabled) {
-                $row['enabled'] = false;
-            }
-
-            // "None" — the page's own ground — carries no colour at all.
-            if ($kind === 'page') {
+            $row = self::background($section, $bg);
+            if ($row !== null) {
                 $out[$section] = $row;
-
-                continue;
             }
-
-            // A second colour belongs to a gradient alone; a solid or a
-            // picture that arrived with one (the console keeps a value the
-            // editor typed before switching kind) stores it nowhere.
-            foreach ($kind === 'gradient' ? ['colour', 'colour2'] : ['colour'] as $c) {
-                if (isset($bg[$c]) && $bg[$c] !== '') {
-                    if (! is_string($bg[$c]) || ! preg_match(self::HEX, $bg[$c])) {
-                        throw new \InvalidArgumentException("The {$c} for \"{$section}\" must be a #rrggbb colour.");
-                    }
-                    $row[$c] = strtolower($bg[$c]);
-                }
-            }
-
-            if ($kind !== 'image' && ! isset($row['colour'])) {
-                throw new \InvalidArgumentException("The background for \"{$section}\" needs a colour.");
-            }
-
-            if ($kind === 'gradient' && ! isset($row['colour2'])) {
-                throw new \InvalidArgumentException("The gradient for \"{$section}\" needs a second colour.");
-            }
-
-            if (isset($bg['angle']) && $bg['angle'] !== '') {
-                $angle = filter_var($bg['angle'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 360]]);
-                if ($angle === false) {
-                    throw new \InvalidArgumentException("The angle for \"{$section}\" must be 0–360 degrees.");
-                }
-                $row['angle'] = $angle;
-            }
-
-            if ($kind === 'image') {
-                $path = $bg['image_path'] ?? null;
-                if (! is_string($path) || $path === '' || strlen($path) > 255 || str_contains($path, '..') || str_starts_with($path, '/')) {
-                    throw new \InvalidArgumentException("The picture for \"{$section}\" must be a media library path.");
-                }
-                $row['image_path'] = $path;
-
-                $overlay = filter_var($bg['overlay'] ?? 60, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 90]]);
-                if ($overlay === false) {
-                    throw new \InvalidArgumentException("The overlay for \"{$section}\" must be 0–90 percent.");
-                }
-                $row['overlay'] = $overlay;
-            }
-
-            $out[$section] = $row;
         }
 
         return $out;
+    }
+
+    /**
+     * One section background, cleaned — the rule a homepage section and a
+     * page-builder section (`App\Support\PageSections\SectionRules`) share,
+     * so a background means one thing wherever it is chosen. Null for the
+     * theme's own ground when nothing else is said; throws with one sentence
+     * naming `$label` otherwise.
+     *
+     * @return array<string, mixed>|null
+     *
+     * @throws \InvalidArgumentException
+     */
+    public static function background(string $label, mixed $bg): ?array
+    {
+        $section = $label;
+
+        if (! is_array($bg)) {
+            throw new \InvalidArgumentException("The background for \"{$section}\" must be an object.");
+        }
+
+        $kind = $bg['kind'] ?? 'default';
+
+        if (! in_array($kind, self::KINDS, true)) {
+            throw new \InvalidArgumentException("A section background is solid, gradient, image, page or default — not \"{$kind}\".");
+        }
+
+        // Whether the section renders at all. Anything but an explicit
+        // false is on: the switch must never be tripped by a value that
+        // arrived as a string, a number or by accident.
+        $enabled = ($bg['enabled'] ?? true) !== false;
+
+        // A default carries nothing, so a row that is both default and
+        // switched on stores nothing; a switched-off default is kept for
+        // the switch alone.
+        if ($kind === 'default') {
+            return $enabled ? null : ['kind' => 'default', 'enabled' => false];
+        }
+
+        $row = ['kind' => $kind];
+        if (! $enabled) {
+            $row['enabled'] = false;
+        }
+
+        // "None" — the page's own ground — carries no colour at all.
+        if ($kind === 'page') {
+            return $row;
+        }
+
+        // A second colour belongs to a gradient alone; a solid or a
+        // picture that arrived with one (the console keeps a value the
+        // editor typed before switching kind) stores it nowhere.
+        foreach ($kind === 'gradient' ? ['colour', 'colour2'] : ['colour'] as $c) {
+            if (isset($bg[$c]) && $bg[$c] !== '') {
+                if (! is_string($bg[$c]) || ! preg_match(self::HEX, $bg[$c])) {
+                    throw new \InvalidArgumentException("The {$c} for \"{$section}\" must be a #rrggbb colour.");
+                }
+                $row[$c] = strtolower($bg[$c]);
+            }
+        }
+
+        if ($kind !== 'image' && ! isset($row['colour'])) {
+            throw new \InvalidArgumentException("The background for \"{$section}\" needs a colour.");
+        }
+
+        if ($kind === 'gradient' && ! isset($row['colour2'])) {
+            throw new \InvalidArgumentException("The gradient for \"{$section}\" needs a second colour.");
+        }
+
+        if (isset($bg['angle']) && $bg['angle'] !== '') {
+            $angle = filter_var($bg['angle'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 360]]);
+            if ($angle === false) {
+                throw new \InvalidArgumentException("The angle for \"{$section}\" must be 0–360 degrees.");
+            }
+            $row['angle'] = $angle;
+        }
+
+        if ($kind === 'image') {
+            $path = $bg['image_path'] ?? null;
+            if (! is_string($path) || $path === '' || strlen($path) > 255 || str_contains($path, '..') || str_starts_with($path, '/')) {
+                throw new \InvalidArgumentException("The picture for \"{$section}\" must be a media library path.");
+            }
+            $row['image_path'] = $path;
+
+            $overlay = filter_var($bg['overlay'] ?? 60, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 90]]);
+            if ($overlay === false) {
+                throw new \InvalidArgumentException("The overlay for \"{$section}\" must be 0–90 percent.");
+            }
+            $row['overlay'] = $overlay;
+        }
+
+        return $row;
     }
 
     /**

@@ -40,6 +40,8 @@ const WIDTH = {
   md: "max-w-[34rem]",
   /** For a dialog with two columns in it — the shop's quick view. */
   lg: "max-w-[46rem]",
+  /** A whole page at a desktop width — the page builder's draft preview (2026-09-26). */
+  xl: "max-w-[min(96vw,80rem)]",
 } as const;
 
 export function Modal({

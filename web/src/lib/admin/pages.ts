@@ -2,7 +2,8 @@ import "server-only";
 import { apiFetch } from "@/lib/api";
 import { token } from "./_shared";
 import type {
-  AdminPage, AdminFaq, AnswerBlock, FaqOwnerGroup, Paginated, PublishStatus, SeoOverride,
+  AdminPage, AdminFaq, AnswerBlock, FaqOwnerGroup, PageBuilderOptions, PageSection, Paginated, PublishStatus,
+  SeoOverride, StoredSection,
 } from "@/types/api";
 
 export type FaqPayload = Partial<{
@@ -55,6 +56,8 @@ export type CmsPagePayload = Partial<{
   status: PublishStatus;
   published_at: string | null;
   answer_blocks: AnswerBlock[];
+  /** The builder's sections, posted whole (`docs/page-builder.md`). */
+  blocks: StoredSection[];
   seo: Partial<SeoOverride>;
 }>;
 
@@ -86,4 +89,21 @@ export async function updatePage(id: number, payload: CmsPagePayload): Promise<A
 
 export async function deletePage(id: number): Promise<void> {
   await apiFetch<void>(`/admin/pages/${id}`, { method: "DELETE", token: await token() });
+}
+
+/** Everything the section builder's selects are drawn from — types, presets and the published pickers. */
+export async function getPageBuilderOptions(): Promise<PageBuilderOptions> {
+  const res = await apiFetch<{ data: PageBuilderOptions }>("/admin/pages/builder", { token: await token() });
+  return res.data;
+}
+
+/**
+ * The unsaved-draft preview: the sections as typed, validated by the rules a
+ * save runs and presented as the public site reads them. Writes nothing.
+ */
+export async function previewPageSections(blocks: StoredSection[], pageId?: number | null): Promise<PageSection[]> {
+  const res = await apiFetch<{ data: { sections: PageSection[] } }>("/admin/pages/preview", {
+    method: "POST", body: { blocks, page_id: pageId ?? null }, token: await token(),
+  });
+  return res.data.sections;
 }
