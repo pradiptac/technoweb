@@ -116,6 +116,7 @@ const ADMIN_ROUTES = [
   // entry below, because nothing seeds a webhook and its id is whatever an
   // administrator made.
   "/admin/webhooks", "/admin/webhooks/new",
+  "/admin/imports/wordpress",
   // Engineer visits (docs/visits.md): the queue and its settings; the record
   // screen is a DISCOVER entry, since nothing seeds a visit request.
   "/admin/visits", "/admin/visits/settings",

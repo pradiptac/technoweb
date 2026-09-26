@@ -3,13 +3,13 @@
 namespace App\Jobs;
 
 use App\Models\WebhookDelivery;
-use App\Support\Net\PublicHost;
+use App\Support\Net\SafeHttp;
+use App\Support\Net\UnsafeUrl;
 use App\Support\Webhooks\Webhooks;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
-use Illuminate\Support\Facades\Http;
 use RuntimeException;
 use Throwable;
 
@@ -88,29 +88,22 @@ class DeliverWebhook implements ShouldQueue
          * way to *read* the inside of the network. So the host is resolved
          * now, every address it answers with must be public, and cURL is
          * told to use exactly those (`CURLOPT_RESOLVE`), so it cannot ask
-         * DNS a second time and be given a different answer.
+         * DNS a second time and be given a different answer. `SafeHttp` is
+         * where that lives, shared with the WordPress importer.
          */
-        $host = (string) parse_url($hook->url, PHP_URL_HOST);
-        $port = (int) (parse_url($hook->url, PHP_URL_PORT) ?: 443);
-        $refusal = PublicHost::refusal($host, requireResolution: true);
+        try {
+            $request = SafeHttp::request($hook->url);
+        } catch (UnsafeUrl $e) {
+            $this->recordRefusal($delivery, null, $e->getMessage());
 
-        if ($refusal !== null) {
-            $this->recordRefusal($delivery, null, $refusal);
-
-            throw new RuntimeException("{$hook->url}: {$refusal}");
+            throw new RuntimeException("{$hook->url}: {$e->getMessage()}");
         }
-
-        // An address literal was checked as itself and needs no pin.
-        $pins = filter_var(trim($host, '[]'), FILTER_VALIDATE_IP) !== false ? [] : array_map(
-            fn (string $ip) => $host.':'.$port.':'.(str_contains($ip, ':') ? '['.$ip.']' : $ip),
-            PublicHost::resolve($host),
-        );
 
         $body = $delivery->envelope();
         $timestamp = time();
 
         try {
-            $response = Http::withHeaders([
+            $response = $request->withHeaders([
                 'User-Agent' => 'Technoware-Webhooks/1.0',
                 'X-Technoware-Event' => $delivery->event,
                 'X-Technoware-Delivery' => (string) $delivery->id,
@@ -120,12 +113,11 @@ class DeliverWebhook implements ShouldQueue
                 ->withBody($body, 'application/json')
                 ->timeout(10)
                 /*
-                 * A redirect is a failure, not an instruction. Followed, a
-                 * 302 from a public host to `http://169.254.169.254/` took
-                 * the request past every check above — and to plain http.
+                 * A redirect is a failure, not an instruction — the request
+                 * `SafeHttp` hands back does not follow one. Followed, a 302
+                 * from a public host to `http://169.254.169.254/` took the
+                 * request past every check above, and to plain http.
                  */
-                ->withoutRedirecting()
-                ->withOptions(['curl' => [CURLOPT_RESOLVE => $pins]])
                 ->post($hook->url);
         } catch (ConnectionException $e) {
             $this->recordRefusal($delivery, null, $e->getMessage());

@@ -73,6 +73,7 @@ Schedule::command('technoware:prune-inbound-emails')->dailyAt('03:37');
  * because the stuck case is what somebody is looking at right now.
  */
 Schedule::command('technoware:prune-newsletter-scans')->hourly();
+Schedule::command('technoware:prune-wordpress-imports')->hourly();
 
 /*
  * Spam and binned comments.

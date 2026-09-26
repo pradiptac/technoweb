@@ -7,6 +7,7 @@ use App\Support\SvgSanitiser;
 use App\Support\UploadLimits;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -95,6 +96,38 @@ class MediaUploader
             'height' => $height,
             'alt_text' => $attributes['alt_text'] ?? null,
         ]);
+    }
+
+    /**
+     * Store a file this server fetched itself — the WordPress importer's
+     * downloads — through exactly the rules a console upload meets.
+     *
+     * The same validation `StoreMediaRequest` runs (the extension list,
+     * checked against the detected content by `mimes:`, and the size
+     * ceiling), then `store()`, so the SVG sanitiser and the megapixel limit
+     * apply too. The MIME type recorded is the one `finfo` reads from the
+     * bytes, never whatever the remote server claimed: a
+     * `Content-Type: image/png` in front of an HTML page is a lie this row
+     * would otherwise repeat for as long as it exists.
+     *
+     * @param  array{folder_id?: int|null, alt_text?: string|null}  $attributes
+     *
+     * @throws ValidationException when the file is not one the library accepts
+     */
+    public static function storeFromPath(string $path, string $filename, ?int $userId, array $attributes = []): Media
+    {
+        $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($path) ?: 'application/octet-stream';
+        $file = new UploadedFile($path, $filename, $mime, null, true);
+        $video = in_array(strtolower($file->getClientOriginalExtension()), self::VIDEO_EXTENSIONS, true);
+
+        Validator::make(['file' => $file], [
+            'file' => ['required', 'file', 'mimes:'.implode(',', self::ALLOWED_EXTENSIONS), 'max:'.UploadLimits::maxKb($video)],
+        ], [
+            'file.mimes' => 'Not a file type the library accepts.',
+            'file.max' => 'Over the '.round(UploadLimits::maxKb($video) / 1024).' MB limit.',
+        ])->validate();
+
+        return self::store($file, $userId, $attributes);
     }
 
     /**

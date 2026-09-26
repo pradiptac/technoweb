@@ -28,7 +28,7 @@ use Symfony\Component\HttpFoundation\Response;
  *   - **Every creation is sensitive.** A record appearing is as much a
  *     question as one disappearing, and `store` is a route name, so a new
  *     entity is covered before anybody thinks about it.
- *   - **Everything under staff, customers, settings and auth is sensitive**,
+ *   - **Everything under staff, customers, settings, auth and imports is sensitive**,
  *     whatever the verb. Those are accounts, other people's accounts, and the
  *     configuration that decides how the site behaves.
  *
@@ -39,7 +39,7 @@ use Symfony\Component\HttpFoundation\Response;
 class ActivityLogger
 {
     /** Route groups where any write is worth a line. */
-    private const SENSITIVE_GROUPS = ['staff', 'customers', 'settings', 'auth'];
+    private const SENSITIVE_GROUPS = ['staff', 'customers', 'settings', 'auth', 'imports'];
 
     /**
      * Request keys that may be copied into `context`.

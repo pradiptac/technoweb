@@ -148,6 +148,7 @@ Contents:
   - Messaging — `docs/messaging.md`
   - Engineer visits — `docs/visits.md`
   - Custom fields and content types — `docs/custom-content.md`
+  - Importing a WordPress / WooCommerce site — `docs/wordpress-import.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -2753,6 +2754,21 @@ A customer asks for an engineer on site with up to three preferred times; the de
 - Seven emails for five classes (`VisitRequestReceived` and `VisitConfirmed` two each); the customer's receipt repeats their chosen times and never their notes. `MessageEvent` gains `VisitRequested`, `VisitConfirmed`, `VisitReminder`; the opt-in is the checkout's, sourced `visit`.
 - It files a lead, channel `visit` (`LeadIntake::fromVisit()`); `visit_request` is in the morph map, and the lead links back.
 - `role:sales_manager,support_engineer` (`routes/api/admin-visits.php`, one comma-joined row in `nav-items.tsx`); settings `role:admin` at `/admin/visits/settings`; `staff_note` is on the admin resource only.
+
+### Importing a WordPress / WooCommerce site — `docs/wordpress-import.md`
+
+System → WordPress import (2026-09-27): scan → dry run → review → commit, every phase a sliced queued job (`RunWordPressImport`); complete and accountable rather than perfect — what has no home here is named, grouped by reason, before anything is written.
+
+- The site is read over `wp/v2` (an application password) and `wc/v3` (a read-only REST key), both Basic auth, sealed in the cache by `SealedCache` for the scan's job chain only and forgotten when it stops; the commit needs no credentials, the harvest is JSONL on the private disk and deleted when the import completes or expires (three days).
+- Every request goes through `App\Support\Net\SafeHttp` (extracted from `DeliverWebhook`, which uses it too): public addresses only, pinned with `CURLOPT_RESOLVE`, at most three redirects followed by hand with each hop re-checked, never https → http, `Authorization` dropped when the host changes. `WORDPRESS_IMPORT_ALLOW_PRIVATE` opens it to a local WordPress only under `APP_ENV=local`.
+- One loop does the dry run and the commit (`Importer::run`), with a cursor on `progress`; a dry-run step marks what it will create (`ImportMap::plan()`) so later steps see it coming, and changing a review decision re-runs the dry run so the counts shown are the commit's.
+- `wordpress_import_map` (site hash + source type + id → morph alias + id, old URL) is the identity: a second import of the same site updates rather than copies, and never changes a slug.
+- Orders are history, inserted in their final state and never through `Checkout`/`Settlement`/`moveTo()`; updated with `saveQuietly()`; numbered `WC-{n}` outside `Order::nextNumber()`'s sequence; `review_requested_at` stamped; shipping and fees are service lines so the lines add up to the total; GST is WooCommerce's recorded tax.
+- Catalogue prices follow the review's `tax_basis` when WooCommerce added tax on top; order totals never change; a non-INR shop imports no products, coupons or orders.
+- Media is fetched on demand (`Context::media()`) through `MediaUploader::storeFromPath()` — the upload's extension list against the bytes, size and megapixel limits, the SVG sanitiser, `finfo`'s MIME.
+- Customers arrive active, unconfirmed, with a random password (sign-in by code confirms them and claims their guest orders) and join "Existing customers" through their own hook, as the client decided; the review names the sequences that would email them. Per-record IndexNow pings are suppressed (`IndexNow::suppressed`). Staff are never created; menus arrive unassigned.
+- Yoast titles that are only the title plus the old site's name, and canonicals pointing at the old site, are never copied — and a Yoast head is used only when its canonical is the record's own address (without its index Yoast repeats the first post's head on every post; measured on a real site). The application password reads `wc/v3` too; a WooCommerce key is optional. Old-site staff roles are not imported as customers. ACF kinds are inferred and changeable in the review; repeaters, groups, galleries and relationships are named and not kept.
+- Redirects: a 301 from every imported record's old address, plus `/shop` → `/store`, never over a route, page or archive this site serves. "Plain" permalinks (`/?p=62`, `/?product=cap`) are stored as `/?{name}={value}` and `proxy.ts` looks them up **on the home path only**, keeping the rest of the query; a shop category's old address is read from `wp/v2/product_cat`, never assumed to be `/product-category/`.
 
 ## Conventions
 

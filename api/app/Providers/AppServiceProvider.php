@@ -72,6 +72,7 @@ use App\Models\User;
 use App\Models\VisitRequest;
 use App\Models\Webhook;
 use App\Models\WebhookDelivery;
+use App\Models\WordPressImport;
 use App\Support\Chat\AiProvider;
 use App\Support\Chat\Providers\OpenAiProvider;
 use App\Support\InboundMail\ImapMailbox;
@@ -296,6 +297,10 @@ class AppServiceProvider extends ServiceProvider
             // A delivery is bound too (redeliver), so it needs one as well.
             'webhook' => Webhook::class,
             'webhook_delivery' => WebhookDelivery::class,
+
+            // A WordPress import is bound on its routes, so the activity log
+            // names it as the subject of a commit or a cancel.
+            'wordpress_import' => WordPressImport::class,
         ]);
     }
 }

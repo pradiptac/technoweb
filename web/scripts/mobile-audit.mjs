@@ -113,6 +113,7 @@ const ADMIN_ROUTES = [
   // Outgoing webhooks: the form's event grid is two columns of cards from
   // `sm` and one below it, and the delivery log is a table with data-labels.
   "/admin/webhooks", "/admin/webhooks/new",
+  "/admin/imports/wordpress",
   "/admin/profile", "/admin/customers",
   // The editor is the one worth measuring: a subject field, a rich-text body,
   // a plain-text box and a palette of mono chips in 320px.
