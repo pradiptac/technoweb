@@ -163,9 +163,18 @@ restored draft back out of it.
 
 - **Unsaved** — "Preview" posts the list to a Server Action
   (`builder/preview-action.tsx`) that sends it to `POST /admin/pages/preview`
-  — the rules a save runs, nothing written — and renders the presented
-  sections **with the public components**, returned to a `Modal` (`xl`, the
-  size added for this). A refusal comes back as field errors.
+  — the rules a save runs, nothing written — keeps the presented sections for
+  ten minutes (`lib/admin/preview-drafts.ts`, bound to that staff session, on
+  `globalThis` so every route bundle in the process shares it) and returns an
+  id; the `Modal` (`xl`) frames `/admin/draft-preview/{id}`, a page outside
+  `admin/(app)` that draws them **with the public components**. A refusal
+  comes back as field errors. It returned the rendered JSX from the action
+  until 2026-09-26, and that failed in a browser the first time anybody drove
+  it: a section holding a client component the console page never imports
+  (the YouTube facade, the gallery's lightbox, a form, a CTA island) put a
+  module in the RSC payload that the page's client manifest did not hold —
+  "Could not find the module … in the React Client Manifest". A page gets its
+  own complete client bundle.
 - **Saved** — `/admin/pages/{id}/preview` draws the admin read's `sections`
   (presented, hidden ones left out), drafts included; linked from the page's
   header and from the Builder tab.
