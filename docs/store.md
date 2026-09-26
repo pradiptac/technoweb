@@ -1,6 +1,6 @@
 # The store
 
-A separate catalogue with prices; baskets, checkout, payment, stock, coupons, digital codes, the Merchant Center feed, the catalogue as a spreadsheet, back-in-stock notices, wishlists.
+A separate catalogue with prices; baskets, checkout, payment, stock, coupons, digital codes, the Merchant Center feed, the catalogue as a spreadsheet, back-in-stock notices, wishlists, specification filters, product video and zoom, the Meta catalogue.
 
 Moved out of `CLAUDE.md` on 2026-09-14, verbatim and in the order they were
 written. Each note is a rule and the measurement behind it; the one-line
@@ -1231,3 +1231,213 @@ that does not fit; `/store/wishlist`; the portal's "My wishlist" tab beside
 the orders, with the emails switch; and "Most wished for" on the store
 dashboard — five products by the number of *lists*, all time, since a wish is
 standing demand rather than an event in the window.
+
+## Specification filters (2026-09-26)
+
+The client asked for filters **chosen per category from the products' own
+spec sheets** — "Ports", "PoE", "Rack units" — rather than a filter builder
+with its own vocabulary. `docs/store-merch-plan.md` is the plan.
+
+**The index is derived, and rebuilt whole.** A spec sheet is stored on the
+product as ordered pairs (`App\Casts\SpecSheet`) and a variation's options the
+same way: JSON, which cannot be indexed for "every product whose Ports is 24
+or 48". `store_product_specs` holds one row per product, label and value —
+`label`/`value` as typed, `label_key`/`value_key` normalised (trimmed,
+whitespace collapsed, lower-cased), a unique index on the triple and an index
+on `(label_key, value_key)` — and `App\Support\Store\SpecIndex::rebuild()`
+deletes a product's rows and writes them again from what it says now. **A
+product matches when any active variation has the value**: a switch sold as a
+24-port and a 48-port is one somebody filtering by 48 wants to see, and an
+inactive variation cannot be bought, so it offers nothing.
+
+**Rebuilt after the commit, once per product.** The admin form saves the
+product and then each variation inside one transaction, and each save asks for
+a rebuild; rebuilt on the first ask the index would read the variations before
+they were written. `SpecIndex::queue()` defers every ask to `DB::afterCommit`
+(at once outside a transaction), and the first callback to run stamps the
+product so the rest — all asked before that stamp — skip. The guard is a
+timestamp rather than a "pending" set because a rolled-back transaction drops
+its callbacks and would leave a set entry standing for the life of a queue
+worker. The hooks: a product created or with a changed sheet; a variation
+created, deleted, or with changed options or switch; and the admin controller
+asks directly after `saveVariations()`, whose removals are a mass delete that
+fires no event. `technoware:rebuild-store-specs` rebuilds everything — run it
+once after the migration, and after any write that went around the models.
+A failed rebuild is reported and never thrown: the `StockLedger` rule.
+
+**OR within a label, AND across, matched on the keys.** `?spec[Ports][]=24
+ports&spec[Ports][]=48 ports&spec[PoE][]=Yes` is (24 or 48) and PoE — two
+port counts ticked is "either will do", and "24-port and PoE" is one switch
+with both (`App\Support\Store\SpecFilter`). **A label nothing in the shop
+carries is ignored**, not applied: applied it would empty the page, which is
+what a renamed label or a mangled bookmark would do to somebody who did
+nothing wrong. A known label with a value nobody has is a real filter and
+answers nothing. Twelve labels and forty values a request at most.
+
+**Facets are counted under the other labels' choices, never their own.**
+`GET /store/categories/{slug}/facets` answers each of the category's filter
+labels with its values and how many published products each would leave.
+Counted under its own selection, ticking "24 ports" would put 0 against "48
+ports" — which reads as "none" when it means "not ticked yet", and OR within
+a label is exactly the choice those numbers are for. A ticked value emptied by
+the other choices stays at 0 so it can be unticked. Values are in a natural
+order: a leading number as a number ("8 ports" before "24 ports", "1,000
+Mbps" as a thousand), numbers before words, then `strnatcasecmp`.
+
+**Only the unfiltered answer is cached** — five minutes, keyed on the category,
+its filter list and `updated_at`, the newest product in it and the index's
+version (`SpecIndex::touch()`, moved by every rebuild and every product
+deleted: the two changes that alter counts without moving any product's
+`updated_at`). A selection is counted fresh every time; a combination
+somebody ticked is a user's query, the rule `?q=` keeps. The frontend's
+`publicApi.storeFacets()` takes the same `cache` flag and the page passes
+`false` whenever a spec is in the address — and `storeProducts()` likewise.
+A category with no filters answers `data: []` in a 200, the `/menus/*` rule.
+
+**The labels a category offers are chosen from what its products carry.**
+`store_categories.filter_specs` is an ordered list of labels, edited on the
+category form's Filters tab (`SpecFilterPicker`): chips of every label its
+published products carry with how many carry it, most common first, ticked
+into a list reordered with `ReorderButtons`. `Store\CategoryRequest::after()`
+refuses a label none of the category's products carries and a label twice
+(on the key) — **except a label already saved**, which stays saveable after
+its last product lost it, so an unrelated edit is never refused over it; the
+picker lists it at 0 to take off. A new category has no products and so can
+offer no filter yet. The admin detail read carries `spec_labels`; both
+category resources carry `filter_specs`.
+
+**`/store` filters; the category page links.** `/store` is dynamic already, so
+its panel is a GET form through `AutoApplyForm` — a tick applies at once and
+pushes the address the form would have submitted — beside the grid from `lg`
+(which drops to four columns) and a disclosure above it below `lg`
+(`SpecFilterDisclosure`: a button with `aria-expanded` and the `hidden`
+*class*, because a closed `<details>` cannot be opened again by a breakpoint).
+Chosen values are chips over the grid, each removing itself, with "Clear all".
+`/store/categories/[slug]` is ISR and **must not read `searchParams`** — a
+request-time API in that render is a 500, not a fallback — so its panel is
+built from the cached unfiltered counts and every value is a link to
+`/store?category=<slug>&spec[..]`: `nofollow` (a filtered view is
+`noindex, follow` through `listingMetadata`, where `spec` is a filter) and
+`prefetch={false}` (forty prefetched dynamic renders per category page is
+forty renders nobody asked for).
+
+**The address is indexed, `spec[Label][i]`, not `spec[Label][]`.** Every pair
+is then its own key, so `Pagination`'s flat `params`, the chips' links and the
+filter bar's hidden inputs can all carry a selection (`lib/store-specs.ts`);
+PHP reads both forms the same. The filter bar keeps the selection through a
+change of sort (`keep`, hidden inputs); **only the labels the chosen category
+offers narrow the listing**, so a selection carried across a change of
+category is ignored unless the new category offers the same label, in which
+case its panel shows it ticked. A label containing `[` or `]` does not survive
+PHP's bracket parsing — none in this catalogue does.
+
+## Product video and zoom (2026-09-26)
+
+**Videos are YouTube links and uploaded MP4/WebM files, up to four.**
+`store_products.videos` is a list of `{kind, youtube_id | path, title,
+poster_path}` (`App\Support\Store\ProductVideos`, a plain `array` cast — a list
+keeps its order in MySQL, object keys inside it do not, and nothing reads
+them in order). **A YouTube link is stored as its id**: validated through
+`YouTube::id()`, which compares the host exactly and so refuses
+`youtube.com.attacker.test`, and normalised in the controller so the link
+itself is never written. **A file is a media-library path with a video
+extension** the library holds; a PDF, an unknown path or a URL is refused. A
+poster is a JPEG, PNG, WebP or GIF from the library — not an SVG, since a
+poster is a frame. `StoreProductVideoTest` pins each refusal.
+
+**The console edits them on the Media tab** (`VideoField`): a row per video —
+a YouTube link or a file chosen through `MediaBrowser` (the Files half, which
+holds video), a title, a poster — reordered and removed with `ReorderButtons`,
+posted as one hidden JSON list and replaced wholesale. `videos` is in the
+Media tab's `fields` list, or a refused link would be charged to Content.
+
+**On the page they follow the pictures** in `ProductGallery`, whose shop-only
+behaviour is behind `store` — the catalogue's product page passes nothing and
+is unchanged. A video's thumbnail is its poster or a drawn panel with a play
+mark; in the well a YouTube video is **the click-to-play facade**
+(`ProductVideoPlayer`): the uploaded poster or the brand panel, and
+`youtube-nocookie.com` mounted on the press with `autoplay`. **Never
+`i.ytimg.com`** — YouTube's thumbnail would be the third-party request the
+facade exists to avoid, and it is not in `img-src`. A file is `<video controls
+preload="none" playsInline poster>`; `media-src` now names the asset origins,
+so a file from the API's storage is not a report-only violation (a slider's
+uploaded video benefits too). A video's well is a `div`, not the lightbox's
+button — a player inside a button is two controls fighting over one press —
+and is keyed on the slot, so moving between two videos starts each at its
+facade. The store also shows **every** picture's thumbnail in a strip that
+scrolls past five (`w-0 min-w-full`, the grid-item rule), where the catalogue
+still shows the first five.
+
+**The hover magnifier is `scale` and a following `transform-origin`.** In the
+store's well, from `lg` on a device that hovers with a fine pointer (asked of
+`matchMedia` on each entry, so a resized window behaves), the picture scales
+to 2× inside the well with its origin under the pointer. Written to the
+`<img>`'s style directly rather than through state — sixty renders a second of
+the whole gallery otherwise — and transitioned as `transition-[scale]`, never
+`transition-transform` (the Tailwind v4 trap); the global reduced-motion rule
+removes the transition and keeps the zoom. The well stays the lightbox's
+button, and a click resets the magnifier first.
+
+**The lightbox zooms 1× to 3× and pans** (`components/ui/gallery.tsx`, so a
+CMS gallery's lightbox gains it too). A click zooms to 2× at the point pressed
+and a second click puts it back (the second press of a double-click is
+ignored, so a double-click zooms in); `+`/`=`, `-` and `0` on the dialog;
+Ctrl + wheel, which is also a trackpad's pinch, through a non-passive listener
+(React's `onWheel` is passive and cannot stop the page zooming instead); a
+two-finger pinch on touch; drag to pan under pointer capture, clamped so the
+picture's edge never comes away from the frame. Zoom holds the point under the
+pointer still — `t' = (q − c) − (s'/s)(q − c − t)`, since `scale` then
+`translate` place a point at `c + s(p − c) + t`. Zoom and pan live in the
+lightbox and `go()` resets both, so every way of moving to another picture —
+arrows, keys, a thumbnail, the slideshow — arrives whole. The zoomed picture
+asks for a `200vw` variant. "Zoom in", "Zoom out" and "Reset zoom" are
+labelled controls in the top bar, disabled at the ends, and a polite live
+region says the percentage.
+
+**`subjectOf` names a YouTube video only when every required property is
+honest.** Google requires `name`, `thumbnailUrl` and `uploadDate` for a
+`VideoObject`. The name is the video's title or the product's; the thumbnail
+is **the uploaded poster and nothing else** — YouTube's own frame is never
+requested by this site and is not claimed — so a video without a poster is
+left out of the graph; `uploadDate` is the product's `updated_at`, the page
+carrying it (the video's own publication date is YouTube's, and not something
+this application knows); `embedUrl` is the nocookie player the page mounts.
+Uploaded files are drawn on the page and left out of the graph, per the plan.
+
+## The Meta catalogue: Facebook, Instagram and WhatsApp (2026-09-26)
+
+**One source, two sinks.** Meta's Commerce Manager — which also stocks the
+WhatsApp Business catalogue — reads a scheduled data feed, and accepts
+Google's RSS format. `/meta-catalogue.xml` and `/meta-catalogue.csv` are built
+from the same rows as the Google feed (`GET /api/v1/store/feed`,
+`ProductFeed::build`), mapped at the frontend sink in `lib/meta-catalogue.ts`:
+so what is listed, each item's id, which price is the regular one and which
+the sale, and whether a shelf is in stock cannot differ between the two
+platforms, which suspend accounts over the same mismatches.
+
+**What the mapping changes.** `availability` in Meta's words — `in stock`,
+`out of stock`, and **`available for order` for a back-order**, which is what
+an empty shelf the shop has agreed to take orders for is. Google-only
+attributes (`identifier_exists`, the shipping block, handling times,
+`product_detail`) are left out. `size` and `color` come from the variation
+options the Google feed already maps. **No `quantity_to_sell_on_facebook`**:
+no stock count is ever published. A product the Google feed leaves out —
+withheld, a service, no raster picture — is left out of both. A product with
+no brand is sent without one; Meta reports it rather than being told an
+invented one.
+
+**Each format is escaped at its own sink**: XML text escaping in the XML, and
+in the CSV RFC 4180 quoting plus the formula guard `Csv::escape` keeps on the
+API side (a cell opening `=`, `+`, `-`, `@`, a tab or a carriage return gains
+an apostrophe). Several additional pictures share one CSV cell,
+comma-separated, which is Meta's form. Both are cached for an hour and fail
+the Google feed's way — an empty feed, never a 500.
+
+**`meta_catalogue_enabled`** (`store` group, public, on by default — it
+publishes nothing the Google feed does not) switches both routes to a 404.
+The store products screen's feed card (`StoreFeedsCard`) lists the Google
+address, both Meta addresses and the catalogue export, each with a copy
+button and a plain `<a download>` (never a `Link`: it would prefetch a route
+handler that builds the whole feed), and a "How to connect" disclosure:
+Commerce Manager → Data sources → Data feed → Scheduled feed; WhatsApp
+Business Manager → Catalogue → connect the same catalogue.
