@@ -187,12 +187,15 @@ class VisitRequest extends Model
         $this->loadMissing(['service', 'solution']);
 
         // Both are nullOnDelete, so either may have gone since the request
-        // was made; the analyser reads a belongs-to as always present.
-        /** @var Service|null $service */
-        $service = $this->service;
-        /** @var Solution|null $solution */
-        $solution = $this->solution;
+        // was made: read as loaded, and checked, rather than assumed.
+        $service = $this->getRelation('service');
 
-        return $service?->title ?? $solution?->title ?? 'Site survey';
+        if ($service instanceof Service) {
+            return $service->title;
+        }
+
+        $solution = $this->getRelation('solution');
+
+        return $solution instanceof Solution ? $solution->title : 'Site survey';
     }
 }

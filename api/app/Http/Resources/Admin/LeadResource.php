@@ -36,6 +36,8 @@ class LeadResource extends JsonResource
 
     public function toArray(Request $request): array
     {
+        $visit = $this->relationLoaded('source') ? $this->source : null;
+
         $base = [
             'id' => $this->id,
             'channel' => $this->channel,
@@ -127,8 +129,8 @@ class LeadResource extends JsonResource
             // The engineer visit request a `visit` lead came from (docs/visits.md):
             // the desk books it there, so the lead links to it.
             'visit' => $this->when(
-                $this->relationLoaded('source') && $this->source instanceof VisitRequest,
-                fn () => ['reference' => $this->source->reference, 'admin_path' => $this->source->adminPath()],
+                $visit instanceof VisitRequest,
+                $visit instanceof VisitRequest ? ['reference' => $visit->reference, 'admin_path' => $visit->adminPath()] : null,
             ),
             'submission' => $this->when(
                 $this->relationLoaded('source') && $this->source && $this->channel === 'form',
