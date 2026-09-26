@@ -9,6 +9,7 @@ use App\Models\StoreCategory;
 use App\Models\StoreProduct;
 use App\Support\EntityLinks;
 use App\Support\Store\ProductFeed;
+use App\Support\Store\SpecFilter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -37,6 +38,10 @@ class StoreController extends Controller
             ? $request->query('sort')
             : 'featured';
 
+        // `?spec[Ports][]=24 ports` — OR within a label, AND across labels,
+        // labels nothing carries ignored (2026-09-26). See `SpecFilter`.
+        $specs = SpecFilter::parse($request->query('spec'));
+
         $products = StoreProduct::query()
             ->published()
             /*
@@ -55,6 +60,7 @@ class StoreController extends Controller
                 'brand', fn ($b) => $b->where('slug', $request->string('brand'))
             ))
             ->when($request->filled('type'), fn ($q) => $q->where('type', $request->string('type')))
+            ->when($specs !== [], fn ($q) => SpecFilter::apply($q, $specs))
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = $request->string('q')->value();
                 $q->where(fn ($w) => $w->where('name', 'like', "%{$term}%")
@@ -178,6 +184,32 @@ class StoreController extends Controller
             ->get();
 
         return CategoryResource::collection($categories);
+    }
+
+    /**
+     * The category's specification filters: for each label it offers, the
+     * values its published products carry and how many products each would
+     * leave under the *other* choices in `?spec` (2026-09-26).
+     *
+     * Unfiltered, the answer is cached for five minutes; with a selection it
+     * is counted fresh every time — a combination somebody ticked is a
+     * user's query, never a cache key. An empty `data` is the ordinary answer
+     * for a category with no filters chosen, in a 200, so the frontend's own
+     * fetch cache can hold it (the `/menus/*` lesson).
+     */
+    public function facets(Request $request, StoreCategory $storeCategory): JsonResponse
+    {
+        abort_unless($storeCategory->is_active, 404);
+
+        $selected = SpecFilter::parse($request->query('spec'));
+
+        return response()->json([
+            'data' => SpecFilter::facets($storeCategory, $selected),
+            'meta' => [
+                'category' => $storeCategory->slug,
+                'filtered' => $selected !== [],
+            ],
+        ]);
     }
 
     public function category(StoreCategory $storeCategory): JsonResource

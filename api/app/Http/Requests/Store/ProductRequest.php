@@ -8,6 +8,7 @@ use App\Enums\PublishStatus;
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
 use App\Http\Requests\SeoRules;
+use App\Support\Store\ProductVideos;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -152,6 +153,14 @@ class ProductRequest extends FormRequest
             // asset(), so a stored URL breaks the day the site moves domain.
             'images.*' => ['string', 'max:255', 'not_regex:/^https?:\/\//i'],
 
+            /*
+             * Up to four videos, each a YouTube link or an MP4/WebM from the
+             * media library, with a title and a poster (2026-09-26). The link
+             * is checked by `YouTube::id()` and stored as the id alone — see
+             * `ProductVideos`.
+             */
+            ...ProductVideos::rules(),
+
             'specifications' => ['sometimes', 'nullable', 'array', 'max:40'],
             'specifications.*' => ['nullable', 'string', 'max:255'],
 
@@ -214,6 +223,7 @@ class ProductRequest extends FormRequest
             'answer_blocks.*.answer.required' => 'Every answer block needs its direct answer.',
             'answer_blocks.*.answer.max' => 'The direct answer is limited to 600 characters. Put the rest in the detail.',
             'answer_blocks.*.question.required_if' => 'A question or comparison block needs its question.',
+            ...ProductVideos::messages(),
         ];
     }
 }

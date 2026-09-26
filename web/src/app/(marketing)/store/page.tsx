@@ -11,24 +11,37 @@ import { TrustStrip } from "@/components/store/trust-strip";
 import { RecentlyViewed } from "@/components/store/recently-viewed";
 import { StoreHero } from "@/components/store/store-hero";
 import { StoreFilterBar } from "@/components/store/store-filter-bar";
+import { SpecFilterChips, SpecFilterPanel } from "@/components/store/spec-filter-panel";
 import { SliderFor } from "@/components/ui/slider-for";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { listingMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
+import { appendSpecs, hasSpecs, limitSpecs, parseSpecs, specEntries, specParams } from "@/lib/store-specs";
+import type { StoreFacet } from "@/types/store-merch";
 import type { Paginated, StoreCategory, StoreProduct } from "@/types/api";
 
-type SearchParams = { q?: string; category?: string; sort?: string; page?: string };
+/*
+  `spec[Label][i]` keys are read as well (see `lib/store-specs.ts`), which is
+  why the index signature is here: they are named by whatever labels a
+  category offers.
+*/
+type SearchParams = { q?: string; category?: string; sort?: string; page?: string } & Record<string, string | string[] | undefined>;
 
 /** Self-referencing canonical per page; a search or a category facet is `noindex, follow` — see `listingMetadata`. */
 export async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const sp = await searchParams;
   return listingMetadata({
     title: "Store",
     description:
       "Buy hardware, licences and services online. All prices include 18% GST — the price shown is the price paid.",
     path: "/store",
-    searchParams: await searchParams,
-    filters: ["q", "category"],
+    // A spec filter is a filtered view like a search: `noindex, follow`.
+    searchParams: {
+      q: sp.q, category: sp.category, page: sp.page,
+      spec: hasSpecs(parseSpecs(sp)) ? "1" : undefined,
+    },
+    filters: ["q", "category", "spec"],
   });
 }
 
@@ -61,12 +74,17 @@ export default async function StorePage({
   if (sp.sort) query.set("sort", sp.sort);
   if (sp.page) query.set("page", sp.page);
   /*
+    Everything `spec[..]` in the address, before it is known which labels
+    the chosen category offers — narrowed to those below, once the
+    categories are in.
+  */
+  const requested = parseSpecs(sp);
+  /*
     Set last and unconditionally, so a hand-edited URL cannot ask for a page
     size this grid was not laid out for — the `?sort=` rule one step further on:
     what arrives from outside is a request, not an instruction.
   */
   query.set("per_page", String(PER_GRID));
-  const qs = query.toString();
 
   /*
     Everything the page needs, in one round. The slider, the settings and the
@@ -88,27 +106,53 @@ export default async function StorePage({
     publicApi.storeProducts(`?sort=newest&per_page=${PER_GRID}`, true)
       .then((r) => r.data.slice(0, PER_GRID))
       .catch(() => [] as StoreProduct[]),
-    (async (): Promise<{ categories: StoreCategory[]; products: Paginated<StoreProduct> | null; failed: boolean }> => {
+    (async (): Promise<{
+      categories: StoreCategory[]; products: Paginated<StoreProduct> | null; failed: boolean;
+      facets: StoreFacet[]; specs: Record<string, string[]>;
+    }> => {
       try {
-        const [categories, products] = await Promise.all([
-          publicApi.storeCategories().then((r) => r.data),
-          // Never cached with a search term in it: `?q=` has an unbounded key
-          // space, so caching fills the cache with single-use entries and
-          // serves a stale empty result for the whole window.
-          publicApi.storeProducts(qs ? `?${qs}` : "", !sp.q),
+        /*
+          The categories first — a cached fetch, so it costs a cache read —
+          because which `spec` labels count depends on the category chosen:
+          only the ones its panel offers narrow the listing. A `spec` left in
+          the address from another category (the filter bar carries the
+          selection across a change of category) is ignored rather than
+          filtering by something the page cannot show.
+        */
+        const categories = await publicApi.storeCategories().then((r) => r.data);
+        const chosen = sp.category ? categories.find((c) => c.slug === sp.category) : undefined;
+        const specs = chosen?.filter_specs?.length ? limitSpecs(requested, chosen.filter_specs) : {};
+        const filteredBySpec = hasSpecs(specs);
+        const qs = appendSpecs(new URLSearchParams(query), specs).toString();
+        const facetQuery = appendSpecs(new URLSearchParams(), specs).toString();
+
+        const [products, facets] = await Promise.all([
+          // Never cached with a search term or a spec filter in it: either is
+          // an unbounded key space, so caching fills the cache with
+          // single-use entries and serves a stale empty result for the
+          // whole window.
+          publicApi.storeProducts(qs ? `?${qs}` : "", !sp.q && !filteredBySpec),
+          chosen?.filter_specs?.length
+            ? publicApi.storeFacets(chosen.slug, facetQuery ? `?${facetQuery}` : "", !filteredBySpec)
+              .then((r) => r.data)
+              // The filters are an aid; a failure leaves the listing standing.
+              .catch(() => [] as StoreFacet[])
+            : Promise.resolve([] as StoreFacet[]),
         ]);
-        return { categories, products, failed: false };
+        return { categories, products, failed: false, facets, specs };
       } catch (error) {
         // A build that cannot reach the API fails rather than baking "we
         // could not load the store" into static HTML for Google to crawl.
         if (isPrerendering) throw error;
-        return { categories: [], products: null, failed: true };
+        return { categories: [], products: null, failed: true, facets: [], specs: {} };
       }
     })(),
   ]);
-  const { categories, products, failed } = listing;
+  const { categories, products, failed, facets, specs } = listing;
 
-  const filtered = Boolean(sp.q || sp.category);
+  const filtered = Boolean(sp.q || sp.category || hasSpecs(specs));
+  const panel = facets.length > 0 && sp.category;
+  const base = { q: sp.q, category: sp.category ?? "", sort: sp.sort };
 
   return (
     <>
@@ -226,6 +270,12 @@ export default async function StorePage({
         className={`mx-auto w-[calc(90%+0.5rem)] max-w-[calc(1920px+0.5rem)] ${
           heroSlider ? "mt-5" : "mt-12 lg:mt-16"
         }`}
+        /*
+          The spec selection rides along as hidden inputs, so changing the
+          sort keeps the filters; after a change of category the labels the
+          new one does not offer are ignored above.
+        */
+        keep={specEntries(specs)}
       />
 
       <section className="pb-8 lg:pb-10">
@@ -243,7 +293,25 @@ export default async function StorePage({
                 </div>
               )}
 
+              {/*
+                The specification filters, when the chosen category offers
+                any (2026-09-26): a sidebar from `lg`, a disclosure above the
+                grid below it, and the grid a column narrower beside it.
+              */}
+              <div className={panel ? "lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-8" : undefined}>
+              {panel && (
+                <SpecFilterPanel
+                  facets={facets}
+                  selection={specs}
+                  base={base}
+                  mode="form"
+                  className="mb-5 lg:mb-0"
+                />
+              )}
+              <div className="min-w-0">
               <h2 className="mb-4 text-22 font-semibold tracking-tight">Top Picks For You</h2>
+
+              <SpecFilterChips selection={specs} base={base} className="mb-4" />
 
               {products.data.length === 0 ? (
                 <EmptyState icon={<IconBox />} title={filtered ? "Nothing matches that" : "The store is being set up"}>
@@ -252,7 +320,11 @@ export default async function StorePage({
                     : "There is nothing on sale online yet. Get in touch and we will quote."}
                 </EmptyState>
               ) : (
-                <ul data-collection="products" data-cols="6" className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
+                <ul
+                  data-collection="products"
+                  data-cols={panel ? "4" : "6"}
+                  className={`grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 ${panel ? "xl:grid-cols-4" : "xl:grid-cols-6"}`}
+                >
                   {products.data.map((p, i) => (
                     <li key={p.id}>
                       {/* h3: "Top Picks For You" above the grid is the h2. */}
@@ -266,11 +338,13 @@ export default async function StorePage({
                 <Pagination
                   meta={products.meta}
                   basePath="/store"
-                  params={{ q: sp.q, category: sp.category, sort: sp.sort }}
+                  params={{ q: sp.q, category: sp.category, sort: sp.sort, ...specParams(specs) }}
                   showPerPage={false}
                   numbered
                 />
               )}
+              </div>
+              </div>
             </>
           )}
         </Container>

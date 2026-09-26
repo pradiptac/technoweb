@@ -209,6 +209,8 @@ function categoryPayload(formData: FormData): Record<string, unknown> {
     image_path: str(formData, "image_path"),
     is_active: formData.get("is_active") === "1",
     sort_order: sortOrder ? Number(sortOrder) : 0,
+    // The specification filters, an ordered list replaced wholesale.
+    filter_specs: jsonListFromFormData<string>(formData, "filter_specs").filter((l) => typeof l === "string"),
     faqs: jsonListFromFormData<FaqItem>(formData, "faqs"),
     answer_blocks: jsonListFromFormData<AnswerBlock>(formData, "answer_blocks"),
     ...(seo ? { seo } : {}),

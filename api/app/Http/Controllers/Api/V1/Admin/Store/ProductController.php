@@ -11,6 +11,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Store\ProductRequest;
 use App\Http\Resources\Admin\Store\ProductResource;
 use App\Models\StoreProduct;
+use App\Support\Store\ProductVideos;
+use App\Support\Store\SpecIndex;
 use App\Support\Store\StockLedger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -97,10 +99,15 @@ class ProductController extends Controller
         $product = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $variations = $this->pull($attributes, self::RELATIONS);
+            $attributes = ProductVideos::normaliseAttributes($attributes);
 
             $product = StoreProduct::create($attributes);
 
             $this->saveVariations($product, $variations['variations'] ?? null);
+            // The variation rows removed above go by a mass delete, which
+            // fires no model event, so the spec index is asked for directly.
+            // Deferred to the commit and deduplicated — see `SpecIndex`.
+            SpecIndex::queue((int) $product->id);
             $this->syncServices($product, $variations);
             $this->saveAnswerContent($product, $variations);
             $this->saveSeo($product, $seo);
@@ -132,6 +139,7 @@ class ProductController extends Controller
         DB::transaction(function () use ($request, $storeProduct) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $variations = $this->pull($attributes, self::RELATIONS);
+            $attributes = ProductVideos::normaliseAttributes($attributes);
 
             /*
              * The levels before the save, because the form posts a level and
@@ -147,6 +155,7 @@ class ProductController extends Controller
             $storeProduct->update($attributes);
 
             $this->saveVariations($storeProduct, $variations['variations'] ?? null);
+            SpecIndex::queue((int) $storeProduct->id);
             $this->syncServices($storeProduct, $variations);
             $this->saveAnswerContent($storeProduct, $variations);
             $this->saveSeo($storeProduct, $seo);

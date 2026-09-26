@@ -29,11 +29,16 @@ class StoreCategory extends Model implements Answerable, Faqable
 {
     use HasAnswerBlocks, HasSeo, Sluggable;
 
-    protected $fillable = ['name', 'slug', 'description', 'google_product_category', 'icon_path', 'image_path', 'is_active', 'sort_order'];
+    protected $fillable = ['name', 'slug', 'description', 'google_product_category', 'filter_specs', 'icon_path', 'image_path', 'is_active', 'sort_order'];
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return [
+            'is_active' => 'boolean',
+            // The spec labels offered as filters, in the order they are
+            // offered — a list, so the plain cast keeps it (2026-09-26).
+            'filter_specs' => 'array',
+        ];
     }
 
     protected function slugSource(): string

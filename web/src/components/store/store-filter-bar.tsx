@@ -34,7 +34,7 @@ import type { StoreCategory } from "@/types/api";
  * a basket cannot be cached.
  */
 export async function StoreFilterBar({
-  categories, q, category, sort, sticky = true, className,
+  categories, q, category, sort, sticky = true, className, keep = [],
 }: {
   categories: StoreCategory[];
   q?: string;
@@ -67,6 +67,12 @@ export async function StoreFilterBar({
    * merged last, so `mx-auto` beats the base `-mx-1`.
    */
   className?: string;
+  /**
+   * Query pairs to carry through the form as hidden inputs — the shop's
+   * `spec[Label][i]` selection (2026-09-26), so changing the sort does not
+   * drop the filters somebody ticked.
+   */
+  keep?: [string, string][];
 }) {
   const filtered = Boolean(q || category);
   // Cached with the rest of the settings (600s), so the shop stays cacheable.
@@ -163,6 +169,10 @@ export async function StoreFilterBar({
           strip plus two 176px selects, Apply and the basket is a little more
           than the row — it is the search that gives, not the controls.
         */}
+        {keep.map(([name, value]) => (
+          <input key={`${name}=${value}`} type="hidden" name={name} value={value} />
+        ))}
+
         <div className="col-span-2 min-w-0 lg:flex-[0_1_50%]">
           {/*
             `sr-only`, not deleted. The magnifier and the placeholder are enough

@@ -12,6 +12,7 @@ import { FaqField } from "@/components/admin/faq-field";
 import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
 import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
+import { SpecFilterPicker } from "@/components/admin/spec-filter-picker";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import {
@@ -35,6 +36,8 @@ const initial: StoreFormState = {};
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
     fields: ["name", "slug", "description", "google_product_category", "icon_path", "image_path", "is_active", "sort_order"] },
+  // The shop's specification filters for this category (2026-09-26).
+  { id: "filters", label: "Filters", fields: ["filter_specs"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
   // The AEO tab (docs/aeo-geo-contract.md §7). Last, so every tab above keeps its place.
   { id: "aeo", label: "AEO", fields: ["answer_blocks", "faqs"] },
@@ -145,6 +148,16 @@ export function StoreCategoryForm({ category, kinds }: { category?: AdminStoreCa
               <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={category?.sort_order ?? 0} />
             </Field>
           </aside>
+        </div>
+
+        {/* Filters, one child. */}
+        <div>
+          <SpecFilterPicker
+            labels={category?.spec_labels ?? []}
+            defaultValue={category?.filter_specs ?? []}
+            editing={editing}
+            error={rowErr("filter_specs")}
+          />
         </div>
 
         <SeoPanel seo={category?.seo ?? undefined} defaults={category?.seo_defaults} error={seoErr} embedded record={category ? { type: 'store_category', id: category.id } : null} />

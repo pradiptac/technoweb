@@ -1569,6 +1569,9 @@ export type AdminStoreCategory = {
   is_active: boolean;
   sort_order: number;
   product_count?: number;
+  /** The specification filters offered, in order, and the labels a picker can offer (detail only). */
+  filter_specs?: string[];
+  spec_labels?: import("./store-merch").AdminSpecLabel[];
   /** Present on a detail response only -- see the API resource's `$detail` gate. */
   seo?: SeoOverride;
   seo_defaults?: Seo;
@@ -2222,6 +2225,8 @@ export type StoreCategory = AnswerContent & {
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   image_focus?: string | null;
   product_count?: number;
+  /** The specification labels offered as filters, in order (2026-09-26). */
+  filter_specs?: string[];
   /** Present only on a listing that eager-loaded it -- see the API resource. */
   seo?: Seo;
 };

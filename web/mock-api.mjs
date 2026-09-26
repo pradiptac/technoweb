@@ -399,9 +399,36 @@ const storeCategories = [
   // photograph a share preview uses. One category carries both and one carries
   // neither, because the rail draws an empty tile for the second and a fixture
   // that never sends null would hide that branch.
-  { id: 1, name: 'Switches', slug: 'switches', description: 'Managed and unmanaged access switches.', icon_url: 'http://127.0.0.1:8899/storage/mock/switch-icon.png', image_url: null, image_focus: null, product_count: 2 },
-  { id: 2, name: 'Licences', slug: 'licences', description: 'Software and security licences, delivered by activation code.', icon_url: null, image_url: null, image_focus: null, product_count: 1 },
+  // `filter_specs` (2026-09-26): the spec labels a category offers as filters.
+  { id: 1, name: 'Switches', slug: 'switches', description: 'Managed and unmanaged access switches.', icon_url: 'http://127.0.0.1:8899/storage/mock/switch-icon.png', image_url: null, image_focus: null, product_count: 2, filter_specs: ['Ports', 'Rack units'] },
+  { id: 2, name: 'Licences', slug: 'licences', description: 'Software and security licences, delivered by activation code.', icon_url: null, image_url: null, image_focus: null, product_count: 1, filter_specs: [] },
 ];
+
+/*
+ * The specification filter (2026-09-26), the same rules `SpecFilter` keeps:
+ * a product's pairs are its sheet plus every variation's options, matched on
+ * a trimmed, collapsed, lower-cased key; OR within a label, AND across; a
+ * label counted under the *other* labels' choices only.
+ */
+const specKeyOf = (s) => String(s).trim().replace(/\s+/g, ' ').toLowerCase();
+const specPairsOf = (product) => [
+  ...Object.entries(product.specifications || {}),
+  ...(product.variations || []).flatMap((v) => Object.entries(v.options || {})),
+].filter(([l, v]) => specKeyOf(l) && specKeyOf(v));
+function specSelection(searchParams) {
+  const out = {};
+  for (const [k, v] of searchParams.entries()) {
+    const m = /^spec\[(.+)\]\[\d*\]$/.exec(k);
+    if (!m || !specKeyOf(v)) continue;
+    (out[specKeyOf(m[1])] ??= new Set()).add(specKeyOf(v));
+  }
+  return out;
+}
+function matchesSpecs(product, selection, except = null) {
+  const pairs = specPairsOf(product).map(([l, v]) => [specKeyOf(l), specKeyOf(v)]);
+  return Object.entries(selection).every(([label, values]) =>
+    label === except || pairs.some(([l, v]) => l === label && values.has(v)));
+}
 
 const storeProducts = [
   { id: 1, name: 'CBS350-24T-4G Managed Switch', slug: 'cbs350-24t-4g', sku: 'CBS350-24T-4G', is_featured: true,
@@ -2962,6 +2989,8 @@ createServer(async (req, res) => {
     let rows = storeProducts;
     if (cat) rows = rows.filter(x => x.category?.slug === cat);
     if (q) rows = rows.filter(x => (x.name + ' ' + (x.sku || '') + ' ' + (x.brand?.name || '')).toLowerCase().includes(q));
+    const specs = specSelection(url.searchParams);
+    if (Object.keys(specs).length) rows = rows.filter(x => matchesSpecs(x, specs));
     if (sort === 'name') rows = [...rows].sort((a, b) => a.name.localeCompare(b.name));
     if (sort === 'price-low') rows = [...rows].sort((a, b) => a.price_paise - b.price_paise);
     if (sort === 'price-high') rows = [...rows].sort((a, b) => b.price_paise - a.price_paise);
@@ -3008,6 +3037,34 @@ createServer(async (req, res) => {
       }) } });
   }
   if (p === '/store/categories') return json(res, 200, { data: storeCategories });
+  // The category's filters and their counts. `data: []` in a 200 for a
+  // category that offers none, never a 404 (the `/menus/*` rule).
+  if (/^\/store\/categories\/[^/]+\/facets$/.test(p)) {
+    const sc = storeCategories.find(x => x.slug === p.split('/')[3]);
+    if (!sc) return json(res, 404, { message: 'Not found.' });
+    const selection = specSelection(url.searchParams);
+    const inCategory = storeProducts.filter(x => x.category?.slug === sc.slug);
+    const num = (s) => { const m = /^\s*(\d+(?:\.\d+)?)/.exec(s); return m ? Number(m[1]) : null; };
+    const data = (sc.filter_specs || []).map((label) => {
+      const key = specKeyOf(label);
+      const counts = new Map();
+      for (const product of inCategory.filter(x => matchesSpecs(x, selection, key))) {
+        const seen = new Set();
+        for (const [l, v] of specPairsOf(product)) {
+          if (specKeyOf(l) !== key || seen.has(specKeyOf(v))) continue;
+          seen.add(specKeyOf(v));
+          const row = counts.get(specKeyOf(v)) || { value: String(v), key: specKeyOf(v), count: 0, selected: false };
+          row.count += 1;
+          counts.set(specKeyOf(v), row);
+        }
+      }
+      for (const v of selection[key] || []) if (!counts.has(v)) counts.set(v, { value: v, key: v, count: 0, selected: true });
+      const values = [...counts.values()].map(r => ({ ...r, selected: Boolean(selection[key]?.has(r.key)) }))
+        .sort((a, b) => ((num(a.value) ?? Infinity) - (num(b.value) ?? Infinity)) || a.value.localeCompare(b.value, undefined, { numeric: true, sensitivity: 'base' }));
+      return { label, key, values };
+    }).filter(f => f.values.length);
+    return json(res, 200, { data, meta: { category: sc.slug, filtered: Object.keys(selection).length > 0 } });
+  }
   if (p.startsWith('/store/categories/')) {
     const sc = storeCategories.find(x => x.slug === p.split('/')[3]);
     return sc ? json(res, 200, { data: { ...sc, ...answerContent([], [], { solutions: [{ name: solutions[0].title, path: `/solutions/${solutions[0].slug}` }] }) } })
