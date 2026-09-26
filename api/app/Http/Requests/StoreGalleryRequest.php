@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\GalleryTransition;
 use App\Enums\PublishStatus;
+use App\Support\LinkPattern;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -81,7 +82,8 @@ class StoreGalleryRequest extends FormRequest
             'items.*.alt_text' => ['nullable', 'string', 'max:255'],
             'items.*.title' => ['nullable', 'string', 'max:200'],
             'items.*.subtitle' => ['nullable', 'string', 'max:500'],
-            'items.*.link_url' => ['nullable', 'string', 'max:255'],
+            // An `href` on the page, so the menu's shape; see `LinkPattern`.
+            'items.*.link_url' => ['nullable', 'string', 'max:255', LinkPattern::RULE],
             /*
              * The tab this picture is filed under, named by slug.
              *
