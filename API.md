@@ -267,7 +267,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/knowledge-base/{slug}` | |
 | `POST` | `/knowledge-base/{slug}/helpful` | "Was this helpful?" Throttled 10/min. **204 always** — a draft counts nothing and answers the same |
 | `GET` | `/pages` | Published CMS pages, **without bodies**. For the sitemap |
-| `GET` | `/pages/{slug}` | CMS pages — `/privacy`, `/terms`, `/downloads` |
+| `GET` | `/pages/{slug}` | CMS pages — `/privacy`, `/terms`, `/downloads`. A `builder` page adds `sections` (see "The section page builder") |
 | `GET` | `/ticket-categories` | Powers the submit-a-ticket form |
 | `GET` | `/settings` | Site settings. **Whitelisted by group**, see below |
 | `GET` | `/search?q=` | Site-wide search, grouped by type. Min 2 characters, 5 per group |
@@ -918,6 +918,48 @@ The keys are ordinary rows in the private `messaging` group, saved through `PATC
 | `POST` | `/admin/messaging/broadcasts/{id}/cancel` | Scheduled or sending: `cancelled`, and every delivery not yet sent `skipped` |
 
 **Every audience is narrowed to active contacts on the broadcast's channel.** `newsletter_group` matches the group's active subscribers to portal customers by email; `wishlist` reads `wishlist_items.store_product_id` joined to `wishlists.customer_id` and is **empty until those tables exist**.
+
+## The section page builder
+
+A CMS page whose `template` is `builder` is a stack of typed sections
+(2026-09-26). See `docs/page-builder.md`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/pages/builder` | `role:content_manager`. `section_types`, `section_presets`, `hero_layouts`, `card_sources`, and the **published** `content_blocks`, `sliders`, `galleries`, `forms`, plus `product_categories` and `store_categories`. Declared above `pages/{page:id}` |
+| `POST` | `/admin/pages/preview` | `role:content_manager`, throttled 60/min. `{blocks, page_id?}` — validated exactly as a save is, presented, **nothing written**. 200 `{data: {sections}}`, or a 422 keyed `blocks.N.data.field` |
+
+**`blocks` on `POST`/`PATCH /admin/pages`** is a list of at most 40
+`{id (uuid), type, hidden, background, data}`; `template` accepts `builder`
+beside `default` and `wide`. `type` is `App\Enums\PageSectionType` — `hero`,
+`rich_text`, `media_text`, `features`, `cards`, `content_block`, `slider`,
+`gallery`, `form`, `faq`, `logos`, `testimonial`, `video`, `divider` — and
+`data` is checked by that type's own rules (`SectionRules`), so a 422 names the
+field: `blocks.3.data.heading`. A picture or video must be in the media
+library and of the right kind; a content block, slider, gallery or form is
+named by id and must exist **and be published**; a YouTube link is stored as
+its id; a background is the Themes screen's section background, checked by
+the same rule; ids are unique. `data.body` on `rich_text` and `media_text` is
+rich text, cleaned on write like any body; every other field is plain text.
+Only declared keys are stored. Absent leaves the sections alone; `[]` clears
+them.
+
+**The admin detail read** carries `blocks` as stored, `blocks_media` (a URL
+for every stored `*_path`) and `sections` — the public shape, hidden ones
+left out — for the saved preview. The index's `meta` carries
+`section_types` and `section_presets`.
+
+**The public read `GET /pages/{slug}`** carries `sections` **only for a
+builder page**: hidden sections omitted; `*_path` → a URL with `*_alt` and
+`*_focus`; a content block inline as `data.block` (the public block
+resource); a slider, gallery or form as its current `slug`, which the
+frontend fetches from its own endpoint; a `cards` section's live list
+resolved as `items` (`title`, `summary`, `path`, `image`, `icon`, `kicker`,
+`meta`) with `index_path`; a `faq` on `source: page` carrying the page's
+FAQs. A section whose reference has been unpublished or deleted, or whose
+list is empty, is dropped. `faq_schema` counts the visible custom questions
+of `faq` sections beside the FAQs and question blocks — still one
+`FAQPage`, absent under two entries. The body is still sent.
 
 ## The store
 

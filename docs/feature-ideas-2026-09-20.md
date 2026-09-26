@@ -144,5 +144,9 @@ as a rule the code breaks. It should say what the scope is now.
   accepted by the API ("raw JSON here would let a typo corrupt a page
   invisibly"). Twelve themes and a rich-text editor cover what a marketing
   site needs; a block builder is a second CMS inside the first.
+  **Reversed 2026-09-26, at the client's request**: built as a *section*
+  builder, not a canvas — every section a set of fields validated by its
+  type, so the typo this note feared is a 422 on the field, not a corrupted
+  page. See `docs/page-builder.md`.
 - **Live chat with a human** — the assistant hands off to WhatsApp, which
   is where this client's customers already are.

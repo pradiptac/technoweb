@@ -78,6 +78,14 @@ A full CMS for the people who write, without a developer in the loop.
 - **Case studies** with client, industry and a results table.
 - **Standalone pages** (privacy, terms, downloads and anything else) in two
   templates, with shortcodes to drop a slider, gallery or form into any body.
+- **A section page builder**: a page laid out as a stack of ready sections —
+  hero, text, picture or video with text, features, live lists from the
+  catalogue, content blocks, sliders, galleries, forms, questions, logo
+  strips, testimonials, video and dividers — added from a picker or started
+  from a Landing, Service or About preset, then reordered, duplicated, hidden
+  and given a background. Every section's fields are checked before it saves,
+  a live preview shows the unsaved page under the active theme, and every
+  theme draws the sections in its own style.
 - **FAQs** managed in one place and attached to any solution, service, product
   or page — rendered on the page and as `FAQPage` structured data.
 - **Rich-text editor** with the full toolbar — headings, colour, tables,
