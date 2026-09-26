@@ -1,0 +1,101 @@
+import Image from "next/image";
+import { Breadcrumbs, type Crumb } from "@/components/ui/breadcrumbs";
+import { Container } from "@/components/ui/container";
+import { focalStyle } from "@/lib/focal";
+import { cn } from "@/lib/utils";
+import type { HeroSectionData } from "@/types/api";
+import { SectionButtons } from "./section-parts";
+
+/**
+ * A builder page's opening band — three layouts, one set of words.
+ *
+ * **First on the page it is the page's heading**: an `h1`, with the
+ * breadcrumb trail above it (visible and as `BreadcrumbList`, the one
+ * `Breadcrumbs` always emits) — the route draws no `PageHero` then, so the
+ * page still has exactly one `h1` and one trail. Anywhere else it is an
+ * `h2` and carries no trail.
+ *
+ * - `centered` — the words centred on the section's own ground.
+ * - `split` — the words beside the picture, framed; the picture is a
+ *   `next/image` `fill` with `sizes` for its column, never the full width.
+ * - `cover` — the picture fills the band under `bg-dark` at reduced
+ *   opacity, the `PageHero` banner's rule: the words are graded against
+ *   the dark ground and the real composite can only be darker, so the
+ *   contrast is arithmetic rather than a hope about the photograph.
+ *
+ * The picture is eager on the first two sections, where it is the largest
+ * paint, and lazy below — `SectionBg`'s rule.
+ */
+export function HeroSection({ data, first, crumbs, eager }: {
+  data: HeroSectionData;
+  first: boolean;
+  crumbs: Crumb[];
+  eager: boolean;
+}) {
+  const Heading = first ? "h1" : "h2";
+  const layout = data.layout ?? "centered";
+  const picture = data.image
+    ? (sizes: string, className?: string) => (
+        <Image
+          src={data.image!}
+          alt={layout === "cover" ? "" : data.image_alt ?? ""}
+          fill
+          sizes={sizes}
+          loading={eager ? "eager" : undefined}
+          className={cn("object-cover", className)}
+          style={focalStyle(data.image_focus)}
+        />
+      )
+    : null;
+
+  if (layout === "cover" && picture) {
+    return (
+      <section data-page-section="hero" data-hero-layout="cover" className="relative overflow-hidden bg-dark">
+        {picture("100vw", "opacity-35")}
+        <Container className="relative py-20 lg:py-28">
+          {first && <div className="mb-8"><Breadcrumbs crumbs={crumbs} onBanner /></div>}
+          <div className="max-w-3xl">
+            {data.kicker && <span className="text-11-5 font-semibold uppercase tracking-[.13em] text-dark-muted-brand">{data.kicker}</span>}
+            <Heading className={cn("display-1 text-balance text-dark-ink", data.kicker && "mt-4")}>{data.heading}</Heading>
+            {data.lede && <p className="lede mt-5 text-dark-ink">{data.lede}</p>}
+            <SectionButtons primary={data.primary} secondary={data.secondary} onDark />
+          </div>
+        </Container>
+      </section>
+    );
+  }
+
+  const words = (center: boolean) => (
+    <>
+      {data.kicker && <span className="text-11-5 font-semibold uppercase tracking-[.13em] text-secondary-ink">{data.kicker}</span>}
+      <Heading className={cn("display-1 text-balance", data.kicker && "mt-4")}>{data.heading}</Heading>
+      {data.lede && <p className={cn("lede mt-5", center && "mx-auto max-w-3xl")}>{data.lede}</p>}
+      <SectionButtons primary={data.primary} secondary={data.secondary} center={center} />
+    </>
+  );
+
+  if (layout === "split" && picture) {
+    return (
+      <section data-page-section="hero" data-hero-layout="split" data-aos={first ? undefined : "fade-up"} className="section-y-lg">
+        <Container>
+          {first && <div className="mb-8"><Breadcrumbs crumbs={crumbs} /></div>}
+          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+            <div className="min-w-0">{words(false)}</div>
+            <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-line-strong bg-surface-2">
+              {picture("(min-width: 1024px) 45vw, 90vw")}
+            </div>
+          </div>
+        </Container>
+      </section>
+    );
+  }
+
+  return (
+    <section data-page-section="hero" data-hero-layout="centered" data-aos={first ? undefined : "fade-up"} className="section-y-lg">
+      <Container className="text-center">
+        {first && <div className="mb-8 flex justify-center"><Breadcrumbs crumbs={crumbs} /></div>}
+        {words(true)}
+      </Container>
+    </section>
+  );
+}

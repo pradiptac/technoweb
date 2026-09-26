@@ -532,6 +532,8 @@ export type CmsPage = AnswerContent & {
   updated_at: string;
   faqs?: Faq[];
   seo?: Seo | null;
+  /** A builder page's sections, presented — present only when `template` is `builder` (`docs/page-builder.md`). */
+  sections?: import("./page-sections").PageSection[];
 };
 
 /** What `GET /pages` returns: the same row minus its body. */
@@ -809,6 +811,10 @@ export type AdminPage = {
   published_at: string | null;
   /** Detail-only. */
   answer_blocks?: AnswerBlock[];
+  /** Detail-only: the builder's sections as stored, a URL per stored path, and the public shape for the saved preview. */
+  blocks?: import("./page-sections").StoredSection[];
+  blocks_media?: Record<string, string>;
+  sections?: import("./page-sections").PageSection[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
   created_at: string;
@@ -3434,3 +3440,4 @@ export type MailTemplateDetail = {
 
 export * from "./blocks";
 export * from "./messaging";
+export * from "./page-sections";
