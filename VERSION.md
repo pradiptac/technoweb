@@ -40,9 +40,15 @@ coupons, orders with their payments, refunds and notes, and reviews.
   address gets a 301.
 - Importing the same site again before switching over brings in what
   changed and updates rather than copies.
-- The WordPress credentials are used for the one scan and never stored;
-  the site is read only at public addresses (`SafeHttp`, now shared with
-  webhook delivery).
+- The WordPress credentials are used for the one scan and never stored —
+  an application password is enough, the WooCommerce key is optional; the
+  site is read only at public addresses (`SafeHttp`, now shared with webhook
+  delivery).
+- Run against a real WordPress with WooCommerce's sample shop before
+  shipping: Yoast data that belongs to another page is now left out with a
+  warning, and the old site's administrators are not imported as customers.
+- `DemoSupportSeeder` works on a fresh database again (it still wrote the
+  `is_active` column customers lost when they gained a status).
 
 Deploy: `php artisan migrate --force`. `docs/wordpress-import.md`.
 

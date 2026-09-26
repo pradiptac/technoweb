@@ -121,7 +121,7 @@ export function WordPressImportWizard({
 
   const scan = () => act(() => startImportAction({
     site_url: site, sections, wp_user: wpUser, wp_password: wpPassword,
-    ...(needsWoo ? { wc_key: wcKey, wc_secret: wcSecret } : {}),
+    ...(needsWoo && wcKey !== "" ? { wc_key: wcKey, wc_secret: wcSecret } : {}),
   }), () => setWpPassword(""));
 
   const discard = () => {
@@ -412,14 +412,15 @@ export function WordPressImportWizard({
         {needsWoo && (
           <>
             <p className="measure mb-2 text-12-5 text-muted">
-              The shop is read through <strong>WooCommerce&apos;s REST API</strong>: WooCommerce → Settings → Advanced → REST API →
-              Add key, with <em>Read</em> access. Also used for this scan only.
+              The shop is read through <strong>WooCommerce&apos;s REST API</strong>. The application password above is enough
+              when its user is a shop manager or an administrator. A REST key (WooCommerce → Settings → Advanced → REST API,
+              <em>Read</em> access) can be used instead — optional, and also used for this scan only.
             </p>
             <div className="grid gap-x-4 sm:grid-cols-2">
-              <Field label="Consumer key" htmlFor="wc-key" error={fieldErrors.wc_key}>
-                <Input id="wc-key" name="wc_key" autoComplete="off" required value={wcKey} onChange={(e) => setWcKey(e.target.value)} placeholder="ck_…" className="font-mono" />
+              <Field label="Consumer key (optional)" htmlFor="wc-key" error={fieldErrors.wc_key}>
+                <Input id="wc-key" name="wc_key" autoComplete="off" value={wcKey} onChange={(e) => setWcKey(e.target.value)} placeholder="ck_…" className="font-mono" />
               </Field>
-              <PasswordField label="Consumer secret" htmlFor="wc-secret" name="wc_secret" autoComplete="off" required
+              <PasswordField label="Consumer secret" htmlFor="wc-secret" name="wc_secret" autoComplete="off" required={wcKey !== ""}
                 error={fieldErrors.wc_secret} value={wcSecret} onChange={(e) => setWcSecret(e.target.value)} />
             </div>
           </>

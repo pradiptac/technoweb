@@ -11,7 +11,8 @@ use Illuminate\Support\Str;
  * Post categories. The blog's categories are flat, so a nested one keeps its
  * own name and loses its place in the tree (said, per category). A category
  * here with the same slug is taken over rather than duplicated — the blog
- * almost always already has a "News".
+ * almost always already has a "News". WordPress's catch-all "Uncategorized"
+ * is not brought across; a post in it simply arrives with no category.
  */
 class BlogCategoriesStep extends Step
 {
@@ -44,6 +45,10 @@ class BlogCategoriesStep extends Step
         }
 
         $slug = self::slug($record['slug'] ?? null, $name);
+
+        if ($slug === 'uncategorized') {
+            return Outcome::skip($name, 'WordPress\'s catch-all category; its posts arrive with none.');
+        }
         $existing = $ctx->map->model('category', $record['id'], BlogCategory::class)
             ?? BlogCategory::query()->where('slug', $slug)->first();
 

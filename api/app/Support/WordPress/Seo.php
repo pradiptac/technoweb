@@ -39,6 +39,18 @@ final class Seo
         $meta = (array) ($record['meta'] ?? []);
         $seo = [];
 
+        /*
+         * Only a head that is about this record. Without its index built
+         * (Yoast builds it on production sites only, and after an import it
+         * needs "Optimise SEO data" run), Yoast answers a collection request
+         * with the *first* post's head on every post — measured on a real
+         * site: three posts, one title. A head whose canonical (or og:url)
+         * is not the record's own address is somebody else's, and is dropped.
+         */
+        if (! self::trusted($ctx, $record)) {
+            $head = [];
+        }
+
         $title = trim((string) ($head['title'] ?? $meta['rank_math_title'] ?? ''));
         $title = self::withoutSiteName($title, (string) ($ctx->site()['name'] ?? ''));
 
@@ -82,6 +94,26 @@ final class Seo
         return $seo;
     }
 
+    /**
+     * Whether a record's Yoast head can be believed — and, when it cannot,
+     * one notice saying why. Called while planning too, so the review warns
+     * before anything is written.
+     *
+     * @param  array<string, mixed>  $record
+     */
+    public static function trusted(Context $ctx, array $record): bool
+    {
+        $head = (array) ($record['yoast_head_json'] ?? []);
+
+        if ($head === [] || self::isAbout($head, (string) ($record['link'] ?? ''))) {
+            return true;
+        }
+
+        $ctx->report->notice('Yoast\'s SEO data in the REST API did not match its pages, so it was not imported. On the old site run Yoast SEO → Tools → "Optimise SEO data", then scan again.');
+
+        return false;
+    }
+
     /** @param  array<string, mixed>  $seo */
     public static function save(Model $model, array $seo): void
     {
@@ -93,6 +125,24 @@ final class Seo
         $existing = $model->seo()->first();
 
         $existing !== null ? $existing->update($seo) : $model->seo()->create($seo);
+    }
+
+    /** @param  array<string, mixed>  $head */
+    private static function isAbout(array $head, string $link): bool
+    {
+        $own = rtrim((string) parse_url($link, PHP_URL_PATH), '/');
+
+        foreach (['canonical', 'og_url'] as $key) {
+            $url = (string) ($head[$key] ?? '');
+
+            if ($url !== '') {
+                // A draft's canonical is `?p=123`; compare the path and the query.
+                return rtrim((string) parse_url($url, PHP_URL_PATH), '/').'?'.parse_url($url, PHP_URL_QUERY)
+                    === $own.'?'.parse_url($link, PHP_URL_QUERY);
+            }
+        }
+
+        return false;
     }
 
     private static function withoutSiteName(string $title, string $site): string

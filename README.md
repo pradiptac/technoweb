@@ -1796,8 +1796,12 @@ On the WordPress site:
 - **An application password** for an administrator (Users → Profile →
   Application Passwords, WordPress 5.6+). It lets the import see drafts,
   private pages, authors and menus. The site must be served over https.
-- **A WooCommerce REST key**, read access only (WooCommerce → Settings →
-  Advanced → REST API), when the shop or its customers are being imported.
+- **The shop** is read with the same application password when its user is
+  a shop manager or an administrator. A WooCommerce REST key (read access,
+  WooCommerce → Settings → Advanced → REST API) can be given instead.
+- **Yoast**: run SEO → Tools → "Optimise SEO data" first; without its index
+  Yoast reports one page's SEO for every page, and the import then leaves
+  Yoast's data out rather than copy the wrong titles.
 - **ACF**: switch on "Show in REST API" in each field group, or its values
   are not visible.
 

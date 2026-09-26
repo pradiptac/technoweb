@@ -1699,6 +1699,8 @@ a foreign currency, menus, private hosts and a redirect into the network
 refused), the webhook, activity, IndexNow, media, mailbox-import and
 nav-role suites (91, 832 assertions), Larastan and Pint; the console screen
 with a ready import seeded through the real API, `npm run audit` light and
-dark and `audit:mobile` at 320–414 clean; tsc and eslint. **Not yet run
-against a real WordPress site** — the next check is a Laragon WordPress with
-WooCommerce's sample data (`WORDPRESS_IMPORT_ALLOW_PRIVATE=true`).
+dark and `audit:mobile` at 320–414 clean; tsc and eslint. **Then against a
+real WordPress** (WooCommerce's sample shop, ACF, Yoast, a custom post type,
+real orders; `docs/wordpress-import.md` "Verified against a real site"): the
+commit matched the review, orders reconciled, a second run updated in place;
+four findings fixed with tests (16 now, 180 assertions).

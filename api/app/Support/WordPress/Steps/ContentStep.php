@@ -106,6 +106,8 @@ abstract class ContentStep extends Step
             AcfValues::plan($ctx, $this->targetKey($ctx, $record), $record, $outcome);
         }
 
+        Seo::trusted($ctx, $record);
+
         return $outcome;
     }
 

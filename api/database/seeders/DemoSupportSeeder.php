@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\CustomerStatus;
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Models\Customer;
@@ -55,7 +56,10 @@ class DemoSupportSeeder extends Seeder
                 // Known, and printed by the seeder run, because this account
                 // exists to be signed into while looking at the portal.
                 'password' => Hash::make(self::CUSTOMER_PASSWORD),
-                'is_active' => true,
+                // `is_active` was replaced by a status; only an active,
+                // confirmed account can sign in (seeders run unguarded).
+                'status' => CustomerStatus::Active,
+                'email_verified_at' => now(),
             ],
         );
     }

@@ -39,8 +39,10 @@ Status: `pending → scanning → analysing → ready → running → completed`
 ## Credentials
 
 An **application password** (Users → Profile → Application Passwords) for
-`wp/v2`, and a **WooCommerce REST key and secret** (read access) for `wc/v3`,
-both as HTTP Basic auth. They are sealed in the cache by `SealedCache` under
+`wp/v2` — and for `wc/v3` too, which WooCommerce accepts from a shop manager
+or an administrator. A **WooCommerce REST key and secret** (read access) is
+optional and used instead when given; WooCommerce accepts its own keys only
+over https. Both go as HTTP Basic auth. They are sealed in the cache by `SealedCache` under
 a key only the scan's job chain carries, for six hours at most, and forgotten
 the moment the scan stops — never a settings row, never a job payload, never
 on the import row. The commit needs none: uploads are public URLs.
@@ -64,7 +66,7 @@ Laragon WordPress on this machine be the source, and is ignored unless
 | Step | Becomes | What does not come across |
 |---|---|---|
 | Whole media library (only when chosen) | media | — |
-| Blog categories | `BlogCategory` (a slug already here is taken over) | nesting (flat here) |
+| Blog categories | `BlogCategory` (a slug already here is taken over) | nesting (flat here); "Uncategorized" |
 | Content types | `ContentType` per custom post type | a type whose address is reserved, a page's or another type's — skipped until given another in the review |
 | Custom field groups | one "Imported from WordPress" group per target | ACF repeaters, flexible content, groups, galleries, relationships |
 | Blog posts | `BlogPost`, featured image, categories, author by staff address, sticky → featured | tags; private and password-protected posts arrive as drafts |
@@ -73,7 +75,7 @@ Laragon WordPress on this machine be the source, and is ignored unless
 | Shop categories | `StoreCategory` | nesting; "Uncategorized" |
 | Brands | `Brand` (same slug or name taken over) | — |
 | Products | `StoreProduct` + variations, stock via `StockLedger` | grouped, external, subscription, bundle, composite, booking and downloadable products; an "any value" variation; tags; categories beyond the first; pictures beyond twelve; scheduled sale end dates |
-| Customers | `Customer`, active, unconfirmed, random password | WordPress passwords |
+| Customers | `Customer`, active, unconfirmed, random password | WordPress passwords; administrators, shop managers, editors, authors and contributors (WooCommerce's `role=all` lists every user) |
 | Coupons | `Coupon` (percentage / fixed basket) | fixed-per-product coupons; product, category and email restrictions, free shipping, exclude-sale, maximum spend (named per code) |
 | Orders | `Order` + snapshot lines, payments, refunds, notes, coupon uses | non-INR orders; abandoned checkouts |
 | Product reviews | `ProductReview` | reviews by somebody with no account; an older second review by the same customer |
@@ -118,7 +120,12 @@ Laragon WordPress on this machine be the source, and is ignored unless
   dropped.
 - **Yoast**: a title that is only the record's title plus the old site's
   name is not an override; a canonical pointing at the old site is never
-  copied; robots only when it says `noindex`/`nofollow`.
+  copied; robots only when it says `noindex`/`nofollow`. **A head is used
+  only when its canonical (or og:url) is the record's own address**: without
+  its index built — Yoast builds it on production sites only, and after bulk
+  changes it wants "Optimise SEO data" — Yoast answers a collection request
+  with the *first* post's head on every post. Measured on a real site: three
+  posts, one title. The review warns and says how to fix it at the source.
 - **ACF kinds are inferred** from up to twenty values per field, shown in the
   review and changeable; values are validated through `CustomFields::rules()`
   one at a time. WooCommerce's API has no `acf` key; a product's ACF values
@@ -142,6 +149,23 @@ Laragon WordPress on this machine be the source, and is ignored unless
   checkpoint.
 - The scan and commit are refused when nothing drains the queue
   (`QueueHealth::delivering()`).
+
+## Verified against a real site (2026-09-27)
+
+A WordPress 6 with WooCommerce's own sample catalogue (18 products: simple,
+variable, grouped, external, downloadable), ACF (free) with a field group
+shown in REST, Yoast, a portfolio post type, nested categories and pages,
+threaded comments, a menu, customers, coupons and three orders placed through
+WooCommerce's own order API (a coupon and shipping, a guest's cash on
+delivery, a bank transfer with a partial refund) — served locally with
+`WORDPRESS_IMPORT_ALLOW_PRIVATE`, imported into a scratch database through a
+second API instance. The commit's counts matched the review's exactly; the
+orders reconciled to the rupee; a second run after changing a price and
+adding a post added one post, updated everything else and doubled nothing.
+Four things only a real site showed, all fixed with a test: Yoast's shared
+head (above), the WordPress administrator arriving as a customer,
+"Uncategorized" as a blog category, and WooCommerce refusing its own keys
+over http (the application password now reads the shop too).
 
 ## Tests
 

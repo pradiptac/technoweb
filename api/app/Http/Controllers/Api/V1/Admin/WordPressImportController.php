@@ -39,7 +39,7 @@ class WordPressImportController extends Controller
             'meta' => [
                 'active' => ($active = WordPressImport::query()->whereIn('status', ['pending', 'scanning', 'analysing', 'ready', 'running', 'failed'])->latest('id')->first())
                     ? self::summary($active) : null,
-                'delivering' => QueueHealth::delivering(),
+                'delivering' => self::draining(),
                 'sections' => WordPressImport::SECTIONS,
             ],
         ]);
@@ -63,10 +63,6 @@ class WordPressImportController extends Controller
 
         $sections = array_values(array_unique($data['sections']));
 
-        if (array_intersect(['catalogue', 'customers'], $sections) && empty($data['wc_key'])) {
-            throw ValidationException::withMessages(['wc_key' => 'The shop and its customers are read through WooCommerce\'s REST API, which needs a consumer key and secret.']);
-        }
-
         $url = self::siteUrl($data['site_url']);
         $allowPrivate = (bool) config('wordpress_import.allow_private_hosts');
 
@@ -78,7 +74,7 @@ class WordPressImportController extends Controller
             throw ValidationException::withMessages(['site_url' => 'An import is already running. Wait for it, or cancel it, first.']);
         }
 
-        if (! QueueHealth::delivering()) {
+        if (! self::draining()) {
             throw ValidationException::withMessages(['queue' => 'Nothing is draining the queue, so the scan would never start. On the server add the cron entry `* * * * * cd /path/to/api && php artisan schedule:run`, or run `php artisan queue:work`.']);
         }
 
@@ -148,7 +144,7 @@ class WordPressImportController extends Controller
             throw ValidationException::withMessages(['status' => 'Only a reviewed import can be committed.']);
         }
 
-        if (! QueueHealth::delivering()) {
+        if (! self::draining()) {
             throw ValidationException::withMessages(['queue' => 'Nothing is draining the queue, so the import would never run.']);
         }
 
@@ -180,6 +176,15 @@ class WordPressImportController extends Controller
         Harvest::discard($wordpressImport);
 
         return response()->json(['data' => self::summary($wordpressImport)]);
+    }
+
+    /**
+     * Whether queued work will run: a drained queue, or the `sync` driver,
+     * which runs it inline — `Notifier`'s definition.
+     */
+    private static function draining(): bool
+    {
+        return config('queue.default') === 'sync' || QueueHealth::delivering();
     }
 
     /**

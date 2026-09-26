@@ -32,6 +32,9 @@ use Illuminate\Support\Str;
  */
 class CustomersStep extends Step
 {
+    /** WordPress roles that run the old site rather than buy from it. */
+    private const STAFF_ROLES = ['administrator', 'shop_manager', 'editor', 'author', 'contributor'];
+
     public function key(): string
     {
         return 'customers';
@@ -55,6 +58,12 @@ class CustomersStep extends Step
     public function plan(Context $ctx, array $record): Outcome
     {
         $email = strtolower(trim((string) ($record['email'] ?? '')));
+
+        // WooCommerce's customer list with `role=all` includes every user; an
+        // administrator or editor on the old site is not somebody who buys.
+        if (in_array($record['role'] ?? 'customer', self::STAFF_ROLES, true)) {
+            return Outcome::skip($email ?: '#'.($record['id'] ?? '?'), 'A staff account on the old site ('.$record['role'].'), not a customer; staff are never imported.');
+        }
 
         if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
             return Outcome::skip($email ?: '(no address) #'.($record['id'] ?? '?'), 'Has no valid email address to sign in with.');

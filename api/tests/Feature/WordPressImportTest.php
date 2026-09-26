@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\OrderStatus;
 use App\Enums\Role as RoleEnum;
+use App\Models\BlogCategory;
 use App\Models\BlogComment;
 use App\Models\BlogPost;
 use App\Models\ContentType;
@@ -447,6 +448,49 @@ class WordPressImportTest extends TestCase
         $this->assertTrue((bool) $items['Partner']->open_in_new_tab);
     }
 
+    /**
+     * Measured on a real WordPress: without Yoast's index built, a collection
+     * request carries the first post's head on every post.
+     */
+    public function test_a_yoast_head_about_another_page_is_not_imported(): void
+    {
+        $site = $this->site();
+        $site['wp/v2/posts'][0]['yoast_head_json']['canonical'] = self::SITE.'/?p=99';
+        $site['wp/v2/posts'][0]['yoast_head_json']['title'] = 'Somebody else - Old Shop';
+        $this->fakeSite($site);
+
+        $import = $this->start();
+        $this->assertStringContainsString('Optimise SEO data', implode(' ', $import->analysis['notices']), 'the review warns before anything is written');
+
+        $this->commit($import);
+        $post = BlogPost::query()->where('slug', 'cabling-guide')->firstOrFail();
+        $this->assertNull($post->seo?->title);
+        $this->assertNull($post->seo?->description);
+    }
+
+    public function test_old_site_staff_and_catch_all_categories_are_not_imported(): void
+    {
+        $site = $this->site();
+        $site['wc/v3/customers'][] = ['id' => 92, 'email' => 'owner@old.example', 'role' => 'administrator', 'first_name' => 'Owner'];
+        $site['wc/v3/customers'][] = ['id' => 93, 'email' => 'reader@old.example', 'role' => 'subscriber', 'first_name' => 'Reader'];
+        $site['wp/v2/categories'][] = ['id' => 1, 'name' => 'Uncategorized', 'slug' => 'uncategorized', 'parent' => 0];
+        $this->fakeSite($site);
+
+        $this->commit($this->start());
+
+        $this->assertFalse(Customer::query()->where('email', 'owner@old.example')->exists(), 'an administrator on the old site is not a customer');
+        $this->assertTrue(Customer::query()->where('email', 'reader@old.example')->exists(), 'a subscriber is somebody who signed up');
+        $this->assertFalse(BlogCategory::query()->where('slug', 'uncategorized')->exists());
+    }
+
+    public function test_the_sync_queue_counts_as_draining(): void
+    {
+        Cache::forget(QueueHealth::HEARTBEAT_KEY);
+        $this->assertSame('sync', config('queue.default'));
+
+        $this->asAdmin()->getJson(self::API)->assertOk()->assertJsonPath('meta.delivering', true);
+    }
+
     public function test_a_second_run_updates_rather_than_copies(): void
     {
         $this->fakeSite();
@@ -559,11 +603,13 @@ class WordPressImportTest extends TestCase
         ])->assertStatus(422)->assertJsonValidationErrors(['queue']);
     }
 
-    public function test_the_shop_needs_a_woocommerce_key(): void
+    public function test_without_a_woocommerce_key_the_shop_is_read_with_the_application_password(): void
     {
-        $this->asAdmin()->postJson(self::API, [
-            'site_url' => self::SITE, 'sections' => ['catalogue'], 'wp_user' => 'u', 'wp_password' => 'p',
-        ])->assertStatus(422)->assertJsonValidationErrors(['wc_key']);
+        $this->fakeSite();
+        $import = $this->start(['wc_key' => null, 'wc_secret' => null]);
+
+        $this->assertSame('ready', $import->status, (string) $import->error);
+        Http::assertSent(fn (Request $r) => str_contains($r->url(), '/wp-json/wc/v3/products') && $r->hasHeader('Authorization', 'Basic '.base64_encode('editor:abcdefghijklmnop')));
     }
 
     public function test_only_an_administrator_can_import(): void

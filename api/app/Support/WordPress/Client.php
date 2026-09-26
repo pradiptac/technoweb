@@ -14,8 +14,11 @@ use RuntimeException;
  * drafts, private pages, authors' addresses and menus, none of which the
  * public API returns. `wc/v3` is authenticated with a WooCommerce **REST key
  * and secret** (WooCommerce → Settings → Advanced → REST API, read access is
- * enough). Both go as HTTP Basic auth, which WordPress accepts only over
- * https — the other reason `SafeHttp` insists on it.
+ * enough) — or, when no key is given, with the same application password,
+ * which WooCommerce also accepts from a shop manager or an administrator.
+ * Both go as HTTP Basic auth, which WordPress accepts only over https (and
+ * WooCommerce's own keys only over https, always) — the other reason
+ * `SafeHttp` insists on it.
  *
  * Every request goes through `SafeHttp::get()`, so the site cannot redirect
  * the scan into the network this server lives on, and the credentials are
@@ -158,9 +161,12 @@ class Client
 
     private function send(string $url, string $auth): Response
     {
+        // WooCommerce accepts the application password too (its user needs
+        // to be a shop manager or an administrator), so the REST key is
+        // optional: used when given, the application password otherwise.
         $basic = match (true) {
             $auth === 'wc' && $this->wcKey && $this->wcSecret => [$this->wcKey, $this->wcSecret],
-            $auth === 'wp' && $this->wpUser && $this->wpPassword => [$this->wpUser, $this->wpPassword],
+            $this->wpUser && $this->wpPassword => [$this->wpUser, $this->wpPassword],
             default => null,
         };
 
