@@ -1630,3 +1630,50 @@ a restock through the console's own endpoint, the queued job drained, the
 notice stamped and the message sent; a sequence created, activated, a
 subscriber enrolled by the intake, the runner holding the step on a missing
 sender and sending it once one was set.
+
+## 0.80.0 to 0.89.0 — content blocks, a security review, Phase 2 and six features
+
+**Built:** content blocks (CTA, stats, pricing, technology stack) and the
+default closing band; seven more sign-in backgrounds and two slider layouts;
+flip tiles for the footer's social links; a full security review with every
+finding fixed; abandoned-basket reminders, a wishlist, WhatsApp/RCS/push
+messaging (Phase 2, `docs/phase-2-contract.md`); product reviews; a section
+page builder; custom fields and custom content types; engineer visit
+requests; specification filters, product video and zoom, and a Meta catalogue
+feed. `VERSION.md` 0.87.0–0.89.0 has the detail and the deploy steps.
+
+### How it was built
+
+In parallel git worktrees under `D:\tmp\tw-*`, one branch and one test
+database per stream, against written plans committed with each branch
+(`docs/*-plan.md`, `docs/phase-2-contract.md`); an integrator merged them into
+`phase-3-admin-cms` one at a time, resolving the shared files (the message
+catalogue's counts, the settings seeder and copy, `types/api.ts`, the mock,
+the audit lists, `CLAUDE.md`, `API.md`). The security review was five
+read-only reviewers by attack surface, then two fix branches, each fix with a
+test that failed before it.
+
+### What the merged runs caught that no branch could
+
+- `RateLimitScopeTest` set a password and then confirmed the address — which
+  the takeover fix now answers by retiring the password.
+- `ReservedSlugsTest` (reads `web/src/app`) found four top-level routes added
+  by other branches that a content type could have claimed.
+- The per-page console gate (`requireScreen()`) had to be added to every
+  console page the other branches created after it; a script does it by rule.
+- Two request traits (`ValidatesPageSections`, `AcceptsCustomFields`) and two
+  page-form additions (the Builder tab, the Fields tab) met in one file and
+  were combined so `Tabs` still reads its panels by position.
+
+### Verified
+
+1,766 API tests (12,183 assertions, 1 skipped) on the merged branch; Larastan
+"No errors" with the baseline untouched; Pint, `tsc` and `eslint` clean.
+`npm run audit` over 203 routes in light and in dark, and `npm run
+audit:mobile` over 154 routes at 320/360/390/414px — all clean, the only two
+light findings being the documented dev-server artefacts (the lazy icon
+chunk's preload warning, an optimiser 504 under the burst), clean when re-run
+alone. What still wants a person in a browser, per the branch reports: the
+builder's unsaved preview Modal, the visit and review dialogs end to end, the
+spec filter panel with real category filters chosen, and the three messaging
+providers against real accounts (tested only against faked responses).
