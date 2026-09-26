@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\PublishStatus;
+use App\Models\Concerns\HasCustomFields;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
 use App\Support\HtmlSanitiser;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CaseStudy extends Model
 {
-    use HasSeo, Sluggable;
+    use HasCustomFields, HasSeo, Sluggable;
 
     protected $fillable = [
         'industry_id', 'title', 'slug', 'client_name', 'summary',

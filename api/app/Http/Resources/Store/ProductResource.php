@@ -4,6 +4,7 @@ namespace App\Http\Resources\Store;
 
 use App\Http\Resources\BrandResource;
 use App\Http\Resources\Concerns\IncludesAnswerContent;
+use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\SeoResource;
 use App\Models\StoreProduct;
@@ -30,7 +31,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin StoreProduct */
 class ProductResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesSchema;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema;
 
     public function toArray(Request $request): array
     {
@@ -151,6 +152,8 @@ class ProductResource extends JsonResource
             'entity' => $this->entity(),
             // An FAQPage over the FAQs and question blocks; absent under two entries.
             'faq_schema' => $this->faqSchema(),
+            // Custom fields (docs/custom-content.md) — see IncludesCustomFields.
+            ...$this->publicCustomFields(),
             'seo' => $this->when(
                 $this->resource->relationLoaded('seo'),
                 fn () => new SeoResource($this->resolvedSeo()),

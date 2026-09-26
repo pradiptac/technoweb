@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
-import { getIndustries } from "@/lib/admin";
+import { getIndustries, getCustomFieldGroups } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { CaseStudyForm } from "../case-study-form";
@@ -29,7 +29,7 @@ export default async function NewCaseStudyPage() {
         title="New case study"
       />
 
-      <CaseStudyForm industries={industries} />
+      <CaseStudyForm industries={industries} fieldGroups={await getCustomFieldGroups("/admin/case-studies")} />
     </>
   );
 }

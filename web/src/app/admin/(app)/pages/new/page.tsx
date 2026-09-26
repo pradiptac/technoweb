@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/admin/page-header";
-import { getAnswerBlockKinds, getPageBuilderOptions } from "@/lib/admin";
+import { getAnswerBlockKinds, getCustomFieldGroups, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { PageForm } from "../page-form";
@@ -18,7 +18,7 @@ export default async function NewCmsPage() {
         title="New page"
       />
 
-      <PageForm kinds={kinds} builder={builder} />
+      <PageForm kinds={kinds} builder={builder} fieldGroups={await getCustomFieldGroups("/admin/pages")} />
     </>
   );
 }

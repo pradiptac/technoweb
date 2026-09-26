@@ -119,6 +119,9 @@ const ADMIN_ROUTES = [
   // Engineer visits (docs/visits.md): the queue and its settings; the record
   // screen is a DISCOVER entry, since nothing seeds a visit request.
   "/admin/visits", "/admin/visits/settings",
+  // Custom fields and content types (docs/custom-content.md).
+  "/admin/custom-fields", "/admin/custom-fields/new",
+  "/admin/content-types", "/admin/content-types/new", "/admin/content",
 ];
 
 /*
@@ -194,6 +197,22 @@ const DISCOVER = [
   { from: "/admin/forms", match: /^\/admin\/forms\/\d+\/submissions$/, admin: true },
   { from: "/admin/faqs", match: /^\/admin\/faqs\/\d+$/, admin: true },
   { from: "/admin/redirects", match: /^\/admin\/redirects\/\d+$/, admin: true },
+  /*
+   * Custom content (docs/custom-content.md). Nothing seeds a content type or a
+   * field group, so every one of these is found from what an editor made.
+   * `via` is a hop: open `from`, follow the first link matching `via`, and
+   * match there — a type's slug is data, so its entries list has no fixed
+   * address. The archive and an entry are found from the console's own
+   * "View on site" and address links; `(?!admin…)` keeps the console's chrome
+   * out of the match.
+   */
+  { from: "/admin/custom-fields", match: /^\/admin\/custom-fields\/\d+$/, admin: true },
+  { from: "/admin/content-types", match: /^\/admin\/content-types\/\d+$/, admin: true },
+  { from: "/admin/content", match: /^\/admin\/content\/[a-z][a-z0-9-]*$/, admin: true },
+  { from: "/admin/content", match: /^\/admin\/content\/[a-z][a-z0-9-]*\/new$/, admin: true },
+  { from: "/admin/content", via: /^\/admin\/content\/[a-z][a-z0-9-]*$/, match: /^\/admin\/content\/[a-z][a-z0-9-]*\/\d+$/, admin: true },
+  { from: "/admin/content", match: /^\/(?!admin$|portal$)[a-z][a-z0-9-]*$/, admin: true },
+  { from: "/admin/content", via: /^\/admin\/content\/[a-z][a-z0-9-]*$/, match: /^\/(?!admin\/|portal\/)[a-z][a-z0-9-]*\/[a-z0-9-]+$/, admin: true },
   // The edit form is where the quality gate is read and acted on, so it is
   // the screen of this pair most worth auditing — and its id comes from the
   // seeder, so it has to be discovered rather than named.
@@ -928,11 +947,31 @@ async function settle(page) {
 async function discover() {
   const found = [];
 
-  for (const { from, match, admin, suffix } of DISCOVER) {
+  const firstLink = (pattern) => desktop.evaluate((source) => {
+    const re = new RegExp(source);
+    for (const a of document.querySelectorAll("a[href]")) {
+      const path = a.getAttribute("href").split("?")[0].split("#")[0];
+      if (re.test(path)) return path;
+    }
+    return null;
+  }, pattern.source);
+
+  for (const { from, via, match, admin, suffix } of DISCOVER) {
     try {
       if (admin) await signIn();
       await desktop.goto(BASE + from, { waitUntil: "load", timeout: 180000 });
       await desktop.waitForTimeout(250);
+
+      // One hop first, for an index whose address is itself data.
+      if (via) {
+        const hop = await firstLink(via);
+        if (!hop) {
+          console.log(`note  ${from.padEnd(38)} nothing to audit (no link to hop through)`);
+          continue;
+        }
+        await desktop.goto(BASE + hop, { waitUntil: "load", timeout: 180000 });
+        await desktop.waitForTimeout(250);
+      }
 
       const href = await desktop.evaluate((pattern) => {
         const re = new RegExp(pattern);

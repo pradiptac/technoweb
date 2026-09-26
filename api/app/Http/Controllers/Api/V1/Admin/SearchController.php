@@ -6,6 +6,7 @@ use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\Customer;
+use App\Models\Entry;
 use App\Models\Lead;
 use App\Models\Order;
 use App\Models\Page;
@@ -139,6 +140,18 @@ class SearchController extends Controller
                         'label' => $p->title,
                         'sub' => '/'.$p->slug,
                         'admin_path' => "/admin/pages/{$p->id}",
+                    ]),
+            ];
+
+            // Custom content (docs/custom-content.md): every type in one group.
+            $groups[] = [
+                'type' => 'entry', 'label' => 'Custom content',
+                'items' => Entry::with('contentType')->where('title', 'like', $like)
+                    ->latest()->limit(self::PER_GROUP)->get()
+                    ->map(fn (Entry $e) => [
+                        'label' => $e->title,
+                        'sub' => implode(' · ', array_filter([$e->contentType?->name, self::label($e->getAttribute('status'))])),
+                        'admin_path' => $e->adminPath(),
                     ]),
             ];
         }

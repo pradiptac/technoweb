@@ -8,6 +8,7 @@ use App\Models\AnswerBlock;
 use App\Models\BlogComment;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
+use App\Models\Entry;
 use App\Models\Faq;
 use App\Models\KnowledgeArticle;
 use App\Models\LandingPage;
@@ -542,6 +543,58 @@ class StructuredData
                 ? (BlogComment::approved()->where('blog_post_id', $record->id)->count() ?: null)
                 : null,
         ] + self::relationships(EntityLinks::for($record)));
+    }
+
+    /* ---------------------------------------------------- custom content */
+
+    /**
+     * An entry of a custom content type: an `Article` or a `WebPage`, as the
+     * type says (`content_types.schema_type`), refined by the entry's own SEO
+     * override where `SchemaTypes` allows it — the rule `article()` follows.
+     *
+     * An Article carries its dates, the publisher as author and the image; a
+     * WebPage carries its name, its description and when it last changed.
+     * Nothing else is claimed: an entry has no author column, so naming a
+     * person would be invented.
+     */
+    public static function entry(Entry $entry): array
+    {
+        $base = $entry->relationLoaded('contentType') && $entry->contentType
+            && in_array($entry->contentType->schema_type, ['Article', 'WebPage'], true)
+            ? $entry->contentType->schema_type
+            : 'Article';
+
+        $url = self::url($entry->publicPath());
+        $description = $entry->summary ? HtmlSanitiser::toText($entry->summary) : null;
+        $image = $entry->image_path ? asset('storage/'.$entry->image_path) : null;
+        $type = SchemaTypes::resolve($base, $entry->seo?->schema_type);
+
+        if ($base === 'WebPage') {
+            return self::graph([
+                '@type' => $type,
+                'name' => $entry->title,
+                'description' => $description,
+                'url' => $url,
+                'image' => $image,
+                'dateModified' => $entry->updated_at?->toIso8601String(),
+                'publisher' => self::publisher(),
+                'speakable' => self::speakable(),
+            ] + self::relationships(EntityLinks::for($entry)));
+        }
+
+        return self::graph([
+            '@type' => $type,
+            'headline' => $entry->title,
+            'description' => $description,
+            'image' => $image,
+            'datePublished' => ($entry->published_at ?? $entry->created_at)?->toIso8601String(),
+            'dateModified' => $entry->updated_at?->toIso8601String(),
+            'author' => self::publisher(),
+            'publisher' => self::publisher(),
+            'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => $url],
+            'url' => $url,
+            'speakable' => self::speakable(),
+        ] + self::relationships(EntityLinks::for($entry)));
     }
 
     /* ---------------------------------------------------------------- FAQ */

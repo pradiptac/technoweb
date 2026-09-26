@@ -9,6 +9,7 @@ use App\Http\Requests\StoreBlogPostRequest;
 use App\Http\Requests\UpdateBlogPostRequest;
 use App\Http\Resources\Admin\BlogPostResource;
 use App\Models\BlogPost;
+use App\Support\CustomFields\CustomFields;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -48,18 +49,21 @@ class BlogPostController extends Controller
         // select is built from this, the `meta.transitions` rule.
         return BlogPostResource::collection($posts)->additional(['meta' => [
             'answer_block_kinds' => AnswerBlockKind::options(),
+            // The custom field groups that apply, for the console's Fields tab.
+            'custom_field_groups' => CustomFields::definitions('blog_post'),
         ]]);
     }
 
     public function show(BlogPost $blogPost): JsonResource
     {
-        return new BlogPostResource($blogPost->load(['author', 'seo', 'categories', 'faqs', 'answerBlocks']));
+        return new BlogPostResource($blogPost->load(['author', 'seo', 'categories', 'faqs', 'answerBlocks', 'customValues.field.group']));
     }
 
     public function store(StoreBlogPostRequest $request): JsonResponse
     {
         $post = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
 
             // Whoever is writing it, unless they said otherwise.
             $attributes['author_id'] ??= $request->user()->id;
@@ -74,12 +78,13 @@ class BlogPostController extends Controller
             $this->syncCategories($post, $categories);
             $this->saveAnswerContent($post, $content);
             $this->saveSeo($post, $seo);
+            $this->saveCustomFields($post, $custom);
 
             return $post;
         });
 
         return response()->json(
-            ['data' => new BlogPostResource($post->load(['author', 'seo', 'categories', 'faqs', 'answerBlocks']))],
+            ['data' => new BlogPostResource($post->load(['author', 'seo', 'categories', 'faqs', 'answerBlocks', 'customValues.field.group']))],
             201
         );
     }
@@ -88,6 +93,7 @@ class BlogPostController extends Controller
     {
         DB::transaction(function () use ($request, $blogPost) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
 
             // Changing the slug leaves a 301 behind automatically — see the
             // updating hook in the Sluggable trait.
@@ -100,9 +106,10 @@ class BlogPostController extends Controller
             $this->syncCategories($blogPost, $categories);
             $this->saveAnswerContent($blogPost, $content);
             $this->saveSeo($blogPost, $seo);
+            $this->saveCustomFields($blogPost, $custom);
         });
 
-        return new BlogPostResource($blogPost->fresh(['author', 'seo', 'categories', 'faqs', 'answerBlocks']));
+        return new BlogPostResource($blogPost->fresh(['author', 'seo', 'categories', 'faqs', 'answerBlocks', 'customValues.field.group']));
     }
 
     /**

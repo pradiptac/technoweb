@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Prose, SpecTable } from "@/components/ui/prose";
 import { IconCheck } from "@/components/icons";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { AddToBasket } from "@/components/store/add-to-basket";
 import { WishlistHeart } from "@/components/store/wishlist-heart";
@@ -383,6 +384,8 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
               <p className="whitespace-pre-line text-[16px] leading-[1.72] text-ink-2">{product.applications}</p>
             </div>
           )}
+          {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
+          <CustomFieldDetails fields={product.custom_fields} className="mt-14" />
           <AnswerBlocks blocks={product.answer_blocks} faqs={product.faqs ?? []} className="mt-14" />
           <RelatedEntities entity={product.entity} className="mt-14" />
           </div>

@@ -9,6 +9,7 @@ import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { RelatedEntities } from "@/components/content/related-entities";
+import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -139,6 +140,8 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         {study.body && <ProseWithShortcodes html={study.body} />}
 
         {/* What the study is connected to — the industry, the solutions, the articles. A case study has no answer blocks of its own. */}
+        {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
+        <CustomFieldDetails fields={study.custom_fields} className="mt-12" />
         <RelatedEntities entity={study.entity} className="mt-12" />
 
         <p className="mt-12 border-t border-line pt-6">

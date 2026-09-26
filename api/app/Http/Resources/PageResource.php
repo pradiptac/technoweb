@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\IncludesAnswerContent;
+use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\Page;
@@ -15,7 +16,7 @@ use Illuminate\Http\Resources\MissingValue;
 /** @mixin Page */
 class PageResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesSchema, IncludesSeo;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSeo;
 
     public function toArray(Request $request): array
     {
@@ -39,6 +40,8 @@ class PageResource extends JsonResource
             // An FAQPage over the FAQs and question blocks; absent under two entries.
             // A builder page's own questions join it, so there is still one.
             'faq_schema' => $this->template === 'builder' ? $this->builderFaqSchema() : $this->faqSchema(),
+            // Custom fields (docs/custom-content.md) — see IncludesCustomFields.
+            ...$this->publicCustomFields(),
             'seo' => $this->seo(),
         ];
     }

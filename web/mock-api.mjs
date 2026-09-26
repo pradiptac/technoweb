@@ -1548,6 +1548,79 @@ const ADMIN_CMS = [
       service_ids: r.id === 1 ? [1] : [] }) },
 ];
 
+/* ---------------- Custom fields and content types (docs/custom-content.md) ----------------
+ *
+ * One field group on pages and on the sample type, and one type ("events")
+ * with two entries — enough for every new console screen, the Fields tab,
+ * the archive and an entry page to render against the mock. The kinds, the
+ * targets and the placements are the API's own `meta`, never retyped. */
+const CUSTOM_FIELD_KINDS = [
+  ['text', 'Text'], ['textarea', 'Long text'], ['rich_text', 'Rich text'], ['number', 'Number'], ['date', 'Date'],
+  ['url', 'Link'], ['email', 'Email address'], ['select', 'Dropdown'], ['multi_select', 'Checkboxes'], ['boolean', 'Yes / no'],
+  ['image', 'Image'], ['file', 'File'], ['relation', 'Linked record'], ['list', 'List of short items'],
+].map(([value, label]) => ({ value, label, blurb: `${label}.`, has_options: value === 'select' || value === 'multi_select' }));
+const CONTENT_TYPES = [{
+  id: 1, name: 'Event', plural: 'Events', slug: 'events', path: '/events', icon: null,
+  description: 'Open days, workshops and launches.', has_body: true, has_image: true, archive_enabled: true,
+  per_page: 12, sort: 'newest', schema_type: 'Article', sort_order: 0, is_active: true,
+  entries_count: 2, published_count: 2, target: 'entry:events', field_groups: [{ id: 1, name: 'Event details', fields_count: 2 }],
+  created_at: '2026-09-26T00:00:00Z', updated_at: '2026-09-26T00:00:00Z',
+}];
+const CUSTOM_FIELD_TARGETS = [
+  ['page', 'Pages'], ['blog_post', 'Blog posts'], ['knowledge_article', 'Knowledge base'], ['case_study', 'Case studies'],
+  ['solution', 'Solutions'], ['service', 'Services'], ['industry', 'Industries'], ['product', 'Products'],
+  ['store_product', 'Store products'], ['entry:events', 'Events'],
+].map(([value, label]) => ({ value, label }));
+const CUSTOM_FIELD_META = {
+  kinds: CUSTOM_FIELD_KINDS,
+  targets: CUSTOM_FIELD_TARGETS,
+  placements: [
+    { value: 'details', label: 'Drawn on the page', blurb: 'A Details section after the body.' },
+    { value: 'hidden', label: 'Data only', blurb: 'Not drawn; still in the public API.' },
+  ],
+};
+const CUSTOM_FIELD_GROUP = {
+  id: 1, name: 'Event details', slug: 'event-details', targets: ['entry:events', 'page'], target_labels: ['Events', 'Pages'],
+  placement: 'details', sort_order: 0, is_active: true, fields_count: 2,
+  fields: [
+    { id: 1, key: 'venue', label: 'Venue', kind: 'text', help: null, required: false, show_on_page: true, options: [], settings: {}, sort_order: 0, values_count: 2 },
+    { id: 2, key: 'format', label: 'Format', kind: 'select', help: null, required: false, show_on_page: true,
+      options: [{ value: 'in_person', label: 'In person' }, { value: 'online', label: 'Online' }], settings: {}, sort_order: 1, values_count: 1 },
+  ],
+  created_at: '2026-09-26T00:00:00Z', updated_at: '2026-09-26T00:00:00Z',
+};
+/* The definitions a Fields tab draws: the group without its counts, with `choices`. */
+const CUSTOM_FIELD_DEFINITIONS = [{
+  id: 1, name: 'Event details', slug: 'event-details', placement: 'details',
+  fields: CUSTOM_FIELD_GROUP.fields.map(({ sort_order, values_count, ...f }) => { void sort_order; void values_count; return { ...f, choices: [] }; }),
+}];
+const ENTRIES = [
+  { id: 1, title: 'Open day at the Mumbai office', slug: 'open-day', summary: 'Walk the NOC, meet the engineers.',
+    body: '<p>Doors open at ten. Bring questions.</p>', image: null, image_alt: null, image_focus: null,
+    published_at: '2026-09-20T10:00:00+05:30', updated_at: '2026-09-20T10:00:00+05:30',
+    custom_fields: [{ key: 'venue', label: 'Venue', kind: 'text', value: 'Andheri East', display: 'Andheri East' },
+      { key: 'format', label: 'Format', kind: 'select', value: 'in_person', display: 'In person' }],
+    custom_data: { venue: 'Andheri East', format: 'in_person' } },
+  { id: 2, title: 'Firewall hardening workshop', slug: 'firewall-workshop', summary: 'Two hours on the rules that matter.',
+    body: '<p>Online, with a recording afterwards.</p>', image: null, image_alt: null, image_focus: null,
+    published_at: '2026-09-12T15:00:00+05:30', updated_at: '2026-09-12T15:00:00+05:30',
+    custom_fields: [{ key: 'venue', label: 'Venue', kind: 'text', value: 'Online', display: 'Online' }],
+    custom_data: { venue: 'Online' } },
+];
+const publicType = ({ name, plural, slug, path, icon, description, archive_enabled, per_page, sort, schema_type, updated_at }) =>
+  ({ name, plural, slug, path, icon, description, archive_enabled, per_page, sort, schema_type, updated_at });
+const publicEntry = (e, t = CONTENT_TYPES[0]) => ({
+  ...e, path: `${t.path}/${e.slug}`,
+  type: { name: t.name, plural: t.plural, slug: t.slug, path: t.path, icon: t.icon, archive_enabled: t.archive_enabled },
+});
+const adminEntry = (e) => ({
+  id: e.id, content_type_id: 1, title: e.title, slug: e.slug, path: `/events/${e.slug}`, summary: e.summary, body: e.body,
+  image_path: null, image: null, status: 'published', status_label: 'Published', published_at: e.published_at, sort_order: 0,
+  faqs: [], answer_blocks: [], seo: null, seo_defaults: null,
+  custom_fields: e.custom_data, custom_field_media: {}, custom_field_groups: CUSTOM_FIELD_DEFINITIONS,
+  created_at: e.published_at, updated_at: e.updated_at,
+});
+
 const json = (res, code, body) => {
   res.writeHead(code, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(body));
@@ -2103,6 +2176,75 @@ createServer(async (req, res) => {
       return json(res, 200, { data: { sections: presentSections(blocks) } });
     }
 
+    /* Custom field groups. */
+    if (p === '/admin/custom-field-groups' && req.method === 'GET') {
+      const page = paginate([CUSTOM_FIELD_GROUP].map(({ fields, ...g }) => { void fields; return g; }));
+      Object.assign(page.meta, CUSTOM_FIELD_META);
+      return json(res, 200, page);
+    }
+    if (p === '/admin/custom-field-groups' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      return json(res, 201, { data: { ...CUSTOM_FIELD_GROUP, ...body, id: 2 }, meta: CUSTOM_FIELD_META });
+    }
+    {
+      const m = p.match(/^\/admin\/custom-field-groups\/(\d+)$/);
+      if (m) {
+        if (Number(m[1]) !== 1) return json(res, 404, { message: 'Not found.' });
+        if (req.method === 'DELETE') { res.writeHead(204); return res.end(); }
+        const body = req.method === 'PATCH' ? await readJsonBody(req) : {};
+        return json(res, 200, { data: { ...CUSTOM_FIELD_GROUP, ...body }, meta: CUSTOM_FIELD_META });
+      }
+    }
+
+    /* Content types and their entries. */
+    const TYPE_META = {
+      sorts: [{ value: 'newest', label: 'Newest first' }, { value: 'title', label: 'By title' }, { value: 'manual', label: 'By sort order' }],
+      schema_types: [{ value: 'Article', label: 'Article' }, { value: 'WebPage', label: 'Web page' }],
+    };
+    if (p === '/admin/content-types' && req.method === 'GET') {
+      const page = paginate(CONTENT_TYPES);
+      Object.assign(page.meta, TYPE_META);
+      return json(res, 200, page);
+    }
+    if (p === '/admin/content-types' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      return json(res, 201, { data: { ...CONTENT_TYPES[0], ...body, id: 2, path: `/${body.slug}` }, meta: TYPE_META });
+    }
+    {
+      const m = p.match(/^\/admin\/content-types\/(\d+)$/);
+      if (m) {
+        if (Number(m[1]) !== 1) return json(res, 404, { message: 'Not found.' });
+        if (req.method === 'DELETE') return json(res, 422, { message: 'This type still holds 2 entries.', errors: { content_type: ['Delete its entries first.'] } });
+        const body = req.method === 'PATCH' ? await readJsonBody(req) : {};
+        return json(res, 200, { data: { ...CONTENT_TYPES[0], ...body }, meta: TYPE_META });
+      }
+    }
+    {
+      const m = p.match(/^\/admin\/content-types\/([a-z0-9-]+)\/entries(?:\/(\d+))?$/);
+      if (m) {
+        if (m[1] !== 'events') return json(res, 404, { message: 'Not found.' });
+        if (!m[2] && req.method === 'GET') {
+          const page = paginate(ENTRIES.map(adminEntry));
+          Object.assign(page.meta, {
+            type: CONTENT_TYPES[0],
+            statuses: [{ value: 'draft', label: 'Draft' }, { value: 'published', label: 'Published' }, { value: 'archived', label: 'Archived' }],
+            answer_block_kinds: ANSWER_BLOCK_KINDS,
+            custom_field_groups: CUSTOM_FIELD_DEFINITIONS,
+          });
+          return json(res, 200, page);
+        }
+        if (!m[2] && req.method === 'POST') {
+          const body = await readJsonBody(req);
+          return json(res, 201, { data: { ...adminEntry(ENTRIES[0]), ...body, id: 3 } });
+        }
+        const e = ENTRIES.find((x) => x.id === Number(m[2]));
+        if (!e) return json(res, 404, { message: 'Not found.' });
+        if (req.method === 'DELETE') return json(res, 200, { message: 'Entry deleted.' });
+        const body = req.method === 'PATCH' ? await readJsonBody(req) : {};
+        return json(res, 200, { data: { ...adminEntry(e), ...body } });
+      }
+    }
+
     /* The admin CMS indexes and details, from `ADMIN_CMS`. */
     for (const entity of ADMIN_CMS) {
       if (p === entity.base && req.method === 'GET') {
@@ -2114,6 +2256,7 @@ createServer(async (req, res) => {
           page.meta.section_types = SECTION_TYPES;
           page.meta.section_presets = SECTION_PRESETS;
         }
+        page.meta.custom_field_groups = entity.base === '/admin/pages' ? CUSTOM_FIELD_DEFINITIONS : [];
         if (entity.base === '/admin/store/products') {
           page.meta.types = [{ value: 'physical', label: 'Physical', description: 'Shipped.' }, { value: 'digital', label: 'Digital', description: 'A code.' }, { value: 'service', label: 'Service', description: 'Work.' }];
           page.meta.statuses = [{ value: 'draft', label: 'Draft' }, { value: 'published', label: 'Published' }, { value: 'archived', label: 'Archived' }];
@@ -3564,6 +3707,25 @@ createServer(async (req, res) => {
       data: { groups, total: groups.reduce((n, g) => n + g.total, 0) },
       meta: { q: term, min_length: 2 },
     });
+  }
+  /* Custom content types: the list, an archive, an entry. */
+  if (p === '/content-types') return json(res, 200, { data: CONTENT_TYPES.map(publicType) });
+  {
+    const m = p.match(/^\/types\/([a-z0-9-]+)(?:\/([a-z0-9-]+))?$/);
+    if (m) {
+      const t = CONTENT_TYPES.find((x) => x.slug === m[1]);
+      if (!t) return json(res, 404, { message: 'Not found.' });
+      if (!m[2]) {
+        const page = paginate(ENTRIES.map(({ body, ...e }) => { void body; return publicEntry(e, t); }));
+        page.meta.type = publicType(t);
+        return json(res, 200, page);
+      }
+      const e = ENTRIES.find((x) => x.slug === m[2]);
+      if (!e) return json(res, 404, { message: 'Not found.' });
+      const path = `${t.path}/${e.slug}`;
+      return json(res, 200, { data: { ...publicEntry(e, t), ...answerContent([], [], {}),
+        schema: { '@context': 'https://schema.org', '@type': 'Article', headline: e.title, url: `https://www.technoware.in${path}` } } });
+    }
   }
   if (p === '/pages') {
     // Summaries: the real endpoint omits body for exactly this reason.

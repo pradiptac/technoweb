@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\PublishStatus;
+use App\Http\Requests\Concerns\AcceptsCustomFields;
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
 use App\Http\Requests\Concerns\ValidatesPageSections;
@@ -12,7 +13,12 @@ use Illuminate\Validation\Rule;
 
 class StorePageRequest extends FormRequest
 {
-    use SanitisesRichText, ValidatesPageSections;
+    use AcceptsCustomFields, SanitisesRichText, ValidatesPageSections;
+
+    protected function customFieldTarget(): string
+    {
+        return 'page';
+    }
 
     /**
      * `body` is the rich-text body, as the trait's default says.
@@ -59,6 +65,7 @@ class StorePageRequest extends FormRequest
             ...CmsFieldRules::faqs(),
             ...CmsFieldRules::answerBlocks(),
             ...SeoRules::rules(),
+            ...$this->customFieldRules(),
         ];
     }
 

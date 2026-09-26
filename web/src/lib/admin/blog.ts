@@ -15,6 +15,8 @@ export type BlogQueryParams = {
 
 /** Fields the blog form submits. `seo` is written to the override row. */
 export type BlogPostPayload = Partial<{
+  /** Custom field values keyed by field key (docs/custom-content.md); absent leaves them alone. */
+  custom_fields: Record<string, unknown>;
   title: string;
   slug: string | null;
   excerpt: string | null;

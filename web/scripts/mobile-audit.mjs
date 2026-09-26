@@ -104,6 +104,10 @@ const ADMIN_ROUTES = [
     precisely the shape that gets it wrong.
   */
   "/admin/forms", "/admin/forms/new",
+  // Custom fields and content types (docs/custom-content.md): the field
+  // builder is a column of small controls, which is what 320px tests.
+  "/admin/custom-fields", "/admin/custom-fields/new",
+  "/admin/content-types", "/admin/content-types/new", "/admin/content",
   "/admin/landing-pages", "/admin/landing-pages/opportunities", "/admin/locations",
   "/admin/redirects/new", "/admin/users", "/admin/users/new", "/admin/settings", "/admin/info-bar", "/admin/store/promo", "/admin/themes", "/theme-preview/classic", "/theme-preview/classic/specimen",
   // Outgoing webhooks: the form's event grid is two columns of cards from

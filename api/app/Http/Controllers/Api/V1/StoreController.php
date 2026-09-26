@@ -145,7 +145,7 @@ class StoreController extends Controller
     {
         abort_unless($storeProduct->status?->value === 'published', 404);
 
-        $storeProduct->load(['category', 'brand', 'variations', 'services', 'faqs', 'publishedAnswerBlocks', 'seo']);
+        $storeProduct->load(['category', 'brand', 'variations', 'services', 'faqs', 'publishedAnswerBlocks', 'seo', 'customValues.field.group']);
 
         // What the page lists beside it: up to six others from the same
         // category, the storefront's own query. Set as a relation so the

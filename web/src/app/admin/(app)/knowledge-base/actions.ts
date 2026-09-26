@@ -7,7 +7,7 @@ import {
   createKnowledgeArticle, deleteKnowledgeArticle, updateKnowledgeArticle,
   type KnowledgeArticlePayload,
 } from "@/lib/admin";
-import { jsonListFromFormData, seoFromFormData, str, tagsFromFormData } from "@/lib/admin-form";
+import { customFieldsFromFormData, jsonListFromFormData, seoFromFormData, str, tagsFromFormData } from "@/lib/admin-form";
 import type { AnswerBlock, FaqItem, PublishStatus } from "@/types/api";
 
 export type ArticleFormState = { error?: string; fieldErrors?: Record<string, string[]> };
@@ -17,6 +17,8 @@ function payloadFrom(formData: FormData): KnowledgeArticlePayload {
   const categoryId = str(formData, "knowledge_category_id");
 
   return {
+    // Custom fields: absent when no Fields tab was drawn, so the API leaves them alone.
+    ...customFieldsFromFormData(formData),
     title: str(formData, "title") ?? "",
     slug: str(formData, "slug"),
     excerpt: str(formData, "excerpt"),

@@ -60,7 +60,7 @@ class ContentController extends Controller
         // `locations` feeds `areaServed` in the structured data. Named here
         // because preventLazyLoading is on outside production, so a relation
         // the resource reads and the controller forgot is a 500, not a query.
-        $solution->load(['products.brand', 'industries', 'faqs', 'publishedAnswerBlocks', 'seo', 'locations']);
+        $solution->load(['products.brand', 'industries', 'faqs', 'publishedAnswerBlocks', 'seo', 'locations', 'customValues.field.group']);
         EntityLinks::attach($solution);
 
         return (new SolutionResource($solution))->withSchema();
@@ -79,7 +79,7 @@ class ContentController extends Controller
     {
         abort_unless($service->status?->value === 'published', 404);
 
-        $service->load(['faqs', 'publishedAnswerBlocks', 'seo', 'locations']);
+        $service->load(['faqs', 'publishedAnswerBlocks', 'seo', 'locations', 'customValues.field.group']);
         EntityLinks::attach($service);
 
         return (new ServiceResource($service))->withSchema();
@@ -96,7 +96,7 @@ class ContentController extends Controller
 
     public function industry(Industry $industry): JsonResource
     {
-        $industry->load(['solutions', 'faqs', 'publishedAnswerBlocks', 'seo']);
+        $industry->load(['solutions', 'faqs', 'publishedAnswerBlocks', 'seo', 'customValues.field.group']);
         EntityLinks::attach($industry);
 
         // `withSchema()` marks it as the page for `entity` and `faq_schema`;
@@ -261,7 +261,7 @@ class ContentController extends Controller
     {
         abort_unless($post->status?->value === 'published', 404);
 
-        $post->load(['author', 'seo', 'categories', 'faqs', 'publishedAnswerBlocks']);
+        $post->load(['author', 'seo', 'categories', 'faqs', 'publishedAnswerBlocks', 'customValues.field.group']);
         EntityLinks::attach($post);
 
         // The older and the newer post, for the foot of the article. Set as
@@ -285,7 +285,7 @@ class ContentController extends Controller
     {
         abort_unless($caseStudy->status?->value === 'published', 404);
 
-        $caseStudy->load(['industry', 'seo']);
+        $caseStudy->load(['industry', 'seo', 'customValues.field.group']);
         EntityLinks::attach($caseStudy);
 
         return (new CaseStudyResource($caseStudy))->withSchema();
@@ -391,7 +391,7 @@ class ContentController extends Controller
     {
         abort_unless($page->status?->value === 'published', 404);
 
-        $page->load(['faqs', 'publishedAnswerBlocks', 'seo']);
+        $page->load(['faqs', 'publishedAnswerBlocks', 'seo', 'customValues.field.group']);
         EntityLinks::attach($page);
 
         return (new PageResource($page))->withSchema();
@@ -402,7 +402,7 @@ class ContentController extends Controller
         abort_unless($article->status?->value === 'published', 404);
 
         $article->increment('view_count');
-        $article->load(['category', 'faqs', 'publishedAnswerBlocks', 'seo']);
+        $article->load(['category', 'faqs', 'publishedAnswerBlocks', 'seo', 'customValues.field.group']);
         EntityLinks::attach($article);
 
         return (new KnowledgeArticleResource($article))->withSchema();

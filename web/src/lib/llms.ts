@@ -2,7 +2,9 @@ import "server-only";
 import { publicApi } from "@/lib/api";
 import { SITE } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
-import type { BlogPost, CaseStudy, Faq, KnowledgeArticle, PublicAnswerBlock, Service, Solution } from "@/types/api";
+import type {
+  BlogPost, CaseStudy, ContentEntry, ContentTypeSummary, Faq, KnowledgeArticle, PublicAnswerBlock, Service, Solution,
+} from "@/types/api";
 
 /**
  * `/llms.txt` and `/llms-full.txt` — the site, as an assistant reads it.
@@ -74,6 +76,8 @@ type Site = {
   articles: KnowledgeArticle[];
   caseStudies: CaseStudy[];
   posts: BlogPost[];
+  /** Custom content types (docs/custom-content.md) and their first hundred published entries each. */
+  custom: { type: ContentTypeSummary; entries: ContentEntry[] }[];
 };
 
 async function load(): Promise<Site> {
@@ -88,7 +92,12 @@ async function load(): Promise<Site> {
     quiet(publicApi.caseStudies()),
     quiet(publicApi.posts("?per_page=20")),
   ]);
-  return { settings, solutions, services, industries, categories, articles, caseStudies, posts };
+  const types = await quiet(publicApi.contentTypes());
+  const custom = await Promise.all(types.map(async (type) => ({
+    type,
+    entries: await publicApi.contentArchive(type.slug, "?per_page=100").then((r) => r.data).catch(() => [] as ContentEntry[]),
+  })));
+  return { settings, solutions, services, industries, categories, articles, caseStudies, posts, custom };
 }
 
 function head(site: Site): string {
@@ -136,6 +145,12 @@ function index(site: Site): string {
   ]);
   section("Case studies", site.caseStudies.map((x) => line(x.title, `/case-studies/${x.slug}`, [x.summary, ...(x.results ?? []).map((r) => `${r.value} ${r.label}`)].filter(Boolean).join(" — "))));
   section("Blog", site.posts.map((x) => line(x.title, `/blog/${x.slug}`, x.excerpt)));
+  for (const { type, entries } of site.custom) {
+    section(type.plural, [
+      ...(type.archive_enabled ? [line(`All ${type.plural.toLowerCase()}`, type.path, type.description)] : []),
+      ...entries.map((x) => line(x.title, x.path, x.summary)),
+    ]);
+  }
   section("Company", [
     line("About", "/about"),
     line("Team", "/team"),
@@ -188,6 +203,12 @@ export async function llmsFull(): Promise<string> {
   for (const a of articles) if (a) doc(a.title, `/knowledge-base/${a.slug}`, [a.excerpt, definition(a), a.body, questions(a)]);
   for (const c of caseStudies) if (c) doc(c.title, `/case-studies/${c.slug}`, [c.summary, (c.results ?? []).map((r) => `- ${r.value} — ${r.label}`).join("\n"), c.body]);
   for (const p of posts) if (p) doc(p.title, `/blog/${p.slug}`, [p.excerpt, definition(p), p.body, questions(p)]);
+
+  // Custom content: each entry's own read, ISR-cached like its page.
+  for (const { type, entries } of site.custom) {
+    const full = await Promise.all(entries.map((x) => quiet(publicApi.entry(type.slug, x.slug))));
+    for (const e of full) if (e) doc(e.title, e.path, [e.summary, definition(e), e.body, questions(e)]);
+  }
 
   return out.join("\n");
 }

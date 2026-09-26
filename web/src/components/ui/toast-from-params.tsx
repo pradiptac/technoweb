@@ -97,6 +97,20 @@ const OUTCOMES: Record<string, Message> = {
     title: "Could not delete the block",
     body: "It is still there. Try again in a moment.",
   },
+  "custom-field-group-deleted": {
+    tone: "ok",
+    title: "Field group deleted",
+    body: "Its fields, and every value typed into them, went with it.",
+  },
+  "content-type-deleted": {
+    tone: "ok",
+    title: "Content type deleted",
+  },
+  "entry-deleted": {
+    tone: "ok",
+    title: "Entry deleted",
+    body: "Its address now answers 404; add a redirect if it was linked from anywhere.",
+  },
   "vacancy-deleted": {
     tone: "ok",
     title: "Vacancy deleted",

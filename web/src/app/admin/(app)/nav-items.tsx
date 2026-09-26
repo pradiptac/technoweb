@@ -267,6 +267,16 @@ export const NAV: NavItem[] = [
       { role: "content_manager", href: "/admin/team-members", label: "Team", icon: IconUsers },
       { role: "content_manager", href: "/admin/clients", label: "Clients", icon: IconBuilding },
       { role: "content_manager", href: "/admin/certifications", label: "Certifications", icon: IconShield },
+      // Custom fields (docs/custom-content.md): extra fields on the records above.
+      { role: "content_manager", href: "/admin/custom-fields", label: "Custom fields", icon: IconWrench },
+      /*
+        Custom content types: one row for the types and one for their
+        entries, however many types there are. `/admin/content/{type}/…`
+        resolves to "Custom content" by the longest-match rule, so every
+        entry screen keeps its role gate without a row per type.
+      */
+      { role: "content_manager", href: "/admin/content-types", label: "Content types", icon: IconGrid },
+      { role: "content_manager", href: "/admin/content", label: "Custom content", icon: IconPen },
     ],
   },
   {

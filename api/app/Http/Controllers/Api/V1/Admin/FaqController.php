@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateFaqRequest;
 use App\Http\Resources\Admin\FaqResource;
 use App\Models\BlogPost;
 use App\Models\Brand;
+use App\Models\Entry;
 use App\Models\Faq;
 use App\Models\Industry;
 use App\Models\KnowledgeArticle;
@@ -58,6 +59,8 @@ class FaqController extends Controller
         'blog_post' => [BlogPost::class, 'title', 'Blog posts'],
         'knowledge_article' => [KnowledgeArticle::class, 'title', 'Knowledge base'],
         'industry' => [Industry::class, 'name', 'Industries'],
+        // Entries of the custom content types (docs/custom-content.md).
+        'entry' => [Entry::class, 'title', 'Custom content'],
     ];
 
     public function index(Request $request): AnonymousResourceCollection

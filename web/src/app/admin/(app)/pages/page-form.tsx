@@ -13,9 +13,10 @@ import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
+import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import { createPageAction, updatePageAction, deletePageAction, type PageFormState } from "./actions";
 import { SectionBuilder } from "./builder/section-builder";
-import type { AdminPage, AnswerBlockKindOption, PageBuilderOptions, StoredSection } from "@/types/api";
+import type { CustomFieldGroupDefinition, AdminPage, AnswerBlockKindOption, PageBuilderOptions, StoredSection } from "@/types/api";
 
 const initial: PageFormState = {};
 
@@ -40,7 +41,7 @@ function toLocalInput(iso: string | null): string {
 }
 
 export function PageForm({
-  page, saved, kinds, builder,
+  page, saved, kinds, builder, fieldGroups,
 }: {
   page?: AdminPage;
   saved?: boolean;
@@ -48,6 +49,8 @@ export function PageForm({
   kinds: AnswerBlockKindOption[];
   /** `GET /admin/pages/builder` — the section builder's types, presets and pickers. */
   builder: PageBuilderOptions;
+  /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
+  fieldGroups?: CustomFieldGroupDefinition[];
 }) {
   const editing = Boolean(page);
   const [state, formAction, pending] = useActionState(
@@ -61,7 +64,9 @@ export function PageForm({
   const rowErr = (prefix: string) =>
     err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
 
-  const { tabs: allTabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
+  // Custom fields (docs/custom-content.md): the groups that apply, from the API.
+  const customGroups = page?.custom_field_groups ?? fieldGroups ?? [];
+  const { tabs: allTabs, jumpTo } = buildFormTabs(withFieldsTab(GROUPS, customGroups), state.fieldErrors);
 
   /*
     The template decides whether the page is its body or its sections, so it
@@ -192,6 +197,12 @@ export function PageForm({
           <AeoGeoPanel record={page ? { type: 'page', id: page.id } : null} blocks={page?.answer_blocks} />
           <AnswerBlocksField defaultValue={page?.answer_blocks ?? []} kinds={kinds} error={rowErr("answer_blocks")} />
         </div>,
+
+        /* The Fields tab — last, and only when a custom field group applies. */
+        ...(customGroups.length > 0 ? [
+          <CustomFieldsPanel key="fields" groups={customGroups} values={page?.custom_fields} media={page?.custom_field_media}
+            error={customFieldError(state.fieldErrors)} />,
+        ] : []),
       ]}</Tabs>
 
       <FormActions>

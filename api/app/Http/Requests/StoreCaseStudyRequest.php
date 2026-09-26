@@ -3,13 +3,19 @@
 namespace App\Http\Requests;
 
 use App\Enums\PublishStatus;
+use App\Http\Requests\Concerns\AcceptsCustomFields;
 use App\Http\Requests\Concerns\SanitisesRichText;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreCaseStudyRequest extends FormRequest
 {
-    use SanitisesRichText;
+    use AcceptsCustomFields, SanitisesRichText;
+
+    protected function customFieldTarget(): string
+    {
+        return 'case_study';
+    }
 
     public function authorize(): bool
     {
@@ -39,6 +45,8 @@ class StoreCaseStudyRequest extends FormRequest
             // decides whether one is live.
 
             ...SeoRules::rules(),
+
+            ...$this->customFieldRules(),
         ];
     }
 

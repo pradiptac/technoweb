@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import { createPage, deletePage, updatePage, type CmsPagePayload } from "@/lib/admin";
-import { jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
+import { customFieldsFromFormData, jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
 import type { AnswerBlock, PublishStatus, StoredSection } from "@/types/api";
 
 export type PageFormState = { error?: string; fieldErrors?: Record<string, string[]> };
@@ -13,6 +13,8 @@ function payloadFrom(formData: FormData): CmsPagePayload {
   const seo = seoFromFormData(formData);
 
   return {
+    // Custom fields: absent when no Fields tab was drawn, so the API leaves them alone.
+    ...customFieldsFromFormData(formData),
     title: str(formData, "title") ?? "",
     slug: str(formData, "slug"),
     body: str(formData, "body"),

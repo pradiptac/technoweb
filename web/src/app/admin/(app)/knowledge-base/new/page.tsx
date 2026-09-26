@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
-import { getAnswerBlockKinds, getKnowledgeCategories } from "@/lib/admin";
+import { getAnswerBlockKinds, getKnowledgeCategories, getCustomFieldGroups } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ArticleForm } from "../article-form";
@@ -30,7 +30,7 @@ export default async function NewKnowledgeArticlePage() {
         title="New article"
       />
 
-      <ArticleForm categories={categories} kinds={kinds} />
+      <ArticleForm categories={categories} kinds={kinds} fieldGroups={await getCustomFieldGroups("/admin/knowledge-articles")} />
     </>
   );
 }

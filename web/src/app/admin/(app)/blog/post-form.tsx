@@ -14,9 +14,10 @@ import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
+import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import { CoverField } from "@/components/admin/cover-field";
 import { createPostAction, updatePostAction, deletePostAction, type PostFormState } from "./actions";
-import type { AdminBlogPost, StaffUser, AnswerBlockKindOption } from "@/types/api";
+import type { CustomFieldGroupDefinition, AdminBlogPost, StaffUser, AnswerBlockKindOption } from "@/types/api";
 
 const initial: PostFormState = {};
 
@@ -44,13 +45,15 @@ function toLocalInput(iso: string | null): string {
  * so it is the shape the remaining CMS entities should follow.
  */
 export function PostForm({
-  post, staff, saved, kinds,
+  post, staff, saved, kinds, fieldGroups,
 }: {
   post?: AdminBlogPost;
   staff: StaffUser[];
   saved?: boolean;
   /** `meta.answer_block_kinds` from this entity's admin index. */
   kinds: AnswerBlockKindOption[];
+  /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
+  fieldGroups?: CustomFieldGroupDefinition[];
 }) {
   const editing = Boolean(post);
   const [state, formAction, pending] = useActionState(
@@ -65,7 +68,9 @@ export function PostForm({
   const defaults = post?.seo_defaults;
   const seo = post?.seo;
 
-  const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
+  // Custom fields (docs/custom-content.md): the groups that apply, from the API.
+  const customGroups = post?.custom_field_groups ?? fieldGroups ?? [];
+  const { tabs, jumpTo } = buildFormTabs(withFieldsTab(GROUPS, customGroups), state.fieldErrors);
 
   return (
     <Form action={formAction} state={state} noValidate>
@@ -153,6 +158,12 @@ export function PostForm({
           <AnswerBlocksField defaultValue={post?.answer_blocks ?? []} kinds={kinds} error={rowErr("answer_blocks")} />
           <FaqField defaultValue={post?.faqs ?? []} error={rowErr("faqs")} />
         </div>
+
+        {/* The Fields tab — last, and only when a custom field group applies. */}
+        {customGroups.length > 0 && (
+          <CustomFieldsPanel groups={customGroups} values={post?.custom_fields} media={post?.custom_field_media}
+            error={customFieldError(state.fieldErrors)} />
+        )}
       </Tabs>
 
       <FormActions>
