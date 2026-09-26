@@ -21,6 +21,72 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.89.0 — 2026-09-26
+
+**A security review of the whole codebase, and everything it found is
+fixed.** Five reviewers read the API and the frontend by attack surface;
+every finding was confirmed in the code and fixed with a test.
+- **Payments:** the browser's Razorpay return was not tied to the order it
+  paid for, so paying for a cheap order could mark an expensive one paid.
+  The return must now name the Razorpay order this order opened, and
+  Razorpay's own record of the payment (captured, that order, INR, the
+  amount) is checked before anything is settled.
+- **Accounts:** somebody could register another person's address with a
+  password of their own and inherit that person's guest orders and emailed
+  tickets once they confirmed it. Confirming an address now retires any
+  password set before it, orders and tickets attach only to confirmed
+  accounts, and changing the portal email needs the new address confirmed.
+- **Rate limits** were one shared counter per visitor across the whole site
+  — and every visitor looked like the Next server — so a handful of form
+  posts could stop everybody signing in. Every limit now counts per route
+  and per real visitor (`TRUSTED_PROXIES`).
+- Also: phishing links through contact-form names in emails, formula
+  injection in CSV exports, the outgoing webhooks and mail/IMAP hosts
+  reaching internal addresses, a path trick in the import screens, the order
+  link's token reaching analytics (it is now a cookie on a clean URL),
+  "Passwords still accepted" being only a hidden form, parallel sign-in-code
+  guesses, coupon exhaustion by unpaid orders, and more — see `docs/` and
+  `CLAUDE.md` for each rule.
+
+**The shop**
+- **Reviews:** signed-in customers rate and review what they bought
+  (Verified with the variant for buyers), staff approve each one, ratings on
+  every card and in Google's results, and a "How was it?" email a week after
+  delivery.
+- **Wishlist** for guests and accounts, merged on sign-in, with
+  back-in-stock and price-drop emails.
+- **Abandoned baskets:** up to two reminder emails, the second optionally
+  with a coupon; recovered baskets on the store dashboard.
+- **Filters by specification** (ports, PoE, speed…), chosen per category.
+- **Product videos** (YouTube or an uploaded MP4), a hover magnifier, and
+  zoom and pan in the picture viewer.
+- **A Meta catalogue feed** for Facebook, Instagram and WhatsApp Business.
+
+**The CMS**
+- **Page builder:** a page can be built from sections — hero, text, image and
+  text, features, cards from any list, blocks, slider, gallery, form, FAQ,
+  logos, testimonial, video — with reorder, duplicate, hide and preview.
+- **Custom fields** on pages, posts, solutions, products and the rest, and
+  **custom content types** with their own pages and archives, made in the
+  console.
+
+**Customers**
+- **WhatsApp, RCS and browser push**: providers chosen in Settings, message
+  templates, automations for order, ticket, basket, wishlist and visit
+  events, and broadcasts to people who opted in.
+- **Engineer visit requests:** a customer asks for a site visit with up to
+  three preferred times at `/book-a-visit`; the desk confirms one, with a
+  calendar invite and a reminder the day before.
+- The footer's flip tiles spell up to seven letters on one line, with each
+  logo in its brand colour on hover and email as a tile.
+
+**On deploy:** `php artisan migrate --force`, then `php artisan db:seed
+--class=SettingsSeeder --force` and `php artisan
+technoware:rebuild-store-specs`; set `TRUSTED_PROXIES` in `api/.env` to the
+address the Next server connects from (loopback on one box).
+
+---
+
 ## 0.88.0 — 2026-09-24
 
 **Content blocks: CTA banners, stat bars, pricing tables and technology

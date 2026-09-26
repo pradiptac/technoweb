@@ -33,11 +33,11 @@ final class ReservedSlugs
         'about', 'blog', 'brands', 'careers', 'cart', 'case-studies', 'certifications',
         'checkout', 'clients', 'contact', 'industries', 'knowledge-base', 'locations',
         'newsletter', 'order', 'products', 'resources', 'search', 'services', 'solutions',
-        'store', 'support', 'team',
+        'store', 'support', 'team', 'book-a-visit', 'visit',
         // The application root.
         'admin', 'api', 'embed', 'portal', 'push', 'theme-preview', 'indexnow',
         'favicon.ico', 'sitemap.xml', 'robots.txt', 'llms.txt', 'llms-full.txt',
-        'google-shopping-feed.xml', 'opengraph-image',
+        'google-shopping-feed.xml', 'meta-catalogue.xml', 'meta-catalogue.csv', 'opengraph-image',
     ];
 
     /** The API's public prefixes (`routes/api/public.php`). */
@@ -45,7 +45,7 @@ final class ReservedSlugs
         'types', 'content-types', 'product-categories', 'pages', 'popups', 'sliders',
         'blocks', 'galleries', 'forms', 'menus', 'settings', 'redirects', 'landing-pages',
         'enquiries', 'chat', 'auth', 'companies', 'client-errors', 'messaging', 'tickets',
-        'ticket-attachments', 'ticket-categories', 'orders', 'payments', 'wishlist', 'my',
+        'ticket-attachments', 'ticket-categories', 'orders', 'payments', 'wishlist', 'my', 'visits',
     ];
 
     /** Words a server, a crawler or the framework already means something by. */
