@@ -26,6 +26,10 @@ enum MessageEvent: string
     case CartReminder2 = 'cart_reminder_2';
     case WishlistBackInStock = 'wishlist_back_in_stock';
     case WishlistPriceDrop = 'wishlist_price_drop';
+    // Engineer visits (2026-09-26, docs/visits.md) — all three transactional.
+    case VisitRequested = 'visit_requested';
+    case VisitConfirmed = 'visit_confirmed';
+    case VisitReminder = 'visit_reminder';
 
     public function label(): string
     {
@@ -38,6 +42,9 @@ enum MessageEvent: string
             self::CartReminder2 => 'Basket reminder — second',
             self::WishlistBackInStock => 'Wishlist item back in stock',
             self::WishlistPriceDrop => 'Wishlist item price drop',
+            self::VisitRequested => 'Visit requested',
+            self::VisitConfirmed => 'Visit confirmed or moved',
+            self::VisitReminder => 'Visit tomorrow — reminder',
         };
     }
 
@@ -65,6 +72,8 @@ enum MessageEvent: string
             self::CartReminder1, self::CartReminder2 => ['basket_url', 'item_count', 'basket_total', 'coupon_code'],
             self::WishlistBackInStock => ['product_name', 'product_url'],
             self::WishlistPriceDrop => ['product_name', 'product_url', 'old_price', 'new_price'],
+            self::VisitRequested => ['reference', 'service_name', 'visit_url'],
+            self::VisitConfirmed, self::VisitReminder => ['reference', 'service_name', 'visit_date', 'visit_time', 'visit_url'],
         };
     }
 }

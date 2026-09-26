@@ -169,6 +169,43 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Where it operates",
     hint: "Falls back to the places on the Locations screen, then to the postal address.",
   },
+  /*
+    Engineer visits (2026-09-26, docs/visits.md). Six of the eight reach the
+    public /settings map (`VisitSettings::PUBLIC_KEYS`) because the request
+    form needs them; the desk's address and the default length do not.
+  */
+  visits_enabled: {
+    label: "Take visit requests online",
+    hint: "1 to show the Book a site visit form, 0 to show a line asking people to call instead.",
+  },
+  visit_windows: {
+    label: "Parts of the day",
+    hint: "One per line, as key|Label|start|end on the 24-hour clock — for example morning|Morning|09:00|12:00. The key is stored on every request, so rename the label rather than the key.",
+  },
+  visit_days: {
+    label: "Days engineers visit",
+    hint: "Comma-separated, as mon,tue,wed,thu,fri,sat. A request for any other day is refused.",
+  },
+  visit_min_notice_days: {
+    label: "Notice needed (days)",
+    hint: "The earliest day somebody may ask for, counted from today. 1 means tomorrow.",
+  },
+  visit_max_days: {
+    label: "How far ahead (days)",
+    hint: "The latest day somebody may ask for, counted from today.",
+  },
+  visit_holidays: {
+    label: "Closed dates",
+    hint: "One per line as YYYY-MM-DD, with anything after the date as a note — 2026-10-20 Diwali. Nobody may ask for these.",
+  },
+  visits_email: {
+    label: "Visit requests go to",
+    hint: "The desk's address for new requests and changes. Blank sends them to the sales inbox.",
+  },
+  visit_default_minutes: {
+    label: "Default visit length (minutes)",
+    hint: "What the confirm form suggests, and how long the calendar entry is when nobody says otherwise.",
+  },
   lead_intent_words: {
     label: "More buying words",
     hint: "One word or phrase per line, added to the built-in list. Whole words only, so \"PO\" does not match \"port\"; plurals and -ing forms are matched for you.",
@@ -600,6 +637,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     blurb: "Who campaigns come from, what the footer says, and how fast they go out. The postal address is not optional — a campaign without one is refused before it sends.",
   },
   seo: { title: "SEO defaults", blurb: "Fallbacks for pages with no override of their own." },
+  visits: {
+    title: "Engineer visits",
+    blurb: "The Book a site visit form: which days and parts of the day it offers, how much notice it needs and how far ahead it reaches, the dates you are closed, and where requests are sent. A request is a wish list — the desk confirms the actual time.",
+  },
   leads: {
     title: "Leads",
     blurb: "How an enquiry is scored on arrival. The built-in list of buying words is tuned for hardware procurement in India — tender, PO, AMC, quotation — and this extends it once real enquiries have been read for a while. A score is taken at intake and not rewritten; `php artisan technoware:rescore-leads --write` restates the whole table on the current words.",
@@ -758,6 +799,8 @@ export const FIELD_ORDER: Record<string, string[]> = {
           "store_price_drop_min_percent", "store_review_requests_enabled", "store_review_request_days"],
   store_reminders: ["store_cart_reminders_enabled", "store_cart_reminder_1_hours", "store_cart_reminder_2_days", "store_cart_reminder_coupon"],
   leads: ["lead_intent_words"],
+  visits: ["visits_enabled", "visit_windows", "visit_days", "visit_min_notice_days", "visit_max_days", "visit_holidays",
+           "visits_email", "visit_default_minutes"],
   push: ["push_api_key", "push_project_id", "push_messaging_sender_id", "push_app_id", "push_vapid_key"],
   embeds: ["reviews_embed", "reviews_kicker", "reviews_heading", "reviews_lede", "body_code"],
   portal: ["portal_enabled", "registration_enabled", "customer_approval_required"],
@@ -921,6 +964,14 @@ export const SCREENS: SettingsScreen[] = [
     lede: "How an enquiry is scored on arrival — the buying words that mark a lead as hot.",
     saveLabel: "Save scoring",
     sections: [{ groups: ["leads"] }],
+  },
+  {
+    path: "/admin/visits/settings",
+    title: "Visit settings",
+    area: "Visits",
+    lede: "What the Book a site visit form offers — days, parts of the day, notice and closed dates — and where requests go.",
+    saveLabel: "Save visit settings",
+    sections: [{ groups: ["visits"] }],
   },
   {
     path: "/admin/tickets/settings",

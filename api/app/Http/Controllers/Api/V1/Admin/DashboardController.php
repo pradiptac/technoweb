@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Enums\CustomerStatus;
 use App\Enums\LeadStatus;
 use App\Enums\Role;
+use App\Enums\VisitStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TicketResource;
 use App\Models\BlogPost;
@@ -14,6 +15,7 @@ use App\Models\Lead;
 use App\Models\Product;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Models\VisitRequest;
 use App\Support\TicketMetrics;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -112,6 +114,19 @@ class DashboardController extends Controller
                     // reply by a date that has passed.
                     'overdue' => Lead::query()->overdue()->count(),
                     'unassigned' => Lead::query()->open()->whereNull('assigned_to')->count(),
+                ]
+                : null,
+            /*
+             * Engineer visits (2026-09-26): what is waiting on somebody to
+             * pick a time, and what is in the diary today. Both desks may work
+             * the visits queue, so both see the figures; null for any other
+             * role, the `leads` rule above. Each is the queue's own filter.
+             */
+            'visits' => $request->user()?->hasRole(Role::Admin, Role::SalesManager, Role::SupportEngineer)
+                ? [
+                    'awaiting' => VisitRequest::where('status', VisitStatus::Requested)->count(),
+                    'today' => VisitRequest::where('status', VisitStatus::Confirmed)
+                        ->whereBetween('scheduled_start_at', [Carbon::today(), Carbon::today()->endOfDay()])->count(),
                 ]
                 : null,
             'recent_tickets' => TicketResource::collection(

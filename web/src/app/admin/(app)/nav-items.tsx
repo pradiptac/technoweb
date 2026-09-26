@@ -115,6 +115,19 @@ export const NAV: NavItem[] = [
     ],
   },
   /*
+    Engineer visits (2026-09-26, docs/visits.md), beside Leads: a queue both
+    the sales desk and the support desk work — a site survey starts a sale
+    and scopes an installation — so the row carries both roles, spelled the
+    way the route's middleware spells them.
+  */
+  {
+    kind: "group", id: "visits", label: "Visits", icon: IconBuilding,
+    links: [
+      { role: "sales_manager,support_engineer", href: "/admin/visits", label: "Visits", icon: IconClock },
+      { role: "admin", href: "/admin/visits/settings", label: "Visit settings", icon: IconSliders },
+    ],
+  },
+  /*
     Top level, and called Campaign rather than Newsletter.
 
     It sat inside Site on the grounds that a fifth section for one module was

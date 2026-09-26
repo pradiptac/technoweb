@@ -31,16 +31,24 @@ use App\Notifications\TicketCreated;
 use App\Notifications\TicketMerged;
 use App\Notifications\TicketReplied;
 use App\Notifications\VerifyCustomerEmail;
+use App\Notifications\VisitCancelled;
+use App\Notifications\VisitConfirmed;
+use App\Notifications\VisitReminder;
+use App\Notifications\VisitRequested;
+use App\Notifications\VisitRequestReceived;
 use App\Notifications\WishlistBackInStock;
 use App\Notifications\WishlistPriceDrop;
 
 /**
- * The 33 entries, kept out of `MessageCatalogue` so that class stays readable.
+ * The 40 entries, kept out of `MessageCatalogue` so that class stays readable.
  *
- * Thirty-three for thirty-one classes: `TicketReplied` is two messages — its
+ * Forty for thirty-six classes: `TicketReplied` is two messages — its
  * customer and desk versions differ in greeting, action label *and* recipient,
- * and one template cannot say both without lying about one of them — and
- * `CartReminder` is two, the first basket reminder and the second.
+ * and one template cannot say both without lying about one of them —
+ * `CartReminder` is two, the first basket reminder and the second, and the
+ * engineer visits (2026-09-26) add two more pairs: `VisitRequestReceived`
+ * (a new request, and a customer changing one) and `VisitConfirmed` (booked,
+ * and moved).
  *
  * **Three are `locked`.** The address verification, the password reset and
  * the sign-in code each carry a credential somebody is waiting for at a form,
@@ -97,7 +105,7 @@ class MessageCatalogueEntries
     /** @return array<string, array<string, mixed>> */
     public static function all(): array
     {
-        return array_merge(self::tickets(), self::orders(), self::accounts(), self::enquiries());
+        return array_merge(self::tickets(), self::orders(), self::accounts(), self::enquiries(), self::visits());
     }
 
     /** @return array<string, array<string, mixed>> */
@@ -813,6 +821,160 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     .'{{details}}'
                     .'<p><strong>On the page:</strong> {{source_path}}</p>'
                     .'<p><a href="{{url}}">Open this lead</a></p>',
+            ],
+        ];
+    }
+
+    /**
+     * Engineer visit requests (2026-09-26, `docs/visits.md`) — seven messages
+     * for five classes.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private static function visits(): array
+    {
+        $reference = ['about' => 'The visit reference, which is what people quote on the phone.', 'sample' => 'TV-2026-00012'];
+        $topic = ['about' => 'What the visit is about — the service or solution chosen, or “Site survey”.', 'sample' => 'Network installation'];
+        $manage = ['about' => 'Their own link to cancel or ask for another time. No sign-in needed.', 'sample' => 'https://www.technoware.in/visit/TV-2026-00012/open?token=…'];
+
+        // The desk's two share one class, so they offer one list.
+        $desk = [
+            'reference' => $reference,
+            'name' => ['about' => 'Who asked.', 'sample' => 'Priya Sharma'],
+            'company' => ['about' => 'Their company, or blank.', 'sample' => 'Meridian Foods'],
+            'email' => ['about' => 'Their address. Replying goes here.', 'sample' => 'priya@meridianfoods.test'],
+            'phone' => ['about' => 'Their mobile.', 'sample' => '+91 98765 43210'],
+            'topic' => $topic,
+            'preferred' => self::details('The dates and parts of the day they asked for, in the order they ranked them.', '<ul><li>Tue 6 Oct — Morning (09:00–12:00)</li></ul>'),
+            'site_address' => ['about' => 'Where the engineer is going.', 'sample' => '14 Park Street, Kolkata, West Bengal, 700016'],
+            'notes' => ['about' => 'The first 800 characters of what they wrote about the site.', 'sample' => 'Two floors, the rack is in the basement.'],
+            'change' => ['about' => 'What the customer did — blank on a new request.', 'sample' => 'They asked for other times.'],
+            'url' => ['about' => 'The request in the console.', 'sample' => 'https://www.technoware.in/admin/visits/TV-2026-00012'],
+            'lead' => self::details('The lead score and a link to the pipeline record — blank on a change.', '<p><strong>Score:</strong> 64 / 100 — warm</p>'),
+        ];
+
+        // Booked, moved and reminded share one list of facts.
+        $booked = [
+            'name' => ['about' => 'Their first name, or “there”.', 'sample' => 'Priya'],
+            'reference' => $reference,
+            'topic' => $topic,
+            'visit_date' => ['about' => 'The day of the visit.', 'sample' => 'Tue 6 Oct 2026'],
+            'visit_time' => ['about' => 'When it starts and ends.', 'sample' => '10:30 – 12:00'],
+            'site_address' => ['about' => 'Where the engineer is going.', 'sample' => '14 Park Street, Kolkata, West Bengal, 700016'],
+            'manage_url' => $manage,
+        ];
+
+        return [
+            'visit_request_received' => [
+                'label' => 'Visit requested — to the desk',
+                'description' => 'Sent to the visits address (else the sales inbox) when somebody requests an engineer visit. Replying goes to the customer.',
+                'audience' => self::INTERNAL,
+                'class' => VisitRequestReceived::class,
+                'variables' => $desk,
+                'subject' => '[{{reference}}] Visit requested: {{topic}}',
+                'body' => '<p>A site visit has been requested.</p>'
+                    .'<p><strong>{{name}}</strong> · {{company}}</p>'
+                    .'<p>{{email}} · {{phone}}</p>'
+                    .'<p><strong>About:</strong> {{topic}}<br><strong>Site:</strong> {{site_address}}</p>'
+                    .'<p><strong>Preferred times:</strong></p>{{preferred}}'
+                    .'<p>{{notes}}</p>'
+                    .'{{lead}}'
+                    .'<p><a href="{{url}}">Confirm a time in the console</a></p>',
+            ],
+
+            'visit_request_changed' => [
+                'label' => 'Visit changed by the customer — to the desk',
+                'description' => 'Sent when a customer cancels their visit or asks for other times, from their own link or the portal.',
+                'audience' => self::INTERNAL,
+                'class' => VisitRequestReceived::class,
+                'variables' => $desk,
+                'subject' => '[{{reference}}] Visit changed by the customer',
+                'body' => '<p>{{change}}</p>'
+                    .'<p><strong>{{name}}</strong> · {{company}} · {{phone}}</p>'
+                    .'<p><strong>About:</strong> {{topic}}</p>'
+                    .'<p><strong>Times they would like now:</strong></p>{{preferred}}'
+                    .'<p><a href="{{url}}">Open it in the console</a></p>',
+            ],
+
+            'visit_requested' => [
+                'label' => 'Visit requested — to the customer',
+                'description' => 'The receipt somebody gets after requesting an engineer visit. It repeats the times they chose, never what they typed.',
+                'audience' => self::CUSTOMER,
+                'class' => VisitRequested::class,
+                'variables' => [
+                    'name' => ['about' => 'Their first name, or “there”.', 'sample' => 'Priya'],
+                    'reference' => $reference,
+                    'topic' => $topic,
+                    'preferred' => self::details('The dates and parts of the day they asked for.', '<ul><li>Tue 6 Oct — Morning (09:00–12:00)</li></ul>'),
+                    'manage_url' => $manage,
+                ],
+                'subject' => '[{{reference}}] We have your visit request',
+                'body' => '<p>Thank you, {{name}}.</p>'
+                    .'<p>We have your request for an engineer visit — <strong>{{topic}}</strong>. Your reference is <strong>{{reference}}</strong>.</p>'
+                    .'<p>You asked for:</p>{{preferred}}'
+                    .'<p>This is a request, not a booking yet. We will confirm the actual time by email once an engineer is free.</p>'
+                    .'<p><a href="{{manage_url}}">Cancel or ask for another time</a></p>',
+            ],
+
+            'visit_confirmed' => [
+                'label' => 'Visit booked — to the customer',
+                'description' => 'Sent when the desk confirms a time. Carries a calendar file.',
+                'audience' => self::CUSTOMER,
+                'class' => VisitConfirmed::class,
+                'variables' => $booked,
+                'subject' => '[{{reference}}] Your engineer visit is booked for {{visit_date}}, {{visit_time}}',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p>An engineer will visit — <strong>{{topic}}</strong> — on <strong>{{visit_date}}, {{visit_time}}</strong>.</p>'
+                    .'<p>At: {{site_address}}</p>'
+                    .'<p>The calendar file attached adds it to your diary. We will remind you the day before.</p>'
+                    .'<p><a href="{{manage_url}}">Cancel or ask for another time</a></p>',
+            ],
+
+            'visit_rescheduled' => [
+                'label' => 'Visit moved — to the customer',
+                'description' => 'Sent when the desk moves a confirmed visit to a new time. Carries a calendar file that updates the old event.',
+                'audience' => self::CUSTOMER,
+                'class' => VisitConfirmed::class,
+                'variables' => $booked,
+                'subject' => '[{{reference}}] Your engineer visit has moved to {{visit_date}}, {{visit_time}}',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p>We have moved your engineer visit — <strong>{{topic}}</strong> — to <strong>{{visit_date}}, {{visit_time}}</strong>.</p>'
+                    .'<p>At: {{site_address}}</p>'
+                    .'<p>The calendar file attached updates the one we sent before.</p>'
+                    .'<p><a href="{{manage_url}}">Cancel or ask for another time</a></p>',
+            ],
+
+            'visit_cancelled' => [
+                'label' => 'Visit cancelled — to the customer',
+                'description' => 'Sent when a visit is cancelled, by the desk or by the customer from their own link.',
+                'audience' => self::CUSTOMER,
+                'class' => VisitCancelled::class,
+                'variables' => [
+                    'name' => ['about' => 'Their first name, or “there”.', 'sample' => 'Priya'],
+                    'reference' => $reference,
+                    'topic' => $topic,
+                    'reason' => ['about' => 'The reason the desk gave — blank when the customer cancelled.', 'sample' => 'The engineer is unwell; we will call to rearrange.'],
+                    'book_url' => ['about' => 'The request form, to ask again.', 'sample' => 'https://www.technoware.in/book-a-visit'],
+                ],
+                'subject' => '[{{reference}}] Your engineer visit is cancelled',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p>Your engineer visit — <strong>{{topic}}</strong>, reference {{reference}} — is cancelled.</p>'
+                    .'<p>{{reason}}</p>'
+                    .'<p>If this is a mistake, or you would still like somebody to come, <a href="{{book_url}}">ask for a new visit</a>.</p>',
+            ],
+
+            'visit_reminder' => [
+                'label' => 'Visit tomorrow — to the customer',
+                'description' => 'Sent once, within the 24 hours before a confirmed visit.',
+                'audience' => self::CUSTOMER,
+                'class' => VisitReminder::class,
+                'variables' => $booked,
+                'subject' => '[{{reference}}] Reminder: engineer visit on {{visit_date}}, {{visit_time}}',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p>A reminder that an engineer visits — <strong>{{topic}}</strong> — on <strong>{{visit_date}}, {{visit_time}}</strong>.</p>'
+                    .'<p>At: {{site_address}}</p>'
+                    .'<p>Please make sure somebody can let them in and show them the equipment.</p>'
+                    .'<p><a href="{{manage_url}}">Cancel or ask for another time</a></p>',
             ],
         ];
     }

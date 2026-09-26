@@ -89,6 +89,8 @@ export type AdminLead = {
   ip_address?: string | null;
   notes?: LeadNote[];
   submission?: { form_slug: string | null; data: Record<string, unknown> | null };
+  /** The engineer visit request a `visit` lead came from (docs/visits.md). */
+  visit?: { reference: string; admin_path: string };
   related?: {
     id: number;
     subject: string | null;

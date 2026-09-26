@@ -8,6 +8,7 @@ use App\Models\Enquiry;
 use App\Models\Form;
 use App\Models\FormSubmission;
 use App\Models\Lead;
+use App\Models\VisitRequest;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -137,6 +138,27 @@ class LeadIntake
                 ? 'Registered for: '.(string) $block->datum('heading', $block->name)
                 : 'Downloaded: '.(string) $block->datum('heading', $block->name),
             'message' => null,
+        ], $request);
+    }
+
+    /**
+     * An engineer visit request (2026-09-26, `docs/visits.md`).
+     *
+     * A visit request is intake, so it files a lead like every other form
+     * here — channel `visit`, so the queue can tell somebody who asked for an
+     * engineer at their door from somebody who asked a question. The request
+     * itself stays the record the visits desk works; the lead is the sales
+     * side of the same arrival, and each links to the other.
+     */
+    public static function fromVisit(VisitRequest $visit, Request $request): ?Lead
+    {
+        return self::create($visit, 'visit', 'Engineer visit request', [
+            'name' => $visit->name,
+            'email' => $visit->email,
+            'phone' => $visit->phone,
+            'company' => $visit->company,
+            'subject' => 'Visit requested: '.$visit->topic(),
+            'message' => $visit->notes,
         ], $request);
     }
 

@@ -994,6 +994,55 @@ list is empty, is dropped. `faq_schema` counts the visible custom questions
 of `faq` sections beside the FAQs and question blocks — still one
 `FAQPage`, absent under two entries. The body is still sent.
 
+## Engineer visits
+
+A customer asks for an engineer on site with up to three preferred times; the
+desk confirms one (2026-09-26, `docs/visits.md`). A request is never a
+booking: only the confirm endpoint sets a time.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/visits/options` | What the form offers: `enabled`, `windows[{value,label,start,end}]`, `days` (ISO weekdays), `min_date`, `max_date`, `holidays` (inside that range), `max_preferred`, published `services[{id,title,slug,location_ids}]`, `solutions`, active `locations`. `Cache-Control: max-age=300`. **Declared above `visits/{reference}`** |
+| `POST` | `/visits` | `name`, `email`, `phone` (an Indian mobile — `CheckoutRequest::MOBILE_PATTERN`), `company?`, `site_address.{line1,line2,city,state,pin,country}` (line1, city, state and a six-digit pin required), `service_id?`/`solution_id?` (published), `location_id?` (active), `notes?` (plain text, 2000), `preferred[{date: Y-m-d, window}]` (1–3), `message_opt_in[]?` (`whatsapp`, `rcs`), honeypot `website`, the `_source_*` envelope. Throttled 5/min. **201** with `reference` and `access_token` — the token here and nowhere else. 403 with a sentence while `visits_enabled` is off |
+| `GET` | `/visits/{reference}?token=` | The request as its customer sees it. A wrong token and a wrong reference are the same 404 |
+| `POST` | `/visits/{reference}/cancel` | `token`. 422 once it is not open |
+| `POST` | `/visits/{reference}/reschedule` | `token`, `preferred[]`, `note?` (500). Back to `requested`; a confirmed time is cleared and kept in the trail |
+| `GET` | `/my/visits` | Portal. The signed-in customer's own, newest first, paginated (`per_page` ≤ 50) |
+| `GET` | `/my/visits/{reference}` | Portal. Another customer's is a 404 |
+| `POST` | `/my/visits/{reference}/cancel` | Portal |
+| `POST` | `/my/visits/{reference}/reschedule` | Portal. `preferred[]`, `note?` |
+| `GET` | `/admin/visits` | `role:sales_manager,support_engineer`. `?status=`, `?open=1`, `?assigned_to=`, `?unassigned=1`, `?from=`/`?to=` (`Y-m-d`, on the appointment), `?q=` (reference, name, email, phone, company), `?sort=created\|scheduled\|name\|status` with `?dir=`, `?per_page=` ≤ 100. Default order: waiting oldest first, then the diary soonest first, then closed newest first. `meta`: `statuses`, `awaiting_count`, `today_count`, `unassigned_count`, `assignees`, `sorts`, `default_minutes`, `windows` |
+| `GET` | `/admin/visits/{reference}` | With `events` (the trail, oldest first) and `allowed_next` |
+| `PATCH` | `/admin/visits/{reference}` | `status` (checked by `VisitStatus::canTransitionTo()`, a 422 naming both states; `confirmed` is always refused here), `assigned_to`, `staff_note`, `cancel_reason`. Cancelling emails `visit_cancelled` with the reason |
+| `POST` | `/admin/visits/{reference}/confirm` | `start_at` (a wall-clock datetime, read in IST), `minutes?` (15–720, default `visit_default_minutes`), `assigned_to?`. `requested` or `confirmed` only. Emails `visit_confirmed` — or `visit_rescheduled` for a visit ever confirmed before — with a `.ics` attachment |
+
+**Statuses** are `requested`, `confirmed`, `completed`, `cancelled`,
+`no_show`. `confirmed` is reached only by confirming; `completed` and
+`no_show` correct to each other; `cancelled` reopens to `requested`.
+`confirmed_at`, `completed_at` and `cancelled_at` are stamped on arrival and
+never cleared.
+
+**The customer's resource** has no `staff_note`, no engineer, no lead, no
+source and no token; `can_cancel` and `can_reschedule` say which buttons a
+POST will accept. The admin resource adds those, `allowed_next`,
+`admin_path` and `lead_id`.
+
+**A signed-in customer is stamped** from `$request->user('sanctum')` narrowed
+to a `Customer` — never an impersonated ("View as") token.
+
+**Every request files a lead** (`channel: visit`), emails the desk
+(`visits_email`, else `sales_email`) and the customer, notifies
+`MessageEvent::VisitRequested` on the opted-in channels and emits the
+`visit.requested` webhook. `technoware:remind-visits`, every fifteen minutes,
+sends `visit_reminder` once to a confirmed visit starting within 24 hours.
+
+**Settings** are the `visits` group at `/admin/visits/settings`
+(`role:admin`): `visits_enabled`, `visit_windows` (`key|Label|09:00|12:00`
+per line), `visit_days` (`mon,tue,…`), `visit_min_notice_days`,
+`visit_max_days`, `visit_holidays` (`Y-m-d` per line), `visits_email`,
+`visit_default_minutes`. The group is private; the first six reach the public
+`/settings` map by name. A value that would parse to nothing is a 422.
+
 ## The store
 
 A **separate catalogue** from `/products`. What the shop sells is maintained
@@ -3411,7 +3460,7 @@ the truth about it.
 
 ### Email templates
 
-Every one of the 33 system emails, editable.
+Every one of the 40 system emails, editable.
 
 | Method | Path | Notes |
 |---|---|---|
@@ -3423,7 +3472,7 @@ Every one of the 33 system emails, editable.
 | `POST` | `/admin/settings/email-templates/{key}/test` | Sends the draft to the caller. Throttled 6/min |
 
 **`{key}` is a plain string, not a bound model.** There is no row for an
-uncustomised message and binding would 404 on 33 of 33 on a fresh install.
+uncustomised message and binding would 404 on 40 of 40 on a fresh install.
 
 **Two switches, and they mean different things.** `is_enabled` is "use my
 wording" — false puts the built-in text back and the message still goes.
@@ -3753,7 +3802,8 @@ decision as the SMTP settings beside it.
 side — never an internal note), `ticket.status_changed` (adds `from`/`to`),
 `order.placed`, `order.paid` (`paid_at` going from null to set, whoever set
 it), `order.status_changed` (adds `from`/`to`), `customer.registered` (the
-address confirmed), `form.submitted` and `subscriber.joined`. `ping` is sent
+address confirmed), `form.submitted`, `subscriber.joined` and `visit.requested`
+(an engineer visit request, never its token). `ping` is sent
 by the ping endpoint only and cannot be subscribed to — a 422 on `events.*`.
 
 **The envelope** is `{id, event, created_at, data}`, where `id` and
@@ -3838,6 +3888,12 @@ failure to queue it never fails the request.
 | `POST /auth/verify-email` | `support_email` setting | `CustomerRegistered` — and `customer.registered`; the same pair when a sign-in code confirms the address |
 | `POST /admin/customers/{id}/approve` | The customer | `CustomerApproved` |
 | `POST /admin/customers/{id}/reject` | The customer | `CustomerRejected` |
+| `POST /visits` | `visits_email`, else `sales_email` | `VisitRequestReceived` — and `visit.requested` |
+| `POST /visits` | The customer | `VisitRequested` |
+| A customer cancels or asks for other times | `visits_email`, else `sales_email` | `VisitRequestReceived` (the `visit_request_changed` wording) |
+| A visit is cancelled, by either side | The customer | `VisitCancelled` |
+| `POST /admin/visits/{reference}/confirm` | The customer, with a `.ics` | `VisitConfirmed` (`visit_confirmed` or `visit_rescheduled`) |
+| `technoware:remind-visits` | The customer | `VisitReminder` |
 | a stock movement fills a saved shelf | The wishlist holder, once, inside the quiet hours | `WishlistBackInStock` |
 | a saved product's price falls far enough | The wishlist holder, once per drop, inside the quiet hours | `WishlistPriceDrop` |
 

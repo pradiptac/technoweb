@@ -134,8 +134,12 @@ export function LandingPageView({ page, crumbs }: { page: LandingPage; crumbs: C
                   </div>
                 )}
 
+                {/*
+                  The visit request form, with this place — and the service,
+                  on a "<service> in <place>" page — preselected (docs/visits.md).
+                */}
                 <Link
-                  href="/contact"
+                  href={`/book-a-visit?location=${encodeURIComponent(location.slug)}${page.service ? `&service=${encodeURIComponent(page.service.slug)}` : ""}`}
                   className="mt-5 inline-flex items-center gap-1.5 text-13-5 font-semibold text-brand-ink hover:underline"
                 >
                   Ask about a site visit

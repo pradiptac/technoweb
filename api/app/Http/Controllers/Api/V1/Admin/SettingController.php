@@ -24,6 +24,7 @@ use App\Support\Seo\GoogleServiceAccount;
 use App\Support\Store\CartReminders;
 use App\Support\ThemeOptions;
 use App\Support\UploadLimits;
+use App\Support\Visits\VisitSettings;
 use App\Support\YouTube;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -356,6 +357,7 @@ class SettingController extends Controller
         $this->validateSiteTheme($request);
         $this->validateAnnouncement($request, $existing);
         $this->validateMessaging($request, $existing);
+        $this->validateVisits($request);
 
         /*
          * A setting with a fixed set of choices is checked against that set.
@@ -1001,6 +1003,22 @@ class SettingController extends Controller
                 throw ValidationException::withMessages([
                     "settings.{$sent[$hostKey]['i']}.value" => 'Type the password again with the new server — the stored one is only ever sent to the server it was saved for.',
                 ]);
+            }
+        }
+    }
+
+    /**
+     * The `visits` group: the lines and numbers `VisitSettings` parses,
+     * refused with the reason rather than saved and quietly read as the
+     * default (2026-09-26, docs/visits.md).
+     */
+    private function validateVisits(Request $request): void
+    {
+        foreach ($request->input('settings', []) as $i => $row) {
+            $refusal = VisitSettings::refusalFor((string) ($row['key'] ?? ''), $row['value'] ?? null);
+
+            if ($refusal !== null) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => $refusal]);
             }
         }
     }

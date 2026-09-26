@@ -2344,6 +2344,11 @@ export type AdminDashboard = {
    * not zeroes: zero is a measurement, this is the absence of one.
    */
   leads: { new: number; open: number; overdue: number; unassigned: number } | null;
+  /**
+   * Engineer visits (2026-09-26): waiting for a time, and in today's diary.
+   * Null for a role that cannot open the queue; optional for an older API.
+   */
+  visits?: { awaiting: number; today: number } | null;
   recent_tickets: Ticket[];
   high_priority: Ticket[];
   status_breakdown: Record<string, number>;
@@ -3449,3 +3454,4 @@ export * from "./blocks";
 export * from "./messaging";
 export * from "./reviews";
 export * from "./page-sections";
+export * from "./visits";

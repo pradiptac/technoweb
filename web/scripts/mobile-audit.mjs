@@ -44,6 +44,7 @@ const PUBLIC_ROUTES = [
   "/products/cisco-cbs350-24t-4g", "/resources", "/blog", "/case-studies",
   "/team", "/clients", "/certifications",
   "/knowledge-base", "/about", "/contact", "/support", "/privacy", "/terms", "/returns", "/shipping",
+  "/book-a-visit",
   "/search", "/search?q=switch",
   "/this-page-does-not-exist",   // the 404
   "/careers",
@@ -70,6 +71,8 @@ const PORTAL_ROUTES = [
   "/portal", "/portal/tickets", "/portal/tickets/new", "/portal/profile",
   // The account's wishlist (2026-09-25), empty or not.
   "/portal/wishlist",
+  // Engineer visits (docs/visits.md).
+  "/portal/visits",
   ...(PORTAL_TICKET ? [`/portal/tickets/${PORTAL_TICKET}`] : []),
 ];
 
@@ -116,6 +119,8 @@ const ADMIN_ROUTES = [
   // to, and that callback is a page nothing links to.
   "/admin/site/settings", "/admin/blog/settings", "/admin/media/settings", "/admin/seo/settings", "/admin/store/settings",
   "/admin/newsletter/settings", "/admin/leads/settings", "/admin/tickets/settings", "/admin/customers/settings", "/admin/chat/settings",
+  // Engineer visits (docs/visits.md).
+  "/admin/visits", "/admin/visits/settings",
   "/admin/settings/tickets/callback",
   // The store: its own catalogue, its own role, and the table with the most
   // columns in the console -- which is where the phone layout bites.
