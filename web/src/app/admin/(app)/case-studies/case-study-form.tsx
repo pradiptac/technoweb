@@ -12,12 +12,13 @@ import { ResultsField } from "@/components/admin/results-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
+import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import { CoverField } from "@/components/admin/cover-field";
 import {
   createCaseStudyAction, updateCaseStudyAction, deleteCaseStudyAction,
   type CaseStudyFormState,
 } from "./actions";
-import type { AdminCaseStudy, AdminIndustry } from "@/types/api";
+import type { CustomFieldGroupDefinition, AdminCaseStudy, AdminIndustry } from "@/types/api";
 
 const initial: CaseStudyFormState = {};
 
@@ -31,11 +32,13 @@ const GROUPS: TabGroup[] = [
 ];
 
 export function CaseStudyForm({
-  study, industries, saved,
+  study, industries, saved, fieldGroups,
 }: {
   study?: AdminCaseStudy;
   industries: AdminIndustry[];
   saved?: boolean;
+  /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
+  fieldGroups?: CustomFieldGroupDefinition[];
 }) {
   const editing = Boolean(study);
   const [state, formAction, pending] = useActionState(
@@ -46,7 +49,9 @@ export function CaseStudyForm({
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
   const seoErr = (f: string) => state.fieldErrors?.[`seo.${f}`]?.[0];
 
-  const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
+  // Custom fields (docs/custom-content.md): the groups that apply, from the API.
+  const customGroups = study?.custom_field_groups ?? fieldGroups ?? [];
+  const { tabs, jumpTo } = buildFormTabs(withFieldsTab(GROUPS, customGroups), state.fieldErrors);
 
   // The API reports per-row problems as results.0.value; surface the first
   // of them against the whole field rather than losing it.
@@ -127,6 +132,12 @@ export function CaseStudyForm({
         </div>
 
         <SeoPanel seo={study?.seo} defaults={study?.seo_defaults} error={seoErr} embedded record={study ? { type: 'case_study', id: study.id } : null} />
+
+        {/* The Fields tab — last, and only when a custom field group applies. */}
+        {customGroups.length > 0 && (
+          <CustomFieldsPanel groups={customGroups} values={study?.custom_fields} media={study?.custom_field_media}
+            error={customFieldError(state.fieldErrors)} />
+        )}
       </Tabs>
 
       <FormActions>

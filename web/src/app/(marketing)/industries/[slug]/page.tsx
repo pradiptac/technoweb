@@ -7,6 +7,7 @@ import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { ArrowLink } from "@/components/ui/button";
 import { Card, CardHead } from "@/components/ui/card";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, buildMetadata } from "@/lib/seo";
@@ -85,6 +86,8 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
         {industry.body && <ProseWithShortcodes html={industry.body} className="mb-14" />}
 
         {/* The answer blocks and FAQs, then what the record is connected to — before the solutions grid. */}
+        {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
+        <CustomFieldDetails fields={industry.custom_fields} className="mb-14" />
         <AnswerBlocks blocks={industry.answer_blocks} faqs={industry.faqs ?? []} className="mb-14" />
         <RelatedEntities entity={industry.entity} className="mb-14" />
 

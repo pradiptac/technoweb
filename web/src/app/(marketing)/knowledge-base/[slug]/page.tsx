@@ -8,6 +8,7 @@ import { Breadcrumbs } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { ArticleMeta } from "@/components/ui/article-meta";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { IconTicket } from "@/components/icons";
 import { ApiError, publicApi } from "@/lib/api";
@@ -106,6 +107,8 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
           {body && <ProseWithShortcodes html={body} className="max-w-none" />}
 
           {/* The answer blocks and FAQs, then what the guide is about — after the body, before the vote. */}
+          {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
+          <CustomFieldDetails fields={article.custom_fields} className="mt-10" />
           <AnswerBlocks blocks={article.answer_blocks} faqs={article.faqs ?? []} className="mt-10" />
           <RelatedEntities entity={article.entity} className="mt-10" />
 

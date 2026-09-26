@@ -19,6 +19,7 @@ export * from "./case-studies";
 export * from "./catalogue";
 export * from "./chat";
 export * from "./company";
+export * from "./custom-fields";
 export * from "./knowledge-base";
 export * from "./leads";
 export * from "./media";

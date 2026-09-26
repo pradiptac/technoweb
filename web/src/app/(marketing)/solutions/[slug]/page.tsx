@@ -4,6 +4,7 @@ import { Container } from "@/components/ui/container";
 import { ButtonLink } from "@/components/ui/button";
 import { CtaBand } from "@/components/ui/cta-band";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { PageHero } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
@@ -130,6 +131,8 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
               and before the aside's related lists (`docs/seo.md`, "Answer
               blocks on the page").
             */}
+            {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
+            <CustomFieldDetails fields={solution.custom_fields} className="mb-12" />
             <AnswerBlocks blocks={solution.answer_blocks} faqs={faqs} className="mb-12" />
             <RelatedEntities entity={solution.entity} />
           </div>

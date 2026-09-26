@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import { createProduct, deleteProduct, updateProduct, type ProductPayload } from "@/lib/admin";
-import { jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
+import { customFieldsFromFormData, jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
 import type { AnswerBlock, FaqItem, PublishStatus } from "@/types/api";
 
 export type ProductFormState = { error?: string; fieldErrors?: Record<string, string[]> };
@@ -33,6 +33,8 @@ function payloadFrom(formData: FormData): ProductPayload {
   }
 
   return {
+    // Custom fields: absent when no Fields tab was drawn, so the API leaves them alone.
+    ...customFieldsFromFormData(formData),
     name: str(formData, "name") ?? "",
     slug: str(formData, "slug"),
     sku: str(formData, "sku"),

@@ -252,6 +252,8 @@ export const NAV: NavItem[] = [
       { role: "content_manager", href: "/admin/team-members", label: "Team", icon: IconUsers },
       { role: "content_manager", href: "/admin/clients", label: "Clients", icon: IconBuilding },
       { role: "content_manager", href: "/admin/certifications", label: "Certifications", icon: IconShield },
+      // Custom fields (docs/custom-content.md): extra fields on the records above.
+      { role: "content_manager", href: "/admin/custom-fields", label: "Custom fields", icon: IconWrench },
     ],
   },
   {

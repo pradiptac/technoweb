@@ -7,7 +7,7 @@ import {
   analyseStoreImport, createStoreCategory, createStoreProduct, deleteStoreCategory, deleteStoreProduct, runStoreImport,
   saveStorePromo, updateStoreCategory, updateStoreProduct,
 } from "@/lib/admin";
-import { jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
+import { customFieldsFromFormData, jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
 import { rupeesToPaise } from "@/lib/money";
 import type { AdminProductVariation, AnswerBlock, FaqItem, PublishStatus, StoreImportAnalysis, StoreImportResult, StoreProductType } from "@/types/api";
 
@@ -42,6 +42,8 @@ function productPayload(formData: FormData): Record<string, unknown> {
   }
 
   return {
+    // Custom fields: absent when no Fields tab was drawn, so the API leaves them alone.
+    ...customFieldsFromFormData(formData),
     name: str(formData, "name") ?? "",
     slug: str(formData, "slug"),
     sku: str(formData, "sku"),

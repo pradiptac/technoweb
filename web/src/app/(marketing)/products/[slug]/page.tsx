@@ -5,6 +5,7 @@ import { Container } from "@/components/ui/container";
 import { ButtonLink } from "@/components/ui/button";
 import { CtaBand } from "@/components/ui/cta-band";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { PageHero } from "@/components/ui/page-hero";
 import { ProductGallery } from "@/components/product/product-gallery";
@@ -312,6 +313,8 @@ export default async function ProductOrCategoryPage({
           )}
 
           {/* The answer blocks with the FAQs merged into their questions, then what the product is connected to. */}
+          {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
+          <CustomFieldDetails fields={p.custom_fields} className="mb-12" />
           <AnswerBlocks blocks={p.answer_blocks} faqs={faqs} />
           <RelatedEntities entity={p.entity} />
 

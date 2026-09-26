@@ -48,6 +48,8 @@ export async function deleteFaq(id: number): Promise<void> {
 export type PageQueryParams = { status?: PublishStatus; q?: string; page?: number; per_page?: number };
 
 export type CmsPagePayload = Partial<{
+  /** Custom field values keyed by field key (docs/custom-content.md); absent leaves them alone. */
+  custom_fields: Record<string, unknown>;
   title: string;
   slug: string | null;
   body: string | null;

@@ -23,6 +23,8 @@ export type SolutionQueryParams = {
 };
 
 export type SolutionPayload = Partial<{
+  /** Custom field values keyed by field key (docs/custom-content.md); absent leaves them alone. */
+  custom_fields: Record<string, unknown>;
   title: string;
   slug: string | null;
   summary: string | null;
@@ -107,6 +109,8 @@ export async function deleteSolution(id: number): Promise<void> {
 }
 
 export type ServicePayload = Partial<{
+  /** Custom field values keyed by field key (docs/custom-content.md); absent leaves them alone. */
+  custom_fields: Record<string, unknown>;
   title: string; slug: string | null; summary: string | null; body: string | null;
   icon: string | null; status: PublishStatus; sort_order: number | null;
   faqs: FaqItem[]; answer_blocks: AnswerBlock[]; seo: Partial<SeoOverride>;
@@ -143,6 +147,8 @@ export async function deleteService(id: number): Promise<void> {
 }
 
 export type IndustryPayload = Partial<{
+  /** Custom field values keyed by field key (docs/custom-content.md); absent leaves them alone. */
+  custom_fields: Record<string, unknown>;
   name: string; slug: string | null; summary: string | null; body: string | null;
   icon: string | null; sort_order: number | null;
   solution_ids: number[]; faqs: FaqItem[]; answer_blocks: AnswerBlock[]; seo: Partial<SeoOverride>;
@@ -183,6 +189,8 @@ export type ProductQueryParams = {
 };
 
 export type ProductPayload = Partial<{
+  /** Custom field values keyed by field key (docs/custom-content.md); absent leaves them alone. */
+  custom_fields: Record<string, unknown>;
   name: string; slug: string | null; sku: string | null;
   brand_id: number | null; product_category_id: number | null;
   short_description: string | null; description: string | null;

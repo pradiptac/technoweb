@@ -13,8 +13,9 @@ import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
+import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import { createPageAction, updatePageAction, deletePageAction, type PageFormState } from "./actions";
-import type { AdminPage, AnswerBlockKindOption } from "@/types/api";
+import type { CustomFieldGroupDefinition, AdminPage, AnswerBlockKindOption } from "@/types/api";
 
 const initial: PageFormState = {};
 
@@ -35,12 +36,14 @@ function toLocalInput(iso: string | null): string {
 }
 
 export function PageForm({
-  page, saved, kinds,
+  page, saved, kinds, fieldGroups,
 }: {
   page?: AdminPage;
   saved?: boolean;
   /** `meta.answer_block_kinds` from this entity's admin index. */
   kinds: AnswerBlockKindOption[];
+  /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
+  fieldGroups?: CustomFieldGroupDefinition[];
 }) {
   const editing = Boolean(page);
   const [state, formAction, pending] = useActionState(
@@ -54,7 +57,9 @@ export function PageForm({
   const rowErr = (prefix: string) =>
     err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
 
-  const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
+  // Custom fields (docs/custom-content.md): the groups that apply, from the API.
+  const customGroups = page?.custom_field_groups ?? fieldGroups ?? [];
+  const { tabs, jumpTo } = buildFormTabs(withFieldsTab(GROUPS, customGroups), state.fieldErrors);
 
   return (
     <Form action={formAction} state={state} noValidate>
@@ -126,6 +131,12 @@ export function PageForm({
           <AeoGeoPanel record={page ? { type: 'page', id: page.id } : null} blocks={page?.answer_blocks} />
           <AnswerBlocksField defaultValue={page?.answer_blocks ?? []} kinds={kinds} error={rowErr("answer_blocks")} />
         </div>
+
+        {/* The Fields tab — last, and only when a custom field group applies. */}
+        {customGroups.length > 0 && (
+          <CustomFieldsPanel groups={customGroups} values={page?.custom_fields} media={page?.custom_field_media}
+            error={customFieldError(state.fieldErrors)} />
+        )}
       </Tabs>
 
       <FormActions>

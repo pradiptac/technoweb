@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
-import { getAnswerBlockKinds, getStaff } from "@/lib/admin";
+import { getAnswerBlockKinds, getStaff, getCustomFieldGroups } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { PostForm } from "../post-form";
@@ -28,7 +28,7 @@ export default async function NewBlogPostPage() {
         title="New post"
       />
 
-      <PostForm staff={staff} kinds={kinds} />
+      <PostForm staff={staff} kinds={kinds} fieldGroups={await getCustomFieldGroups("/admin/blog-posts")} />
     </>
   );
 }

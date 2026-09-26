@@ -74,6 +74,65 @@ export function jsonListFromFormData<T>(formData: FormData, key: string): T[] {
 }
 
 /**
+ * The Fields tab's inputs, as the `custom_fields` object the API takes.
+ *
+ * `CustomFieldsPanel` names every control `cf__<key>` and posts one hidden
+ * `custom_fields_schema` — `[{key, kind}]` — so this knows how each key was
+ * submitted: several checkboxes under one name, a switch's hidden "0" with
+ * its checkbox's "1" after it, a list's one JSON value. The controls stay the
+ * ordinary primitives (`EditorField`, `CoverField`, `StringListField`), each
+ * posting its own named input, which is what lets `<Form>` put a refused
+ * submission back and `FormDraft` restore one.
+ *
+ * Returns `{}` when the panel was not on the form, so the key is absent from
+ * the payload and the API leaves every value alone. A blank control sends
+ * `null`, which clears that one field.
+ */
+export function customFieldsFromFormData(formData: FormData): { custom_fields?: Record<string, unknown> } {
+  const raw = str(formData, "custom_fields_schema");
+  if (!raw) return {};
+
+  let schema: { key: string; kind: string }[];
+  try {
+    const parsed = JSON.parse(raw);
+    schema = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return {};
+  }
+
+  const out: Record<string, unknown> = {};
+
+  for (const { key, kind } of schema) {
+    if (typeof key !== "string" || !/^[a-z][a-z0-9_]*$/.test(key)) continue;
+    const name = `cf__${key}`;
+
+    switch (kind) {
+      case "multi_select":
+        out[key] = formData.getAll(name).filter((v): v is string => typeof v === "string" && v !== "");
+        break;
+      case "boolean": {
+        // The hidden "0" comes first and the checkbox's "1" after it.
+        const values = formData.getAll(name);
+        out[key] = values[values.length - 1] === "1";
+        break;
+      }
+      case "list":
+        out[key] = jsonListFromFormData<string>(formData, name);
+        break;
+      case "relation": {
+        const id = Number(str(formData, name));
+        out[key] = Number.isInteger(id) && id > 0 ? id : null;
+        break;
+      }
+      default:
+        out[key] = str(formData, name);
+    }
+  }
+
+  return { custom_fields: out };
+}
+
+/**
  * A comma-separated tag field to the array the API stores.
  * Deduplicated and order-preserving, so "wifi, Wi-Fi, wifi" is not three tags.
  */

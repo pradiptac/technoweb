@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
 import {
-  getBrandOptions, getProductCategoryOptions, getProductOptions, getSolutionOptions, getAnswerBlockKinds,
+  getBrandOptions, getProductCategoryOptions, getProductOptions, getSolutionOptions, getAnswerBlockKinds, getCustomFieldGroups,
 } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -36,7 +36,7 @@ export default async function NewProductPage() {
         title="New product"
       />
 
-      <ProductForm brands={brands} categories={categories} solutions={solutions} products={products} kinds={kinds} />
+      <ProductForm brands={brands} categories={categories} solutions={solutions} products={products} kinds={kinds} fieldGroups={await getCustomFieldGroups("/admin/products")} />
     </>
   );
 }

@@ -16,10 +16,11 @@ import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
+import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import {
   createIndustryAction, updateIndustryAction, deleteIndustryAction, type IndustryFormState,
 } from "./actions";
-import type { AdminIndustry, AnswerBlockKindOption } from "@/types/api";
+import type { CustomFieldGroupDefinition, AdminIndustry, AnswerBlockKindOption } from "@/types/api";
 
 const initial: IndustryFormState = {};
 
@@ -35,13 +36,15 @@ const GROUPS: TabGroup[] = [
 ];
 
 export function IndustryForm({
-  industry, solutions, saved, kinds,
+  industry, solutions, saved, kinds, fieldGroups,
 }: {
   industry?: AdminIndustry;
   solutions: { id: number; name: string }[];
   saved?: boolean;
   /** `meta.answer_block_kinds` from this entity's admin index. */
   kinds: AnswerBlockKindOption[];
+  /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
+  fieldGroups?: CustomFieldGroupDefinition[];
 }) {
   const editing = Boolean(industry);
   const [state, formAction, pending] = useActionState(
@@ -53,7 +56,9 @@ export function IndustryForm({
   const rowErr = (prefix: string) =>
     err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
 
-  const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
+  // Custom fields (docs/custom-content.md): the groups that apply, from the API.
+  const customGroups = industry?.custom_field_groups ?? fieldGroups ?? [];
+  const { tabs, jumpTo } = buildFormTabs(withFieldsTab(GROUPS, customGroups), state.fieldErrors);
 
   return (
     <Form action={formAction} state={state} noValidate>
@@ -144,6 +149,12 @@ export function IndustryForm({
           <AnswerBlocksField defaultValue={industry?.answer_blocks ?? []} kinds={kinds} error={rowErr("answer_blocks")} />
           <FaqField defaultValue={industry?.faqs ?? []} error={rowErr("faqs")} />
         </div>
+
+        {/* The Fields tab — last, and only when a custom field group applies. */}
+        {customGroups.length > 0 && (
+          <CustomFieldsPanel groups={customGroups} values={industry?.custom_fields} media={industry?.custom_field_media}
+            error={customFieldError(state.fieldErrors)} />
+        )}
       </Tabs>
 
       <FormActions>
