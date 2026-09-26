@@ -12,6 +12,7 @@ use App\Models\Role;
 use App\Models\Slider;
 use App\Models\Solution;
 use App\Models\User;
+use App\Support\MediaMeta;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -54,6 +55,8 @@ class PageBuilderTest extends TestCase
     private function media(string $path, string $mime = 'image/jpeg', ?string $alt = null): void
     {
         Media::create(['disk' => 'public', 'path' => $path, 'filename' => basename($path), 'mime' => $mime, 'size' => 10, 'alt_text' => $alt]);
+        // The alt map is memoised per process; a test before this one may have loaded it without this file.
+        MediaMeta::forget();
     }
 
     public function test_a_builder_page_stores_its_sections_and_the_public_read_presents_them(): void
