@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CoverField } from "@/components/admin/cover-field";
 import { EditorField } from "@/components/admin/editor-field";
+import { Field, Select } from "@/components/ui/input";
 import {
   Choice, IconPick, ImagePath, NumberInput, Repeater, Row, Text, Toggle, getIn, useBlock, type Path,
 } from "../../blocks/editors/shared";
@@ -50,6 +51,35 @@ export function summaryOf(data: Record<string, unknown>): string {
 }
 
 const COLUMNS = [{ value: "2", label: "Two" }, { value: "3", label: "Three" }, { value: "4", label: "Four" }];
+
+/**
+ * A select over a **number** — columns, and the id of a block, slider,
+ * gallery or form. The shared `Choice` reads strings only, and these are
+ * stored as integers (`SectionRules::normalise`), so through it a saved
+ * "four columns" or a chosen slider would show as the fallback.
+ */
+function NumberChoice({ path, label, options, placeholder, hint }: {
+  path: Path;
+  label: string;
+  options: { value: string; label: string }[];
+  /** An empty first option — "Choose…" — for a reference nothing has picked yet. */
+  placeholder?: string;
+  hint?: string;
+}) {
+  const { content, set, err, idPrefix } = useBlock();
+  const value = getIn(content, path);
+  const id = `${idPrefix ?? "b"}-${path.join("-")}`;
+  const current = typeof value === "number" || typeof value === "string" ? String(value) : placeholder !== undefined ? "" : options[0]?.value ?? "";
+
+  return (
+    <Field label={label} htmlFor={id} hint={hint} error={err(path)} variant="float-static">
+      <Select id={id} value={current} onChange={(e) => set(path, e.target.value === "" ? undefined : Number(e.target.value))}>
+        {placeholder !== undefined && <option value="">{placeholder}</option>}
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </Select>
+    </Field>
+  );
+}
 
 function Buttons() {
   return (
@@ -121,7 +151,7 @@ function Picker({ path, label, options, empty, emptyHref }: {
       </p>
     );
   }
-  return <Choice path={path} label={label} options={[{ value: "", label: "Choose…" }, ...options]} fallback="" />;
+  return <NumberChoice path={path} label={label} options={options} placeholder="Choose…" />;
 }
 
 export function SectionEditor({ type, sectionId, options }: {
@@ -184,7 +214,7 @@ export function SectionEditor({ type, sectionId, options }: {
           <Text path={["kicker"]} label="Kicker" />
           <Text path={["heading"]} label="Heading" />
           <Text path={["lede"]} label="Lede" multiline />
-          <Choice path={["columns"]} label="Columns" options={COLUMNS} fallback="3" />
+          <NumberChoice path={["columns"]} label="Columns" options={COLUMNS} />
           <Repeater path={["items"]} label="Points" subject="Point" min={1} max={12} blank={() => ({})} row={(p) => (
             <>
               <IconPick path={[...p, "icon"]} />
@@ -216,7 +246,7 @@ export function SectionEditor({ type, sectionId, options }: {
           </Row>
           <Row>
             <NumberInput path={["limit"]} label="How many" min={1} max={12} hint="Up to twelve, newest or first in order." />
-            <Choice path={["columns"]} label="Columns" options={COLUMNS} fallback="3" />
+            <NumberChoice path={["columns"]} label="Columns" options={COLUMNS} />
           </Row>
           <p className="-mt-2 mb-4 text-12-5 text-faint">A live list: what is published now, drawn the way the theme draws its grids.</p>
         </>

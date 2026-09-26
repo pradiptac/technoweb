@@ -3355,7 +3355,7 @@ createServer(async (req, res) => {
   if (p.startsWith('/pages/')) {
     const found = cmsPages.find(x => x.slug === p.split('/')[2]);
     // `blocks` is the console's; the public read carries `sections`, and only for a builder page.
-    const pg = found && (({ blocks, sections, ...rest }) => ({ ...rest, ...(rest.template === 'builder' ? { sections } : {}) }))(found);
+    const pg = found && { ...found, blocks: undefined, sections: found.template === 'builder' ? found.sections : undefined };
     return pg ? json(res, 200, { data: { ...pg, ...answerContent([], pg.faqs || [], { faq_count: (pg.faqs || []).length }) } })
               : json(res, 404, { message: 'Not found.' });
   }
