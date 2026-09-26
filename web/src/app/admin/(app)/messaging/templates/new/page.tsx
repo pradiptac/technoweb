@@ -5,10 +5,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { TemplateEditor } from "../template-editor";
 import type { MessageTemplateMeta } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New message template", path: "/admin/messaging/templates/new", seo: noIndex });
 
 export default async function NewMessageTemplatePage() {
+  await requireScreen();
   let meta: MessageTemplateMeta;
   try {
     meta = await getMessageTemplateMeta();

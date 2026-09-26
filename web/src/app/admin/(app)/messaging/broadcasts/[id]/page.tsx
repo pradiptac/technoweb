@@ -13,6 +13,7 @@ import { BroadcastForm, SendPanel } from "../broadcast-form";
 import { cancelBroadcastAction, deleteBroadcastAction } from "../../actions";
 import { broadcastTone } from "../../tones";
 import type { MessageBroadcast, MessageBroadcastMeta } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -22,6 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 const percent = (rate: number | null) => (rate === null ? "—" : `${Math.round(rate * 100)}%`);
 
 export default async function BroadcastPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireScreen();
   const { id } = await params;
   const numericId = Number(id);
   if (!Number.isInteger(numericId)) notFound();

@@ -9,6 +9,7 @@ import { noIndex } from "@/lib/no-index";
 import { TemplateEditor } from "../template-editor";
 import { deleteMessageTemplateAction } from "../../actions";
 import type { MessageTemplate, MessageTemplateMeta } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,6 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 }
 
 export default async function EditMessageTemplatePage({ params }: { params: Promise<{ id: string }> }) {
+  await requireScreen();
   const { id } = await params;
   const numericId = Number(id);
   if (!Number.isInteger(numericId)) notFound();

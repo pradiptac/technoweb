@@ -13,6 +13,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { optOutContactAction } from "../actions";
 import type { MessageContact, Paginated } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Messaging contacts", path: "/admin/messaging/contacts", seo: noIndex });
 
@@ -28,6 +29,7 @@ const SOURCES: Record<string, string> = {
  * and the one action here records an opt-out said somewhere else.
  */
 export default async function MessagingContactsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: Paginated<MessageContact> & { meta: { channels: { value: string; label: string; active: number }[] } };

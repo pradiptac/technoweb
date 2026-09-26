@@ -13,12 +13,14 @@ import { noIndex } from "@/lib/no-index";
 import { approvalTone } from "../tones";
 import { SyncButton } from "./sync-button";
 import type { MessageTemplate, MessageTemplateMeta, Paginated } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Message templates", path: "/admin/messaging/templates", seo: noIndex });
 
 type SearchParams = { channel?: string; q?: string; page?: string; per_page?: string };
 
 export default async function MessageTemplatesPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: Paginated<MessageTemplate> & { meta: MessageTemplateMeta };

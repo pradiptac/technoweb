@@ -5,10 +5,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { AutomationsForm } from "./automations-form";
 import type { MessageAutomationCell, MessageAutomationMeta } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Automations", path: "/admin/messaging/automations", seo: noIndex });
 
 export default async function AutomationsPage() {
+  await requireScreen();
   let result: { data: MessageAutomationCell[]; meta: MessageAutomationMeta };
   try {
     result = await getMessageAutomations();

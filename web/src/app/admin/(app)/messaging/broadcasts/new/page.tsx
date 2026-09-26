@@ -5,10 +5,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { BroadcastForm } from "../broadcast-form";
 import type { MessageBroadcastMeta } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "New broadcast", path: "/admin/messaging/broadcasts/new", seo: noIndex });
 
 export default async function NewBroadcastPage() {
+  await requireScreen();
   let meta: MessageBroadcastMeta;
   try {
     meta = await getMessageBroadcastMeta();

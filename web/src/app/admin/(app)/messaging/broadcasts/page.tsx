@@ -12,12 +12,14 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { broadcastTone } from "../tones";
 import type { MessageBroadcast, MessageBroadcastMeta, Paginated } from "@/types/api";
+import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Broadcasts", path: "/admin/messaging/broadcasts", seo: noIndex });
 
 type SearchParams = { status?: string; page?: string; per_page?: string };
 
 export default async function BroadcastsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireScreen();
   const params = await searchParams;
 
   let result: Paginated<MessageBroadcast> & { meta: MessageBroadcastMeta };
