@@ -13,10 +13,13 @@ use App\Models\Certification;
 use App\Models\ChatConversation;
 use App\Models\Client;
 use App\Models\ContentBlock;
+use App\Models\ContentType;
 use App\Models\Coupon;
 use App\Models\Customer;
+use App\Models\CustomFieldGroup;
 use App\Models\DigitalCode;
 use App\Models\Enquiry;
+use App\Models\Entry;
 use App\Models\Faq;
 use App\Models\Form;
 use App\Models\FormSubmission;
@@ -194,6 +197,14 @@ class AppServiceProvider extends ServiceProvider
             'team_member' => TeamMember::class,
             'slider' => Slider::class,
             'content_block' => ContentBlock::class,
+            // Custom fields (docs/custom-content.md): the group is bound in
+            // an admin route; a value's `fieldable` is one of the aliases above.
+            'custom_field_group' => CustomFieldGroup::class,
+            // Custom content types: an entry carries SEO, FAQs, answer blocks
+            // and custom field values, all polymorphic; a type is bound in an
+            // admin route and a menu item may point at it.
+            'entry' => Entry::class,
+            'content_type' => ContentType::class,
             'form' => Form::class,
             'faq' => Faq::class,
             // The `faqs` shape with a kind; owned by eleven models the way FAQs are.

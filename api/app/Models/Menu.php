@@ -67,7 +67,8 @@ class Menu extends Model
     public function tree(): Collection
     {
         $items = $this->items()
-            ->with('target')
+            // An entry's address is its type's slug, so the type comes with it.
+            ->with(['target' => fn ($morph) => $morph->morphWith([Entry::class => ['contentType']])])
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();

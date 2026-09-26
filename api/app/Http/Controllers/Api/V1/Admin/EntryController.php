@@ -1,0 +1,132 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1\Admin;
+
+use App\Enums\AnswerBlockKind;
+use App\Enums\PublishStatus;
+use App\Http\Controllers\Concerns\WritesCmsEntities;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\EntryRequest;
+use App\Http\Resources\Admin\ContentTypeResource;
+use App\Http\Resources\Admin\EntryResource;
+use App\Models\ContentType;
+use App\Models\Entry;
+use App\Support\CustomFields\CustomFields;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * Entries of a custom content type, nested under it:
+ * `/admin/content-types/{type-slug}/entries/{id}`. Behind
+ * role:content_manager, and in the Solutions pattern — the SEO override, the
+ * FAQs, the answer blocks and the custom fields each written after the row.
+ *
+ * The type is addressed by slug because that is the console's URL
+ * (`/admin/content/{type}`) and nothing on an entry's form can change it; the
+ * entry by id, the rule every CMS record follows, and scoped so an entry of
+ * another type answers 404.
+ */
+class EntryController extends Controller
+{
+    use WritesCmsEntities;
+
+    private const DETAIL = ['contentType', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group'];
+
+    public function index(Request $request, ContentType $contentType): AnonymousResourceCollection
+    {
+        $entries = $contentType->entries()
+            ->with('contentType')
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
+            ->when($request->filled('q'), function ($q) use ($request) {
+                $term = $request->string('q')->value();
+                $q->where(fn ($w) => $w->where('title', 'like', "%{$term}%")
+                    ->orWhere('slug', 'like', "%{$term}%")
+                    ->orWhere('summary', 'like', "%{$term}%"));
+            })
+            // Drafts, then the newest — the ones needing work at the top.
+            ->orderByRaw('published_at IS NULL DESC')
+            ->orderByDesc('published_at')
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->paginate(min($request->integer('per_page', 30), 100))
+            ->withQueryString();
+
+        return EntryResource::collection($entries)->additional(['meta' => [
+            'type' => new ContentTypeResource($contentType),
+            'statuses' => array_map(
+                fn (PublishStatus $s) => ['value' => $s->value, 'label' => $s->label()],
+                PublishStatus::cases(),
+            ),
+            'answer_block_kinds' => AnswerBlockKind::options(),
+            // The groups attached to this type, for the new form's Fields tab.
+            'custom_field_groups' => CustomFields::definitions($contentType->target()),
+        ]]);
+    }
+
+    public function show(ContentType $contentType, Entry $entry): JsonResource
+    {
+        return new EntryResource($entry->load(self::DETAIL));
+    }
+
+    public function store(EntryRequest $request, ContentType $contentType): JsonResponse
+    {
+        $entry = DB::transaction(function () use ($request, $contentType) {
+            [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
+            $content = $this->pullAnswerContent($attributes);
+
+            // The type first, so the slug is made unique within it.
+            $entry = new Entry(['content_type_id' => $contentType->id]);
+            $entry->setRelation('contentType', $contentType);
+            $entry->fill($this->withPublishedAt($attributes))->save();
+
+            $this->saveAnswerContent($entry, $content);
+            $this->saveSeo($entry, $seo);
+            $this->saveCustomFields($entry, $custom);
+
+            return $entry;
+        });
+
+        return (new EntryResource($entry->load(self::DETAIL)))->response()->setStatusCode(201);
+    }
+
+    public function update(EntryRequest $request, ContentType $contentType, Entry $entry): JsonResource
+    {
+        DB::transaction(function () use ($request, $entry) {
+            [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
+            $content = $this->pullAnswerContent($attributes);
+
+            // A blank slug on an edit means "keep it", never "make it null".
+            if (array_key_exists('slug', $attributes) && blank($attributes['slug'])) {
+                unset($attributes['slug']);
+            }
+
+            // A slug change writes the 301 through `Sluggable`, under this
+            // type's prefix.
+            $entry->update($this->withPublishedAt($attributes, $entry));
+
+            $this->saveAnswerContent($entry, $content);
+            $this->saveSeo($entry, $seo);
+            $this->saveCustomFields($entry, $custom);
+        });
+
+        return new EntryResource($entry->fresh(self::DETAIL) ?? $entry);
+    }
+
+    public function destroy(ContentType $contentType, Entry $entry): JsonResponse
+    {
+        DB::transaction(function () use ($entry) {
+            // Polymorphic rows have nothing to cascade them.
+            $entry->seo()->delete();
+            $entry->faqs()->delete();
+            $entry->answerBlocks()->delete();
+            $entry->delete();
+        });
+
+        return response()->json(['message' => 'Entry deleted.']);
+    }
+}

@@ -8,6 +8,7 @@ use App\Enums\ProductType;
 use App\Enums\PublishStatus;
 use App\Jobs\SendWishlistPriceDrops;
 use App\Models\Concerns\HasAnswerBlocks;
+use App\Models\Concerns\HasCustomFields;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
 use App\Models\Contracts\Answerable;
@@ -34,7 +35,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  */
 class StoreProduct extends Model implements Answerable, Faqable
 {
-    use HasAnswerBlocks, HasSeo, Sluggable;
+    use HasAnswerBlocks, HasCustomFields, HasSeo, Sluggable;
 
     protected $fillable = [
         'store_category_id', 'brand_id', 'name', 'slug', 'sku', 'gtin', 'mpn', 'type',

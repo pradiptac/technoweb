@@ -9,6 +9,7 @@ use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Http\Resources\Admin\ProductResource;
 use App\Models\Product;
+use App\Support\CustomFields\CustomFields;
 use App\Support\ListSort;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -60,6 +61,8 @@ class ProductController extends Controller
         // select is built from this, the `meta.transitions` rule.
         return ProductResource::collection($products)->additional(['meta' => [
             'answer_block_kinds' => AnswerBlockKind::options(),
+            // The custom field groups that apply, for the console's Fields tab.
+            'custom_field_groups' => CustomFields::definitions('product'),
         ]]);
     }
 
@@ -72,12 +75,14 @@ class ProductController extends Controller
     {
         $product = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
             $relations = $this->pull($attributes, self::RELATIONS);
 
             $product = Product::create($attributes);
 
             $this->syncRelations($product, $relations);
             $this->saveSeo($product, $seo);
+            $this->saveCustomFields($product, $custom);
 
             return $product;
         });
@@ -92,12 +97,14 @@ class ProductController extends Controller
     {
         DB::transaction(function () use ($request, $product) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
             $relations = $this->pull($attributes, self::RELATIONS);
 
             $product->update($attributes);
 
             $this->syncRelations($product, $relations);
             $this->saveSeo($product, $seo);
+            $this->saveCustomFields($product, $custom);
         });
 
         return new ProductResource($product->fresh($this->detailRelations()));
@@ -136,7 +143,7 @@ class ProductController extends Controller
     /** @return array<int, string> */
     private function detailRelations(): array
     {
-        return ['brand', 'category', 'solutions', 'relatedProducts', 'faqs', 'answerBlocks', 'seo'];
+        return ['brand', 'category', 'solutions', 'relatedProducts', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group'];
     }
 
     /**

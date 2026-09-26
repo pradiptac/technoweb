@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\PublishStatus;
+use App\Http\Requests\Concerns\AcceptsCustomFields;
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
 use Illuminate\Foundation\Http\FormRequest;
@@ -10,7 +11,12 @@ use Illuminate\Validation\Rule;
 
 class StoreSolutionRequest extends FormRequest
 {
-    use SanitisesRichText;
+    use AcceptsCustomFields, SanitisesRichText;
+
+    protected function customFieldTarget(): string
+    {
+        return 'solution';
+    }
 
     /** `overview` is the rich-text body here, not `body`. */
     protected function richTextFields(): array
@@ -48,6 +54,7 @@ class StoreSolutionRequest extends FormRequest
             ...CmsFieldRules::faqs(),
             ...CmsFieldRules::answerBlocks(),
             ...SeoRules::rules(),
+            ...$this->customFieldRules(),
         ];
     }
 

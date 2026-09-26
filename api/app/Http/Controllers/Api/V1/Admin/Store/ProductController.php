@@ -11,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Store\ProductRequest;
 use App\Http\Resources\Admin\Store\ProductResource;
 use App\Models\StoreProduct;
+use App\Support\CustomFields\CustomFields;
 use App\Support\Store\StockLedger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -84,6 +85,8 @@ class ProductController extends Controller
                 PublishStatus::cases(),
             ),
             'answer_block_kinds' => AnswerBlockKind::options(),
+            // The custom field groups that apply, for the console's Fields tab.
+            'custom_field_groups' => CustomFields::definitions('store_product'),
         ]]);
     }
 
@@ -96,6 +99,7 @@ class ProductController extends Controller
     {
         $product = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
             $variations = $this->pull($attributes, self::RELATIONS);
 
             $product = StoreProduct::create($attributes);
@@ -104,6 +108,7 @@ class ProductController extends Controller
             $this->syncServices($product, $variations);
             $this->saveAnswerContent($product, $variations);
             $this->saveSeo($product, $seo);
+            $this->saveCustomFields($product, $custom);
 
             // Opening stock, so the ledger's first entry for a product is the
             // level it arrived with rather than a gap that every later report
@@ -131,6 +136,7 @@ class ProductController extends Controller
     {
         DB::transaction(function () use ($request, $storeProduct) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
             $variations = $this->pull($attributes, self::RELATIONS);
 
             /*
@@ -150,6 +156,7 @@ class ProductController extends Controller
             $this->syncServices($storeProduct, $variations);
             $this->saveAnswerContent($storeProduct, $variations);
             $this->saveSeo($storeProduct, $seo);
+            $this->saveCustomFields($storeProduct, $custom);
 
             StockLedger::adjusted($storeProduct, $stockBefore, $variationsBefore);
         });
@@ -172,7 +179,7 @@ class ProductController extends Controller
     /** @return array<int, string> */
     private function detailRelations(): array
     {
-        return ['category', 'brand', 'variations', 'services', 'faqs', 'answerBlocks', 'seo'];
+        return ['category', 'brand', 'variations', 'services', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group'];
     }
 
     /**

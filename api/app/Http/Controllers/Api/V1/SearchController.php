@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
+use App\Models\Entry;
 use App\Models\Industry;
 use App\Models\KnowledgeArticle;
 use App\Models\Page;
@@ -94,6 +95,7 @@ class SearchController extends Controller
                 ->where(fn ($q) => $q->where('title', 'like', $like)
                     ->orWhere('body', 'like', $like)),
                 'title', 'body'),
+            $this->entries($like),
         ])->filter(fn (?array $g) => $g !== null)->values();
 
         return response()->json([
@@ -169,6 +171,28 @@ class SearchController extends Controller
                 'path' => '/store/products/'.$p->slug,
             ];
         });
+    }
+
+    /**
+     * Entries of the custom content types (docs/custom-content.md), in one
+     * group whatever their type — each result names its type and carries its
+     * own path, since `/events/…` and `/downloads/…` share no prefix.
+     */
+    private function entries(string $like): ?array
+    {
+        $query = Entry::query()->published()
+            ->with('contentType')
+            ->where(fn ($q) => $q->where('title', 'like', $like)
+                ->orWhere('summary', 'like', $like)
+                ->orWhere('body', 'like', $like))
+            ->orderByDesc('published_at');
+
+        return $this->build('entry', 'More from the site', '', $query, fn (Entry $e) => [
+            'title' => (string) $e->title,
+            'excerpt' => $this->trim($e->summary ?: $e->body),
+            'path' => $e->publicPath(),
+            'kicker' => $e->contentType?->name,
+        ]);
     }
 
     /** @param  \Illuminate\Database\Eloquent\Builder<*>  $query */

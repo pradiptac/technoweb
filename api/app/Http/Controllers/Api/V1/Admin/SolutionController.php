@@ -9,6 +9,7 @@ use App\Http\Requests\StoreSolutionRequest;
 use App\Http\Requests\UpdateSolutionRequest;
 use App\Http\Resources\Admin\SolutionResource;
 use App\Models\Solution;
+use App\Support\CustomFields\CustomFields;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -47,30 +48,34 @@ class SolutionController extends Controller
         // select is built from this, the `meta.transitions` rule.
         return SolutionResource::collection($solutions)->additional(['meta' => [
             'answer_block_kinds' => AnswerBlockKind::options(),
+            // The custom field groups that apply, for the console's Fields tab.
+            'custom_field_groups' => CustomFields::definitions('solution'),
         ]]);
     }
 
     public function show(Solution $solution): JsonResource
     {
-        return new SolutionResource($solution->load(['products', 'industries', 'faqs', 'answerBlocks', 'seo']));
+        return new SolutionResource($solution->load(['products', 'industries', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group']));
     }
 
     public function store(StoreSolutionRequest $request): JsonResponse
     {
         $solution = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
             $relations = $this->pull($attributes, self::RELATIONS);
 
             $solution = Solution::create($attributes);
 
             $this->syncRelations($solution, $relations);
             $this->saveSeo($solution, $seo);
+            $this->saveCustomFields($solution, $custom);
 
             return $solution;
         });
 
         return response()->json(
-            ['data' => new SolutionResource($solution->load(['products', 'industries', 'faqs', 'answerBlocks', 'seo']))],
+            ['data' => new SolutionResource($solution->load(['products', 'industries', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group']))],
             201
         );
     }
@@ -79,15 +84,17 @@ class SolutionController extends Controller
     {
         DB::transaction(function () use ($request, $solution) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
             $relations = $this->pull($attributes, self::RELATIONS);
 
             $solution->update($attributes);
 
             $this->syncRelations($solution, $relations);
             $this->saveSeo($solution, $seo);
+            $this->saveCustomFields($solution, $custom);
         });
 
-        return new SolutionResource($solution->fresh(['products', 'industries', 'faqs', 'answerBlocks', 'seo']));
+        return new SolutionResource($solution->fresh(['products', 'industries', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group']));
     }
 
     public function destroy(Solution $solution): JsonResponse

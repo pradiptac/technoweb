@@ -4,6 +4,8 @@ namespace App\Enums;
 
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
+use App\Models\ContentType;
+use App\Models\Entry;
 use App\Models\Industry;
 use App\Models\KnowledgeArticle;
 use App\Models\LandingPage;
@@ -66,6 +68,14 @@ enum MenuItemType: string
     case KnowledgeArticle = 'knowledge_article';
     case LandingPage = 'landing_page';
 
+    /**
+     * An entry of a custom content type, and a type's archive
+     * (docs/custom-content.md). Record references like the rest, so a slug
+     * change on either moves the navigation with it.
+     */
+    case Entry = 'entry';
+    case ContentType = 'content_type';
+
     public function label(): string
     {
         return match ($this) {
@@ -82,6 +92,8 @@ enum MenuItemType: string
             self::CaseStudy => 'Case study',
             self::KnowledgeArticle => 'Knowledge base article',
             self::LandingPage => 'Landing page',
+            self::Entry => 'Custom content entry',
+            self::ContentType => 'Custom content archive',
         };
     }
 
@@ -100,6 +112,8 @@ enum MenuItemType: string
             self::CaseStudy => CaseStudy::class,
             self::KnowledgeArticle => KnowledgeArticle::class,
             self::LandingPage => LandingPage::class,
+            self::Entry => Entry::class,
+            self::ContentType => ContentType::class,
         };
     }
 
@@ -114,6 +128,7 @@ enum MenuItemType: string
     {
         return match ($this) {
             self::Product, self::ProductCategory, self::Industry => 'name',
+            self::ContentType => 'plural',
             default => 'title',
         };
     }
@@ -128,7 +143,7 @@ enum MenuItemType: string
     public function prefix(): ?string
     {
         return match ($this) {
-            self::Custom, self::Section, self::Catalogue, self::LandingPage => null,
+            self::Custom, self::Section, self::Catalogue, self::LandingPage, self::Entry, self::ContentType => null,
             self::Page => '',
             self::Solution => '/solutions',
             self::Service => '/services',
@@ -152,6 +167,16 @@ enum MenuItemType: string
 
         if ($this === self::LandingPage) {
             return $record->path ?? null;
+        }
+
+        // An archive is linkable while its type is switched on and has one;
+        // an entry while it is published. Either answers its own path.
+        if ($record instanceof ContentType) {
+            return $record->is_active && $record->archive_enabled ? $record->publicPath() : null;
+        }
+
+        if ($record instanceof Entry) {
+            return $record->isPublic() && $record->contentType?->is_active ? $record->publicPath() : null;
         }
 
         // A record with no slug cannot be addressed. Returning null lets the

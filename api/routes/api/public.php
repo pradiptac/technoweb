@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanySuggestionController;
 use App\Http\Controllers\Api\V1\ContentBlockController;
 use App\Http\Controllers\Api\V1\ContentController;
+use App\Http\Controllers\Api\V1\ContentTypeController as PublicContentTypeController;
 use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\FormController;
 use App\Http\Controllers\Api\V1\GalleryController;
@@ -321,6 +322,12 @@ Route::post('knowledge-base/{article}/helpful', [ContentController::class, 'know
 // named content routes so it can never shadow one.
 Route::get('pages', [ContentController::class, 'pages'])->name('pages.index');
 Route::get('pages/{page}', [ContentController::class, 'page'])->name('pages.show');
+
+// Custom content types (docs/custom-content.md): the active types, a type's
+// archive, one entry. `types.show` is the detail read (`body` rides on it).
+Route::get('content-types', [PublicContentTypeController::class, 'index'])->name('content-types.index');
+Route::get('types/{type}', [PublicContentTypeController::class, 'archive'])->name('types.archive');
+Route::get('types/{type}/{slug}', [PublicContentTypeController::class, 'show'])->name('types.show');
 
 // Site-wide search. Public and uncached — see the note in API.md about
 // why a search response must never be ISR-cached.

@@ -5,6 +5,7 @@ namespace App\Support\Chat;
 use App\Enums\PublishStatus;
 use App\Models\BlogPost;
 use App\Models\Brand;
+use App\Models\Entry;
 use App\Models\Faq;
 use App\Models\Industry;
 use App\Models\KnowledgeArticle;
@@ -111,6 +112,7 @@ class Retriever
             self::knowledge($question, $terms),
             self::blog($terms),
             self::pages($terms),
+            self::entries($terms),
         ]);
 
         $groups = array_merge(
@@ -535,6 +537,27 @@ class Retriever
             self::match(Page::query()->published(), $terms, ['title']),
             'page', 'Page', '/', 'title', ['body'],
         );
+    }
+
+    /**
+     * Published entries of the custom content types (docs/custom-content.md):
+     * the summary, or the body where there is none. Each carries its own
+     * path, because entries of two types share no prefix — which is why this
+     * does not go through `content()`.
+     */
+    private static function entries(array $terms): array
+    {
+        return self::match(Entry::query()->published()->with('contentType'), $terms, ['title', 'summary'])
+            ->limit(self::PER_GROUP)
+            ->get()
+            ->map(fn (Entry $e) => [
+                'type' => 'entry',
+                'label' => (string) ($e->contentType?->name ?? 'Page'),
+                'title' => (string) $e->title,
+                'excerpt' => self::excerpt(filled($e->summary) ? $e->summary : $e->body),
+                'url' => $e->publicPath(),
+                'meta' => [],
+            ])->all();
     }
 
     /**

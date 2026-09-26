@@ -5,6 +5,7 @@ namespace App\Http\Requests\Store;
 use App\Enums\ProductCondition;
 use App\Enums\ProductType;
 use App\Enums\PublishStatus;
+use App\Http\Requests\Concerns\AcceptsCustomFields;
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
 use App\Http\Requests\SeoRules;
@@ -26,7 +27,12 @@ use Illuminate\Validation\Rule;
  */
 class ProductRequest extends FormRequest
 {
-    use SanitisesRichText;
+    use AcceptsCustomFields, SanitisesRichText;
+
+    protected function customFieldTarget(): string
+    {
+        return 'store_product';
+    }
 
     /**
      * `description` is the rich-text body. `short_description` is deliberately
@@ -193,6 +199,7 @@ class ProductRequest extends FormRequest
             ...CmsFieldRules::faqs(),
             ...CmsFieldRules::answerBlocks(),
             ...SeoRules::rules(),
+            ...$this->customFieldRules(),
         ];
     }
 

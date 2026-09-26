@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PublishStatus;
 use App\Models\Concerns\HasAnswerBlocks;
+use App\Models\Concerns\HasCustomFields;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
 use App\Models\Contracts\Answerable;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Page extends Model implements Answerable, Faqable
 {
-    use HasAnswerBlocks, HasSeo, Sluggable;
+    use HasAnswerBlocks, HasCustomFields, HasSeo, Sluggable;
 
     protected $fillable = ['title', 'slug', 'body', 'blocks', 'template', 'status', 'published_at'];
 

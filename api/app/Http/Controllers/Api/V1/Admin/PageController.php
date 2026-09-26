@@ -9,6 +9,7 @@ use App\Http\Requests\StorePageRequest;
 use App\Http\Requests\UpdatePageRequest;
 use App\Http\Resources\Admin\PageResource;
 use App\Models\Page;
+use App\Support\CustomFields\CustomFields;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -40,42 +41,48 @@ class PageController extends Controller
         // select is built from this, the `meta.transitions` rule.
         return PageResource::collection($pages)->additional(['meta' => [
             'answer_block_kinds' => AnswerBlockKind::options(),
+            // The custom field groups that apply, for the console's Fields tab.
+            'custom_field_groups' => CustomFields::definitions('page'),
         ]]);
     }
 
     public function show(Page $page): JsonResource
     {
-        return new PageResource($page->load(['faqs', 'answerBlocks', 'seo']));
+        return new PageResource($page->load(['faqs', 'answerBlocks', 'seo', 'customValues.field.group']));
     }
 
     public function store(StorePageRequest $request): JsonResponse
     {
         $page = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
             $content = $this->pullAnswerContent($attributes);
 
             $page = Page::create($this->withPublishedAt($attributes));
             $this->saveAnswerContent($page, $content);
             $this->saveSeo($page, $seo);
+            $this->saveCustomFields($page, $custom);
 
             return $page;
         });
 
-        return response()->json(['data' => new PageResource($page->load(['faqs', 'answerBlocks', 'seo']))], 201);
+        return response()->json(['data' => new PageResource($page->load(['faqs', 'answerBlocks', 'seo', 'customValues.field.group']))], 201);
     }
 
     public function update(UpdatePageRequest $request, Page $page): JsonResource
     {
         DB::transaction(function () use ($request, $page) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
             $content = $this->pullAnswerContent($attributes);
 
             $page->update($this->withPublishedAt($attributes, $page));
             $this->saveAnswerContent($page, $content);
             $this->saveSeo($page, $seo);
+            $this->saveCustomFields($page, $custom);
         });
 
-        return new PageResource($page->fresh(['faqs', 'answerBlocks', 'seo']));
+        return new PageResource($page->fresh(['faqs', 'answerBlocks', 'seo', 'customValues.field.group']));
     }
 
     public function destroy(Page $page): JsonResponse

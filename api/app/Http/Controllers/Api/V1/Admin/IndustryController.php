@@ -9,6 +9,7 @@ use App\Http\Requests\StoreIndustryRequest;
 use App\Http\Requests\UpdateIndustryRequest;
 use App\Http\Resources\Admin\IndustryResource;
 use App\Models\Industry;
+use App\Support\CustomFields\CustomFields;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -44,18 +45,21 @@ class IndustryController extends Controller
         // select is built from this, the `meta.transitions` rule.
         return IndustryResource::collection($industries)->additional(['meta' => [
             'answer_block_kinds' => AnswerBlockKind::options(),
+            // The custom field groups that apply, for the console's Fields tab.
+            'custom_field_groups' => CustomFields::definitions('industry'),
         ]]);
     }
 
     public function show(Industry $industry): JsonResource
     {
-        return new IndustryResource($industry->load(['solutions', 'faqs', 'answerBlocks', 'seo']));
+        return new IndustryResource($industry->load(['solutions', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group']));
     }
 
     public function store(StoreIndustryRequest $request): JsonResponse
     {
         $industry = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
             $solutionIds = $attributes['solution_ids'] ?? null;
             unset($attributes['solution_ids']);
             $content = $this->pullAnswerContent($attributes);
@@ -67,17 +71,19 @@ class IndustryController extends Controller
                 $industry->solutions()->sync($solutionIds);
             }
             $this->saveSeo($industry, $seo);
+            $this->saveCustomFields($industry, $custom);
 
             return $industry;
         });
 
-        return response()->json(['data' => new IndustryResource($industry->load(['solutions', 'faqs', 'answerBlocks', 'seo']))], 201);
+        return response()->json(['data' => new IndustryResource($industry->load(['solutions', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group']))], 201);
     }
 
     public function update(UpdateIndustryRequest $request, Industry $industry): JsonResource
     {
         DB::transaction(function () use ($request, $industry) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
+            $custom = $this->pullCustomFields($attributes);
             $hasSolutions = array_key_exists('solution_ids', $attributes);
             $solutionIds = $attributes['solution_ids'] ?? [];
             unset($attributes['solution_ids']);
@@ -91,9 +97,10 @@ class IndustryController extends Controller
                 $industry->solutions()->sync($solutionIds);
             }
             $this->saveSeo($industry, $seo);
+            $this->saveCustomFields($industry, $custom);
         });
 
-        return new IndustryResource($industry->fresh(['solutions', 'faqs', 'answerBlocks', 'seo']));
+        return new IndustryResource($industry->fresh(['solutions', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group']));
     }
 
     public function destroy(Industry $industry): JsonResponse

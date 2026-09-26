@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Concerns;
 
+use App\Support\CustomFields\CustomFields;
 use App\Support\HtmlSanitiser;
 
 /**
@@ -52,6 +53,13 @@ trait SanitisesRichText
             if ($this->has($field)) {
                 $clean[$field] = HtmlSanitiser::clean($this->input($field));
             }
+        }
+
+        // Custom fields' rich-text values, for a request that accepts them
+        // (`AcceptsCustomFields`). Which keys are rich text is a fact about
+        // the stored definitions, not a list this request could spell.
+        if (method_exists($this, 'customFieldTarget') && is_array($this->input('custom_fields'))) {
+            $clean['custom_fields'] = CustomFields::sanitise($this->customFieldTarget(), $this->input('custom_fields'));
         }
 
         if ($clean) {

@@ -46,6 +46,8 @@ class AdminNavRolesTest extends TestCase
         'store/reports' => 'store/reports',
         // The promo band's own endpoint, under the store manager like the rest of the section.
         'store/promo' => 'store/promo',
+        // Custom fields: the console names the screen, the API what it writes.
+        'custom-fields' => 'custom-field-groups',
         // The info bar is the `announcement` settings group on a screen of its own.
         'info-bar' => 'settings',
         // Themes is the `themes` settings group on a screen of its own, the info bar's shape.

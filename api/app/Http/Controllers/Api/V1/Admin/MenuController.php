@@ -7,6 +7,7 @@ use App\Enums\MenuLocation;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MenuRequest;
 use App\Http\Resources\Admin\MenuResource;
+use App\Models\Entry;
 use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Support\CatalogueList;
@@ -69,6 +70,10 @@ class MenuController extends Controller
         $term = trim((string) $request->query('q'));
 
         $rows = $model::query()
+            // An entry's address is its type's slug, and its label names the
+            // type — "Events: Launch day" — since entries of every type share
+            // one picker.
+            ->when($type === MenuItemType::Entry, fn ($q) => $q->with('contentType'))
             ->when($term !== '', fn ($q) => $q->where($title, 'like', '%'.$term.'%'))
             ->orderBy($title)
             ->limit(50)
@@ -77,7 +82,9 @@ class MenuController extends Controller
         return response()->json([
             'data' => $rows->map(fn ($row) => [
                 'id' => $row->id,
-                'label' => $row->{$title},
+                'label' => $row instanceof Entry && $row->contentType
+                    ? $row->contentType->plural.': '.$row->{$title}
+                    : $row->{$title},
                 'url' => $type->url($row),
             ])->values(),
         ]);
