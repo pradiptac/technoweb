@@ -40,6 +40,7 @@ class CategoryController extends Controller
     {
         [$attributes, $seo] = $this->splitSeo($request->validated());
         $content = $this->pullAnswerContent($attributes);
+        $attributes = $this->cleanFilters($attributes);
 
         $category = StoreCategory::create($attributes);
         $this->saveAnswerContent($category, $content);
@@ -56,12 +57,35 @@ class CategoryController extends Controller
     {
         [$attributes, $seo] = $this->splitSeo($request->validated());
         $content = $this->pullAnswerContent($attributes);
+        $attributes = $this->cleanFilters($attributes);
 
         $storeCategory->update($attributes);
         $this->saveAnswerContent($storeCategory, $content);
         $this->saveSeo($storeCategory, $seo);
 
         return new CategoryResource($storeCategory->fresh()->loadCount('products')->load(['faqs', 'answerBlocks', 'seo']));
+    }
+
+    /**
+     * The chosen filter labels, trimmed, blanks dropped, in the order given.
+     * An empty list is stored as null — "no filters" — rather than `[]`.
+     *
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
+    private function cleanFilters(array $attributes): array
+    {
+        if (array_key_exists('filter_specs', $attributes)) {
+            $labels = collect($attributes['filter_specs'] ?? [])
+                ->map(fn ($l) => trim((string) $l))
+                ->filter(fn (string $l) => $l !== '')
+                ->values()
+                ->all();
+
+            $attributes['filter_specs'] = $labels === [] ? null : $labels;
+        }
+
+        return $attributes;
     }
 
     /**

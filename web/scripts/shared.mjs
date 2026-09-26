@@ -41,6 +41,9 @@ export const PUBLIC_ROUTES = [
   "/portal/verify-email", "/admin/login",
   // The shop. `/checkout` needs a basket, which PREPARE fills first.
   "/store", "/cart", "/checkout",
+  // A category with its specification filters and one ticked (2026-09-26):
+  // the panel, a chip and the narrowed grid. `switches` is the mock's.
+  "/store?category=switches&spec%5BPorts%5D%5B0%5D=24",
   // The page a back-in-stock email's cancel link lands on. A token nobody
   // has answers the same sentence as a real one, so it renders in full.
   "/store/notify/cancel/not-a-real-token",

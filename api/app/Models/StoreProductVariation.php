@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\SpecSheet;
 use App\Jobs\SendWishlistPriceDrops;
+use App\Support\Store\SpecIndex;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -68,6 +69,18 @@ class StoreProductVariation extends Model
                 SendWishlistPriceDrops::watch((int) $variation->store_product_id);
             }
         });
+
+        /*
+         * A product matches a spec filter when any active variation has the
+         * value, so its options and its switch are part of the product's
+         * index (2026-09-26). Queued after commit — see `SpecIndex::queue()`.
+         */
+        static::saved(function (self $variation) {
+            if ($variation->wasRecentlyCreated || $variation->wasChanged(['options', 'is_active'])) {
+                SpecIndex::queue((int) $variation->store_product_id);
+            }
+        });
+        static::deleted(fn (self $variation) => SpecIndex::queue((int) $variation->store_product_id));
     }
 
     /** @return BelongsTo<StoreProduct, $this> */

@@ -221,7 +221,8 @@ const fullCsp = (dev: boolean, frameAncestors = "'self'") => [
     "https://sdk.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com https://sandbox.cashfree.com https://api.cashfree.com",
   ].join(" "),
   // A video from the media library is served from the asset origin, like its
-  // pictures: a slide's video and a page-builder `video` section (2026-09-26).
+  // pictures: a slide's video, a page-builder `video` section and a store
+  // product's uploaded video (2026-09-26).
   `media-src 'self' ${assetOrigins}`,
   "worker-src 'self' blob:",
   "manifest-src 'self'",

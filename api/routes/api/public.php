@@ -74,6 +74,10 @@ Route::get('store/products', [StoreController::class, 'products'])->name('store.
 Route::get('store/products/{storeProduct:slug}', [StoreController::class, 'product'])->name('store.products.show');
 Route::get('store/categories', [StoreController::class, 'categories'])->name('store.categories.index');
 Route::get('store/categories/{storeCategory:slug}', [StoreController::class, 'category'])->name('store.categories.show');
+// The category's specification filters with their counts (2026-09-26).
+// Un-throttled like the listing beside it: the caller is the Next server,
+// one address for every visitor.
+Route::get('store/categories/{storeCategory:slug}/facets', [StoreController::class, 'facets'])->name('store.categories.facets');
 
 /*
  * "Email me when this is back." 202 and one sentence whatever happened —

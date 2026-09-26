@@ -19,6 +19,7 @@ import { SeoPanel } from "@/components/admin/seo-panel";
 import { SpecField } from "@/components/admin/spec-field";
 import { StringListField } from "@/components/admin/string-list-field";
 import { VariationField } from "@/components/admin/variation-field";
+import { VideoField } from "@/components/admin/video-field";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import { paiseToRupeeInput } from "@/lib/money";
@@ -62,7 +63,8 @@ const GROUPS: TabGroup[] = [
     went.
   */
   { id: "activation", label: "Activation", fields: ["activation_procedure", "activation_pdf_path"] },
-  { id: "media", label: "Media", fields: ["images"] },
+  // `videos` too (2026-09-26), or a refused link is charged to Content.
+  { id: "media", label: "Media", fields: ["images", "videos"] },
   // The services that install or support it (docs/aeo-geo-contract.md §3),
   // before SEO the way every other form's Related tab sits.
   { id: "related", label: "Related", fields: ["service_ids"] },
@@ -481,6 +483,8 @@ export function StoreProductForm({
             defaultUrls={product?.image_urls ?? []}
             error={rowErr("images")}
           />
+
+          <VideoField defaultValue={product?.videos ?? []} error={rowErr("videos")} />
         </div>
 
         {/*

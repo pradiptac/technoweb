@@ -35,6 +35,10 @@ class CategoryResource extends JsonResource
             // the figure and a detail page does not, and `withCount` on a
             // resource that might not have it is a lazy load waiting to throw.
             'product_count' => $this->whenCounted('products'),
+            // The specification filters offered on this category, in order
+            // (2026-09-26); the values and counts are `/facets`, fetched only
+            // where a panel is drawn. Empty when none are chosen.
+            'filter_specs' => array_values($this->filter_specs ?? []),
             // relationLoaded, not whenLoaded: the latter short-circuits to null
             // when the relation is loaded but empty, and most records have no
             // override row -- the derived defaults are still wanted for those.

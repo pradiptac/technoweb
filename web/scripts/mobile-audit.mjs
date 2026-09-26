@@ -148,6 +148,8 @@ const ADMIN_ROUTES = [
 */
 const STORE_ROUTES = [
   "/store", "/cart", "/store/notify/cancel/not-a-real-token",
+  // The specification filters as a phone draws them (2026-09-26).
+  "/store?category=switches&spec%5BPorts%5D%5B0%5D=24",
   "/store/wishlist", "/store/wishlist/stop/not-a-real-token",
 ];
 

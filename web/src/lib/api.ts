@@ -1,5 +1,6 @@
 import "server-only";
 import { clientIpHeaders } from "@/lib/client-ip";
+import type { StoreFacetsResponse } from "@/types/store-merch";
 import type {
   ContentBlock,
   BlogPost,
@@ -267,6 +268,17 @@ export const publicApi = {
       revalidate: 600,
       tags: ["store-categories", `store-category:${slug}`],
     }),
+  /**
+   * A category's specification filters with their counts (2026-09-26).
+   * `query` is `?spec[..]..` or empty. **Cached only when it is empty**: a
+   * combination somebody ticked is a user's query, the rule `storeProducts`
+   * keeps for `?q=` — pass `cache: false` whenever a spec is in it.
+   */
+  storeFacets: (slug: string, query = "", cache = true) =>
+    apiFetch<StoreFacetsResponse>(
+      `/store/categories/${encodeURIComponent(slug)}/facets${query}`,
+      cache ? { revalidate: 300, tags: ["store-products", "store-categories"] } : {},
+    ),
 
   /**
    * Brands that have a published product, for the catalogue filter. Cached

@@ -1051,10 +1051,11 @@ here reads `products`.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/store/products` | Paginated. `?q=`, `?category=`, `?type=`, `?sort=`, `?page=` |
-| `GET` | `/store/products/{slug}` | Detail only: `warranty`, `applications`, `services: [{id, title, slug}]`, `faqs`, `answer_blocks`, `entity`, `faq_schema`; the `Product` graph adds `category` as a `Thing`, `additionalProperty` from the spec sheet, `isRelatedTo` (the six the page lists beside it) and `offers.warranty` as a `WarrantyPromise` when one is set |
-| `GET` | `/store/categories` | Only categories with something published in them |
-| `GET` | `/store/categories/{slug}` | |
+| `GET` | `/store/products` | Paginated. `?q=`, `?category=`, `?type=`, `?sort=`, `?page=`, `?spec[<label>][]=<value>` (OR within a label, AND across, matched on normalised keys; a label nothing carries is ignored) |
+| `GET` | `/store/products/{slug}` | Detail only: `warranty`, `applications`, `services: [{id, title, slug}]`, `faqs`, `answer_blocks`, `entity`, `faq_schema`, `videos: [{kind, youtube_id?, url?, title?, poster_url?}]`; the `Product` graph adds `category` as a `Thing`, `additionalProperty` from the spec sheet, `isRelatedTo` (the six the page lists beside it), `offers.warranty` as a `WarrantyPromise` when one is set, and `subjectOf` `VideoObject`s for YouTube videos with an uploaded poster |
+| `GET` | `/store/categories` | Only categories with something published in them. Each carries `filter_specs` |
+| `GET` | `/store/categories/{slug}` | `filter_specs`: the spec labels offered as filters, in order |
+| `GET` | `/store/categories/{slug}/facets` | `?spec[..]` as above. `data: [{label, key, values: [{value, key, count, selected}]}]` — each label counted under the *other* labels' choices; `meta: {category, filtered}`. **`data: []` in a 200** for a category offering none; 404 when inactive. Unfiltered answers cached 5 min, filtered never |
 | `GET` | `/store/feed` | The Google Merchant Center feed, as rows. Paginated. `/store/feed.xml` renders it |
 | `GET` | `/cart` | The basket for `X-Cart-Token`, or a new empty one |
 | `POST` | `/cart/items` | `product_id`, `variation_id`, `quantity`. Throttled 60/min |
@@ -1087,6 +1088,18 @@ suppression list, sends `back_in_stock` (editable in the catalogue) through
 `Notifier`, and stamps each row so a second run tells nobody twice. The
 email's cancel link is the frontend's `/store/notify/cancel/<token>`, which
 calls the GET above and shows its sentence.
+
+**`meta_catalogue_enabled`** (`store` group, public, default `1`) decides
+whether `/meta-catalogue.xml` and `/meta-catalogue.csv` answer (2026-09-26).
+Both are rendered by the frontend from `GET /store/feed` — the Google feed's
+rows, mapped for Meta's Commerce Manager (back-order is `available for
+order`; no stock count) — so the API gains nothing but the switch; off, the
+frontend answers 404. See `docs/store.md` "The Meta catalogue".
+
+**`store_product_specs` is derived** (`SpecIndex`): each product's sheet and
+its active variations' options, rebuilt after commit whenever either changes,
+and by `php artisan technoware:rebuild-store-specs` — run once after the
+2026-09-26 migration.
 
 **`GET /store/feed` is the shop as Google Merchant Center reads it, and it is
 data rather than markup.** One row per thing somebody can buy — a variation
@@ -1455,9 +1468,9 @@ opening. `Messenger::notify()` is called beside each email.
 | `GET` | `/admin/store/products/export` | The catalogue as a CSV: one row per product and one per variation (`parent_sku` filled), money as plain rupee decimals, every cell escaped. **Declared above `products/{id}`** |
 | `POST` | `/admin/store/products/import/analyse` | multipart `file` (CSV or `.xlsx`, 10MB) plus `mapping[<field>]=<column index>` once mapped. A dry run: writes nothing, answers `headers`, `fields`, the `mapping` (guessed, or as sent — a blank sent back beats a guess), `counts` per outcome, the first fifty `problems` and a `preview` |
 | `POST` | `/admin/store/products/import` | `file` (the path `analyse` handed back), `mapping`. Commits; 201 with the `store_product_imports` row: `counts`, `problems` |
-| `GET`/`PATCH`/`DELETE` | `/admin/store/products/{id}` | Bound by **id**. `gtin`, `mpn`, `condition`, `google_product_category`, `weight_grams`, `feed_include`, `notices_waiting`; `warranty` (255), `applications` (text), `service_ids[]` (the services that install or support it, replaced wholesale; read back as `service_ids` and `services: [{id, title, slug}]`), `faqs[]`, `answer_blocks[]`; `meta.conditions` and `meta.answer_block_kinds` on the index |
-| `GET`/`POST` | `/admin/store/categories` | |
-| `GET`/`PATCH`/`DELETE` | `/admin/store/categories/{id}` | Deleting keeps the products |
+| `GET`/`PATCH`/`DELETE` | `/admin/store/products/{id}` | Bound by **id**. `gtin`, `mpn`, `condition`, `google_product_category`, `weight_grams`, `feed_include`, `notices_waiting`; `warranty` (255), `applications` (text), `service_ids[]` (the services that install or support it, replaced wholesale; read back as `service_ids` and `services: [{id, title, slug}]`), `faqs[]`, `answer_blocks[]`, `videos[]` (max 4, replaced wholesale: `{kind: youtube, youtube_id: <link or id>}` or `{kind: file, path}` — an MP4/WebM the media library holds — each with `title?` and `poster_path?`, a raster from the library; a link whose host is not YouTube's is a 422 on `videos.N.youtube_id`, and only the id is stored; the detail read adds `url`/`poster_url`); `meta.conditions` and `meta.answer_block_kinds` on the index |
+| `GET`/`POST` | `/admin/store/categories` | `filter_specs[]` (max 12): spec labels offered as filters, in order |
+| `GET`/`PATCH`/`DELETE` | `/admin/store/categories/{id}` | Deleting keeps the products. A `filter_specs` label none of the category's products carries — or one given twice — is a 422 on `filter_specs.N`, unless it is already saved. The detail read carries `spec_labels: [{label, key, products, chosen}]`, what the picker offers |
 
 **The promo band is a narrow door onto the settings table.** Settings as a
 whole are `role:admin` — the SMTP password and the COD ceiling sit in the same

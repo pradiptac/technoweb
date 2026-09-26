@@ -1507,6 +1507,8 @@ export type AdminStoreProduct = {
   features?: string[];
   images?: string[];
   image_urls?: string[];
+  /** Detail only (2026-09-26), up to four. */
+  videos?: import("./store-merch").AdminProductVideo[];
   variations?: AdminProductVariation[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
@@ -1576,6 +1578,9 @@ export type AdminStoreCategory = {
   is_active: boolean;
   sort_order: number;
   product_count?: number;
+  /** The specification filters offered, in order, and the labels a picker can offer (detail only). */
+  filter_specs?: string[];
+  spec_labels?: import("./store-merch").AdminSpecLabel[];
   /** Present on a detail response only -- see the API resource's `$detail` gate. */
   seo?: SeoOverride;
   seo_defaults?: Seo;
@@ -1607,6 +1612,8 @@ export type StoreProduct = AnswerContent & {
   image_alts: (string | null)[];
   /** Parallel to `images` too: each file's focal point as `object-position` wants it, or null. */
   image_focuses?: (string | null)[];
+  /** Detail only (2026-09-26): YouTube ids and media-library files, after the pictures. */
+  videos?: import("./store-merch").ProductVideo[];
   price_paise: number;
   /** Only present when it is genuinely higher than the real price. */
   compare_at_paise?: number;
@@ -2235,6 +2242,8 @@ export type StoreCategory = AnswerContent & {
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   image_focus?: string | null;
   product_count?: number;
+  /** The specification labels offered as filters, in order (2026-09-26). */
+  filter_specs?: string[];
   /** Present only on a listing that eager-loaded it -- see the API resource. */
   seo?: Seo;
 };

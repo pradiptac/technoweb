@@ -9,6 +9,7 @@ import {
 } from "@/lib/admin";
 import { jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
 import { rupeesToPaise } from "@/lib/money";
+import type { AdminProductVideo } from "@/types/store-merch";
 import type { AdminProductVariation, AnswerBlock, FaqItem, PublishStatus, StoreImportAnalysis, StoreImportResult, StoreProductType } from "@/types/api";
 
 export type StoreFormState = { error?: string; fieldErrors?: Record<string, string[]> };
@@ -71,6 +72,9 @@ function productPayload(formData: FormData): Record<string, unknown> {
     specifications,
     features: jsonListFromFormData<string>(formData, "features"),
     images: formData.getAll("images").map(String).filter(Boolean),
+    // Up to four, replaced wholesale (2026-09-26). A pasted YouTube link
+    // travels as typed; the API keeps the id and refuses anything else.
+    videos: jsonListFromFormData<AdminProductVideo>(formData, "videos"),
     variations: jsonListFromFormData<AdminProductVariation>(formData, "variations"),
     // Product AEO (docs/aeo-geo-contract.md §3). `service_ids` is the
     // RelationPicker's one-entry-per-box convention, read back with getAll().
@@ -209,6 +213,8 @@ function categoryPayload(formData: FormData): Record<string, unknown> {
     image_path: str(formData, "image_path"),
     is_active: formData.get("is_active") === "1",
     sort_order: sortOrder ? Number(sortOrder) : 0,
+    // The specification filters, an ordered list replaced wholesale.
+    filter_specs: jsonListFromFormData<string>(formData, "filter_specs").filter((l) => typeof l === "string"),
     faqs: jsonListFromFormData<FaqItem>(formData, "faqs"),
     answer_blocks: jsonListFromFormData<AnswerBlock>(formData, "answer_blocks"),
     ...(seo ? { seo } : {}),
