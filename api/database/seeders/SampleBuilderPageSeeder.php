@@ -37,8 +37,15 @@ class SampleBuilderPageSeeder extends Seeder
             return;
         }
 
-        $picture = Media::query()->where('mime', 'like', 'image/%')->where('mime', 'not like', '%svg%')->orderBy('id')->value('path')
-            ?? Media::query()->where('mime', 'like', 'image/%')->orderBy('id')->value('path');
+        // Three pictures where the library has them, never one photo in three
+        // sections: next/image's dev LCP check keys its images by URL, so a
+        // lazy copy of the hero's photo further down overwrites the eager
+        // hero's entry and the audit reports the hero as lazy.
+        $pictures = Media::query()->where('mime', 'like', 'image/%')->where('mime', 'not like', '%svg%')->orderBy('id')->limit(3)->pluck('path')->all()
+            ?: Media::query()->where('mime', 'like', 'image/%')->orderBy('id')->limit(3)->pluck('path')->all();
+        $picture = $pictures[0] ?? null;
+        $beside = $pictures[1] ?? $picture;
+        $portrait = $pictures[2] ?? $beside;
         $published = fn (string $model) => $model::query()->where('status', PublishStatus::Published)->orderBy('id')->value('id');
 
         $sections = [
@@ -68,7 +75,7 @@ class SampleBuilderPageSeeder extends Seeder
             $this->section('media_text', $picture ? [
                 'heading' => 'A picture beside the words',
                 'body' => '<p>The picture can sit on either side, or be a video.</p>',
-                'media' => 'image', 'image_path' => $picture, 'side' => 'right',
+                'media' => 'image', 'image_path' => $beside, 'side' => 'right',
                 'primary' => ['label' => 'Read more', 'href' => '/about'],
             ] : [
                 'heading' => 'A video beside the words',
@@ -76,7 +83,7 @@ class SampleBuilderPageSeeder extends Seeder
                 'media' => 'youtube', 'youtube' => 'aqz-KE-bpKQ', 'side' => 'right',
             ]),
             $this->section('cards', ['heading' => 'A live list', 'lede' => 'Whatever is published, as the theme draws its grids.', 'source' => 'solutions', 'limit' => 3, 'columns' => 3]),
-            $this->section('testimonial', ['quote' => 'A customer’s words go here, with their permission.', 'name' => 'A customer', 'role' => 'Their role, their company', 'photo_path' => $picture]),
+            $this->section('testimonial', ['quote' => 'A customer’s words go here, with their permission.', 'name' => 'A customer', 'role' => 'Their role, their company', 'photo_path' => $portrait]),
             $this->section('logos', ['heading' => 'Trusted by', 'source' => 'clients']),
             $this->section('video', ['heading' => 'A video', 'source' => 'youtube', 'youtube' => 'aqz-KE-bpKQ', 'caption' => 'Big Buck Bunny, © Blender Foundation, CC BY 3.0 — a placeholder.']),
             $this->section('divider', ['size' => 'medium', 'rule' => true]),

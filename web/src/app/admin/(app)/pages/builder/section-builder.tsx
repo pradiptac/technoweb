@@ -240,7 +240,7 @@ function SectionCard({
   return (
     <li
       data-section-card={section.type}
-      className={cn("rounded-lg border bg-card", bad ? "border-err" : "border-line-strong", section.hidden && "opacity-80")}
+      className={cn("min-w-0 rounded-lg border bg-card", bad ? "border-err" : "border-line-strong", section.hidden && "opacity-80")}
     >
       <div className="flex flex-wrap items-center gap-2 p-3">
         <button
