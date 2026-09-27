@@ -21,6 +21,17 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.90.1 — 2026-09-27
+
+**Two page-builder findings from the full audit run.**
+- The Builder tab no longer scrolls sideways on a phone: each section card
+  was as wide as its one-line summary (488px at 360).
+- The sample builder page uses three different pictures, so the saved
+  preview stops tripping `next/image`'s dev LCP check, which keyed the
+  eager hero and a lazy copy of its photo to one entry.
+
+---
+
 ## 0.90.0 — 2026-09-27
 
 **Import a WordPress site.** System → WordPress import reads a WordPress

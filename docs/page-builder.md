@@ -194,6 +194,22 @@ a gallery, on a fresh install — is left out). **Create-only**: a re-seed never
 touches a page already at that slug, unlike `PageSeeder`, which rewrites the
 policy pages. It is placeholder content on the must-not-ship list.
 
+**It gives the hero, the media-and-text section and the testimonial three
+different pictures** — the first three raster images in the library, the
+last repeated only when there are fewer. With one photo in all three the
+saved preview failed the audit on `next/image`'s dev warning that the
+largest paint should be `loading="eager"` — about a hero that was
+eager. Next's check keys its images by URL, the lazy copy further down
+registered last and overwrote the hero's entry; measured with a
+`PerformanceObserver`, the LCP element carried `loading="eager"` the
+whole time. Dev only, but a page an editor builds that way reads the same
+in `npm run audit`: check the element before adding `eager` anywhere.
+
+**A section card is `min-w-0`.** The list is a grid, a grid item's
+automatic minimum is its min-content, and a collapsed card's `truncate`d
+summary is one unbreakable run — the Builder tab was 488px wide at 360
+until the `<li>` carried it (2026-09-27).
+
 `npm run audit` discovers its Builder tab (`?tab=builder`) and its saved
 preview. Its public route 404s while it is a draft — audit it by name once
 published: `node scripts/audit.mjs /sample-builder-page`. The mock API carries
