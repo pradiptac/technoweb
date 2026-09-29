@@ -52,7 +52,7 @@ export function PillHeader({
       <header className="sticky top-0 z-40 pt-3 pb-1">
         <Container className={bigMenu ? "relative" : undefined}>
           <div className="flex h-14 min-w-0 items-center gap-1.5 rounded-full border border-line-strong bg-card/92 pl-4 pr-2 shadow-2 backdrop-blur-xl">
-            <Link href="/" aria-label="Technoware home" className="shrink-0">
+            <Link href="/" aria-label={settings.company_name ? `${settings.company_name} home` : "Home"} className="shrink-0">
               <Logo
                 className="max-[419px]:text-17"
                 logoUrl={settings.logo_url}
@@ -87,15 +87,17 @@ export function PillHeader({
                 inputClassName="text-13"
                 buttonClassName="size-7 rounded-full"
               />
-              <a
-                href={telHref(phone)}
-                aria-label={`Call ${phone}`}
-                title={phone}
-                // Hidden below `sm`: at 320 the pill was 5px over with it, and the drawer carries the number.
-                className="hidden size-10 place-items-center rounded-full text-ink-2 transition-colors duration-(--duration-base) hover:bg-surface-2 hover:text-ink sm:grid"
-              >
-                <IconPhone className="size-4" />
-              </a>
+              {phone ? (
+                <a
+                  href={telHref(phone)}
+                  aria-label={`Call ${phone}`}
+                  title={phone}
+                  // Hidden below `sm`: at 320 the pill was 5px over with it, and the drawer carries the number.
+                  className="hidden size-10 place-items-center rounded-full text-ink-2 transition-colors duration-(--duration-base) hover:bg-surface-2 hover:text-ink sm:grid"
+                >
+                  <IconPhone className="size-4" />
+                </a>
+              ) : null}
               <Link
                 href="/contact"
                 className="inline-flex h-10 items-center gap-1.5 rounded-full bg-brand-600 px-4 text-13-5 font-semibold text-brand-on transition-colors duration-(--duration-base) hover:bg-brand-700 max-[419px]:px-3"

@@ -4,6 +4,7 @@ import { useId } from "react";
 import { CoverField } from "@/components/admin/cover-field";
 import { ReorderButtons } from "@/components/admin/reorder-buttons";
 import { Field, Input, Select } from "@/components/ui/input";
+import { SECTION_REVEALS } from "@/lib/motion-choices";
 import { announcementBand } from "@/lib/palette";
 import { isHex } from "@/lib/presets";
 import { cn } from "@/lib/utils";
@@ -23,7 +24,7 @@ export type OptionsDraft = Record<string, {
   menu_style?: MenuStyle;
   hero_style?: HeroStyle;
   heading_align?: HeadingAlign;
-  sections?: Record<string, Partial<SectionBackground> & { enabled?: boolean }>;
+  sections?: Record<string, Partial<SectionBackground> & { enabled?: boolean; reveal?: string }>;
   section_order?: string[];
 }>;
 
@@ -59,11 +60,12 @@ export function ThemeOptionsEditor({
   const defaults = manifest?.defaults ?? {};
 
   const set = (patch: Partial<OptionsDraft[string]>) => onChange({ ...draft, [theme]: { ...mine, ...patch } });
-  // A row is kept only while it says something: a background, or the
-  // switch off. A default background on a shown section is no row at all.
-  const setSection = (id: string, row: (Partial<SectionBackground> & { enabled?: boolean }) | null) => {
+  // A row is kept only while it says something: a background, the switch
+  // off, or a way to appear. A default background on a shown, still section
+  // is no row at all.
+  const setSection = (id: string, row: (Partial<SectionBackground> & { enabled?: boolean; reveal?: string }) | null) => {
     const sections = { ...(mine.sections ?? {}) };
-    const empty = row === null || ((row.kind ?? "default") === "default" && row.enabled !== false);
+    const empty = row === null || ((row.kind ?? "default") === "default" && row.enabled !== false && !row.reveal);
     if (empty) delete sections[id]; else sections[id] = row;
     set({ sections });
   };
@@ -135,6 +137,9 @@ export function ThemeOptionsEditor({
               key={s.id}
               label={s.label}
               locked={s.id === "hero"}
+              // The hero is the first paint and never animates; the closing
+              // band already rises on its own in every theme.
+              moves={s.id !== "hero" && s.id !== "cta"}
               index={i}
               count={ordered.length}
               value={mine.sections?.[s.id]}
@@ -248,15 +253,15 @@ function HeadingDiagram({ align }: { align: HeadingAlign }) {
   );
 }
 
-type SectionRowValue = (Partial<SectionBackground> & { enabled?: boolean }) | undefined;
+type SectionRowValue = (Partial<SectionBackground> & { enabled?: boolean; reveal?: string }) | undefined;
 
 function SectionRow({
-  label, locked = false, index, count, value, onChange, onMove,
-}: { label: string; locked?: boolean; index: number; count: number; value: SectionRowValue; onChange: (row: NonNullable<SectionRowValue> | null) => void; onMove: (delta: -1 | 1) => void }) {
+  label, locked = false, moves = true, index, count, value, onChange, onMove,
+}: { label: string; locked?: boolean; moves?: boolean; index: number; count: number; value: SectionRowValue; onChange: (row: NonNullable<SectionRowValue> | null) => void; onMove: (delta: -1 | 1) => void }) {
   const id = useId();
   const kind: SectionKind = value?.kind ?? "default";
   const enabled = value?.enabled !== false;
-  const patch = (p: Partial<SectionBackground> & { enabled?: boolean }) => onChange({ ...value, kind, ...p });
+  const patch = (p: Partial<SectionBackground> & { enabled?: boolean; reveal?: string }) => onChange({ ...value, kind, ...p });
   const stops = [value?.colour, kind === "gradient" ? value?.colour2 : undefined].filter((c): c is string => isHex(c));
   const band = stops.length ? announcementBand(stops) : null;
   const moved = band && band.stops.some((s, i) => s.toLowerCase() !== stops[i]!.toLowerCase());
@@ -290,20 +295,35 @@ function SectionRow({
         />
         <span className="text-13-5 font-semibold text-ink">{label}</span>
       </div>
-      <Field label="Background" htmlFor={`${id}-kind`} variant="float-static" className="mb-0">
-        <Select
-          id={`${id}-kind`}
-          value={kind}
-          onChange={(e) => {
-            const next = e.target.value as SectionKind;
-            onChange(next === "default"
-              ? (enabled ? null : { kind: "default", enabled: false })
-              : { kind: next, colour: value?.colour ?? (next === "image" ? "#0b0b12" : "#1e3a8a"), colour2: value?.colour2 ?? "#0b1020", overlay: value?.overlay ?? 60, image_path: value?.image_path, image_url: value?.image_url, enabled: value?.enabled });
-          }}
-        >
-          {SECTION_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
-        </Select>
-      </Field>
+      <div className="grid gap-3">
+        <Field label="Background" htmlFor={`${id}-kind`} variant="float-static" className="mb-0">
+          <Select
+            id={`${id}-kind`}
+            value={kind}
+            onChange={(e) => {
+              const next = e.target.value as SectionKind;
+              // The switch and the reveal are not the background's, so a
+              // change of kind carries them across rather than dropping them.
+              onChange(next === "default"
+                ? (enabled && !value?.reveal ? null : { kind: "default", enabled: value?.enabled, reveal: value?.reveal })
+                : { kind: next, colour: value?.colour ?? (next === "image" ? "#0b0b12" : "#1e3a8a"), colour2: value?.colour2 ?? "#0b1020", overlay: value?.overlay ?? 60, image_path: value?.image_path, image_url: value?.image_url, enabled: value?.enabled, reveal: value?.reveal });
+            }}
+          >
+            {SECTION_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
+          </Select>
+        </Field>
+        {/* How the section arrives on scroll. A homepage section is still unless
+            one is chosen here (the 2026-09-15 UX audit), so the list has no
+            "Default" and opens on None; the site-wide Motion style shapes the
+            rest. */}
+        {moves && (
+          <Field label="Appear" htmlFor={`${id}-reveal`} variant="float-static" className="mb-0">
+            <Select id={`${id}-reveal`} value={value?.reveal ?? "none"} onChange={(e) => patch({ reveal: e.target.value === "none" ? undefined : e.target.value })}>
+              {HOME_REVEALS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+            </Select>
+          </Field>
+        )}
+      </div>
       {kind !== "default" && kind !== "page" && (
         <div className="grid gap-3 sm:grid-cols-2">
           <ColourInput id={`${id}-c1`} label={kind === "image" ? "Overlay colour" : kind === "gradient" ? "First colour" : "Colour"} value={value?.colour ?? ""} onChange={(v) => patch({ colour: v })} />
@@ -342,6 +362,12 @@ function SectionRow({
     </div>
   );
 }
+
+/** The homepage's list: no "Default", since a homepage section's default is not to move. */
+const HOME_REVEALS = [
+  ...SECTION_REVEALS.filter((c) => c.id === "none"),
+  ...SECTION_REVEALS.filter((c) => c.id !== "none" && c.id !== "default"),
+];
 
 function ColourInput({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (v: string) => void }) {
   return (

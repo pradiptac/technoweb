@@ -25,6 +25,10 @@ export type BlogPostPayload = Partial<{
   published_at: string | null;
   author_id: number | null;
   cover_image_path: string | null;
+  is_featured: boolean;
+  comments_enabled: boolean;
+  /** Replaced wholesale; `[]` files the post under none. */
+  category_ids: number[];
   faqs: FaqItem[];
   answer_blocks: AnswerBlock[];
   seo: Partial<SeoOverride>;

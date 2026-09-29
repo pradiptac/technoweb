@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { cache } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { clearWishlistToken, wishlistToken } from "@/lib/wishlist-cookie";
+import { getSiteSettings } from "@/lib/settings";
+import { portalEnabled } from "@/lib/site-settings";
 import type { AuthResponse, Customer } from "@/types/api";
 
 const COOKIE = "tw_session";
@@ -15,9 +17,21 @@ const COOKIE = "tw_session";
  * server with the token attached — the browser talks to Next, Next talks to Laravel.
  */
 
+/**
+ * The customer's token, or undefined — **including while the portal is
+ * switched off** (`portal_enabled`). The API refuses every customer route
+ * then; answering "no session" here as well is what makes the rest of the
+ * site degrade to signed out rather than to a refusal: the basket, the
+ * wishlist, the review button and the checkout stop forwarding a bearer
+ * nobody can use. The cookie itself is left alone, so switching the portal
+ * back on within its fourteen days restores the session.
+ */
 export async function getToken(): Promise<string | undefined> {
   const jar = await cookies();
-  return jar.get(COOKIE)?.value;
+  const token = jar.get(COOKIE)?.value;
+  if (!token) return undefined;
+
+  return portalEnabled(await getSiteSettings()) ? token : undefined;
 }
 
 /**

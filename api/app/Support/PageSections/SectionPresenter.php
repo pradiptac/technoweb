@@ -78,6 +78,7 @@ final class SectionPresenter
                 'id' => (string) ($block['id'] ?? ''),
                 'type' => $type->value,
                 'background' => self::background($block['background'] ?? null),
+                'reveal' => SectionRules::reveal($block['reveal'] ?? null),
                 'data' => (object) $data,
             ];
         }

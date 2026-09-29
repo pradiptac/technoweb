@@ -17,6 +17,7 @@ class NewsletterSubscriber extends Model
 {
     protected $fillable = [
         'customer_id', 'email', 'first_name', 'last_name', 'company', 'phone',
+        'industry', 'location', 'website', 'source_url',
         'status', 'source', 'subscribed_at', 'unsubscribed_at',
         'bounce_count', 'last_bounce_at',
         'verification', 'verification_result', 'verification_score',
@@ -153,6 +154,7 @@ class NewsletterSubscriber extends Model
             ->where('email', 'like', $like)
             ->orWhere('first_name', 'like', $like)
             ->orWhere('last_name', 'like', $like)
-            ->orWhere('company', 'like', $like));
+            ->orWhere('company', 'like', $like)
+            ->orWhere('website', 'like', $like));
     }
 }

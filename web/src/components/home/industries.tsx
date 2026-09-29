@@ -18,7 +18,7 @@ export function Industries({ items }: { items: Industry[] }) {
           title="Different floors, different failure modes."
           lede="A hospital network and a factory network fail in completely different ways. We build for the one you actually run."
         />
-        <Collection kind="industries" cols={3} gap="sm">
+        <Collection fill kind="industries" cols={3} gap="sm">
           {items.map((i) => (
             <Tile
               key={i.slug}

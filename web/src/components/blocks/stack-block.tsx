@@ -13,6 +13,7 @@ import type { ContentBlock, StackContent, StackGroup, StackItem } from "@/types/
 import { StackOrbit } from "./stack-orbit";
 import { StackGlobe } from "./stack-globe";
 import type { OrbitNode, OrbitRing } from "./stack-types";
+import { brandName } from "@/lib/brand";
 
 type StackBlockData = Extract<ContentBlock, { type: "stack" }>;
 
@@ -211,7 +212,7 @@ async function StackCentre({ center }: { center: StackContent["center"] }) {
     );
   }
   const settings = await getSiteSettings();
-  const name = settings.company_name || "Technoware";
+  const name = settings.company_name || brandName();
   if (settings.logo_url) {
     return (
       <span className="relative block size-full">

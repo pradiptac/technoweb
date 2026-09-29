@@ -5,6 +5,7 @@ import type { SiteSettings } from "@/lib/site-settings";
 import type { CSSProperties, ReactElement } from "react";
 import { IconMail } from "@/components/icons-ui";
 import { contact } from "@/content/site";
+import { brandName } from "@/lib/brand";
 import { Dock, DockIcon } from "@/components/velora/dock";
 
 /**
@@ -55,6 +56,8 @@ export function SocialLinks({ settings }: { settings: SiteSettings }) {
 
   if (links.length === 0) return null;
 
+  const company = settings.company_name ?? brandName();
+
   if (settings.social_style !== "dock") {
     // Email follows the profiles as a tile of its own, as it does in the
     // source component — the address the header and the footer plates use.
@@ -63,7 +66,7 @@ export function SocialLinks({ settings }: { settings: SiteSettings }) {
       ...links.map(({ key, label, initial, href, Icon, brand }) => ({ key, label, initial, href, Icon, brand, external: true })),
       ...(email ? [{ key: "email", label: "Email", initial: "E", href: `mailto:${email}`, Icon: IconMail, brand: "var(--color-dark-ink)", external: false }] : []),
     ];
-    return <SocialFlip links={flip} word={settings.social_flip_word} />;
+    return <SocialFlip links={flip} word={settings.social_flip_word} company={company} />;
   }
 
   /*
@@ -90,7 +93,7 @@ export function SocialLinks({ settings }: { settings: SiteSettings }) {
             // the opener a window handle back.
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={`Technoware on ${label}`}
+            aria-label={`${company} on ${label}`}
             /*
               The colour rides in on a custom property so one class list serves
               all six — the alternative is a hover class per brand, which is six
@@ -171,7 +174,7 @@ const FLIP_MAX = 7;
 
 type FlipLink = { key: string; label: string; initial: string; href: string; Icon: (p: { className?: string }) => ReactElement; brand: string; external: boolean };
 
-function SocialFlip({ links, word }: { links: FlipLink[]; word: string | undefined }) {
+function SocialFlip({ links, word, company }: { links: FlipLink[]; word: string | undefined; company: string }) {
   const letters = (word ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, FLIP_MAX);
   const extra = Array.from(letters.slice(links.length));
   const count = links.length + extra.length;
@@ -195,7 +198,7 @@ function SocialFlip({ links, word }: { links: FlipLink[]; word: string | undefin
             <a
               href={href}
               {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-              aria-label={external ? `Technoware on ${label}` : `Email Technoware`}
+              aria-label={external ? `${company} on ${label}` : `Email ${company}`}
               className={tile}
             >
               <span className="social-flip__card relative block size-full">

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\OrderStatus;
 use App\Enums\WebhookEvent;
+use App\Support\References;
 use App\Support\Webhooks\WebhookPayload;
 use App\Support\Webhooks\Webhooks;
 use Illuminate\Database\Eloquent\Builder;
@@ -105,14 +106,15 @@ class Order extends Model
     public static function nextNumber(): string
     {
         $year = now()->year;
+        $prefix = References::order();
 
-        $last = self::where('order_number', 'like', "ORD-{$year}-%")
+        $last = self::where('order_number', 'like', "{$prefix}-{$year}-%")
             ->orderByDesc('id')
             ->value('order_number');
 
         $n = $last ? ((int) Str::afterLast($last, '-')) + 1 : 1;
 
-        return sprintf('ORD-%d-%05d', $year, $n);
+        return sprintf('%s-%d-%05d', $prefix, $year, $n);
     }
 
     /**

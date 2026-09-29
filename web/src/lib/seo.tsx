@@ -1,15 +1,27 @@
 import type { Metadata } from "next";
 import type { Seo } from "@/types/api";
+import { siteUrl } from "@/lib/site-url";
+import { brandName } from "@/lib/brand";
 
 export const SITE = {
-  name: "Technoware",
-  legalName: "Technoware",
-  description:
-    "Technoware designs, deploys and supports enterprise networks, servers, storage and security infrastructure — backed by a real engineering support desk.",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.technoware.in",
+  // Getters for the same reason as `url`: the company is the runtime
+  // `SITE_NAME` (`lib/brand.ts`), never a literal — each install is sold
+  // under its owner's name.
+  get name(): string {
+    return brandName();
+  },
+  get legalName(): string {
+    return brandName();
+  },
+  get description(): string {
+    return `${brandName()} designs, deploys and supports enterprise networks, servers, storage and security infrastructure — backed by a real engineering support desk.`;
+  },
+  // A getter: the origin is runtime configuration (`lib/site-url.ts`), and a
+  // module-level constant would freeze whatever it was when first imported.
+  get url(): string {
+    return siteUrl();
+  },
   locale: "en_IN",
-  telephone: "+91 98765 43210",
-  email: "support@technoware.in",
 } as const;
 
 /**
@@ -246,13 +258,18 @@ export const jsonLd = {
     ...(jsonNames(settings.organization_area_served).length
       ? { areaServed: jsonNames(settings.organization_area_served).map((name) => ({ "@type": "Place", name })) }
       : {}),
-    contactPoint: {
-      "@type": "ContactPoint",
-      telephone: settings.phone || SITE.telephone,
-      email: settings.support_email || SITE.email,
-      contactType: "technical support",
-      availableLanguage: ["en"],
-    },
+    // Only what Settings → Contact holds: no invented number or address.
+    ...(settings.phone || settings.support_email
+      ? {
+          contactPoint: {
+            "@type": "ContactPoint",
+            ...(settings.phone ? { telephone: settings.phone } : {}),
+            ...(settings.support_email ? { email: settings.support_email } : {}),
+            contactType: "technical support",
+            availableLanguage: ["en"],
+          },
+        }
+      : {}),
   }),
 
   // No `SearchAction`: Google retired the sitelinks search box in 2024, and

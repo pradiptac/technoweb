@@ -46,7 +46,11 @@ export function WebhookPanel({ webhook }: { webhook?: NewsletterWebhookMeta }) {
          * that, not left to conclude the feature is broken.
          */
         <Alert tone="warn" title="Not active yet">
-          Set <strong>Newsletter webhook secret</strong> in Settings first. Until then this
+          {/* Plain text, not a link: this screen is a campaign manager's, and
+              Campaign → Settings is an administrator's, so a link would 404 for
+              most of the people reading it. */}
+          Set <strong>Bounce webhook secret</strong> in Campaign → Settings first (an
+          administrator&apos;s screen). Until then this
           endpoint accepts nothing — deliberately, because anyone who found the URL could
           otherwise suppress your entire list.
         </Alert>

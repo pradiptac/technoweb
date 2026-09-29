@@ -8,6 +8,7 @@ use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
 use App\Support\Crm\LeadMailLines;
 use App\Support\HtmlSanitiser;
+use App\Support\Mail\MailBrand;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -77,6 +78,6 @@ class EnquiryReceived extends Notification implements ShouldQueue
             // Reply-to the enquirer so hitting reply in the mail client goes
             // where it should, rather than to the site's own from address.
             ->replyTo($e->email, $e->name)
-            ->salutation('— Technoware');
+            ->salutation(MailBrand::signoff());
     }
 }

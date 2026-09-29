@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/admin/page-header";
-import { getAnswerBlockKinds, getCustomFieldGroups } from "@/lib/admin";
+import { getAnswerBlockKinds, getCustomFieldGroups, getServiceCategoryOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ServiceForm } from "../service-form";
@@ -9,7 +9,11 @@ export const metadata = buildMetadata({ title: "New service", path: "/admin/serv
 
 export default async function NewServicePage() {
   await requireScreen();
-  const kinds = await getAnswerBlockKinds("/admin/services");
+  const [kinds, categories] = await Promise.all([
+    getAnswerBlockKinds("/admin/services"),
+    // An API without the categories yet still opens the editor, with "No category" alone.
+    getServiceCategoryOptions().catch(() => []),
+  ]);
 
   return (
     <>
@@ -18,7 +22,7 @@ export default async function NewServicePage() {
         title="New service"
       />
 
-      <ServiceForm kinds={kinds} fieldGroups={await getCustomFieldGroups("/admin/services")} />
+      <ServiceForm kinds={kinds} categories={categories} fieldGroups={await getCustomFieldGroups("/admin/services")} />
     </>
   );
 }

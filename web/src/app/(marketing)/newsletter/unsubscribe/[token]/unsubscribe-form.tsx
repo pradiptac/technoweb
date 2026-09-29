@@ -18,11 +18,13 @@ import { unsubscribeAction } from "@/components/layout/newsletter-actions";
  * confirmation before it is a hurdle.
  */
 export function UnsubscribeForm({
-  token, email, already,
+  token, email, already, company,
 }: {
   token: string;
   email: string | null;
   already: boolean;
+  /** Whose newsletter it is — the install's company, from the server parent. */
+  company: string;
 }) {
   const [result, setResult] = useState<{ ok?: string; error?: string } | null>(null);
   const [pending, start] = useTransition();
@@ -58,8 +60,8 @@ export function UnsubscribeForm({
 
       <p className="measure text-15">
         {email
-          ? <>Unsubscribe <strong className="font-mono text-14">{email}</strong> from the Technoware newsletter?</>
-          : <>Unsubscribe from the Technoware newsletter?</>}
+          ? <>Unsubscribe <strong className="font-mono text-14">{email}</strong> from the {company} newsletter?</>
+          : <>Unsubscribe from the {company} newsletter?</>}
       </p>
 
       <p className="measure mt-2 text-14 text-muted">

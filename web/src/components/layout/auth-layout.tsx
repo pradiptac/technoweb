@@ -9,6 +9,7 @@ import type { SiteSettings } from "@/lib/site-settings";
 import { AuthBackdrop } from "@/components/layout/auth-backdrop";
 import { loginBackdropFor } from "@/lib/login-backdrop-choices";
 import { Prose } from "@/components/ui/prose";
+import { brandName } from "@/lib/brand";
 
 /**
  * The split screen behind every sign-in, forgot-password and reset screen —
@@ -236,7 +237,7 @@ export function AuthLayout({
         <div className="min-w-0 border-t border-line pt-5 pb-2 text-center text-12 text-faint">
           <div className="min-w-0 overflow-x-auto">
             <CreditLine
-              companyName={settings.company_name ?? "Technoware"}
+              companyName={settings.company_name ?? brandName()}
               className="inline-block whitespace-nowrap"
               linkClassName="font-medium text-faint hover:text-muted hover:underline"
             />

@@ -1,4 +1,5 @@
 import { getSiteSettings } from "@/lib/settings";
+import { brandName } from "@/lib/brand";
 
 /**
  * What the push service worker needs that a push does not carry: the name
@@ -17,7 +18,7 @@ export async function GET() {
 
   return Response.json(
     {
-      name: settings.company_name || "Technoware",
+      name: settings.company_name || brandName(),
       icon: settings.favicon_url || "/favicon.ico",
     },
     { headers: { "Cache-Control": "public, max-age=600" } },

@@ -69,7 +69,7 @@ class HunterClient
     /**
      * What the plan allows and what is left of it. Free to call.
      *
-     * @return array{plan_name: ?string, reset_date: ?string, used: int, available: int}
+     * @return array{plan_name: ?string, reset_date: ?string, used: int, available: int, searches_used: int, searches_available: int}
      *
      * @throws RuntimeException carrying Hunter's own sentence
      */
@@ -90,7 +90,50 @@ class HunterClient
             'reset_date' => $response->json('data.reset_date'),
             'used' => (int) $response->json('data.requests.verifications.used', 0),
             'available' => (int) $response->json('data.requests.verifications.available', 0),
+            // Domain searches are a separate allowance on every Hunter plan.
+            'searches_used' => (int) $response->json('data.requests.searches.used', 0),
+            'searches_available' => (int) $response->json('data.requests.searches.available', 0),
         ];
+    }
+
+    /**
+     * The addresses Hunter knows at a domain, with the names and job titles
+     * it has for them (2026-09-27, the website crawl). One call spends one
+     * of the plan's *searches*, a different allowance from verifications.
+     *
+     * Throws on anything but a 200 — the crawl turns that into a note on
+     * the run and carries on without Hunter.
+     *
+     * @return array{organization: ?string, emails: list<array{email: string, first_name: ?string, last_name: ?string, position: ?string}>}
+     */
+    public function domainSearch(string $domain, int $limit = 10): array
+    {
+        try {
+            $response = $this->request()->get(self::BASE.'/domain-search', ['domain' => $domain, 'limit' => max(1, min(100, $limit))]);
+        } catch (ConnectionException $e) {
+            throw new RuntimeException('Hunter could not be reached: '.$e->getMessage());
+        }
+
+        if (! $response->successful()) {
+            throw new RuntimeException(self::message($response) ?? 'Hunter answered '.$response->status().'.');
+        }
+
+        $found = [];
+
+        foreach ((array) $response->json('data.emails', []) as $row) {
+            if (is_array($row) && filter_var($row['value'] ?? null, FILTER_VALIDATE_EMAIL)) {
+                $found[] = [
+                    'email' => strtolower((string) $row['value']),
+                    'first_name' => filled($row['first_name'] ?? null) ? (string) $row['first_name'] : null,
+                    'last_name' => filled($row['last_name'] ?? null) ? (string) $row['last_name'] : null,
+                    'position' => filled($row['position'] ?? null) ? (string) $row['position'] : null,
+                ];
+            }
+        }
+
+        $organization = $response->json('data.organization');
+
+        return ['organization' => is_string($organization) && $organization !== '' ? $organization : null, 'emails' => $found];
     }
 
     private function request()

@@ -43,7 +43,7 @@ export function SummitHeader({
       <header className="sticky top-0 z-40 border-b border-dark-line bg-dark text-dark-ink">
         <Container className={bigMenu ? "relative" : undefined}>
           <div className="flex h-16 min-w-0 items-center gap-1.5">
-            <Link href="/" aria-label="Technoware home" className="shrink-0">
+            <Link href="/" aria-label={settings.company_name ? `${settings.company_name} home` : "Home"} className="shrink-0">
               <Logo
                 onDark
                 className="max-[419px]:text-17"
@@ -79,15 +79,17 @@ export function SummitHeader({
                 inputClassName="text-13 text-dark-ink"
                 buttonClassName="size-7 rounded-full"
               />
-              <a
-                href={telHref(phone)}
-                aria-label={`Call ${phone}`}
-                title={phone}
-                // Hidden below `sm`: at 320 the pill was 5px over with it, and the drawer carries the number.
-                className="hidden size-10 place-items-center rounded-md text-dark-muted transition-colors duration-(--duration-base) hover:bg-dark-2 hover:text-dark-ink sm:grid"
-              >
-                <IconPhone className="size-4" />
-              </a>
+              {phone ? (
+                <a
+                  href={telHref(phone)}
+                  aria-label={`Call ${phone}`}
+                  title={phone}
+                  // Hidden below `sm`: at 320 the pill was 5px over with it, and the drawer carries the number.
+                  className="hidden size-10 place-items-center rounded-md text-dark-muted transition-colors duration-(--duration-base) hover:bg-dark-2 hover:text-dark-ink sm:grid"
+                >
+                  <IconPhone className="size-4" />
+                </a>
+              ) : null}
               <Link
                 href="/contact"
                 className="inline-flex h-10 items-center gap-1.5 rounded-md bg-brand-600 px-4 text-13-5 font-semibold text-brand-on transition-colors duration-(--duration-base) hover:bg-brand-700 max-[419px]:px-3"

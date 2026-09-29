@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Role as RoleEnum;
+use App\Support\Meetings\HostSync;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -29,6 +30,17 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // A host's invitation goes to the address on their account: a new
+        // one has to reach every event still to come (docs/meetings.md).
+        static::updated(function (self $user) {
+            if ($user->wasChanged('email')) {
+                HostSync::emailChanged($user);
+            }
+        });
     }
 
     /** @return BelongsToMany<Role, $this> */

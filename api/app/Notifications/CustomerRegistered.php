@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\Customer;
 use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
+use App\Support\Mail\MailBrand;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -105,6 +106,6 @@ class CustomerRegistered extends Notification implements ShouldQueue
 
         return $mail
             ->action($active ? 'View the account' : 'Review the account', $base.'/admin/customers/'.$this->customer->id)
-            ->salutation('— Technoware');
+            ->salutation(MailBrand::signoff());
     }
 }

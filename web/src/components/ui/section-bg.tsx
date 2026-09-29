@@ -1,12 +1,13 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { focalStyle } from "@/lib/focal";
+import { sectionReveal } from "@/lib/motion-choices";
 import { themeFor } from "@/lib/presets";
 import { sectionSurface, type Seeds } from "@/lib/section-background";
 import type { SiteSettings } from "@/lib/site-settings";
 import { expand } from "@/lib/themes";
 import { cn } from "@/lib/utils";
-import type { SectionBackground, ThemeOptions } from "@/themes/options";
+import { LOCKED_SECTION, type SectionBackground, type ThemeOptions } from "@/themes/options";
 
 /**
  * The shell a homepage section renders inside when the theme options give
@@ -80,5 +81,14 @@ export function homeSeeds(settings: SiteSettings): Seeds {
  * load their picture eagerly.
  */
 export function HomeSection({ id, index, sections, seeds, children }: { id: string; index?: number; sections: ThemeOptions["sections"]; seeds: Seeds; children: ReactNode }) {
-  return <SectionBg id={id} bg={sections[id]?.bg} seeds={seeds} eager={index !== undefined && index <= 1}>{children}</SectionBg>;
+  // A homepage section does not move unless the Themes screen says so; when it
+  // does, the content arrives inside a still band, as it does on inner pages.
+  // No choice, no wrapper: the markup is what it was.
+  // The hero is the first paint and never animates, whatever a row says.
+  const reveal = id === LOCKED_SECTION ? null : sectionReveal(sections[id]?.reveal, null);
+  return (
+    <SectionBg id={id} bg={sections[id]?.bg} seeds={seeds} eager={index !== undefined && index <= 1}>
+      {reveal ? <div data-aos={reveal}>{children}</div> : children}
+    </SectionBg>
+  );
 }

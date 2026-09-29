@@ -7,6 +7,7 @@ use App\Models\VisitRequest;
 use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
 use App\Support\Crm\LeadMailLines;
+use App\Support\Mail\MailBrand;
 use App\Support\Visits\VisitText;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -106,7 +107,7 @@ class VisitRequestReceived extends Notification implements ShouldQueue
         return $message
             ->action('Open it in the console', $this->consoleUrl())
             ->replyTo($v->email, $v->name)
-            ->salutation('— Technoware');
+            ->salutation(MailBrand::signoff());
     }
 
     private function consoleUrl(): string

@@ -3,6 +3,7 @@
 namespace App\Support\Webhooks;
 
 use App\Http\Resources\Admin\LeadResource;
+use App\Http\Resources\Admin\MeetingResource;
 use App\Http\Resources\Admin\NewsletterSubscriberResource;
 use App\Http\Resources\Admin\Store\OrderResource;
 use App\Http\Resources\Admin\VisitRequestResource;
@@ -13,6 +14,7 @@ use App\Http\Resources\TicketResource;
 use App\Models\Customer;
 use App\Models\FormSubmission;
 use App\Models\Lead;
+use App\Models\Meeting;
 use App\Models\NewsletterSubscriber;
 use App\Models\Order;
 use App\Models\Ticket;
@@ -130,6 +132,25 @@ class WebhookPayload
         $visit->loadMissing(['service', 'solution', 'location', 'assignee']);
 
         return self::resolve(new VisitRequestResource($visit));
+    }
+
+    /**
+     * A meeting as the console reads it, less the two things an integration
+     * is never told: the staff note (a judgement written for colleagues) and
+     * the trail. The access token is on no resource at all. The Meet link is
+     * included — it is what a CRM wants to put beside the contact.
+     *
+     * @return array<string, mixed>
+     */
+    public static function meeting(Meeting $meeting): array
+    {
+        self::settled($meeting, 'status', 'source', 'google_status');
+        $meeting->loadMissing(['meetingType', 'host']);
+
+        $data = self::resolve(new MeetingResource($meeting));
+        unset($data['staff_note'], $data['trail']);
+
+        return $data;
     }
 
     /**

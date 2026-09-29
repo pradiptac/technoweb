@@ -65,6 +65,7 @@ const ADMIN_ROUTES = [
   "/admin/knowledge-base", "/admin/case-studies", "/admin/pages", "/admin/faqs",
   "/admin/media", "/admin/products", "/admin/products/new", "/admin/product-categories",
   "/admin/brands", "/admin/solutions", "/admin/services", "/admin/industries",
+  "/admin/service-categories", "/admin/service-categories/new",
   "/admin/sliders", "/admin/popups", "/admin/forms", "/admin/seo", "/admin/redirects",
   // Content blocks (2026-09-24): the four lists, and the four showcases — the
   // showcases render every seeded layout, drafts included, which is the only
@@ -97,7 +98,7 @@ const ADMIN_ROUTES = [
   // added — the note further down about the newsletter's "column of stale
   // numbers" was written from a screen this run had never opened.
   "/admin/newsletter", "/admin/newsletter/subscribers", "/admin/newsletter/subscribers/import",
-  "/admin/newsletter/subscribers/import/mailbox", "/admin/newsletter/verification",
+  "/admin/newsletter/subscribers/import/mailbox", "/admin/newsletter/subscribers/import/crawl", "/admin/newsletter/verification",
   "/admin/newsletter/groups", "/admin/newsletter/campaigns", "/admin/newsletter/templates",
   "/admin/newsletter/unsubscribes",
   // Automation sequences: the list and the new screen; the record screen is
@@ -116,10 +117,18 @@ const ADMIN_ROUTES = [
   // entry below, because nothing seeds a webhook and its id is whatever an
   // administrator made.
   "/admin/webhooks", "/admin/webhooks/new",
-  "/admin/imports/wordpress",
+  "/admin/imports/wordpress", "/admin/backups", "/admin/backups/settings",
+  // System → Status and Updates (2026-09-28, docs/distribution.md).
+  "/admin/system/status", "/admin/system/updates",
   // Engineer visits (docs/visits.md): the queue and its settings; the record
   // screen is a DISCOVER entry, since nothing seeds a visit request.
   "/admin/visits", "/admin/visits/settings",
+  // Online meetings (docs/meetings.md): the list and its week view, the
+  // scheduler, the types, the hosts, the settings with the Google panel, and
+  // a host's own diary. The records are DISCOVER entries below.
+  "/admin/meetings", "/admin/meetings?view=agenda", "/admin/meetings/new",
+  "/admin/meetings/types", "/admin/meetings/types/new", "/admin/meetings/hosts",
+  "/admin/meetings/settings", "/admin/my-meetings",
   // Custom fields and content types (docs/custom-content.md).
   "/admin/custom-fields", "/admin/custom-fields/new",
   "/admin/content-types", "/admin/content-types/new", "/admin/content",
@@ -148,14 +157,24 @@ const DISCOVER = [
   { from: "/store", match: /^\/store\/products\/[^/]+$/ },
   { from: "/case-studies", match: /^\/case-studies\/[^/]+$/ },
   { from: "/knowledge-base", match: /^\/knowledge-base\/[^/]+$/ },
-  // `TW-`, not `[^/]+`: the queue's header links to /admin/tickets/saved-replies
-  // now, and the first matching anchor would otherwise be that screen.
-  { from: "/admin/tickets", match: /^\/admin\/tickets\/TW-[^/]+$/, admin: true },
+  // A reference's shape, not `[^/]+`: the queue's header links to
+  // /admin/tickets/saved-replies now, and the first matching anchor would
+  // otherwise be that screen. The shape and not `TW-`: the prefix is a
+  // setting (`App\Support\References::PATTERN`), so an install that changed it
+  // must still be audited.
+  { from: "/admin/tickets", match: /^\/admin\/tickets\/[A-Z][A-Z0-9]{1,5}-\d{4}-\d{5}$/, admin: true },
   // Nothing seeds a saved reply; the edit form exists only once somebody has written one.
   { from: "/admin/tickets/saved-replies", match: /^\/admin\/tickets\/saved-replies\/\d+$/, admin: true },
   { from: "/admin/customers", match: /^\/admin\/customers\/\d+$/, admin: true },
-  // `TV-`, the visit reference — the queue's filters link to itself.
-  { from: "/admin/visits", match: /^\/admin\/visits\/TV-[^/]+$/, admin: true },
+  // The visit reference's shape, whatever its prefix — the queue's filters
+  // link to itself, and Settings to /admin/visits/settings.
+  { from: "/admin/visits", match: /^\/admin\/visits\/[A-Z][A-Z0-9]{1,5}-\d{4}-\d{5}$/, admin: true },
+  // A meeting and a host's own view of one, by the reference's shape whatever
+  // its prefix; a meeting type's edit form, since nothing but the seeder's
+  // drafts makes one.
+  { from: "/admin/meetings", match: /^\/admin\/meetings\/[A-Z][A-Z0-9]{1,5}-\d{4}-\d{5}$/, admin: true },
+  { from: "/admin/my-meetings", match: /^\/admin\/my-meetings\/[A-Z][A-Z0-9]{1,5}-\d{4}-\d{5}$/, admin: true },
+  { from: "/admin/meetings/types", match: /^\/admin\/meetings\/types\/\d+$/, admin: true },
   { from: "/admin/blog", match: /^\/admin\/blog\/\d+$/, admin: true },
   { from: "/admin/jobs", match: /^\/admin\/jobs\/\d+$/, admin: true },
   { from: "/admin/applications", match: /^\/admin\/applications\/\d+$/, admin: true },
@@ -177,6 +196,7 @@ const DISCOVER = [
   { from: "/admin/brands", match: /^\/admin\/brands\/\d+$/, admin: true },
   { from: "/admin/solutions", match: /^\/admin\/solutions\/\d+$/, admin: true },
   { from: "/admin/services", match: /^\/admin\/services\/\d+$/, admin: true },
+  { from: "/admin/service-categories", match: /^\/admin\/service-categories\/\d+$/, admin: true },
   { from: "/admin/industries", match: /^\/admin\/industries\/\d+$/, admin: true },
   { from: "/admin/sliders", match: /^\/admin\/sliders\/\d+$/, admin: true },
   // One edit form per kind: each draws a different editor.

@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\EnsureNotRestoring;
+use App\Http\Middleware\EnsurePortalEnabled;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureUserIsCustomer;
 use App\Http\Middleware\EnsureUserIsStaff;
@@ -10,7 +12,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 
-return Application::configure(basePath: dirname(__DIR__))
+$app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
@@ -21,6 +23,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
             'customer' => EnsureUserIsCustomer::class,
+            // `portal_enabled` off closes every customer-principal route.
+            'portal' => EnsurePortalEnabled::class,
             'staff' => EnsureUserIsStaff::class,
             'activity' => RecordActivity::class,
             // Per route, not per caller: see ThrottleRequestsPerRoute.
@@ -49,6 +53,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // The frontend is a separate origin, so the API is stateless and
         // token-authenticated. No CSRF cookie dance, no session for /api.
         $middleware->statefulApi();
+
+        // Closed while a restore replaces the database; see EnsureNotRestoring.
+        $middleware->prependToGroup('api', EnsureNotRestoring::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // Always answer API routes with JSON, never an HTML error page.
@@ -56,3 +63,18 @@ return Application::configure(basePath: dirname(__DIR__))
             fn ($request) => $request->is('api/*') || $request->expectsJson()
         );
     })->create();
+
+/*
+ * An installed copy reads `config/api.env` and writes to `storage/` beside the
+ * code rather than inside it, so an update can replace `api/` whole. See
+ * bootstrap/home.php; a development checkout has neither and is unchanged.
+ */
+$home = require __DIR__.'/home.php';
+
+if ($home !== null) {
+    $app->useEnvironmentPath($home.'/config');
+    $app->loadEnvironmentFrom('api.env');
+    $app->useStoragePath($home.'/storage');
+}
+
+return $app;

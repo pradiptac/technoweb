@@ -212,7 +212,7 @@ export function TemplateEditor({
               <Field label="From name" htmlFor="from_name" error={err("from_name")}
                 hint="Blank uses the site's sender name.">
                 <Input id="from_name" name="from_name" defaultValue={template.from_name ?? ""} maxLength={120}
-                  placeholder="Technoware support" />
+                  placeholder="Your company Support" />
               </Field>
               <Field label="From address" htmlFor="from_email" error={err("from_email")}
                 hint="Blank uses the site's sender address. Must be on a domain whose SPF and DKIM records name your mail provider, or the message lands in spam — nothing here can check that.">

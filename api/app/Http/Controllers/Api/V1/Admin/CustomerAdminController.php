@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\CustomerStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnsurePortalEnabled;
 use App\Http\Requests\UpdateCustomerRequest;
 use App\Http\Resources\Admin\AdminCustomerResource;
 use App\Http\Resources\CustomerResource;
@@ -201,6 +202,14 @@ class CustomerAdminController extends Controller
      */
     public function impersonate(Customer $customer): JsonResponse
     {
+        // With the portal switched off every route the token could reach
+        // refuses it, so minting one would open a tab that says "closed".
+        if (! EnsurePortalEnabled::open()) {
+            return response()->json([
+                'message' => 'The customer portal is switched off, so there is nothing to view this account in.',
+            ], 422);
+        }
+
         if (! $customer->status->canSignIn()) {
             return response()->json([
                 'message' => 'Only an active account can be viewed as. This one is '

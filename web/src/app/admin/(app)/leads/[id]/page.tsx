@@ -153,6 +153,9 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
               <Fact label="Visit request">
                 {lead.visit && <Link href={lead.visit.admin_path} className="font-mono text-brand-ink underline">{lead.visit.reference}</Link>}
               </Fact>
+              <Fact label="Meeting">
+                {lead.meeting && <Link href={lead.meeting.admin_path} className="font-mono text-brand-ink underline">{lead.meeting.reference}</Link>}
+              </Fact>
               <Fact label="Page">
                 {lead.source_path && (
                   <>

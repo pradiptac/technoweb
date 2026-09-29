@@ -49,6 +49,9 @@ class UpdateBlogPostRequest extends FormRequest
             'author_id' => ['sometimes', 'nullable', 'integer', Rule::exists('users', 'id')->where('is_active', true)],
             'cover_image_path' => ['sometimes', 'nullable', 'string', 'max:255'],
             'is_featured' => ['sometimes', 'boolean'],
+            // Missing until 2026-09-28, so a post's comments could be closed
+            // when it was created and never again after.
+            'comments_enabled' => ['sometimes', 'boolean'],
             /*
              * Replaced wholesale, like every other relation here: omitting the
              * key leaves the categories alone, sending `[]` clears them. Each

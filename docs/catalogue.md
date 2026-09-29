@@ -142,3 +142,71 @@ attribution — "Designed by Freepik", www.freepik.com — carried in the
 seeder's docblock; the marks are placeholder clients on the must-not-ship
 list like the names beside them, and a real client's logo replaces one
 through the console.
+
+## Service categories
+
+**Services are grouped by a category, and the groups are the tabs of the
+Services section (the client, 2026-09-29).** `service_categories` is
+taxonomy, like a product category: a name, a description, an icon, an order,
+`is_active` and `image_background`, and no status, no page and no SEO. A
+service carries `service_category_id` (`nullOnDelete`, so deleting a category
+leaves its services uncategorised rather than taking them with it) and an
+`image_path` from the media library, checked on write — a path nothing knows
+is a card that silently 404s. The console is Catalogue → Service categories
+(`role:content_manager`); the service form gained the category select and the
+picture.
+
+**The homepage's Services section now reads the CMS, in every theme.** It was
+the static web-services grid in `content/site.ts`, which the rule "the
+homepage reads the CMS" had left behind; it is `components/services/service-catalogue.tsx`
+now, drawn on the homepage and on `/services` alike. The API sends active
+categories only, in order (`GET /service-categories`); a category with no
+published service is left out, and services in no category — or in one since
+switched off — come last as "Other services". **One group is a plain
+`Collection`, two or more are `ServiceTabs`**, every panel rendered on the
+server, and each group is a `Collection kind="services"` so every theme's
+idiom draws it; the homepage passes `fill` and `/services` does not.
+
+**`image_background` is the one switch about drawing rather than grouping.**
+It stamps `data-tile-bg` on that category's collection, and one rule in
+`globals.css` turns each tile carrying a picture into the picture, with the
+words over an opaque `--color-scrim` foot — the same opaque-stop rule the
+slide captions follow, because a translucent one is a ground the contrast
+audit cannot see.
+
+**Not `Sluggable`, deliberately.** That trait writes a 301 under
+`urlPrefix()` on every slug change, and a category has no address of its
+own: under `/services` a renamed category would redirect a *service's* URL.
+Its slug is the tab's fragment (`/services#hardware-services`), derived on
+create and kept unique, and nothing else.
+
+**A service's highlights are chips on its card** (2026-09-29). The static
+grid carried a `note` per card — ".com · .in · .co.in", "Google Workspace ·
+Microsoft 365" — which the move to the CMS dropped; `services.highlights` is
+that line as a JSON **list** (MySQL reorders object keys, and the order is
+the editor's), edited as rows on the service form, at most six of forty
+characters. The model tidies it on every write path — trimmed, blanks and
+case-insensitive repeats dropped, an empty list stored as null — and the
+public read sends `[]`. The card draws them as `[data-tile-tags]` in the
+tile's meta, washed in the card's identity hue (`--tile-hue`) at a tenth for
+the ground and a third for the edge while the words keep the meta's ink, so
+the contrast is the meta's own and a card's chips match its icon. The six web
+services get their old notes back from `CatalogueSeeder`, the samples theirs
+from `SampleServiceSeeder`, both only while a service has none.
+
+**A save purges `services`, the tag both reads carry**, so a renamed tab or a
+re-filed service reaches the homepage at once.
+
+**Seeding.** `CatalogueSeeder` creates Web services, Hardware services and
+Installation services, create-only by slug, and files the six seeded web
+services under the first **only while they are in no category**.
+`SampleServiceSeeder` (demo only) adds placeholder services to the other two
+— invented copy on the must-not-ship list — and gives all thirteen seeded
+services a sample picture: Freepik photographs fetched through the Magnific
+connector (never generated), resized to 1600px, vendored at
+`resources/service-images/{slug}.jpg` and filed at `media/seed/services/`
+on the client-logo rule, only while the service has no picture or still has
+the seeder's own. Freepik's free licence with attribution, in the seeder's
+docblock. An install updated from an earlier
+version runs neither: its services arrive uncategorised and draw as one
+untabbed group until somebody makes categories.

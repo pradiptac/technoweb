@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\Backups\RestoreMode;
+use App\Support\System\UpdateMode;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schedule;
 
@@ -258,3 +260,63 @@ Schedule::command('technoware:prune-message-deliveries')->dailyAt('03:58');
 Schedule::command('technoware:remind-visits')
     ->everyFifteenMinutes()
     ->withoutOverlapping();
+
+/*
+ * Online meetings (2026-09-29, docs/meetings.md): the reminders before each
+ * meeting, one per offset in Settings. Every five minutes, so an hour-before
+ * reminder lands within five minutes of the hour; each is claimed by
+ * inserting its `(meeting, offset, starts_at)` row, and `withoutOverlapping`
+ * is belt to that brace. Transactional, so no quiet-hours gate.
+ */
+Schedule::command('technoware:remind-meetings')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();
+
+/*
+ * Online meetings (2026-09-29, docs/meetings.md): the Google Calendar
+ * sweeper. Every minute it retries what did not reach Google — pending and
+ * failed syncs under the retry cap — and fills in Meet links still pending,
+ * each meeting claimed with a conditional UPDATE. Above the pause loop, so
+ * it waits out an update or a restore like everything else.
+ */
+Schedule::command('technoware:sync-meetings')
+    ->everyMinute()
+    ->withoutOverlapping(5);
+
+/*
+ * Backups (2026-09-27, docs/backups.md). The worker every minute, in the
+ * background so its forty seconds do not hold up the queue drain behind it,
+ * and never two at once. It works through any restore, then any backup, then
+ * starts a scheduled one when a slot is due - so "Back up now" is picked up
+ * within the minute. Hourly, the stuck ones are failed and retention applied.
+ */
+Schedule::command('technoware:backups-work')
+    ->everyMinute()
+    ->runInBackground()
+    ->withoutOverlapping(10)
+    ->name('backups-work');
+Schedule::command('technoware:prune-backups')->hourly();
+
+/*
+ * While a restore is replacing the database, nothing else runs: no queue
+ * drain (a campaign batch, a reminder, a webhook would write into tables
+ * half-rebuilt), no prune, no reminder. Only the backup worker doing the
+ * restore and the heartbeat that says the scheduler is alive. Applied to
+ * every event registered above, so a command added later is covered
+ * without anybody remembering to.
+ *
+ * While an update is replacing the application (`UpdateMode`), even the
+ * backup worker waits: the updater drives its own safety copy, and a command
+ * started half-way through the swap would run a mixture of two releases.
+ */
+foreach (Schedule::events() as $event) {
+    if ($event->description === 'scheduler-heartbeat') {
+        continue;
+    }
+
+    $event->skip(fn () => UpdateMode::active());
+
+    if ($event->description !== 'backups-work') {
+        $event->skip(fn () => RestoreMode::active());
+    }
+}

@@ -7,8 +7,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Http\Resources\Admin\StaffUserResource;
+use App\Models\Meeting;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\Meetings\MeetingActions;
+use App\Support\Meetings\MeetingSync;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -105,6 +108,8 @@ class UserAdminController extends Controller
     {
         $data = $request->validated();
 
+        $emailBefore = $user->email;
+
         DB::transaction(function () use ($data, $user) {
             $user->fill(array_intersect_key($data, array_flip(['name', 'email', 'phone', 'is_active'])));
 
@@ -122,6 +127,13 @@ class UserAdminController extends Controller
             }
         });
 
+        // A host's new address has to reach their calendar events: Google
+        // invited the old one (docs/meetings.md, "A host's email changes").
+        if ($user->email !== $emailBefore) {
+            Meeting::query()->upcoming()->where('host_id', $user->id)->get()
+                ->each(fn (Meeting $meeting) => MeetingSync::queue($meeting));
+        }
+
         return new StaffUserResource($user->fresh('roles'));
     }
 
@@ -129,6 +141,11 @@ class UserAdminController extends Controller
     {
         abort_if($user->id === $request->user()->id, 422, 'You cannot delete your own account.');
         abort_if($this->isLastAdministrator($user), 422, 'This is the last administrator — promote someone else first.');
+
+        // A host with meetings to come: their customers would be left with a
+        // meeting nobody is hosting. Reassign first (docs/meetings.md).
+        $hosting = MeetingActions::upcomingFor($user);
+        abort_if($hosting > 0, 422, MeetingActions::reassignFirst($hosting));
 
         DB::transaction(function () use ($user) {
             // Tickets keep their history; assigned_to is nullOnDelete, so they

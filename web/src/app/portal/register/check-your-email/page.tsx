@@ -4,10 +4,13 @@ import { getSiteSettings } from "@/lib/settings";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ResendButton } from "./resend-button";
+import { brandName } from "@/lib/brand";
+import { portalEnabled } from "@/lib/site-settings";
+import { PortalClosed } from "@/components/portal/portal-closed";
 
 export const metadata = buildMetadata({
   title: "Check your email",
-  description: "Confirm your address to finish registering for the Technoware support portal.",
+  description: `Confirm your address to finish registering for the ${brandName()} support portal.`,
   path: "/portal/register/check-your-email",
   seo: noIndex,
 });
@@ -19,6 +22,8 @@ export default async function CheckYourEmailPage({
 }) {
   const { email } = await searchParams;
   const settings = await getSiteSettings();
+  // The portal switched off (`portal_enabled`): one page for every door in.
+  if (!portalEnabled(settings)) return <PortalClosed settings={settings} />;
 
   return (
     <AuthLayout

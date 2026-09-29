@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRef, useState, type ReactNode, type RefObject } from "react";
 import { CartBadge } from "@/components/layout/cart-badge";
 import { MegaMenu, PANEL_CHEVRON_CLASSES, PANEL_HOST_CLASS, type MenuPanelStyle } from "@/components/layout/mega-menu";
-import { closePanelOnNavigate, markPanelSwap, releasePanel } from "@/components/layout/panel-host";
+import { closePanelOnNavigate, releasePanel } from "@/components/layout/panel-host";
 import { TopBarPanel } from "@/components/layout/top-bar-panel";
 import { IconChevronDown } from "@/components/icons-ui";
 import { contact, mainNav } from "@/content/site";
@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
  * renders is byte for byte what it rendered before (measured on every
  * theme's preview before and after the move).
  *
- * The `data-closed` contract, `releasePanel`/`markPanelSwap`/
+ * The `data-closed` contract, `releasePanel`/
  * `closePanelOnNavigate` and `PANEL_HOST_CLASS` are the classic header's,
  * unchanged; see `panel-host.ts` and `mega-menu.tsx`.
  */
@@ -95,7 +95,6 @@ export function PrimaryNavItems({
             className={liClass}
             onClick={section ? closePanelOnNavigate : undefined}
             onFocus={section ? releasePanel : undefined}
-            onPointerLeave={section ? markPanelSwap : undefined}
           >
             <Trigger
               href={item.href as string}
@@ -144,7 +143,6 @@ export function UtilityLinks({
             className={cn(gate(i, utility.length), panel && "group relative")}
             onClick={panel ? closePanelOnNavigate : undefined}
             onFocus={panel ? releasePanel : undefined}
-            onPointerLeave={panel ? markPanelSwap : undefined}
           >
             {l.href === null ? (
               <button type="button" onPointerEnter={panel ? releasePanel : undefined} className={linkClassName}>

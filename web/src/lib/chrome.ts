@@ -2,8 +2,9 @@ import "server-only";
 import { announcementFor } from "@/lib/announcement";
 import { publicApi } from "@/lib/api";
 import { motionFor } from "@/lib/motion-choices";
-import { getBottomBarNav, getFooterNav, getMegaMenu, getPrimaryNav, getTopBarNav } from "@/lib/navigation";
+import { getBottomBarNav, getFooterNav, getMegaMenu, getPrimaryNav, getTopBarNav, navWithoutPortal } from "@/lib/navigation";
 import { getSiteSettings } from "@/lib/settings";
+import { portalEnabled } from "@/lib/site-settings";
 import type { Popup } from "@/types/api";
 import type { ChromeData } from "@/themes/contract";
 
@@ -41,9 +42,19 @@ export async function loadChrome(): Promise<{ chrome: ChromeData; popups: Popup[
     publicApi.popups().then((r) => r.data).catch(() => [] as Popup[]),
   ]);
 
+  /*
+   * The portal switched off (`portal_enabled`) takes every link into it out
+   * of the chrome — the built-in lists and any assigned menu alike — so no
+   * page advertises a door that answers "not available". Settings are read
+   * from the same cached fetch, so this costs nothing per page.
+   */
+  const nav = portalEnabled(settings)
+    ? { primary, footerMenu, topBar, bottomBar }
+    : navWithoutPortal({ primary, footerMenu, topBar, bottomBar });
+
   return {
     chrome: {
-      settings, menu, primary, footerMenu, topBar, bottomBar,
+      settings, menu, ...nav,
       motion: motionFor(settings),
       announcement: announcementFor(settings),
     },

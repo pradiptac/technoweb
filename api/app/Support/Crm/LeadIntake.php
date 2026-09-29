@@ -8,7 +8,9 @@ use App\Models\Enquiry;
 use App\Models\Form;
 use App\Models\FormSubmission;
 use App\Models\Lead;
+use App\Models\Meeting;
 use App\Models\VisitRequest;
+use App\Support\Meetings\MeetingText;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -160,6 +162,36 @@ class LeadIntake
             'subject' => 'Visit requested: '.$visit->topic(),
             'message' => $visit->notes,
         ], $request);
+    }
+
+    /**
+     * An online meeting booked from the site or the portal (2026-09-29,
+     * `docs/meetings.md`) — channel `meeting`. The meeting is the record the
+     * desk works; the lead is the sales side of the same arrival, and each
+     * links to the other. Not called for a console booking made for an
+     * existing customer: that is the desk arranging a call with somebody it
+     * already knows, not somebody arriving.
+     */
+    public static function fromMeeting(Meeting $meeting, Request $request): ?Lead
+    {
+        $type = MeetingText::typeName($meeting);
+
+        return self::create($meeting, 'meeting', 'Online meeting', [
+            'name' => $meeting->name,
+            'email' => $meeting->email,
+            'phone' => $meeting->phone,
+            'company' => $meeting->company,
+            'subject' => 'Meeting booked: '.$type,
+            'message' => $meeting->agenda,
+        ], $request, [
+            'source_url' => $meeting->source_url,
+            'source_path' => $meeting->source_path,
+            'source_title' => $meeting->source_title,
+            'referrer' => $meeting->referrer,
+            'utm_source' => $meeting->utm_source,
+            'utm_medium' => $meeting->utm_medium,
+            'utm_campaign' => $meeting->utm_campaign,
+        ]);
     }
 
     /**

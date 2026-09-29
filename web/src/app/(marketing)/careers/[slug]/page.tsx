@@ -13,11 +13,13 @@ import { IconMail, IconMapPin } from "@/components/icons-ui";
 import { publicApi } from "@/lib/api";
 import { ApiError } from "@/lib/api";
 import { buildMetadata, JsonLd } from "@/lib/seo";
+import { siteUrl } from "@/lib/site-url";
 import { getSiteSettings } from "@/lib/settings";
 import { hueFor } from "@/lib/hues";
 import type { JobOpening } from "@/types/api";
 import { ApplyForm } from "./apply-form";
 import { formatDate } from "@/lib/dates";
+import { brandName } from "@/lib/brand";
 
 export const revalidate = 120;
 
@@ -180,8 +182,8 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
 
   if (!job) notFound();
 
-  const company = settings.company_name ?? "Technoware";
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const company = settings.company_name ?? brandName();
+  const site = siteUrl();
   const url = `${site}/careers/${job.slug}`;
   // Whoever reads applications, from Settings → Contact; the support desk otherwise.
   const contact = settings.careers_email || settings.support_email || null;

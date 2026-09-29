@@ -158,8 +158,11 @@ export default async function ChatDashboardPage({ searchParams }: { searchParams
               The daily ceiling of {report.today.cap.toLocaleString("en-IN")} replies{" "}
               <strong className="text-err">has been reached</strong>. The assistant is telling
               visitors it is unavailable until tomorrow and pointing them at the contact form.
-              Raise <code className="font-mono text-12">chatbot_daily_reply_cap</code> in
-              Settings if that is not what you want.
+              Raise{" "}
+              <Link href="/admin/chat/settings?tab=chatbot#setting__chatbot_daily_reply_cap" className="font-semibold text-brand-ink hover:underline">
+                Replies per day
+              </Link>{" "}
+              in Assistant → Settings if that is not what you want.
             </>
           ) : (
             <>

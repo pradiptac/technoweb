@@ -40,7 +40,7 @@ class EmailTemplateController extends Controller
      * audiences, variables and samples — so the console holds no copy of any
      * of it. A hand-written list of 30 message names on the far side of the
      * wire is exactly the drift `schema_type_options` was moved out of
-     * TypeScript to end — and so would a list of the three that are locked,
+     * TypeScript to end — and so would a list of the ones that are locked,
      * which is why `locked` rides on each entry.
      */
     public function index(): JsonResponse

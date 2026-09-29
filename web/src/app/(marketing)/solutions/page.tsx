@@ -8,11 +8,12 @@ import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
 import type { Solution } from "@/types/api";
+import { brandName } from "@/lib/brand";
 
 export const metadata = buildMetadata({
   title: "Solutions",
   description:
-    "Networking, servers, storage, firewall, Wi-Fi, backup, cybersecurity, surveillance and AMC — designed, deployed and supported by Technoware engineers.",
+    `Networking, servers, storage, firewall, Wi-Fi, backup, cybersecurity, surveillance and AMC — designed, deployed and supported by ${brandName()} engineers.`,
   path: "/solutions",
 });
 

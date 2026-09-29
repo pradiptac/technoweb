@@ -30,6 +30,11 @@ enum MessageEvent: string
     case VisitRequested = 'visit_requested';
     case VisitConfirmed = 'visit_confirmed';
     case VisitReminder = 'visit_reminder';
+    // Online meetings (2026-09-29, docs/meetings.md) — all four transactional.
+    case MeetingScheduled = 'meeting_scheduled';
+    case MeetingRescheduled = 'meeting_rescheduled';
+    case MeetingCancelled = 'meeting_cancelled';
+    case MeetingReminder = 'meeting_reminder';
 
     public function label(): string
     {
@@ -45,6 +50,10 @@ enum MessageEvent: string
             self::VisitRequested => 'Visit requested',
             self::VisitConfirmed => 'Visit confirmed or moved',
             self::VisitReminder => 'Visit tomorrow — reminder',
+            self::MeetingScheduled => 'Online meeting booked',
+            self::MeetingRescheduled => 'Online meeting moved',
+            self::MeetingCancelled => 'Online meeting cancelled',
+            self::MeetingReminder => 'Online meeting — reminder',
         };
     }
 
@@ -74,6 +83,14 @@ enum MessageEvent: string
             self::WishlistPriceDrop => ['product_name', 'product_url', 'old_price', 'new_price'],
             self::VisitRequested => ['reference', 'service_name', 'visit_url'],
             self::VisitConfirmed, self::VisitReminder => ['reference', 'service_name', 'visit_date', 'visit_time', 'visit_url'],
+            // `starts_in` lets one reminder wording read right a day ahead
+            // and an hour ahead; `meet_url` is blank until Google has made
+            // the link, so a template should not lean on it alone.
+            self::MeetingScheduled, self::MeetingRescheduled, self::MeetingReminder => [
+                'reference', 'meeting_type', 'meeting_date', 'meeting_time', 'timezone', 'starts_in',
+                'host_name', 'meet_url', 'manage_url',
+            ],
+            self::MeetingCancelled => ['reference', 'meeting_type', 'meeting_date', 'meeting_time', 'timezone', 'host_name'],
         };
     }
 }

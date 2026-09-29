@@ -1626,3 +1626,7 @@ button and a plain `<a download>` (never a `Link`: it would prefetch a route
 handler that builds the whole feed), and a "How to connect" disclosure:
 Commerce Manager → Data sources → Data feed → Scheduled feed; WhatsApp
 Business Manager → Catalogue → connect the same catalogue.
+
+## Add to basket on one line (2026-09-28)
+
+Every Add to basket in a row of product cards sits on one line, in every theme (the client, 2026-09-28): the actions row is the card's last part with `mt-auto` (it used to be the price, and a wrapped discount badge moved the button); a theme that lays the card out itself stretches the body to the row's height (Editorial, and Datacenter's column) and never sets a `margin-top` on `[data-tile-actions]`. `scripts/probes/store-cart-level.mjs` measures all twelve themes.

@@ -245,7 +245,7 @@ function ScoreCard({
     <div className="rounded-lg border border-line-strong bg-card p-4">
       <div className="flex items-start gap-3">
         {score ? (
-          <Ring value={score.value} band={score.band} size={52} />
+          <Ring value={score.value} size={52} />
         ) : (
           <span aria-hidden="true" className="grid size-[52px] shrink-0 place-items-center rounded-full border-[5px] border-line-strong text-13 text-faint">—</span>
         )}

@@ -53,7 +53,7 @@ class SettingsScreensTest extends TestCase
                 $current = $m[1];
                 $screens[$current] = [];
             } elseif ($current !== null && preg_match('/groups:\s*\[([^\]]*)\]/', $line, $m)) {
-                preg_match_all('/"([a-z_]+)"/', $m[1], $g);
+                preg_match_all('/"([a-z0-9_]+)"/', $m[1], $g);
                 $screens[$current] = [...$screens[$current], ...$g[1]];
             }
         }
@@ -68,7 +68,7 @@ class SettingsScreensTest extends TestCase
     {
         preg_match('/STANDALONE_GROUPS = new Set\(\[([^\]]*)\]\)/', $this->source('settings/settings-copy.ts'), $m);
         $this->assertNotEmpty($m, 'STANDALONE_GROUPS is not in settings-copy.ts any more.');
-        preg_match_all('/"([a-z_]+)"/', $m[1], $g);
+        preg_match_all('/"([a-z0-9_]+)"/', $m[1], $g);
 
         return $g[1];
     }

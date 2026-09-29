@@ -20,6 +20,7 @@ use App\Models\Setting;
 use App\Models\Solution;
 use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
+use App\Support\Mail\MailBrand;
 use App\Support\Store\Fulfilment;
 
 /**
@@ -62,7 +63,7 @@ class StructuredData
 
     private static function company(): string
     {
-        return (string) (Setting::get('company_name') ?: 'Technoware');
+        return MailBrand::name();
     }
 
     /**

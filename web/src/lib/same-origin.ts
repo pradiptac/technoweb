@@ -1,4 +1,5 @@
 import { requestHost } from "@/lib/request-host";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * Whether a state-changing request came from a page on this site.
@@ -14,7 +15,7 @@ import { requestHost } from "@/lib/request-host";
  *
  * The host is read the way `proxy.ts` reads it, `x-forwarded-host` first, so
  * Plesk's internal address does not fail every legitimate press — and the
- * site's own public origin (`NEXT_PUBLIC_SITE_URL`) is accepted as well, for a
+ * site's own public origin (`siteUrl()`) is accepted as well, for a
  * proxy that forwards neither the public `Host` nor `X-Forwarded-Host`, where
  * the request would otherwise look like it arrived at `127.0.0.1:3000` and
  * every upload would be refused. Moved here
@@ -37,7 +38,7 @@ export function isSameOrigin(request: Request): boolean {
 
 function siteHost(): string | null {
   try {
-    return new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "").host.toLowerCase() || null;
+    return new URL(siteUrl()).host.toLowerCase() || null;
   } catch {
     return null;
   }

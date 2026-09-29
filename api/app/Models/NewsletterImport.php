@@ -22,6 +22,12 @@ class NewsletterImport extends Model
 
     public const SOURCE_MAILBOX = 'mailbox';
 
+    /** A website crawled for addresses (2026-09-27). */
+    public const SOURCE_CRAWL = 'crawl';
+
+    /** The sources that are scans: queued work that ends in a review, not an upload. */
+    public const SCANS = [self::SOURCE_MAILBOX, self::SOURCE_CRAWL];
+
     protected $fillable = [
         'uploaded_by', 'filename', 'source', 'file', 'status', 'mapping', 'progress', 'analysis',
         'total_rows', 'imported', 'updated', 'invalid', 'duplicates', 'suppressed', 'excluded',
@@ -55,7 +61,27 @@ class NewsletterImport extends Model
         return $this->source === self::SOURCE_MAILBOX;
     }
 
-    /** @param  Builder<static>  $query */
+    public function isCrawl(): bool
+    {
+        return $this->source === self::SOURCE_CRAWL;
+    }
+
+    /** A mailbox scan or a crawl — anything reviewed before it is committed. */
+    public function isScan(): bool
+    {
+        return in_array($this->source, self::SCANS, true);
+    }
+
+    public function scopeCrawl(Builder $query): void
+    {
+        $query->where('source', self::SOURCE_CRAWL);
+    }
+
+    public function scopeScans(Builder $query): void
+    {
+        $query->whereIn('source', self::SCANS);
+    }
+
     public function scopeMailbox(Builder $query): void
     {
         $query->where('source', self::SOURCE_MAILBOX);

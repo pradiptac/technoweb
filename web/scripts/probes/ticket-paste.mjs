@@ -94,11 +94,12 @@ await page.check('input[name="is_sensitive"]');
 await page.selectOption("#ticket_category_id", { index: 1 });
 await page.fill("#description", "The console shows the error in the attached screenshot. This ticket was raised by an automated probe and can be deleted.");
 await Promise.all([
-  page.waitForURL(/\/portal\/tickets\/TW-/, { timeout: 180_000 }),
+  // The reference's shape, whatever the install's prefix (References::PATTERN).
+  page.waitForURL(/\/portal\/tickets\/[A-Z][A-Z0-9]{1,5}-\d{4}-\d{5}$/, { timeout: 180_000 }),
   // The form's own button: the portal chrome has a sign-out submit too.
   page.click('form:has(#description) button[type="submit"]'),
 ]);
-const reference = page.url().match(/TW-\d{4}-\d{5}/)?.[0] ?? "";
+const reference = page.url().match(/[A-Z][A-Z0-9]{1,5}-\d{4}-\d{5}/)?.[0] ?? "";
 await page.waitForLoadState("load");
 // A picture attachment is drawn as a thumbnail with the name as its alt and
 // as a link, so the thread's words and its images are both read.

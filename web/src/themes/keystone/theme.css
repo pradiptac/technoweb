@@ -54,7 +54,6 @@
 [data-theme="keystone"] [role="tabpanel"] > div:first-child { border-radius: 16px; }
 
 /* The people: a rounded portrait that lifts with the card. */
-[data-theme="keystone"] [data-team-photo] { aspect-ratio: 4 / 5; }
 [data-theme="keystone"] [data-team-photo] img { transition: scale var(--duration-slow) var(--ease-brand); }
 [data-theme="keystone"] [data-card]:hover [data-team-photo] img { scale: 1.04; }
 
@@ -188,3 +187,27 @@
 [data-theme="keystone"] [data-collection="routes"] [data-tile]::after {
   background: linear-gradient(135deg, var(--tile-hue, var(--color-brand-500)), var(--color-accent-500));
 }
+
+/*
+  The people as contact cards (2026-09-28): the theme's brand-to-accent
+  gradient as a bar across the top, then a small round portrait with the
+  name and role beside it, the bio, chips and links under both. The body
+  is `display: contents`, so its pieces are placed on the card's own grid.
+*/
+[data-theme="keystone"] [data-team] > li {
+  display: grid; grid-template-columns: 72px minmax(0, 1fr); column-gap: 16px; align-content: start;
+  padding: 0 20px 20px; border-radius: 16px;
+}
+[data-theme="keystone"] [data-team] [data-team-rule] {
+  grid-column: 1 / -1; grid-row: 1; width: auto; height: 5px; margin: 0 -20px 20px;
+  background-image: linear-gradient(90deg, var(--color-brand-600), var(--color-accent-600));
+}
+[data-theme="keystone"] [data-team] [data-team-photo] { grid-column: 1; grid-row: 2 / span 3; width: 72px; aspect-ratio: 1; border-radius: 9999px; align-self: start; }
+[data-theme="keystone"] [data-team] [data-team-photo] > span { font-size: 22px; }
+[data-theme="keystone"] [data-team] [data-team-body] { display: contents; }
+[data-theme="keystone"] [data-team] [data-team-kicker],
+[data-theme="keystone"] [data-team] [data-team-name],
+[data-theme="keystone"] [data-team] [data-team-role] { grid-column: 2; }
+[data-theme="keystone"] [data-team] [data-team-detail],
+[data-theme="keystone"] [data-team] [data-team-contact] { grid-column: 1 / -1; }
+[data-theme="keystone"] [data-team] [data-team-detail] { margin-top: 8px; }

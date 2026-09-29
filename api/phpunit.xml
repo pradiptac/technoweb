@@ -33,6 +33,8 @@
         <env name="CACHE_STORE" value="array"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
+        <!-- A developer testing against a NAS sets this in .env; the refusal tests must still see it off. -->
+        <env name="BACKUP_ALLOW_PRIVATE_HOSTS" value="false"/>
         <env name="SESSION_DRIVER" value="array"/>
     </php>
 </phpunit>

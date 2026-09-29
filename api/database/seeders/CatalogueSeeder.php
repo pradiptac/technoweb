@@ -8,6 +8,7 @@ use App\Models\Industry;
 use App\Models\Media;
 use App\Models\ProductCategory;
 use App\Models\Service;
+use App\Models\ServiceCategory;
 use App\Models\Solution;
 use App\Models\User;
 use App\Support\SvgSanitiser;
@@ -108,6 +109,8 @@ class CatalogueSeeder extends Seeder
             );
         }
 
+        $this->serviceCategories();
+
         $industries = [
             ['slug' => 'smb', 'name' => 'Small & mid-size business', 'icon' => 'shop', 'summary' => 'Right-sized infrastructure without enterprise overhead.'],
             ['slug' => 'healthcare', 'name' => 'Healthcare', 'icon' => 'health', 'summary' => 'Uptime, data protection and device segmentation.'],
@@ -119,6 +122,55 @@ class CatalogueSeeder extends Seeder
 
         foreach ($industries as $i => $ind) {
             Industry::updateOrCreate(['slug' => $ind['slug']], [...$ind, 'sort_order' => $i]);
+        }
+    }
+
+    /**
+     * The service categories the Services section draws as tabs
+     * (`docs/catalogue.md`, "Service categories").
+     *
+     * **Create-only, keyed by slug**: a category an editor renamed, reordered
+     * or switched to picture backgrounds keeps every choice on a re-seed. The
+     * six services above are filed under Web services **only while they are
+     * in no category**, so a service somebody moved stays where they put it.
+     */
+    private function serviceCategories(): void
+    {
+        $categories = [
+            ['slug' => 'web-services', 'name' => 'Web services', 'icon' => 'globe',
+                'description' => 'Domains, hosting, email and websites, set up and looked after.'],
+            ['slug' => 'hardware-services', 'name' => 'Hardware services', 'icon' => 'tools',
+                'description' => 'Repair and support for the laptops, servers and printers your teams depend on.'],
+            ['slug' => 'installation-services', 'name' => 'Installation services', 'icon' => 'cable',
+                'description' => 'Cabling, cameras, wireless and racks, installed and documented on site.'],
+        ];
+
+        foreach ($categories as $i => $c) {
+            ServiceCategory::firstOrCreate(['slug' => $c['slug']], [...$c, 'sort_order' => $i]);
+        }
+
+        $web = ServiceCategory::where('slug', 'web-services')->value('id');
+
+        Service::whereIn('slug', ['domains', 'web-hosting', 'business-email', 'ssl', 'vps', 'website-services'])
+            ->whereNull('service_category_id')
+            ->update(['service_category_id' => $web]);
+
+        // The chips each card carried as a `note` in the static grid, given
+        // back as highlights — only while a service has none, so an editor's
+        // own list is never replaced. Saved one at a time: the model tidies
+        // the list and a mass update would skip it.
+        $highlights = [
+            'domains' => ['.com', '.in', '.co.in', '.org'],
+            'web-hosting' => ['Shared', 'Business', 'Managed'],
+            'business-email' => ['Google Workspace', 'Microsoft 365'],
+            'ssl' => ['DV', 'OV', 'EV', 'Wildcard'],
+            'vps' => ['Linux', 'Windows', 'Managed'],
+            'website-services' => ['Design', 'Build', 'Maintain'],
+        ];
+
+        foreach (Service::whereIn('slug', array_keys($highlights))->whereNull('highlights')->get() as $service) {
+            $service->highlights = $highlights[$service->slug];
+            $service->save();
         }
     }
 

@@ -26,7 +26,7 @@ export function Resources({ items }: { items: BlogPost[] }) {
           title="Written by the engineers on the job."
           lede="Field notes, configuration guides and knowledge-base articles — the same material our support desk uses."
         />
-        <Collection kind="posts" cols={2}>
+        <Collection fill kind="posts" cols={2}>
           {items.map((p) => {
             const published = p.published_at ? new Date(p.published_at) : null;
             return (

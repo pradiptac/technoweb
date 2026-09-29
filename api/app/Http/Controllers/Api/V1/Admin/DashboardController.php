@@ -12,10 +12,12 @@ use App\Models\BlogPost;
 use App\Models\Customer;
 use App\Models\Enquiry;
 use App\Models\Lead;
+use App\Models\Meeting;
 use App\Models\Product;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Models\VisitRequest;
+use App\Support\Meetings\Availability;
 use App\Support\TicketMetrics;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -127,6 +129,20 @@ class DashboardController extends Controller
                     'awaiting' => VisitRequest::where('status', VisitStatus::Requested)->count(),
                     'today' => VisitRequest::where('status', VisitStatus::Confirmed)
                         ->whereBetween('scheduled_start_at', [Carbon::today(), Carbon::today()->endOfDay()])->count(),
+                ]
+                : null,
+            /*
+             * Online meetings (2026-09-29, docs/meetings.md): the diary today,
+             * and the meetings over and still owed an outcome. The desks that
+             * work the meetings screen see them; null for any other role, the
+             * `leads` rule above. Each is the list's own filter.
+             */
+            'meetings' => $request->user()?->hasRole(Role::Admin, Role::SalesManager, Role::SupportEngineer)
+                ? [
+                    'today' => Meeting::query()->scheduled()
+                        ->where('starts_at', '>=', Availability::day(now()))
+                        ->where('starts_at', '<', Availability::day(now())->addDay())->count(),
+                    'needs_outcome' => Meeting::query()->needsOutcome()->count(),
                 ]
                 : null,
             'recent_tickets' => TicketResource::collection(

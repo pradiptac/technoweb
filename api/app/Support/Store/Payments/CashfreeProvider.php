@@ -5,6 +5,7 @@ namespace App\Support\Store\Payments;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Models\Setting;
+use App\Support\Mail\MailBrand;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -128,7 +129,7 @@ class CashfreeProvider implements PaymentProvider
             'amount_paise' => $order->total_paise,
             'currency' => 'INR',
             'order_number' => $order->order_number,
-            'name' => (string) (Setting::get('company_name') ?: 'Technoware'),
+            'name' => MailBrand::name(),
             'prefill' => [
                 'name' => $order->customer_name,
                 'email' => $order->customer_email,

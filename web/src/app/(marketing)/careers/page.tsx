@@ -7,13 +7,15 @@ import { CtaBand } from "@/components/ui/cta-band";
 import { IconArrowRight, IconTeam } from "@/components/icons";
 import { publicApi } from "@/lib/api";
 import { buildMetadata, JsonLd } from "@/lib/seo";
+import { siteUrl } from "@/lib/site-url";
 import type { JobOpening } from "@/types/api";
+import { brandName } from "@/lib/brand";
 
 export const revalidate = 120;
 
 export const metadata = buildMetadata({
   title: "Careers",
-  description: "Engineering, field and support roles at Technoware. See what is open and apply.",
+  description: `Engineering, field and support roles at ${brandName()}. See what is open and apply.`,
   path: "/careers",
 });
 
@@ -36,7 +38,7 @@ export default async function CareersPage() {
   } catch {
     return (
       <>
-        <PageHero kicker="Careers" title="Work at Technoware" />
+        <PageHero kicker="Careers" title={`Work at ${brandName()}`} />
         <Container className="section-y">
           <ErrorState title="We could not load the open roles">
             Something is wrong at our end. Try again shortly, or write to us and we will send you
@@ -54,7 +56,7 @@ export default async function CareersPage() {
       <PageHero
         section="company"
         kicker="Careers"
-        title="Work at Technoware"
+        title={`Work at ${brandName()}`}
         lede="We design, deploy and support the networks other businesses run on. That work is done by engineers who like being trusted with it."
       />
 
@@ -125,7 +127,7 @@ export default async function CareersPage() {
             itemListElement: openings.map((job, i) => ({
               "@type": "ListItem",
               position: i + 1,
-              url: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/careers/${job.slug}`,
+              url: `${siteUrl()}/careers/${job.slug}`,
               name: job.title,
             })),
           }}

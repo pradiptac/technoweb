@@ -30,7 +30,7 @@ export function BackgroundField({ value, onChange, error, idPrefix, media }: {
     <fieldset className="mt-2 rounded-lg border border-line bg-surface p-4">
       <legend className="px-1 text-13-5 font-semibold">Background</legend>
       <div className="grid gap-x-3 sm:grid-cols-2">
-        <Field label="Ground" htmlFor={id("kind")} variant="float-static"
+        <Field label="Background" htmlFor={id("kind")} variant="float-static"
           hint={SECTION_KINDS.find((k) => k.id === kind)?.blurb}>
           <Select id={id("kind")} value={kind} onChange={(e) => {
             const next = e.target.value as SectionKind;

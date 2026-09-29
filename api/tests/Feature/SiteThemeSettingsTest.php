@@ -103,6 +103,11 @@ class SiteThemeSettingsTest extends TestCase
                     'hero' => ['kind' => 'image', 'image_path' => 'media/2026/09/x.jpg', 'overlay' => 55],
                     // "None": the page's own ground — a colour typed before switching kind is dropped.
                     'support' => ['kind' => 'page', 'colour' => '#123456'],
+                    // How a section appears: kept on a default ground, kept beside a
+                    // colour, and "none" — the homepage's own default — stores nothing.
+                    'solutions' => ['kind' => 'default', 'reveal' => 'fade-up'],
+                    'industries' => ['kind' => 'solid', 'colour' => '#1e3a8a', 'reveal' => 'zoom-in'],
+                    'clients' => ['kind' => 'default', 'reveal' => 'none'],
                 ],
             ],
         ]);
@@ -123,6 +128,9 @@ class SiteThemeSettingsTest extends TestCase
         $this->assertFalse($stored['classic']['sections']['partners']['enabled']);
         $this->assertArrayNotHasKey('image_url', $stored['classic']['sections']['hero'], 'the URL is derived on read, never stored');
         $this->assertSame(['kind' => 'page'], $stored['classic']['sections']['support'], 'the page ground carries no colour');
+        $this->assertSame(['kind' => 'default', 'reveal' => 'fade-up'], $stored['classic']['sections']['solutions'], 'a reveal survives a default ground');
+        $this->assertSame('zoom-in', $stored['classic']['sections']['industries']['reveal']);
+        $this->assertArrayNotHasKey('clients', $stored['classic']['sections'], '"none" is the default and stores nothing');
 
         // Published with the URL beside the path, on both responses.
         $public = json_decode($this->getJson('/api/v1/settings')->json('data.site_theme_options'), true);
@@ -145,6 +153,8 @@ class SiteThemeSettingsTest extends TestCase
             json_encode(['classic' => ['sections' => ['hero' => ['kind' => 'gradient', 'colour' => '#000000']]]]),
             json_encode(['classic' => ['sections' => ['hero' => ['kind' => 'image', 'image_path' => '../../.env']]]]),
             json_encode(['classic' => ['sections' => ['hero' => ['kind' => 'image', 'image_path' => 'media/a.jpg', 'overlay' => 95]]]]),
+            json_encode(['classic' => ['sections' => ['why' => ['kind' => 'default', 'reveal' => 'Slide In!']]]]),
+            json_encode(['classic' => ['sections' => ['why' => ['kind' => 'default', 'reveal' => 3]]]]),
             json_encode(['classic' => ['section_order' => 'hero,cta']]),
             json_encode(['classic' => ['section_order' => ['hero', '../x']]]),
         ] as $bad) {

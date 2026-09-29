@@ -9,7 +9,7 @@ import { applyScheme, areaForPath, readPreference, resolve, SCHEME_EVENT } from 
  *
  * The inline script in the head gets the first paint right, but it only runs
  * on a document load. Moving between the console and the public site is a
- * client-side navigation — the "View site" link in the console header is one —
+ * client-side navigation — a link from the console to a public page is one —
  * and no document loads, so without this the console's dark scheme would
  * follow you onto a site you had set to light.
  *

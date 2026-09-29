@@ -67,7 +67,7 @@ function describe(ms: number): string {
  * page from under the reader. Not real time, and it need not be: a support
  * thread moves in minutes. Web Push is the later, larger step.
  */
-export function ThreadRefresh({ count, open }: { count: number; open: boolean }) {
+export function ThreadRefresh({ count, open, company }: { count: number; open: boolean; company: string }) {
   const router = useRouter();
   const [seen, setSeen] = useState(count);
   const [fresh, setFresh] = useState(0);
@@ -104,7 +104,7 @@ export function ThreadRefresh({ count, open }: { count: number; open: boolean })
         }}
         className="rise-in pointer-events-auto rounded-full bg-brand-600 px-4 py-2 text-13-5 font-semibold text-brand-on shadow-3 transition-colors hover:bg-brand-700"
       >
-        {fresh === 1 ? "New reply from Technoware" : `${fresh} new replies`} ↓
+        {fresh === 1 ? `New reply from ${company}` : `${fresh} new replies`} ↓
       </button>
     </div>
   );

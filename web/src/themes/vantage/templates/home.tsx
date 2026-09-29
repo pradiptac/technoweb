@@ -3,7 +3,7 @@ import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
 import Link from "next/link";
 import {
-  CaseStudies, Credentials, Industries, Partners, ProductCategories, Resources, SupportBand, TrustedBy, WebServices,
+  CaseStudies, Credentials, Industries, Partners, ProductCategories, Resources, SupportBand, TrustedBy, Services,
 } from "@/components/home/sections";
 import { Reviews } from "@/components/home/reviews";
 import { ButtonLink } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { heroCopy, statPairs } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import type { HomeData } from "@/themes/contract";
 import { orderSections, type ThemeOptions } from "@/themes/options";
+import { brandName } from "@/lib/brand";
 
 const OFFICE = "/themes/vantage/office.jpg";
 const NOC = "/themes/vantage/noc.jpg";
@@ -28,8 +29,9 @@ const NOC = "/themes/vantage/noc.jpg";
 /**
  * Vantage's front page, after technerd.altisinfonet.in.
  *
- * The hero *is* the slider: full-bleed to both edges, as tall as most of
- * the first screen, the slide's own words on it, and in the bottom-right
+ * The hero *is* the slider: full-bleed to both edges and exactly the
+ * window's height (`100svh`, from the very top — the info bar and the pill
+ * sit on it; the client, 2026-09-28), the slide's own words on it, and in the bottom-right
  * corner the reference's white notch — the slide counter and the arrows,
  * which are the `Slider`'s own controls moved there by `theme.css`. With
  * no slider configured the same band shows the theme's office photograph
@@ -46,7 +48,7 @@ const NOC = "/themes/vantage/noc.jpg";
  * and the classic sections to the closing band.
  */
 export function Home({
-  settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
+  settings, solutions, categories, industries, services: allServices, serviceCategories, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
 }: HomeData & { options: ThemeOptions }) {
   const stats = statPairs(settings.hero_stats, heroStats);
   const look = statLookFor(settings);
@@ -71,14 +73,14 @@ export function Home({
           <h1 className="sr-only">{heading}</h1>
           <Slider
             slider={heroSlider!}
-            aspect="aspect-[4/5] sm:aspect-[16/9] lg:aspect-auto lg:h-[min(88svh,880px)]"
+            aspect="h-svh min-h-[360px]"
             sizes="100vw"
             priority
-            className="rounded-none border-0 bg-dark lg:h-[min(88svh,880px)]"
+            className="rounded-none border-0 bg-dark"
           />
         </>
       ) : (
-        <div className="relative flex min-h-[560px] flex-col justify-end lg:h-[min(88svh,880px)]">
+        <div className="relative flex min-h-svh flex-col justify-end">
           <Image src={OFFICE} alt="" aria-hidden fill sizes="100vw" priority className="object-cover" />
           <div aria-hidden className="absolute inset-0 bg-linear-to-t from-dark via-dark/70 to-dark/20" />
           <Container className="relative grid gap-6 pt-40 pb-16 lg:grid-cols-[1.2fr_1fr] lg:items-end lg:gap-12 lg:pb-20">
@@ -165,7 +167,7 @@ export function Home({
               </li>
             ))}
           </ul>
-          <div className="mt-8"><ButtonLink href="/about">About Technoware <IconArrowRight /></ButtonLink></div>
+          <div className="mt-8"><ButtonLink href="/about">About {settings.company_name ?? brandName()} <IconArrowRight /></ButtonLink></div>
         </div>
       </Container>
     </section>
@@ -194,7 +196,7 @@ export function Home({
     { id: "credentials", node: <Credentials items={certifications.data} /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
     { id: "industries", node: <Industries items={industries.data.slice(0, 6)} /> },
-    { id: "web", node: <WebServices /> },
+    { id: "web", node: <Services services={allServices.data} categories={serviceCategories.data} /> },
     { id: "support", node: <SupportBand settings={settings} /> },
     { id: "cases", node: <CaseStudies items={caseStudies.data.slice(0, 6)} /> },
     { id: "resources", node: <Resources items={posts.data.slice(0, 3)} /> },

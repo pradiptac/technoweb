@@ -44,13 +44,15 @@ function ago(seconds: number): string {
  * scan share this panel; a scan is refused outright rather than accepted
  * and left waiting, and the sentence has to say which.
  */
-type Subject = "campaign" | "scan" | "import";
+type Subject = "campaign" | "scan" | "crawl" | "import";
 
 const HELD: Record<Subject, string> = {
   import:
     "A WordPress site is read and imported by background jobs, so the import will be refused until something drains the queue — there is nothing to run it.",
   campaign:
     "A campaign is sent by background jobs, so this one will be accepted and then sit at “Sending” until something drains the queue — nothing will be lost, and nothing will arrive either.",
+  crawl:
+    "A website is crawled by background jobs, so the crawl will be refused until something drains the queue — there is nothing to run it.",
   scan:
     "A mailbox is scanned by background jobs, so the scan will be refused until something drains the queue — there is nothing to run it.",
 };

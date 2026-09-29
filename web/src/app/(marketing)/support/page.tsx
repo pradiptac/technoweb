@@ -8,16 +8,17 @@ import {
 } from "@/components/icons";
 import { publicApi } from "@/lib/api";
 import { getSiteSettings } from "@/lib/settings";
-import { telHref } from "@/lib/site-settings";
+import { isPortalHref, portalEnabled, telHref } from "@/lib/site-settings";
 import { buildMetadata } from "@/lib/seo";
 import type { KnowledgeArticle } from "@/types/api";
 import { IconTile } from "@/components/ui/icon-tile";
 import { Collection, Tile } from "@/components/ui/collection";
+import { brandName } from "@/lib/brand";
 
 export const metadata = buildMetadata({
   title: "Support",
   description:
-    "Raise a ticket, track an existing one, or search the knowledge base. Technoware support is staffed by the engineers who built the infrastructure.",
+    `Raise a ticket, track an existing one, or search the knowledge base. ${brandName()} support is staffed by the engineers who built the infrastructure.`,
   path: "/support",
 });
 
@@ -55,7 +56,7 @@ export default async function SupportPage() {
     beside the tokens in `globals.css` for why two of the four are not Google's
     published values in light.
   */
-  const routes = [
+  const allRoutes = [
     {
       href: "/knowledge-base",
       hue: "var(--color-g-blue)",
@@ -83,6 +84,22 @@ export default async function SupportPage() {
       icon: IconUsers,
       title: "Customer login",
       body: "The portal for your organisation, including contact details and past correspondence.",
+    },
+  ];
+
+  /*
+    With the portal switched off (`portal_enabled`) its three cards go and one
+    for the door that still works takes their place — every other card on
+    this page would otherwise lead to "The customer portal is not available".
+  */
+  const routes = portalEnabled(settings) ? allRoutes : [
+    ...allRoutes.filter((r) => !isPortalHref(r.href)),
+    {
+      href: "/contact",
+      hue: "var(--color-g-red)",
+      icon: IconLifebuoy,
+      title: "Contact the desk",
+      body: "Tell us what is wrong and an engineer will come back to you, by email or on the telephone.",
     },
   ];
 

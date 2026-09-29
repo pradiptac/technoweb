@@ -138,7 +138,7 @@ anyway. `TicketMailHeadersTest` runs the Symfony callbacks against a real
 `Email` rather than reading a property.
 
 **A reply threads onto the ticket only when it is the sender's own open
-ticket.** The reference is the `TW-YYYY-NNNNN` every notification puts in
+ticket.** The reference is the `PREFIX-YYYY-NNNNN` (see "Reference numbers" below) every notification puts in
 its subject, so a reply to any of them carries it back. Same customer
 (case-insensitive) and not Closed → a `TicketMessage` with
 `author()->associate($customer)` (the morph map; never a literal
@@ -342,3 +342,45 @@ source was. The subject is never sealed: it is the line every list, email
 subject and webhook names the ticket by, and a sealed subject would be a
 ticket nobody can find. Pinned by three more cases in
 `TicketSensitiveMessageTest`.
+
+## Reference numbers (2026-09-28)
+
+**The prefix on a ticket, visit or order number is a setting, because the
+product is sold under other companies' names.** `TW-`, `TV-` and `ORD-` were
+literals in `Ticket::nextReference()`, `VisitRequest::nextReference()` and
+`Order::nextNumber()` — `TW` being the original product's initials, on every
+customer's tickets. They are three rows in the private `references` group,
+drawn as the Reference numbers tab under Settings → Identity, and read through
+`App\Support\References`. Private because nothing public needs them: the
+number is on the record already.
+
+**Checked on write and again on read.** `SettingController` refuses anything
+but two to six letters or digits starting with a letter (any case), and
+`References::prefix()` upper-cases the stored value and falls back to the
+key's default when a row is missing, blank or malformed — a value written
+behind the console's back must not mint a number the email reader, the
+portal's URLs and a person on the telephone cannot all parse. The defaults
+are `TW`, `TV` and `ORD`, the numbers this install has already issued. A
+blank save is allowed and means the default, not the install's initials.
+
+**Each sequence is counted per prefix**, so a new prefix starts at 00001 and
+applies to new numbers only. Nothing is renumbered: a number is what a
+customer has written down and quoted, and every existing one keeps its own.
+
+**The email reader matches named prefixes, never "any letters".**
+`ReplyParser` used a `TW-\d{4}-\d{5}` pattern; it now builds one from
+`References::ticketPrefixes()` — today's prefix plus every distinct one
+already on a ticket — so a reply quoting a number from before the change
+still threads, and stripping the reference from a new ticket's subject knows
+the old ones too. A generic `[A-Z]+-YYYY-NNNNN` would have taken an order
+number in a customer's email for a ticket; `ReferencePrefixTest` has that
+subject and asserts null.
+
+**A fresh install starts from the company's initials.** `Branding::apply()`,
+run once by the setup wizard, sets the ticket prefix to
+`References::initialsOf($company)` — the first letter of each word, two to
+four of them, `TK` when the name gives fewer than two — and the visit prefix
+to the same plus `V` (`Acme Networks` → `AN-`, `ANV-`). `ORD` names nobody
+and stays. An install updated from before this keeps `TW`/`TV`, which is
+what its existing numbers carry; no upgrade step changes them. The email templates' sample values moved from `TW-`/`TV-` to `TK-`,
+`SV-` and `ORD-`, so a preview does not show the original product's letters either.

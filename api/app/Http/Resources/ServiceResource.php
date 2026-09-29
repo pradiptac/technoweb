@@ -7,6 +7,7 @@ use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\Service;
+use App\Support\MediaMeta;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -28,6 +29,19 @@ class ServiceResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
             'summary' => $this->summary,
             'icon' => $this->icon,
+            // The tab it is drawn under; null is "Other services". Present
+            // wherever the controller loaded it, which both public reads do.
+            'category' => $this->whenLoaded('category', fn () => $this->category ? [
+                'id' => $this->category->id,
+                'name' => $this->category->name,
+                'slug' => $this->category->slug,
+            ] : null),
+            // The picture, the shape a solution's `hero_image*` takes.
+            // The chips on its card, in order; [] when there are none.
+            'highlights' => $this->highlights ?? [],
+            'image' => $this->image_path ? asset('storage/'.$this->image_path) : null,
+            'image_alt' => MediaMeta::alt($this->image_path),
+            'image_focus' => MediaMeta::focus($this->image_path),
             'body' => $this->when($detail, $this->body),
             'faqs' => FaqResource::collection($this->whenLoaded('faqs')),
             // The published blocks, in order, with the heading each renders under.

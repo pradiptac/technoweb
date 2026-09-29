@@ -131,6 +131,8 @@ export function WishlistHeart({
       aria-label={label}
       title={pressed ? "On your wishlist" : "Save to your wishlist"}
       aria-busy={pending || undefined}
+      // A theme moves the card's heart by this, off a picture it would cover.
+      data-tile-save=""
       onClick={press}
       data-pop={pop > 0 && pressed ? pop : undefined}
       onAnimationEnd={() => setPop(0)}

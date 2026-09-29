@@ -47,7 +47,7 @@ const FIELDS: Record<string, {
     // 401 from a provider whose key was never entered.
     hint: "Brevo and Mailgun share this field, so switching between them means pasting the new provider's key.",
   },
-  mailgun_domain: { label: "Sending domain", placeholder: "mg.technoware.in" },
+  mailgun_domain: { label: "Sending domain", placeholder: "mg.example.com" },
   mailgun_endpoint: {
     label: "Region endpoint",
     hint: "api.mailgun.net for the US, api.eu.mailgun.net for the EU. The wrong one fails as an authentication error rather than as the region mistake it is.",
@@ -67,10 +67,10 @@ const FIELDS: Record<string, {
   },
   mail_from_address: {
     label: "From address",
-    placeholder: "support@technoware.in",
+    placeholder: "support@example.com",
     hint: "Must be an address the transport above is allowed to send as, or the provider will refuse the message.",
   },
-  mail_from_name: { label: "From name", placeholder: "Technoware Support" },
+  mail_from_name: { label: "From name", placeholder: "Your company Support" },
 };
 
 /** Used by every transport, so shown under all of them rather than in each. */

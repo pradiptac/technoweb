@@ -3,13 +3,18 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\CrawlWebsiteForSubscribers;
 use App\Jobs\ScanMailboxForSubscribers;
+use App\Models\NewsletterGroup;
 use App\Models\NewsletterImport;
+use App\Models\NewsletterSubscriber;
 use App\Models\Setting;
 use App\Support\ImportUpload;
 use App\Support\Net\PublicHost;
+use App\Support\Net\SafeHttp;
 use App\Support\Newsletter\Csv;
 use App\Support\Newsletter\CsvImporter;
+use App\Support\Newsletter\HunterClient;
 use App\Support\Newsletter\MailboxImport;
 use App\Support\Newsletter\ScanCredentials;
 use App\Support\Newsletter\Spreadsheet;
@@ -144,6 +149,8 @@ class NewsletterImportController extends Controller
             'domains' => ['sometimes', 'nullable', 'array', 'max:5000'],
             'domains.*' => ['string', 'max:255'],
             'include_roles' => ['sometimes', 'boolean'],
+            // A website crawl: put everyone into a group named after its industry.
+            'industry_group' => ['sometimes', 'boolean'],
         ]);
 
         $domains = isset($data['domains']) && is_array($data['domains'])
@@ -152,7 +159,14 @@ class NewsletterImportController extends Controller
         $includeRoles = (bool) ($data['include_roles'] ?? true);
 
         if (! empty($data['import_id'])) {
-            return $this->commitScan($request, (int) $data['import_id'], $data['mapping'] ?? null, $data['group_ids'] ?? [], $domains, $includeRoles);
+            /*
+             * Never the request's mapping for a scan. The server wrote the
+             * file and knows its columns; the reviewer cannot change them.
+             * Passing the request's through lost every field but the email —
+             * validation keeps only `mapping.email` — so a mailbox scan and a
+             * crawl committed from the console arrived nameless (2026-09-28).
+             */
+            return $this->commitScan($request, (int) $data['import_id'], $data['group_ids'] ?? [], $domains, $includeRoles, (bool) ($data['industry_group'] ?? true));
         }
 
         /*
@@ -197,32 +211,48 @@ class NewsletterImportController extends Controller
     }
 
     /**
-     * @param  ?array<string, int|null>  $mapping
      * @param  array<int, int>  $groupIds
      * @param  ?list<string>  $domains
      */
-    private function commitScan(Request $request, int $id, ?array $mapping, array $groupIds, ?array $domains, bool $includeRoles): JsonResponse
+    private function commitScan(Request $request, int $id, array $groupIds, ?array $domains, bool $includeRoles, bool $industryGroup = true): JsonResponse
     {
         $import = NewsletterImport::findOrFail($id);
 
-        if (! $import->isMailbox() || $import->status !== 'ready' || blank($import->file)) {
+        if (! $import->isScan() || $import->status !== 'ready' || blank($import->file)) {
             return response()->json(['message' => 'That scan is not ready to import — it may have been imported, discarded or expired.'], 422);
         }
 
         if (! Storage::disk('local')->exists((string) $import->file)) {
             $import->update(['status' => 'expired', 'file' => null]);
 
-            return response()->json(['message' => 'That scan\'s result has expired. Scan the mailbox again.'], 422);
+            return response()->json(['message' => $import->isCrawl()
+                ? 'That crawl\'s result has expired. Crawl the website again.'
+                : 'That scan\'s result has expired. Scan the mailbox again.'], 422);
         }
 
-        $mapping ??= $import->analysis['mapping'] ?? ScanMailboxForSubscribers::MAPPING;
+        $mapping = $import->isCrawl() ? CrawlWebsiteForSubscribers::MAPPING : ScanMailboxForSubscribers::MAPPING;
+        $defaults = [];
+
+        if ($import->isCrawl()) {
+            $industry = trim((string) (($import->progress ?? [])['industry'] ?? ''));
+            $defaults = ['industry' => $industry, 'location' => ($import->progress ?? [])['location'] ?? null];
+
+            // The run's industry as a group, so a campaign can be sent to it.
+            if ($industryGroup && $industry !== '') {
+                $groupIds[] = NewsletterGroup::query()->firstOrCreate(
+                    ['name' => $industry],
+                    ['description' => 'Found by crawling a website.'],
+                )->id;
+            }
+        }
+
         $import->update(['status' => 'running']);
 
-        $result = CsvImporter::run($import, Storage::disk('local')->path((string) $import->file), $mapping, $groupIds, $domains, $includeRoles);
+        $result = CsvImporter::run($import, Storage::disk('local')->path((string) $import->file), $mapping, array_values(array_unique($groupIds)), $domains, $includeRoles, $defaults);
 
         Storage::disk('local')->delete((string) $import->file);
         $result->update(['file' => null, 'expires_at' => null]);
-        ScanMailboxForSubscribers::release($result);
+        self::release($result);
 
         return response()->json(['data' => self::summary($result->fresh())], 201);
     }
@@ -335,8 +365,8 @@ class NewsletterImportController extends Controller
      */
     public function destroy(NewsletterImport $import): JsonResponse
     {
-        if (! $import->isMailbox() || ! in_array($import->status, ['pending', 'scanning', 'ready', 'failed'], true)) {
-            return response()->json(['message' => 'Only a mailbox scan that has not been imported can be discarded.'], 422);
+        if (! $import->isScan() || ! in_array($import->status, ['pending', 'scanning', 'ready', 'failed'], true)) {
+            return response()->json(['message' => 'Only a scan or a crawl that has not been imported can be discarded.'], 422);
         }
 
         if (filled($import->file) && Storage::disk('local')->exists((string) $import->file)) {
@@ -344,9 +374,129 @@ class NewsletterImportController extends Controller
         }
 
         $import->update(['status' => 'cancelled', 'file' => null, 'expires_at' => null]);
-        ScanMailboxForSubscribers::release($import);
+        self::release($import);
 
         return response()->json(['data' => self::summary($import->fresh())]);
+    }
+
+    /**
+     * Let go of what a finished or discarded scan held — each source its own:
+     * a crawl only its scratch state; a mailbox scan its credentials, its
+     * state and the consent. Releasing a crawl the mailbox way would forget
+     * somebody's mailbox consent in passing.
+     */
+    public static function release(NewsletterImport $import): void
+    {
+        $import->isCrawl() ? CrawlWebsiteForSubscribers::release($import) : ScanMailboxForSubscribers::release($import);
+    }
+
+    /**
+     * What the crawl screen needs to draw its first step: the crawl in flight
+     * or waiting for review, whether Hunter is set up and how many searches
+     * it has left, the industries already on the list, and the limits.
+     */
+    public function crawlStatus(): JsonResponse
+    {
+        $active = NewsletterImport::query()->crawl()->whereIn('status', ['pending', 'scanning', 'ready'])->latest('id')->first();
+        $hunter = null;
+
+        if (HunterClient::configured()) {
+            try {
+                $account = (new HunterClient)->account();
+                $hunter = ['searches_available' => $account['searches_available'], 'searches_used' => $account['searches_used'], 'reset_date' => $account['reset_date']];
+            } catch (\Throwable $e) {
+                $hunter = ['error' => mb_substr($e->getMessage(), 0, 200)];
+            }
+        }
+
+        return response()->json(['data' => [
+            'active' => $active !== null ? self::summary($active) : null,
+            'delivering' => QueueHealth::delivering(),
+            'hunter_configured' => HunterClient::configured(),
+            'hunter' => $hunter,
+            'industries' => NewsletterSubscriber::query()->whereNotNull('industry')->distinct()->orderBy('industry')->limit(200)->pluck('industry'),
+            'limits' => [
+                'depth' => (int) config('crawl.max_depth'),
+                'pages' => (int) config('crawl.max_pages'),
+                'linked_sites' => (int) config('crawl.max_linked_sites'),
+                'hunter_domains' => (int) config('crawl.max_hunter_domains'),
+            ],
+        ]]);
+    }
+
+    /**
+     * Start crawling a website for addresses. 202: the work is queued.
+     *
+     * The start address is an address a campaign manager typed, which this
+     * server will then fetch from inside its network, so it goes through
+     * `SafeHttp::refusal()` first — the crawl itself re-checks every page and
+     * every redirect. Plain http is allowed: many small businesses' sites
+     * have never had a certificate.
+     */
+    public function crawl(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'start_url' => ['required', 'string', 'max:500'],
+            'depth' => ['required', 'integer', 'min:0', 'max:'.(int) config('crawl.max_depth')],
+            'max_pages' => ['required', 'integer', 'min:1', 'max:'.(int) config('crawl.max_pages')],
+            'industry' => ['required', 'string', 'max:80'],
+            'location' => ['nullable', 'string', 'max:80'],
+            'visit_linked_sites' => ['sometimes', 'boolean'],
+            'linked_sites_max' => ['required_if:visit_linked_sites,true', 'nullable', 'integer', 'min:1', 'max:'.(int) config('crawl.max_linked_sites')],
+            'hunter_domains' => ['sometimes', 'integer', 'min:0', 'max:'.(int) config('crawl.max_hunter_domains')],
+        ]);
+
+        $url = trim($data['start_url']);
+
+        // A bare host gets https://; anything already naming a scheme keeps
+        // it, so `ftp://…` is refused rather than read as a host called "ftp".
+        if (! preg_match('#^[a-z][a-z0-9+.\-]*://#i', $url)) {
+            $url = 'https://'.$url;
+        }
+
+        if ($refusal = SafeHttp::refusal($url, (bool) config('crawl.allow_private_hosts'), allowHttp: true)) {
+            throw ValidationException::withMessages(['start_url' => $refusal]);
+        }
+
+        if ((int) ($data['hunter_domains'] ?? 0) > 0 && ! HunterClient::configured()) {
+            throw ValidationException::withMessages(['hunter_domains' => 'No Hunter key is saved. Add one under Settings → Integrations, or set this to 0.']);
+        }
+
+        if (NewsletterImport::query()->crawl()->inFlight()->exists()) {
+            throw ValidationException::withMessages(['start_url' => 'A crawl is already running. Wait for it to finish, or discard it.']);
+        }
+
+        if (! QueueHealth::delivering()) {
+            throw ValidationException::withMessages([
+                'queue' => 'Nothing is draining the queue, so the crawl would never start. On the server add the cron entry '
+                    .'`* * * * * cd /path/to/api && php artisan schedule:run >> /dev/null 2>&1`, or run `php artisan queue:work`.',
+            ]);
+        }
+
+        $industry = trim($data['industry']);
+        $host = (string) parse_url($url, PHP_URL_HOST);
+
+        $import = NewsletterImport::create([
+            'uploaded_by' => $request->user()?->id,
+            'filename' => "{$host} ({$industry}, depth {$data['depth']})",
+            'source' => NewsletterImport::SOURCE_CRAWL,
+            'status' => 'pending',
+            'progress' => [
+                'start_url' => $url,
+                'depth' => (int) $data['depth'],
+                'max_pages' => (int) $data['max_pages'],
+                'industry' => $industry,
+                'location' => filled($data['location'] ?? null) ? trim($data['location']) : null,
+                'visit_linked_sites' => (bool) ($data['visit_linked_sites'] ?? false),
+                'linked_sites_max' => (int) ($data['linked_sites_max'] ?? 0),
+                'hunter_domains' => (int) ($data['hunter_domains'] ?? 0),
+                'started_at' => now()->toIso8601String(),
+            ],
+        ]);
+
+        CrawlWebsiteForSubscribers::dispatch($import->id);
+
+        return response()->json(['data' => self::summary($import) + ['delivering' => true]], 202);
     }
 
     /**

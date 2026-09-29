@@ -7,12 +7,14 @@ import { getCurrentCustomer } from "@/lib/auth";
 import { getTicket } from "@/lib/portal";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
+import { getSiteSettings } from "@/lib/settings";
 import { closeAction, reopenAction } from "./actions";
 import { ReplyForm } from "./reply-form";
 import type { Ticket } from "@/types/api";
 import { DueClock, ThreadRefresh } from "@/components/portal/ticket-live";
 import { TicketThread } from "@/components/portal/ticket-thread";
 import { TicketTrail } from "@/components/portal/ticket-trail";
+import { brandName } from "@/lib/brand";
 
 export async function generateMetadata({ params }: { params: Promise<{ reference: string }> }) {
   const { reference } = await params;
@@ -45,6 +47,8 @@ export default async function TicketDetailPage({
     throw error;
   }
 
+  // The layout has read the settings already; this is the cached copy.
+  const company = (await getSiteSettings()).company_name ?? brandName();
   const isClosed = ticket.status === "closed";
   const isResolved = ticket.status === "resolved";
   const merged = ticket.merged_into ?? null;
@@ -100,7 +104,7 @@ export default async function TicketDetailPage({
       {ticket.events && <TicketTrail events={ticket.events} status={ticket.status} />}
 
       <h3 className="mb-3 text-17">Conversation</h3>
-      <ThreadRefresh count={ticket.messages?.length ?? 0} open={!isClosed} />
+      <ThreadRefresh count={ticket.messages?.length ?? 0} open={!isClosed} company={company} />
       <TicketThread
         reference={ticket.reference}
         description={ticket.description ?? ""}

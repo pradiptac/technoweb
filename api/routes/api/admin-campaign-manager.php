@@ -72,6 +72,9 @@ Route::middleware('role:campaign_manager')->group(function () {
     Route::post('newsletter/imports/mailbox/disconnect', [AdminNewsletterMailboxController::class, 'disconnect'])->name('newsletter.imports.mailbox.disconnect');
     Route::post('newsletter/imports/mailbox/scan', [AdminNewsletterImportController::class, 'scan'])
         ->middleware('throttle:6,1')->name('newsletter.imports.mailbox.scan');
+    Route::get('newsletter/imports/crawl', [AdminNewsletterImportController::class, 'crawlStatus'])->name('newsletter.imports.crawl.status');
+    Route::post('newsletter/imports/crawl', [AdminNewsletterImportController::class, 'crawl'])
+        ->middleware('throttle:6,1')->name('newsletter.imports.crawl.start');
 
     Route::get('newsletter/imports/{import}', [AdminNewsletterImportController::class, 'show'])->name('newsletter.imports.show');
     Route::delete('newsletter/imports/{import}', [AdminNewsletterImportController::class, 'destroy'])->name('newsletter.imports.destroy');

@@ -9,6 +9,9 @@ import { publicApi } from "@/lib/api";
 import { listingMetadata } from "@/lib/seo";
 import { KbSearchForm } from "@/components/forms/search-form";
 import type { KnowledgeArticle, Paginated } from "@/types/api";
+import { brandName } from "@/lib/brand";
+import { getSiteSettings } from "@/lib/settings";
+import { portalEnabled, ticketHref } from "@/lib/site-settings";
 
 type SearchParams = { q?: string; category?: string; page?: string };
 
@@ -17,7 +20,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   return listingMetadata({
     title: "Knowledge base",
     description:
-      "Configuration guides and troubleshooting steps from the Technoware support desk — the same material our engineers use.",
+      `Configuration guides and troubleshooting steps from the ${brandName()} support desk — the same material our engineers use.`,
     path: "/knowledge-base",
     searchParams: await searchParams,
     filters: ["q", "category"],
@@ -30,6 +33,10 @@ export default async function KnowledgeBaseIndex({
   searchParams: Promise<SearchParams>;
 }) {
   const sp = await searchParams;
+  // For where "raise a ticket" goes: the portal, or the contact form when
+  // the portal is switched off (`ticketHref`). The cached settings read.
+  const settings = await getSiteSettings();
+  const portal = portalEnabled(settings);
 
   const query = new URLSearchParams();
   if (sp.q) query.set("q", sp.q);
@@ -74,10 +81,10 @@ export default async function KnowledgeBaseIndex({
             title={searching ? `Nothing found for “${sp.q}”` : "Nothing published yet"}
             action={
               <Link
-                href="/portal/tickets/new"
+                href={ticketHref(settings)}
                 className="inline-flex items-center gap-2 rounded bg-brand-600 px-4 py-[11px] text-13-5 font-semibold text-brand-on hover:bg-brand-700"
               >
-                <IconTicket className="size-4" /> Raise a ticket instead
+                <IconTicket className="size-4" /> {portal ? "Raise a ticket instead" : "Contact us instead"}
               </Link>
             }
           >
@@ -112,14 +119,14 @@ export default async function KnowledgeBaseIndex({
               <div className="mt-10 rounded-xl border border-line-strong bg-surface p-6">
                 <h2 className="text-[16px]">Still stuck?</h2>
                 <p className="mt-1.5 mb-4 text-14 text-muted">
-                  If none of these match, raise a ticket and include what you have already tried —
+                  If none of these match, {portal ? "raise a ticket" : "get in touch"} and include what you have already tried —
                   it saves a round of questions.
                 </p>
                 <Link
-                  href={`/portal/tickets/new?subject=${encodeURIComponent(sp.q ?? "")}`}
+                  href={ticketHref(settings, sp.q ?? "")}
                   className="inline-flex items-center gap-2 rounded bg-brand-600 px-4 py-[11px] text-13-5 font-semibold text-brand-on hover:bg-brand-700"
                 >
-                  <IconTicket className="size-4" /> Raise a ticket
+                  <IconTicket className="size-4" /> {portal ? "Raise a ticket" : "Contact us"}
                 </Link>
               </div>
             )}

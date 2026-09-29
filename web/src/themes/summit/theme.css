@@ -29,7 +29,6 @@
 }
 
 /* The people: a square portrait with rounded corners that leans in on hover. */
-[data-theme="summit"] [data-team-photo] { aspect-ratio: 1; }
 [data-theme="summit"] [data-team-photo] img {
   transition: scale var(--duration-slow) var(--ease-brand);
 }
@@ -68,19 +67,28 @@
   parts so the band can run edge to edge.
 */
 [data-theme="summit"] [data-collection] [data-tile-body] { padding: 0; }
+/*
+  The band is the theme's deep brand rather than black (the client,
+  2026-09-28) — `brand-900` stays dark in both schemes and is gated for white
+  text — and it meets the picture with no seam: the well's own `border-b
+  border-line` drew a light hairline between the two.
+*/
+[data-theme="summit"] [data-collection] [data-tile-media] .border-b { border-bottom-width: 0; }
 [data-theme="summit"] [data-collection] [data-tile-kicker] {
   margin: 0;
   padding: 14px 18px 0;
-  background: var(--color-dark);
+  background: var(--color-brand-900);
   color: var(--color-dark-muted);
 }
 [data-theme="summit"] [data-collection] [data-tile-head] {
   padding: 14px 18px;
-  background: var(--color-dark);
+  background: var(--color-brand-900);
   color: var(--color-dark-ink);
 }
 [data-theme="summit"] [data-collection] [data-tile-kicker] + [data-tile-head] { padding-top: 8px; }
-[data-theme="summit"] [data-collection] [data-tile-title] { color: var(--color-dark-ink); font-family: var(--font-display); }
+[data-theme="summit"] [data-collection] [data-tile-title] { font-family: var(--font-display); }
+/* The band's ink only where there is a band: a certification card's title sits on the card itself (1.02:1 before, 2026-09-28). */
+[data-theme="summit"] [data-collection] [data-tile-head] [data-tile-title] { color: var(--color-dark-ink); }
 [data-theme="summit"] [data-collection] [data-tile-count] { color: var(--color-dark-muted); }
 [data-theme="summit"] [data-collection] [data-tile-summary],
 [data-theme="summit"] [data-collection] [data-tile-meta],
@@ -97,7 +105,7 @@
 [data-theme="summit"] [data-collection] [data-tile-portrait] { border-color: var(--color-dark-line); }
 /* The shop: the product's brand and name on the band, the price below. */
 [data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-kicker] span { color: var(--color-dark-muted); }
-[data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-kicker] + [data-tile-title] { padding: 6px 18px 14px; background: var(--color-dark); }
+[data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-kicker] + [data-tile-title] { padding: 6px 18px 14px; background: var(--color-brand-900); }
 [data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-kicker] + [data-tile-title] a { color: var(--color-dark-ink); }
 [data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-kicker] { padding-top: 12px; }
 [data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-summary] { margin-top: 12px; }
@@ -105,19 +113,21 @@
 [data-theme="summit"] [data-store-promo],
 [data-theme="summit"] [data-store-hero] { border-radius: 14px; }
 [data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-body] { gap: 0; }
-[data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-price],
-[data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-actions] { margin-top: 10px; }
+[data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-price] { margin-top: 10px; }
+/* The actions keep the card's own `mt-auto`: every Add to basket in a row on one line. */
+[data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-actions] { padding-top: 10px; }
 [data-theme="summit"] [data-store-disc] { border-radius: 14px; }
 
 /*
-  More colour: the dark band on a tile runs from the dark to its second
-  step at an angle, the way the hero's ground does, and the reused sections
-  alternate the brand tint and the page.
+  More colour: the band on a tile runs from the brand's darkest step to the
+  next at an angle, the way the hero's ground does (black until 2026-09-28,
+  the client's ask; both steps stay dark in both schemes), and the reused
+  sections alternate the brand tint and the page.
 */
 [data-theme="summit"] [data-collection] [data-tile-head],
 [data-theme="summit"] [data-collection] [data-tile-kicker],
 [data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-kicker] + [data-tile-title] {
-  background-image: linear-gradient(135deg, var(--color-dark), var(--color-dark-2));
+  background-image: linear-gradient(135deg, var(--color-brand-900), var(--color-brand-800));
 }
 [data-theme="summit"] #products:not([data-section] *),
 [data-theme="summit"] #industries:not([data-section] *),
@@ -142,3 +152,21 @@
 [data-theme="summit"] [data-collection="routes"] [data-tile] {
   border-top: 3px solid var(--tile-hue, var(--color-line-strong));
 }
+
+/*
+  The people with a round portrait floating over the card's top edge
+  (2026-09-28): the card starts under the photo's middle, everything is
+  centred, and the ring round the photo is the page's ground so it reads
+  as cut out of the card. The rows leave room for the overlap.
+*/
+[data-theme="summit"] [data-team] { row-gap: 84px; padding-top: 64px; }
+[data-theme="summit"] [data-team] > li { overflow: visible; align-items: center; text-align: center; border-radius: 16px; }
+[data-theme="summit"] [data-team] [data-team-photo] {
+  width: 128px; aspect-ratio: 1; flex: none; margin-top: -64px; border-radius: 9999px;
+  border: 5px solid var(--color-page); box-shadow: var(--shadow-3);
+}
+[data-theme="summit"] [data-team] [data-team-photo] > span { font-size: 34px; }
+[data-theme="summit"] [data-team] [data-team-rule] { width: 48px; margin-top: 18px; border-radius: 9999px; }
+[data-theme="summit"] [data-team] [data-team-body] { align-items: center; width: 100%; }
+[data-theme="summit"] [data-team] [data-team-certs],
+[data-theme="summit"] [data-team] [data-team-contact] { justify-content: center; }

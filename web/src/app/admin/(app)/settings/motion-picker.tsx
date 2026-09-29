@@ -54,7 +54,9 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
   });
 
   return (
-    <div ref={ref} className="space-y-8">
+    // Both columns of the settings grid: a picker is one control, and in one
+    // column its tiles stopped at half the screen (the ThemePicker rule).
+    <div ref={ref} className="space-y-8 sm:col-span-2">
       <Choices
         name="setting__motion_reveal" legend="Sections arriving" value={reveal} onChange={setReveal} choices={REVEALS}
         intro="How a section comes into view as the page is scrolled. Hover a tile to see it."
@@ -105,7 +107,7 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
           { id: "0", label: "Off", note: "The page paints at once. The current behaviour." },
           { id: "1", label: "On", note: SPLASH_NOTE },
         ]}
-        intro="Whether the first page of a visit opens on the logo."
+        intro="Whether the first page of a visit opens on a short loader in the theme's own style."
         preview={(c) => (
           <span className="flex h-14 items-center justify-center" aria-hidden>
             <span className={cn("block h-10 w-16 rounded border border-line-strong", c.id === "1" ? "bg-page" : "bg-card")}>
@@ -143,7 +145,7 @@ function Choices({
     <fieldset>
       <legend className="mb-1 text-13-5 font-semibold">{legend}</legend>
       <p className="measure mb-3 text-13 text-muted">{intro}</p>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
         {choices.map((c) => (
           <label
             key={c.id}

@@ -1,4 +1,5 @@
 import { requestHost } from "@/lib/request-host";
+import { assetOriginList, reportOnlyCsp } from "@/lib/security-headers";
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 
 /**
@@ -111,8 +112,49 @@ function isLoopback(host: string): boolean {
     || name === "::1";
 }
 
+/**
+ * Whether `/_next/image` may fetch this upstream.
+ *
+ * A portable build's `images.remotePatterns` accept `/storage/**` on any host
+ * (`next.config.ts`), because the host is not known until the server starts —
+ * which left the optimiser willing to fetch and re-encode anybody's
+ * `/storage/` path: an open image proxy running on the customer's CPU. This
+ * is the other half: an absolute `url` must be one of this install's asset
+ * origins, read from the runtime environment exactly as the CSP's `img-src`
+ * is. A relative `url` (a file in `public/`) is always the site's own. On a
+ * non-portable build the patterns already say the same thing, so this refuses
+ * nothing there.
+ */
+function imageUpstreamAllowed(request: NextRequest): boolean {
+  const raw = request.nextUrl.searchParams.get("url");
+  if (raw === null || raw.startsWith("/")) return true;
+
+  try {
+    return assetOriginList().includes(new URL(raw).origin);
+  } catch {
+    return false;
+  }
+}
+
+/** A response that carries on to the page, with the runtime Report-Only policy. */
+function withPolicy(response: NextResponse, pathname: string): NextResponse {
+  // `/embed/*` may be framed by anybody — the one path whose policy differs.
+  response.headers.set(
+    "Content-Security-Policy-Report-Only",
+    reportOnlyCsp(pathname.startsWith("/embed/") ? "*" : "'self'"),
+  );
+
+  return response;
+}
+
 export async function proxy(request: NextRequest, event: NextFetchEvent) {
   const { pathname, search } = request.nextUrl;
+
+  if (pathname === "/_next/image") {
+    return imageUpstreamAllowed(request)
+      ? NextResponse.next()
+      : new NextResponse("\"url\" parameter is not allowed", { status: 400 });
+  }
 
   /*
    * www / non-www canonicalisation, before anything else.
@@ -190,13 +232,13 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
    */
   const pass = () => {
     const inConsole = pathname === "/admin" || pathname.startsWith("/admin/");
-    if (!inConsole && !request.headers.has("x-pathname")) return NextResponse.next();
+    if (!inConsole && !request.headers.has("x-pathname")) return withPolicy(NextResponse.next(), pathname);
 
     const forwarded = new Headers(request.headers);
     if (inConsole) forwarded.set("x-pathname", pathname);
     else forwarded.delete("x-pathname");
 
-    return NextResponse.next({ request: { headers: forwarded } });
+    return withPolicy(NextResponse.next({ request: { headers: forwarded } }), pathname);
   };
 
   const base = process.env.API_BASE_URL;
@@ -336,5 +378,10 @@ export const config = {
      * happen (nothing writes one there), so the only cost is the header.
      */
     { source: "/admin/:path*" },
+    /*
+     * The image optimiser, for `imageUpstreamAllowed()` only. The first entry
+     * excludes it, so nothing else above runs for it.
+     */
+    { source: "/_next/image" },
   ],
 };

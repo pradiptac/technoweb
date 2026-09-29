@@ -14,7 +14,7 @@ import type { PageHeroProps } from "@/themes/contract";
  */
 export function PageHero({ kicker, title, lede, crumbs, children, settings }: PageHeroProps) {
   return (
-    <section className="page-hero relative overflow-hidden border-b border-dark-line bg-dark text-dark-ink">
+    <section className="page-hero relative overflow-hidden border-b border-dark-line bg-linear-135 from-brand-900 to-accent-900 text-dark-ink">
       <Backdrop variant={motionFor(settings).hero} tone="dark" size={48} mask="radial-gradient(ellipse 70% 70% at 50% 0%, #000 10%, transparent 75%)" />
       <Container className="relative flex flex-col items-center pt-10 pb-12 text-center lg:pt-14 lg:pb-16">
         {crumbs && <div className="mb-5 text-12-5"><Breadcrumbs crumbs={crumbs} onDark /></div>}

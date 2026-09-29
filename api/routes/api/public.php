@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\AuthController as AdminAuthController;
+use App\Http\Controllers\Api\V1\Admin\UpdateController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BlogCommentController;
 use App\Http\Controllers\Api\V1\CareersController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\FormController;
 use App\Http\Controllers\Api\V1\GalleryController;
 use App\Http\Controllers\Api\V1\LandingPageController;
+use App\Http\Controllers\Api\V1\MeetingController;
 use App\Http\Controllers\Api\V1\MessagingController;
 use App\Http\Controllers\Api\V1\NewsletterController;
 use App\Http\Controllers\Api\V1\OrderCodeController;
@@ -281,6 +283,8 @@ Route::post('forms/{slug}', [FormController::class, 'store'])
 Route::get('solutions', [ContentController::class, 'solutions'])->name('solutions.index');
 Route::get('solutions/{solution}', [ContentController::class, 'solution'])->name('solutions.show');
 
+// The tabs the Services section groups by, active only, in order.
+Route::get('service-categories', [ContentController::class, 'serviceCategories'])->name('service-categories.index');
 Route::get('services', [ContentController::class, 'services'])->name('services.index');
 Route::get('services/{service}', [ContentController::class, 'service'])->name('services.show');
 
@@ -390,6 +394,17 @@ Route::post('newsletter/unsubscribe/{token}', [NewsletterController::class, 'uns
     ->middleware('throttle:30,1')->name('newsletter.unsubscribe');
 
 /*
+ * The way back from an unsubscribe: the link `Rejoin::offer()` mails when an
+ * address that unsubscribed signs up again. GET names the address for the
+ * page; POST is the confirmation, so a mail scanner fetching the link lifts
+ * nothing. Every dead link is one 404.
+ */
+Route::get('newsletter/rejoin/{token}', [NewsletterController::class, 'rejoinDetails'])
+    ->middleware('throttle:30,1')->name('newsletter.rejoin.show');
+Route::post('newsletter/rejoin/{token}', [NewsletterController::class, 'rejoin'])
+    ->middleware('throttle:30,1')->name('newsletter.rejoin');
+
+/*
  * A mail provider reporting a hard bounce or a complaint.
  *
  * **Un-throttled, like the payment webhook**: a provider that gets a 429
@@ -491,6 +506,29 @@ Route::post('visits/{reference}/reschedule', [VisitController::class, 'reschedul
     ->middleware('throttle:10,1')->name('visits.reschedule');
 
 /*
+ * Online meetings (2026-09-29, docs/meetings.md). A booking, unlike a visit:
+ * the customer picks a free slot and a host is assigned in the same
+ * transaction. `options` and `slots` are declared above `{reference}`, and
+ * every `{reference}` is held to the reference's shape, so neither word can
+ * ever bind as one. `slots` is never cached (`no-store`); the guest routes
+ * are authorised by the token handed out once on create.
+ */
+Route::get('meetings/options', [MeetingController::class, 'options'])->name('meetings.options');
+Route::get('meetings/slots', [MeetingController::class, 'slots'])
+    ->middleware('throttle:60,1')->name('meetings.slots');
+Route::post('meetings', [MeetingController::class, 'store'])
+    ->middleware('throttle:5,1')->name('meetings.store');
+Route::get('meetings/{reference}', [MeetingController::class, 'show'])
+    ->where('reference', '[A-Z][A-Z0-9]{1,5}-\d{4}-\d{5}')
+    ->middleware('throttle:30,1')->name('meetings.show');
+Route::post('meetings/{reference}/cancel', [MeetingController::class, 'cancel'])
+    ->where('reference', '[A-Z][A-Z0-9]{1,5}-\d{4}-\d{5}')
+    ->middleware('throttle:10,1')->name('meetings.cancel');
+Route::post('meetings/{reference}/reschedule', [MeetingController::class, 'reschedule'])
+    ->where('reference', '[A-Z][A-Z0-9]{1,5}-\d{4}-\d{5}')
+    ->middleware('throttle:10,1')->name('meetings.reschedule');
+
+/*
  * The website assistant.
  *
  * Public because a visitor has no account, which is the whole point of a
@@ -534,7 +572,7 @@ Route::post('chat/conversations/{token}/messages/{message}/rating', [ChatControl
 /* ------------------------------------------------------ portal auth */
 
 Route::post('auth/login', [AuthController::class, 'login'])
-    ->middleware('throttle:10,1')
+    ->middleware(['portal', 'throttle:10,1'])
     ->name('auth.login');
 
 /*
@@ -547,10 +585,10 @@ Route::post('auth/login', [AuthController::class, 'login'])
  * not the address has an account behind it.
  */
 Route::post('auth/request-code', [AuthController::class, 'requestCode'])
-    ->middleware('throttle:5,1')
+    ->middleware(['portal', 'throttle:5,1'])
     ->name('auth.request-code');
 Route::post('auth/verify-code', [AuthController::class, 'verifyCode'])
-    ->middleware('throttle:10,1')
+    ->middleware(['portal', 'throttle:10,1'])
     ->name('auth.verify-code');
 
 /*
@@ -576,13 +614,13 @@ Route::get('companies/suggest', CompanySuggestionController::class)
     ->name('companies.suggest');
 
 Route::post('auth/register', [RegistrationController::class, 'register'])
-    ->middleware('throttle:5,1')
+    ->middleware(['portal', 'throttle:5,1'])
     ->name('auth.register');
 Route::post('auth/verify-email', [RegistrationController::class, 'verify'])
-    ->middleware('throttle:10,1')
+    ->middleware(['portal', 'throttle:10,1'])
     ->name('auth.verify-email');
 Route::post('auth/resend-verification', [RegistrationController::class, 'resendVerification'])
-    ->middleware('throttle:5,1')
+    ->middleware(['portal', 'throttle:5,1'])
     ->name('auth.resend-verification');
 
 /*
@@ -594,10 +632,10 @@ Route::post('auth/resend-verification', [RegistrationController::class, 'resendV
  * address exists — see ResetsPasswords.
  */
 Route::post('auth/forgot-password', [AuthController::class, 'forgotPassword'])
-    ->middleware('throttle:5,1')
+    ->middleware(['portal', 'throttle:5,1'])
     ->name('auth.forgot-password');
 Route::post('auth/reset-password', [AuthController::class, 'resetPassword'])
-    ->middleware('throttle:10,1')
+    ->middleware(['portal', 'throttle:10,1'])
     ->name('auth.reset-password');
 
 Route::post('admin/auth/forgot-password', [AdminAuthController::class, 'forgotPassword'])
@@ -624,3 +662,12 @@ Route::post('admin/auth/request-code', [AdminAuthController::class, 'requestCode
 Route::post('admin/auth/verify-code', [AdminAuthController::class, 'verifyCode'])
     ->middleware('throttle:10,1')
     ->name('admin.auth.verify-code');
+
+/*
+ * An update's step, authorised by the run's own key rather than a session
+ * (`Updater::stepWithKey`, docs/distribution.md): a rollback's restore drops
+ * the sign-in tables while these steps are what drive it. A wrong key is a
+ * 404. Stays open during an update and a restore (`EnsureNotRestoring`).
+ */
+Route::post('system/updates/continue', [UpdateController::class, 'continue'])
+    ->middleware('throttle:120,1')->name('system.updates.continue');

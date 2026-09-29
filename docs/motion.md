@@ -327,3 +327,83 @@ which `npm run audit` never makes. Measured against `next dev`: the
 click-to-commit gap is ~30ms and the commit-to-paint gap ~90ms on this
 machine, which is the dev server and not the control, so the probe anchors
 its window on the stage's first painted frame and prints both.
+
+## A section's own reveal (2026-09-27)
+
+**Every builder section and every homepage section can choose how it
+arrives**, beside the site-wide *Sections arriving* style. The list is
+`SECTION_REVEALS` in `lib/motion-choices.ts` — Default, Rise (`fade-up`),
+Fade, Zoom (`zoom-in`), Drop (`fade-down`), None — and every id but the
+first and last is a `data-aos` value `globals.css` already styled, so there
+is no new CSS: the site-wide style (float, focus, none…) still shapes the
+chosen one, and reduced motion still turns all of it off. Vertical and scale
+only, for the overflow rule. The API checks the id's shape
+(`ThemeOptions::REVEAL`) and `sectionReveal()` falls back — the rule every
+`motion_*` id follows.
+
+**Default means "what this kind of section did before the choice existed"**,
+and is never stored. A builder band rises; a content block, a logo strip and
+a divider are still (a block and a strip bring their own motion); a hero
+rises unless it is a cover — and **an opening hero never animates, whatever
+was chosen**, because it is the page's first paint. On the homepage the
+default is not to move (the 2026-09-15 UX audit): the Themes screen offers
+the list without Default, None first, and draws no control for the hero or
+the closing band, which rises on its own in every theme.
+
+**Nothing chosen is byte-identical markup.** The builder threads `reveal`
+into each section's own root (`SectionFrame`'s `data-aos` defaults to
+`fade-up`) rather than adding a wrapper; the homepage's `HomeSection` adds a
+`<div data-aos>` inside `SectionBg` only when a row carries a reveal, so the
+band's ground stays put and the content arrives, as on inner pages.
+`scripts/probes/html-snapshot.mjs` over 35 routes, before and after, differed
+only in settings changed during the run.
+
+### Assemble, cascade, focus, unfold (the same day)
+
+**Four more ways in, offered per section and — all but Focus, which is the
+existing `blur` — as the site-wide style too.** Assemble and cascade move a
+section's *pieces*; focus and unfold move the section.
+
+- **Assemble** (`assemble`): each piece starts at 90%, 28px low and tilted
+  2° (odd pieces one way, even the other) and settles on `--ease-spring`
+  over `--duration-spring`.
+- **Cascade** (`cascade`): each piece fades in rising 18px, over
+  `--duration-reveal`.
+- **Focus** (`focus`): the section sharpens from `blur(10px)` — the
+  site-wide `blur` style's numbers, per section.
+- **Unfold** (`unfold`): the section is uncovered top to bottom by a
+  `clip-path` wipe over 1.5 × `--duration-reveal`.
+
+**A piece** is anything in one selector list in `globals.css` — headings,
+`p`, `li`, `figure`, `img`, `video`, `iframe`, `blockquote`, `table`,
+`form`, `.btn`, `[data-tile]`, `[data-card]`, a logo strip, a marquee, a
+carousel — that is not inside another piece or inside a nested `[data-aos]`
+(which reveals itself). So a slider arrives as one block and keeps its own
+motion. The stagger is 70ms by position among siblings, capped at the eighth.
+The section's own fade drops to `--duration-base`, since the pieces carry the
+motion; the site-wide versions, keyed on `fade-up`, cancel its 20px rise.
+
+**Pieces arrive by `animation`, never `transition`, and the keyframes have
+only a `from`.** A transition on a tile would stay on it for good and replace
+its hover transitions; an animation with fill `backwards` and no `to` holds
+the start through the delay and ends on the piece's own styles. The keyframes
+write `transform`, never the `translate`/`scale`/`rotate` properties
+Tailwind's hover lift sets — the probe hovers an assembled button and its
+`translate` still moves. Before the reveal a piece is only `opacity: 0`, and
+not while the section holds focus, inside a console preview
+(`data-reveal-static`) or under the site-wide `none`.
+
+**Unfold's clip is only ever in the animation, never in a start state.** The
+first cut clipped the waiting section to `inset(0 0 100% 0)`: a section with
+no visible area never intersects, so the observer never stamped it and it
+stayed invisible for good (measured). Until the reveal it is hidden by the
+ordinary `opacity: 0`; after the animation `clip-path` is back to `none`, so
+nothing inside is cut off.
+
+Measured by `scripts/probes/section-reveal-styles.mjs` (mid-flight at
+~150ms, at rest by 1.6s, hover, reduced motion, and all three site-wide
+styles through the Motion tab); `audit.mjs` light and dark and
+`audit:mobile` clean on a page carrying all four, and 0px of overflow at
+320px sampled every 30ms through each reveal.
+
+

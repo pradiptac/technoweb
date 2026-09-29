@@ -2,7 +2,9 @@ import { PageHero } from "@/components/ui/page-hero";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { clientIpHeaders } from "@/lib/client-ip";
+import { getSiteSettings } from "@/lib/settings";
 import { UnsubscribeForm } from "./unsubscribe-form";
+import { brandName } from "@/lib/brand";
 
 /**
  * The page an unsubscribe link lands on.
@@ -44,13 +46,16 @@ export default async function UnsubscribePage({ params }: { params: Promise<{ to
     // Left null: the form still works, it simply cannot name the address.
   }
 
+  const settings = await getSiteSettings();
+  const company = settings.company_name ?? brandName();
+
   return (
     <>
       <PageHero title="Unsubscribe" lede="One click, and no account needed." />
 
       <div className="section-y">
         <div className="mx-auto w-[90%] max-w-[560px]">
-          <UnsubscribeForm token={token} email={email} already={already} />
+          <UnsubscribeForm token={token} email={email} already={already} company={company} />
         </div>
       </div>
     </>

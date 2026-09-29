@@ -32,11 +32,18 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             require __DIR__.'/api/admin-auth.php';
             require __DIR__.'/api/admin-support-engineer.php';
             require __DIR__.'/api/admin-admin.php';
+            require __DIR__.'/api/admin-backups.php';
+            require __DIR__.'/api/admin-system.php';
             require __DIR__.'/api/admin-sales-manager.php';
             require __DIR__.'/api/admin-store-manager.php';
             require __DIR__.'/api/admin-campaign-manager.php';
             require __DIR__.'/api/admin-messaging.php';
             require __DIR__.'/api/admin-visits.php';
+            require __DIR__.'/api/admin-meetings.php';
+            require __DIR__.'/api/admin-meeting-setup.php';
+            require __DIR__.'/api/admin-meeting-hosts.php';
+            require __DIR__.'/api/admin-meeting-google.php';
+            require __DIR__.'/api/admin-my-meetings.php';
             require __DIR__.'/api/admin-seo-manager.php';
             require __DIR__.'/api/admin-content-manager.php';
         });

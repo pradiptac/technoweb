@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
-import Link from "next/link";
+import { useEffect, useState, useTransition } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Alert, Field, Input, Select } from "@/components/ui/input";
 import { MailboxConnection } from "@/app/admin/(app)/settings/mailbox-connection";
 import { DeliveryStatus } from "../../../campaigns/delivery-status";
 import { runImportAction } from "../../../actions";
 import { Count } from "../count";
+import { ImportReview, type ReviewDecision } from "../import-review";
 import {
   connectNewsletterMailboxAction, disconnectNewsletterMailboxAction, discardImportAction,
   pollImportAction, startScanAction, type MailboxActionState,
@@ -60,11 +59,6 @@ function monthsAgo(months: number): string {
   return isoDate(d);
 }
 
-/** The API's per-domain verdicts, as the review's starting ticks. */
-function defaultTicks(scan: NewsletterMailboxImport | null): Set<string> {
-  return new Set((scan?.analysis?.domains ?? []).filter((d) => d.default).map((d) => d.domain));
-}
-
 function stepFor(scan: NewsletterMailboxImport | null): Step {
   if (!scan) return "source";
   if (scan.status === "pending" || scan.status === "scanning") return "scanning";
@@ -95,27 +89,17 @@ export function MailboxImportWizard({
   const [includeJunk, setIncludeJunk] = useState(false);
   const [imap, setImap] = useState({ host: "", port: "993", encryption: "ssl", username: "", password: "" });
 
-  // Review step.
-  const [ticked, setTicked] = useState<Set<string>>(() => defaultTicks(status.active));
-  const [includeRoles, setIncludeRoles] = useState(false);
-  const [only, setOnly] = useState("");
-  const [groupIds, setGroupIds] = useState<number[]>([]);
-
   const analysis = scan?.analysis ?? null;
 
-  // Poll while a scan runs. The review's starting ticks are set at the
-  // moment the scan becomes ready, from the API's per-domain verdicts —
-  // an event, not an effect on derived state.
+  // Poll while a scan runs; the review mounts when the scan is ready and
+  // takes its starting ticks from the API's per-domain verdicts then.
   useEffect(() => {
     if (step !== "scanning" || !scan) return;
     const id = window.setInterval(async () => {
       const fresh = await pollImportAction(scan.id);
       if (!fresh) return;
       setScan(fresh);
-      if (fresh.status === "ready") {
-        setTicked(defaultTicks(fresh));
-        setStep("review");
-      }
+      if (fresh.status === "ready") setStep("review");
       if (fresh.status === "failed" || fresh.status === "cancelled" || fresh.status === "expired") setStep("source");
     }, 3000);
     return () => window.clearInterval(id);
@@ -162,30 +146,14 @@ export function MailboxImportWizard({
     });
   };
 
-  const applyOnly = () => {
-    const wanted = only.toLowerCase().split(/[\s,;]+/).map((d) => d.trim()).filter(Boolean);
-    if (wanted.length === 0 || !analysis) return;
-    setTicked(new Set(analysis.domains
-      .filter((d) => wanted.some((w) => d.domain === w || d.domain.endsWith("." + w)))
-      .map((d) => d.domain)));
-  };
-
-  const willImport = useMemo(() => {
-    if (!analysis) return 0;
-    return analysis.domains
-      .filter((d) => ticked.has(d.domain))
-      .reduce((n, d) => n + d.valid - (includeRoles ? 0 : d.role), 0);
-  }, [analysis, ticked, includeRoles]);
-
-  const commit = () => {
+  const commit = ({ domains, includeRoles, groupIds }: ReviewDecision) => {
     if (!scan || !analysis) return;
     setError(null);
     start(async () => {
       const result = await runImportAction({
         import_id: scan.id,
-        mapping: analysis.mapping,
         group_ids: groupIds,
-        domains: Array.from(ticked),
+        domains,
         include_roles: includeRoles,
       });
       if (result.error || !result.tally) {
@@ -226,143 +194,29 @@ export function MailboxImportWizard({
 
   // ---------------------------------------------------------------- review
   if (step === "review" && scan && analysis) {
-    const counts = analysis.counts;
-
     return (
-      <div className="grid gap-5">
-        {error && <Alert tone="err" title="That did not work">{error}</Alert>}
-
-        <Alert tone="info" title={`${scan.filename} — read`} dismissible={false}>
-          {counts.total.toLocaleString("en-IN")} addresses were found. The mailbox has been let go of; the result
-          below is kept for a day and then discarded if it is not imported.
-        </Alert>
-
-        {analysis.capped && (
-          <Alert tone="warn" title="The scan stopped taking new addresses at 50,000" dismissible={false}>
-            The addresses it had by then are below. Narrow the date range to get the rest in a second scan.
+      <ImportReview
+        analysis={analysis}
+        groups={groups}
+        busy={busy}
+        error={error}
+        discardLabel="Discard this scan"
+        rolesByDefault={false}
+        rolesHint="Nobody reads those."
+        onCommit={commit}
+        onDiscard={discard}
+        intro={<>
+          <Alert tone="info" title={`${scan.filename} — read`} dismissible={false}>
+            {analysis.counts.total.toLocaleString("en-IN")} addresses were found. The mailbox has been let go of; the result
+            below is kept for a day and then discarded if it is not imported.
           </Alert>
-        )}
-
-        <dl className="grid gap-1 rounded-lg border border-line-strong bg-card p-3.5 text-13 sm:max-w-md">
-          <Count label="Addresses found" value={counts.total} />
-          <Count label="Would be added" value={counts.valid} strong />
-          <Count label="Already on the list" value={counts.already_subscribed} />
-          <Count label="Previously unsubscribed" value={counts.suppressed} />
-          <Count label="Not a valid address" value={counts.invalid} />
-          <Count label="Role addresses (noreply@, postmaster@ …)" value={analysis.roles.addresses} />
-        </dl>
-
-        <section>
-          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-13 font-semibold">Domains</h2>
-            <p className="text-12-5 text-muted">
-              <button type="button" className="font-semibold text-brand-ink hover:underline" onClick={() => setTicked(new Set(analysis.domains.map((d) => d.domain)))}>All</button>
-              {" · "}
-              <button type="button" className="font-semibold text-brand-ink hover:underline" onClick={() => setTicked(new Set())}>None</button>
-              {" · "}
-              <button type="button" className="font-semibold text-brand-ink hover:underline" onClick={() => setTicked(new Set(analysis.domains.filter((d) => d.default).map((d) => d.domain)))}>Suggested</button>
-            </p>
-          </div>
-          <p className="measure mb-3 text-12-5 text-muted">
-            Your own domains and sending infrastructure start unticked. Untick anything else you would rather not mail.
-          </p>
-
-          <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-            <table className="admin-table w-full min-w-[520px] text-13">
-              <thead>
-                <tr className="border-b border-line text-left text-11 uppercase tracking-[.05em] text-muted">
-                  <th scope="col" className="w-8 px-3 py-2"><span className="sr-only">Include</span></th>
-                  <th scope="col" className="px-3 py-2">Domain</th>
-                  <th scope="col" className="px-3 py-2 text-right">Addresses</th>
-                  <th scope="col" className="px-3 py-2 text-right">Would add</th>
-                  <th scope="col" className="px-3 py-2">Sample</th>
-                </tr>
-              </thead>
-              <tbody>
-                {analysis.domains.map((d) => (
-                  <tr key={d.domain} className="border-b border-line last:border-0">
-                    <td data-label="Include" className="px-3 py-1.5">
-                      <input
-                        type="checkbox" className="size-4 accent-brand-600"
-                        aria-label={`Include ${d.domain}`}
-                        checked={ticked.has(d.domain)}
-                        onChange={(e) => {
-                          const next = new Set(ticked);
-                          if (e.target.checked) next.add(d.domain); else next.delete(d.domain);
-                          setTicked(next);
-                        }}
-                      />
-                    </td>
-                    <td data-label="Domain" className="px-3 py-1.5">
-                      <span className="font-mono text-12-5">{d.domain}</span>
-                      {d.kind === "own" && <Badge tone="brand" dot={false} className="ml-2">your domain</Badge>}
-                      {d.kind === "machine" && <Badge tone="closed" dot={false} className="ml-2">machine</Badge>}
-                    </td>
-                    <td data-label="Addresses" className="px-3 py-1.5 text-right tabular-nums">{d.addresses.toLocaleString("en-IN")}</td>
-                    <td data-label="Would add" className="px-3 py-1.5 text-right tabular-nums">{d.valid.toLocaleString("en-IN")}</td>
-                    <td data-label="Sample" className="max-w-[28ch] truncate px-3 py-1.5 font-mono text-12 text-muted" title={d.sample.join(", ")}>
-                      {d.sample.join(", ")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-end gap-3">
-            <div className="min-w-0 flex-1 sm:max-w-[28rem]">
-              <Field label="Only these domains" htmlFor="only-domains" className="mb-0"
-                hint="Type domains separated by spaces or commas and press Apply: exactly those are ticked. A domain covers its subdomains.">
-                <Textarea id="only-domains" rows={2} value={only} onChange={(e) => setOnly(e.target.value)} placeholder="client.example, partner.example" />
-              </Field>
-            </div>
-            <Button type="button" variant="secondary" size="sm" onClick={applyOnly} className="mb-[18px]">Apply</Button>
-          </div>
-
-          <label className="mt-2 flex items-start gap-2 text-13">
-            <input type="checkbox" className="mt-0.5 size-4 accent-brand-600" checked={includeRoles} onChange={(e) => setIncludeRoles(e.target.checked)} />
-            <span>
-              Include role addresses — noreply@, postmaster@, notifications@ and the like
-              {analysis.roles.addresses > 0 && (
-                <span className="block text-12-5 text-muted">
-                  {analysis.roles.addresses.toLocaleString("en-IN")} found, for example {analysis.roles.sample.slice(0, 3).join(", ")}. Nobody reads those.
-                </span>
-              )}
-            </span>
-          </label>
-        </section>
-
-        <section>
-          <h2 className="mb-1.5 text-13 font-semibold">Put them in</h2>
-          {groups.length === 0 ? (
-            <p className="measure text-13 text-muted">
-              No groups yet. They will be imported without one —{" "}
-              <Link href="/admin/newsletter/groups" className="font-semibold text-brand-ink underline">create a group</Link>{" "}
-              first if you want to send to them as a set.
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-              {groups.map((g) => (
-                <label key={g.id} className="flex items-center gap-1.5 text-13">
-                  <input
-                    type="checkbox"
-                    checked={groupIds.includes(g.id)}
-                    onChange={(e) => setGroupIds(e.target.checked ? [...groupIds, g.id] : groupIds.filter((id) => id !== g.id))}
-                  />
-                  {g.name}
-                </label>
-              ))}
-            </div>
+          {analysis.capped && (
+            <Alert tone="warn" title="The scan stopped taking new addresses at 50,000" dismissible={false}>
+              The addresses it had by then are below. Narrow the date range to get the rest in a second scan.
+            </Alert>
           )}
-        </section>
-
-        <div className="flex flex-wrap gap-2 border-t border-line pt-4">
-          <Button type="button" onClick={commit} disabled={busy || willImport === 0}>
-            {busy ? "Importing…" : `Import ${willImport.toLocaleString("en-IN")} subscriber${willImport === 1 ? "" : "s"}`}
-          </Button>
-          <Button type="button" variant="secondary" onClick={discard} disabled={busy}>Discard this scan</Button>
-        </div>
-      </div>
+        </>}
+      />
     );
   }
 

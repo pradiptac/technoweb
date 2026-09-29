@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { getForm } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
+import { siteUrl } from "@/lib/site-url";
 import { noIndex } from "@/lib/no-index";
 import { FormForm } from "../form-form";
 import { deleteFormAction } from "../actions";
@@ -45,7 +46,7 @@ export default async function EditFormPage({
         </Link>
       </PageHeader>
 
-      <FormForm form={form} saved={Boolean(saved)} />
+      <FormForm form={form} saved={Boolean(saved)} site={siteUrl()} />
 
       {/* Outside the form: a nested form is invalid markup and browsers drop
           one of the two. */}

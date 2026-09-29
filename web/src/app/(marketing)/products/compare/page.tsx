@@ -12,6 +12,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { COMPARE_MAX } from "@/lib/compare-max";
 import type { Product } from "@/types/api";
+import { brandName } from "@/lib/brand";
 
 /**
  * Hardware side by side: `?p=slug,slug,slug`, up to four.
@@ -32,7 +33,7 @@ import type { Product } from "@/types/api";
  */
 export const metadata = buildMetadata({
   title: "Compare products",
-  description: "Hardware from the Technoware catalogue, side by side.",
+  description: `Hardware from the ${brandName()} catalogue, side by side.`,
   path: "/products/compare",
   seo: noIndex,
 });

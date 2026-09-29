@@ -7,6 +7,8 @@ import { ToastProvider } from "@/components/ui/toast";
 import { ToastFromParams } from "@/components/ui/toast-from-params";
 import { getCurrentCustomer, isImpersonated } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/settings";
+import { portalEnabled } from "@/lib/site-settings";
+import { PortalClosed } from "@/components/portal/portal-closed";
 import { motionAttrs, motionFor } from "@/lib/motion-choices";
 import { PageEnter } from "@/components/ui/page-enter";
 import { RouteProgress } from "@/components/ui/route-progress";
@@ -17,6 +19,7 @@ import { knowledgeBaseIcon, portalLinks } from "./portal-links";
 import { Button } from "@/components/ui/button";
 import { PushBell } from "@/components/push/push-bell";
 import { pushConfigFrom } from "@/lib/push";
+import { brandName } from "@/lib/brand";
 
 /**
  * Every route under this layout requires a session. The login page sits
@@ -24,6 +27,16 @@ import { pushConfigFrom } from "@/lib/push";
  * to itself forever.
  */
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
+  // For the footer's company name, and the switch below. ISR-cached and
+  // shared with every other read of it, so this costs a revalidation rather
+  // than a round trip.
+  const settings = await getSiteSettings();
+
+  // The portal switched off (`portal_enabled`): the API refuses every route
+  // under here with `portal_disabled`, so say so rather than redirecting to
+  // a sign-in form that would only refuse too.
+  if (!portalEnabled(settings)) return <PortalClosed settings={settings} />;
+
   const customer = await getCurrentCustomer();
 
   if (!customer) redirect("/portal/login");
@@ -31,9 +44,6 @@ export default async function PortalLayout({ children }: { children: React.React
   // A staff member's "View as" session — the same cached `/auth/me` read.
   const impersonated = await isImpersonated();
 
-  // For the footer's company name. ISR-cached and shared with every other
-  // read of it, so this costs a revalidation rather than a round trip.
-  const settings = await getSiteSettings();
   // The Motion settings apply to the portal as to the public site — a
   // customer sees one product — and are stamped on this wrapper for the
   // reason the marketing layout gives. The splash is not here: a splash
@@ -98,7 +108,7 @@ export default async function PortalLayout({ children }: { children: React.React
         <footer className="mt-auto border-t border-line py-3.5">
           <Container>
             <CreditLine
-              companyName={settings.company_name ?? "Technoware"}
+              companyName={settings.company_name ?? brandName()}
               className="text-center text-12-5 text-faint"
               linkClassName="font-medium text-muted hover:text-ink hover:underline"
             />

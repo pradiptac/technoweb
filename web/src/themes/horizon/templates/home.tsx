@@ -2,7 +2,7 @@ import { homeBlockSections } from "@/components/blocks/home-block-sections";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  CaseStudies, Credentials, Industries, Partners, ProductCategories, Resources, TrustedBy,
+  CaseStudies, Credentials, Industries, Partners, ProductCategories, Resources, Services, TrustedBy,
 } from "@/components/home/sections";
 import { Reviews } from "@/components/home/reviews";
 import { EnquiryForm } from "@/components/forms/enquiry-form";
@@ -39,7 +39,7 @@ import { orderSections, type ThemeOptions } from "@/themes/options";
  * lead-capture block — above the closing band.
  */
 export function Home({
-  settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
+  settings, solutions, categories, industries, services: allServices, serviceCategories, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
 }: HomeData & { options: ThemeOptions }) {
   const stats = statPairs(settings.hero_stats, heroStats);
   const look = statLookFor(settings);
@@ -161,18 +161,20 @@ export function Home({
   const SECTIONS = [
     { id: "hero", node: hero },
     { id: "solutions", node: services },
+    // The services by category, under an id of their own: `web` here is the why-block.
+    { id: "services", node: <Services services={allServices.data} categories={serviceCategories.data} kicker="Service catalogue" title="Every service, by category." /> },
     // The slots keep their ids for the console's rows; what each carries here:
     // `why` the statistics band, `web` the why-choose-us block, `support` the enquiry form.
     { id: "why", node: band },
     { id: "clients", node: <TrustedBy items={clients.data} mode="spotlight" /> },
     { id: "web", node: why },
-    { id: "cases", node: <CaseStudies items={caseStudies.data.slice(0, 2)} /> },
+    { id: "cases", node: <CaseStudies items={caseStudies.data.slice(0, 6)} /> },
     { id: "credentials", node: <Credentials items={certifications.data} /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
     { id: "partners", node: <Partners items={brands.data} mode="drift" /> },
     { id: "categories", node: <ProductCategories items={categories.data.slice(0, 8)} /> },
     { id: "industries", node: <Industries items={industries.data.slice(0, 6)} /> },
-    { id: "resources", node: <Resources items={posts.data.slice(0, 3)} /> },
+    { id: "resources", node: <Resources items={posts.data.slice(0, 4)} /> },
     { id: "support", node: enquiry },
     ...homeBlockSections(blocks),
     { id: "cta", node: <CtaBand tone="brand" className="pt-0" /> },

@@ -106,7 +106,12 @@ function StripLink({
         // on hover with the text still in its own colour on top of it.
         active
           ? cn("border-(--pill-fill) bg-(--pill-fill)", onFill)
-          : cn("border-(--pill-line) bg-card text-(--pill-colour) hover:border-(--pill-fill) hover:bg-(--pill-fill)", hue ? "hover:text-white" : "hover:text-brand-on"),
+          // `bg-(--color-card)`, never `bg-card`: the public site's card-ground
+          // rule keys on that class and paints a gradient *image* over it, so
+          // the hover fill below — a background-color — sat under the card's
+          // white, with the text turned white on top (reported on Summit).
+          // A pill is a control, not a card.
+          : cn("border-(--pill-line) bg-(--color-card) text-(--pill-colour) hover:border-(--pill-fill) hover:bg-(--pill-fill)", hue ? "hover:text-white" : "hover:text-brand-on"),
       )}
       style={{ "--pill-colour": colour, "--pill-fill": fill, "--pill-line": `color-mix(in srgb, ${colour} 45%, transparent)` } as CSSProperties}
     >

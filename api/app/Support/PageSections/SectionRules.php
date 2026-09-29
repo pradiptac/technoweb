@@ -22,7 +22,7 @@ use Illuminate\Validation\Validator;
  * What a builder page's sections may hold (2026-09-26, `docs/page-builder.md`).
  *
  * `pages.blocks` is a **list** of sections, each
- * `{id, type, hidden, background, data}`. The list is validated at the depth
+ * `{id, type, hidden, background, reveal, data}`. The list is validated at the depth
  * submitted — `forPayload()` reads each row's `type` and adds that type's own
  * rules under `blocks.N.data.` — so an error comes back keyed where the
  * console's field is (`blocks.3.data.heading`) and every type validates
@@ -80,6 +80,10 @@ final class SectionRules
             "{$prefix}.*.type" => ['required', 'string', Rule::enum(PageSectionType::class)],
             "{$prefix}.*.hidden" => ['sometimes', 'boolean'],
             "{$prefix}.*.background" => ['nullable', 'array'],
+            // How the section arrives on scroll: an id from the frontend's
+            // `SECTION_REVEALS`, checked for shape only — the rule every
+            // `motion_*` id follows, since the list lives with the CSS.
+            "{$prefix}.*.reveal" => ['nullable', 'string', 'regex:'.ThemeOptions::REVEAL],
             "{$prefix}.*.data" => ['present', 'array'],
         ];
 
@@ -467,11 +471,22 @@ final class SectionRules
                 'type' => $type->value,
                 'hidden' => filter_var($block['hidden'] ?? false, FILTER_VALIDATE_BOOLEAN),
                 'background' => $background ?: null,
+                // `default` is what the section does on its own, so it is
+                // never stored: absent and `default` are one answer.
+                'reveal' => self::reveal($block['reveal'] ?? null),
                 'data' => (object) $data,
             ];
         }
 
         return $out;
+    }
+
+    /** A stored reveal id, or null for the section's own default. */
+    public static function reveal(mixed $reveal): ?string
+    {
+        return is_string($reveal) && $reveal !== 'default' && preg_match(ThemeOptions::REVEAL, $reveal)
+            ? $reveal
+            : null;
     }
 
     /**

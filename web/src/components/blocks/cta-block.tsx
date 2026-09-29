@@ -100,7 +100,9 @@ function Words({ c, align = "center" }: { c: CtaContent; align?: "center" | "lef
 
 function Buttons({ c, phone, align = "center" }: { c: CtaContent; phone: string; align?: "center" | "left" }) {
   const second = secondaryFor(c);
-  if (!c.primary?.href && second === null) return null;
+  // No number on file makes the default "Call" button no button at all.
+  const noSecond = second === null || (second === undefined && !phone);
+  if (!c.primary?.href && noSecond) return null;
   return (
     <div className={cn("mt-7 flex flex-wrap gap-3", align === "center" && "justify-center")}>
       {c.primary?.href && (
@@ -109,7 +111,7 @@ function Buttons({ c, phone, align = "center" }: { c: CtaContent; phone: string;
         </ButtonLink>
       )}
       {second === undefined ? (
-        <ButtonLink href={telHref(phone)} variant="onDarkOutline" className="border-white/25 text-white">Call {phone}</ButtonLink>
+        phone ? <ButtonLink href={telHref(phone)} variant="onDarkOutline" className="border-white/25 text-white">Call {phone}</ButtonLink> : null
       ) : second ? (
         <ButtonLink href={second.href} variant="onDarkOutline" className="border-white/25 text-white">{second.label}</ButtonLink>
       ) : null}

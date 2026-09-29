@@ -1,11 +1,12 @@
 import { loadHome } from "@/lib/home-data";
 import { buildMetadata } from "@/lib/seo";
 import { activeTheme } from "@/themes";
+import { brandName } from "@/lib/brand";
 
 export const metadata = buildMetadata({
   title: "Technology infrastructure that keeps your business connected",
   description:
-    "Technoware designs, deploys and supports enterprise networks, servers, storage and security infrastructure across India — backed by a real engineering support desk.",
+    `${brandName()} designs, deploys and supports enterprise networks, servers, storage and security infrastructure across India — backed by a real engineering support desk.`,
   path: "/",
 });
 

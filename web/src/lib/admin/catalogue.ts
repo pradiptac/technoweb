@@ -2,7 +2,7 @@ import "server-only";
 import { apiFetch } from "@/lib/api";
 import { token } from "./_shared";
 import type {
-  AdminBrand, AdminIndustry, AdminProductCategory, AdminProduct, AdminService, AdminSolution, AnswerBlock, FaqItem, Paginated, PublishStatus, SeoOverride,
+  AdminBrand, AdminIndustry, AdminProductCategory, AdminProduct, AdminService, AdminServiceCategory, AdminSolution, AnswerBlock, FaqItem, Paginated, PublishStatus, SeoOverride,
 } from "@/types/api";
 
 /**
@@ -115,12 +115,27 @@ export type ServicePayload = Partial<{
   icon: string | null; status: PublishStatus; sort_order: number | null;
   faqs: FaqItem[]; answer_blocks: AnswerBlock[]; seo: Partial<SeoOverride>;
   show_in_menu: boolean;
+  /** Null files it under "Other services". */
+  service_category_id: number | null;
+  /** A media-library path, or null for no picture. */
+  image_path: string | null;
+  /** The chips on its card, replaced wholesale; [] clears them. */
+  highlights: string[];
 }>;
 
-export async function getServices(params: { status?: PublishStatus; q?: string; page?: number; per_page?: number } = {}) {
+export async function getServices(params: {
+  status?: PublishStatus; q?: string; page?: number; per_page?: number;
+  /** A category id, or `none` for the uncategorised. */
+  category?: string;
+  /** `title`, `category`, `status`, `order` or `updated` (the API's `ListSort` allowlist), and `asc`/`desc`. */
+  sort?: string; dir?: string;
+} = {}) {
   const query = new URLSearchParams();
   if (params.status) query.set("status", params.status);
   if (params.q) query.set("q", params.q);
+  if (params.category) query.set("category", params.category);
+  if (params.sort) query.set("sort", params.sort);
+  if (params.dir) query.set("dir", params.dir);
   if (params.page) query.set("page", String(params.page));
   if (params.per_page) query.set("per_page", String(params.per_page));
   const qs = query.toString();
@@ -144,6 +159,46 @@ export async function updateService(id: number, payload: ServicePayload): Promis
 
 export async function deleteService(id: number): Promise<void> {
   await apiFetch<void>(`/admin/services/${id}`, { method: "DELETE", token: await token() });
+}
+
+export type ServiceCategoryPayload = Partial<{
+  name: string; slug: string | null; description: string | null; icon: string | null;
+  sort_order: number | null; image_background: boolean; is_active: boolean;
+}>;
+
+export async function getServiceCategoryList(params: { q?: string; active?: string; page?: number; per_page?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.active) query.set("active", params.active);
+  if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
+  const qs = query.toString();
+  return apiFetch<Paginated<AdminServiceCategory>>(`/admin/service-categories${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+/** Every service category, for the service form's select and the list's filter. */
+export async function getServiceCategoryOptions(): Promise<{ id: number; name: string }[]> {
+  const res = await apiFetch<Paginated<AdminServiceCategory>>("/admin/service-categories?per_page=100", { token: await token() });
+  return res.data.map((c) => ({ id: c.id, name: c.is_active ? c.name : `${c.name} (hidden)` }));
+}
+
+export async function getServiceCategory(id: number): Promise<AdminServiceCategory> {
+  const res = await apiFetch<{ data: AdminServiceCategory }>(`/admin/service-categories/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createServiceCategory(payload: ServiceCategoryPayload): Promise<AdminServiceCategory> {
+  const res = await apiFetch<{ data: AdminServiceCategory }>("/admin/service-categories", { method: "POST", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function updateServiceCategory(id: number, payload: ServiceCategoryPayload): Promise<AdminServiceCategory> {
+  const res = await apiFetch<{ data: AdminServiceCategory }>(`/admin/service-categories/${id}`, { method: "PATCH", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function deleteServiceCategory(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/service-categories/${id}`, { method: "DELETE", token: await token() });
 }
 
 export type IndustryPayload = Partial<{

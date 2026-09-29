@@ -36,7 +36,11 @@ function subscribe(cb: () => void) {
  * Read through `useSyncExternalStore` with a null server snapshot, so the
  * pre-hydration render never assumes a vote — the consent banner's rule.
  */
-export function HelpfulVote({ slug, title }: { slug: string; title: string }) {
+export function HelpfulVote({ slug, ticketHref }: {
+  slug: string;
+  /** Where a "no" is sent — the portal's ticket form, or the contact form while the portal is off (`ticketHref()`). */
+  ticketHref: string;
+}) {
   const already = useSyncExternalStore(subscribe, () => voted().has(slug), () => false);
   const [done, setDone] = useState<"yes" | "no" | null>(null);
 
@@ -55,7 +59,8 @@ export function HelpfulVote({ slug, title }: { slug: string; title: string }) {
     }).catch(() => undefined);
   };
 
-  const ticket = `/portal/tickets/new?subject=${encodeURIComponent(title)}`;
+  const ticket = ticketHref;
+  const raise = ticket.startsWith("/portal") ? "Raise a ticket" : "Get in touch";
 
   return (
     <div className="mt-10 flex flex-wrap items-center gap-3 rounded-xl border border-line-strong bg-card px-5 py-4" aria-live="polite">
@@ -66,7 +71,7 @@ export function HelpfulVote({ slug, title }: { slug: string; title: string }) {
         </p>
       ) : done === "no" ? (
         <p className="text-14 text-muted">
-          Sorry it did not. <a href={ticket} className="font-semibold text-brand-ink underline underline-offset-2">Raise a ticket</a> and an engineer will pick it up.
+          Sorry it did not. <a href={ticket} className="font-semibold text-brand-ink underline underline-offset-2">{raise}</a> and an engineer will pick it up.
         </p>
       ) : (
         <>

@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Enums\SignInAudience;
 use App\Notifications\Concerns\Templated;
+use App\Support\Mail\MailBrand;
 use App\Support\SignInCodes;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -65,8 +66,8 @@ class SignInCodeIssued extends Notification
         return [
             'code' => $this->code,
             'where' => $this->audience === SignInAudience::Admin
-                ? 'the Technoware admin console'
-                : 'the Technoware support portal',
+                ? 'the '.MailBrand::name().' admin console'
+                : 'the '.MailBrand::name().' support portal',
             'minutes' => (string) SignInCodes::TTL_MINUTES,
         ];
     }
@@ -74,8 +75,8 @@ class SignInCodeIssued extends Notification
     protected function defaultMail(object $notifiable): MailMessage
     {
         $where = $this->audience === SignInAudience::Admin
-            ? 'the Technoware admin console'
-            : 'the Technoware support portal';
+            ? 'the '.MailBrand::name().' admin console'
+            : 'the '.MailBrand::name().' support portal';
 
         return (new MailMessage)
             ->subject('Your sign-in code: '.$this->code)
@@ -96,6 +97,6 @@ class SignInCodeIssued extends Notification
              * the person it concerns.
              */
             ->line('If you did not ask to sign in, ignore this email — nobody can use the code without it, and it will expire on its own. If codes keep arriving, tell us.')
-            ->salutation('— Technoware');
+            ->salutation(MailBrand::signoff());
     }
 }

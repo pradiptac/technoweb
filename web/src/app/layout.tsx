@@ -5,16 +5,19 @@ import { themeFor } from "@/lib/presets";
 import { motionFor } from "@/lib/motion-choices";
 import { announcementFor } from "@/lib/announcement";
 import { Reveal } from "@/components/ui/reveal";
+import { FullRows } from "@/components/ui/full-rows";
 import { SchemeSync } from "@/components/ui/scheme-sync";
 import { SITE } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
 import "./globals.css";
 
-const metadata: Metadata = {
+// Built per call rather than at module load: the origin and the company are
+// runtime configuration (`lib/site-url.ts`, `lib/brand.ts`).
+const baseMetadata = (): Metadata => ({
   metadataBase: new URL(SITE.url),
   title: {
-    default: "Technoware — Technology infrastructure that keeps your business connected",
-    template: "%s | Technoware",
+    default: `${SITE.name} — Technology infrastructure that keeps your business connected`,
+    template: `%s | ${SITE.name}`,
   },
   description: SITE.description,
   applicationName: SITE.name,
@@ -22,7 +25,7 @@ const metadata: Metadata = {
   openGraph: { type: "website", siteName: SITE.name, locale: SITE.locale, url: SITE.url },
   twitter: { card: "summary_large_image" },
   robots: { index: true, follow: true },
-};
+});
 
 /**
  * The favicon comes from Settings when one is uploaded.
@@ -33,6 +36,7 @@ const metadata: Metadata = {
  */
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
+  const metadata = baseMetadata();
 
   return settings.favicon_url
     ? { ...metadata, icons: { icon: settings.favicon_url, shortcut: settings.favicon_url, apple: settings.favicon_url } }
@@ -176,6 +180,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* Renders nothing — owns the scroll-reveal observer. A no-op on
             trees with no data-aos attributes (portal, admin). */}
         <Reveal />
+        <FullRows />
         {/* Renders nothing — re-applies the right area's scheme when a
             client-side navigation crosses between the console and the site. */}
         <SchemeSync />

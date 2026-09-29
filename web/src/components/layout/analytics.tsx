@@ -6,8 +6,8 @@ import { useConsent } from "@/lib/consent";
 import type { SiteSettings } from "@/lib/site-settings";
 
 /** Paths whose URL is, or once was, a key. The one list; `next.config.ts`
- *  sends `Referrer-Policy: no-referrer` on the same three. */
-const SECRET_PATHS = ["/order/", "/newsletter/unsubscribe/", "/store/notify/cancel/"];
+ *  sends `Referrer-Policy: no-referrer` on the same four. */
+const SECRET_PATHS = ["/order/", "/newsletter/unsubscribe/", "/newsletter/rejoin/", "/store/notify/cancel/", "/meeting/"];
 
 /**
  * The URL GA4 is told, built in the page: origin, path, and only the
@@ -48,16 +48,17 @@ const PAGE_LOCATION = "(function(){var u=new URL(location.href),k=new URLSearchP
  * localStorage and the server cannot know it.
  *
  * **Not on a page a secret addresses** (2026-09-26). An order page, a
- * newsletter unsubscribe and a back-in-stock cancel are each reached by a
- * link whose token is the key, and both tags report the page's URL. The order
- * page no longer carries its token in the address (`lib/order-access.ts`), the
- * other two carry theirs in the path — so none of the three loads a tag at
+ * newsletter unsubscribe, a newsletter rejoin (2026-09-28) and a back-in-stock
+ * cancel are each reached by a link whose token is the key, and both tags
+ * report the page's URL. The order page no longer carries its token in the
+ * address (`lib/order-access.ts`), the other three carry theirs in the path —
+ * so none of the four loads a tag at
  * all, and `page_location` everywhere else is the origin and path plus the
  * campaign parameters GA attributes with, never the whole query string (a
  * search term, a filter, whatever a future link puts there). A tag loaded
  * earlier in the visit stays loaded across a client-side navigation, and the
  * checkout's redirect to its order is one — which is safe only because that
- * address carries nothing secret any more. Unsubscribe and cancel are reached
+ * address carries nothing secret any more. Unsubscribe, rejoin and cancel are reached
  * from email, never from a link on the site.
  */
 export function Analytics({ settings }: { settings: SiteSettings }) {

@@ -11,6 +11,7 @@ use App\Http\Resources\IndustryResource;
 use App\Http\Resources\KnowledgeArticleResource;
 use App\Http\Resources\PageResource;
 use App\Http\Resources\PageSummaryResource;
+use App\Http\Resources\ServiceCategoryResource;
 use App\Http\Resources\ServiceResource;
 use App\Http\Resources\SolutionResource;
 use App\Models\BlogCategory;
@@ -20,6 +21,7 @@ use App\Models\Industry;
 use App\Models\KnowledgeArticle;
 use App\Models\Page;
 use App\Models\Service;
+use App\Models\ServiceCategory;
 use App\Models\Solution;
 use App\Models\TicketCategory;
 use App\Support\EntityLinks;
@@ -69,7 +71,7 @@ class ContentController extends Controller
     public function services(Request $request): AnonymousResourceCollection
     {
         return ServiceResource::collection(
-            Service::published()->with('seo')
+            Service::published()->with(['seo', 'category'])
                 ->when($request->boolean('in_menu'), fn ($q) => $q->where('show_in_menu', true))
                 ->orderBy('sort_order')->get()
         );
@@ -79,10 +81,20 @@ class ContentController extends Controller
     {
         abort_unless($service->status?->value === 'published', 404);
 
-        $service->load(['faqs', 'publishedAnswerBlocks', 'seo', 'locations', 'customValues.field.group']);
+        $service->load(['category', 'faqs', 'publishedAnswerBlocks', 'seo', 'locations', 'customValues.field.group']);
         EntityLinks::attach($service);
 
         return (new ServiceResource($service))->withSchema();
+    }
+
+    /**
+     * The tabs the Services section groups by: active categories, in the
+     * order an editor set. A plain collection, like the services themselves;
+     * a category with no published service is the frontend's to hide.
+     */
+    public function serviceCategories(): AnonymousResourceCollection
+    {
+        return ServiceCategoryResource::collection(ServiceCategory::active()->ordered()->get());
     }
 
     public function industries(Request $request): AnonymousResourceCollection

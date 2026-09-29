@@ -1,7 +1,8 @@
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { NotFoundContent } from "@/components/layout/not-found-content";
-import { defaultTopBar, getMegaMenu } from "@/lib/navigation";
+import { defaultTopBar, getMegaMenu, navWithoutPortal } from "@/lib/navigation";
+import { portalEnabled } from "@/lib/site-settings";
 import { getSiteSettings } from "@/lib/settings";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -26,14 +27,18 @@ export const metadata = buildMetadata({
  */
 export default async function NotFound() {
   const [menu, settings] = await Promise.all([getMegaMenu(), getSiteSettings()]);
+  // With the portal switched off its links leave the built-in lists here too.
+  const nav = portalEnabled(settings)
+    ? null
+    : navWithoutPortal({ primary: null, footerMenu: null, topBar: null, bottomBar: null });
 
   return (
     <>
-      <SiteHeader menu={menu} settings={settings} topBar={defaultTopBar()} />
+      <SiteHeader menu={menu} settings={settings} topBar={nav?.topBar ?? defaultTopBar()} />
       <main id="main">
         <NotFoundContent />
       </main>
-      <SiteFooter settings={settings} />
+      <SiteFooter settings={settings} columns={nav?.footerMenu} />
     </>
   );
 }

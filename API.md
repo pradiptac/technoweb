@@ -182,9 +182,11 @@ claimed an operator could read it.
 ### Roles
 
 `admin`, `support_engineer`, `content_manager`, `seo_manager`,
-`campaign_manager`. **An `admin`
-passes every role check implicitly**, so a route only ever declares the
-specific role it needs.
+`campaign_manager`, `store_manager`, `sales_manager`, `meeting_host`. **An
+`admin` passes every role check implicitly**, so a route only ever declares
+the specific role it needs. The one exception is `meeting_host`: being
+*offered to customers* as a host needs the role on the account itself, and
+the implicit pass does not count (see "Online meetings").
 
 ### Self-registration
 
@@ -249,6 +251,15 @@ would otherwise turn the support inbox into a spam folder.
 group, because a toggle the site cannot read is a toggle that does nothing —
 which is exactly what `portal_enabled` was until this feature gave it a reader.
 
+**`portal_enabled` closes the whole portal** (2026-09-29, middleware
+`portal`, `EnsurePortalEnabled`). Off, every customer-principal route — the
+eight public `/auth/*` routes a customer signs in, registers or recovers
+through, and everything behind `customer` — answers **403** with `reason:
+portal_disabled`, so a token issued before the switch stops working with it.
+Staff routes are untouched. Guest checkout (which still creates the buyer's
+account), a guest visit or meeting request, the wishlist and the chat are
+not portal sign-ins and stay open. Unset means open, the seeded default.
+
 ---
 
 ## Public endpoints
@@ -279,8 +290,9 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `POST` | `/careers/{slug}/apply` | multipart. Throttled 5/min, honeypot `website`, CV required |
 | `GET` | `/solutions` | Plain collection. `?in_menu=1` narrows it to the mega menu's items |
 | `GET` | `/solutions/{slug}` | Includes benefits, technologies, related products, industries, FAQs |
-| `GET` | `/services` | Plain collection. `?in_menu=1` as above |
-| `GET` | `/services/{slug}` | |
+| `GET` | `/services` | Plain collection. `?in_menu=1` as above. Each carries `category {id, name, slug}` (null when in none), `image`, `image_alt`, `image_focus`, and `highlights` — the chips on its card, a list of strings, `[]` when none |
+| `GET` | `/services/{slug}` | The same two additions |
+| `GET` | `/service-categories` | Active service categories in order: `{id, name, slug, description, icon, image_background}`. Plain collection; a category with no published service is the frontend's to hide |
 | `GET` | `/industries` | Plain collection. `?in_menu=1` as above |
 | `GET` | `/industries/{slug}` | |
 | `GET` | `/blog` | Paginated, published only, newest first. `?q=`, `?category=`, `?year=`, `?month=`, `?order=oldest` |
@@ -927,6 +939,88 @@ on the import row or in a job payload. Every request to the site — and to
 its upload URLs — goes through `SafeHttp`: public addresses, pinned, at most
 three redirects checked hop by hop, credentials never sent to another host.
 
+## Backups (`role:admin`)
+
+The database and the uploaded files, full and incremental, to S3 /
+S3-compatible, Google Drive and SFTP / FTPS / FTP, and restores (2026-09-27).
+See `docs/backups.md`. **These paths stay open during a restore**; every
+other API route answers **503** with `{message, restoring: true}` and
+`Retry-After: 60` while one replaces the database (`EnsureNotRestoring`), bar
+`admin/auth/*`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/backups` | The last sixty, newest first (a row: `folder`, `type` full/incremental, `trigger` schedule/manual/pre_restore, `status`, `includes`, byte counts, `file_count`, `deleted_count`, `destinations[]` `{key, label, status, bytes_sent, bytes, error}`, `local`, `restorable_from[]`). `meta`: `running`, `restore` (the latest), `restoring`, `last_success`, `next_run`, `schedule`, `includes`, `destinations[]` `{key, label, enabled, configured, error, detail}`, `error` (`backup_error`), `scheduler`, `dumper` `{chosen, binary}`, `disk_free`, `code_schema` |
+| `POST` | `/admin/backups` | `type` of `full` or `incremental`. **202**; the worker picks it up within the minute. 422 on `type` when the scheduler is not running, a backup or restore is in flight, or the staging disk has under 1.2× the estimate. Throttled 6/min |
+| `GET` | `/admin/backups/{id}` | Adds `files[]` `{name, size, sha256}` and `chain[]` |
+| `DELETE` | `/admin/backups/{id}` | A running backup is **cancelled** (200). A finished one is deleted from every destination and this server (204) — 422 while a newer incremental builds on it |
+| `GET` | `/admin/backups/{id}/download/{file}` | A file the server still holds, as `<folder>-<file>`. 404 once its staging copy has gone |
+| `POST` | `/admin/backups/destinations/{s3\|gdrive\|ftp}/test` | Write, read back and delete a small file with what is saved: `{message}`, or 422 in the destination's own words, written to its `backup_<key>_error` row (a success clears it). Throttled 10/min |
+| `GET` | `/admin/backups/destinations/{key}/folders` | The newest thirty backup folders there, each read from its manifest: `{folder, complete, type, created_at, includes, total_bytes, chain, newer_schema}` or `{folder, complete: false, error}`. `meta.total`. Throttled 20/min |
+| `POST` | `/admin/backups/destinations/ftp/forget-key` | Clears the pinned SFTP host key |
+| `GET` | `/admin/backups/drive` | `{is_connected, account, connected_at, client_configured, error, callback_path}` |
+| `POST` | `/admin/backups/drive/authorize` · `/callback` · `/disconnect` | The Drive consent: `redirect_uri` checked exactly against `/admin/backups/drive/callback`; `code`/`state` → `{account}`; disconnect forgets the token and the folder id |
+| `POST` | `/admin/backups/restores` | `backup_id` (+ optional `from`: `local` or a destination) **or** `destination` + `folder` (a backup found there), `scope` (`database`, `files`, `both`), `prune_missing`, `confirm: "RESTORE"`. **202**. 422 on `confirm`, or on `backup_id` with a sentence: the chain not complete anywhere, the backup lacks what the scope asks for, its schema is newer than this code's, or something is already running. Throttled 6/min |
+| `GET` | `/admin/backups/restores/{id}` | `status` (`pending`, `safety`, `downloading`, `importing`, `files`, `finishing`, `completed`, `failed`, `cancelled`), `folder`, `chain`, `safety_folder`, `error`, `progress` `{downloaded, current, statements, sql_percent, files_written, files_refused, files_removed, migrated}` |
+| `DELETE` | `/admin/backups/restores/{id}` | Cancels one that has not started replacing anything (`pending`, `safety`, `downloading`); 422 after |
+
+**The settings are four private groups** saved through `PATCH /admin/settings`:
+`backups` (`backup_enabled`, `backup_time` HH:MM, `backup_full_day`
+daily/mon…sun, `backup_incremental_every` off/24/12/6, `backup_max_chain` 1–60,
+`backup_include_db`/`_public`/`_private`, `backup_keep_chains` 1–52,
+`backup_keep_local` 0–10, `backups_email`), `backups_s3` (`backup_s3_enabled`,
+`_endpoint` https only, `_region`, `_bucket` S3 naming, `_prefix`, `_key`,
+`_secret` secret, `_path_style`), `backups_gdrive` (`backup_gdrive_enabled`,
+`backup_gdrive_oauth_client_id`, `_client_secret` secret) and `backups_ftp`
+(`backup_ftp_enabled`, `_protocol` sftp/ftps/ftp, `_host` public unless
+`BACKUP_ALLOW_PRIVATE_HOSTS`, `_port` the protocol's own or 1024–65535,
+`_username`, `_password` secret, `_private_key` secret, `_folder`, `_passive`).
+Choices arrive as `options` and are refused outside them; a changed FTP host
+or S3 endpoint needs its stored secret typed again in the same save.
+
+**Failures are reported, not swallowed**: `backup_error` on the screen and the
+`backup_failed` email to `backups_email`, else the support address — on a
+failed backup, on one that did not reach a destination, and on a failed
+restore.
+
+## System: status and updates (`role:admin`)
+
+The installed version, and applying a signed release zip (2026-09-28). See
+`docs/distribution.md`. **These paths stay open during an update**; every
+other API route answers **503** with `{message, updating: true}` and
+`Retry-After: 60` while one runs (`EnsureNotRestoring`), bar `admin/auth/*`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/system/status` | `version` `{version, commit, built_at}` (from `api/version.json`, else `web/src/lib/version.ts`), `code_schema`, `database_schema`, `installed` (`config/install.json`, null on a checkout), `php` `{version, checks[{key,label,ok,required,detail}], max_execution_time, memory_limit}`, `scheduler`, `disk` `{free,total}`, `website` `{reachable, version, api, url, error}` — the website's own `/api/health`, asked from here (`WEB_INTERNAL_URL`, else `FRONTEND_URL`) |
+| `GET` | `/admin/system/updates` | `installed`, `updatable` (false on a checkout), `packages_dir`, `packages[]` `{file, size, version, built_at, signed, refusal, same_version, changes_database, new_migrations, changelog[]}` — the zips in `updates/`, newest first, each read and signature-checked, the changelog newer than what is installed — `run` (the run file, or null), `history[]` (newest first, 20), `rollback` `{from, to, database}` or null, `chunk_bytes` |
+| `POST` | `/admin/system/updates/upload` | multipart `name` (`*.zip`), `index`, `total` (≤ 2000), `chunk` (≤ `chunk_bytes`, 1.5 MB). Appended to `<name>.part`; `index` 0 starts again; the last renames it into place. Throttled 600/min |
+| `POST` | `/admin/system/updates/apply` | `file`. Starts a run at `preflight`: 422 on `update` with a sentence when the zip is unsigned or altered, a test build, older than installed, installed is below its `min_from`, PHP is too old, a run is already going, or a backup or restore is in flight. Recorded in the activity log (`update_started`). Throttled 6/min |
+| `POST` | `/admin/system/updates/step` | Does the next slice (≈15 s) of the run and answers it: `status` moves through `preflight`, `backup`, `extract`, `swap`/`swapping`, `migrate`, `seed`, `steps`, `optimize`, `web`, `warm` to `done` — or the rollback's `rb_swap`…`rb_warm` to `rolled_back` — or `failed` with `failed_at` and `error`. `log[]` says what was done. Throttled 120/min |
+| `POST` | `/system/updates/continue` | **Public route, no session.** The same as `step`, authorised by `X-Update-Key`, the run's own `key` from `apply`, `rollback`, `retry` and every step, compared in constant time against the run file. Only while the run is moving; anything else is a 404. It exists because a rollback's restore drops the sign-in tables while these steps drive it. Open during an update and a restore. Throttled 120/min |
+| `POST` | `/admin/system/updates/retry` | A `failed` run carries on from `failed_at` |
+| `POST` | `/admin/system/updates/rollback` | The `.prev` folders back and, when the update ran migrations, its `pre_update` safety copy restored. 422 with nothing to go back to, or while a step runs. Activity `update_rolled_back`. Throttled 6/min |
+| `POST` | `/admin/system/updates/abandon` | Forgets a run that stopped before the swap (the unpacked folders deleted, the site reopened). 422 once the application was replaced |
+| `DELETE` | `/admin/system/updates/packages/{file}` | A zip in `updates/`. 204 |
+
+**The run file, not a table.** `storage/app/private/update/run.json` holds a
+run: the database is migrated and the code replaced mid-run, and the file is
+what both releases can read. Its keys are added to and never renamed, because
+the previous release's copy of the updater drives a rollback.
+
+**Nothing in a zip outside `api/` and `web/` is written**, and every file
+written is checked against the sha256 its signed `release.json` gives.
+
+**`pre_update`** is a new `backups.trigger` value, a database-only local
+safety copy treated like `pre_restore` everywhere: never a chain's parent,
+never on the schedule's figures, pruned at 14 days.
+
+The public website adds `GET /api/health` (Next, not this API): `{status,
+version, site_url, api: {reachable, status} | null}`, `Cache-Control:
+no-store`, and `POST /api/internal/revalidate` (Next): bearer
+`INTERNAL_TOKEN`, purges every cached page; 404 without a token of at least
+32 characters.
+
 ## Custom fields and content types
 
 ACF-style fields on existing records, and editor-made record types with
@@ -1062,7 +1156,7 @@ A CMS page whose `template` is `builder` is a stack of typed sections
 | `POST` | `/admin/pages/preview` | `role:content_manager`, throttled 60/min. `{blocks, page_id?}` — validated exactly as a save is, presented, **nothing written**. 200 `{data: {sections}}`, or a 422 keyed `blocks.N.data.field` |
 
 **`blocks` on `POST`/`PATCH /admin/pages`** is a list of at most 40
-`{id (uuid), type, hidden, background, data}`; `template` accepts `builder`
+`{id (uuid), type, hidden, background, reveal, data}`; `template` accepts `builder`
 beside `default` and `wide`. `type` is `App\Enums\PageSectionType` — `hero`,
 `rich_text`, `media_text`, `features`, `cards`, `content_block`, `slider`,
 `gallery`, `form`, `faq`, `logos`, `testimonial`, `video`, `divider` — and
@@ -1074,7 +1168,10 @@ its id; a background is the Themes screen's section background, checked by
 the same rule; ids are unique. `data.body` on `rich_text` and `media_text` is
 rich text, cleaned on write like any body; every other field is plain text.
 Only declared keys are stored. Absent leaves the sections alone; `[]` clears
-them.
+them. `reveal` is how the section arrives on scroll — an id checked for
+shape only (`^[a-z][a-z0-9-]{0,15}$`, the list is the frontend's
+`SECTION_REVEALS`), 422 on `blocks.N.reveal` otherwise; `default` and a blank
+are stored as null, and both the admin and the public reads carry it.
 
 **The admin detail read** carries `blocks` as stored, `blocks_media` (a URL
 for every stored `*_path`) and `sections` — the public shape, hidden ones
@@ -1141,6 +1238,62 @@ per line), `visit_days` (`mon,tue,…`), `visit_min_notice_days`,
 `visit_max_days`, `visit_holidays` (`Y-m-d` per line), `visits_email`,
 `visit_default_minutes`. The group is private; the first six reach the public
 `/settings` map by name. A value that would parse to nothing is a 422.
+
+## Online meetings
+
+A customer books a video call at a time a host is free; the company's Google
+calendar makes the event and the Meet link (2026-09-29). The rules are
+`docs/meetings.md`; **every body and answer shape is
+`docs/meetings-contract.md`**, kept with `web/src/types/meetings.ts` and the
+mock — this section is the route list and what is not obvious from it.
+
+Every time on the wire is ISO 8601 **with its offset**; a `start` without one
+is a 422. Every label (`date_label`, `time_label`, `timezone`) is the API's,
+in `APP_TIMEZONE`. References are `PREFIX-YYYY-NNNNN` under
+`meeting_reference_prefix` (default `MT`), and every `{reference}`/`{meeting}`
+route is held to that shape. `type` in a request is the meeting type's slug.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/meetings/options` | Types (active and public), step, notice, window, holidays, zone. Cacheable, tag `meetings` |
+| `GET` | `/meetings/slots?type=&date=` | One day's starts, **never which host**. Or `?type=&from=&to=` (≤ 62 days): every date with a `count`. `no-store`, 60/min |
+| `POST` | `/meetings` | `type`, `start` (exactly a slot's), `name`, `email`, `phone` (Indian mobile), `company?`, `agenda?`, `message_opt_in[]?`, honeypot `website`, the `_source_*` envelope. 5/min. **201** with `access_token` — here and nowhere else. 403 while `meetings_enabled` is off; 422 on `start` for a taken time ("That time was just taken — choose another.") or one never on offer; on `email` past `meeting_max_open_per_contact`; on `start` past `meeting_daily_ip_cap` |
+| `GET` | `/meetings/{reference}?token=` | The customer's view. A wrong token and a wrong reference are the same 404 |
+| `POST` | `/meetings/{reference}/cancel` · `/reschedule` | `token` (+ `start`). Inside `meeting_change_cutoff_hours`, or past `meeting_max_reschedules`, a 422 on **`meeting`** |
+| `GET` | `/my/meetings` · `/my/meetings/{reference}` | Portal. Scoped to the customer; another's is a 404 |
+| `POST` | `/my/meetings/{reference}/cancel` · `/reschedule` | Portal |
+| `GET` | `/admin/meetings` | `role:sales_manager,support_engineer`. Filters `status`, `host`, `type`, `mine=1`, `from`/`to`, `q`, `needs_outcome=1`, `google=failed`, `source`, `sort`/`dir`, `per_page` ≤ 100 |
+| `GET` | `/admin/meetings/slots` | Each slot's free `hosts[]` with per-host `outside_hours`/`google_busy`; `outside_hours=1`, `google_busy=1` widen it; `exclude=<reference>` for a move |
+| `POST` | `/admin/meetings` | Staff booking: skips notice and window (never the past), `outside_hours`/`override_google_busy` ticks, never over a meeting booked here; `host_id?` else least-booked free. No caps. **201** |
+| `GET`/`PATCH` | `/admin/meetings/{reference}` | With `trail`. `PATCH`: `staff_note`, `status` of `completed`/`no_show` (after the start only), `note` |
+| `POST` | `/admin/meetings/{reference}/move` · `/cancel` · `/resync` | `resync` is a 422 on `google` when nothing is connected or the meeting has been on the `.ics` path from the start |
+| `GET`/`POST`/`PATCH`/`DELETE` | `/admin/meeting-types[/{id}]` | `role:sales_manager`. `minutes` 15–240, buffers 0–120, `is_public`, `host_ids[]` (empty = every eligible host). DELETE is a 422 on `type` while it has meetings |
+| `GET` | `/admin/meeting-hosts[/{user}]` | `role:admin`. Everyone holding `meeting_host` **explicitly** |
+| `PUT` | `/admin/meeting-hosts/{user}/hours` | `{hours: [{weekday, start, end}]}`, replaced; `[]` = the defaults |
+| `POST`/`DELETE` | `/admin/meeting-hosts/{user}/time-off[/{id}]` | |
+| `GET`/`POST` | `/admin/meetings/google` · `/authorize` · `/callback` · `/disconnect` · `/test` | `role:admin`. The calendar's own OAuth slot; `redirect_uri` checked against `/admin/meetings/google/callback` |
+| `GET`/`PATCH` | `/admin/my-meetings[/{reference}]` | `role:meeting_host`, scoped to `host_id`; another host's is a 404 |
+
+**Beside these**: `GET /admin/dashboard` carries `meetings: {today,
+needs_outcome}` (null for a role without the diary); a lead resource carries
+`meeting: {reference, admin_path} | null`; `DELETE`/`PATCH /admin/staff/{id}`
+refuse to remove, deactivate or un-host somebody with meetings to come. The
+webhook events are `meeting.scheduled`, `meeting.rescheduled` (adds
+`previous`) and `meeting.cancelled` — the admin resource less `staff_note`
+and `trail`. Emails: `meeting_scheduled`, `meeting_booked_internal`,
+`meeting_rescheduled`, `meeting_cancelled`, `meeting_reminder`,
+`meeting_link_ready`, `meeting_sync_failed`.
+
+**Settings**: the private `meetings` group (`/admin/meetings/settings`,
+`role:admin`) — `meetings_enabled` (default off), `meeting_default_hours`,
+`meeting_slot_step`, `meeting_min_notice_hours`, `meeting_max_days`,
+`meeting_holidays`, `meeting_reminders`, `meetings_email`,
+`meeting_block_google_busy`, `meeting_change_cutoff_hours`,
+`meeting_max_open_per_contact`, `meeting_max_reschedules`,
+`meeting_daily_ip_cap`; the first four reach the public `/settings` map. The
+private `meetings_google` group holds the OAuth client, the token and
+`meetings_google_calendar_id` (blank = `primary`). `meeting_reference_prefix`
+is in `references`.
 
 ## The store
 
@@ -1775,7 +1928,7 @@ authenticated customer — no code path here can reach another customer's data.
 | `GET` | `/tickets` | `?status=`, `?per_page=` (max 50) |
 | `GET` | `/tickets/summary` | Counts by status for the dashboard |
 | `POST` | `/tickets` | multipart. `subject`, `description`, `ticket_category_id`, `priority`, `attachments[]`, `is_sensitive` (the description stored encrypted; see the message rule below) |
-| `GET` | `/tickets/{reference}` | Bound by reference (`TW-2026-00001`), not id. Carries `events` — the trail of status and assignment changes, oldest first; never a note — and `merged_into`, the reference of the ticket this one was merged into, or null |
+| `GET` | `/tickets/{reference}` | Bound by reference (`TW-2026-00001` — the prefix is the `ticket_reference_prefix` setting, and a ticket keeps the one it was given), not id. Carries `events` — the trail of status and assignment changes, oldest first; never a note — and `merged_into`, the reference of the ticket this one was merged into, or null |
 | `POST` | `/tickets/{reference}/messages` | multipart. `body`, `attachments[]`, `is_sensitive` (stored encrypted, announced but never quoted in the email, never sent to a webhook — see below) |
 | `POST` | `/tickets/{reference}/messages/{id}/rating` | `rating` 1–5 on a staff reply. Changeable. 404 for anything that is not a visible staff reply on this ticket |
 | `POST` | `/tickets/{reference}/messages/{id}/report` | `reason` (5–2000 chars). Re-sending re-words it and keeps `reported_at` |
@@ -2330,11 +2483,12 @@ mid-save.
 
 | Entity | Base path | Beyond the common fields |
 |---|---|---|
-| Blog posts | `/admin/blog-posts` | `author_id`, `published_at`, cover image, `faqs[]`, `answer_blocks[]`. `reading_minutes` is derived on save and not accepted |
+| Blog posts | `/admin/blog-posts` | `author_id`, `published_at`, cover image, `is_featured`, `comments_enabled` (the post's own switch; the site-wide one must be on too — accepted on update since 2026-09-28, before which it could be set only on create), `category_ids[]` (replaced wholesale, `[]` clears), `faqs[]`, `answer_blocks[]`. `reading_minutes` is derived on save and not accepted |
 | Knowledge articles | `/admin/knowledge-articles` | `tags[]`, `knowledge_category_id`, `published_at`, `faqs[]`, `answer_blocks[]`. `view_count`/`helpful_count` are read-only telemetry |
 | Case studies | `/admin/case-studies` | `client_name`, `industry_id`, `results[{value,label}]`, cover image. **No `published_at`** — status alone decides |
 | Solutions | `/admin/solutions` | `problem_statement`, `overview` (rich text), `benefits[]`, `technologies[]`, `icon`, `hero_image_path`, `sort_order`, `product_ids[]`, `industry_ids[]`, `faqs[{question,answer}]`, `answer_blocks[]` |
-| Services | `/admin/services` | `icon`, `sort_order`, `faqs[{question,answer}]`, `answer_blocks[]`. No `published_at` |
+| Services | `/admin/services` | `icon`, `sort_order`, `service_category_id` (nullable, must exist), `image_path` (a media-library path, 422 otherwise), `highlights[]` (at most 6, each ≤ 40 characters; trimmed, blanks and case-insensitive repeats dropped, `[]` clears, absent leaves them), `faqs[{question,answer}]`, `answer_blocks[]`. No `published_at`. Reads add `category_name` and `image` |
+| Service categories | `/admin/service-categories` | `name`, `slug` (derived when blank, unique), `description`, `icon`, `sort_order`, `image_background`, `is_active`; rows carry `services_count`. Titled `name`, **no `status`, no `seo`** — taxonomy; its slug is a tab fragment, not an address, so it writes no redirect. Deleting leaves its services uncategorised |
 | Industries | `/admin/industries` | `icon`, `sort_order`, `solution_ids[]`, `faqs[]`, `answer_blocks[]`. Titled `name`, **not** `title`, and has **no `status`** — an industry is reference data the catalogue points at, not something you draft |
 | Pages | `/admin/pages` | `template`, `published_at`, `faqs[]`, `answer_blocks[]`. No `summary`. `blocks` is deliberately not accepted — the column exists for block-assembled pages, which need a block editor; raw JSON here would let a typo corrupt a page invisibly |
 | Product categories | `/admin/product-categories` | `parent_id`, `icon`, `image_path`, `sort_order`, `faqs[]`, `answer_blocks[]`. Titled `name`, and **no `status`** — taxonomy, like industries. `description` is plain text, not rich |
@@ -2786,8 +2940,8 @@ complaint, which costs the sending domain far more.
 |---|---|---|
 | `GET` | `/admin/newsletter/dashboard` | Counts and rates across every sent campaign |
 | `GET` | `/admin/newsletter/queue` | Whether anything is delivering: the backlog, the scheduler's pulse and a worker's own |
-| `GET`/`POST` | `/admin/newsletter/subscribers` | `?q=`, `?status=`, `?group=`, `?suppressed=1` |
-| `GET` | `/admin/newsletter/subscribers/export` | Streamed CSV, every cell escaped |
+| `GET`/`POST` | `/admin/newsletter/subscribers` | `?q=`, `?status=`, `?group=`, `?suppressed=1`, `?verification=`, `?industry=`. `meta.industries` lists every industry on file. A row carries `industry`, `location`, `website` and `source_url` (the page a crawl found it on); `POST` takes the first three |
+| `GET` | `/admin/newsletter/subscribers/export` | Streamed CSV, every cell escaped; the same filters. Industry, location, website and "Found on" columns |
 | `POST` | `/admin/newsletter/subscribers/paste` | A pasted block of addresses. Newlines, commas, semicolons, `Name <address>` |
 | `GET`/`PATCH`/`DELETE` | `/admin/newsletter/subscribers/{id}` | Email and status are **not** settable |
 | `POST` | `/admin/newsletter/subscribers/{id}/unsubscribe` | On somebody's behalf |
@@ -2796,12 +2950,14 @@ complaint, which costs the sending domain far more.
 | `GET`/`POST` | `/admin/newsletter/groups` | With `subscriber_count` and `active_count` |
 | `PATCH`/`DELETE` | `/admin/newsletter/groups/{id}` | Deleting keeps the subscribers |
 | `POST` | `/admin/newsletter/imports/analyse` | Dry run over a CSV **or `.xlsx`**. Writes nothing |
-| `POST` | `/admin/newsletter/imports` | Commits an analysed file — or, with `import_id`, a mailbox scan that is `ready`: `group_ids[]`, `domains[]` (lower-cased; a row whose domain is not listed is `excluded`), `include_roles` (default true for a file, the review sends false). The request's `file` is ignored for a scan; the server knows where it put it |
+| `POST` | `/admin/newsletter/imports` | Commits an analysed file — or, with `import_id`, a mailbox scan that is `ready`: `group_ids[]`, `domains[]` (lower-cased; a row whose domain is not listed is `excluded`), `include_roles` (default true for a file, the review sends false), `industry_group` (a crawl: also into a group named after its industry, made if absent; default true). The request's `file` is ignored for a scan; the server knows where it put it. A crawl's industry and location are written on every row, filling blanks only |
 | `GET` | `/admin/newsletter/imports/mailbox` | The mailbox a scan can read: `providers[]` (google, microsoft), `provider`, `account`, `connected_at`, `is_connected`, `client_configured` (Settings → Ticketing holds the OAuth client), `error`, `callback_path`, `php`, `delivering`, `active` (the scan in flight or awaiting review, so the screen resumes on it) |
 | `POST` | `/admin/newsletter/imports/mailbox/authorize` | `provider`, `redirect_uri` checked exactly against `/admin/newsletter/subscribers/import/mailbox/callback`. 422 naming Settings → Ticketing when no client is saved |
 | `POST` | `/admin/newsletter/imports/mailbox/callback` | `code`, `state` → `{account, provider}`; writes only the `newsletter_oauth_*` rows |
 | `POST` | `/admin/newsletter/imports/mailbox/disconnect` | Forgets the consent |
 | `POST` | `/admin/newsletter/imports/mailbox/scan` | `source` of `connected` or `imap` (with `imap.{host,port,encryption,username,password}` — used for this scan, never stored; `port` 143 or 993, `host` public, 422 on either otherwise, and a failed scan's `error` is one sentence rather than the server's words), `since`/`until` (`Y-m-d`, either optional), `include_junk`. **202** with the import row; 422 while a scan is in flight, when nothing is connected, on a backwards range, or with `errors.queue` when nothing drains the queue. Throttled 6/min |
+| `GET` | `/admin/newsletter/imports/crawl` | The crawl screen's first step: `active` (the crawl in flight or awaiting review), `delivering`, `hunter_configured`, `hunter` (`searches_available`, `searches_used`, `reset_date`, or `{error}` in Hunter's words, or null), `industries` on file, `limits` (`depth`, `pages`, `linked_sites`, `hunter_domains`). **Declared above `imports/{import}`** |
+| `POST` | `/admin/newsletter/imports/crawl` | `start_url` (a bare host gets `https://`; http allowed; a private or unresolvable host is a 422), `depth` 0–4, `max_pages` 1–500, `industry` (required, 80), `location?` (80), `visit_linked_sites?` with `linked_sites_max` 1–100, `hunter_domains?` 0–50 (422 without a Hunter key). **202** with the import row (`source: crawl`); 422 on `start_url` while a crawl is in flight, and on `queue` when nothing drains it. Throttled 6/min. `progress` carries the settings and then `phase` (`crawl`, `hunter`, `done`), `pages`, `linked_pages`, `queued`, `sites`, `addresses`, `hunter_used`, `refused`, `current`, `capped`, `notes`; the ready `analysis` adds `pages`, `linked_pages`, `sites`, `hunter_used`, `notes`, `industry`, `location` |
 | `GET` | `/admin/newsletter/imports/{id}` | The row with `source`, `status` (`pending`, `scanning`, `ready`, `running`, `completed`, `failed`, `cancelled`, `expired`), `progress` (folders, messages, addresses, what was skipped and why, the range), `analysis` once `ready` (the dry run's `counts`, `domains[]` with `kind`/`default`, `roles`, `mapping`, `capped`, `account`), `error`, `expires_at`. What the screen polls |
 | `DELETE` | `/admin/newsletter/imports/{id}` | Discards a mailbox scan not yet imported: the file and the scratch state go, the consent is forgotten, a running chain stops at its next slice |
 | `GET` | `/admin/newsletter/templates` | Without `blocks` or `html` |
@@ -3442,7 +3598,9 @@ angle is 0–360; an `image` needs a media-library `image_path` and carries an
 request's bytes (a `default` section is dropped, a blank angle is dropped, a
 solid keeps no second colour). A section row may carry `enabled: false` —
 only an explicit false switches it off, and a `default` row is kept for
-that alone — and `section_order` is a list of section ids, shape-checked
+that alone — and may carry `reveal`, how it arrives on scroll (the same
+shape check; `none` stores nothing, and a `default` row is kept for a reveal
+too) — and `section_order` is a list of section ids, shape-checked
 and de-duplicated. Choice values and ids are shape-checked only;
 the lists live with the frontend that renders them. Both responses that
 publish it add an `image_url` beside every `image_path`, because a path
@@ -3464,6 +3622,20 @@ is derived rather than listed.** `logo_path` yields `logo_url`, `logo_width` and
 tomorrow. It used to be a hand-written array of four — a list of keys on one
 side of the wire that nothing checks against the other, which is the drift that
 produced `admin_path` in the API's own resource names.
+
+**The `references` group is private and holds three prefixes** (2026-09-28):
+`ticket_reference_prefix`, `visit_reference_prefix` and
+`order_number_prefix`, the letters in front of every ticket, engineer visit
+and order number (`PREFIX-YYYY-NNNNN`). Each must match
+`^[A-Z][A-Z0-9]{1,5}$` in any case — two to six letters or digits, starting
+with a letter — or the save is a 422 on that row; a blank is accepted and
+means the default. The value is stored as typed and upper-cased when read
+(`App\Support\References`), and a missing, blank or malformed row falls back
+to `TW`, `TV` and `ORD`. A new prefix applies to new numbers only, counted
+from 00001; every existing reference keeps its own and still resolves, and
+the email-to-ticket reader recognises every prefix already on a ticket. The
+setup wizard sets the first two from the company's initials. Not public:
+nothing outside the console needs them.
 
 **The `media` group is not public either**, and holds three settings that
 change what the library does rather than what a page says: `image_quality`,

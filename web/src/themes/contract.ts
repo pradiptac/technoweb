@@ -68,6 +68,10 @@ export type HomeData = {
   solutions: Awaited<ReturnType<typeof publicApi.solutions>>;
   categories: Awaited<ReturnType<typeof publicApi.productCategories>>;
   industries: Awaited<ReturnType<typeof publicApi.industries>>;
+  /** Every published service, for the Services section's tabs. */
+  services: Awaited<ReturnType<typeof publicApi.services>>;
+  /** The active service categories, in order — an empty list when the API has none, which is one untabbed grid. */
+  serviceCategories: Awaited<ReturnType<typeof publicApi.serviceCategories>>;
   caseStudies: Awaited<ReturnType<typeof publicApi.caseStudies>>;
   posts: Awaited<ReturnType<typeof publicApi.posts>>;
   brands: Awaited<ReturnType<typeof publicApi.brands>>;

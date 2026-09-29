@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\V1\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Api\V1\Admin\PopupController as AdminPopupController;
 use App\Http\Controllers\Api\V1\Admin\ProductCategoryController as AdminProductCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Api\V1\Admin\ServiceCategoryController as AdminServiceCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ServiceController as AdminServiceController;
 use App\Http\Controllers\Api\V1\Admin\SliderController as AdminSliderController;
 use App\Http\Controllers\Api\V1\Admin\SolutionController as AdminSolutionController;
@@ -285,6 +286,14 @@ Route::middleware('role:content_manager')->group(function () {
     Route::get('product-categories/{product_category:id}', [AdminProductCategoryController::class, 'show'])->name('product-categories.show');
     Route::patch('product-categories/{product_category:id}', [AdminProductCategoryController::class, 'update'])->name('product-categories.update');
     Route::delete('product-categories/{product_category:id}', [AdminProductCategoryController::class, 'destroy'])->name('product-categories.destroy');
+
+    // The tabs the Services section draws (docs/catalogue.md). The index
+    // doubles as the service form's category select.
+    Route::get('service-categories', [AdminServiceCategoryController::class, 'index'])->name('service-categories.index');
+    Route::post('service-categories', [AdminServiceCategoryController::class, 'store'])->name('service-categories.store');
+    Route::get('service-categories/{service_category:id}', [AdminServiceCategoryController::class, 'show'])->name('service-categories.show');
+    Route::patch('service-categories/{service_category:id}', [AdminServiceCategoryController::class, 'update'])->name('service-categories.update');
+    Route::delete('service-categories/{service_category:id}', [AdminServiceCategoryController::class, 'destroy'])->name('service-categories.destroy');
 
     // Owners first: the picker needs it before the form can save.
     Route::get('faq-owners', [AdminFaqController::class, 'owners'])->name('faq-owners.index');

@@ -1,0 +1,10 @@
+This folder holds this installation's settings:
+
+  api.env       the API's settings (database, keys, mail)   — written by the setup wizard
+  web.env       the website's settings (addresses)          — written by the setup wizard
+  install.json  when it was installed and which version     — written by the setup wizard
+
+Updates never touch this folder. Keep a copy of api.env somewhere safe:
+the APP_KEY line in it is needed to read the encrypted settings in a backup.
+
+Never put this folder inside a web site's document root.

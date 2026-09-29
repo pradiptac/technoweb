@@ -68,8 +68,10 @@ await page.fill("#description", "Two attachments, watched. Delete me.");
 await page.locator("#attachments").setInputFiles([JPEG, JPEG]);
 await page.click('button:has-text("Submit ticket")');
 const ticketPcts = await watchPercentages();
-await page.waitForURL((u) => /\/portal\/tickets\/TW-/.test(u.pathname), { timeout: 60000 }).catch(() => {});
-const ticketRefusal = /TW-/.test(page.url()) ? "" : await page.locator('[role="alert"]').first().textContent().catch(() => "");
+// The reference's shape, whatever the install's prefix (References::PATTERN).
+const TICKET_PAGE = /\/portal\/tickets\/[A-Z][A-Z0-9]{1,5}-\d{4}-\d{5}$/;
+await page.waitForURL((u) => TICKET_PAGE.test(u.pathname), { timeout: 60000 }).catch(() => {});
+const ticketRefusal = TICKET_PAGE.test(new URL(page.url()).pathname) ? "" : await page.locator('[role="alert"]').first().textContent().catch(() => "");
 results.push({ path: "portal ticket", pcts: ticketPcts, outcome: page.url() + (ticketRefusal ? ` — ${ticketRefusal.trim()}` : "") });
 
 // ---------------------------------------------------------------- careers

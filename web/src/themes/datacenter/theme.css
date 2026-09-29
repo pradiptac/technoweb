@@ -173,6 +173,56 @@
   [data-theme="datacenter"] [data-collection] [data-tile-media] { width: 52px; }
   [data-theme="datacenter"] [data-collection] [data-tile]::after { width: 6px; height: 6px; }
 }
+/*
+  The shop's products (the client, 2026-09-27): a rack row's 76px thumbnail
+  was too small to tell one switch from another, and the heart and the badge
+  covered most of it. A product's picture is 168px (104px on a phone) — the
+  inner well keeps its 4:3 — and the heart leaves the picture for the row of
+  buttons, beside Add to cart and the quick view (`data-tile-save-inline`),
+  so it neither covers the product nor takes a line of its own.
+*/
+[data-theme="datacenter"] [data-collection="products"] [data-tile] { padding-top: 14px; padding-bottom: 14px; }
+[data-theme="datacenter"] [data-collection="products"] [data-tile-media] { width: 168px; aspect-ratio: auto; border: 0; }
+[data-theme="datacenter"] [data-collection="products"] [data-tile-media] > a { border: 1px solid var(--color-line); border-radius: 3px; overflow: hidden; }
+[data-theme="datacenter"] [data-collection="products"] [data-tile-media] [data-tile-save] { display: none; }
+[data-theme="datacenter"] [data-collection="products"] [data-tile-save-inline] { display: flex; flex: 0 0 auto; }
+/*
+  Every Add to basket in a row on one line (the client, 2026-09-28): a
+  product's words are a column that fills the rack row's height rather than
+  a wrapping row centred in it, so the card's own `mt-auto` takes the
+  buttons to the bottom whatever the name and the summary took above them.
+*/
+[data-theme="datacenter"] [data-collection="products"] [data-tile-body] {
+  align-self: stretch;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+[data-theme="datacenter"] [data-collection="products"] [data-tile-summary] { flex: 0 0 auto; }
+[data-theme="datacenter"] [data-collection="products"] [data-tile-actions] { margin-top: auto; align-self: flex-end; }
+/* On a phone the column is the picture's width and the buttons fill it, as they did in the row. */
+@media (width < 40rem) {
+  [data-theme="datacenter"] [data-collection="products"] [data-tile-actions] { align-self: stretch; flex: 0 0 auto; }
+}
+/*
+  On a phone a picture beside the words left the body 165px for three buttons
+  and Add to cart shrank to nothing, so the row stacks: the rack number down
+  the left as before, the picture at the column's full width on top, the words
+  and the buttons under it — the larger picture where the screen is smallest.
+*/
+@media (width < 40rem) {
+  [data-theme="datacenter"] [data-collection="products"] [data-tile] {
+    grid-template-columns: 40px minmax(0, 1fr) 12px;
+    row-gap: 12px;
+  }
+  [data-theme="datacenter"] [data-collection="products"] [data-tile]::before { grid-row: 1 / span 2; }
+  [data-theme="datacenter"] [data-collection="products"] [data-tile]::after { grid-column: 3; grid-row: 1 / span 2; }
+  [data-theme="datacenter"] [data-collection="products"] [data-tile-media] { grid-column: 2; grid-row: 1; width: 100%; }
+  [data-theme="datacenter"] [data-collection="products"] [data-tile-body] { grid-column: 2; grid-row: 2; }
+  [data-theme="datacenter"] [data-collection="products"] [data-tile-actions] { flex: 1 1 100%; margin-left: 0; }
+  [data-theme="datacenter"] [data-collection="products"] [data-tile-actions] > div:first-child { min-width: 0; flex: 1 1 auto; }
+}
+
 /* The shop's furniture: the rack's radius and rule. */
 [data-theme="datacenter"] [data-store-filter] form,
 [data-theme="datacenter"] [data-store-promo],
@@ -191,3 +241,33 @@
 [data-theme="datacenter"] [data-collection="routes"] [data-tile] {
   border-left: 3px solid var(--tile-hue, var(--color-line-strong));
 }
+
+/*
+  The people as access badges (2026-09-28): a dark card in the NOC's
+  tokens, which do not invert, so it is the same badge in both schemes,
+  opening on a mono strip "ACCESS 01" numbered by a CSS counter (alt text
+  "", so a screen reader skips it), the print square inside a hairline
+  frame, the name in the mono face. The badge sets its own local palette
+  so every word it already draws reads on the dark.
+*/
+[data-theme="datacenter"] [data-team] { counter-reset: badge; }
+[data-theme="datacenter"] [data-team] > li {
+  counter-increment: badge;
+  background-color: var(--color-dark); background-image: none;
+  border: 1px solid var(--color-dark-line); border-radius: 6px;
+  color: var(--color-dark-ink);
+  --color-ink: var(--color-dark-ink); --color-ink-2: var(--color-dark-ink);
+  --color-muted: var(--color-dark-muted); --color-faint: var(--color-dark-muted);
+  --color-brand-ink: var(--color-dark-muted-brand); --color-brand-300: var(--color-dark-muted-brand);
+  --color-line-strong: var(--color-dark-line); --color-card: var(--color-dark-2); --color-surface-2: var(--color-dark-2);
+}
+[data-theme="datacenter"] [data-team] > li::before {
+  content: "ACCESS \00B7  " counter(badge, decimal-leading-zero) / "";
+  display: block;
+  padding: 10px 16px; border-bottom: 1px dashed var(--color-dark-line);
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: .14em; color: var(--color-dark-muted);
+}
+[data-theme="datacenter"] [data-team] [data-team-photo] { aspect-ratio: 1; width: auto; margin: 16px 16px 0; border: 1px solid var(--color-dark-line); }
+[data-theme="datacenter"] [data-team] [data-team-photo] > span { color: var(--color-dark-ink); }
+[data-theme="datacenter"] [data-team] [data-team-rule] { margin: 16px 16px 0; width: auto; height: 2px; }
+[data-theme="datacenter"] [data-team] [data-team-name] { font-family: var(--font-mono); font-size: 16px; letter-spacing: -.01em; }

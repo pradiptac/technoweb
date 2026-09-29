@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\JobApplication;
 use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
+use App\Support\Mail\MailBrand;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -54,6 +55,6 @@ class ApplicationAcknowledged extends Notification implements ShouldQueue
             // Said plainly. People are entitled to know how long their CV sits
             // with a company they may never hear from again.
             ->line('We keep applications on file for six months and then delete them, CV included.')
-            ->salutation('— Technoware');
+            ->salutation(MailBrand::signoff());
     }
 }

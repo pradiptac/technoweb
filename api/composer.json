@@ -5,10 +5,12 @@
     "license": "proprietary",
     "require": {
         "php": "^8.3",
+        "async-aws/s3": "^3.5",
         "laravel/framework": "^13.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",
         "mews/purifier": "^3.4",
+        "phpseclib/phpseclib": "^3",
         "symfony/brevo-mailer": "^7.4",
         "symfony/http-client": "^7.4",
         "symfony/mailgun-mailer": "^7.4",

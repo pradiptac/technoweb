@@ -6,6 +6,7 @@ use App\Models\Form;
 use App\Models\FormSubmission;
 use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
+use App\Support\Mail\MailBrand;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -65,7 +66,7 @@ class FormAcknowledged extends Notification implements ShouldQueue
             ->greeting($name === '' ? 'Thank you' : 'Thank you, '.$name)
             ->line('We have your **'.$this->form->name.'** submission and somebody will be in touch.')
             ->line('If it is urgent, calling is faster than waiting for a reply to this.')
-            ->salutation('— Technoware');
+            ->salutation(MailBrand::signoff());
     }
 
     /**

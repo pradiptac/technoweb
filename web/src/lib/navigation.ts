@@ -5,6 +5,8 @@ import { iconMap, type IconName } from "@/components/icons";
 import { IconTile } from "@/components/ui/icon-tile";
 import type { NavNode } from "@/types/api";
 import { navKey } from "@/lib/nav-key";
+import { isPortalHref } from "@/lib/site-settings";
+import { footerNav } from "@/content/site";
 
 /*
  * Icons are resolved here, on the server, and cross to the header as
@@ -374,4 +376,95 @@ export async function getFooterNav(): Promise<{ heading: string; href: string | 
   } catch {
     return null;
   }
+}
+
+/* ------------------------------------------------ the portal switched off */
+
+type FooterColumns = NonNullable<Awaited<ReturnType<typeof getFooterNav>>>;
+type PrimaryNav = NonNullable<Awaited<ReturnType<typeof getPrimaryNav>>>;
+
+/**
+ * The built-in footer columns in the shape `getFooterNav()` answers — what
+ * `SiteFooter` falls back to on its own. Needed here so a closed portal can
+ * take its three links out of the built-in Support column too.
+ */
+export function defaultFooterNav(): FooterColumns {
+  return footerNav.map((col) => ({
+    heading: col.heading,
+    href: null,
+    links: col.links.map((l) => ({ label: l.label, href: l.href, newTab: false })),
+  }));
+}
+
+/**
+ * A link into the portal is dropped; one with something left under it stays
+ * as a heading over that (a "Customer zone" pointing at the login page still
+ * holds Knowledge base); a heading left with nothing under it goes too.
+ */
+function prunedTree<T extends { href: string | null }>(
+  node: T,
+  children: readonly unknown[] | undefined,
+  pruned: readonly unknown[] | undefined,
+): T[] {
+  const hadChildren = (children?.length ?? 0) > 0;
+  const hasChildren = (pruned?.length ?? 0) > 0;
+  if (isPortalHref(node.href)) return hasChildren ? [{ ...node, href: null }] : [];
+  if (node.href === null && hadChildren && !hasChildren) return [];
+  return [node];
+}
+
+function withoutPortalItems(items: MenuItem[]): MenuItem[] {
+  return items.flatMap((item) => {
+    const children = item.children ? withoutPortalItems(item.children) : undefined;
+    return prunedTree({ ...item, ...(children ? { children } : {}) }, item.children, children);
+  });
+}
+
+function withoutPortalLinks(links: NavLink[]): NavLink[] {
+  return links.flatMap((link) => {
+    const children = link.children ? withoutPortalLinks(link.children) : undefined;
+    return prunedTree({ ...link, ...(children ? { children } : {}) }, link.children, children);
+  });
+}
+
+/**
+ * The chrome's navigation with every link into the customer portal taken
+ * out, for `portal_enabled` off (`lib/chrome.ts`). A closed portal would
+ * otherwise be advertised in the top bar, the drawer and the footer of every
+ * page — whether the link came from the built-in lists or from a menu an
+ * editor assigned. The built-in lists are resolved first, because a null
+ * here means "use the built-in one" and the built-in top bar and footer are
+ * exactly where Customer login and Track a ticket live.
+ */
+export function navWithoutPortal(nav: {
+  primary: PrimaryNav | null;
+  footerMenu: FooterColumns | null;
+  topBar: TopBarLink[] | null;
+  bottomBar: (NavLink & { href: string })[] | null;
+}) {
+  const topBar = (nav.topBar ?? defaultTopBar()).flatMap((link) => {
+    const items = withoutPortalItems(link.items);
+    return prunedTree({ ...link, items }, link.items, items);
+  });
+
+  const footerMenu = (nav.footerMenu ?? defaultFooterNav()).flatMap((col) => {
+    const links = withoutPortalLinks(col.links);
+    const href = isPortalHref(col.href) ? null : col.href;
+    return links.length === 0 && href === null ? [] : [{ ...col, href, links }];
+  });
+
+  const primary = nav.primary && {
+    links: withoutPortalLinks(nav.primary.links),
+    sections: Object.fromEntries(
+      Object.entries(nav.primary.sections).map(([key, section]) => [key, {
+        ...section,
+        items: withoutPortalItems(section.items),
+        viewAll: section.viewAll && isPortalHref(section.viewAll.href) ? null : section.viewAll,
+      }]),
+    ),
+  };
+
+  const bottomBar = nav.bottomBar && nav.bottomBar.filter((link) => !isPortalHref(link.href));
+
+  return { primary, footerMenu, topBar, bottomBar };
 }

@@ -66,6 +66,12 @@ class AdminNavRolesTest extends TestCase
         'customers/settings' => 'settings',
         'chat/settings' => 'settings',
         'messaging/settings' => 'settings',
+        // Online meetings (docs/meetings.md): the console files the types, the
+        // hosts and the settings under Meetings; the API names each resource.
+        // `meetings` and `my-meetings` are the same segment on both sides.
+        'meetings/settings' => 'settings',
+        'meetings/types' => 'meeting-types',
+        'meetings/hosts' => 'meeting-hosts',
     ];
 
     /** @return array<int, array{path: string, role: ?string}> */

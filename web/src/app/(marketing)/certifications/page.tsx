@@ -9,11 +9,12 @@ import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
 import type { Brand, Certification } from "@/types/api";
+import { brandName } from "@/lib/brand";
 
 export const metadata = buildMetadata({
   title: "Certifications",
   description:
-    "The standards Technoware is certified to, the vendors it is an authorised partner of, and the certificates behind both.",
+    `The standards ${brandName()} is certified to, the vendors it is an authorised partner of, and the certificates behind both.`,
   path: "/certifications",
 });
 

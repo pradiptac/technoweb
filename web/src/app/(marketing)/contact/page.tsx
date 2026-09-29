@@ -10,13 +10,14 @@ import { IconBook, IconBuilding, IconMail, IconPhone, IconTicket } from "@/compo
 import { buildMetadata } from "@/lib/seo";
 import { contact } from "@/content/site";
 import { getSiteSettings } from "@/lib/settings";
-import { telHref } from "@/lib/site-settings";
+import { portalEnabled, settingEnabled, telHref } from "@/lib/site-settings";
 import Link from "next/link";
+import { brandName } from "@/lib/brand";
 
 export const metadata = buildMetadata({
   title: "Contact",
   description:
-    "Talk to a Technoware engineer about networking, servers, security or an AMC contract. Existing customers can raise a support ticket directly.",
+    `Talk to a ${brandName()} engineer about networking, servers, security or an AMC contract. Existing customers can raise a support ticket directly.`,
   path: "/contact",
 });
 
@@ -68,23 +69,28 @@ export default async function ContactPage({
           the theme, and the text on it stays the site's own ink.
         */}
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <ContactCard icon={<IconPhone className="size-5" />} label="Call" hue="var(--color-google-blue)">
-            <a href={telHref(phone)} className="block text-17 font-semibold hover:underline">{phone}</a>
-            <p className="mt-1 text-13 text-muted">Mon&ndash;Sat, 9:30&ndash;18:30 IST</p>
-          </ContactCard>
+          {/* A card only for what Settings → Contact holds. */}
+          {phone && (
+            <ContactCard icon={<IconPhone className="size-5" />} label="Call" hue="var(--color-google-blue)">
+              <a href={telHref(phone)} className="block text-17 font-semibold hover:underline">{phone}</a>
+              <p className="mt-1 text-13 text-muted">Mon&ndash;Sat, 9:30&ndash;18:30 IST</p>
+            </ContactCard>
+          )}
 
-          <ContactCard icon={<IconMail className="size-5" />} label="Email" hue="var(--color-google-red)">
-            {/*
-              `break-all` on the address: an email address is one unbreakable
-              run to a browser, and a long one at 320px paints outside its own
-              card while the box stays put — the signature the dashboard's
-              "Today" label already taught this project.
-            */}
-            <a href={`mailto:${email}`} className="block text-17 font-semibold break-all hover:underline">
-              {email}
-            </a>
-            <p className="mt-1 text-13 text-muted">Support and general enquiries</p>
-          </ContactCard>
+          {email && (
+            <ContactCard icon={<IconMail className="size-5" />} label="Email" hue="var(--color-google-red)">
+              {/*
+                `break-all` on the address: an email address is one unbreakable
+                run to a browser, and a long one at 320px paints outside its own
+                card while the box stays put — the signature the dashboard's
+                "Today" label already taught this project.
+              */}
+              <a href={`mailto:${email}`} className="block text-17 font-semibold break-all hover:underline">
+                {email}
+              </a>
+              <p className="mt-1 text-13 text-muted">Support and general enquiries</p>
+            </ContactCard>
+          )}
 
           {settings.address && (
             <ContactCard icon={<IconBuilding className="size-5" />} label="Visit" hue="var(--color-google-green)">
@@ -139,9 +145,10 @@ export default async function ContactPage({
               The one thing on this page that should stop somebody using the
               form: a fault raised here has no SLA clock on it and lands in an
               inbox rather than on the desk. Beside the form for that reason,
-              not under it.
+              not under it. Not while the portal is switched off
+              (`portal_enabled`): then this form *is* the way in.
             */}
-            <div className="rounded-xl border border-line-strong bg-dark p-5.5 text-dark-ink">
+            {portalEnabled(settings) && <div className="rounded-xl border border-line-strong bg-dark p-5.5 text-dark-ink">
               <h2 className="text-15-5 text-dark-ink">Already a customer?</h2>
               <p className="mt-2 text-13-5 leading-normal text-dark-muted">
                 Don&rsquo;t use this form for faults — raise a ticket instead and it lands on
@@ -161,7 +168,7 @@ export default async function ContactPage({
                   <IconBook className="size-4" /> Knowledge base
                 </Link>
               </div>
-            </div>
+            </div>}
 
             {/*
               What a form does after it is submitted is the question everybody
@@ -185,6 +192,13 @@ export default async function ContactPage({
                   A site visit or a call, if that is the sensible next step.
                 </li>
               </ol>
+              {/* Online meetings (docs/meetings.md): the call, booked by the visitor — only while bookings are open. */}
+              {settingEnabled(settings, "meetings_enabled") && (
+                <p className="mt-4 text-13-5 leading-normal text-ink-2">
+                  Rather talk it through now?{" "}
+                  <Link href="/book-a-meeting" className="font-semibold text-brand-ink underline">Book a video call</Link>.
+                </p>
+              )}
             </div>
           </aside>
         </div>
@@ -207,7 +221,7 @@ export default async function ContactPage({
                 Google's embed host, because an unchecked one is somebody
                 else's page rendered inside ours.
               */}
-              <MapEmbed src={settings.map_embed_url} address={settings.address} />
+              <MapEmbed src={settings.map_embed_url} address={settings.address} company={settings.company_name ?? brandName()} />
             </div>
           </Container>
         </section>

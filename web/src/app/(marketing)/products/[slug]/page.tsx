@@ -21,6 +21,7 @@ import { CatalogueFilters } from "../catalogue-filters";
 import { publicApi } from "@/lib/api";
 import type { Brand } from "@/types/api";
 import { resolveProductSlug } from "./resolve";
+import { brandName } from "@/lib/brand";
 
 export async function generateMetadata({
   params, searchParams,
@@ -35,7 +36,7 @@ export async function generateMetadata({
     // A listing: self-referencing canonical per page, a search or brand facet unindexed — `listingMetadata`.
     return listingMetadata({
       title: r.category.name,
-      description: r.category.description ?? `${r.category.name} supplied, deployed and supported by Technoware engineers.`,
+      description: r.category.description ?? `${r.category.name} supplied, deployed and supported by ${brandName()} engineers.`,
       path: `/products/${r.category.slug}`,
       seo: r.category.seo,
       searchParams: await searchParams,

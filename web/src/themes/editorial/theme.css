@@ -142,6 +142,31 @@
 [data-theme="editorial"] [data-collection="products"] [data-tile-media] > a > div,
 [data-theme="editorial"] [data-collection="products"] [data-tile-media] > span { border-radius: 0; border: 1px solid var(--color-line); }
 [data-theme="editorial"] [data-collection] [data-tile]:hover [data-tile-media] { filter: none; }
+/*
+  The shop's products are cards, not rows (the client, 2026-09-27): a ruled
+  row with no edge of its own and a ground a shade off the page read as text
+  floating between hairlines, and the picture — 132px, monochrome, the Sale
+  badge and the heart over most of it — was the least visible thing on it.
+  Each product is a bordered, padded block on the card ground with a gap
+  between, a 168px square picture in colour (112px on a phone), and square
+  corners, which keeps it Editorial.
+*/
+[data-theme="editorial"] [data-collection="products"] { row-gap: 1.25rem; column-gap: 1.25rem; }
+[data-theme="editorial"] [data-collection="products"] > li { border-top: 0; }
+[data-theme="editorial"] [data-collection="products"] [data-tile] {
+  border: 1px solid var(--color-line-strong);
+  padding: 20px;
+  transition: border-color var(--duration-base) var(--ease-brand);
+}
+[data-theme="editorial"] [data-collection="products"] [data-tile]:hover,
+[data-theme="editorial"] [data-collection="products"] [data-tile]:focus-within { border-color: var(--color-ink); }
+[data-theme="editorial"] [data-collection="products"] [data-tile-media] { width: 168px; aspect-ratio: 1; filter: none; }
+/* The words fill the card's height, so the card's own `mt-auto` puts every Add to basket in a row on one line (2026-09-28). */
+[data-theme="editorial"] [data-collection="products"] [data-tile-body] { align-self: stretch; }
+@media (width < 40rem) {
+  [data-theme="editorial"] [data-collection="products"] [data-tile] { padding: 16px; column-gap: 14px; }
+  [data-theme="editorial"] [data-collection="products"] [data-tile-media] { width: 112px; }
+}
 [data-theme="editorial"] [data-collection] [data-tile-icon]:not(:has([data-tile-portrait], [data-tile-date])) { display: none; }
 [data-theme="editorial"] [data-collection] [data-tile-date] {
   border-radius: 0;
@@ -192,3 +217,23 @@
   border-left: 3px solid var(--tile-hue, var(--color-line-strong));
   padding-left: 16px;
 }
+
+/*
+  The people as a newspaper's staff box (2026-09-28): ruled rows two across,
+  a small square print beside the name in the display face, the role in
+  italic under it, the bio beside the print. Each row keeps the card's
+  ground (the client's "never a card without a ground"), squared off under
+  a heavy rule in the ink.
+*/
+[data-theme="editorial"] [data-team] { grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr)); column-gap: 40px; row-gap: 8px; }
+[data-theme="editorial"] [data-team] > li {
+  display: grid; grid-template-columns: 88px minmax(0, 1fr); column-gap: 18px; align-items: start;
+  border-width: 2px 0 0; border-color: var(--color-ink); border-radius: 0; padding: 18px 16px 20px;
+}
+[data-theme="editorial"] [data-team] [data-team-photo] { aspect-ratio: 1; border-radius: 0; }
+[data-theme="editorial"] [data-team] [data-team-photo] > span { font-size: 26px; }
+[data-theme="editorial"] [data-team] [data-team-rule] { display: none; }
+[data-theme="editorial"] [data-team] [data-team-body] { padding: 0; }
+[data-theme="editorial"] [data-team] [data-team-name] { font-family: var(--font-display); font-size: 22px; line-height: 1.2; }
+[data-theme="editorial"] [data-team] [data-team-bio] { margin-top: 8px; }
+[data-theme="editorial"] [data-team] [data-team-contact] { padding-top: 12px; }

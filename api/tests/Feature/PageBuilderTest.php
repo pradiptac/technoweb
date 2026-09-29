@@ -218,6 +218,29 @@ class PageBuilderTest extends TestCase
             ->assertJsonMissingPath('data.blocks.0.background.enabled');
     }
 
+    public function test_a_reveal_is_stored_by_shape_and_presented(): void
+    {
+        $this->create([self::section('divider', [], ['reveal' => 'Slide in'])])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.reveal');
+
+        $this->create([
+            self::section('divider', [], ['reveal' => 'zoom-in']),
+            self::section('divider', [], ['reveal' => 'none']),
+            self::section('divider', [], ['reveal' => 'default']),
+            self::section('divider', []),
+        ])->assertCreated()
+            ->assertJsonPath('data.blocks.0.reveal', 'zoom-in')
+            ->assertJsonPath('data.blocks.1.reveal', 'none')
+            // "default" is what the section does on its own, so it is never stored.
+            ->assertJsonPath('data.blocks.2.reveal', null)
+            ->assertJsonPath('data.blocks.3.reveal', null);
+
+        $this->getJson('/api/v1/pages/built-page')->assertOk()
+            ->assertJsonPath('data.sections.0.reveal', 'zoom-in')
+            ->assertJsonPath('data.sections.1.reveal', 'none')
+            ->assertJsonPath('data.sections.2.reveal', null);
+    }
+
     public function test_a_cards_section_is_resolved_to_the_live_list(): void
     {
         Solution::create(['title' => 'Networking', 'slug' => 'networking', 'summary' => 'Switching and routing.', 'icon' => 'network', 'status' => PublishStatus::Published, 'sort_order' => 1]);

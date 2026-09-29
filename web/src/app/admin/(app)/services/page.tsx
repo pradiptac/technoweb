@@ -1,19 +1,20 @@
 import Link from "next/link";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
+import { SortTh } from "@/components/admin/sort-th";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
 import { iconMap, IconGlobe, type IconName } from "@/components/icons";
-import { getServices } from "@/lib/admin";
+import { getServiceCategoryOptions, getServices } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminService, Paginated, PublishStatus } from "@/types/api";
 import { IconTile } from "@/components/ui/icon-tile";
 import { requireScreen } from "@/lib/admin-screen";
 
-export const metadata = buildMetadata({ title: "Web services", path: "/admin/services", seo: noIndex });
+export const metadata = buildMetadata({ title: "Services", path: "/admin/services", seo: noIndex });
 
 const statusTone = { published: "resolved", draft: "progress", archived: "closed" } as const;
 
@@ -24,7 +25,7 @@ function RowIcon({ name }: { name: string | null }) {
   );
 }
 
-type SearchParams = { status?: string; q?: string; page?: string; deleted?: string; per_page?: string;
+type SearchParams = { status?: string; q?: string; category?: string; sort?: string; dir?: string; page?: string; deleted?: string; per_page?: string;
 };
 
 export default async function AdminServicesPage({
@@ -36,13 +37,16 @@ export default async function AdminServicesPage({
   const params = await searchParams;
 
   let result: Paginated<AdminService> | null = null;
+  let categories: { id: number; name: string }[] = [];
   try {
-    result = await getServices({
+    [result, categories] = await Promise.all([getServices({
       status: params.status as PublishStatus | undefined,
       q: params.q,
+      category: params.category || undefined,
+      sort: params.sort, dir: params.dir,
       page: Number(params.page) || 1,
       per_page: Number(params.per_page) || undefined,
-    });
+    }), getServiceCategoryOptions().catch(() => [])]);
   } catch {
     return (
       <ErrorState title="We could not load the services">
@@ -52,11 +56,13 @@ export default async function AdminServicesPage({
   }
 
   const services = result.data;
-  const hasFilters = Boolean(params.status || params.q);
+  const hasFilters = Boolean(params.status || params.q || params.category);
+  const listParams = { status: params.status, q: params.q, category: params.category, per_page: params.per_page, sort: params.sort, dir: params.dir };
+  const sortable = { basePath: "/admin/services", params: listParams, sort: params.sort, dir: params.dir };
 
   return (
     <>
-      <PageHeader title="Web services">
+      <PageHeader title="Services">
         <div className="ml-auto"><ButtonLink href="/admin/services/new" size="sm">New service</ButtonLink></div>
       </PageHeader>
 
@@ -76,6 +82,14 @@ export default async function AdminServicesPage({
             <option value="archived">Archived</option>
           </Select>
         </div>
+        <div className="min-w-0">
+          <label htmlFor="category" className="mb-0.5 block text-11 font-semibold text-faint">Category</label>
+          <Select id="category" name="category" defaultValue={params.category ?? ""}>
+            <option value="">All</option>
+            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            <option value="none">No category</option>
+          </Select>
+        </div>
         <div className="flex gap-2">
           <Button type="submit" size="sm">Apply</Button>
           {hasFilters && <ButtonLink href="/admin/services" variant="ghost" size="sm">Clear</ButtonLink>}
@@ -86,16 +100,17 @@ export default async function AdminServicesPage({
         <EmptyState icon={<IconGlobe />} title={hasFilters ? "No services match those filters" : "No services yet"}>
           {hasFilters
             ? "Try a different combination, or clear the filters."
-            : "Domains, hosting, email and the rest of the web offering live here."}
+            : "Web, hardware and installation services — each filed under a service category."}
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[680px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
-                <th scope="col" className="px-3 py-1.5">Service</th>
-                <th scope="col" className="px-3 py-1.5">Status</th>
-                <th scope="col" className="px-3 py-1.5">Order</th>
+                <SortTh sortKey="title" label="Service" {...sortable} />
+                <SortTh sortKey="category" label="Category" {...sortable} />
+                <SortTh sortKey="status" label="Status" {...sortable} />
+                <SortTh sortKey="order" label="Order" {...sortable} />
               </tr>
             </thead>
             <tbody>
@@ -112,6 +127,7 @@ export default async function AdminServicesPage({
                       </div>
                     </div>
                   </td>
+                  <td data-label="Category" className="px-3 py-2 text-muted">{s.category_name ?? "—"}</td>
                   <td data-label="Status" className="px-3 py-2"><Badge tone={statusTone[s.status]}>{s.status_label}</Badge></td>
                   <td data-label="Order" className="px-3 py-2 font-mono text-12-5 text-muted">{s.sort_order}</td>
                 </tr>
@@ -121,7 +137,7 @@ export default async function AdminServicesPage({
         </div>
       )}
 
-      <Pagination meta={result.meta} basePath="/admin/services" params={{ status: params.status, q: params.q, per_page: params.per_page }} />
+      <Pagination meta={result.meta} basePath="/admin/services" params={listParams} />
     </>
   );
 }

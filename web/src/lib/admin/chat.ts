@@ -91,6 +91,8 @@ export type AdminLead = {
   submission?: { form_slug: string | null; data: Record<string, unknown> | null };
   /** The engineer visit request a `visit` lead came from (docs/visits.md). */
   visit?: { reference: string; admin_path: string };
+  /** The online meeting a `meeting` lead came from (docs/meetings.md). */
+  meeting?: { reference: string; admin_path: string } | null;
   related?: {
     id: number;
     subject: string | null;

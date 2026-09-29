@@ -202,9 +202,32 @@ export type Service = PublicCustomFields & AnswerContent & {
   updated_at?: string | null;
   summary: string | null;
   icon: string | null;
+  /** The service category it is filed under, or null for "Other services". */
+  category?: { id: number; name: string; slug: string } | null;
+  /** A few words drawn as chips on its card — ".com", "Microsoft 365". [] when none. */
+  highlights?: string[];
+  /** The service's picture as a URL, or null when none was chosen. */
+  image?: string | null;
+  image_alt?: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  image_focus?: string | null;
   body?: string | null;
   faqs?: Faq[];
   seo?: Seo | null;
+};
+
+/**
+ * A service category (`GET /service-categories`): taxonomy with no page of
+ * its own, active only, in order. `image_background` draws its services'
+ * pictures as the card ground.
+ */
+export type ServiceCategory = {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  icon: string | null;
+  image_background: boolean;
 };
 
 export type Faq = { id: number; question: string; answer: string };
@@ -927,6 +950,12 @@ export type AdminBlogPost = AdminCustomFields & {
   cover_image: string | null;
   author_id: number | null;
   author?: { id: number; name: string } | null;
+  /** Fills the blog front's lead area. */
+  is_featured: boolean;
+  /** This post's own switch; the site-wide `comments_enabled` setting must be on too. */
+  comments_enabled: boolean;
+  category_ids?: number[];
+  categories?: { id: number; name: string; slug: string }[];
   /** Detail-only. Both gained on 2026-09-21 — see `docs/aeo-geo-contract.md`. */
   faqs?: FaqItem[];
   answer_blocks?: AnswerBlock[];
@@ -1147,6 +1176,14 @@ export type AdminService = AdminCustomFields & {
   status: PublishStatus;
   status_label: string;
   sort_order: number;
+  /** The service category, or null when uncategorised. */
+  service_category_id?: number | null;
+  category_name?: string | null;
+  /** The chips on its card, in order. */
+  highlights?: string[];
+  /** The stored media path, and its URL for the preview. */
+  image_path?: string | null;
+  image?: string | null;
   faqs?: FaqItem[];
   /** Detail-only. */
   answer_blocks?: AnswerBlock[];
@@ -1156,6 +1193,22 @@ export type AdminService = AdminCustomFields & {
   updated_at: string;
   /** Whether the mega menu may show it. Not the same as published. */
   show_in_menu?: boolean;
+};
+
+/** A service category in the console: taxonomy, no status, no SEO, no page. */
+export type AdminServiceCategory = {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  icon: string | null;
+  sort_order: number;
+  /** Draw the services' pictures as the card background on the public site. */
+  image_background: boolean;
+  is_active: boolean;
+  services_count?: number;
+  created_at?: string;
+  updated_at?: string;
 };
 
 /** A FAQ as the cross-entity manager sees it, with its owner resolved. */
@@ -2545,6 +2598,12 @@ export type AdminDashboard = {
    * Null for a role that cannot open the queue; optional for an older API.
    */
   visits?: { awaiting: number; today: number } | null;
+  /**
+   * Online meetings (2026-09-29): today's scheduled meetings, and those over
+   * and still owed an outcome. Null for a role that cannot open the list;
+   * optional for an older API.
+   */
+  meetings?: { today: number; needs_outcome: number } | null;
   recent_tickets: Ticket[];
   high_priority: Ticket[];
   status_breakdown: Record<string, number>;
@@ -3045,6 +3104,11 @@ export type NewsletterSubscriber = {
   name: string;
   company: string | null;
   phone: string | null;
+  industry: string | null;
+  location: string | null;
+  website: string | null;
+  /** The page a website crawl found the address on; null for every other source. */
+  source_url: string | null;
   status: SubscriberStatus;
   status_label: string;
   source: string;
@@ -3423,16 +3487,25 @@ export type NewsletterImportAnalysis = {
   preview: Record<string, string | null>[];
 };
 
-/** A mailbox scan's review: the analysis block plus what the scan itself knew. */
+/** A scan's review: the analysis block plus what the scan itself knew. */
 export type NewsletterImportReview = Omit<NewsletterImportAnalysis, "file" | "original_name"> & {
   capped: boolean;
-  account: string;
+  /** A mailbox scan: the mailbox read. */
+  account?: string;
+  /** A website crawl: what it did, and the industry and location every row is tagged with. */
+  pages?: number;
+  linked_pages?: number;
+  sites?: number;
+  hunter_used?: number;
+  notes?: string[];
+  industry?: string | null;
+  location?: string | null;
 };
 
-/** What `GET /admin/newsletter/imports/{id}` says about a mailbox scan. */
+/** What `GET /admin/newsletter/imports/{id}` says about a mailbox scan or a website crawl. */
 export type NewsletterMailboxImport = {
   id: number;
-  source: "file" | "mailbox";
+  source: "file" | "mailbox" | "crawl";
   status: "pending" | "scanning" | "ready" | "running" | "completed" | "failed" | "cancelled" | "expired";
   filename: string;
   total_rows: number;
@@ -3457,6 +3530,24 @@ export type NewsletterMailboxImport = {
     capped?: boolean;
     started_at?: string;
     updated_at?: string;
+    // A website crawl: the run's settings, then where it has got to.
+    start_url?: string;
+    depth?: number;
+    max_pages?: number;
+    industry?: string;
+    location?: string | null;
+    visit_linked_sites?: boolean;
+    linked_sites_max?: number;
+    hunter_domains?: number;
+    phase?: "crawl" | "hunter" | "done";
+    pages?: number;
+    linked_pages?: number;
+    queued?: number;
+    sites?: number;
+    hunter_used?: number;
+    refused?: number;
+    current?: string | null;
+    notes?: string[];
   } | null;
   /** The review, only once the scan is `ready`. */
   analysis: NewsletterImportReview | null;
@@ -3480,6 +3571,19 @@ export type NewsletterMailboxStatus = {
   delivering: boolean;
   /** The scan in progress or awaiting review, so the screen resumes on it. */
   active: NewsletterMailboxImport | null;
+};
+
+/** What `GET /admin/newsletter/imports/crawl` says before a crawl starts. */
+export type NewsletterCrawlStatus = {
+  /** The crawl in progress or awaiting review, so the screen resumes on it. */
+  active: NewsletterMailboxImport | null;
+  delivering: boolean;
+  hunter_configured: boolean;
+  /** Hunter's own figures, or its refusal in its words; null without a key. */
+  hunter: { searches_available: number; searches_used: number; reset_date: string | null } | { error: string } | null;
+  /** Every industry already on the list, offered as suggestions. */
+  industries: string[];
+  limits: { depth: number; pages: number; linked_sites: number; hunter_domains: number };
 };
 
 export type NewsletterDashboard = {
@@ -3652,3 +3756,4 @@ export * from "./reviews";
 export * from "./page-sections";
 export * from "./visits";
 export * from "./wordpress-import";
+export * from "./backups";

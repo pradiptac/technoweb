@@ -3,6 +3,7 @@
 namespace App\Support\Visits;
 
 use App\Enums\MessageEvent;
+use App\Http\Middleware\EnsurePortalEnabled;
 use App\Models\VisitRequest;
 use App\Support\Address;
 use App\Support\Messaging\MessageRecipient;
@@ -122,8 +123,9 @@ final class VisitText
             'service_name' => $visit->topic(),
             'visit_date' => self::date($visit->scheduled_start_at),
             'visit_time' => self::time($visit),
-            // The portal for an account holder; the token link for a guest.
-            'visit_url' => $visit->customer_id ? $visit->portalUrl() : $visit->manageUrl(),
+            // The portal for an account holder; the token link for a guest —
+            // and for everybody while the portal is switched off.
+            'visit_url' => $visit->customer_id && EnsurePortalEnabled::open() ? $visit->portalUrl() : $visit->manageUrl(),
         ]);
     }
 }

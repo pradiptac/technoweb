@@ -15,7 +15,7 @@ const MAX = 20;
  * thing to leave behind while typing.
  */
 export function StringListField({
-  name, label, hint, placeholder, defaultValue, error,
+  name, label, hint, placeholder, defaultValue, error, max = MAX, maxLength,
 }: {
   name: string;
   label: string;
@@ -23,6 +23,10 @@ export function StringListField({
   placeholder?: string;
   defaultValue: string[];
   error?: string;
+  /** How many rows it offers — the API's own cap for the field. */
+  max?: number;
+  /** Characters per row, the API's limit, so the browser stops the typing. */
+  maxLength?: number;
 }) {
   const [rows, setRows] = useState<string[]>(defaultValue.length ? defaultValue : [""]);
 
@@ -42,6 +46,7 @@ export function StringListField({
               aria-label={`${label} ${i + 1}`}
               placeholder={placeholder}
               value={row}
+              maxLength={maxLength}
               onChange={(e) => setRows((r) => r.map((v, n) => (n === i ? e.target.value : v)))}
               className="min-w-0 flex-1"
             />
@@ -57,7 +62,7 @@ export function StringListField({
         ))}
       </ul>
 
-      {rows.length < MAX && (
+      {rows.length < max && (
         <Button
           type="button"
           variant="secondary"

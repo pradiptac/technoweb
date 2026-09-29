@@ -3,23 +3,27 @@ import { notFound, redirect } from "next/navigation";
 import { AuthLayout } from "@/components/layout/auth-layout";
 import { getCurrentCustomerOrNull } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/settings";
-import { settingEnabled } from "@/lib/site-settings";
+import { portalEnabled, settingEnabled } from "@/lib/site-settings";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { RegisterForm } from "./register-form";
+import { brandName } from "@/lib/brand";
+import { PortalClosed } from "@/components/portal/portal-closed";
 
 export const metadata = buildMetadata({
   title: "Create a support account",
-  description: "Register for the Technoware support portal to raise and track tickets.",
+  description: `Register for the ${brandName()} support portal to raise and track tickets.`,
   path: "/portal/register",
   seo: noIndex,
 });
 
 export default async function RegisterPage() {
+  const settings = await getSiteSettings();
+  // The portal switched off (`portal_enabled`): one page for every door in.
+  if (!portalEnabled(settings)) return <PortalClosed settings={settings} />;
+
   // `…OrNull`, for the reason the sign-in page uses it.
   if (await getCurrentCustomerOrNull()) redirect("/portal");
-
-  const settings = await getSiteSettings();
 
   /*
     A 404 rather than a "registration is closed" page.

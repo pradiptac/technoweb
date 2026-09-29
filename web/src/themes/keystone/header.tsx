@@ -41,7 +41,7 @@ export function KeystoneHeader({
     <>
       <header className="sticky top-0 z-40 border-b border-line bg-card/95 backdrop-blur-xl">
         <Container className={cn("flex h-[68px] min-w-0 items-center gap-2", bigMenu && "relative")}>
-          <Link href="/" aria-label="Technoware home" className="shrink-0">
+          <Link href="/" aria-label={settings.company_name ? `${settings.company_name} home` : "Home"} className="shrink-0">
             <Logo
               className="max-[419px]:text-17"
               logoUrl={settings.logo_url}
@@ -70,14 +70,16 @@ export function KeystoneHeader({
               inputClassName="text-13"
               buttonClassName="size-7 rounded-full"
             />
-            <a
-              href={telHref(phone)}
-              aria-label={`Call ${phone}`}
-              title={phone}
-              className="hidden size-10 place-items-center rounded-full text-ink-2 transition-colors duration-(--duration-base) hover:bg-surface-2 hover:text-ink sm:grid"
-            >
-              <IconPhone className="size-4" />
-            </a>
+            {phone ? (
+              <a
+                href={telHref(phone)}
+                aria-label={`Call ${phone}`}
+                title={phone}
+                className="hidden size-10 place-items-center rounded-full text-ink-2 transition-colors duration-(--duration-base) hover:bg-surface-2 hover:text-ink sm:grid"
+              >
+                <IconPhone className="size-4" />
+              </a>
+            ) : null}
             <Link
               href="/contact"
               className="inline-flex h-10 items-center gap-1.5 rounded-full bg-brand-600 px-4 text-13-5 font-semibold text-brand-on transition-colors duration-(--duration-base) hover:bg-brand-700 max-[419px]:px-3"

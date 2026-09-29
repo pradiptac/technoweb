@@ -12,6 +12,7 @@ export type ServiceFormState = { error?: string; fieldErrors?: Record<string, st
 function payloadFrom(formData: FormData): ServicePayload {
   const seo = seoFromFormData(formData);
   const sortOrder = str(formData, "sort_order");
+  const category = str(formData, "service_category_id");
 
   return {
     // Custom fields: absent when no Fields tab was drawn, so the API leaves them alone.
@@ -21,6 +22,10 @@ function payloadFrom(formData: FormData): ServicePayload {
     summary: str(formData, "summary"),
     body: str(formData, "body"),
     icon: str(formData, "icon"),
+    image_path: str(formData, "image_path"),
+    highlights: jsonListFromFormData<string>(formData, "highlights"),
+    // "" from the select is "No category", which is null, not 0.
+    service_category_id: category ? Number(category) : null,
     status: (str(formData, "status") ?? "draft") as PublishStatus,
     sort_order: sortOrder ? Number(sortOrder) : 0,
     // An unticked checkbox submits nothing, so absence is the answer,

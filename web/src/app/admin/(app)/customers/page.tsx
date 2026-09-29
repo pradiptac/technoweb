@@ -14,6 +14,8 @@ import { CustomerStatusBadge, VerifiedBadge } from "./status-badge";
 import { ViewAsForm } from "./view-as-form";
 import { formatDate } from "@/lib/dates";
 import { requireScreen } from "@/lib/admin-screen";
+import { getSiteSettings } from "@/lib/settings";
+import { settingEnabled } from "@/lib/site-settings";
 
 export const metadata = buildMetadata({ title: "Customers", path: "/admin/customers", seo: noIndex });
 
@@ -64,6 +66,10 @@ export default async function AdminCustomersPage({
   const listParams = { q: params.q, status: params.status, verified: params.verified, per_page: params.per_page, sort: params.sort, dir: params.dir };
   const sortable = { basePath: "/admin/customers", params: listParams, sort: params.sort, dir: params.dir };
   const pending = result.meta.pending_count ?? 0;
+  // Whether a confirmed address is enough or staff must also approve. Off by
+  // default, and read the way the registration page reads it, so the intro
+  // does not describe a queue this install does not have.
+  const approvalRequired = settingEnabled(await getSiteSettings(), "customer_approval_required", false);
 
   return (
     <>
@@ -71,8 +77,17 @@ export default async function AdminCustomersPage({
         title="Customers"
         lede={<>
           Every portal account, and the queue of people waiting to be let in.
-          An account is only usable once its address is confirmed <em>and</em> a
-          member of staff has activated it.
+          {approvalRequired ? (
+            <>
+              A self-registered account is usable once its address is confirmed{" "}
+              <em>and</em> a member of staff has activated it.
+            </>
+          ) : (
+            <>
+              A self-registered account is usable as soon as its address is
+              confirmed; staff approval is switched off in Customers → Portal.
+            </>
+          )}
         </>}
       >
         {/*

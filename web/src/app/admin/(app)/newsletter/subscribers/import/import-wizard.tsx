@@ -29,6 +29,9 @@ const FIELDS: { key: string; label: string; hint?: string }[] = [
   { key: "last_name", label: "Last name" },
   { key: "company", label: "Company" },
   { key: "phone", label: "Phone" },
+  { key: "industry", label: "Industry" },
+  { key: "location", label: "Location" },
+  { key: "website", label: "Website" },
 ];
 
 export function ImportWizard({ groups }: { groups: NewsletterGroup[] }) {

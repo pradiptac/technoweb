@@ -28,6 +28,9 @@ enum WebhookEvent: string
     case FormSubmitted = 'form.submitted';
     case SubscriberJoined = 'subscriber.joined';
     case VisitRequested = 'visit.requested';
+    case MeetingScheduled = 'meeting.scheduled';
+    case MeetingRescheduled = 'meeting.rescheduled';
+    case MeetingCancelled = 'meeting.cancelled';
 
     public function label(): string
     {
@@ -44,6 +47,9 @@ enum WebhookEvent: string
             self::FormSubmitted => 'A form was submitted',
             self::SubscriberJoined => 'A newsletter subscriber joined',
             self::VisitRequested => 'An engineer visit was requested',
+            self::MeetingScheduled => 'An online meeting was booked',
+            self::MeetingRescheduled => 'An online meeting was moved',
+            self::MeetingCancelled => 'An online meeting was cancelled',
         };
     }
 
@@ -63,6 +69,9 @@ enum WebhookEvent: string
             self::FormSubmitted => 'The raw answers to an editor-built form.',
             self::SubscriberJoined => 'A newsletter subscriber row being created, however it arrived.',
             self::VisitRequested => 'A site visit request, with the times asked for. Never the access token.',
+            self::MeetingScheduled => 'A meeting booked from the site, the portal or the console, with its time, host and Meet link. Never the access token or the staff note.',
+            self::MeetingRescheduled => 'A meeting moved to a new time or host, with the time it moved from.',
+            self::MeetingCancelled => 'A cancelled meeting, with the reason when the desk gave one.',
         };
     }
 

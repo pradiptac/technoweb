@@ -13,28 +13,21 @@ import type { SiteForm } from "@/types/api";
 const initial: FormState = {};
 
 /**
- * The origin the snippets name.
- *
- * `NEXT_PUBLIC_SITE_URL` rather than `window.location`, because these are read
- * in the console and pasted onto a different machine entirely — a developer
- * working at localhost would otherwise hand somebody a snippet pointing at
- * their own laptop. It is the same value `metadataBase` and every canonical are
- * built on, so it names the host the site is actually served from.
- */
-function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.technoware.in";
-}
-
-/**
  * The iframe somebody pastes into the other site.
+ *
+ * `site` is the origin the snippets name: the server's `siteUrl()`, handed
+ * down by the page, rather than `window.location` — these are read in the
+ * console and pasted onto a different machine entirely, and a developer
+ * working at localhost would otherwise hand somebody a snippet pointing at
+ * their own laptop. It is the value `metadataBase` and every canonical are
+ * built on, and it is runtime configuration, which a client component cannot
+ * read for itself (`lib/site-url.ts`).
  *
  * `title` is on it deliberately: a frame with no accessible name is announced
  * as "frame" and nothing else, and this one is going onto a page whose
  * accessibility is somebody else's reputation as well as ours.
  */
-function embedSnippet(slug: string): string {
-  const site = siteUrl();
-
+function embedSnippet(site: string, slug: string): string {
   return `<iframe
   src="${site}/embed/forms/${slug || "your-slug"}"
   title="Enquiry form"
@@ -43,7 +36,7 @@ function embedSnippet(slug: string): string {
 ></iframe>`;
 }
 
-export function FormForm({ form, saved }: { form?: SiteForm; saved?: boolean }) {
+export function FormForm({ form, saved, site }: { form?: SiteForm; saved?: boolean; site: string }) {
   const action = form ? updateFormAction.bind(null, form.id) : createFormAction;
   const [state, formAction, pending] = useActionState(action, initial);
   const [slug, setSlug] = useState(form?.slug ?? "");
@@ -137,7 +130,7 @@ export function FormForm({ form, saved }: { form?: SiteForm; saved?: boolean }) 
           the lead records <em>their</em> page as the source.
         </p>
         <code className="mt-2 block overflow-x-auto rounded border border-line bg-card px-3 py-2 font-mono text-13 whitespace-pre select-all">
-          {embedSnippet(slug)}
+          {embedSnippet(site, slug)}
         </code>
         <p className="mt-2 text-12 text-muted">
           The height is fixed because a frame cannot size itself to its contents from the
@@ -180,7 +173,7 @@ export function FormForm({ form, saved }: { form?: SiteForm; saved?: boolean }) 
           </p>
 
           <code className="mt-3 block max-h-80 overflow-auto rounded border border-line bg-card px-3 py-2 font-mono text-12 whitespace-pre select-all">
-            {buildHtmlSnippet(form, slug, siteUrl())}
+            {buildHtmlSnippet(form, slug, site)}
           </code>
         </details>
       </div>

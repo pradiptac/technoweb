@@ -14,7 +14,7 @@ import { navKey } from "@/lib/nav-key";
 import { MegaMenu, PANEL_CHEVRON_CLASSES, PANEL_HOST_CLASS, type MenuPanelStyle } from "@/components/layout/mega-menu";
 import { TopBarPanel } from "@/components/layout/top-bar-panel";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
-import { closePanelOnNavigate, markPanelSwap, releasePanel } from "@/components/layout/panel-host";
+import { closePanelOnNavigate, releasePanel } from "@/components/layout/panel-host";
 import { CartBadge } from "@/components/layout/cart-badge";
 import { SiteSearch } from "@/components/layout/site-search";
 import { ShimmerLink } from "@/components/velora/shimmer-button";
@@ -90,13 +90,17 @@ export function SiteHeader({
               strip, and "Customer login" was clipped at the edge. Below `lg`
               the address is one tap away in the drawer.
             */}
-            <a href={telHref(phone)} className="flex items-center gap-1.5 whitespace-nowrap py-1.5 hover:text-topbar-ink">
-              <IconPhone className="size-[13px]" />
-              {phone}
-            </a>
-            <a href={`mailto:${email}`} className="hidden whitespace-nowrap py-1.5 hover:text-topbar-ink lg:inline-flex lg:items-center">
-              {email}
-            </a>
+            {phone ? (
+              <a href={telHref(phone)} className="flex items-center gap-1.5 whitespace-nowrap py-1.5 hover:text-topbar-ink">
+                <IconPhone className="size-[13px]" />
+                {phone}
+              </a>
+            ) : null}
+            {email ? (
+              <a href={`mailto:${email}`} className="hidden whitespace-nowrap py-1.5 hover:text-topbar-ink lg:inline-flex lg:items-center">
+                {email}
+              </a>
+            ) : null}
           </div>
           <div className="flex items-center gap-5">
             {/*
@@ -159,7 +163,6 @@ export function SiteHeader({
                   )}
                   onClick={panel ? closePanelOnNavigate : undefined}
                   onFocus={panel ? releasePanel : undefined}
-                  onPointerLeave={panel ? markPanelSwap : undefined}
                 >
                   {/*
                     A heading — no address, a panel beneath — is a button that
@@ -208,7 +211,7 @@ export function SiteHeader({
           seam that arrangement exists to prevent.
         */}
         <Container className={cn("flex h-[calc(var(--h-site-header)-1px)] min-w-0 items-center gap-2 sm:gap-3.5", bigMenu && "relative")}>
-          <Link href="/" aria-label="Technoware home" className="shrink-0">
+          <Link href="/" aria-label={settings.company_name ? `${settings.company_name} home` : "Home"} className="shrink-0">
             <Logo
               className="max-[419px]:text-17"
               logoUrl={settings.logo_url}
@@ -248,7 +251,6 @@ export function SiteHeader({
                     className={section ? PANEL_HOST_CLASS[menuStyle] : undefined}
                     onClick={section ? closePanelOnNavigate : undefined}
                     onFocus={section ? releasePanel : undefined}
-                    onPointerLeave={section ? markPanelSwap : undefined}
                   >
                     <Trigger
                       href={item.href as string}
@@ -278,7 +280,7 @@ export function SiteHeader({
                         asked for less movement still needs to know where they
                         are.
                       */
-                      className="relative flex items-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-3 text-14-5 font-medium text-ink-2 transition-colors duration-(--duration-base) hover:bg-surface-2 hover:text-ink after:absolute after:inset-x-3 after:bottom-[7px] after:h-[2px] after:origin-left after:scale-x-0 after:rounded-full after:bg-brand-600 after:transition-[scale] after:duration-(--duration-base) after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-[:focus-within:not([data-closed])]:after:scale-x-100 motion-reduce:after:transition-none"
+                      className="relative flex items-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-3 text-14-5 font-medium text-ink-2 transition-colors duration-(--duration-base) hover:bg-surface-2 hover:text-ink after:absolute after:inset-x-3 after:bottom-[7px] after:h-[2px] after:origin-left after:scale-x-0 after:rounded-full after:bg-brand-600 after:transition-[scale] after:duration-(--duration-slow) hover:after:duration-(--duration-draw) focus-visible:after:duration-(--duration-draw) group-[:focus-within:not([data-closed])]:after:duration-(--duration-draw) after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-[:focus-within:not([data-closed])]:after:scale-x-100 motion-reduce:after:transition-none"
                     >
                       {item.label}
                       {/*

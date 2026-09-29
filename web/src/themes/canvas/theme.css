@@ -60,19 +60,6 @@
 [data-theme="canvas"] [role="tab"] { border-radius: 8px; }
 [data-theme="canvas"] .badge { border-radius: 9999px; }
 
-/* The people: circular portraits at every size, the document's avatar rule. */
-[data-theme="canvas"] [data-team-photo] {
-  aspect-ratio: 1;
-  padding: 24px;
-  background: var(--color-surface-2);
-}
-[data-theme="canvas"] [data-team-photo] img {
-  position: static;
-  height: 100%;
-  width: 100%;
-  border-radius: 9999px;
-}
-[data-theme="canvas"] [data-team-photo] > span { border-radius: 9999px; background: var(--color-card); }
 [data-theme="canvas"] [data-team-role] { font-family: var(--font-display); font-style: italic; font-weight: 400; }
 
 /*
@@ -150,6 +137,81 @@
 }
 [data-theme="canvas"] [data-collection] [data-tile-results] { border-top: 0; padding-top: 0; }
 [data-theme="canvas"] [data-collection] [data-tile-results] dd { font-family: var(--font-display); font-weight: 400; }
+
+/*
+  Solid colour cards (the client chose "mixed palette", 2026-09-28, over a
+  navy and a single-brand version — the flat cream read as "very dumb").
+  Every tile on a collection and every hand-rolled card on the front page is
+  a solid fill turning through six shades of the palette — brand, accent and
+  secondary at 600, then at 900 — so no two neighbours match, whatever the
+  columns. Each fill carries its own ink: the palette's `-on` on a 600 (the
+  generator walks the fill until that passes, in both schemes) and the
+  dark-band ink on a 900, which stays dark in both. The ink is set as a
+  *local palette* — `ink`, `ink-2`, `muted`, `faint` and the three coloured
+  inks all become it, and the hairlines a pour of it — so every word the card
+  already draws follows without a class changing, and the audit grades the
+  words against the fill like any card. `--color-card` is left alone: the
+  identity icon's disc mixes from it and stays a pale disc on any fill. The
+  shop's product cards and the resources hub's hued routes keep their own
+  grounds. Under the pointer a card brightens by `filter`, which moves no
+  computed colour.
+*/
+[data-theme="canvas"] [data-collection]:not([data-collection="products"]):not([data-collection="routes"]) > :nth-child(6n+1) [data-tile],
+[data-theme="canvas"] [data-canvas-fill]:nth-child(6n+1) { --canvas-fill: var(--color-brand-600); --canvas-on: var(--color-brand-on); --canvas-soft: var(--color-brand-100); --canvas-hl: var(--color-g-yellow-fill); --canvas-hl-on: var(--color-g-yellow-on); }
+[data-theme="canvas"] [data-collection]:not([data-collection="products"]):not([data-collection="routes"]) > :nth-child(6n+2) [data-tile],
+[data-theme="canvas"] [data-canvas-fill]:nth-child(6n+2) { --canvas-fill: var(--color-accent-600); --canvas-on: var(--color-accent-on); --canvas-soft: var(--color-accent-100); --canvas-hl: var(--color-g-red-fill); --canvas-hl-on: var(--color-g-red-on); }
+[data-theme="canvas"] [data-collection]:not([data-collection="products"]):not([data-collection="routes"]) > :nth-child(6n+3) [data-tile],
+[data-theme="canvas"] [data-canvas-fill]:nth-child(6n+3) { --canvas-fill: var(--color-secondary-600); --canvas-on: var(--color-secondary-on); --canvas-soft: var(--color-secondary-100); --canvas-hl: var(--color-g-green-fill); --canvas-hl-on: var(--color-g-green-on); }
+[data-theme="canvas"] [data-collection]:not([data-collection="products"]):not([data-collection="routes"]) > :nth-child(6n+4) [data-tile],
+[data-theme="canvas"] [data-canvas-fill]:nth-child(6n+4) { --canvas-fill: var(--color-brand-900); --canvas-on: var(--color-dark-ink); --canvas-soft: var(--color-dark-muted); --canvas-hl: var(--color-g-blue-fill); --canvas-hl-on: var(--color-g-blue-on); }
+[data-theme="canvas"] [data-collection]:not([data-collection="products"]):not([data-collection="routes"]) > :nth-child(6n+5) [data-tile],
+[data-theme="canvas"] [data-canvas-fill]:nth-child(6n+5) { --canvas-fill: var(--color-accent-900); --canvas-on: var(--color-dark-ink); --canvas-soft: var(--color-dark-muted); --canvas-hl: var(--color-g-yellow-fill); --canvas-hl-on: var(--color-g-yellow-on); }
+[data-theme="canvas"] [data-collection]:not([data-collection="products"]):not([data-collection="routes"]) > :nth-child(6n+6) [data-tile],
+[data-theme="canvas"] [data-canvas-fill]:nth-child(6n+6) { --canvas-fill: var(--color-secondary-900); --canvas-on: var(--color-dark-ink); --canvas-soft: var(--color-dark-muted); --canvas-hl: var(--color-g-red-fill); --canvas-hl-on: var(--color-g-red-on); }
+[data-theme="canvas"] [data-collection]:not([data-collection="products"]):not([data-collection="routes"]) [data-tile],
+[data-theme="canvas"] [data-canvas-fill] {
+  background-color: var(--canvas-fill, var(--color-surface-2));
+  background-image: none;
+  border-color: transparent;
+  color: var(--canvas-on, var(--color-ink));
+  --color-ink: var(--canvas-on);
+  --color-ink-2: var(--canvas-soft, var(--canvas-on));
+  --color-muted: var(--canvas-soft, var(--canvas-on));
+  --color-faint: var(--canvas-soft, var(--canvas-on));
+  --color-brand-ink: var(--canvas-on);
+  --color-secondary-ink: var(--canvas-on);
+  --color-accent-ink: var(--canvas-on);
+  --color-line: color-mix(in srgb, var(--canvas-on) 24%, transparent);
+  --color-line-strong: color-mix(in srgb, var(--canvas-on) 34%, transparent);
+  transition: filter var(--duration-base) var(--ease-brand);
+}
+[data-theme="canvas"] [data-collection]:not([data-collection="products"]):not([data-collection="routes"]) [data-tile]:hover,
+[data-theme="canvas"] [data-canvas-fill]:hover { filter: brightness(1.08) saturate(1.08); }
+/*
+  The words under the heading are softer than it (the client, 2026-09-28):
+  `--canvas-soft` is the same hue's 100 step on a 600 fill — a pale tint in
+  light, where the ink is white, and a dark tint in dark, where the ink is
+  near-black, so it softens in the right direction in both — and
+  `dark-muted` on a 900, which stays dark in both schemes. Plain tokens, so
+  the audit grades them (a `color-mix` computes to a string it cannot read).
+
+  And the heading is highlighted in a Google colour: a solid chip of
+  `--color-g-*-fill` under the words, in the ink `globals.css` grades
+  against it, paired with the fill so blue never sits on blue.
+*/
+[data-theme="canvas"] [data-collection]:not([data-collection="products"]):not([data-collection="routes"]) [data-tile-title],
+[data-theme="canvas"] [data-canvas-fill] h3 {
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px 10px;
+  border-radius: 8px;
+  background-color: var(--canvas-hl);
+  color: var(--canvas-hl-on);
+  --color-ink: var(--canvas-hl-on);
+  --color-brand-ink: var(--canvas-hl-on);
+}
+/* A post's date is a white square written in the brand ink — on a fill, a hairline box in the fill's ink. */
+[data-theme="canvas"] [data-collection]:not([data-collection="products"]):not([data-collection="routes"]) [data-tile-date] { background: transparent; border: 1px solid var(--color-line-strong); }
 /* The shop's furniture: the document's radius, no shadow. */
 [data-theme="canvas"] [data-store-filter] form,
 [data-theme="canvas"] [data-store-promo],
@@ -168,3 +230,42 @@
   background-image: linear-gradient(155deg, color-mix(in srgb, var(--tile-hue, var(--color-card)) 14%, var(--color-card)) 0%, var(--color-card) 55%, var(--color-surface-2) 100%);
   border-top: 3px solid var(--tile-hue, var(--color-line-strong));
 }
+
+/*
+  The four statistics under the hero are Google's four colours, solid, in
+  order (the client, 2026-09-28): blue, red, yellow, green, each with the ink
+  `globals.css` grades against it. The figure's `--stat-ink` and the label's
+  `muted` become that ink for the pill alone. Not `bg-card` in the markup: the
+  site's card-ground gradient would paint over the fill.
+*/
+[data-theme="canvas"] [data-canvas-stat]:nth-child(4n+1) { --g-fill: var(--color-g-blue-fill); --g-on: var(--color-g-blue-on); }
+[data-theme="canvas"] [data-canvas-stat]:nth-child(4n+2) { --g-fill: var(--color-g-red-fill); --g-on: var(--color-g-red-on); }
+[data-theme="canvas"] [data-canvas-stat]:nth-child(4n+3) { --g-fill: var(--color-g-yellow-fill); --g-on: var(--color-g-yellow-on); }
+[data-theme="canvas"] [data-canvas-stat]:nth-child(4n+4) { --g-fill: var(--color-g-green-fill); --g-on: var(--color-g-green-on); }
+[data-theme="canvas"] [data-canvas-stat] {
+  background-color: var(--g-fill);
+  background-image: none;
+  border-color: transparent;
+  color: var(--g-on);
+  --stat-ink: var(--g-on);
+  --color-muted: var(--g-on);
+  --color-ink: var(--g-on);
+  --color-ink-2: var(--g-on);
+}
+
+/*
+  The people as centred profiles (2026-09-28), the document's avatar rule:
+  a round 136px portrait ringed in the person's own colour at the top of a
+  cream card, everything under it centred, the role in the serif italic.
+*/
+[data-theme="canvas"] [data-team] > li { align-items: center; text-align: center; padding-top: 28px; border-radius: 16px; }
+[data-theme="canvas"] [data-team] [data-team-photo] {
+  width: 136px; aspect-ratio: 1; flex: none; border-radius: 9999px;
+  box-shadow: 0 0 0 4px var(--color-card), 0 0 0 7px var(--member-hue);
+}
+[data-theme="canvas"] [data-team] [data-team-photo] > span { font-size: 36px; }
+[data-theme="canvas"] [data-team] [data-team-rule] { display: none; }
+[data-theme="canvas"] [data-team] [data-team-body] { align-items: center; width: 100%; padding-top: 18px; }
+[data-theme="canvas"] [data-team] [data-team-name] { font-family: var(--font-display); font-weight: 400; font-size: 22px; }
+[data-theme="canvas"] [data-team] [data-team-certs],
+[data-theme="canvas"] [data-team] [data-team-contact] { justify-content: center; }

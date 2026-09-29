@@ -97,7 +97,7 @@ export function AnnouncementPanel({ rows }: { rows: SettingGroups[string] }) {
         />
         <Choice
           name="setting__announcement_mode"
-          legend="Message"
+          legend="Message style"
           value={mode}
           onChange={(v) => setMode(v as AnnouncementMode)}
           choices={[

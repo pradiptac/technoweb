@@ -178,7 +178,7 @@ export function StoreProductCard({
           <p data-tile-summary className="line-clamp-2 text-12-5 text-muted sm:text-13">{product.short_description}</p>
         )}
 
-        <div data-tile-meta data-tile-price className="mt-auto flex flex-wrap items-baseline gap-2 pt-1">
+        <div data-tile-meta data-tile-price className="flex flex-wrap items-baseline gap-2 pt-1">
           <span className="text-17 font-semibold tabular-nums sm:text-[20px]">{formatPaise(product.price_paise)}</span>
           {discounted && (
             <>
@@ -199,26 +199,44 @@ export function StoreProductCard({
         </div>
 
         {/*
-          Add and quick-view side by side, the way the two controls sit on any
-          shop's card: the primary action takes the room and the secondary one
-          is a square beside it. The eye used to float over the top-right of
-          the photograph, where it covered the product and was easy to press by
-          accident while reaching for the picture.
-        */}
-        <div data-tile-actions className="flex items-stretch gap-2 pt-1">
-          <div className="min-w-0 flex-1">
-            <QuickAdd product={product} />
-          </div>
-          <QuickView product={product} />
-        </div>
-
-        {/*
           Said on the card, not only at the checkout. A term disclosed on the
           receipt is not a term anybody agreed to.
         */}
         {!product.returnable && (
           <p className="text-12 font-medium text-warn">Non-returnable</p>
         )}
+
+        {/*
+          Add and quick-view side by side, the way the two controls sit on any
+          shop's card: the primary action takes the room and the secondary one
+          is a square beside it. The eye used to float over the top-right of
+          the photograph, where it covered the product and was easy to press by
+          accident while reaching for the picture.
+        */}
+        {/*
+          `mt-auto` and last in the card, so every Add to basket in a row sits
+          on one line whatever the name, the summary or a wrapped discount
+          badge above it took (the client, 2026-09-28, every theme). It used
+          to be the price that took `mt-auto`, and a price that wrapped to two
+          lines moved the button with it.
+        */}
+        <div data-tile-actions className="mt-auto flex items-stretch gap-2 pt-1">
+          <div className="min-w-0 flex-1">
+            <QuickAdd product={product} />
+          </div>
+          <QuickView product={product} />
+          {/*
+            The heart again, beside the buttons — hidden unless a theme wants
+            it there instead of on the picture (Datacenter's rack rows, where a
+            corner of a small picture is too much to give up). Both read the one
+            wishlist store, and the hidden one is `display: none`, so a keyboard
+            and a screen reader meet exactly one.
+          */}
+          <span data-tile-save-inline className="hidden">
+            <WishlistHeart productId={product.id} name={product.name} className="size-11 rounded-lg shadow-none" />
+          </span>
+        </div>
+
       </div>
     </article>
   );

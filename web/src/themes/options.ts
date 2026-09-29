@@ -59,10 +59,16 @@ export type SectionBackground = {
   overlay?: number;
 };
 
-/** One homepage section's settings: drawn or not, and what it sits on. */
+/** One homepage section's settings: drawn or not, what it sits on, and how it arrives. */
 export type SectionSetting = {
   enabled: boolean;
   bg?: SectionBackground;
+  /**
+   * A `SECTION_REVEALS` id (lib/motion-choices.ts), checked for shape only
+   * and resolved by `sectionReveal()`; absent means it does not move — the
+   * homepage's default since the 2026-09-15 UX audit.
+   */
+  reveal?: string;
 };
 
 export type ThemeOptions = {
@@ -129,7 +135,12 @@ export const HOME_SECTIONS: readonly { id: string; label: string }[] = [
   { id: "credentials", label: "Credentials" },
   { id: "reviews", label: "Reviews (Google, via Elfsight)" },
   { id: "industries", label: "Industries" },
-  { id: "web", label: "Web services" },
+  // `web` is the Services section (the services by category, as tabs); the
+  // id is the one the static "Web services" grid had, so stored rows carry over.
+  { id: "web", label: "Services" },
+  // Where a theme's `web` slot already carries a section of its own
+  // (Enterprise's solution tabs, Horizon's why-block), the services go here.
+  { id: "services", label: "Services (Enterprise, Horizon)" },
   { id: "support", label: "Support band" },
   { id: "cases", label: "Case studies" },
   { id: "resources", label: "Resources" },
@@ -156,7 +167,8 @@ function choice<T extends string>(list: readonly Choice<T>[], value: unknown, fa
 function sectionSetting(raw: unknown): SectionSetting | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
-  return { enabled: r.enabled !== false, bg: sectionBackground(r) };
+  const reveal = typeof r.reveal === "string" && /^[a-z][a-z0-9-]{0,15}$/.test(r.reveal) ? r.reveal : undefined;
+  return { enabled: r.enabled !== false, bg: sectionBackground(r), reveal };
 }
 
 function sectionBackground(r: Record<string, unknown>): SectionBackground | undefined {

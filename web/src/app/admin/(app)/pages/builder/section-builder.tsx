@@ -5,9 +5,11 @@ import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } fr
 import { MoveButton, ReorderButtons } from "@/components/admin/reorder-buttons";
 import { IconChevronDown, IconEye, IconEyeOff, IconLayers } from "@/components/icons-ui";
 import { Badge } from "@/components/ui/badge";
+import { Field, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { SECTION_REVEALS } from "@/lib/motion-choices";
 import { cn } from "@/lib/utils";
 import type { SectionBackground } from "@/themes/options";
 import type { PageBuilderOptions, PageSectionType, SectionPreset, StoredSection } from "@/types/api";
@@ -278,6 +280,13 @@ function SectionCard({
           <BlockEditorProvider value={ctx}>
             <SectionEditor type={section.type} sectionId={section.id} options={options} />
           </BlockEditorProvider>
+          <RevealField
+            id={`${idPrefix}-reveal`}
+            value={section.reveal ?? null}
+            opening={index === 0 && section.type === "hero"}
+            error={errors[`${prefix}.reveal`]?.[0]}
+            onChange={(reveal) => patch(section.id, (s) => ({ ...s, reveal }))}
+          />
           <BackgroundField
             value={section.background}
             onChange={(bg: SectionBackground | null) => patch(section.id, (s) => ({ ...s, background: bg }))}
@@ -288,5 +297,32 @@ function SectionCard({
         </div>
       )}
     </li>
+  );
+}
+
+/**
+ * How the section arrives as the page is scrolled — `SECTION_REVEALS`, the
+ * frontend's one list. "Default" is what the type does on its own and is
+ * stored as nothing; the site-wide Motion style still shapes whichever is
+ * chosen, and visitors who ask for less motion get none of it.
+ */
+function RevealField({ id, value, opening, error, onChange }: {
+  id: string;
+  value: string | null;
+  opening: boolean;
+  error?: string;
+  onChange: (next: string | null) => void;
+}) {
+  const current = value ?? "default";
+  const hint = opening
+    ? "The opening hero is the first thing painted, so it never animates."
+    : SECTION_REVEALS.find((c) => c.id === current)?.note;
+
+  return (
+    <Field label="Appear" htmlFor={id} variant="float-static" hint={hint} error={error} className="mt-2 max-w-sm">
+      <Select id={id} value={current} disabled={opening} onChange={(e) => onChange(e.target.value === "default" ? null : e.target.value)}>
+        {SECTION_REVEALS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+      </Select>
+    </Field>
   );
 }

@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { getSiteSettings } from "@/lib/settings";
 import { themeFor } from "@/lib/presets";
 import { SITE } from "@/lib/seo";
+import { brandName } from "@/lib/brand";
 
 /**
  * The share preview used by any page without an image of its own.
@@ -16,7 +17,7 @@ import { SITE } from "@/lib/seo";
  */
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "Technoware — technology infrastructure";
+export const alt = `${brandName()} — technology infrastructure`;
 
 // Revalidated rather than static: the settings it reads can change, and this
 // is cheap to regenerate.

@@ -10,7 +10,7 @@ export { Solutions } from "./solutions";
 export { ProductCategories } from "./product-categories";
 export { WhyUs } from "./why-us";
 export { Industries } from "./industries";
-export { WebServices } from "./web-services";
+export { Services } from "./services";
 export { SupportBand } from "./support-band";
 export { CaseStudies } from "./case-studies";
 export { Resources } from "./resources";

@@ -1,0 +1,55 @@
+# Build the release zip customers install and update from (release/build.mjs).
+#
+# Run it from the Actions tab ("Run workflow") on `main`, or by pushing a tag
+# `v<version>` that matches web/src/lib/version.ts. It builds on Linux, so the
+# image optimiser's native binary is the one the customer's server needs, signs
+# release.json with the key in the RELEASE_SIGNING_KEY secret (the PEM file
+# `node release/build.mjs --init-key` made — never committed), and keeps the
+# zip as a workflow artifact for 30 days. Download it from the run's page and
+# send it on (release/RELEASING.md).
+#
+# While this repository is public, so is every artifact to anyone signed in to
+# GitHub. The source is public anyway; make the repository private before the
+# product is sold to more than one customer.
+
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: zip, intl, gd, sodium, pdo_mysql, mbstring, fileinfo
+          tools: composer:v2
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build and sign
+        run: node release/build.mjs
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: technoware-release
+          path: release/dist/*
+          retention-days: 30
+          if-no-files-found: error

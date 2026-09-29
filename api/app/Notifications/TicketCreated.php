@@ -7,6 +7,7 @@ use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
 use App\Support\HtmlSanitiser;
 use App\Support\InboundMail\MailHeaders;
+use App\Support\Mail\MailBrand;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -89,6 +90,6 @@ class TicketCreated extends Notification implements ShouldQueue
             ->line('Priority: '.$t->priority->label().' · Category: '.($t->category?->name ?? 'Uncategorised'))
             ->line($this->excerpt())
             ->action('Open in the console', self::consoleUrl($t))
-            ->salutation('— Technoware'), MailHeaders::GENERATED);
+            ->salutation(MailBrand::signoff()), MailHeaders::GENERATED);
     }
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Alert, Field, Input, Select } from "@/components/ui/input";
+import { SettingSwitch } from "@/components/admin/setting-switch";
 import { differs } from "@/lib/palette";
 import { isHex } from "@/lib/presets";
 import type { UploadLimits } from "@/lib/admin";
@@ -69,6 +70,39 @@ export function ChoiceField({
           ))}
         </Select>
       </Field>
+    </div>
+  );
+}
+
+/**
+ * Whether a stored boolean setting is on, read the way the API reads it:
+ * `Setting::get()` passes a `boolean` row through `FILTER_VALIDATE_BOOLEAN`,
+ * so these four words are true and everything else — blank included — is
+ * false. Reading it any other way would show a switch disagreeing with what
+ * the site actually does.
+ */
+export function settingOn(value: string | null | undefined): boolean {
+  return ["1", "true", "on", "yes"].includes((value ?? "").trim().toLowerCase());
+}
+
+/**
+ * A setting the seeder types `boolean` and the API offers no named choices
+ * for, drawn as a switch rather than a text box that wanted a 1 or a 0.
+ *
+ * The decision is the row's own `type`, which the seeder keeps current on
+ * every run, so a new `*_enabled` row needs nothing here. A boolean that
+ * does arrive with `options` (the backup switches, basket reminders) stays a
+ * `ChoiceField`, because there the options' descriptions are the point.
+ * `SettingSwitch` posts `1`/`0` through its hidden input, exactly what the
+ * text box accepted, so the save path and the API are unchanged.
+ */
+export function SettingSwitchField({ id, label, hint, defaultValue }: { id: string; label: string; hint?: string; defaultValue: string | null }) {
+  const [on, setOn] = useState(settingOn(defaultValue));
+  return (
+    <div className="mb-5 rounded-lg border border-line-strong bg-surface px-4 py-3">
+      <SettingSwitch id={id} name={id} checked={on} onChange={setOn} align={hint ? "start" : "center"} note={hint}>
+        {label}
+      </SettingSwitch>
     </div>
   );
 }

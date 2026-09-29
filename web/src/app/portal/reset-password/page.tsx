@@ -4,6 +4,8 @@ import { getSiteSettings } from "@/lib/settings";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { resetCustomerPasswordAction } from "./actions";
+import { portalEnabled } from "@/lib/site-settings";
+import { PortalClosed } from "@/components/portal/portal-closed";
 
 export const metadata = buildMetadata({
   title: "Set a new password",
@@ -22,6 +24,8 @@ export default async function Page({
   searchParams: Promise<{ token?: string; email?: string }>;
 }) {
   const [{ token, email }, settings] = await Promise.all([searchParams, getSiteSettings()]);
+  // The portal switched off (`portal_enabled`): one page for every door in.
+  if (!portalEnabled(settings)) return <PortalClosed settings={settings} />;
 
   return (
     <AuthLayout settings={settings} title="Choose a new password">

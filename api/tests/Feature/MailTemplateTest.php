@@ -540,7 +540,7 @@ class MailTemplateTest extends TestCase
             ->assertOk();
 
         // Sample values, so a preview never carries a real customer's details.
-        $this->assertSame('Draft TW-2026-00042', $response->json('data.subject'));
+        $this->assertSame('Draft TK-2026-00042', $response->json('data.subject'));
         $this->assertStringContainsString('Draft body for Neil Basu', $response->json('data.html'));
         // Through the same shell a real send uses.
         $this->assertStringContainsString('#f4f5f2', $response->json('data.html'));

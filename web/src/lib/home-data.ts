@@ -1,6 +1,7 @@
 import type { ContentBlock } from "@/types/api";
 import "server-only";
 import { publicApi } from "@/lib/api";
+import { isPortablePrerender } from "@/lib/build-phase";
 import { getSiteSettings } from "@/lib/settings";
 import type { HomeData } from "@/themes/contract";
 
@@ -22,11 +23,46 @@ import type { HomeData } from "@/themes/contract";
  * HTML is worse than a failed deploy.
  */
 export async function loadHome(): Promise<HomeData> {
-  const [settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider] = await Promise.all([
+  try {
+    return await fetchHome();
+  } catch (error) {
+    if (isPortablePrerender) return emptyHome();
+    throw error;
+  }
+}
+
+/** The homepage with nothing in it — a portable build's placeholder (lib/build-phase.ts). */
+function emptyHome(): HomeData {
+  const none = { data: [] };
+
+  return {
+    settings: {},
+    solutions: none,
+    categories: none,
+    industries: none,
+    services: none,
+    serviceCategories: none,
+    caseStudies: none,
+    posts: none,
+    brands: none,
+    clients: none,
+    certifications: none,
+    heroSlider: null,
+    blocks: { stats: null, pricing: null, stack: null },
+  } as unknown as HomeData;
+}
+
+async function fetchHome(): Promise<HomeData> {
+  const [settings, solutions, categories, industries, services, serviceCategories, caseStudies, posts, brands, clients, certifications, heroSlider] = await Promise.all([
     getSiteSettings(),
     publicApi.solutions(),
     publicApi.productCategories(),
     publicApi.industries(),
+    publicApi.services(),
+    // Caught on its own: without categories the services are one untabbed
+    // grid, which is a page worth serving — an API that predates the
+    // categories must not fail the homepage, or the build.
+    publicApi.serviceCategories().catch(() => ({ data: [] })),
     publicApi.caseStudies(),
     publicApi.posts(),
     publicApi.brands(),
@@ -60,5 +96,5 @@ export async function loadHome(): Promise<HomeData> {
     block(settings.home_stack_block, "stack"),
   ]);
 
-  return { settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, blocks: { stats, pricing, stack } };
+  return { settings, solutions, categories, industries, services, serviceCategories, caseStudies, posts, brands, clients, certifications, heroSlider, blocks: { stats, pricing, stack } };
 }

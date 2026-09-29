@@ -2,60 +2,28 @@
 
 namespace Database\Seeders;
 
-use App\Enums\Role as RoleEnum;
-use App\Models\Role;
-use App\Models\User;
+use App\Support\System\FirstAdmin;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
+/**
+ * A developer's `migrate:fresh --seed`: the install, an administrator, and
+ * the sample content.
+ *
+ * A customer's server never runs this. The setup wizard runs `InstallSeeder`,
+ * creates the administrator it was given, and adds `DemoSeeder` only when the
+ * customer ticks "load sample content".
+ */
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call([
-            RoleSeeder::class,
-            TicketCategorySeeder::class,
-            CatalogueSeeder::class,
-            SettingsSeeder::class,
-            CareersSeeder::class,
-        ]);
+        $this->call(InstallSeeder::class);
 
         // After the admin exists — blog posts are attributed to a staff user.
         $this->createFirstAdmin();
 
-        $this->call([
-            BlogPostSeeder::class,
-            KnowledgeBaseSeeder::class,
-            CaseStudySeeder::class,
-            ProductSeeder::class,
-            PageSeeder::class,
-            PolicyRedirectSeeder::class,
-            // Last — it fills gaps left by everything above.
-            DemoContentSeeder::class,
-            SliderSeeder::class,
-            // The team, the clients and the certifications — placeholder rows,
-            // created only while each table is empty. See CLAUDE.md.
-            CompanyProfileSeeder::class,
-            // Sample CTA banners, stat bars, pricing and a technology stack —
-            // drafts, except the default closing band, whose words are the
-            // ones every theme already shows. Create-only.
-            ContentBlockSeeder::class,
-            FormSeeder::class,
-            // One draft builder page with a section of every type, after the
-            // blocks, sliders and forms it points at. Create-only.
-            SampleBuilderPageSeeder::class,
-            /*
-             * Never registered until now, so a fresh install had an empty
-             * template gallery and no standing customers group — and the
-             * newsletter's first screen is the one that offers to start a
-             * campaign from a template. It seeds no subscribers: an address on
-             * a mailing list is a claim about somebody's consent.
-             */
-            NewsletterTemplateSeeder::class,
-            // A worked support desk: a portal login, tickets across every
-            // status and a couple of enquiries. Demo data — see CLAUDE.md.
-            DemoSupportSeeder::class,
-        ]);
+        $this->call(DemoSeeder::class);
     }
 
     /**
@@ -64,24 +32,14 @@ class DatabaseSeeder extends Seeder
      */
     private function createFirstAdmin(): void
     {
-        $email = env('ADMIN_EMAIL', 'admin@technoware.in');
+        $email = env('ADMIN_EMAIL', 'admin@example.com');
+        $password = env('ADMIN_PASSWORD') ?: Str::password(16);
 
-        if (User::where('email', $email)->exists()) {
+        if (FirstAdmin::create(env('ADMIN_NAME', 'Administrator'), $email, $password) === null) {
             $this->command?->warn("Admin {$email} already exists — skipping.");
 
             return;
         }
-
-        $password = env('ADMIN_PASSWORD') ?: Str::password(16);
-
-        $user = User::create([
-            'name' => env('ADMIN_NAME', 'Administrator'),
-            'email' => $email,
-            'password' => $password,
-            'is_active' => true,
-        ]);
-
-        $user->roles()->sync(Role::where('slug', RoleEnum::Admin->value)->pluck('id'));
 
         $this->command?->newLine();
         $this->command?->info('Administrator created.');

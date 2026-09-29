@@ -2,13 +2,13 @@
 
 namespace App\Console\Commands;
 
-use App\Jobs\ScanMailboxForSubscribers;
+use App\Http\Controllers\Api\V1\Admin\NewsletterImportController;
 use App\Models\NewsletterImport;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Tidies mailbox scans nobody finished with.
+ * Tidies mailbox scans and website crawls nobody finished with.
  *
  * A scan that is `ready` holds a file of addresses on the private disk
  * until it is imported or discarded; past `expires_at` (a day) it is
@@ -25,30 +25,30 @@ class PruneNewsletterScans extends Command
 
     protected $signature = 'technoware:prune-newsletter-scans';
 
-    protected $description = 'Expire mailbox scan results past their day, and fail scans whose job chain died';
+    protected $description = 'Expire mailbox scan and website crawl results past their day, and fail those whose job chain died';
 
     public function handle(): int
     {
         $expired = 0;
 
-        NewsletterImport::query()->mailbox()->where('status', 'ready')
+        NewsletterImport::query()->scans()->where('status', 'ready')
             ->where('expires_at', '<', now())
             ->each(function (NewsletterImport $import) use (&$expired) {
                 if (filled($import->file) && Storage::disk('local')->exists((string) $import->file)) {
                     Storage::disk('local')->delete((string) $import->file);
                 }
                 $import->update(['status' => 'expired', 'file' => null, 'expires_at' => null]);
-                ScanMailboxForSubscribers::release($import);
+                NewsletterImportController::release($import);
                 $expired++;
             });
 
         $stuck = 0;
 
-        NewsletterImport::query()->mailbox()->inFlight()
+        NewsletterImport::query()->scans()->inFlight()
             ->where('updated_at', '<', now()->subHours(self::STUCK_HOURS))
             ->each(function (NewsletterImport $import) use (&$stuck) {
                 $import->update(['status' => 'failed', 'error' => 'The scan stopped without finishing — the queue worker was interrupted. Start it again.']);
-                ScanMailboxForSubscribers::release($import);
+                NewsletterImportController::release($import);
                 $stuck++;
             });
 

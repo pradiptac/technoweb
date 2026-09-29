@@ -6,6 +6,7 @@ import { ApiError } from "@/lib/api";
 import { bulkSeoAi, getSeoRecord, setSitemapInclude } from "@/lib/admin";
 import type { SeoAiActionKey } from "@/types/api";
 import type { SeoRow } from "@/types/api";
+import { BULK_AI_PER_TYPE } from "./bulk-ai-limit";
 
 export type SitemapState = { error?: string };
 
@@ -106,7 +107,7 @@ export async function bulkAiAction(_prev: BulkAiState | null, formData: FormData
   const total = { queued: 0, skippedPending: 0, skippedCap: 0, delivering: true };
   try {
     for (const [type, ids] of byType) {
-      const res = await bulkSeoAi(action, type, ids.slice(0, 25));
+      const res = await bulkSeoAi(action, type, ids.slice(0, BULK_AI_PER_TYPE));
       total.queued += res.queued;
       total.skippedPending += res.skipped_pending;
       total.skippedCap += res.skipped_cap;

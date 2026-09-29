@@ -223,6 +223,18 @@ never saw. `SettingController::sanitiseRichText()` cleans every key in
 `AnnouncementSettingsTest` pins the profile, the gap, the allowlists, the
 window and the derived bit under `Carbon::setTestNow()`.
 
+**Every dropdown fades in (2026-09-27), which reverses the second round
+below.** The client saw the instant swap as the flicker this time and asked
+for a fade on every menu, the utility bar's included: a panel now arrives
+over `--duration-base`, opacity only (the 4px rise went too — a panel that
+moves while it fades reads as a jump), a first open and a swap alike. The
+panel being left still goes at once by the `:has()` rule, so a swap is one
+panel fading in over nothing, never two over each other. The
+`data-panel-swap` stamp, `markPanelSwap` and the rule reading them are
+gone. `scripts/probes/menu-switch.mjs` asserts it from the running
+transitions: 200ms on a first open, on the panel entered and on the utility
+bar's panel; none on the panel left, at opacity 0.
+
 **Moving between two dropdowns is a swap, with no transition either way
 (2026-09-17, in two rounds).** The client saw the menu "flicker" between
 Solutions and Products. The first round made the panel being *left* vanish

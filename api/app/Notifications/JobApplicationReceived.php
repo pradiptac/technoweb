@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\JobApplication;
 use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
+use App\Support\Mail\MailBrand;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -86,6 +87,6 @@ class JobApplicationReceived extends Notification implements ShouldQueue
         return $mail
             ->action('Open the application', $base.'/admin/applications/'.$a->id)
             ->line('The CV is on the record — it is not attached to this email on purpose.')
-            ->salutation('— Technoware');
+            ->salutation(MailBrand::signoff());
     }
 }

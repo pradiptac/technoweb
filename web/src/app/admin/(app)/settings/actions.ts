@@ -40,6 +40,9 @@ export async function saveSettingsAction(
   // read-your-own-writes, so an editor who saves a social link sees it in the
   // footer immediately rather than after the revalidate window expires.
   updateTag("settings");
+  // The public booking page caches its options under `meetings`, and the
+  // window, the step and the switch are settings.
+  if (settings.some((s) => s.key.startsWith("meeting"))) updateTag("meetings");
 
   return { ok: true };
 }

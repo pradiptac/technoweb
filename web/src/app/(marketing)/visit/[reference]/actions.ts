@@ -10,7 +10,7 @@ import type { VisitManageState } from "@/components/visits/visit-manage";
  * route handler set — never from the form, where it could be changed to
  * somebody else's.
  */
-export async function cancelGuestVisitAction(reference: string, _prev: VisitManageState): Promise<VisitManageState> {
+export async function cancelGuestVisitAction(reference: string): Promise<VisitManageState> {
   const token = await guestToken(reference);
   if (!token) return { error: "This link has expired. Open the link in your email again." };
 

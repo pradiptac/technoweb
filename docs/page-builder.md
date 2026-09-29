@@ -185,6 +185,14 @@ card grounds and the theme's rules apply, and `data-reveal-static`. **Both pass
 `ownsH1={false}`**: the console screen has its own `h1`, so an opening hero is
 drawn as an `h2` there, and the preview keeps the one-`h1` rule.
 
+**Each section card has an Appear select** (2026-09-27), above its
+background: `SECTION_REVEALS` from `lib/motion-choices.ts`, stored on the
+section as `reveal` beside `hidden` and `background` — never `default`, which
+is stored as nothing. Disabled on an opening hero, which never animates.
+`renderSection()` resolves it (`sectionReveal()`, with the type's own default)
+and each section puts it on its root; see `docs/motion.md`, "A section's own
+reveal".
+
 ## Seeded, and audited
 
 `SampleBuilderPageSeeder` creates one **draft** page at `/sample-builder-page`

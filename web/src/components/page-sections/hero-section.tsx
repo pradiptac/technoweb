@@ -2,6 +2,7 @@ import Image from "next/image";
 import { Breadcrumbs, type Crumb } from "@/components/ui/breadcrumbs";
 import { Container } from "@/components/ui/container";
 import { focalStyle } from "@/lib/focal";
+import { sectionReveal } from "@/lib/motion-choices";
 import { cn } from "@/lib/utils";
 import type { HeroSectionData } from "@/types/api";
 import { SectionButtons } from "./section-parts";
@@ -26,11 +27,13 @@ import { SectionButtons } from "./section-parts";
  * The picture is eager on the first two sections, where it is the largest
  * paint, and lazy below — `SectionBg`'s rule.
  */
-export function HeroSection({ data, first, crumbs, eager }: {
+export function HeroSection({ data, first, crumbs, eager, revealId }: {
   data: HeroSectionData;
   first: boolean;
   crumbs: Crumb[];
   eager: boolean;
+  /** The section's stored `reveal`, resolved here because the default depends on the layout. */
+  revealId?: string | null;
 }) {
   const Heading = first ? "h1" : "h2";
   const layout = data.layout ?? "centered";
@@ -48,9 +51,14 @@ export function HeroSection({ data, first, crumbs, eager }: {
       )
     : null;
 
+  // An opening hero is the page's first paint and never animates, whatever
+  // was chosen. Otherwise a cover hero is still by default and the other two
+  // rise — what each did before the choice existed.
+  const reveal = first ? null : sectionReveal(revealId, layout === "cover" && picture ? null : "fade-up");
+
   if (layout === "cover" && picture) {
     return (
-      <section data-page-section="hero" data-hero-layout="cover" className="relative overflow-hidden bg-dark">
+      <section data-page-section="hero" data-hero-layout="cover" data-aos={reveal ?? undefined} className="relative overflow-hidden bg-dark">
         {picture("100vw", "opacity-35")}
         <Container className="relative py-20 lg:py-28">
           {first && <div className="mb-8"><Breadcrumbs crumbs={crumbs} onBanner /></div>}
@@ -76,7 +84,7 @@ export function HeroSection({ data, first, crumbs, eager }: {
 
   if (layout === "split" && picture) {
     return (
-      <section data-page-section="hero" data-hero-layout="split" data-aos={first ? undefined : "fade-up"} className="section-y-lg">
+      <section data-page-section="hero" data-hero-layout="split" data-aos={reveal ?? undefined} className="section-y-lg">
         <Container>
           {first && <div className="mb-8"><Breadcrumbs crumbs={crumbs} /></div>}
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
@@ -91,7 +99,7 @@ export function HeroSection({ data, first, crumbs, eager }: {
   }
 
   return (
-    <section data-page-section="hero" data-hero-layout="centered" data-aos={first ? undefined : "fade-up"} className="section-y-lg">
+    <section data-page-section="hero" data-hero-layout="centered" data-aos={reveal ?? undefined} className="section-y-lg">
       <Container className="text-center">
         {first && <div className="mb-8 flex justify-center"><Breadcrumbs crumbs={crumbs} /></div>}
         {words(true)}

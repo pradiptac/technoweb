@@ -8,10 +8,11 @@ import { settingEnabled } from "@/lib/site-settings";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { LoginForm } from "./login-form";
+import { brandName } from "@/lib/brand";
 
 export const metadata = buildMetadata({
   title: "Staff login",
-  description: "Sign in to the Technoware admin console.",
+  description: `Sign in to the ${brandName()} admin console.`,
   path: "/admin/login",
   seo: noIndex,
 });

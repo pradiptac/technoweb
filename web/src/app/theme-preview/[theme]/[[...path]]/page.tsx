@@ -4,7 +4,9 @@ import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
 import { ToastProvider } from "@/components/ui/toast";
+import { TeamGrid } from "@/components/company/team-grid";
 import { getCurrentStaff } from "@/lib/admin-auth";
+import { publicApi } from "@/lib/api";
 import { loadChrome } from "@/lib/chrome";
 import { loadHome } from "@/lib/home-data";
 import { motionAttrs } from "@/lib/motion-choices";
@@ -54,7 +56,7 @@ export default async function ThemePreviewPage({
   if (!staff) redirect("/admin/login");
 
   const view = path.join("/");
-  if (view !== "" && view !== "specimen") notFound();
+  if (view !== "" && view !== "specimen" && view !== "team") notFound();
 
   const [theme, { chrome }] = await Promise.all([activeTheme(), loadChrome()]);
   const Chrome = theme.templates.Chrome;
@@ -68,9 +70,11 @@ export default async function ThemePreviewPage({
           <a href={`/theme-preview/${id}`} className="font-semibold underline">Homepage</a>
           {" · "}
           <a href={`/theme-preview/${id}/specimen`} className="font-semibold underline">Inner page</a>
+          {" · "}
+          <a href={`/theme-preview/${id}/team`} className="font-semibold underline">Team</a>
         </div>
         <Chrome {...chrome} options={theme.options} themeId={theme.manifest.id}>
-          {view === "" ? <HomeView /> : <Specimen />}
+          {view === "" ? <HomeView /> : view === "team" ? <TeamView /> : <Specimen />}
         </Chrome>
       </div>
     </ToastProvider>
@@ -81,6 +85,19 @@ async function HomeView() {
   const [theme, data] = await Promise.all([activeTheme(), loadHome()]);
   const Home = theme.templates.Home;
   return <Home {...data} options={theme.options} />;
+}
+
+/** The team page's grid under this theme — every theme lays the card out its own way. */
+async function TeamView() {
+  const members = (await publicApi.team()).data;
+  return (
+    <>
+      <PageHero kicker="Our team" title="The people who answer the phone." crumbs={[{ name: "Our team", path: "/team" }]} section="company" />
+      <Container className="section-y">
+        <TeamGrid members={members} groupByDepartment />
+      </Container>
+    </>
+  );
 }
 
 /** An inner page with nothing real on it: the hero, a grid, the band. */

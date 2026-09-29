@@ -6,6 +6,7 @@ use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Enums\WebhookEvent;
 use App\Models\Concerns\SealsSensitiveText;
+use App\Support\References;
 use App\Support\Webhooks\WebhookPayload;
 use App\Support\Webhooks\Webhooks;
 use Illuminate\Database\Eloquent\Builder;
@@ -105,15 +106,18 @@ class Ticket extends Model
      */
     public static function nextReference(): string
     {
+        // The prefix is a setting (App\Support\References); the sequence is
+        // counted per prefix, so a new one starts again at 00001.
         $year = now()->year;
+        $prefix = References::ticket();
         $last = self::withoutGlobalScopes()
-            ->where('reference', 'like', "TW-{$year}-%")
+            ->where('reference', 'like', "{$prefix}-{$year}-%")
             ->orderByDesc('id')
             ->value('reference');
 
         $n = $last ? ((int) Str::afterLast($last, '-')) + 1 : 1;
 
-        return sprintf('TW-%d-%05d', $year, $n);
+        return sprintf('%s-%d-%05d', $prefix, $year, $n);
     }
 
     public function getRouteKeyName(): string

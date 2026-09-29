@@ -5,7 +5,7 @@ namespace App\Support\Chat;
 use App\Models\ChatConversation;
 use App\Models\ChatEvent;
 use App\Models\ChatMessage;
-use App\Models\Setting;
+use App\Support\Mail\MailBrand;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -134,7 +134,7 @@ class Assistant
      */
     private function instructions(): string
     {
-        $company = (string) (Setting::get('company_name') ?: 'Technoware');
+        $company = MailBrand::name();
 
         return <<<PROMPT
         You are the website assistant for {$company}, a hardware and network solution provider in India.

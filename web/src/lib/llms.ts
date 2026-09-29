@@ -132,7 +132,7 @@ function index(site: Site): string {
     out.push(`## ${title}`, "", ...rows, "");
   };
   section("Solutions", site.solutions.map((x) => line(x.title, `/solutions/${x.slug}`, x.summary)));
-  section("Web services", site.services.map((x) => line(x.title, `/services/${x.slug}`, x.summary)));
+  section("Services", site.services.map((x) => line(x.title, `/services/${x.slug}`, x.summary)));
   section("Products", [
     line("Catalogue", "/products", "Every line supported by the engineers who install it — enquire, no online checkout on the catalogue."),
     ...site.categories.map((x) => line(x.name, `/products/${x.slug}`, x.description)),

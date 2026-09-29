@@ -38,7 +38,7 @@ export function Credentials({ items }: { items: Certification[] }) {
           min-content the full run of it — at 320px the card ran 16px past
           the screen. The phone audit named it.
         */}
-        <Collection kind="certifications" cols={4} className="mt-8">
+        <Collection fill kind="certifications" cols={4} className="mt-8">
           {items.slice(0, 6).map((c) => (
             <Tile
               key={c.id}

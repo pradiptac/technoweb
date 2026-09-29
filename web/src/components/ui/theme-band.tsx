@@ -14,7 +14,11 @@ export async function ThemeBand(props: Omit<CtaBandProps, "phone" | "options">) 
   const [theme, settings] = await Promise.all([activeTheme(), getSiteSettings()]);
   const Band = theme.templates.CtaBand;
 
-  return <Band {...props} phone={settings.phone ?? contact.phone} options={theme.options} />;
+  const phone = settings.phone ?? contact.phone;
+  // No number on file: no "Call" button, rather than one that dials nothing.
+  const secondary = props.secondary === undefined && !phone ? null : props.secondary;
+
+  return <Band {...props} secondary={secondary} phone={phone} options={theme.options} />;
 }
 
 export type ThemeBandProps = ComponentProps<typeof ThemeBand>;
