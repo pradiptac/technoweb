@@ -75,6 +75,11 @@ last under *Other services*. With only one group there are no tabs.
 Categories have no page of their own. Deleting one keeps its services; they
 move to *Other services*.
 
+The header's **Services** menu is grouped the same way: each category with
+its services under it. If your menu was set up before categories existed,
+press **Rebuild to default** on Site → Menus to regroup it, or add a **Service
+category** item to it by hand.
+
 ## Industries
 
 **Catalogue → Industries** — the sectors you serve. An industry has a name,

@@ -156,7 +156,11 @@ export function MegaMenu({ section, style = "mega" }: { section: MenuSection; st
                   href={item.href as string}
                   {...(item.href !== null ? newTabAttrs(item.newTab) : {})}
                   className={[
-                    "flex h-full rounded-lg",
+                    // Full height evens out a row of tiles; an entry with a
+                    // list under it must not take it, or the row fills the
+                    // cell and pushes the list out of the panel's bottom
+                    // (the grouped Services panel, 2026-09-29).
+                    item.children?.length ? "flex rounded-lg" : "flex h-full rounded-lg",
                     compact ? "gap-2.5 px-3 py-2" : "gap-3 p-3",
                     item.href !== null && "transition-colors duration-(--duration-base) hover:bg-brand-50",
                     // With a summary the text block is several lines tall and

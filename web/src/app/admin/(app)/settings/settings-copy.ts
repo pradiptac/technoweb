@@ -331,7 +331,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   },
   banner_solutions_path: { label: "Solutions banner", hint: "/solutions and every solution page." },
   banner_products_path: { label: "Products banner", hint: "/products, every category and product page, and /brands." },
-  banner_services_path: { label: "Web Services banner", hint: "/services and every service page." },
+  banner_services_path: { label: "Services banner", hint: "/services and every service page." },
   banner_industries_path: { label: "Industries banner", hint: "/industries and every industry page." },
   banner_store_path: { label: "Store banner", hint: "Store product pages. The shop's own front page has its hero slider instead." },
   banner_support_path: { label: "Support banner", hint: "/support." },

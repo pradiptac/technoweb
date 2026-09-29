@@ -38,7 +38,7 @@ const SECTIONS: { key: string; label: string; pages: string }[] = [
   { key: "banner_default_path", label: "Default banner", pages: "Every section with nothing of its own — one upload dresses the whole site." },
   { key: "banner_solutions_path", label: "Solutions", pages: "/solutions and every solution page." },
   { key: "banner_products_path", label: "Products", pages: "/products, every category and product page, and /brands." },
-  { key: "banner_services_path", label: "Web Services", pages: "/services and every service page." },
+  { key: "banner_services_path", label: "Services", pages: "/services and every service page." },
   { key: "banner_industries_path", label: "Industries", pages: "/industries and every industry page." },
   { key: "banner_store_path", label: "Store", pages: "Store product and category pages. The shop's own front page has its hero slider instead." },
   { key: "banner_support_path", label: "Support", pages: "/support." },

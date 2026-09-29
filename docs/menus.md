@@ -389,3 +389,27 @@ list drops the item whole; nothing may be nested under one (a 422 on
 three of them; a hand-picked seven is still a valid column. `MenuTest` pins
 all of it, including that a solution unticked from the menu leaves the
 column on the next read.
+
+**Services open to their categories, and a service category is a menu
+target** (the client, 2026-09-29). The header's panel was "Web Services" over
+every service in one list, the label a leftover from when the section held
+only the six web services. It is **Services → each service category → its
+services** now, the grouping the Services section's tabs use
+(`lib/service-groups.ts` is the one rule): a category is an entry with its
+icon and description, linking to its own tab at `/services#<slug>`, its
+services the plain list under it, and the uncategorised last under an "Other
+services" heading. With one group or none the panel is the flat list it was.
+
+Both paths draw it. The built-in navigation groups in `getMegaMenu()`. An
+assigned menu stores it as records: `service_category` is a `MenuItemType`
+whose URL is the tab, and only while the category is switched on — off, the
+row and the services under it drop out like a deleted record's. `DefaultMenu`
+writes the three levels on a rebuild (`MenuTest` pins it), within
+`MAX_DEPTH`. **An install that already has a menu keeps the old flat list
+until somebody presses Rebuild** on Site → Menus or regroups it by hand: a
+menu is an editor's, and nothing rewrites one on update.
+
+`MegaMenu` drew a three-level panel wrongly the first time it was asked to:
+every entry's row carried `h-full`, which stretched the row to the grid
+cell's height and pushed the list under it out through the panel's foot. An
+entry with children no longer takes it.

@@ -118,6 +118,12 @@ made here.
 actor_name, created_at}` (detail only), `created_at`, `updated_at`.
 Built by `App\Http\Resources\Admin\MeetingResource`.
 
+**`GET /admin/meetings/customers?q=`** (`meetings.customers`, 60/min) is
+"Schedule a meeting"'s customer lookup: `{data: [{id, name, email, company,
+phone, status, status_label}]}`, at most 8, `q` 2–100 characters with LIKE's
+metacharacters escaped. The console search is not used for this — it shows
+customers to support alone.
+
 ### `admin-meeting-setup.php` — `role:sales_manager`
 
 | Method | Path | Name |

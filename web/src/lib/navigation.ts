@@ -7,6 +7,7 @@ import type { NavNode } from "@/types/api";
 import { navKey } from "@/lib/nav-key";
 import { isPortalHref } from "@/lib/site-settings";
 import { footerNav } from "@/content/site";
+import { groupServices } from "@/lib/service-groups";
 
 /*
  * Icons are resolved here, on the server, and cross to the header as
@@ -110,12 +111,35 @@ export async function getMegaMenu(): Promise<Record<string, MenuSection>> {
     // `true` asks each endpoint for only what is marked for the menu. The
     // index pages call the same getters without it and still get everything --
     // being published and being in the navigation are separate decisions.
-    const [solutions, categories, services, industries] = await Promise.all([
+    const [solutions, categories, services, industries, serviceCategories] = await Promise.all([
       publicApi.solutions(true).then((r) => r.data),
       publicApi.productCategories(true).then((r) => r.data),
       publicApi.services(true).then((r) => r.data),
       publicApi.industries(true).then((r) => r.data),
+      // Caught on its own: without categories the services are one flat list.
+      publicApi.serviceCategories().then((r) => r.data).catch(() => []),
     ]);
+
+    /*
+     * Services → each service category → its services (the client,
+     * 2026-09-29), the grouping the Services section's tabs use. A category
+     * is an entry with its icon and description, linking to its own tab;
+     * its services are the plain list under it. With one group or none the
+     * panel stays the flat list it was, since a lone heading groups nothing.
+     */
+    const groups = groupServices(services, serviceCategories);
+    const serviceItems: MenuItem[] = groups.length > 1
+      ? groups.map((g) => ({
+          label: g.name,
+          href: `/services#${g.slug}`,
+          tile: tileFor(g.icon),
+          icon: smallTileFor(g.icon),
+          summary: g.description,
+          children: g.items.map((s) => ({ label: s.title, href: `/services/${s.slug}`, tile: null, icon: null })),
+        }))
+      : services.map((s) => ({
+          label: s.title, href: `/services/${s.slug}`, tile: tileFor(s.icon), icon: smallTileFor(s.icon), summary: s.summary,
+        }));
 
     const sections: Record<string, MenuSection> = {
       "/solutions": {
@@ -134,10 +158,8 @@ export async function getMegaMenu(): Promise<Record<string, MenuSection>> {
       },
       "/services": {
         key: "/services",
-        viewAll: { label: "All web services", href: "/services" },
-        items: services.map((s) => ({
-          label: s.title, href: `/services/${s.slug}`, tile: tileFor(s.icon), icon: smallTileFor(s.icon), summary: s.summary,
-        })),
+        viewAll: { label: "All services", href: "/services" },
+        items: serviceItems,
       },
       "/industries": {
         key: "/industries",

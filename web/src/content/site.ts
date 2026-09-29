@@ -21,7 +21,7 @@ export const contact: { phone: string; phoneHref: string; email: string } = {
 export const mainNav = [
   { label: "Solutions", href: "/solutions", hasChildren: true },
   { label: "Products", href: "/products", hasChildren: true },
-  { label: "Web Services", href: "/services", hasChildren: true },
+  { label: "Services", href: "/services", hasChildren: true },
   { label: "Industries", href: "/industries" },
   // The shop, which is a different list from Products above: that one is the
   // catalogue somebody researches a project from, this one is what can be

@@ -10,6 +10,7 @@ use App\Models\MenuItem;
 use App\Models\Page;
 use App\Models\ProductCategory;
 use App\Models\Service;
+use App\Models\ServiceCategory;
 use App\Models\Solution;
 
 /**
@@ -78,10 +79,15 @@ class DefaultMenu
         foreach ([
             ['Solutions', 'solutions', Solution::class, MenuItemType::Solution, 'title'],
             ['Products', 'products', ProductCategory::class, MenuItemType::ProductCategory, 'name'],
-            ['Web Services', 'services', Service::class, MenuItemType::Service, 'title'],
+            ['Services', 'services', Service::class, MenuItemType::Service, 'title'],
             ['Industries', 'industries', Industry::class, MenuItemType::Industry, 'name'],
         ] as [$label, $section, $model, $type, $column]) {
             $parent = self::section($menu, $label, $section, $order++);
+
+            // Services are grouped by their category, a level deeper.
+            if ($type === MenuItemType::Service && self::serviceGroups($menu, $parent)) {
+                continue;
+            }
 
             $records = $model::query()
                 ->when(
@@ -125,6 +131,67 @@ class DefaultMenu
         return [];
     }
 
+    /**
+     * Services → each service category → its services (2026-09-29): the
+     * panel groups them the way the Services section's tabs do. A category
+     * is a record item (`service_category`), so renaming it or its slug
+     * moves the navigation with it; it links to its own tab. Services in no
+     * category — or in one switched off — come last under an "Other
+     * services" heading. False, writing nothing, when no category has a
+     * service in the menu, and the flat list is written instead.
+     */
+    private static function serviceGroups(Menu $menu, MenuItem $parent): bool
+    {
+        $services = Service::query()
+            ->where('status', PublishStatus::Published)
+            ->where('show_in_menu', true)
+            ->orderBy('sort_order')
+            ->get();
+
+        $categories = ServiceCategory::query()->active()->ordered()->get()
+            ->filter(fn (ServiceCategory $c) => $services->contains('service_category_id', $c->id))
+            ->values();
+
+        if ($categories->isEmpty()) {
+            return false;
+        }
+
+        $order = 0;
+        $write = function (MenuItem $under, $rows) use ($menu): void {
+            $child = 0;
+
+            foreach ($rows as $service) {
+                MenuItem::create([
+                    'menu_id' => $menu->id, 'parent_id' => $under->id, 'sort_order' => $child++,
+                    'label' => $service->title, 'type' => MenuItemType::Service,
+                    'target_type' => MenuItemType::Service->value, 'target_id' => $service->id, 'is_active' => true,
+                ]);
+            }
+        };
+
+        foreach ($categories as $category) {
+            $group = MenuItem::create([
+                'menu_id' => $menu->id, 'parent_id' => $parent->id, 'sort_order' => $order++,
+                'label' => $category->name, 'type' => MenuItemType::ServiceCategory,
+                'target_type' => MenuItemType::ServiceCategory->value, 'target_id' => $category->id, 'is_active' => true,
+            ]);
+            $write($group, $services->where('service_category_id', $category->id));
+        }
+
+        $shown = $categories->pluck('id')->all();
+        $other = $services->reject(fn (Service $s) => in_array($s->service_category_id, $shown, true));
+
+        if ($other->isNotEmpty()) {
+            $heading = MenuItem::create([
+                'menu_id' => $menu->id, 'parent_id' => $parent->id, 'sort_order' => $order,
+                'label' => 'Other services', 'type' => MenuItemType::Custom, 'url' => null, 'is_active' => true,
+            ]);
+            $write($heading, $other);
+        }
+
+        return true;
+    }
+
     /** @return array<int, string> */
     private static function footer(Menu $menu): array
     {
@@ -166,7 +233,7 @@ class DefaultMenu
         foreach ([
             ['Solutions', 'solutions'],
             ['Products', 'product_categories'],
-            ['Web services', 'services'],
+            ['Services', 'services'],
         ] as [$heading, $key]) {
             MenuItem::create([
                 'menu_id' => $menu->id,

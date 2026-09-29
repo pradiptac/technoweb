@@ -9,26 +9,19 @@ import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { createMeetingAction, type MeetingActionState } from "../actions";
 import { SlotPicker } from "../slot-picker";
 import type { AdminMeetingIndex } from "@/types/meetings";
+import type { MeetingCustomer } from "@/app/api/admin/meetings/customers/route";
 
 const initial: MeetingActionState = {};
 
-type Found = { id: number; name: string; email: string | null; company: string | null };
-type SearchGroup = { type: string; items: { label: string; sub: string | null; admin_path: string }[] };
-
 /**
- * A customer from the search result the palette uses. The API writes a
- * customer's `sub` as "Company · email", either part optional, and its path
- * as `/admin/customers/{id}` — so the id and the address are read off those.
+ * A customer from the scheduling lookup (`/api/admin/meetings/customers`),
+ * which answers for the sales desk as well as support — the console's own
+ * search shows customers to support alone.
  */
-function toCustomer(item: SearchGroup["items"][number]): Found | null {
-  const id = Number(item.admin_path.match(/^\/admin\/customers\/(\d+)$/)?.[1]);
-  if (!id) return null;
-  const parts = (item.sub ?? "").split(" · ").map((s) => s.trim()).filter(Boolean);
-  const email = parts.find((p) => p.includes("@")) ?? null;
-  const company = parts.find((p) => !p.includes("@")) ?? null;
+type Found = MeetingCustomer;
 
-  return { id, name: item.label, email, company };
-}
+/** "Company · email", either part optional. */
+const contactLine = (c: Found) => [c.company, c.email].filter(Boolean).join(" · ");
 
 /**
  * "Schedule a meeting" on somebody's behalf.
@@ -41,11 +34,13 @@ function toCustomer(item: SearchGroup["items"][number]): Found | null {
  * refuses whatever is ticked.
  */
 export function ScheduleForm({
-  meta, minDate, preset,
+  meta, minDate, preset, canOpenCustomers = false,
 }: {
   meta: AdminMeetingIndex["meta"];
   minDate: string;
   preset?: { type?: string; host?: number | null };
+  /** Whether this account may open a customer's screen — support may, sales may not. */
+  canOpenCustomers?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(createMeetingAction, initial);
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
@@ -70,12 +65,10 @@ export function ScheduleForm({
       const controller = new AbortController();
       inFlight.current = controller;
       try {
-        const res = await fetch(`/api/admin/search?q=${encodeURIComponent(query)}`, { signal: controller.signal });
+        const res = await fetch(`/api/admin/meetings/customers?q=${encodeURIComponent(query)}`, { signal: controller.signal });
         if (!res.ok) return;
-        const body = (await res.json()) as { data: SearchGroup[] };
-        const rows = (body.data ?? []).filter((g) => g.type === "customer").flatMap((g) => g.items)
-          .map(toCustomer).filter((c): c is Found => c !== null);
-        setFound({ q: query, rows });
+        const body = (await res.json()) as { data?: Found[] };
+        setFound({ q: query, rows: body.data ?? [] });
       } catch {
         // Typing the details in still works.
       }
@@ -98,9 +91,14 @@ export function ScheduleForm({
               <div className="mb-[18px] flex flex-wrap items-center gap-3 rounded border border-line-strong bg-surface-2 p-3 text-13">
                 <span className="min-w-0">
                   <span className="block font-semibold">{customer.name}</span>
-                  <span className="block truncate text-12-5 text-muted">{[customer.company, customer.email].filter(Boolean).join(" · ")}</span>
+                  <span className="block truncate text-12-5 text-muted">{contactLine(customer)}</span>
+                  {customer.status && customer.status !== "active" && (
+                    <span className="block text-12-5 text-warn">Account {customer.status_label?.toLowerCase() ?? customer.status}</span>
+                  )}
                 </span>
-                <Link href={`/admin/customers/${customer.id}`} className="text-12-5 text-brand-ink underline">Open the customer</Link>
+                {canOpenCustomers && (
+                  <Link href={`/admin/customers/${customer.id}`} className="text-12-5 text-brand-ink underline">Open the customer</Link>
+                )}
                 <button type="button" onClick={() => setCustomer(null)} className="ml-auto text-12-5 font-semibold text-err hover:underline">
                   Not this customer
                 </button>
@@ -125,7 +123,7 @@ export function ScheduleForm({
                           className="w-full rounded px-2.5 py-2 text-left text-13 hover:bg-surface-2"
                         >
                           <span className="block font-medium">{c.name}</span>
-                          <span className="block truncate text-12 text-muted">{[c.company, c.email].filter(Boolean).join(" · ")}</span>
+                          <span className="block truncate text-12 text-muted">{contactLine(c)}</span>
                         </button>
                       </li>
                     ))}

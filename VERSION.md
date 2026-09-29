@@ -21,7 +21,22 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
-## 0.98.0 — 2026-09-29
+## 0.98.1 — 2026-09-29
+
+**The Services menu opens to its categories.** Hover Services in the header
+and it shows Web services, Hardware services and Installation services, each
+with its icon, a line about it and its services underneath; the phone menu
+nests the same way. The header link is "Services" rather than "Web
+Services". A site whose menu was set up before this keeps its old list until
+you press **Rebuild to default** on Site → Menus (or regroup it there by hand) — nothing
+changes a menu you arranged. A category can be placed in any menu too, as
+its own item.
+
+- **Sales managers can find customers when scheduling a meeting.** The
+  search on Schedule a meeting only ever found customers for the support
+  desk; it now works for everyone who uses the diary, and "Open the
+  customer" appears only for those who can open one.
+
 
 **Customers book an online meeting at a time that is actually free.** A new
 page, **Book a meeting**, lets a visitor pick a kind of call, a day and a

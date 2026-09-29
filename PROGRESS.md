@@ -1725,7 +1725,5 @@ entry in `VERSION.md`:
       grouped by desk; the datasheet field and the other fixes found by
       checking the manual against the console
 
-Not done, and known: sales managers get no customer results in "Schedule a
-meeting", because the console search shows customers only to support; the
-Google consent and a real Meet link have not been driven against a real
+Not done, and known: the Google consent and a real Meet link have not been driven against a real
 Workspace; the service-category stock pictures are not downloaded yet.

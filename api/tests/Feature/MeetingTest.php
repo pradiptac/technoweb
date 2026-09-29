@@ -859,4 +859,37 @@ class MeetingTest extends TestCase
 
         $this->putJson("/api/v1/admin/meeting-hosts/{$anita->id}/hours", ['hours' => []])->assertOk()->assertJsonPath('data.uses_default_hours', true);
     }
+
+    public function test_the_desk_finds_customers_to_book_for_and_nobody_else_can(): void
+    {
+        $this->customer();
+        Customer::create(['name' => 'Rahul 100% Verma', 'email' => 'rahul@example.test', 'company' => 'Kestrel_Logistics',
+            'password' => 'password-for-tests', 'status' => CustomerStatus::Pending]);
+
+        // The sales desk — which the console search shows no customers to —
+        // finds them here, with the contact details and nothing else.
+        $sales = $this->staff(RoleEnum::SalesManager, 'sales@example.test');
+        $this->actingAs($sales, 'sanctum')->getJson('/api/v1/admin/meetings/customers?q=priya')
+            ->assertOk()
+            ->assertExactJson(['data' => [[
+                'id' => Customer::where('email', 'priya@example.test')->value('id'),
+                'name' => 'Priya Sharma', 'email' => 'priya@example.test', 'company' => null,
+                'phone' => '9876543210', 'status' => 'active', 'status_label' => CustomerStatus::Active->label(),
+            ]]]);
+        $this->getJson('/api/v1/admin/search?q=priya')->assertOk()
+            ->assertJsonMissing(['type' => 'customer']);
+
+        // LIKE's own characters match themselves, not everything.
+        $this->getJson('/api/v1/admin/meetings/customers?q='.urlencode('%%'))->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson('/api/v1/admin/meetings/customers?q='.urlencode('100%'))->assertOk()->assertJsonCount(1, 'data');
+        // Unescaped, `h_r` would match "Sharma"; as typed it matches nobody.
+        $this->getJson('/api/v1/admin/meetings/customers?q='.urlencode('h_r'))->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson('/api/v1/admin/meetings/customers?q=p')->assertUnprocessable()->assertJsonValidationErrors('q');
+
+        // Support too; a role without the diary is refused.
+        $this->actingAs($this->staff(RoleEnum::SupportEngineer, 'support@example.test'), 'sanctum')
+            ->getJson('/api/v1/admin/meetings/customers?q=rahul')->assertOk()->assertJsonPath('data.0.status', 'pending');
+        $this->actingAs($this->staff(RoleEnum::ContentManager, 'content@example.test'), 'sanctum')
+            ->getJson('/api/v1/admin/meetings/customers?q=rahul')->assertForbidden();
+    }
 }

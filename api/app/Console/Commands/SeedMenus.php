@@ -112,7 +112,7 @@ class SeedMenus extends Command
 
             $this->newLine();
             $this->info('All four are live. The built-in navigation is no longer used.');
-            $this->line('The footer\'s Solutions, Products and Web services columns are now a written');
+            $this->line('The footer\'s Solutions, Products and Services columns are now a written');
             $this->line('list rather than a generated one: renaming a record still follows it, but a');
             $this->line('newly published one will not appear until somebody adds it.');
         } else {

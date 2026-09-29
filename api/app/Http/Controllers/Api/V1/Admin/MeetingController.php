@@ -179,6 +179,47 @@ class MeetingController extends Controller
         ]]);
     }
 
+    /**
+     * The customers "Schedule a meeting" can book for (2026-09-29): up to
+     * eight, by name, email or company, for whoever holds the diary.
+     *
+     * The console search (`GET /admin/search`) shows customers only to the
+     * support desk, because each row there links to a customer screen only
+     * support may open — so a sales manager, the diary's main user, could
+     * not link a meeting to an account at all. This answers the one question
+     * the form asks and nothing more: who, and how to reach them, with no
+     * path to a screen the caller cannot see. The term is escaped for LIKE's
+     * own metacharacters as well as bound, or `%` lists everybody; two
+     * characters is the floor.
+     */
+    public function customers(Request $request): JsonResponse
+    {
+        $data = $request->validate(['q' => ['required', 'string', 'min:2', 'max:100']]);
+        $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], trim($data['q'])).'%';
+
+        $rows = Customer::query()
+            ->where(fn (Builder $w) => $w->where('name', 'like', $like)
+                ->orWhere('email', 'like', $like)
+                ->orWhere('company', 'like', $like))
+            ->orderBy('name')->orderBy('id')
+            ->limit(self::CUSTOMER_MATCHES)
+            ->get(['id', 'name', 'email', 'company', 'phone', 'status'])
+            ->map(fn (Customer $c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'email' => $c->email,
+                'company' => $c->company,
+                'phone' => $c->phone,
+                'status' => $c->status->value,
+                'status_label' => $c->status->label(),
+            ])->values();
+
+        return response()->json(['data' => $rows], 200, ['Cache-Control' => 'private, no-store']);
+    }
+
+    /** How many customers the scheduling lookup answers with. */
+    public const CUSTOMER_MATCHES = 8;
+
     /** A booking made by the desk, for a customer on file or for anybody. */
     public function store(Request $request): JsonResponse
     {

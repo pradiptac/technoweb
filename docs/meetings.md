@@ -233,6 +233,16 @@ their hours and time off, Google and the settings are `role:admin`.
 `meetings: {today, needs_outcome}` for the roles that can open the diary, and
 a lead made by a meeting links back to it.
 
+**"Schedule a meeting" finds customers through its own lookup**,
+`GET /admin/meetings/customers`, never the command palette's search. The
+palette shows customers to the support desk only, because each row links to a
+customer screen only support may open — so the sales desk, the diary's main
+user, could not link a meeting to an account at all, and the form had been
+parsing the palette's display text to recover an id and an email. The lookup
+answers the form's one question — who, and how to reach them, eight at most,
+LIKE's metacharacters escaped — for the diary's roles, and the form offers
+"Open the customer" only to a role that can open it.
+
 **References are `PREFIX-YYYY-NNNNN`, the prefix `meeting_reference_prefix`**
 (`App\Support\References`, default `MT`), and every `{meeting}` route is held
 to that shape so `meetings/options`, `meetings/slots` and `meetings/google`

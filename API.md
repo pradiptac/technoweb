@@ -1263,6 +1263,7 @@ route is held to that shape. `type` in a request is the meeting type's slug.
 | `GET` | `/my/meetings` · `/my/meetings/{reference}` | Portal. Scoped to the customer; another's is a 404 |
 | `POST` | `/my/meetings/{reference}/cancel` · `/reschedule` | Portal |
 | `GET` | `/admin/meetings` | `role:sales_manager,support_engineer`. Filters `status`, `host`, `type`, `mine=1`, `from`/`to`, `q`, `needs_outcome=1`, `google=failed`, `source`, `sort`/`dir`, `per_page` ≤ 100 |
+| `GET` | `/admin/meetings/customers?q=` | The customers a booking can be made for, for the diary's roles: up to 8 `{id, name, email, company, phone, status, status_label}` by name, email or company, ordered by name. Two-character floor (422), 100 at most; `%` and `_` match themselves. `no-store`, 60/min. The console search shows customers to support only — this is what lets sales link a meeting to an account |
 | `GET` | `/admin/meetings/slots` | Each slot's free `hosts[]` with per-host `outside_hours`/`google_busy`; `outside_hours=1`, `google_busy=1` widen it; `exclude=<reference>` for a move |
 | `POST` | `/admin/meetings` | Staff booking: skips notice and window (never the past), `outside_hours`/`override_google_busy` ticks, never over a meeting booked here; `host_id?` else least-booked free. No caps. **201** |
 | `GET`/`PATCH` | `/admin/meetings/{reference}` | With `trail`. `PATCH`: `staff_note`, `status` of `completed`/`no_show` (after the start only), `note` |
@@ -3349,6 +3350,15 @@ header of every page. The key goes in `target_key`, `target_type` and
 `enforceMorphMap` would throw), and the path is resolved when the menu is
 rendered. A key that is no longer in the allowlist resolves to null and the
 item is **dropped**, exactly like an item whose record was deleted.
+
+**A `service_category` item links to that category's tab**
+(2026-09-29): a record item like any other (`target_type` `service_category`,
+`target_id`), resolved to `/services#<slug>` while the category is active and
+dropped — with whatever is under it — once it is switched off; its `icon` and
+`summary` come from the category. A rebuild of `primary` writes Services →
+each category with a service in the menu → its services, and the
+uncategorised under an "Other services" heading. The `services` site section
+is labelled "Services".
 
 **A `catalogue` item is a live list** (2026-09-20): `target_key` of `solutions`,
 `services`, `industries` or `product_categories` (`meta.catalogues` carries

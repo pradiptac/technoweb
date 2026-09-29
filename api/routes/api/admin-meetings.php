@@ -18,6 +18,10 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('role:sales_manager,support_engineer')->group(function () {
     Route::get('meetings', [AdminMeetingController::class, 'index'])->name('meetings.index');
     Route::get('meetings/slots', [AdminMeetingController::class, 'slots'])->name('meetings.slots');
+    // The customers a booking can be made for — the scheduling form's lookup,
+    // which the console search does not answer for the sales desk.
+    Route::get('meetings/customers', [AdminMeetingController::class, 'customers'])
+        ->middleware('throttle:60,1')->name('meetings.customers');
     Route::post('meetings', [AdminMeetingController::class, 'store'])->name('meetings.store');
     Route::get('meetings/{meeting}', [AdminMeetingController::class, 'show'])
         ->where('meeting', '[A-Z][A-Z0-9]{1,5}-\d{4}-\d{5}')->name('meetings.show');

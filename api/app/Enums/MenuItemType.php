@@ -13,6 +13,7 @@ use App\Models\Page;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Service;
+use App\Models\ServiceCategory;
 use App\Models\Solution;
 use Illuminate\Database\Eloquent\Model;
 
@@ -60,6 +61,7 @@ enum MenuItemType: string
     case Page = 'page';
     case Solution = 'solution';
     case Service = 'service';
+    case ServiceCategory = 'service_category';
     case Industry = 'industry';
     case ProductCategory = 'product_category';
     case Product = 'product';
@@ -85,6 +87,7 @@ enum MenuItemType: string
             self::Page => 'Page',
             self::Solution => 'Solution',
             self::Service => 'Service',
+            self::ServiceCategory => 'Service category',
             self::Industry => 'Industry',
             self::ProductCategory => 'Product category',
             self::Product => 'Product',
@@ -105,6 +108,7 @@ enum MenuItemType: string
             self::Page => Page::class,
             self::Solution => Solution::class,
             self::Service => Service::class,
+            self::ServiceCategory => ServiceCategory::class,
             self::Industry => Industry::class,
             self::ProductCategory => ProductCategory::class,
             self::Product => Product::class,
@@ -127,7 +131,7 @@ enum MenuItemType: string
     public function titleColumn(): string
     {
         return match ($this) {
-            self::Product, self::ProductCategory, self::Industry => 'name',
+            self::Product, self::ProductCategory, self::Industry, self::ServiceCategory => 'name',
             self::ContentType => 'plural',
             default => 'title',
         };
@@ -143,7 +147,7 @@ enum MenuItemType: string
     public function prefix(): ?string
     {
         return match ($this) {
-            self::Custom, self::Section, self::Catalogue, self::LandingPage, self::Entry, self::ContentType => null,
+            self::Custom, self::Section, self::Catalogue, self::LandingPage, self::Entry, self::ContentType, self::ServiceCategory => null,
             self::Page => '',
             self::Solution => '/solutions',
             self::Service => '/services',
@@ -173,6 +177,12 @@ enum MenuItemType: string
         // an entry while it is published. Either answers its own path.
         if ($record instanceof ContentType) {
             return $record->is_active && $record->archive_enabled ? $record->publicPath() : null;
+        }
+
+        // A service category has no page of its own: it is a tab of the
+        // Services page, opened by its fragment, while it is switched on.
+        if ($record instanceof ServiceCategory) {
+            return $record->is_active && filled($record->slug) ? '/services#'.$record->slug : null;
         }
 
         if ($record instanceof Entry) {

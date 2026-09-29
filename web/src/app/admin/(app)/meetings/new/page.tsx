@@ -4,6 +4,8 @@ import { getMeetings } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { requireScreen } from "@/lib/admin-screen";
+import { getCurrentStaff } from "@/lib/admin-auth";
+import { permits, screenRole } from "../../nav-items";
 import { zoneToday } from "../meeting-bits";
 import { ScheduleForm } from "./schedule-form";
 import type { AdminMeetingIndex } from "@/types/meetings";
@@ -30,6 +32,10 @@ export default async function NewMeetingPage({ searchParams }: { searchParams: P
   }
 
   const host = Number(params.host);
+  // Support may open a customer's screen and sales may not; the form offers
+  // the link only where it leads somewhere.
+  const staff = await getCurrentStaff();
+  const canOpenCustomers = Boolean(staff) && permits((staff?.roles ?? []).map((r) => r.slug), screenRole("/admin/customers"));
 
   return (
     <>
@@ -43,6 +49,7 @@ export default async function NewMeetingPage({ searchParams }: { searchParams: P
         meta={index.meta}
         minDate={zoneToday(index.meta.timezone)}
         preset={{ type: params.type, host: Number.isInteger(host) && host > 0 ? host : null }}
+        canOpenCustomers={canOpenCustomers}
       />
     </>
   );

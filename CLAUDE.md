@@ -2384,6 +2384,7 @@ Four locations, record references not URLs, the flat builder, rebuild.
 - Verify a menu change by renaming an item through the console and reading the public page — asserting the default links is vacuous.
 - A `section` item whose page is empty — team, clients, certifications, careers, case studies, blog — is dropped at render by `SiteSection::hasContent()` and returns when the first row is published; the seeded footer's Company column carries Our team, Clients and Certifications now.
 - `menus`/`menu_items` were in the Phase 1 schema; the migration that made them usable is an alter, not a second pair.
+- Services open to their categories (2026-09-29): Services → each service category (a `service_category` item, linking to its tab `/services#<slug>` while active) → its services, uncategorised last under "Other services"; the built-in panel groups through `lib/service-groups.ts`, `DefaultMenu` writes the same on a rebuild, and an existing assigned menu keeps its flat list until Rebuild. `MegaMenu` gives `h-full` only to an entry without children.
 - A `catalogue` item is a live list: a key from `CatalogueList`, expanded at render into what is published and `show_in_menu`, heading linked to the index, nothing nestable under it; the rebuilt footer's three columns are these, so the footer tracks the catalogue (2026-09-20).
 
 ### Popups — `docs/popups.md`
@@ -2791,6 +2792,7 @@ A customer books a video call at a slot the slot engine proved free; the company
 - Google (`GoogleCalendar`, own OAuth slot, `calendar.events` + `calendar.events.freebusy`): one company calendar, our own event id so a retried insert is a 409 read as success, a move PATCHes time and attendees and never the conference, nothing the customer typed but name and address, another account's event left alone, never throws, rate limits back off 30s/2m/10m.
 - Sync runs after the commit; `technoware:sync-meetings` sweeps each minute, claimed by a conditional UPDATE, to `MAX_ATTEMPTS` (5) — then the desk is told once and the customer gets our `.ics`. A meeting booked with nothing connected stays on the `.ics` path for life.
 - `MeetingNotices` picks the confirmation from what the sync did (link, `.ics`, or wait); a move or cancel carries the `.ics` exactly when the confirmation did. Reminders are claimed by inserting `(meeting, offset, starts_at)`, a past offset is written sent at booking, no quiet hours.
+- "Schedule a meeting" finds customers through `GET /admin/meetings/customers` (the diary's roles, 8 at most, LIKE escaped), never the palette's search, which shows customers to support only; "Open the customer" is drawn only for a role that can open it.
 - Diary `role:sales_manager,support_engineer`, types `sales_manager`, hosts/Google/settings `admin`, `/admin/my-meetings` `meeting_host` scoped to `host_id`. `{meeting}` binds by `PREFIX-YYYY-NNNNN` (`meeting_reference_prefix`, `DeriveMeetingPrefix` upgrade step).
 
 ### Importing a WordPress / WooCommerce site — `docs/wordpress-import.md`

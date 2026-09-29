@@ -2190,6 +2190,15 @@ createServer(async (req, res) => {
     if (p === '/admin/meetings/google/test' && req.method === 'POST') {
       return json(res, 422, { message: 'Connect a Google account first.', errors: { google: ['Connect a Google account first.'] } });
     }
+    if (p === '/admin/meetings/customers' && req.method === 'GET') {
+      const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+      if (q.length < 2) return json(res, 422, { message: 'The q field must be at least 2 characters.', errors: { q: ['The q field must be at least 2 characters.'] } });
+      const rows = adminCustomers
+        .filter((c) => [c.name, c.email, c.company].some((v) => (v ?? '').toLowerCase().includes(q)))
+        .slice(0, 8)
+        .map(({ id, name, email, company, phone, status, status_label }) => ({ id, name, email, company, phone, status, status_label }));
+      return json(res, 200, { data: rows });
+    }
     if (p === '/admin/meetings/slots' && req.method === 'GET' && url.searchParams.get('from') && url.searchParams.get('to')) {
       const type = meetingTypes.find((t) => t.slug === url.searchParams.get('type')) ?? meetingTypes[0];
       const days = [];

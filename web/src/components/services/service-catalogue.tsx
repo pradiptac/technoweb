@@ -2,16 +2,17 @@ import Image from "next/image";
 import { Collection, Tile } from "@/components/ui/collection";
 import { IconTile, hueForIcon } from "@/components/ui/icon-tile";
 import type { Service, ServiceCategory } from "@/types/api";
+import { groupServices, type ServiceGroup } from "@/lib/service-groups";
 import { ServiceTabs } from "./service-tabs";
 
 /**
  * Every published service, grouped by service category (the client,
  * 2026-09-29): the homepage's Services section in every theme, and /services.
  *
- * - **Groups follow the categories' order.** The API sends active categories
- *   only, in order; a category with no published service is left out, and
- *   the services filed under none — or under a category since switched off —
- *   come last as "Other services".
+ * - **Groups follow the categories' order** (`groupServices()` in
+ *   `lib/service-groups.ts`, the mega menu's rule too): a category with no
+ *   published service is left out, and the services filed under none — or
+ *   under a category since switched off — come last as "Other services".
  * - **One group is a plain `Collection`**; two or more are `ServiceTabs`, one
  *   tab per group, every panel rendered here on the server.
  * - **Each group is a `Collection kind="services"`**, so every theme's idiom
@@ -23,28 +24,8 @@ import { ServiceTabs } from "./service-tabs";
  * `fill` is the homepage's: a selection never ends on a half-empty row
  * (`FullRows`), measured per panel when it is shown. An index never fills.
  */
-export type ServiceGroup = { slug: string; name: string; description: string | null; background: boolean; items: Service[] };
-
-const OTHER = "other-services";
-
-export function groupServices(services: Service[], categories: ServiceCategory[]): ServiceGroup[] {
-  const groups: ServiceGroup[] = categories.map((c) => ({
-    slug: c.slug, name: c.name, description: c.description, background: Boolean(c.image_background), items: [],
-  }));
-  const bySlug = new Map(groups.map((g) => [g.slug, g]));
-  const other: ServiceGroup = { slug: OTHER, name: "Other services", description: null, background: false, items: [] };
-
-  for (const s of services) {
-    const home = s.category ? bySlug.get(s.category.slug) : undefined;
-    (home ?? other).items.push(s);
-  }
-
-  // A slug the editor chose may already be "other-services"; the leftovers then join it.
-  const named = bySlug.get(OTHER);
-  if (named) { named.items.push(...other.items); other.items = []; }
-
-  return [...groups, other].filter((g) => g.items.length > 0);
-}
+// The grouping is one rule shared with the mega menu's Services panel.
+export { groupServices, type ServiceGroup } from "@/lib/service-groups";
 
 export function ServiceCatalogue({
   services, categories, fill = false, titleAs = "h3", tabsLabel = "Service categories",
