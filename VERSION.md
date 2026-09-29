@@ -26,7 +26,8 @@ Entries are newest first. Dates are the day the work landed on
 **The Services menu opens to its categories.** Hover Services in the header
 and it shows Web services, Hardware services and Installation services, each
 with its icon, a line about it and its services underneath; the phone menu
-nests the same way. The header link is "Services" rather than "Web
+nests the same way, and every service in it has a small icon in its own
+colour. The header link is "Services" rather than "Web
 Services". A site whose menu was set up before this keeps its old list until
 you press **Rebuild to default** on Site → Menus (or regroup it there by hand) — nothing
 changes a menu you arranged. A category can be placed in any menu too, as

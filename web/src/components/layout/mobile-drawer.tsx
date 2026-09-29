@@ -523,7 +523,10 @@ function DrawerItems({
         // an indented list. The tile arrives rendered from the server, and
         // its 28px box is kept even when there is none, so a list of mixed
         // rows sits on one left edge.
-        const icon = depth === 0 ? <span className="grid size-7 shrink-0 place-items-center">{child.icon}</span> : null;
+        const icon = depth === 0
+          ? <span className="grid size-7 shrink-0 place-items-center">{child.icon}</span>
+          // Deeper rows carry the small bare glyph in its hue, when there is one.
+          : child.glyph ? <span aria-hidden className="grid shrink-0 place-items-center">{child.glyph}</span> : null;
 
         // A heading is a label over its own indented list, not a link.
         const Row = child.href === null ? "div" : Link;

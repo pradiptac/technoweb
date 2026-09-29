@@ -1,7 +1,7 @@
 import "server-only";
 import { createElement, type ReactNode } from "react";
 import { publicApi } from "@/lib/api";
-import { iconMap, type IconName } from "@/components/icons";
+import { IdentityIcon, iconMap, type IconName } from "@/components/icons";
 import { IconTile } from "@/components/ui/icon-tile";
 import type { NavNode } from "@/types/api";
 import { navKey } from "@/lib/nav-key";
@@ -34,6 +34,15 @@ const tileFor = (name: string | null): ReactNode =>
 const smallTileFor = (name: string | null): ReactNode =>
   isIcon(name) ? createElement(IconTile, { name, size: "sm" }) : null;
 
+/**
+ * A bare glyph in its identity hue, 16px, for a row below the first in a
+ * panel or the drawer — a service under its category — where a tile would
+ * make every level read as its own grid (the client, 2026-09-29: "small
+ * colourful icons for every service").
+ */
+const colourGlyphFor = (name: string | null | undefined): ReactNode =>
+  isIcon(name) ? createElement(IdentityIcon, { name, className: "size-4" }) : null;
+
 /** A bare glyph, for the flat bars — sized by the slot it sits in. */
 const glyphFor = (name: string | null | undefined): ReactNode =>
   isIcon(name) ? createElement(iconMap[name], { className: "size-4" }) : null;
@@ -63,6 +72,8 @@ export type MenuItem = {
   tile: ReactNode | null;
   /** The same tile at the drawer's size. */
   icon: ReactNode | null;
+  /** A small bare glyph in its hue, drawn when the entry is a row below the first level. */
+  glyph?: ReactNode | null;
   summary?: string | null;
   /**
    * Open in a new tab, as the menu item was saved. `toItem` dropped this for
@@ -96,6 +107,7 @@ function toItem(node: NavNode): MenuItem {
     href: node.href,
     tile: tileFor(node.icon),
     icon: smallTileFor(node.icon),
+    glyph: colourGlyphFor(node.icon),
     summary: node.summary,
     newTab: node.new_tab,
     children: node.children.map(toItem),
@@ -135,7 +147,7 @@ export async function getMegaMenu(): Promise<Record<string, MenuSection>> {
           tile: tileFor(g.icon),
           icon: smallTileFor(g.icon),
           summary: g.description,
-          children: g.items.map((s) => ({ label: s.title, href: `/services/${s.slug}`, tile: null, icon: null })),
+          children: g.items.map((s) => ({ label: s.title, href: `/services/${s.slug}`, tile: null, icon: null, glyph: colourGlyphFor(s.icon) })),
         }))
       : services.map((s) => ({
           label: s.title, href: `/services/${s.slug}`, tile: tileFor(s.icon), icon: smallTileFor(s.icon), summary: s.summary,

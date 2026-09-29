@@ -413,3 +413,9 @@ menu is an editor's, and nothing rewrites one on update.
 every entry's row carried `h-full`, which stretched the row to the grid
 cell's height and pushed the list under it out through the panel's foot. An
 entry with children no longer takes it.
+
+**A row below the first carries a small glyph in its identity hue** — a
+service under its category, in the panel and in the drawer — through
+`MenuItem.glyph`, rendered on the server beside the tile and the drawer icon
+(`IdentityIcon` at 16px, the hues already graded for both schemes). The first
+level keeps its tile; a tile at every level reads as three grids.

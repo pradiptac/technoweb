@@ -246,9 +246,11 @@ function SubItems({ items, indented }: { items: MenuItem[]; indented: boolean })
             <Link
               href={child.href}
               {...newTabAttrs(child.newTab)}
-              className="block rounded py-1.5 pr-2 pl-3 text-13 text-muted transition-colors duration-(--duration-base) hover:bg-brand-50 hover:text-ink"
+              className="flex items-center gap-2 rounded py-1.5 pr-2 pl-3 text-13 text-muted transition-colors duration-(--duration-base) hover:bg-brand-50 hover:text-ink"
             >
-              {child.label}
+              {/* A small glyph in its own hue: an identity, not a tile. */}
+              {child.glyph && <span aria-hidden className="grid shrink-0 place-items-center">{child.glyph}</span>}
+              <span className="min-w-0">{child.label}</span>
             </Link>
           )}
 
