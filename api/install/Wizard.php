@@ -640,6 +640,11 @@ final class Wizard
         $site = $s['site']['site_url'];
 
         if ($from === 0) {
+            // Before the purge: it can only expire pages older than itself, and
+            // a zip unpacked on a server behind the build machine's clock
+            // leaves the prerendered ones dated in the future.
+            Updater::agePrerenderedPages($this->home);
+
             $purge = $this->http('POST', $site.'/api/internal/revalidate', $s['secrets']['internal_token']);
 
             if ($purge['status'] !== 200) {

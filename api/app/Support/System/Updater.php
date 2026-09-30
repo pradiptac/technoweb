@@ -715,6 +715,9 @@ final class Updater
         $i = (int) ($run['warm_next'] ?? 0);
 
         if ($i === 0) {
+            // Before the purge: it can only expire pages older than itself.
+            self::agePrerenderedPages(self::requireHome());
+
             $token = (string) config('app.internal_token');
             $purge = Http::timeout(15)->withToken($token)->post($base.'/api/internal/revalidate');
 
@@ -884,6 +887,47 @@ final class Updater
         if (! file_exists($link) && ! is_link($link)) {
             @symlink('../../storage/app/public', $link);
         }
+    }
+
+    /**
+     * Make the build's prerendered pages older than now, so a purge can expire
+     * them.
+     *
+     * Next takes a cached page's age from its file's modified time, and a
+     * purge (`revalidatePath`) only expires pages **older** than itself. A
+     * release unpacked on a server whose clock is behind the build machine's
+     * — a zip stores local time with no zone — leaves every prerendered page
+     * dated in the future, so the purge expired none of them and they never
+     * went stale on their own: the installed site showed the build's
+     * error-state pages, in the default theme, for hours (2026-09-30, Plesk).
+     * `release/zip.php` writes a date safely in the past now; this covers a
+     * zip built before that, and any extraction that does not preserve times.
+     *
+     * Only files newer than two minutes ago are touched, so a page that has
+     * already been regenerated keeps its real time. Returns how many changed.
+     */
+    public static function agePrerenderedPages(string $home): int
+    {
+        $dir = $home.'/web/.next/server/app';
+
+        if (! is_dir($dir)) {
+            return 0;
+        }
+
+        $limit = time() - 120;
+        $changed = 0;
+
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+        );
+
+        foreach ($files as $file) {
+            if ($file->isFile() && $file->getMTime() > $limit && @touch($file->getPathname(), $limit)) {
+                $changed++;
+            }
+        }
+
+        return $changed;
     }
 
     private static function move(string $from, string $to): void

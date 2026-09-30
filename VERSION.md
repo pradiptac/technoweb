@@ -21,6 +21,17 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.99.1 — 2026-09-30
+
+**Fixed: a new install could keep showing its first, unstyled pages for hours.**
+On some servers the home page and the main index pages stayed in the default
+theme, without the dropdown menus and without the colours chosen in the
+console, for hours after setup — although everything in the console was right.
+The installer now refreshes them itself, and the same is done at the end of
+every update. Nothing to do for a site that installs this version. A site
+installed from 0.99.0 that shows this heals by itself within a few hours, or
+sooner if you ask your supplier.
+
 ## 0.99.0 — 2026-09-30
 
 **A satisfaction survey when a ticket is closed.** The customer is emailed one

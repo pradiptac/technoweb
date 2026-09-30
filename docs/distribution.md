@@ -234,3 +234,44 @@ needed. PHP's built-in server needs a fixed-root router, because Laravel's
 takes its root from the working directory, which then locks `api/` on
 Windows. Node has to be stopped and started around the website swap, which is
 what Passenger's `restart.txt` does on a real host.
+
+## A zip's file times, and pages that never went stale (2026-09-30)
+
+**The symptom:** a fresh install on Plesk (a server in UTC, the release built in
+India) showed the build's pages — the default theme and palette, a menu with no
+dropdowns — on the home page and every index page for hours, while pages
+rendered on request (`/blog`, `/store`, a solution's own page) showed the
+theme the administrator had just chosen. The wizard's purge had run and said so.
+`/api/health` reported the API reachable and the API served the data, which is
+what made it hard to see.
+
+**The cause:** a zip stores a file's time as local time with no zone. Built at
+19:27 in India, the entries read as 19:27 UTC on the server — four hours *ahead*
+of its clock. Next takes a prerendered page's age from the file's modified time
+(`file-system-cache.js`: `lastModified: mtime.getTime()`), and
+`revalidatePath` expires only entries older than itself. So all thirty-one
+prerendered pages looked newer than the purge and newer than their
+`revalidate` window: neither the purge nor the five-minute schedule touched
+them until the server's clock caught up with the build machine's. Reading the
+release's `prerender-manifest.json` ruled out the other suspect (their
+`initialRevalidateSeconds` is 300, 120 or 600, not `false`); comparing
+`x-nextjs-cache` across routes showed the split.
+
+**The fix, in three places:**
+
+- `release/zip.php` writes the same modified time on every entry —
+  2020-01-01 — which is in the past in every zone (a 26-hour spread). A page
+  that reads as old is refreshed on its first request, which is what a first
+  visit should do.
+- `Updater::agePrerenderedPages()` sets any file under `web/.next/server/app`
+  dated within the last two minutes or in the future back to two minutes ago,
+  and the wizard's warm step and the updater's both call it **before** the
+  purge. It covers a zip built before the change and an extractor that does
+  not keep times. `PrerenderedPagesAgeTest` pins it.
+- Nothing else reads these times: the drift check compares hashes.
+
+**If it happens on an install built before the fix:** in the hosting panel run
+`find <home>/web/.next/server/app -type f -exec touch -d '2 hours ago' {} +` (a
+scheduled task will do), then call the purge or wait five minutes and load the
+page twice. Or wait: the pages refresh by themselves once the server's clock
+passes the build's local time.
