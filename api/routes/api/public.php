@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SliderController;
 use App\Http\Controllers\Api\V1\StockNoticeController;
 use App\Http\Controllers\Api\V1\StoreController;
+use App\Http\Controllers\Api\V1\TicketSurveyController;
 use App\Http\Controllers\Api\V1\VisitController;
 use App\Http\Controllers\Api\V1\WishlistController;
 use Illuminate\Support\Facades\Route;
@@ -93,6 +94,16 @@ Route::post('store/products/{storeProduct:slug}/notify', [StockNoticeController:
     ->middleware('throttle:10,1')->name('store.products.notify');
 Route::get('store/stock-notices/{token}/cancel', [StockNoticeController::class, 'cancel'])
     ->middleware('throttle:30,1')->name('store.stock-notices.cancel');
+
+/*
+ * The satisfaction survey a closed ticket's customer is emailed. Addressed
+ * by the token in the link; a wrong one is a 404. Reading is not answering —
+ * see the controller.
+ */
+Route::get('ticket-surveys/{token}', [TicketSurveyController::class, 'show'])
+    ->middleware('throttle:60,1')->name('ticket-surveys.show');
+Route::post('ticket-surveys/{token}', [TicketSurveyController::class, 'answer'])
+    ->middleware('throttle:20,1')->name('ticket-surveys.answer');
 
 /*
  * Published reviews of one product, six a page (`docs/store.md`, "Reviews").

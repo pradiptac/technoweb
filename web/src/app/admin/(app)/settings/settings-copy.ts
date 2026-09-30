@@ -285,6 +285,10 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Bookings per address per day",
     hint: "How many meetings one internet address may book in a day — a ceiling against a script filling the diary.",
   },
+  ticket_survey_enabled: {
+    label: "Send the satisfaction survey",
+    hint: "When a ticket is closed the customer gets one email with five ratings, Very Bad to Excellent, and a page to add a comment. Once per ticket — closing it again after a reopen asks nothing more — and never for a ticket merged into another. Answers appear on the ticket.",
+  },
   meetings_google_oauth_client_id: {
     label: "OAuth client ID",
     hint: "A Web application client in the company's Google Cloud project, with the Calendar API switched on, the consent screen set to Internal, and the callback below registered.",
@@ -802,6 +806,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Google Calendar",
     blurb: "The Workspace account every meeting is organised on — meetings@, say. Each booking becomes an event on its calendar with a Meet link, and the host and the customer are both invited. Save the client ID and secret, then connect.",
   },
+  ticket_survey: {
+    title: "Satisfaction survey",
+    blurb: "A few seconds' rating asked of the customer when their ticket is closed. The wording of the email is under System → Settings → Email templates (Satisfaction survey — to the customer).",
+  },
   visits: {
     title: "Engineer visits",
     blurb: "The Book a site visit form: which days and parts of the day it offers, how much notice it needs and how far ahead it reaches, the dates you are closed, and where requests are sent. A request is a wish list — the desk confirms the actual time.",
@@ -976,6 +984,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
   meetings: ["meetings_enabled", "meeting_default_hours", "meeting_slot_step", "meeting_min_notice_hours", "meeting_max_days",
              "meeting_holidays", "meeting_reminders", "meeting_block_google_busy", "meetings_email",
              "meeting_change_cutoff_hours", "meeting_max_reschedules", "meeting_max_open_per_contact", "meeting_daily_ip_cap"],
+  ticket_survey: ["ticket_survey_enabled"],
   meetings_google: ["meetings_google_oauth_client_id", "meetings_google_oauth_client_secret", "meetings_google_calendar_id"],
   visits: ["visits_enabled", "visit_windows", "visit_days", "visit_min_notice_days", "visit_max_days", "visit_holidays",
            "visits_email", "visit_default_minutes"],
@@ -1178,10 +1187,10 @@ export const SCREENS: SettingsScreen[] = [
     path: "/admin/tickets/settings",
     title: "Email to ticket",
     area: "Tickets",
-    lede: "A support mailbox read once a minute, every new message becoming a ticket. Off by default.",
-    saveLabel: "Save mailbox settings",
+    lede: "A support mailbox read once a minute, every new message becoming a ticket (off by default), and the satisfaction survey sent when a ticket is closed.",
+    saveLabel: "Save ticket settings",
     needs: ["inbound"],
-    sections: [{ groups: ["tickets"] }],
+    sections: [{ groups: ["tickets", "ticket_survey"] }],
   },
   {
     path: "/admin/customers/settings",

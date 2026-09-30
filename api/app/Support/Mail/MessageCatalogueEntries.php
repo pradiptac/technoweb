@@ -39,6 +39,7 @@ use App\Notifications\TicketAcknowledged;
 use App\Notifications\TicketCreated;
 use App\Notifications\TicketMerged;
 use App\Notifications\TicketReplied;
+use App\Notifications\TicketSurveyRequested;
 use App\Notifications\VerifyCustomerEmail;
 use App\Notifications\VisitCancelled;
 use App\Notifications\VisitConfirmed;
@@ -224,6 +225,32 @@ class MessageCatalogueEntries
                     .'<p><strong>{{source_reference}}</strong> ({{source_subject}}) was about the same thing as <strong>{{reference}}</strong> ({{subject}}), so everything you sent on it is now on the one ticket.</p>'
                     .'<p>Quote {{reference}} from now on. A reply to the old reference still reaches us, and it lands on the right ticket.</p>'
                     .'<p><a href="{{url}}">Open the ticket</a></p>',
+            ],
+
+            /*
+             * The satisfaction survey, sent once when a ticket is closed. The
+             * five ratings are one HTML placeholder built by `Survey`, so the
+             * colours and the links stay in code and the editor writes the
+             * words around them.
+             */
+            'ticket_survey' => [
+                'label' => 'Satisfaction survey — to the customer',
+                'description' => 'Sent once, when a ticket is closed (never for a ticket merged into another): five one-click ratings from Very Bad to Excellent. Switch the survey off under Tickets → Email to ticket → Satisfaction survey.',
+                'audience' => self::CUSTOMER,
+                'class' => TicketSurveyRequested::class,
+                'variables' => [
+                    'customer_name' => ['about' => 'Who it is for.', 'sample' => 'Neil Basu'],
+                    'reference' => ['about' => 'The ticket that was closed.', 'sample' => 'TK-2026-00042'],
+                    'subject' => ['about' => 'Its subject.', 'sample' => 'Switch keeps dropping its uplink'],
+                    'rating_buttons' => self::details('The five ratings, Very Bad to Excellent, as buttons. Each opens the survey with that answer chosen.', '<div><a href="https://www.example.com/ticket-survey/0000?rating=1">Very Bad</a> <a href="https://www.example.com/ticket-survey/0000?rating=5">Excellent</a></div>'),
+                    'survey_url' => ['about' => 'The survey page, with no answer chosen.', 'sample' => 'https://www.example.com/ticket-survey/0000'],
+                ],
+                'subject' => '[{{reference}}] How did we do?',
+                'body' => '<p>Dear {{customer_name}},</p>'
+                    .'<p>Thank you for getting in touch. Your ticket <strong>{{reference}}</strong> ({{subject}}) is now closed, and we would like to hear how it went. Your answer helps us keep improving our support.</p>'
+                    .'<p><strong>How would you rate your overall satisfaction with the resolution you received from our support team?</strong></p>'
+                    .'{{rating_buttons}}'
+                    .'<p>It takes a few seconds, and you can add a comment if you wish.</p>',
             ],
         ];
     }

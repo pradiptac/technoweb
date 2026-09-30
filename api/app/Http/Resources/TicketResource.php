@@ -74,6 +74,19 @@ class TicketResource extends JsonResource
                     'by' => $e->user?->getAttribute('name'),
                     'at' => $e->created_at?->toIso8601String(),
                 ])),
+            /*
+             * The satisfaction survey, when the console's detail read loaded
+             * it: null while none was sent (the ticket is still open, or the
+             * survey is off), `rating` null while it is waiting for an answer.
+             * Never the token.
+             */
+            'survey' => $this->whenLoaded('survey', fn () => $this->survey === null ? null : [
+                'sent_at' => $this->survey->sent_at->toIso8601String(),
+                'rating' => $this->survey->rating,
+                'rating_label' => $this->survey->ratingCase()?->label(),
+                'comment' => $this->survey->comment,
+                'answered_at' => $this->survey->answered_at?->toIso8601String(),
+            ]),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

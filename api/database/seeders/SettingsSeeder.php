@@ -1140,6 +1140,14 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'tickets', 'key' => 'inbound_mail_last_run', 'value' => null, 'type' => 'string'],
             ['group' => 'tickets', 'key' => 'inbound_mail_error', 'value' => null, 'type' => 'string'],
 
+            /*
+             * The satisfaction survey emailed when a ticket is closed. Its own
+             * group, private, so the tab is a switch and nothing else and the
+             * mailbox panel above stays the mailbox's. On by default: a
+             * survey nobody switched on is one nobody reads the answers to.
+             */
+            ['group' => 'ticket_survey', 'key' => 'ticket_survey_enabled', 'value' => '1', 'type' => 'boolean'],
+
             // Third-party keys. Same treatment as the SMTP password.
             ['group' => 'integrations', 'key' => 'openai_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
             ['group' => 'integrations', 'key' => 'hunter_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],

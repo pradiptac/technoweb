@@ -7,6 +7,7 @@ use App\Enums\TicketStatus;
 use App\Enums\WebhookEvent;
 use App\Models\Concerns\SealsSensitiveText;
 use App\Support\References;
+use App\Support\Tickets\Survey;
 use App\Support\Webhooks\WebhookPayload;
 use App\Support\Webhooks\Webhooks;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 class Ticket extends Model
@@ -74,6 +76,11 @@ class Ticket extends Model
             }
 
             $from = $ticket->getOriginal('status');
+
+            // The satisfaction survey, once, from whichever door closed it.
+            if ($ticket->status === TicketStatus::Closed) {
+                Survey::request($ticket);
+            }
 
             Webhooks::emit(WebhookEvent::TicketStatusChanged, fn () => WebhookPayload::ticketWith($ticket, [
                 'from' => $from instanceof TicketStatus ? $from->value : $from,
@@ -178,6 +185,12 @@ class Ticket extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(TicketAttachment::class);
+    }
+
+    /** @return HasOne<TicketSurvey, $this> */
+    public function survey(): HasOne
+    {
+        return $this->hasOne(TicketSurvey::class);
     }
 
     /** @return HasMany<TicketEvent, $this> */

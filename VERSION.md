@@ -21,6 +21,22 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.99.0 — 2026-09-30
+
+**A satisfaction survey when a ticket is closed.** The customer is emailed one
+question — how would you rate the resolution you received from our support
+team? — with five buttons, Very Bad to Excellent. A button opens a page on
+your website that records it, then asks for feedback — what went wrong after a
+low rating, what went well after a high one. The answer appears on the ticket in the console, under **Customer
+satisfaction**.
+
+- **Sent once per ticket**, when it is closed by you, by the customer, or in
+  bulk. Reopening and closing again does not ask a second time, and a ticket
+  merged into another is not asked.
+- **On by default.** After this update, tickets closed from now on send the
+  survey. To switch it off, or to reword the email, see **Tickets → Email to ticket →
+  Satisfaction survey** and **System → Settings → Email templates**.
+
 ## 0.98.1 — 2026-09-29
 
 **The Services menu opens to its categories.** Hover Services in the header

@@ -483,8 +483,21 @@ export type Ticket = {
   attachments?: TicketAttachment[];
   /** The opening description is stored encrypted when set; `description` is already the plain text. */
   is_sensitive: boolean;
+  /**
+   * The satisfaction survey sent when it was closed — admin detail read only.
+   * Null while none was sent; `rating` is null until the customer answers.
+   */
+  survey?: TicketSurveyAnswer | null;
   created_at: string;
   updated_at: string;
+};
+
+export type TicketSurveyAnswer = {
+  sent_at: string;
+  rating: number | null;
+  rating_label: string | null;
+  comment: string | null;
+  answered_at: string | null;
 };
 
 /** An address as the store stores one: a plain map, every part optional. */

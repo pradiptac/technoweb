@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge, PriorityBadge } from "@/components/ui/badge";
+import { Badge, PriorityBadge, SurveyBadge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
 import { getStaff, getTicket, getTicketCannedReplies, getTickets } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
@@ -190,6 +190,32 @@ export default async function AdminTicketDetailPage({
           </div>
         ))}
       </dl>
+
+      {/* The customer's answer to the survey sent when it was closed. */}
+      {ticket.survey && (
+        <Card interactive={false} padding="none" className="mb-8 p-4.5">
+          <h2 className="mb-2.5 text-17">Customer satisfaction</h2>
+          {ticket.survey.rating !== null && ticket.survey.rating_label ? (
+            <>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <SurveyBadge rating={ticket.survey.rating} label={ticket.survey.rating_label} />
+                {ticket.survey.answered_at && (
+                  <time className="font-mono text-11-5 text-muted" dateTime={ticket.survey.answered_at}>
+                    {dateTime(ticket.survey.answered_at)}
+                  </time>
+                )}
+              </div>
+              {ticket.survey.comment && (
+                <p className="mt-3 text-14-5 leading-[1.62] whitespace-pre-wrap">{ticket.survey.comment}</p>
+              )}
+            </>
+          ) : (
+            <p className="text-14 text-muted">
+              The survey was emailed on {dateTime(ticket.survey.sent_at)}. No answer yet.
+            </p>
+          )}
+        </Card>
+      )}
 
       <h2 className="mb-3 text-17">Conversation</h2>
       <ul className="grid gap-3">

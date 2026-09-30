@@ -2039,6 +2039,22 @@ ticket's event log. Assigning an unassigned `open` ticket moves it to
 moves it to `in_progress` and stops the first-response SLA clock — an
 internal note does neither.
 
+**Closing a ticket sends the satisfaction survey** (2026-09-30, `docs/tickets.md`).
+Once per ticket, from whichever door closes it, unless `ticket_survey_enabled`
+is off or the ticket was merged into another. The customer's email carries five
+links to the website's `/ticket-survey/{token}?rating=1..5`; the two public
+routes behind that page, throttled 60/min and 20/min:
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/ticket-surveys/{token}` | `{reference, subject, answered, rating, rating_label, comment, ratings[{value,label}], comment_max}`. Reads only — **never records an answer**. A token that is not 64 hex characters, or that nobody has, is a 404 |
+| `POST` | `/ticket-surveys/{token}` | `rating` 1–5 (422 otherwise), `comment` optional plain text up to 1000 characters (blank stored as null). Answers the same shape. May be sent again to change the answer; `answered_at` keeps the first time |
+
+The token appears in no response. `GET /admin/tickets/{reference}` carries
+`survey` — `{sent_at, rating, rating_label, comment, answered_at}`, or `null`
+while none was sent, `rating` null while unanswered — and a portal read of the
+same ticket carries no `survey` key.
+
 **A merge is one transaction and every state may make it.** `merge` re-points
 the source's messages and attachments at the target, sets
 `tickets.merged_into_id` on the source, closes it with `closed_at` —

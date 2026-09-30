@@ -1784,6 +1784,29 @@ const adminEntry = (e) => ({
   created_at: e.published_at, updated_at: e.updated_at,
 });
 
+/* The satisfaction survey a closed ticket sends (docs/tickets.md). One per
+   ticket, created the first time it is closed; the token is 64 hex like the
+   real one and never appears in an admin read. */
+const surveys = [];
+const SURVEY_RATINGS = [[1, 'Very Bad'], [2, 'Poor'], [3, 'Average'], [4, 'Good'], [5, 'Excellent']];
+const ensureSurvey = (ref) => {
+  let s = surveys.find((x) => x.reference === ref);
+  if (!s) {
+    s = { reference: ref, token: [...Array(64)].map(() => Math.floor(Math.random() * 16).toString(16)).join(''), sent_at: new Date().toISOString(), rating: null, comment: null, answered_at: null };
+    surveys.push(s);
+  }
+  return s;
+};
+const surveyLabel = (n) => (SURVEY_RATINGS.find(([v]) => v === n) || [])[1] ?? null;
+const surveyPublic = (s) => {
+  const t = tickets.find((x) => x.reference === s.reference);
+  return {
+    reference: s.reference, subject: t ? t.subject : '', answered: s.rating !== null, rating: s.rating,
+    rating_label: surveyLabel(s.rating), comment: s.comment,
+    ratings: SURVEY_RATINGS.map(([value, label]) => ({ value, label })), comment_max: 1000,
+  };
+};
+
 const json = (res, code, body) => {
   res.writeHead(code, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(body));
@@ -2022,6 +2045,29 @@ createServer(async (req, res) => {
      production. */
   if (p === '/newsletter/subscribe' && req.method === 'POST') {
     return json(res, 202, { message: 'Thank you. If that address is not already on the list, you will hear from us soon.' });
+  }
+  {
+    const sm = p.match(/^\/ticket-surveys\/([a-f0-9]{64})$/);
+    if (p.startsWith('/ticket-surveys/') && !sm) return json(res, 404, { message: 'Not found.' });
+    if (sm) {
+      const sv = surveys.find((x) => x.token === sm[1]);
+      if (!sv) return json(res, 404, { message: 'Not found.' });
+      if (req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const rating = Number(body.rating);
+        if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+          return json(res, 422, { message: 'The rating field is invalid.', errors: { rating: ['The rating field is invalid.'] } });
+        }
+        const comment = String(body.comment ?? '').trim();
+        if (comment.length > 1000) {
+          return json(res, 422, { message: 'The comment field must not be greater than 1000 characters.', errors: { comment: ['The comment field must not be greater than 1000 characters.'] } });
+        }
+        sv.rating = rating;
+        sv.comment = comment === '' ? null : comment;
+        sv.answered_at = sv.answered_at ?? new Date().toISOString();
+      }
+      return json(res, 200, { data: surveyPublic(sv) });
+    }
   }
   if (p.startsWith('/newsletter/unsubscribe/')) {
     return req.method === 'POST'
@@ -3468,6 +3514,7 @@ createServer(async (req, res) => {
         t.status = patch.status;
         t.status_label = STATUS_LABELS[patch.status];
         t.allowed_transitions = nextStatuses(patch.status);
+        if (patch.status === 'closed') ensureSurvey(t.reference);
       }
       if (patch.priority) {
         t.priority = patch.priority;
@@ -3483,7 +3530,11 @@ createServer(async (req, res) => {
     if (am && req.method === 'GET') {
       const t = tickets.find((x) => x.reference === am[1]);
       if (!t) return json(res, 404, { message: 'Not found.' });
-      return json(res, 200, { data: { ...t, customer, messages: messages[t.reference] || [] } });
+      const sv = surveys.find((x) => x.reference === t.reference);
+      const survey = sv
+        ? { sent_at: sv.sent_at, rating: sv.rating, rating_label: surveyLabel(sv.rating), comment: sv.comment, answered_at: sv.answered_at }
+        : null;
+      return json(res, 200, { data: { ...t, customer, messages: messages[t.reference] || [], survey } });
     }
 
     // Merge: the same refusals as Laravel's, as 422s on `into`, and the

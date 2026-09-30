@@ -152,6 +152,27 @@ email about it.
 - A merged ticket cannot be reopened or replied to. If the customer replies to
   an email about it, the reply lands on the ticket it was merged into.
 
+## The satisfaction survey
+
+When a ticket is **closed**, the customer gets one short email: *How would you
+rate your overall satisfaction with the resolution you received from our support
+team?*, with five buttons from **Very Bad** to **Excellent**. One click on a
+button opens a page on your website that records the rating and then asks for
+feedback — a low rating is asked what went wrong, a middling one what would have
+made it better, a high one what went well. The feedback is optional; the rating
+is already saved.
+
+- It is sent **once per ticket**. Reopening and closing again does not ask
+  again, and a ticket you **merge** into another is not asked.
+- The answer appears on the ticket, under **Customer satisfaction**. A survey
+  with no answer says when it was sent.
+- The customer can change their answer from the same email until they wish.
+- Change the wording under **System → Settings → Email templates** (*Satisfaction
+  survey — to the customer*). The five buttons are filled in for you where the
+  template says `{{rating_buttons}}`.
+- Switch it off under **Tickets → Email to ticket → Satisfaction survey** (a tab on that screen). It is **on
+  by default**.
+
 ## Email to ticket
 
 Off by default. Switched on, a mailbox (for example `support@yourcompany`) is

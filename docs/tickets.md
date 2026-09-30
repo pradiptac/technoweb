@@ -384,3 +384,58 @@ to the same plus `V` (`Acme Networks` → `AN-`, `ANV-`). `ORD` names nobody
 and stays. An install updated from before this keeps `TW`/`TV`, which is
 what its existing numbers carry; no upgrade step changes them. The email templates' sample values moved from `TW-`/`TV-` to `TK-`,
 `SV-` and `ORD-`, so a preview does not show the original product's letters either.
+
+## The satisfaction survey (2026-09-30)
+
+When a ticket is closed the customer is emailed one survey — "How would you
+rate your overall satisfaction with the resolution you received from our
+support team?" — with five buttons, **Very Bad, Poor, Average, Good,
+Excellent**. Each opens `/ticket-survey/{token}?rating=N`; the page records
+that rating as it opens and then asks for feedback, worded for the score — a
+low one is asked what went wrong, a middling one what would have made it
+better, a high one what went well. The feedback is optional and sent with its
+own button; another button changes the rating and keeps the words. The answer
+is drawn on the ticket in the console (Customer satisfaction).
+
+- **From one place.** `Survey::request()` is called by `Ticket`'s `updated`
+  hook when a save lands on `Closed`, so the desk's status change, the bulk
+  action, the customer's own Close and the mailbox piper all send it, and a
+  door added later is covered. It never fails the close: everything inside is
+  caught and logged.
+- **Once per ticket, and the row comes first.** `ticket_surveys.ticket_id` is
+  unique and the row is written before the mail is queued, so a reopened and
+  reclosed ticket is not asked again and a send that fails is still a ticket
+  that was asked (the review requests' rule). A ticket merged into another is
+  never asked — it was closed to make one thread, not because it was resolved —
+  and neither is a customer with no address.
+- **The link records nothing; the page does.** Mail scanners and link previews
+  fetch every link in a message, and an answer recorded on the GET would rate
+  every ticket "Very Bad" and "Excellent" in the same second. So the answer is
+  always a POST, made by `SurveyForm` from the browser — on arrival with the
+  link's rating (`useEffect`, once, and only when it differs from what is on
+  file) and on every press — never by the server render. That is one click for
+  the customer. The residual risk is a scanner that runs a full browser
+  (some "detonation" sandboxes do); it would record whichever link it opened
+  first, and a real answer from the customer replaces it.
+- **The token is the login.** 64 hex characters from `random_bytes`, unique,
+  `$hidden` on the model, in no response — the admin read carries the answer,
+  never the token, and a portal read carries no `survey` at all. A wrong or
+  malformed token is a 404 without a query. `answered_at` keeps the moment of
+  the first answer; an answer can be changed from the same link, like the
+  chatbot's ratings.
+- **The five buttons are HTML in the email, not Markdown.** `Markdown::withSecuredEncoding()`
+  (mail lines are text) turns `[Very Bad](url)` into literal text, so the
+  built-in message passes the buttons as an `HtmlString` and the template has
+  one HTML placeholder, `{{rating_buttons}}`, built by `Survey::buttonsHtml()`:
+  inline styles, plain anchors, wrapping on a narrow screen. Their colours are
+  in `SurveyRating::colour()` because an email cannot read a CSS variable, each
+  dark enough for white text; the website page uses the status tokens instead
+  (`--color-err-fill`, `--color-warn-fill`, `--color-ok-fill`).
+  `TicketSurveyTest` asserts a real `<a href>` with the label inside — the first
+  version of that assertion passed against the Markdown text.
+- **A secret-addressed page.** `/ticket-survey/` is in `SECRET_PATHS`
+  (`analytics.tsx`) and the `no-referrer` list (`next.config.ts`), `noindex`,
+  `force-dynamic`, no `generateStaticParams`.
+- **Switch:** `ticket_survey_enabled` (private `ticket_survey` group, default
+  **on**, a "Satisfaction survey" tab on the Tickets → Email to ticket screen). Off, nothing is
+  sent and no row is written.

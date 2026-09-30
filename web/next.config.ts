@@ -341,7 +341,7 @@ const nextConfig: NextConfig = {
         later entry wins, which is what replaces `strict-origin-when-cross-origin`
         here and leaves the rest of that block in force.
       */
-      ...["/order/:path*", "/newsletter/unsubscribe/:path*", "/newsletter/rejoin/:path*", "/store/notify/cancel/:path*", "/meeting/:path*"].map((source) => ({
+      ...["/order/:path*", "/newsletter/unsubscribe/:path*", "/newsletter/rejoin/:path*", "/store/notify/cancel/:path*", "/meeting/:path*", "/ticket-survey/:path*"].map((source) => ({
         source,
         headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
       })),
