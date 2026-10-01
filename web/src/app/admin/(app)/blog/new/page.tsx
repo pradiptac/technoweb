@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
-import { getAnswerBlockKinds, getStaff, getCustomFieldGroups } from "@/lib/admin";
+import { getAnswerBlockKinds, getBlogCategoryList, getStaff, getCustomFieldGroups } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { PostForm } from "../post-form";
@@ -13,8 +13,11 @@ export default async function NewBlogPostPage() {
   await requireScreen();
   let staff: StaffUser[] = [];
   let kinds: AnswerBlockKindOption[] = [];
+  let categories: { id: number; name: string }[] = [];
   try {
-    [staff, kinds] = await Promise.all([getStaff(), getAnswerBlockKinds("/admin/blog-posts")]);
+    let list;
+    [staff, kinds, list] = await Promise.all([getStaff(), getAnswerBlockKinds("/admin/blog-posts"), getBlogCategoryList({ per_page: 100 })]);
+    categories = list.data.map((c) => ({ id: c.id, name: c.name }));
   } catch {
     return (
       <ErrorState title="We could not open the editor">
@@ -30,7 +33,7 @@ export default async function NewBlogPostPage() {
         title="New post"
       />
 
-      <PostForm staff={staff} kinds={kinds} fieldGroups={await getCustomFieldGroups("/admin/blog-posts")} />
+      <PostForm staff={staff} categories={categories} kinds={kinds} fieldGroups={await getCustomFieldGroups("/admin/blog-posts")} />
     </>
   );
 }

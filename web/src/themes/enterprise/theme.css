@@ -108,3 +108,18 @@
   background-image: linear-gradient(155deg, color-mix(in srgb, var(--tile-hue, var(--color-card)) 14%, var(--color-card)) 0%, var(--color-card) 55%, var(--color-surface-2) 100%);
   border-top: 3px solid var(--tile-hue, var(--color-line-strong));
 }
+
+/*
+  The people as a leadership list (2026-09-28): a portrait on the left
+  and the words on the right, square-cornered, with the person's colour
+  as a rule along the foot; two across on a wide screen, the portrait
+  narrowing on a phone.
+*/
+[data-theme="enterprise"] [data-team] { grid-template-columns: repeat(auto-fill, minmax(min(100%, 30rem), 1fr)); }
+[data-theme="enterprise"] [data-team] > li { display: grid; grid-template-columns: 112px minmax(0, 1fr); border-width: 1px; border-radius: 4px; }
+[data-theme="enterprise"] [data-team] [data-team-photo] { grid-column: 1; grid-row: 1; aspect-ratio: auto; height: 100%; min-height: 150px; }
+[data-theme="enterprise"] [data-team] [data-team-photo] > span { font-size: 30px; }
+[data-theme="enterprise"] [data-team] [data-team-body] { grid-column: 2; grid-row: 1; }
+[data-theme="enterprise"] [data-team] [data-team-rule] { grid-column: 1 / -1; grid-row: 2; }
+[data-theme="enterprise"] [data-team] [data-team-name] { font-size: 20px; }
+@media (width >= 40rem) { [data-theme="enterprise"] [data-team] > li { grid-template-columns: 160px minmax(0, 1fr); } }

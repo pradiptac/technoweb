@@ -54,6 +54,8 @@ export async function addSubscriberAction(_prev: Result, form: FormData): Promis
       first_name: String(form.get("first_name") ?? "") || null,
       last_name: String(form.get("last_name") ?? "") || null,
       company: String(form.get("company") ?? "") || null,
+      industry: String(form.get("industry") ?? "") || null,
+      website: String(form.get("website") ?? "") || null,
       group_ids: form.getAll("group_ids").map(Number).filter(Boolean),
     });
 

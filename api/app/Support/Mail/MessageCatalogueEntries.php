@@ -5,6 +5,7 @@ namespace App\Support\Mail;
 use App\Notifications\ActivationProcedureIssued;
 use App\Notifications\ApplicationAcknowledged;
 use App\Notifications\BackInStock;
+use App\Notifications\BackupFailed;
 use App\Notifications\BlockLeadCaptured;
 use App\Notifications\CartReminder;
 use App\Notifications\ChatLeadCaptured;
@@ -18,6 +19,14 @@ use App\Notifications\EnquiryReceived;
 use App\Notifications\FormAcknowledged;
 use App\Notifications\FormSubmitted;
 use App\Notifications\JobApplicationReceived;
+use App\Notifications\MeetingBooked;
+use App\Notifications\MeetingCancelled;
+use App\Notifications\MeetingLinkReady;
+use App\Notifications\MeetingReminder;
+use App\Notifications\MeetingRescheduled;
+use App\Notifications\MeetingScheduled;
+use App\Notifications\MeetingSyncFailed;
+use App\Notifications\NewsletterRejoinRequested;
 use App\Notifications\OrderDispatched;
 use App\Notifications\OrderPaid;
 use App\Notifications\OrderPlaced;
@@ -30,6 +39,7 @@ use App\Notifications\TicketAcknowledged;
 use App\Notifications\TicketCreated;
 use App\Notifications\TicketMerged;
 use App\Notifications\TicketReplied;
+use App\Notifications\TicketSurveyRequested;
 use App\Notifications\VerifyCustomerEmail;
 use App\Notifications\VisitCancelled;
 use App\Notifications\VisitConfirmed;
@@ -40,9 +50,10 @@ use App\Notifications\WishlistBackInStock;
 use App\Notifications\WishlistPriceDrop;
 
 /**
- * The 40 entries, kept out of `MessageCatalogue` so that class stays readable.
+ * The 49 entries, kept out of `MessageCatalogue` so that class stays readable.
  *
- * Forty for thirty-six classes: `TicketReplied` is two messages — its
+ * Forty-nine for forty-five classes (the online meetings, 2026-09-29, are
+ * seven messages for seven classes): `TicketReplied` is two messages — its
  * customer and desk versions differ in greeting, action label *and* recipient,
  * and one template cannot say both without lying about one of them —
  * `CartReminder` is two, the first basket reminder and the second, and the
@@ -50,11 +61,16 @@ use App\Notifications\WishlistPriceDrop;
  * (a new request, and a customer changing one) and `VisitConfirmed` (booked,
  * and moved).
  *
- * **Three are `locked`.** The address verification, the password reset and
+ * **Four are `locked`.** The address verification, the password reset and
  * the sign-in code each carry a credential somebody is waiting for at a form,
  * with no other way in: switching one off locks people out, and a CC or BCC
  * on one sends a sign-in code to a second inbox, which is an account takeover.
- * The flag lives here beside the message rather than as a list of three keys
+ * The fourth, the newsletter rejoin (2026-09-28), carries the one thing that
+ * may reverse somebody's unsubscribe — their own consent. A copy of that link
+ * in a second inbox is the power the suppression screen refuses staff, and
+ * switching the message off would leave the signup form's way back silently
+ * gone.
+ * The flag lives here beside the message rather than as a list of keys
  * in the controller and another in the console, and both read it from the
  * API. Their wording and their sender stay editable — the lock is about
  * delivery and copies, not identity.
@@ -92,26 +108,26 @@ class MessageCatalogueEntries
             ),
             'item_count' => ['about' => 'How many things are in it.', 'sample' => '1'],
             'basket_total' => ['about' => 'The total today, formatted.', 'sample' => '₹98,000.00'],
-            'basket_url' => ['about' => 'Restores the basket in their browser and opens it.', 'sample' => 'https://www.technoware.in/store/basket/restore/…'],
+            'basket_url' => ['about' => 'Restores the basket in their browser and opens it.', 'sample' => 'https://www.example.com/store/basket/restore/…'],
             'coupon' => self::details(
                 'A sentence offering the reminder coupon — empty when there is none, or the basket cannot use it.',
                 '<p>Use the code <strong>COMEBACK10</strong> at the checkout for 10% off.</p>',
             ),
             'coupon_code' => ['about' => 'The reminder coupon\'s code alone, or blank.', 'sample' => 'COMEBACK10'],
-            'unsubscribe_url' => ['about' => 'Puts the address on the do-not-mail list.', 'sample' => 'https://www.technoware.in/newsletter/unsubscribe/…'],
+            'unsubscribe_url' => ['about' => 'Puts the address on the do-not-mail list.', 'sample' => 'https://www.example.com/newsletter/unsubscribe/…'],
         ];
     }
 
     /** @return array<string, array<string, mixed>> */
     public static function all(): array
     {
-        return array_merge(self::tickets(), self::orders(), self::accounts(), self::enquiries(), self::visits());
+        return array_merge(self::tickets(), self::orders(), self::accounts(), self::newsletter(), self::enquiries(), self::visits(), self::meetings());
     }
 
     /** @return array<string, array<string, mixed>> */
     private static function tickets(): array
     {
-        $reference = ['about' => 'The ticket reference, which is what people search their mailbox for.', 'sample' => 'TW-2026-00042'];
+        $reference = ['about' => 'The ticket reference, which is what people search their mailbox for.', 'sample' => 'TK-2026-00042'];
         $subject = ['about' => 'What the customer called it.', 'sample' => 'Switch keeps dropping its uplink'];
 
         return [
@@ -128,7 +144,7 @@ class MessageCatalogueEntries
                     'priority' => ['about' => 'Normal, High or Critical.', 'sample' => 'High'],
                     'category' => ['about' => 'The ticket category.', 'sample' => 'Network / connectivity'],
                     'description' => ['about' => 'The first 400 characters of what they wrote.', 'sample' => 'The uplink drops every afternoon, and it started after the last firmware update.'],
-                    'url' => ['about' => 'The ticket in the console.', 'sample' => 'https://www.technoware.in/admin/tickets/TW-2026-00042'],
+                    'url' => ['about' => 'The ticket in the console.', 'sample' => 'https://www.example.com/admin/tickets/TK-2026-00042'],
                 ],
                 'subject' => '[{{reference}}] New ticket: {{subject}}',
                 'body' => '<p>A new ticket has been raised.</p>'
@@ -147,7 +163,7 @@ class MessageCatalogueEntries
                     'reference' => $reference,
                     'subject' => $subject,
                     'due_at' => ['about' => 'When an engineer will respond by, or blank when there is no target.', 'sample' => '14 Sep 2026, 17:00'],
-                    'url' => ['about' => 'The ticket in the customer portal.', 'sample' => 'https://www.technoware.in/portal/tickets/TW-2026-00042'],
+                    'url' => ['about' => 'The ticket in the customer portal.', 'sample' => 'https://www.example.com/portal/tickets/TK-2026-00042'],
                 ],
                 'subject' => '[{{reference}}] We have your ticket: {{subject}}',
                 'body' => '<p>Thanks — this is logged.</p>'
@@ -167,7 +183,7 @@ class MessageCatalogueEntries
                     'reference' => $reference,
                     'subject' => $subject,
                     'body' => ['about' => 'The first 600 characters of the reply.', 'sample' => 'We have rolled that switch back a firmware version — please watch it this afternoon.'],
-                    'url' => ['about' => 'The conversation in the portal.', 'sample' => 'https://www.technoware.in/portal/tickets/TW-2026-00042'],
+                    'url' => ['about' => 'The conversation in the portal.', 'sample' => 'https://www.example.com/portal/tickets/TK-2026-00042'],
                 ],
                 'subject' => '[{{reference}}] New reply: {{subject}}',
                 'body' => '<p>There is a reply on your ticket.</p>'
@@ -184,7 +200,7 @@ class MessageCatalogueEntries
                     'reference' => $reference,
                     'subject' => $subject,
                     'body' => ['about' => 'The first 600 characters of the reply.', 'sample' => 'It dropped again at 3pm, same as before.'],
-                    'url' => ['about' => 'The ticket in the console.', 'sample' => 'https://www.technoware.in/admin/tickets/TW-2026-00042'],
+                    'url' => ['about' => 'The ticket in the console.', 'sample' => 'https://www.example.com/admin/tickets/TK-2026-00042'],
                 ],
                 'subject' => '[{{reference}}] New reply: {{subject}}',
                 'body' => '<p>A customer has replied.</p>'
@@ -198,11 +214,11 @@ class MessageCatalogueEntries
                 'audience' => self::CUSTOMER,
                 'class' => TicketMerged::class,
                 'variables' => [
-                    'reference' => ['about' => 'The ticket the conversation now lives on.', 'sample' => 'TW-2026-00042'],
+                    'reference' => ['about' => 'The ticket the conversation now lives on.', 'sample' => 'TK-2026-00042'],
                     'subject' => ['about' => 'That ticket\'s subject.', 'sample' => 'Switch keeps dropping its uplink'],
-                    'source_reference' => ['about' => 'The ticket that was closed by the merge.', 'sample' => 'TW-2026-00047'],
+                    'source_reference' => ['about' => 'The ticket that was closed by the merge.', 'sample' => 'TK-2026-00047'],
                     'source_subject' => ['about' => 'Its subject.', 'sample' => 'Same switch, again'],
-                    'url' => ['about' => 'The surviving ticket in the customer portal.', 'sample' => 'https://www.technoware.in/portal/tickets/TW-2026-00042'],
+                    'url' => ['about' => 'The surviving ticket in the customer portal.', 'sample' => 'https://www.example.com/portal/tickets/TK-2026-00042'],
                 ],
                 'subject' => '[{{reference}}] Your ticket {{source_reference}} has been merged into it',
                 'body' => '<p>We have merged two of your tickets.</p>'
@@ -210,13 +226,39 @@ class MessageCatalogueEntries
                     .'<p>Quote {{reference}} from now on. A reply to the old reference still reaches us, and it lands on the right ticket.</p>'
                     .'<p><a href="{{url}}">Open the ticket</a></p>',
             ],
+
+            /*
+             * The satisfaction survey, sent once when a ticket is closed. The
+             * five ratings are one HTML placeholder built by `Survey`, so the
+             * colours and the links stay in code and the editor writes the
+             * words around them.
+             */
+            'ticket_survey' => [
+                'label' => 'Satisfaction survey — to the customer',
+                'description' => 'Sent once, when a ticket is closed (never for a ticket merged into another): five one-click ratings from Very Bad to Excellent. Switch the survey off under Tickets → Email to ticket → Satisfaction survey.',
+                'audience' => self::CUSTOMER,
+                'class' => TicketSurveyRequested::class,
+                'variables' => [
+                    'customer_name' => ['about' => 'Who it is for.', 'sample' => 'Neil Basu'],
+                    'reference' => ['about' => 'The ticket that was closed.', 'sample' => 'TK-2026-00042'],
+                    'subject' => ['about' => 'Its subject.', 'sample' => 'Switch keeps dropping its uplink'],
+                    'rating_buttons' => self::details('The five ratings, Very Bad to Excellent, as buttons. Each opens the survey with that answer chosen.', '<div><a href="https://www.example.com/ticket-survey/0000?rating=1">Very Bad</a> <a href="https://www.example.com/ticket-survey/0000?rating=5">Excellent</a></div>'),
+                    'survey_url' => ['about' => 'The survey page, with no answer chosen.', 'sample' => 'https://www.example.com/ticket-survey/0000'],
+                ],
+                'subject' => '[{{reference}}] How did we do?',
+                'body' => '<p>Dear {{customer_name}},</p>'
+                    .'<p>Thank you for getting in touch. Your ticket <strong>{{reference}}</strong> ({{subject}}) is now closed, and we would like to hear how it went. Your answer helps us keep improving our support.</p>'
+                    .'<p><strong>How would you rate your overall satisfaction with the resolution you received from our support team?</strong></p>'
+                    .'{{rating_buttons}}'
+                    .'<p>It takes a few seconds, and you can add a comment if you wish.</p>',
+            ],
         ];
     }
 
     /** @return array<string, array<string, mixed>> */
     private static function orders(): array
     {
-        $number = ['about' => 'The order number.', 'sample' => 'TWO-2026-0117'];
+        $number = ['about' => 'The order number.', 'sample' => 'ORD-2026-00117'];
         $customer = ['about' => 'The name on the order.', 'sample' => 'Priya Sharma'];
         $total = ['about' => 'The total, formatted.', 'sample' => '₹1,18,000.10'];
 
@@ -246,13 +288,13 @@ class MessageCatalogueEntries
                     ),
                     'payment' => self::details(
                         'How to pay, for the method they chose — the Pay link, our bank details, the UPI ID, or "pay the courier". Remove it and the email carries no instructions.',
-                        '<p><strong>Transfer the amount to this account</strong></p><p>Quote the order number as the reference so we can match the payment.</p><p>Amount due: <strong>₹1,18,000.10</strong></p><pre>Technoware Pvt Ltd
+                        '<p><strong>Transfer the amount to this account</strong></p><p>Quote the order number as the reference so we can match the payment.</p><p>Amount due: <strong>₹1,18,000.10</strong></p><pre>Your Company Pvt Ltd
 HDFC Bank, A/c 50200012345678
-IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference — it is how the payment is matched to this order.</p>',
+IFSC HDFC0001234</pre><p>Quote <strong>ORD-2026-00117</strong> as the reference — it is how the payment is matched to this order.</p>',
                     ),
                     'payment_method' => ['about' => 'The method they chose, by name.', 'sample' => 'Bank transfer (NEFT / IMPS / RTGS)'],
                     'payment_status' => ['about' => 'One phrase for the subject line: payment not yet made, confirmed, pay on delivery, awaiting your transfer, or awaiting your UPI payment.', 'sample' => 'awaiting your transfer'],
-                    'url' => ['about' => 'The order page, reached by the link in this email.', 'sample' => 'https://www.technoware.in/order/TWO-2026-0117/open?token=…'],
+                    'url' => ['about' => 'The order page, reached by the link in this email.', 'sample' => 'https://www.example.com/order/ORD-2026-00117/open?token=…'],
                 ],
                 'subject' => 'Your order {{order_number}} — {{payment_status}}',
                 'body' => '<p>Thanks, {{customer_name}}.</p>'
@@ -282,7 +324,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                         'Anything that applies to this order — an activation code being prepared, tracking to follow, a GST invoice by hand.',
                         '<p>We will email the tracking details as soon as it is dispatched.</p>',
                     ),
-                    'url' => ['about' => 'The order page.', 'sample' => 'https://www.technoware.in/order/TWO-2026-0117/open?token=…'],
+                    'url' => ['about' => 'The order page.', 'sample' => 'https://www.example.com/order/ORD-2026-00117/open?token=…'],
                 ],
                 'subject' => 'Payment received for {{order_number}}',
                 'body' => '<p>Thank you, {{customer_name}}.</p>'
@@ -328,7 +370,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                         'What is waiting on somebody — an activation code outstanding, a parcel to dispatch.',
                         '<p><strong>An activation code is outstanding.</strong> The customer is waiting on it.</p>',
                     ),
-                    'url' => ['about' => 'The order in the console.', 'sample' => 'https://www.technoware.in/admin/store/orders/TWO-2026-0117'],
+                    'url' => ['about' => 'The order in the console.', 'sample' => 'https://www.example.com/admin/store/orders/ORD-2026-00117'],
                 ],
                 'subject' => 'New order {{order_number}} — {{total}}',
                 'body' => '<p>A paid order has come in.</p>'
@@ -347,7 +389,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     'customer_name' => $customer,
                     'products' => ['about' => 'What the code is for.', 'sample' => 'Veeam Backup Essentials'],
                     'steps' => self::details('The activation steps written on the product, as text.', '<p>Sign in at the vendor portal and enter the key under Licences.</p>'),
-                    'url' => ['about' => 'The order page, where the code is revealed.', 'sample' => 'https://www.technoware.in/order/TWO-2026-0117/open?token=…'],
+                    'url' => ['about' => 'The order page, where the code is revealed.', 'sample' => 'https://www.example.com/order/ORD-2026-00117/open?token=…'],
                 ],
                 'subject' => 'How to activate your purchase — {{order_number}}',
                 'body' => '<p>Hello {{customer_name}},</p>'
@@ -373,8 +415,8 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     'product_name' => ['about' => 'The product.', 'sample' => 'Cisco CBS350-24T-4G'],
                     'variation_name' => ['about' => 'The configuration they asked about, or blank.', 'sample' => '48 port'],
                     'price' => ['about' => 'The price now, formatted.', 'sample' => '₹23,600'],
-                    'url' => ['about' => 'The product page.', 'sample' => 'https://www.technoware.in/store/products/cisco-cbs350-24t-4g'],
-                    'cancel_url' => ['about' => 'Removes this one notice.', 'sample' => 'https://www.technoware.in/store/notify/cancel/…'],
+                    'url' => ['about' => 'The product page.', 'sample' => 'https://www.example.com/store/products/cisco-cbs350-24t-4g'],
+                    'cancel_url' => ['about' => 'Removes this one notice.', 'sample' => 'https://www.example.com/store/notify/cancel/…'],
                 ],
                 'subject' => '{{product_name}} is back in stock',
                 'body' => '<p>Good news.</p>'
@@ -435,9 +477,9 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                 'variables' => [
                     'product_name' => ['about' => 'The product, and the option saved if there was one.', 'sample' => 'Cisco CBS350-24T-4G — 48 port'],
                     'price' => ['about' => 'The price now, formatted.', 'sample' => '₹23,600'],
-                    'url' => ['about' => 'The product page.', 'sample' => 'https://www.technoware.in/store/products/cisco-cbs350-24t-4g'],
-                    'wishlist_url' => ['about' => 'Their wishlist — the portal’s for an account, the shop’s for a guest.', 'sample' => 'https://www.technoware.in/portal/wishlist'],
-                    'stop_url' => ['about' => 'Stops wishlist emails. Not a newsletter unsubscribe; the list stays.', 'sample' => 'https://www.technoware.in/store/wishlist/stop/…'],
+                    'url' => ['about' => 'The product page.', 'sample' => 'https://www.example.com/store/products/cisco-cbs350-24t-4g'],
+                    'wishlist_url' => ['about' => 'Their wishlist — the portal’s for an account, the shop’s for a guest.', 'sample' => 'https://www.example.com/portal/wishlist'],
+                    'stop_url' => ['about' => 'Stops wishlist emails. Not a newsletter unsubscribe; the list stays.', 'sample' => 'https://www.example.com/store/wishlist/stop/…'],
                 ],
                 'subject' => '{{product_name}} is back in stock',
                 'body' => '<p>Good news.</p>'
@@ -455,9 +497,9 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     'old_price' => ['about' => 'What it cost when saved, or when they were last told.', 'sample' => '₹25,000'],
                     'new_price' => ['about' => 'What it costs now.', 'sample' => '₹22,500'],
                     'saving_percent' => ['about' => 'How much less, as a whole percentage.', 'sample' => '10'],
-                    'url' => ['about' => 'The product page.', 'sample' => 'https://www.technoware.in/store/products/cisco-cbs350-24t-4g'],
-                    'wishlist_url' => ['about' => 'Their wishlist.', 'sample' => 'https://www.technoware.in/portal/wishlist'],
-                    'stop_url' => ['about' => 'Stops wishlist emails. Not a newsletter unsubscribe; the list stays.', 'sample' => 'https://www.technoware.in/store/wishlist/stop/…'],
+                    'url' => ['about' => 'The product page.', 'sample' => 'https://www.example.com/store/products/cisco-cbs350-24t-4g'],
+                    'wishlist_url' => ['about' => 'Their wishlist.', 'sample' => 'https://www.example.com/portal/wishlist'],
+                    'stop_url' => ['about' => 'Stops wishlist emails. Not a newsletter unsubscribe; the list stays.', 'sample' => 'https://www.example.com/store/wishlist/stop/…'],
                 ],
                 'subject' => '{{product_name}} is now {{new_price}}',
                 'body' => '<p>A price came down.</p>'
@@ -480,7 +522,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                 'variables' => [
                     'customer_name' => $customer,
                     'order_number' => $number,
-                    'products' => self::details('A link to review each product still to be reviewed, as a list.', '<ul><li><a href="https://www.technoware.in/store/products/cisco-cbs350-24t-4g?review=1">Cisco CBS350-24T-4G</a></li></ul>'),
+                    'products' => self::details('A link to review each product still to be reviewed, as a list.', '<ul><li><a href="https://www.example.com/store/products/cisco-cbs350-24t-4g?review=1">Cisco CBS350-24T-4G</a></li></ul>'),
                 ],
                 'subject' => 'How was your order {{order_number}}?',
                 'body' => '<p>Hello {{customer_name}},</p>'
@@ -502,9 +544,9 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                 'class' => CustomerApproved::class,
                 'variables' => [
                     'customer_name' => ['about' => 'Who it is for.', 'sample' => 'Neil Basu'],
-                    'url' => ['about' => 'The portal sign-in page.', 'sample' => 'https://www.technoware.in/portal/login'],
+                    'url' => ['about' => 'The portal sign-in page.', 'sample' => 'https://www.example.com/portal/login'],
                 ],
-                'subject' => 'Your Technoware support account is active',
+                'subject' => 'Your '.MailBrand::name().' support account is active',
                 'body' => '<p>You are all set, {{customer_name}}.</p>'
                     .'<p>Your support portal account has been approved. You can sign in and raise a ticket whenever you need us.</p>'
                     .'<p><a href="{{url}}">Sign in to the portal</a></p>'
@@ -517,9 +559,9 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                 'audience' => self::CUSTOMER,
                 'class' => CustomerRejected::class,
                 'variables' => [
-                    'support_email' => ['about' => 'Where to write back, or blank when none is set.', 'sample' => 'support@technoware.in'],
+                    'support_email' => ['about' => 'Where to write back, or blank when none is set.', 'sample' => 'support@example.com'],
                 ],
-                'subject' => 'About your Technoware portal registration',
+                'subject' => 'About your '.MailBrand::name().' portal registration',
                 'body' => '<p>Thanks for registering.</p>'
                     .'<p>We were not able to activate a support portal account for this address.</p>'
                     .'<p>This usually means we could not match the address to a current support agreement.</p>'
@@ -536,7 +578,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     'customer_email' => ['about' => 'Their address.', 'sample' => 'neil@meridianfoods.test'],
                     'status_line' => ['about' => 'Whether it is waiting for approval or already active.', 'sample' => 'A new portal account is waiting for approval.'],
                     'details' => self::details('Their company, phone and whether the address is confirmed, where each is known.', '<p><strong>Company:</strong> Meridian Foods</p>'),
-                    'url' => ['about' => 'The account in the console.', 'sample' => 'https://www.technoware.in/admin/customers/23'],
+                    'url' => ['about' => 'The account in the console.', 'sample' => 'https://www.example.com/admin/customers/23'],
                 ],
                 'subject' => 'New portal registration: {{customer_name}}',
                 'body' => '<p>Someone has registered.</p>'
@@ -552,7 +594,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                 'audience' => self::CUSTOMER,
                 'class' => RegistrationAttempted::class,
                 'variables' => [
-                    'url' => ['about' => 'The portal sign-in page.', 'sample' => 'https://www.technoware.in/portal/login'],
+                    'url' => ['about' => 'The portal sign-in page.', 'sample' => 'https://www.example.com/portal/login'],
                 ],
                 'subject' => 'Someone tried to register with your address',
                 'body' => '<p>You already have an account.</p>'
@@ -569,7 +611,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                 'locked' => true,
                 'class' => VerifyCustomerEmail::class,
                 'variables' => [
-                    'url' => ['about' => 'The confirmation link. Works once.', 'sample' => 'https://www.technoware.in/portal/verify-email?token=…'],
+                    'url' => ['about' => 'The confirmation link. Works once.', 'sample' => 'https://www.example.com/portal/verify-email?token=…'],
                     'hours' => ['about' => 'How long the link lasts.', 'sample' => '24'],
                 ],
                 'subject' => 'Confirm your email address',
@@ -587,10 +629,10 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                 'locked' => true,
                 'class' => ResetPassword::class,
                 'variables' => [
-                    'url' => ['about' => 'The reset link. Works once.', 'sample' => 'https://www.technoware.in/portal/reset-password?token=…'],
+                    'url' => ['about' => 'The reset link. Works once.', 'sample' => 'https://www.example.com/portal/reset-password?token=…'],
                     'minutes' => ['about' => 'How long the link lasts.', 'sample' => '60'],
                 ],
-                'subject' => 'Reset your Technoware password',
+                'subject' => 'Reset your '.MailBrand::name().' password',
                 'body' => '<p>Password reset.</p>'
                     .'<p>Someone asked to reset the password for this address.</p>'
                     .'<p><a href="{{url}}">Choose a new password</a></p>'
@@ -606,7 +648,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                 'class' => SignInCodeIssued::class,
                 'variables' => [
                     'code' => ['about' => 'The six digits. Also in the subject, which is what lets a phone offer it.', 'sample' => '417 302'],
-                    'where' => ['about' => 'Which door the code is for.', 'sample' => 'the Technoware support portal'],
+                    'where' => ['about' => 'Which door the code is for.', 'sample' => 'the '.MailBrand::name().' support portal'],
                     'minutes' => ['about' => 'How long it lasts.', 'sample' => '10'],
                 ],
                 'subject' => 'Your sign-in code: {{code}}',
@@ -615,6 +657,37 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     .'<p><strong>{{code}}</strong></p>'
                     .'<p>It expires in {{minutes}} minutes and can be used once.</p>'
                     .'<p>If you did not ask to sign in, ignore this email — nobody can use the code without it, and it will expire on its own. If codes keep arriving, tell us.</p>',
+            ],
+        ];
+    }
+
+    /**
+     * The way back for somebody who unsubscribed (2026-09-28,
+     * `docs/newsletter.md` "Rejoining after an unsubscribe"). Echoes nothing
+     * the public form was given — not even the name — for the reason the two
+     * acknowledgements below give.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private static function newsletter(): array
+    {
+        return [
+            'newsletter_rejoin' => [
+                'label' => 'Confirm rejoining the newsletter — to the address',
+                'description' => 'Sent when an address that unsubscribed signs up again through the site. Nothing changes until the link is followed; at most one a day per address.',
+                'audience' => self::CUSTOMER,
+                'locked' => true,
+                'class' => NewsletterRejoinRequested::class,
+                'variables' => [
+                    'url' => ['about' => 'The confirmation link. Puts this address back on the list.', 'sample' => 'https://www.example.com/newsletter/rejoin/…'],
+                    'days' => ['about' => 'How long the link lasts.', 'sample' => '7'],
+                ],
+                'subject' => 'Confirm you want to rejoin the '.MailBrand::name().' newsletter',
+                'body' => '<p>Welcome back?</p>'
+                    .'<p>Somebody asked to sign this address up to our newsletter. You unsubscribed earlier, so we will not add you back unless you confirm it.</p>'
+                    .'<p><a href="{{url}}">Yes, add me back</a></p>'
+                    .'<p>The link expires in {{days}} days.</p>'
+                    .'<p>If you did not ask for this, ignore this email — nothing changes, and you stay unsubscribed.</p>',
             ],
         ];
     }
@@ -672,7 +745,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     'name' => ['about' => 'The applicant.', 'sample' => 'Arun Mehta'],
                     'email' => ['about' => 'Their address.', 'sample' => 'arun@example.test'],
                     'details' => self::details('Phone, current employer and years of experience, where each is given.', '<p><strong>Phone:</strong> +91 98765 43210</p>'),
-                    'url' => ['about' => 'The application in the console.', 'sample' => 'https://www.technoware.in/admin/applications/5'],
+                    'url' => ['about' => 'The application in the console.', 'sample' => 'https://www.example.com/admin/applications/5'],
                 ],
                 'subject' => 'Application: {{job_title}} — {{name}}',
                 'body' => '<p>A new application.</p>'
@@ -750,7 +823,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     'post_title' => ['about' => 'Which article.', 'sample' => 'VLAN design that survives the next office move'],
                     'excerpt' => ['about' => 'The first 300 characters of the comment.', 'sample' => 'We hit this exact problem last year.'],
                     'score' => ['about' => 'The spam hint, out of 100. Nothing is filed automatically.', 'sample' => '72'],
-                    'url' => ['about' => 'The moderation queue.', 'sample' => 'https://www.technoware.in/admin/blog-comments'],
+                    'url' => ['about' => 'The moderation queue.', 'sample' => 'https://www.example.com/admin/blog-comments'],
                 ],
                 'subject' => 'A comment is waiting: {{post_title}}',
                 'body' => '<p>A comment is waiting to be read.</p>'
@@ -770,7 +843,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     'name' => ['about' => 'Who asked, or “Somebody”.', 'sample' => 'Priya Sharma'],
                     'details' => self::details('Their email, phone, company and what they want, where each was given.', '<p><strong>Email:</strong> priya@meridianfoods.test</p>'),
                     'source_path' => ['about' => 'The page they were on — a callback from a firewall page is a different conversation from one on the careers page.', 'sample' => '/solutions/firewall-utm'],
-                    'url' => ['about' => 'The lead, with the whole conversation on it.', 'sample' => 'https://www.technoware.in/admin/leads/42'],
+                    'url' => ['about' => 'The lead, with the whole conversation on it.', 'sample' => 'https://www.example.com/admin/leads/42'],
                 ],
                 'subject' => 'Callback requested through the website assistant',
                 'body' => '<p>A visitor asked us to get in touch.</p>'
@@ -790,7 +863,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     'question' => ['about' => 'What they asked, in their own words.', 'sample' => 'Do you supply UPS batteries for a 10kVA APC unit?'],
                     'details' => self::details('Whatever contact details were collected, or a line saying there were none.', '<p><strong>Email:</strong> priya@meridianfoods.test</p>'),
                     'source_path' => ['about' => 'The page they were on.', 'sample' => '/products/ups-power'],
-                    'url' => ['about' => 'The conversation in the console.', 'sample' => 'https://www.technoware.in/admin/chat/conversations/61'],
+                    'url' => ['about' => 'The conversation in the console.', 'sample' => 'https://www.example.com/admin/chat/conversations/61'],
                 ],
                 'subject' => 'The website assistant could not answer a question',
                 'body' => '<p>A visitor asked something the website does not cover.</p>'
@@ -800,6 +873,28 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     .'<p><strong>Asked from:</strong> {{source_path}}</p>'
                     .'<p><a href="{{url}}">Read the conversation</a></p>'
                     .'<p>The unanswered list groups this with anyone else who asked the same thing.</p>',
+            ],
+
+            /*
+             * A backup that did not happen, or did not reach everywhere it
+             * was sent (2026-09-27, `docs/backups.md`). The reason is the
+             * worker's own sentence, a destination's refusal in its words.
+             */
+            'backup_failed' => [
+                'label' => 'A backup did not complete — to the backups address',
+                'description' => 'Sent when a backup fails, or finishes without reaching one of its destinations. Goes to the Backups settings’ alert address, or the support address.',
+                'audience' => self::INTERNAL,
+                'class' => BackupFailed::class,
+                'variables' => [
+                    'reason' => ['about' => 'What went wrong, in the worker’s words.', 'sample' => 'The backup of Sun 27 Sep 2026 2:15 AM did not reach Amazon S3. Access Denied (HTTP 403)'],
+                    'folder' => ['about' => 'The backup’s folder name, when it got that far.', 'sample' => '20260926-204500-full-3f9c1a2b'],
+                    'url' => ['about' => 'The Backups screen.', 'sample' => 'https://www.example.com/admin/backups'],
+                ],
+                'subject' => 'A backup did not complete',
+                'body' => '<p>The website’s backup did not complete.</p>'
+                    .'<p>{{reason}}</p>'
+                    .'<p><a href="{{url}}">Open Backups</a></p>'
+                    .'<p>Until a backup completes, the newest restorable copy is older than you expect.</p>',
             ],
 
             'block_lead_captured' => [
@@ -813,7 +908,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     'banner' => ['about' => 'The banner’s heading — the file or the event.', 'sample' => 'The 2026 network readiness checklist'],
                     'details' => self::details('Their email, phone and company, where each was given.', '<p><strong>Email:</strong> priya@meridianfoods.test</p>'),
                     'source_path' => ['about' => 'The page the banner was on.', 'sample' => '/solutions/networking'],
-                    'url' => ['about' => 'The lead in the console.', 'sample' => 'https://www.technoware.in/admin/leads/42'],
+                    'url' => ['about' => 'The lead in the console.', 'sample' => 'https://www.example.com/admin/leads/42'],
                 ],
                 'subject' => 'New lead: {{name}} {{action}} “{{banner}}”',
                 'body' => '<p>A new lead from a banner on the website.</p>'
@@ -833,9 +928,9 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
      */
     private static function visits(): array
     {
-        $reference = ['about' => 'The visit reference, which is what people quote on the phone.', 'sample' => 'TV-2026-00012'];
+        $reference = ['about' => 'The visit reference, which is what people quote on the phone.', 'sample' => 'SV-2026-00012'];
         $topic = ['about' => 'What the visit is about — the service or solution chosen, or “Site survey”.', 'sample' => 'Network installation'];
-        $manage = ['about' => 'Their own link to cancel or ask for another time. No sign-in needed.', 'sample' => 'https://www.technoware.in/visit/TV-2026-00012/open?token=…'];
+        $manage = ['about' => 'Their own link to cancel or ask for another time. No sign-in needed.', 'sample' => 'https://www.example.com/visit/SV-2026-00012/open?token=…'];
 
         // The desk's two share one class, so they offer one list.
         $desk = [
@@ -849,7 +944,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
             'site_address' => ['about' => 'Where the engineer is going.', 'sample' => '14 Park Street, Kolkata, West Bengal, 700016'],
             'notes' => ['about' => 'The first 800 characters of what they wrote about the site.', 'sample' => 'Two floors, the rack is in the basement.'],
             'change' => ['about' => 'What the customer did — blank on a new request.', 'sample' => 'They asked for other times.'],
-            'url' => ['about' => 'The request in the console.', 'sample' => 'https://www.technoware.in/admin/visits/TV-2026-00012'],
+            'url' => ['about' => 'The request in the console.', 'sample' => 'https://www.example.com/admin/visits/SV-2026-00012'],
             'lead' => self::details('The lead score and a link to the pipeline record — blank on a change.', '<p><strong>Score:</strong> 64 / 100 — warm</p>'),
         ];
 
@@ -954,7 +1049,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     'reference' => $reference,
                     'topic' => $topic,
                     'reason' => ['about' => 'The reason the desk gave — blank when the customer cancelled.', 'sample' => 'The engineer is unwell; we will call to rearrange.'],
-                    'book_url' => ['about' => 'The request form, to ask again.', 'sample' => 'https://www.technoware.in/book-a-visit'],
+                    'book_url' => ['about' => 'The request form, to ask again.', 'sample' => 'https://www.example.com/book-a-visit'],
                 ],
                 'subject' => '[{{reference}}] Your engineer visit is cancelled',
                 'body' => '<p>Hello {{name}},</p>'
@@ -975,6 +1070,192 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     .'<p>At: {{site_address}}</p>'
                     .'<p>Please make sure somebody can let them in and show them the equipment.</p>'
                     .'<p><a href="{{manage_url}}">Cancel or ask for another time</a></p>',
+            ],
+        ];
+    }
+
+    /**
+     * Online meetings (2026-09-29, `docs/meetings.md`) — seven messages, one
+     * class each.
+     *
+     * The customer's copies never repeat the agenda they typed (the
+     * `EnquiryAcknowledged` rule: a message sent to any address typed into a
+     * public form); the desk's and the host's copy carries it. `join` is how
+     * to join, built by the application — the Meet link when Google has made
+     * one, else a line saying it will follow — because a template cannot say
+     * "if".
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private static function meetings(): array
+    {
+        $reference = ['about' => 'The meeting reference, which is what people quote on the phone.', 'sample' => 'MT-2026-00007'];
+        $type = ['about' => 'What kind of meeting it is.', 'sample' => 'Product demo'];
+        $date = ['about' => 'The day of the meeting.', 'sample' => 'Tue 6 Oct 2026'];
+        $time = ['about' => 'When it starts and ends.', 'sample' => '15:30 – 16:00'];
+        $zone = ['about' => 'The timezone those times are in.', 'sample' => 'IST'];
+        $host = ['about' => 'Who hosts it.', 'sample' => 'Anita Rao'];
+        $name = ['about' => 'Their first name, or “there”.', 'sample' => 'Priya'];
+        $meet = ['about' => 'The Google Meet link — blank until Google has made one.', 'sample' => 'https://meet.google.com/abc-defg-hij'];
+        $manage = ['about' => 'Their own link to cancel or move the meeting. No sign-in needed.', 'sample' => 'https://www.example.com/meeting/MT-2026-00007/open?token=…'];
+        $join = self::details('How to join: the Meet link when there is one, else a line saying it will follow.', '<p>Join on Google Meet: <a href="https://meet.google.com/abc-defg-hij">https://meet.google.com/abc-defg-hij</a></p>');
+        $url = ['about' => 'The meeting in the console.', 'sample' => 'https://www.example.com/admin/meetings/MT-2026-00007'];
+
+        // Booked and moved offer one list, so the two cannot drift.
+        $booked = [
+            'name' => $name,
+            'reference' => $reference,
+            'meeting_type' => $type,
+            'meeting_date' => $date,
+            'meeting_time' => $time,
+            'timezone' => $zone,
+            'host_name' => $host,
+            'meet_url' => $meet,
+            'join' => $join,
+            'manage_url' => $manage,
+        ];
+
+        return [
+            'meeting_scheduled' => [
+                'label' => 'Meeting booked — to the customer',
+                'description' => 'The confirmation somebody gets after booking an online meeting, or when the desk books one for them. It carries the Meet link when Google has made it, and a calendar file when Google is not sending the invitation.',
+                'audience' => self::CUSTOMER,
+                'class' => MeetingScheduled::class,
+                'variables' => $booked,
+                'subject' => '[{{reference}}] Your {{meeting_type}} is booked for {{meeting_date}}, {{meeting_time}} {{timezone}}',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p>Your <strong>{{meeting_type}}</strong> with {{host_name}} is booked for <strong>{{meeting_date}}, {{meeting_time}} {{timezone}}</strong>. Your reference is <strong>{{reference}}</strong>.</p>'
+                    .'{{join}}'
+                    .'<p>We will remind you before it starts.</p>'
+                    .'<p><a href="{{manage_url}}">Cancel or choose another time</a></p>',
+            ],
+
+            'meeting_booked_internal' => [
+                'label' => 'Meeting booked — to the desk and the host',
+                'description' => 'Sent to the meetings address (else the sales inbox) and to the host when a meeting is booked. It carries the agenda the customer typed. Replying goes to the customer.',
+                'audience' => self::INTERNAL,
+                'class' => MeetingBooked::class,
+                'variables' => [
+                    'reference' => $reference,
+                    'meeting_type' => $type,
+                    'meeting_date' => $date,
+                    'meeting_time' => $time,
+                    'timezone' => $zone,
+                    'host_name' => $host,
+                    'name' => ['about' => 'Who booked it.', 'sample' => 'Priya Sharma'],
+                    'company' => ['about' => 'Their company, or blank.', 'sample' => 'Meridian Foods'],
+                    'email' => ['about' => 'Their address. Replying goes here.', 'sample' => 'priya@meridianfoods.test'],
+                    'phone' => ['about' => 'Their mobile, or blank.', 'sample' => '+91 98765 43210'],
+                    'agenda' => ['about' => 'The first 800 characters of what they want to talk about.', 'sample' => 'We are looking at replacing the core switches across two sites.'],
+                    'source' => ['about' => 'Where it was booked: the website, the customer portal or the console.', 'sample' => 'Website'],
+                    'meet_url' => $meet,
+                    'url' => $url,
+                ],
+                'subject' => '[{{reference}}] Meeting booked: {{meeting_type}}, {{meeting_date}} {{meeting_time}}',
+                'body' => '<p>A <strong>{{meeting_type}}</strong> has been booked with {{host_name}}.</p>'
+                    .'<p><strong>{{meeting_date}}, {{meeting_time}} {{timezone}}</strong></p>'
+                    .'<p><strong>{{name}}</strong> · {{company}}</p>'
+                    .'<p>{{email}} · {{phone}}</p>'
+                    .'<p><strong>Agenda:</strong> {{agenda}}</p>'
+                    .'<p>Booked from: {{source}}</p>'
+                    .'<p><a href="{{url}}">Open it in the console</a></p>',
+            ],
+
+            'meeting_rescheduled' => [
+                'label' => 'Meeting moved — to the customer',
+                'description' => 'Sent when a meeting moves to a new time or a new host, whoever moved it. The Meet link stays the same.',
+                'audience' => self::CUSTOMER,
+                'class' => MeetingRescheduled::class,
+                'variables' => $booked + [
+                    'previous' => ['about' => 'When it was before the move.', 'sample' => 'Mon 5 Oct 2026, 11:00 – 11:30 IST'],
+                ],
+                'subject' => '[{{reference}}] Your {{meeting_type}} has moved to {{meeting_date}}, {{meeting_time}} {{timezone}}',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p>Your <strong>{{meeting_type}}</strong> has moved to <strong>{{meeting_date}}, {{meeting_time}} {{timezone}}</strong>, with {{host_name}}.</p>'
+                    .'<p>It was: {{previous}}</p>'
+                    .'{{join}}'
+                    .'<p><a href="{{manage_url}}">Cancel or choose another time</a></p>',
+            ],
+
+            'meeting_cancelled' => [
+                'label' => 'Meeting cancelled — to the customer',
+                'description' => 'Sent when a meeting is cancelled, by the desk or by the customer from their own link or the portal.',
+                'audience' => self::CUSTOMER,
+                'class' => MeetingCancelled::class,
+                'variables' => [
+                    'name' => $name,
+                    'reference' => $reference,
+                    'meeting_type' => $type,
+                    'meeting_date' => $date,
+                    'meeting_time' => $time,
+                    'timezone' => $zone,
+                    'reason' => ['about' => 'The reason the desk gave — blank when the customer cancelled.', 'sample' => 'Our host is unwell; please book another time.'],
+                    'book_url' => ['about' => 'The booking page, to choose another time.', 'sample' => 'https://www.example.com/book-a-meeting'],
+                ],
+                'subject' => '[{{reference}}] Your {{meeting_type}} on {{meeting_date}} is cancelled',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p>Your <strong>{{meeting_type}}</strong> on {{meeting_date}}, {{meeting_time}} {{timezone}} — reference {{reference}} — is cancelled.</p>'
+                    .'<p>{{reason}}</p>'
+                    .'<p>If this is a mistake, or you would still like to talk, <a href="{{book_url}}">book another time</a>.</p>',
+            ],
+
+            'meeting_reminder' => [
+                'label' => 'Meeting reminder — to the customer',
+                'description' => 'Sent at each reminder time in Settings (a day and an hour before, by default). One wording serves every reminder: “starts in” reads right at each.',
+                'audience' => self::CUSTOMER,
+                'class' => MeetingReminder::class,
+                'variables' => $booked + [
+                    'starts_in' => ['about' => 'How soon it starts — “in 1 hour”, “in 24 hours”.', 'sample' => 'in 1 hour'],
+                ],
+                'subject' => '[{{reference}}] Reminder: your {{meeting_type}} starts {{starts_in}}',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p>A reminder that your <strong>{{meeting_type}}</strong> with {{host_name}} starts {{starts_in}} — <strong>{{meeting_date}}, {{meeting_time}} {{timezone}}</strong>.</p>'
+                    .'{{join}}'
+                    .'<p><a href="{{manage_url}}">Cancel or choose another time</a></p>',
+            ],
+
+            'meeting_link_ready' => [
+                'label' => 'Meeting link ready — to the customer',
+                'description' => 'Sent when the Google Meet link arrives after the confirmation went out without it — Google was not reachable when the meeting was booked.',
+                'audience' => self::CUSTOMER,
+                'class' => MeetingLinkReady::class,
+                'variables' => [
+                    'name' => $name,
+                    'reference' => $reference,
+                    'meeting_type' => $type,
+                    'meeting_date' => $date,
+                    'meeting_time' => $time,
+                    'timezone' => $zone,
+                    'meet_url' => $meet,
+                    'manage_url' => $manage,
+                ],
+                'subject' => '[{{reference}}] Your link to join the {{meeting_type}}',
+                'body' => '<p>Hello {{name}},</p>'
+                    .'<p>Here is the link for your <strong>{{meeting_type}}</strong> on <strong>{{meeting_date}}, {{meeting_time}} {{timezone}}</strong>:</p>'
+                    .'<p><a href="{{meet_url}}">{{meet_url}}</a></p>'
+                    .'<p><a href="{{manage_url}}">Cancel or choose another time</a></p>',
+            ],
+
+            'meeting_sync_failed' => [
+                'label' => 'Meeting not in Google Calendar — to the desk',
+                'description' => 'Sent to the meetings address (else the sales inbox) when a meeting could not be put into Google Calendar after every retry. The meeting still stands; the customer was sent a calendar file instead.',
+                'audience' => self::INTERNAL,
+                'class' => MeetingSyncFailed::class,
+                'variables' => [
+                    'reference' => $reference,
+                    'meeting_type' => $type,
+                    'meeting_date' => $date,
+                    'meeting_time' => $time,
+                    'timezone' => $zone,
+                    'name' => ['about' => 'Who the meeting is with.', 'sample' => 'Priya Sharma'],
+                    'error' => ['about' => 'What Google said, in its own words.', 'sample' => 'Rate Limit Exceeded'],
+                    'url' => $url,
+                ],
+                'subject' => '[{{reference}}] Could not add the meeting to Google Calendar',
+                'body' => '<p>The meeting with <strong>{{name}}</strong> — {{meeting_type}}, {{meeting_date}}, {{meeting_time}} {{timezone}} — could not be put into Google Calendar.</p>'
+                    .'<p>Google said: {{error}}</p>'
+                    .'<p>The meeting still stands, and the customer was sent a calendar file. There is no Meet link until it syncs.</p>'
+                    .'<p><a href="{{url}}">Open it in the console to retry</a></p>',
             ],
         ];
     }

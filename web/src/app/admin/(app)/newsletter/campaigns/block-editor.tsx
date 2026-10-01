@@ -471,7 +471,9 @@ function starter(type: string): NewsletterBlock {
   switch (type) {
     case "heading": return { type, text: "A heading", level: 1 };
     case "text": return { type, html: "<p>Write something here.</p>" };
-    case "button": return { type, label: "Read more", href: "https://www.technoware.in" };
+    // The site's own home page: the console and the public site share one
+    // origin, and an email needs an absolute link — a bare "/" goes nowhere.
+    case "button": return { type, label: "Read more", href: typeof window === "undefined" ? "/" : `${window.location.origin}/` };
     case "columns": return { type, columns: [{ heading: "One", text: "" }, { heading: "Two", text: "" }] };
     case "spacer": return { type, height: 24 };
     case "footer": return { type };

@@ -11,6 +11,8 @@ use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\Page;
 use App\Models\Role;
+use App\Models\Service;
+use App\Models\ServiceCategory;
 use App\Models\Solution;
 use App\Models\TeamMember;
 use App\Models\User;
@@ -917,5 +919,52 @@ class MenuTest extends TestCase
         $tree = $this->getJson('/api/v1/menus/footer')->assertOk()->json('data');
         $live = collect($tree)->firstWhere('label', 'Solutions');
         $this->assertSame(['Networking'], array_column($live['children'], 'label'));
+    }
+
+    /**
+     * Services → each service category → its services (2026-09-29).
+     *
+     * The rebuilt header groups the services the way the Services section's
+     * tabs do: a category is a record item linking to its own tab, its
+     * services under it, the uncategorised last under a heading. A category
+     * switched off takes its row out and its services with it.
+     */
+    public function test_the_rebuilt_services_panel_is_grouped_by_category(): void
+    {
+        $web = ServiceCategory::create(['name' => 'Web services', 'slug' => 'web-services', 'icon' => 'globe', 'sort_order' => 0]);
+        $hardware = ServiceCategory::create(['name' => 'Hardware services', 'slug' => 'hardware-services', 'sort_order' => 1]);
+        ServiceCategory::create(['name' => 'Empty', 'slug' => 'empty', 'sort_order' => 2]);
+
+        $service = fn (string $title, string $slug, ?ServiceCategory $c, int $order, bool $menu = true) => Service::create([
+            'title' => $title, 'slug' => $slug, 'status' => PublishStatus::Published,
+            'service_category_id' => $c?->id, 'sort_order' => $order, 'show_in_menu' => $menu,
+        ]);
+        $service('Web hosting', 'web-hosting', $web, 1);
+        $service('Domains', 'domains', $web, 0);
+        $service('Laptop repair', 'laptop-repair', $hardware, 2);
+        $service('Consulting', 'consulting', null, 3);
+        $service('Hidden', 'hidden', $web, 4, menu: false);
+
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/menus/rebuild/primary')->assertOk();
+
+        $services = collect($this->getJson('/api/v1/menus/primary')->assertOk()->json('data'))
+            ->firstWhere('href', '/services');
+
+        $this->assertSame('Services', $services['label']);
+        $this->assertSame(
+            [['Web services', '/services#web-services'], ['Hardware services', '/services#hardware-services'], ['Other services', null]],
+            collect($services['children'])->map(fn ($c) => [$c['label'], $c['href']])->all(),
+        );
+        $this->assertSame('globe', $services['children'][0]['icon']);
+        $this->assertSame(['Domains', 'Web hosting'], collect($services['children'][0]['children'])->pluck('label')->all());
+        $this->assertSame(['/services/consulting'], collect($services['children'][2]['children'])->pluck('href')->all());
+
+        // A category switched off leaves the navigation, its services with it.
+        $hardware->update(['is_active' => false]);
+        Cache::flush();
+        $labels = collect(collect($this->getJson('/api/v1/menus/primary')->json('data'))
+            ->firstWhere('href', '/services')['children'])->pluck('label')->all();
+        $this->assertSame(['Web services', 'Other services'], $labels);
     }
 }

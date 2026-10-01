@@ -21,6 +21,8 @@ const LANDING: { role: string; path: string }[] = [
   { role: "store_manager", path: "/admin/store" },
   { role: "sales_manager", path: "/admin/leads" },
   { role: "seo_manager", path: "/admin/seo" },
+  // Hosts online meetings and holds nothing else: their own diary.
+  { role: "meeting_host", path: "/admin/my-meetings" },
 ];
 
 export function landingFor(roles: string[]): string {

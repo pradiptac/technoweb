@@ -156,9 +156,10 @@ class SubscriberIntake
     {
         $clean = [];
 
-        foreach (['first_name', 'last_name', 'company', 'phone'] as $field) {
+        // The column's own width: a crawl's page address is longer than a name.
+        foreach (['first_name' => 190, 'last_name' => 190, 'company' => 190, 'phone' => 190, 'industry' => 80, 'location' => 80, 'website' => 255, 'source_url' => 500] as $field => $width) {
             $value = trim((string) ($attributes[$field] ?? ''));
-            $clean[$field] = $value === '' ? null : Str::limit($value, 190, '');
+            $clean[$field] = $value === '' ? null : Str::limit($value, $width, '');
         }
 
         return $clean;

@@ -8,11 +8,12 @@ import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
 import type { Client } from "@/types/api";
+import { brandName } from "@/lib/brand";
 
 export const metadata = buildMetadata({
   title: "Clients",
   description:
-    "Some of the organisations Technoware supplies, installs and supports — across manufacturing, healthcare, education and the public sector.",
+    `Some of the organisations ${brandName()} supplies, installs and supports — across manufacturing, healthcare, education and the public sector.`,
   path: "/clients",
 });
 

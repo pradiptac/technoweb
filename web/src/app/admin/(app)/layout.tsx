@@ -20,6 +20,7 @@ import { AdminNav } from "./admin-nav";
 import { palettePages, renderNav } from "./nav-items";
 import { CommandPalette } from "./command-palette";
 import { NewSincePoller } from "./new-since";
+import { brandName } from "@/lib/brand";
 
 /**
  * Every route under this layout requires a staff session. The login page
@@ -136,12 +137,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <CommandPalette pages={palettePages(staff.roles.map((r) => r.slug))} />
               <SchemeToggle area="console" className="sm:mr-1.5" />
 
-              <Link
+              {/* Always a new tab (the client, 2026-09-28): the console is
+                  where somebody is in the middle of something, and checking
+                  the site must not cost them their place — or a half-filled
+                  form. A plain anchor, since a new tab is a document load. */}
+              <a
                 href="/"
+                target="_blank"
+                rel="noopener"
                 className="hidden rounded px-2.5 py-1.5 text-13 font-medium text-muted transition-colors hover:bg-surface-2 hover:text-ink sm:block"
               >
                 View site
-              </Link>
+                <span className="sr-only"> (opens in a new tab)</span>
+              </a>
 
               {/* Their own name reaches their own account — every role can,
                   unlike the Staff screen. The roles sit in the title so they are
@@ -229,7 +237,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <footer className="mt-auto border-t border-line py-3.5">
           <Container className={CONSOLE_WIDTH}>
             <CreditLine
-              companyName={settings.company_name ?? "Technoware"}
+              companyName={settings.company_name ?? brandName()}
               className="text-center text-12-5 text-faint"
               linkClassName="font-medium text-muted hover:text-ink hover:underline"
             />

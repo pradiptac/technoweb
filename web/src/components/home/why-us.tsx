@@ -5,6 +5,7 @@ import { IconCheck } from "@/components/icons";
 import { SectionHeader } from "@/components/ui/card";
 import { amcInclusions, processSteps, testimonial as staticTestimonial } from "@/content/site";
 import { linePairs, lines, settingEnabled, type SiteSettings } from "@/lib/site-settings";
+import { brandName } from "@/lib/brand";
 
 /**
  * The "Why Technoware" block: the argument, the numbered steps, a pull-quote
@@ -30,7 +31,7 @@ import { linePairs, lines, settingEnabled, type SiteSettings } from "@/lib/site-
  * initials on the disc come from the author's name.
  */
 export function WhyUs({ settings = {} }: { settings?: SiteSettings }) {
-  const kicker = settings.why_kicker ?? "Why Technoware";
+  const kicker = settings.why_kicker ?? `Why ${settings.company_name ?? brandName()}`;
   const heading = settings.why_heading ?? "Most IT problems are handover problems.";
   const lede = settings.why_lede
     ?? "Someone sells the box, someone else racks it, nobody owns the outcome. We keep all four stages under one roof so there is nobody to point at but us.";

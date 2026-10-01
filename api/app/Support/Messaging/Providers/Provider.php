@@ -20,7 +20,7 @@ abstract class Provider implements ChannelProvider
     protected const TIMEOUT = 15;
 
     /** What every test says. Fixed, so the button cannot be a relay. */
-    public const TEST_BODY = 'This is a test from the Technoware admin console. If you are reading it, this channel is working.';
+    public const TEST_BODY = 'This is a test from your admin console. If you are reading it, this channel is working.';
 
     /** The provider's name in an error sentence. */
     abstract protected function name(): string;

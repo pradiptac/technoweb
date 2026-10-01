@@ -54,13 +54,17 @@ export function Masthead({
       <div className="border-b border-line text-12 text-muted">
         <Container className="flex h-9 items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-5">
-            <a href={telHref(phone)} className="flex items-center gap-1.5 whitespace-nowrap py-1.5 hover:text-ink">
-              <IconPhone className="size-3" />
-              {phone}
-            </a>
-            <a href={`mailto:${email}`} className="hidden whitespace-nowrap py-1.5 hover:text-ink lg:inline-flex">
-              {email}
-            </a>
+            {phone ? (
+              <a href={telHref(phone)} className="flex items-center gap-1.5 whitespace-nowrap py-1.5 hover:text-ink">
+                <IconPhone className="size-3" />
+                {phone}
+              </a>
+            ) : null}
+            {email ? (
+              <a href={`mailto:${email}`} className="hidden whitespace-nowrap py-1.5 hover:text-ink lg:inline-flex">
+                {email}
+              </a>
+            ) : null}
           </div>
           <div className="flex items-center gap-4">
             <SiteSearch
@@ -80,9 +84,11 @@ export function Masthead({
         </Container>
       </div>
 
-      {/* The nameplate. */}
+      {/* The nameplate. 76px from `sm` (68px on a phone): the logo with room
+          to breathe and no more, so the lead slider below fits the first screen
+          — at 112px the nameplate alone pushed its dots below the fold. */}
       <div className="border-b border-line-strong bg-page">
-        <Container className="grid h-[88px] grid-cols-[1fr_auto_1fr] items-center gap-3 sm:h-[112px]">
+        <Container className="grid h-[68px] grid-cols-[1fr_auto_1fr] items-center gap-3 sm:h-[76px]">
           <div className="flex items-center">
             <button
               ref={toggleRef}
@@ -96,7 +102,7 @@ export function Masthead({
               <IconMenu className="size-[18px]" />
             </button>
           </div>
-          <Link href="/" aria-label="Technoware home" className="justify-self-center">
+          <Link href="/" aria-label={settings.company_name ? `${settings.company_name} home` : "Home"} className="justify-self-center">
             <Logo
               className="text-[26px] sm:text-[34px]"
               logoUrl={settings.logo_url}
@@ -127,7 +133,7 @@ export function Masthead({
                 menu={menu}
                 menuStyle={menuStyle}
                 isStoreItem={isStoreItem}
-                linkClassName="relative flex items-center gap-1.5 whitespace-nowrap px-4 text-12 font-semibold uppercase tracking-[.14em] text-ink-2 transition-colors duration-(--duration-base) hover:text-ink after:absolute after:inset-x-4 after:bottom-0 after:h-[3px] after:origin-left after:scale-x-0 after:bg-ink after:transition-[scale] after:duration-(--duration-base) after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-[:focus-within:not([data-closed])]:after:scale-x-100 motion-reduce:after:transition-none"
+                linkClassName="relative flex items-center gap-1.5 whitespace-nowrap px-4 text-12 font-semibold uppercase tracking-[.14em] text-ink-2 transition-colors duration-(--duration-base) hover:text-ink after:absolute after:inset-x-4 after:bottom-0 after:h-[3px] after:origin-left after:scale-x-0 after:bg-ink after:transition-[scale] after:duration-(--duration-slow) hover:after:duration-(--duration-draw) focus-visible:after:duration-(--duration-draw) group-[:focus-within:not([data-closed])]:after:duration-(--duration-draw) after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-[:focus-within:not([data-closed])]:after:scale-x-100 motion-reduce:after:transition-none"
                   itemClassName="flex"
                   chevronClassName="size-[11px] text-faint"
                   cartBadgeClassName="relative -top-[7px] -ml-1"

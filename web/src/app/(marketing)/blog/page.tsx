@@ -14,6 +14,7 @@ import { isPrerendering } from "@/lib/build-phase";
 import { getSiteSettings } from "@/lib/settings";
 import { listingMetadata } from "@/lib/seo";
 import type { BlogPost, BlogTaxonomy, Paginated } from "@/types/api";
+import { brandName } from "@/lib/brand";
 
 type SearchParams = { page?: string; q?: string; year?: string; month?: string };
 
@@ -39,7 +40,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
     ...base,
     alternates: {
       ...base.alternates,
-      types: { "application/rss+xml": [{ url: "/blog/rss.xml", title: "Technoware — Blog" }] },
+      types: { "application/rss+xml": [{ url: "/blog/rss.xml", title: `${brandName()} — Blog` }] },
     },
   };
 }

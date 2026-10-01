@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\VisitRequest;
 use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
+use App\Support\Mail\MailBrand;
 use App\Support\Visits\VisitText;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -64,6 +65,6 @@ class VisitCancelled extends Notification implements ShouldQueue
         return $message
             ->line('If this is a mistake, or you would still like somebody to come, ask for a new visit and we will arrange it.')
             ->action('Request a visit', rtrim((string) config('app.frontend_url'), '/').'/book-a-visit')
-            ->salutation('— Technoware');
+            ->salutation(MailBrand::signoff());
     }
 }

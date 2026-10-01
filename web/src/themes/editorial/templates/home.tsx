@@ -2,6 +2,7 @@ import { homeBlockSections } from "@/components/blocks/home-block-sections";
 import Image from "next/image";
 import Link from "next/link";
 import { Credentials, Partners, TrustedBy } from "@/components/home/sections";
+import { ServiceCatalogue } from "@/components/services/service-catalogue";
 import { Backdrop } from "@/components/ui/backdrop";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -44,7 +45,7 @@ import { CountUp } from "@/components/ui/count-up";
  * "hero may be full width slider or may be fixed image and text on that".
  */
 export function Home({
-  settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
+  settings, solutions, categories, industries, services, serviceCategories, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
 }: HomeData & { options: ThemeOptions }) {
   const stats = statPairs(settings.hero_stats, heroStats);
   const look = statLookFor(settings);
@@ -62,7 +63,15 @@ export function Home({
           <section className="border-b border-line-strong">
             <SliderFor
               slider={heroSlider!}
-              aspect="aspect-[16/9] lg:aspect-[21/9]"
+              /*
+                From `lg` the lead is 21:9 **or** what the first screen has left
+                under the masthead, whichever is less, so the whole picture and
+                its dots are in view on arrival. 216px is the stack above it:
+                the info bar (reserved whether or not it shows), the dateline
+                strip, the nameplate and the rail. 360px is the floor for a
+                short window, where a lead squeezed thinner reads as a banner.
+              */
+              aspect="aspect-[16/9] lg:aspect-auto lg:h-[max(360px,min(calc(100vw*9/21),calc(100svh-216px)))]"
               sizes="100vw"
               priority
               className="rounded-none"
@@ -177,6 +186,21 @@ export function Home({
             </ul>
           </Container>
         </section>
+      </>
+    ) },
+    { id: "web", node: (
+      <>
+        {/* The services, by category: a ruled index under the tabs, the paper's own idiom for a collection. */}
+        {services.data.length > 0 && (
+          <section id="services" className="section-y border-t border-line-strong">
+            <Container>
+              <SectionRule label="Services" href="/services" cta="All services" />
+              <div className="mt-6">
+                <ServiceCatalogue fill services={services.data} categories={serviceCategories.data} />
+              </div>
+            </Container>
+          </section>
+        )}
       </>
     ) },
     { id: "clients", node: <TrustedBy items={clients.data} mode="wipe" /> },

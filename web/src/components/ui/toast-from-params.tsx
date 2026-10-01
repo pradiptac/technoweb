@@ -218,6 +218,11 @@ const OUTCOMES: Record<string, Message> = {
   "broadcast-scheduled": { tone: "ok", title: "Broadcast scheduled", body: "It is queued at the time you chose, and waits for the quiet-hours window if that falls outside it." },
   "broadcast-cancelled": { tone: "ok", title: "Broadcast cancelled", body: "Nothing more goes out. Anything already sent stays sent." },
   "contact-opted-out": { tone: "ok", title: "Opt-out recorded", body: "Nothing more is sent to that contact on that channel." },
+  // Online meetings (docs/meetings.md).
+  "meeting-scheduled": { tone: "ok", title: "Meeting scheduled", body: "The customer and the host are being told. The Meet link appears here once Google has made the event." },
+  "meeting-moved": { tone: "ok", title: "Meeting moved", body: "The customer and the host are being told, and the calendar event moves with the same Meet link." },
+  "meeting-cancelled": { tone: "ok", title: "Meeting cancelled", body: "The customer has been told and the calendar event is being removed." },
+  "meeting-type-deleted": { tone: "ok", title: "Meeting type deleted", body: "It is gone from the booking page too." },
   "webhook-deleted": {
     tone: "ok",
     title: "Webhook deleted",

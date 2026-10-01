@@ -12,11 +12,14 @@ import { hueFor } from "@/lib/hues";
 import { buildMetadata } from "@/lib/seo";
 import type { BlogPost, CaseStudy, KnowledgeArticle } from "@/types/api";
 import { hueForIcon, IconTile } from "@/components/ui/icon-tile";
+import { brandName } from "@/lib/brand";
+import { getSiteSettings } from "@/lib/settings";
+import { portalEnabled } from "@/lib/site-settings";
 
 export const metadata = buildMetadata({
   title: "Resources",
   description:
-    "Field notes, configuration guides, knowledge-base articles and project case studies from the Technoware engineering team.",
+    `Field notes, configuration guides, knowledge-base articles and project case studies from the ${brandName()} engineering team.`,
   path: "/resources",
 });
 
@@ -58,11 +61,20 @@ function HubHeading({ title, href, cta, hue }: { title: string; href: string; ct
 export default async function ResourcesPage() {
   // A hub page should degrade to its navigation if the content endpoints are
   // unavailable — the links below are the point, the previews are a bonus.
-  const [posts, articles, studies] = await Promise.all([
+  const [posts, articles, studies, settings] = await Promise.all([
     publicApi.posts().then((r) => r.data).catch(() => [] as BlogPost[]),
     publicApi.knowledgeArticles().then((r) => r.data).catch(() => [] as KnowledgeArticle[]),
     publicApi.caseStudies().then((r) => r.data).catch(() => [] as CaseStudy[]),
+    getSiteSettings(),
   ]);
+
+  // With the portal switched off (`portal_enabled`) the Support tile goes to
+  // the support hub rather than to a ticket form that is not there.
+  const routes = portalEnabled(settings)
+    ? sections
+    : sections.map((s) => s.href.startsWith("/portal")
+      ? { ...s, href: "/support", body: "Already a customer? Reach the support desk." }
+      : s);
 
   return (
     <>
@@ -85,7 +97,7 @@ export default async function ResourcesPage() {
           each theme's `[data-collection="routes"]` idiom read.
         */}
         <Collection kind="routes" cols={4}>
-          {sections.map((s) => (
+          {routes.map((s) => (
             <Tile
               key={s.href}
               href={s.href}

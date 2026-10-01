@@ -3,15 +3,17 @@ import { redirect } from "next/navigation";
 import { AuthLayout } from "@/components/layout/auth-layout";
 import { getCurrentCustomerOrNull } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/settings";
-import { settingEnabled } from "@/lib/site-settings";
+import { portalEnabled, settingEnabled } from "@/lib/site-settings";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { LoginForm } from "./login-form";
 import { safeReturnPath } from "@/lib/safe-return";
+import { brandName } from "@/lib/brand";
+import { PortalClosed } from "@/components/portal/portal-closed";
 
 export const metadata = buildMetadata({
   title: "Customer login",
-  description: "Sign in to the Technoware support portal to raise and track tickets.",
+  description: `Sign in to the ${brandName()} support portal to raise and track tickets.`,
   path: "/portal/login",
   seo: noIndex,
 });
@@ -24,11 +26,13 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   */
   const returnTo = safeReturnPath((await searchParams).return);
 
+  const settings = await getSiteSettings();
+  // The portal switched off (`portal_enabled`): one page for every door in.
+  if (!portalEnabled(settings)) return <PortalClosed settings={settings} />;
+
   // Already signed in — no reason to show the form again.
   // `…OrNull`, so an unreachable API renders the form rather than a 500.
   if (await getCurrentCustomerOrNull()) redirect(returnTo);
-
-  const settings = await getSiteSettings();
   const canRegister = settingEnabled(settings, "registration_enabled");
 
   return (

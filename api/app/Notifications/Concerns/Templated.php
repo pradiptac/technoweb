@@ -49,7 +49,7 @@ trait Templated
      *
      * `false` and the channel is skipped: nothing is sent, nothing is logged,
      * nothing fails, which is what "switched off" means. The console refuses to
-     * switch off the three that carry a credential somebody is waiting for.
+     * switch off the ones marked `locked` in the catalogue.
      */
     public function shouldSend(object $notifiable, string $channel): bool
     {

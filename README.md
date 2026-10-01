@@ -1815,6 +1815,23 @@ To test against a WordPress on this machine (Laragon), set
 `WORDPRESS_IMPORT_ALLOW_PRIVATE=true` in `api/.env`; it is ignored unless
 `APP_ENV=local`.
 
+## Importing subscribers from a website
+
+Campaign → Subscribers → **From a website** reads a site to a chosen depth —
+a trade directory, an association's member list, one company's own site —
+and collects the names and addresses it publishes, tagged with an industry
+and a location; for a directory it can open each listed business's own
+site too, and it can ask Hunter (the key under Settings → Integrations) for
+the addresses it knows at the domains found. Everything is reviewed by
+domain before anything is written, exactly as a mailbox scan is.
+
+Setup: `php artisan migrate --force` (four columns on
+`newsletter_subscribers`) and the scheduler's cron entry, which runs the
+crawl. It obeys robots.txt and asks a site at most once a second
+(`CRAWL_DELAY_MS`); `CRAWL_ALLOW_PRIVATE=true` lets it read a site on this
+machine, and is ignored unless `APP_ENV=local`. See `docs/newsletter.md`,
+"Crawling a website".
+
 ## Importing subscribers from a mailbox
 
 Campaign → Subscribers → **From a mailbox** scans the To and Cc lines of every
@@ -1933,3 +1950,103 @@ headers and Reply-To. The IMAP session itself was proved against
 imap.gmail.com with a wrong password — `NO [AUTHENTICATIONFAILED] Invalid
 credentials (Failure)` reported verbatim on the panel — which is as far as it
 goes without a real account. See `docs/tickets.md`.
+
+## Backups
+
+System → Backups copies the database and the uploaded files — the media
+library, ticket attachments, CVs, invoices — on a schedule or on demand, full
+or incremental, to any of: Amazon S3 or anything S3-compatible (Backblaze B2,
+Cloudflare R2, Wasabi, DigitalOcean Spaces, MinIO), a Google Drive, and an
+SFTP, FTPS or FTP server. It restores from the console (the word RESTORE
+typed, a safety copy of the current database taken first) or from a terminal
+— which is the door on a new server, where the database that remembered the
+backups is the thing being restored. See `docs/backups.md`.
+
+### Setup
+
+```bash
+cd api && composer install          # now pulls async-aws/s3 and phpseclib/phpseclib
+php artisan migrate --force         # backups, backup_uploads, backup_restores
+php artisan db:seed --class=SettingsSeeder    # the four backup groups
+```
+
+- **The scheduler's cron entry** (already required for mail) is what runs
+  backups and restores — `technoware:backups-work` every minute. Without it
+  nothing backs up by itself and the screen says so.
+- **`mysqldump`** is used when PHP can run it: set `BACKUP_MYSQLDUMP_PATH` in
+  `api/.env` if it is not on PATH. Without it — or with `proc_open` disabled,
+  as shared hosting often has it — the database is dumped in PHP instead.
+- **ext-ftp** is needed only for FTP and FTPS; switch on `extension=ftp` in
+  `php.ini`. SFTP and S3 need nothing beyond composer.
+- **Disk**: a backup is built in `storage/app/private/backups` before it is
+  sent, so the server needs room for one; the screen shows what is free.
+- **Keep `APP_KEY` somewhere other than this server.** It is never in a
+  backup, and without it the encrypted settings and sensitive ticket messages
+  in a restored database cannot be read.
+- **S3**: a private bucket, and an access key allowed to list, read, write and
+  delete in it and nothing else. Add a lifecycle rule that removes incomplete
+  multipart uploads after a few days — an upload interrupted by a failure is
+  restarted, not aborted.
+- **Google Drive**: an OAuth client (Web application) with the Drive API
+  enabled and this callback registered, then Connect under Backup settings:
+
+  ```
+  https://www.technoware.in/admin/backups/drive/callback
+  http://localhost:3000/admin/backups/drive/callback     # development
+  ```
+- **A server on the office network** (a NAS) is refused unless
+  `BACKUP_ALLOW_PRIVATE_HOSTS=true` is set in `api/.env`.
+
+### From a terminal
+
+```bash
+php artisan technoware:backup --type=full --wait              # a backup, worked through here
+php artisan technoware:backup-restore s3 --list               # what a destination holds
+php artisan technoware:backup-restore s3 <folder> --scope=both
+php artisan technoware:backup-restore local <folder> --scope=database
+```
+
+### Verified
+
+58 tests, including the round trip — back up, change rows and files, restore,
+and undo that by restoring the safety copy — with both `mysqldump` and the PHP
+dumper, and every protocol against a real server on the development machine:
+an S3 API server (a 92 MB multipart upload read back byte-identical), plain
+FTP, FTPS with TLS required, and SFTP by password and by key with the host key
+pinned and a swapped one refused. A restore of the development database from
+S3 through the console completed. The Google Drive consent needs a real Google
+project and was not driven; its REST calls are covered by tests.
+
+## Distributing to customers (2026-09-28)
+
+The product now ships as **one signed zip per version**, sold under each
+customer's own name, for Plesk or cPanel hosting. There is nothing to run on
+the customer's server by hand:
+
+- **Build** a release with `node release/build.mjs` (from committed code on
+  `main`), or with the GitHub workflow *Release*, which builds on Linux. It
+  puts `altis-tech-cms-<version>.zip` in `release/dist/`. The checklist for every
+  release, whatever its size, is `release/RELEASING.md`.
+- **Install**: the customer unpacks the zip, points the API domain at
+  `altis-tech-cms/api/public`, and opens `https://<api domain>/install/`. A wizard
+  does the rest, then asks them to create the Node.js app (`altis-tech-cms/web`,
+  startup file `start.js`) and one cron line. See `manual/02-install-plesk.md`
+  and `manual/03-install-cpanel.md`.
+- **Update**: the customer uploads the next zip at **System → Updates** in
+  the console and presses Apply. The previous version is kept for one rollback.
+- **The signing key**: `node release/build.mjs --init-key` has been run once.
+  The private half is `release/keys/release-signing.pem`, which is gitignored.
+  **Keep a copy in a password manager** and store it as the
+  `RELEASE_SIGNING_KEY` secret for the workflow; installs accept no update
+  without it.
+
+The software is called **ALTIS TECH-CMS** from 0.97.0, which is the name on
+the zip and the setup wizard; everything a customer's visitors and staff see
+carries the customer's own company name.
+
+The manual shipped to customers is `manual/`. How it all works, and the traps,
+is `docs/distribution.md`.
+
+**The repository is public.** That was fine for one client. For a product
+sold to several, make it private before sending the first zip, since the zip's
+contents are then also public.

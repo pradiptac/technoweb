@@ -59,10 +59,12 @@ export function ConsoleHeader({
                 <span className="lowercase">{s.label}</span>
               </span>
             ))}
-            <a href={telHref(phone)} className="flex items-center gap-1.5 whitespace-nowrap py-1.5 hover:text-dark-ink">
-              <IconPhone className="size-3" />
-              {phone}
-            </a>
+            {phone ? (
+              <a href={telHref(phone)} className="flex items-center gap-1.5 whitespace-nowrap py-1.5 hover:text-dark-ink">
+                <IconPhone className="size-3" />
+                {phone}
+              </a>
+            ) : null}
           </div>
           <div className="flex items-center gap-4">
             <SiteSearch
@@ -78,7 +80,9 @@ export function ConsoleHeader({
               linkClassName="flex items-center gap-1 whitespace-nowrap py-1.5 hover:text-dark-ink group-[:hover:not([data-closed])]:text-dark-ink group-[:focus-within:not([data-closed])]:text-dark-ink"
                 chevronClassName="size-[11px]"
             />
-            <a href={`mailto:${email}`} className="hidden whitespace-nowrap py-1.5 hover:text-dark-ink lg:inline-flex">{email}</a>
+            {email ? (
+              <a href={`mailto:${email}`} className="hidden whitespace-nowrap py-1.5 hover:text-dark-ink lg:inline-flex">{email}</a>
+            ) : null}
           </div>
         </Container>
       </div>
@@ -86,7 +90,7 @@ export function ConsoleHeader({
       {/* The header proper. */}
       <header className="sticky top-0 z-40 border-b border-dark-line bg-dark text-dark-ink">
         <Container className={cn("flex h-[calc(var(--h-site-header)-1px)] min-w-0 items-center gap-3", bigMenu && "relative")}>
-          <Link href="/" aria-label="Technoware home" className="shrink-0">
+          <Link href="/" aria-label={settings.company_name ? `${settings.company_name} home` : "Home"} className="shrink-0">
             <Logo
               onDark
               className="max-[419px]:text-17"
@@ -107,7 +111,7 @@ export function ConsoleHeader({
                 menu={menu}
                 menuStyle={menuStyle}
                 isStoreItem={isStoreItem}
-                linkClassName="relative flex items-center gap-1.5 whitespace-nowrap px-2 py-3 text-12 font-semibold uppercase tracking-[.07em] text-dark-muted transition-colors duration-(--duration-base) hover:text-dark-ink min-[1440px]:px-3 min-[1440px]:text-12-5 min-[1440px]:tracking-[.1em] after:absolute after:inset-x-2 min-[1440px]:after:inset-x-3 after:-bottom-[10px] after:h-[2px] after:origin-left after:scale-x-0 after:bg-brand-300 after:transition-[scale] after:duration-(--duration-base) after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-[:focus-within:not([data-closed])]:after:scale-x-100 motion-reduce:after:transition-none"
+                linkClassName="relative flex items-center gap-1.5 whitespace-nowrap px-2 py-3 text-12 font-semibold uppercase tracking-[.07em] text-dark-muted transition-colors duration-(--duration-base) hover:text-dark-ink min-[1440px]:px-3 min-[1440px]:text-12-5 min-[1440px]:tracking-[.1em] after:absolute after:inset-x-2 min-[1440px]:after:inset-x-3 after:-bottom-[10px] after:h-[2px] after:origin-left after:scale-x-0 after:bg-brand-300 after:transition-[scale] after:duration-(--duration-slow) hover:after:duration-(--duration-draw) focus-visible:after:duration-(--duration-draw) group-[:focus-within:not([data-closed])]:after:duration-(--duration-draw) after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-[:focus-within:not([data-closed])]:after:scale-x-100 motion-reduce:after:transition-none"
                   chevronClassName="size-[11px]"
                   cartBadgeClassName="relative -top-[7px] -ml-1"
               />

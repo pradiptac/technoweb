@@ -65,7 +65,7 @@ class SiteSection
         // what somebody researches a project from, this one is what can be
         // bought here and now. Both exist and neither is the other.
         'store' => ['label' => 'Store (shop)', 'path' => '/store'],
-        'services' => ['label' => 'Web services', 'path' => '/services'],
+        'services' => ['label' => 'Services', 'path' => '/services'],
         'industries' => ['label' => 'Industries', 'path' => '/industries'],
         'brands' => ['label' => 'Brands', 'path' => '/brands'],
         'locations' => ['label' => 'Locations', 'path' => '/locations'],

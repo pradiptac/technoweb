@@ -43,6 +43,7 @@ final class OAuthConnection
      * @param  list<string>  $fallbackAccountKeys  settings read, in order, when the token carries no address
      * @param  ?string  $credentialsPrefix  where the client id and secret live when a slot borrows
      *                                      another's app registration; null means its own prefix
+     * @param  string  $noun  what is connected, in the refusals a person reads — `mailbox`, `Google Drive`
      */
     public function __construct(
         public readonly OAuthProvider $provider,
@@ -53,6 +54,7 @@ final class OAuthConnection
         public readonly ?string $tenant = null,
         public readonly array $fallbackAccountKeys = [],
         public readonly ?string $credentialsPrefix = null,
+        public readonly string $noun = 'mailbox',
     ) {}
 
     /** The mailbox outgoing mail leaves through. Google only, as it always was. */
@@ -126,6 +128,52 @@ final class OAuthConnection
             tenant: $oauth === OAuthProvider::Microsoft ? (string) Setting::get('inbound_oauth_tenant') : null,
             fallbackAccountKeys: [],
             credentialsPrefix: 'inbound_oauth_',
+        );
+    }
+
+    /**
+     * The Google Drive backups are kept in (2026-09-27, `docs/backups.md`).
+     *
+     * `drive.file` is the narrowest scope Drive offers — the files this
+     * application created and nothing else — so a leaked token reads the
+     * backups and not the rest of somebody's Drive. `openid email` names the
+     * account on the settings screen. Its own client id and secret: a Drive
+     * consent is not a mailbox's, and borrowing another slot's registration
+     * would make removing one quietly break the other.
+     */
+    public static function backupDrive(): self
+    {
+        return new self(
+            provider: OAuthProvider::Google,
+            scope: 'https://www.googleapis.com/auth/drive.file openid email',
+            prefix: 'backup_gdrive_oauth_',
+            slot: 'backup-drive',
+            errorKey: 'backup_gdrive_error',
+            noun: 'Google Drive',
+        );
+    }
+
+    /**
+     * The Google Workspace calendar every online meeting is organised on
+     * (2026-09-29, `docs/meetings.md`, "Google Calendar").
+     *
+     * `calendar.events` writes the events the application organises;
+     * `calendar.events.freebusy` is the scope that reads *other people's*
+     * free/busy — `calendar.freebusy` reaches only the connected account's
+     * own calendar, and every host's busy times are what block a slot.
+     * `openid email` names the account, which is also what an event is
+     * checked against later: an event made under another account is never
+     * touched again. Its own client id and secret, the Drive slot's reasoning.
+     */
+    public static function meetingsCalendar(): self
+    {
+        return new self(
+            provider: OAuthProvider::Google,
+            scope: 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.events.freebusy openid email',
+            prefix: 'meetings_google_oauth_',
+            slot: 'meetings-calendar',
+            errorKey: 'meetings_google_error',
+            noun: 'Google Calendar',
         );
     }
 
@@ -257,7 +305,7 @@ final class OAuthConnection
         $refreshToken = (string) Setting::get($this->key('refresh_token'));
 
         if ($refreshToken === '') {
-            throw new RuntimeException('No mailbox is connected.');
+            throw new RuntimeException($this->noun === 'mailbox' ? 'No mailbox is connected.' : "{$this->noun} is not connected.");
         }
 
         $response = Http::asForm()->timeout(15)->post($this->endpoints()['token'], [
@@ -270,7 +318,7 @@ final class OAuthConnection
         $body = $response->json() ?? [];
 
         if ($response->failed() || ! isset($body['access_token'])) {
-            $why = $this->describe($body, $response->status(), 'The mailbox connection was refused.');
+            $why = $this->describe($body, $response->status(), "The {$this->noun} connection was refused.");
             $this->fail($why);
 
             throw new RuntimeException($why);

@@ -57,19 +57,22 @@ function truncate(text: string, max: number): string {
  * side.** The client saw the menu "flicker" (2026-09-17, twice): first two
  * panels fading over each other, then — once the panel being left went at
  * once — the panel being entered still fading in from a blank frame.
- * `.panel-drop` is what the two rules at the end of `globals.css` key on:
- * the panel whose host is no longer hovered gets no transition once another
- * host is, and the hovered host's panel gets none while the `<nav>` carries
- * `data-panel-swap` (see `markPanelSwap` in `panel-host.ts` for why the
- * stamp has to be there *before* the pointer arrives). The fade-out is kept
- * for leaving the nav altogether, and the `--duration-fast` fade-in for a
- * fresh open.
+ * `.panel-drop` is what the rule at the end of `globals.css` keys on: the
+ * panel whose host is no longer hovered goes at once when another host is.
+ *
+ * **Every panel arrives by fading in** — a first open and a swap alike, over
+ * `--duration-base`, opacity only (the client, 2026-09-27: the instant swap
+ * read as a flicker, and asked for a fade on every menu, the utility bar's
+ * included). The 4px rise went with it: a panel that also moves while it
+ * fades reads as a jump. Because the panel being left is already gone, a swap
+ * is one panel fading in over nothing, never two fading over each other,
+ * which was the first flicker (2026-09-17).
  */
 export const PANEL_CLASSES = [
   "panel-drop invisible absolute top-full z-50 pt-2 opacity-0",
-  "transition-[opacity,translate,visibility] duration-(--duration-exit) ease-exit",
-  "translate-y-1 group-[:hover:not([data-closed])]:visible group-[:hover:not([data-closed])]:translate-y-0 group-[:hover:not([data-closed])]:opacity-100 group-[:hover:not([data-closed])]:duration-(--duration-fast) group-[:hover:not([data-closed])]:ease-brand",
-  "group-[:focus-within:not([data-closed])]:visible group-[:focus-within:not([data-closed])]:translate-y-0 group-[:focus-within:not([data-closed])]:opacity-100 group-[:focus-within:not([data-closed])]:duration-(--duration-fast) group-[:focus-within:not([data-closed])]:ease-brand",
+  "transition-[opacity,visibility] duration-(--duration-exit) ease-exit",
+  "group-[:hover:not([data-closed])]:visible group-[:hover:not([data-closed])]:opacity-100 group-[:hover:not([data-closed])]:duration-(--duration-base) group-[:hover:not([data-closed])]:ease-brand",
+  "group-[:focus-within:not([data-closed])]:visible group-[:focus-within:not([data-closed])]:opacity-100 group-[:focus-within:not([data-closed])]:duration-(--duration-base) group-[:focus-within:not([data-closed])]:ease-brand",
   // Reduced motion still needs the panel to appear, just without the slide.
   "motion-reduce:transition-none",
 ].join(" ");
@@ -153,7 +156,11 @@ export function MegaMenu({ section, style = "mega" }: { section: MenuSection; st
                   href={item.href as string}
                   {...(item.href !== null ? newTabAttrs(item.newTab) : {})}
                   className={[
-                    "flex h-full rounded-lg",
+                    // Full height evens out a row of tiles; an entry with a
+                    // list under it must not take it, or the row fills the
+                    // cell and pushes the list out of the panel's bottom
+                    // (the grouped Services panel, 2026-09-29).
+                    item.children?.length ? "flex rounded-lg" : "flex h-full rounded-lg",
                     compact ? "gap-2.5 px-3 py-2" : "gap-3 p-3",
                     item.href !== null && "transition-colors duration-(--duration-base) hover:bg-brand-50",
                     // With a summary the text block is several lines tall and
@@ -239,9 +246,11 @@ function SubItems({ items, indented }: { items: MenuItem[]; indented: boolean })
             <Link
               href={child.href}
               {...newTabAttrs(child.newTab)}
-              className="block rounded py-1.5 pr-2 pl-3 text-13 text-muted transition-colors duration-(--duration-base) hover:bg-brand-50 hover:text-ink"
+              className="flex items-center gap-2 rounded py-1.5 pr-2 pl-3 text-13 text-muted transition-colors duration-(--duration-base) hover:bg-brand-50 hover:text-ink"
             >
-              {child.label}
+              {/* A small glyph in its own hue: an identity, not a tile. */}
+              {child.glyph && <span aria-hidden className="grid shrink-0 place-items-center">{child.glyph}</span>}
+              <span className="min-w-0">{child.label}</span>
             </Link>
           )}
 

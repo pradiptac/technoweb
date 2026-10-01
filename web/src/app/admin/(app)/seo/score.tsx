@@ -17,24 +17,89 @@ import type { SeoBand, SeoMeta, SeoTopIssue } from "@/types/api";
  * reason.
  */
 
-export const BAND: Record<SeoBand, { label: string; text: string; soft: string; ring: string }> = {
-  good: { label: "Good", text: "text-ok", soft: "bg-ok-soft", ring: "text-ok" },
-  fair: { label: "Fair", text: "text-warn", soft: "bg-warn-soft", ring: "text-warn" },
-  poor: { label: "Poor", text: "text-err", soft: "bg-err-soft", ring: "text-err" },
+export const BAND: Record<SeoBand, { label: string; text: string; soft: string }> = {
+  good: { label: "Good", text: "text-ok", soft: "bg-ok-soft" },
+  fair: { label: "Fair", text: "text-warn", soft: "bg-warn-soft" },
+  poor: { label: "Poor", text: "text-err", soft: "bg-err-soft" },
 };
 
 /**
- * A ring, drawn rather than described.
+ * Where each colour of the gauge's ramp sits, as a percentage of the arc.
+ * Placed against the bands `ScoresChecks::band()` draws — poor under 50, fair
+ * to 79, good from 80 — so the tip of a poor score is red or orange, a fair one
+ * orange into yellow, and a good one green: the ring and the figure's own
+ * colour cannot tell two different stories about one number.
+ */
+const GAUGE_STOPS: ReadonlyArray<[number, string]> = [
+  [0, "var(--color-gauge-0)"],
+  [35, "var(--color-gauge-1)"],
+  [60, "var(--color-gauge-2)"],
+  [80, "var(--color-gauge-3)"],
+  [100, "var(--color-gauge-3)"],
+];
+
+/** The ramp's colour at a percentage, mixed between the two stops around it. */
+function gaugeColour(pct: number): string {
+  for (let i = 1; i < GAUGE_STOPS.length; i++) {
+    const [p1, c1] = GAUGE_STOPS[i];
+    const [p0, c0] = GAUGE_STOPS[i - 1];
+    if (pct <= p1) {
+      const t = Math.round(((pct - p0) / (p1 - p0)) * 100);
+      return `color-mix(in oklab, ${c1} ${t}%, ${c0})`;
+    }
+  }
+  return GAUGE_STOPS[GAUGE_STOPS.length - 1][1];
+}
+
+/** The gauge opens at the bottom: from lower left, clockwise, to lower right. */
+const GAUGE_START = 135;
+const GAUGE_SWEEP = 270;
+
+/**
+ * A gauge, drawn rather than described.
+ *
+ * Its colour follows the percentage along the arc — red at nothing, through
+ * orange and yellow, to green — and only the part the score has earned is
+ * painted, over a grey track. SVG has no conic gradient, so the painted arc is
+ * a run of short segments, each coloured at its own midpoint; every one
+ * overlaps the next by half a step, or antialiasing leaves a hairline seam at
+ * each join. The two ends are dots in their own colours, because a round cap on
+ * a segment would bulge over its neighbour.
  *
  * No text inside the SVG: `getComputedStyle` reports an SVG font size in user
  * units, so a label in here is a size nothing on the page agrees about and the
  * mobile audit measures it after viewBox scaling — which is how one diagram in
  * this project shipped at 5.4px. The figure sits over it in ordinary HTML.
  */
-export function Ring({ value, band, size = 88 }: { value: number; band: SeoBand; size?: number }) {
+export function Ring({ value, size = 88 }: { value: number; size?: number }) {
   const stroke = size >= 80 ? 7 : 5;
   const r = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * r;
+  const c = size / 2;
+  const pct = Math.max(0, Math.min(100, value));
+
+  const at = (deg: number) => {
+    const a = (deg * Math.PI) / 180;
+    return `${(c + r * Math.cos(a)).toFixed(2)} ${(c + r * Math.sin(a)).toFixed(2)}`;
+  };
+  const arc = (from: number, to: number) =>
+    `M ${at(from)} A ${r} ${r} 0 ${to - from > 180 ? 1 : 0} 1 ${at(to)}`;
+
+  // Fewer, longer segments on the small row gauges: a 34px ring cannot show
+  // more steps than that, and the table draws fifty of them.
+  const step = size >= 80 ? 4.5 : 9;
+  const end = GAUGE_START + (GAUGE_SWEEP * pct) / 100;
+  const segments: { d: string; colour: string }[] = [];
+  for (let a0 = GAUGE_START; a0 < end; a0 += step) {
+    const a1 = Math.min(a0 + step, end);
+    segments.push({
+      d: arc(a0, Math.min(a1 + step / 2, end)),
+      colour: gaugeColour((((a0 + a1) / 2 - GAUGE_START) / GAUGE_SWEEP) * 100),
+    });
+  }
+  const dot = (deg: number, colour: string) => {
+    const [x, y] = at(deg).split(" ");
+    return <circle cx={x} cy={y} r={stroke / 2} style={{ fill: colour }} />;
+  };
 
   return (
     <svg
@@ -42,17 +107,17 @@ export function Ring({ value, band, size = 88 }: { value: number; band: SeoBand;
       height={size}
       viewBox={`0 0 ${size} ${size}`}
       aria-hidden="true"
-      className={cn("shrink-0 -rotate-90", BAND[band].ring)}
+      className="shrink-0"
     >
-      <circle
-        cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke}
-        className="text-line-strong" stroke="currentColor"
+      <path
+        d={arc(GAUGE_START, GAUGE_START + GAUGE_SWEEP)} fill="none" strokeWidth={stroke}
+        strokeLinecap="round" className="text-line-strong" stroke="currentColor"
       />
-      <circle
-        cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke}
-        stroke="currentColor" strokeLinecap="round"
-        strokeDasharray={`${(circumference * value) / 100} ${circumference}`}
-      />
+      {segments.map((s, i) => (
+        <path key={i} d={s.d} fill="none" strokeWidth={stroke} style={{ stroke: s.colour }} />
+      ))}
+      {pct > 0 && dot(GAUGE_START, gaugeColour(0))}
+      {pct > 0 && dot(end, gaugeColour(pct))}
     </svg>
   );
 }
@@ -81,7 +146,7 @@ export function SiteScoreCard({
     <div className="mb-6 grid gap-4 rounded-lg border border-line-strong bg-card p-5 lg:grid-cols-[auto_1fr]">
       <div className="flex items-center gap-4">
         <div className="relative">
-          <Ring value={site.value} band={site.band} />
+          <Ring value={site.value} />
           <span className="absolute inset-0 flex items-center justify-center">
             <span className={cn("font-display text-[26px] font-semibold leading-none", band.text)}>
               {site.value}

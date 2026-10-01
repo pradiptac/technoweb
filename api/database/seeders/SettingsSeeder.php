@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Setting;
+use App\Support\Meetings\MeetingSettings;
 use App\Support\Visits\VisitSettings;
 use Illuminate\Database\Seeder;
 
@@ -23,6 +24,14 @@ class SettingsSeeder extends Seeder
             // reveals nothing — so the console's layout reads it with the
             // settings it already has. A failure notice ignores it.
             ['group' => 'general', 'key' => 'console_notice_seconds', 'value' => '10', 'type' => 'string'],
+            // The prefixes on the numbers people read out (App\Support\References,
+            // 2026-09-28): PREFIX-YYYY-NNNNN. Private — nothing public needs
+            // them. A new install gets the company's initials for the first two
+            // (Branding::apply); these defaults are the numbers already issued.
+            ['group' => 'references', 'key' => 'ticket_reference_prefix', 'value' => 'TW', 'type' => 'string'],
+            ['group' => 'references', 'key' => 'visit_reference_prefix', 'value' => 'TV', 'type' => 'string'],
+            ['group' => 'references', 'key' => 'meeting_reference_prefix', 'value' => 'MT', 'type' => 'string'],
+            ['group' => 'references', 'key' => 'order_number_prefix', 'value' => 'ORD', 'type' => 'string'],
             // The homepage hero. These were hardcoded in the frontend, which
             // meant the invented figures on the must-not-ship list could only
             // be corrected by a developer. Group 'homepage' is public.
@@ -322,6 +331,50 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'visits', 'key' => 'visit_holidays', 'value' => null, 'type' => 'text'],
             ['group' => 'visits', 'key' => 'visits_email', 'value' => null, 'type' => 'string'],
             ['group' => 'visits', 'key' => 'visit_default_minutes', 'value' => '90', 'type' => 'string'],
+
+            /*
+             * Online meetings (2026-09-29, docs/meetings.md): the switch, the
+             * default working hours (a host with hours of their own ignores
+             * them), the slot step, notice, how far ahead, closed dates, the
+             * reminders, the desk's address, whether Google busy times block
+             * slots, and the limits a customer is held to.
+             *
+             * **Off by default**, unlike visits: a meeting is a booking into a
+             * colleague's diary, and there must be hosts and hours before
+             * anybody can be offered one. The group is private;
+             * `MeetingSettings::PUBLIC_KEYS` names the four the booking page
+             * needs. Per-host hours and time off are rows of their own, edited
+             * on Meetings → Hosts.
+             */
+            ['group' => 'meetings', 'key' => 'meetings_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'meetings', 'key' => 'meeting_default_hours', 'value' => MeetingSettings::DEFAULT_HOURS, 'type' => 'text'],
+            ['group' => 'meetings', 'key' => 'meeting_slot_step', 'value' => '30', 'type' => 'string'],
+            ['group' => 'meetings', 'key' => 'meeting_min_notice_hours', 'value' => '4', 'type' => 'string'],
+            ['group' => 'meetings', 'key' => 'meeting_max_days', 'value' => '30', 'type' => 'string'],
+            ['group' => 'meetings', 'key' => 'meeting_holidays', 'value' => null, 'type' => 'text'],
+            ['group' => 'meetings', 'key' => 'meeting_reminders', 'value' => MeetingSettings::DEFAULT_REMINDERS, 'type' => 'string'],
+            ['group' => 'meetings', 'key' => 'meetings_email', 'value' => null, 'type' => 'string'],
+            ['group' => 'meetings', 'key' => 'meeting_block_google_busy', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'meetings', 'key' => 'meeting_change_cutoff_hours', 'value' => '12', 'type' => 'string'],
+            ['group' => 'meetings', 'key' => 'meeting_max_open_per_contact', 'value' => '2', 'type' => 'string'],
+            ['group' => 'meetings', 'key' => 'meeting_max_reschedules', 'value' => '3', 'type' => 'string'],
+            ['group' => 'meetings', 'key' => 'meeting_daily_ip_cap', 'value' => '10', 'type' => 'string'],
+
+            /*
+             * The Google Workspace account every meeting's event is organised
+             * on — a group of its own, the `backups_gdrive` pattern: its own
+             * OAuth client (an **Internal** app, or the refresh token lapses
+             * after seven days), the token, the calendar (blank is the
+             * account's primary) and the last refusal in Google's words.
+             * Private, and the secret and the token are encrypted.
+             */
+            ['group' => 'meetings_google', 'key' => 'meetings_google_oauth_client_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'meetings_google', 'key' => 'meetings_google_oauth_client_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'meetings_google', 'key' => 'meetings_google_oauth_refresh_token', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'meetings_google', 'key' => 'meetings_google_oauth_account', 'value' => null, 'type' => 'string'],
+            ['group' => 'meetings_google', 'key' => 'meetings_google_oauth_connected_at', 'value' => null, 'type' => 'string'],
+            ['group' => 'meetings_google', 'key' => 'meetings_google_calendar_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'meetings_google', 'key' => 'meetings_google_error', 'value' => null, 'type' => 'string'],
 
             /*
              * Comments, site-wide.
@@ -1087,6 +1140,14 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'tickets', 'key' => 'inbound_mail_last_run', 'value' => null, 'type' => 'string'],
             ['group' => 'tickets', 'key' => 'inbound_mail_error', 'value' => null, 'type' => 'string'],
 
+            /*
+             * The satisfaction survey emailed when a ticket is closed. Its own
+             * group, private, so the tab is a switch and nothing else and the
+             * mailbox panel above stays the mailbox's. On by default: a
+             * survey nobody switched on is one nobody reads the answers to.
+             */
+            ['group' => 'ticket_survey', 'key' => 'ticket_survey_enabled', 'value' => '1', 'type' => 'boolean'],
+
             // Third-party keys. Same treatment as the SMTP password.
             ['group' => 'integrations', 'key' => 'openai_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
             ['group' => 'integrations', 'key' => 'hunter_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
@@ -1175,6 +1236,54 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'push', 'key' => 'push_messaging_sender_id', 'value' => null, 'type' => 'string'],
             ['group' => 'push', 'key' => 'push_app_id', 'value' => null, 'type' => 'string'],
             ['group' => 'push', 'key' => 'push_vapid_key', 'value' => null, 'type' => 'string'],
+
+            /*
+             * Backups (2026-09-27, docs/backups.md). Private, all four groups:
+             * the destinations' credentials are secrets, and when and where
+             * the backups go is nobody's business outside the console. Off
+             * until somebody has saved a destination and switched it on — a
+             * schedule with nowhere to send to would fill this server's disk.
+             */
+            ['group' => 'backups', 'key' => 'backup_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'backups', 'key' => 'backup_time', 'value' => '02:15', 'type' => 'string'],
+            ['group' => 'backups', 'key' => 'backup_full_day', 'value' => 'sun', 'type' => 'string'],
+            ['group' => 'backups', 'key' => 'backup_incremental_every', 'value' => '24', 'type' => 'string'],
+            ['group' => 'backups', 'key' => 'backup_max_chain', 'value' => '14', 'type' => 'string'],
+            ['group' => 'backups', 'key' => 'backup_include_db', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'backups', 'key' => 'backup_include_public', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'backups', 'key' => 'backup_include_private', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'backups', 'key' => 'backup_keep_chains', 'value' => '4', 'type' => 'string'],
+            ['group' => 'backups', 'key' => 'backup_keep_local', 'value' => '1', 'type' => 'string'],
+            ['group' => 'backups', 'key' => 'backups_email', 'value' => null, 'type' => 'string'],
+            ['group' => 'backups', 'key' => 'backup_error', 'value' => null, 'type' => 'string'],
+            ['group' => 'backups_s3', 'key' => 'backup_s3_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'backups_s3', 'key' => 'backup_s3_endpoint', 'value' => null, 'type' => 'string'],
+            ['group' => 'backups_s3', 'key' => 'backup_s3_region', 'value' => null, 'type' => 'string'],
+            ['group' => 'backups_s3', 'key' => 'backup_s3_bucket', 'value' => null, 'type' => 'string'],
+            ['group' => 'backups_s3', 'key' => 'backup_s3_prefix', 'value' => null, 'type' => 'string'],
+            ['group' => 'backups_s3', 'key' => 'backup_s3_key', 'value' => null, 'type' => 'string'],
+            ['group' => 'backups_s3', 'key' => 'backup_s3_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'backups_s3', 'key' => 'backup_s3_path_style', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'backups_s3', 'key' => 'backup_s3_error', 'value' => null, 'type' => 'string'],
+            ['group' => 'backups_gdrive', 'key' => 'backup_gdrive_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'backups_gdrive', 'key' => 'backup_gdrive_oauth_client_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'backups_gdrive', 'key' => 'backup_gdrive_oauth_client_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'backups_gdrive', 'key' => 'backup_gdrive_oauth_refresh_token', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'backups_gdrive', 'key' => 'backup_gdrive_oauth_account', 'value' => null, 'type' => 'string'],
+            ['group' => 'backups_gdrive', 'key' => 'backup_gdrive_oauth_connected_at', 'value' => null, 'type' => 'string'],
+            ['group' => 'backups_gdrive', 'key' => 'backup_gdrive_folder_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'backups_gdrive', 'key' => 'backup_gdrive_error', 'value' => null, 'type' => 'string'],
+            ['group' => 'backups_ftp', 'key' => 'backup_ftp_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'backups_ftp', 'key' => 'backup_ftp_protocol', 'value' => 'sftp', 'type' => 'string'],
+            ['group' => 'backups_ftp', 'key' => 'backup_ftp_host', 'value' => null, 'type' => 'string'],
+            ['group' => 'backups_ftp', 'key' => 'backup_ftp_port', 'value' => null, 'type' => 'string'],
+            ['group' => 'backups_ftp', 'key' => 'backup_ftp_username', 'value' => null, 'type' => 'string'],
+            ['group' => 'backups_ftp', 'key' => 'backup_ftp_password', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'backups_ftp', 'key' => 'backup_ftp_private_key', 'value' => null, 'type' => 'text', 'is_secret' => true],
+            ['group' => 'backups_ftp', 'key' => 'backup_ftp_folder', 'value' => null, 'type' => 'string'],
+            ['group' => 'backups_ftp', 'key' => 'backup_ftp_passive', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'backups_ftp', 'key' => 'backup_ftp_sftp_fingerprint', 'value' => null, 'type' => 'string'],
+            ['group' => 'backups_ftp', 'key' => 'backup_ftp_error', 'value' => null, 'type' => 'string'],
 
             // Social profiles. Seeded empty on purpose — a blank value hides
             // the icon, so the footer never links to a profile that does not

@@ -4,7 +4,7 @@ import { focalStyle } from "@/lib/focal";
 import Link from "next/link";
 import {
   CaseStudies, Credentials, Industries, Partners, ProductCategories,
-  Resources, SupportBand, TrustedBy, WhyUs,
+  Resources, Services, SupportBand, TrustedBy, WhyUs,
 } from "@/components/home/sections";
 import { Reviews } from "@/components/home/reviews";
 import { ButtonLink } from "@/components/ui/button";
@@ -40,7 +40,7 @@ import { ServiceTabs } from "../service-tabs";
  * `data-card`, so the theme's square-with-a-rule treatment reaches them.
  */
 export function Home({
-  settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
+  settings, solutions, categories, industries, services, serviceCategories, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
 }: HomeData & { options: ThemeOptions }) {
   const stats = statPairs(settings.hero_stats, heroStats);
   const look = statLookFor(settings);
@@ -123,8 +123,10 @@ export function Home({
     { id: "hero", node: hero },
     { id: "credentials", node: <Credentials items={certifications.data} /> },
     { id: "solutions", node: showcase },
-    // The static web-services grid is not drawn; its slot carries the tabs.
+    // Enterprise's `web` slot has carried the solution tabs since it shipped; the services follow under their own id.
     { id: "web", node: tabs },
+    // The services by category. `web` above keeps the solution tabs it has always carried here.
+    { id: "services", node: <Services services={services.data} categories={serviceCategories.data} kicker="Service catalogue" title="Every service, by category." /> },
     { id: "partners", node: <Partners items={brands.data} mode="ring" /> },
     { id: "categories", node: <ProductCategories items={categories.data.slice(0, 12)} /> },
     { id: "why", node: <WhyUs settings={settings} /> },

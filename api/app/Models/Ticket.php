@@ -6,6 +6,8 @@ use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Enums\WebhookEvent;
 use App\Models\Concerns\SealsSensitiveText;
+use App\Support\References;
+use App\Support\Tickets\Survey;
 use App\Support\Webhooks\WebhookPayload;
 use App\Support\Webhooks\Webhooks;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,6 +15,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 class Ticket extends Model
@@ -74,6 +77,11 @@ class Ticket extends Model
 
             $from = $ticket->getOriginal('status');
 
+            // The satisfaction survey, once, from whichever door closed it.
+            if ($ticket->status === TicketStatus::Closed) {
+                Survey::request($ticket);
+            }
+
             Webhooks::emit(WebhookEvent::TicketStatusChanged, fn () => WebhookPayload::ticketWith($ticket, [
                 'from' => $from instanceof TicketStatus ? $from->value : $from,
                 'to' => $ticket->status->value,
@@ -105,15 +113,18 @@ class Ticket extends Model
      */
     public static function nextReference(): string
     {
+        // The prefix is a setting (App\Support\References); the sequence is
+        // counted per prefix, so a new one starts again at 00001.
         $year = now()->year;
+        $prefix = References::ticket();
         $last = self::withoutGlobalScopes()
-            ->where('reference', 'like', "TW-{$year}-%")
+            ->where('reference', 'like', "{$prefix}-{$year}-%")
             ->orderByDesc('id')
             ->value('reference');
 
         $n = $last ? ((int) Str::afterLast($last, '-')) + 1 : 1;
 
-        return sprintf('TW-%d-%05d', $year, $n);
+        return sprintf('%s-%d-%05d', $prefix, $year, $n);
     }
 
     public function getRouteKeyName(): string
@@ -174,6 +185,12 @@ class Ticket extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(TicketAttachment::class);
+    }
+
+    /** @return HasOne<TicketSurvey, $this> */
+    public function survey(): HasOne
+    {
+        return $this->hasOne(TicketSurvey::class);
     }
 
     /** @return HasMany<TicketEvent, $this> */

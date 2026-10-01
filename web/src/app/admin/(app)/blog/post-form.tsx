@@ -16,6 +16,7 @@ import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import { CoverField } from "@/components/admin/cover-field";
+import { RelationPicker } from "@/components/admin/relation-picker";
 import { createPostAction, updatePostAction, deletePostAction, type PostFormState } from "./actions";
 import type { CustomFieldGroupDefinition, AdminBlogPost, StaffUser, AnswerBlockKindOption } from "@/types/api";
 
@@ -24,7 +25,7 @@ const initial: PostFormState = {};
 /** Four panels' worth of fields; the lists map a 422 back to its tab. */
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
-    fields: ["title", "slug", "excerpt", "body", "status", "published_at", "author_id"] },
+    fields: ["title", "slug", "excerpt", "body", "status", "published_at", "author_id", "is_featured", "comments_enabled", "category_ids"] },
   { id: "media", label: "Media", fields: ["cover_image_path"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
   // The AEO tab (docs/aeo-geo-contract.md §7). Last, so every tab above keeps its place.
@@ -45,10 +46,12 @@ function toLocalInput(iso: string | null): string {
  * so it is the shape the remaining CMS entities should follow.
  */
 export function PostForm({
-  post, staff, saved, kinds, fieldGroups,
+  post, staff, categories, saved, kinds, fieldGroups,
 }: {
   post?: AdminBlogPost;
   staff: StaffUser[];
+  /** Every blog category, empty ones included, for the picker. */
+  categories: { id: number; name: string }[];
   saved?: boolean;
   /** `meta.answer_block_kinds` from this entity's admin index. */
   kinds: AnswerBlockKindOption[];
@@ -133,6 +136,34 @@ export function PostForm({
                 {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </Select>
             </Field>
+
+            <Field label="Featured" htmlFor="is_featured" error={err("is_featured")} variant="float-static"
+              hint="Featured posts fill the lead area at the top of the blog.">
+              <Select id="is_featured" name="is_featured" defaultValue={post?.is_featured ? "1" : "0"}>
+                <option value="0">No</option>
+                <option value="1">Yes</option>
+              </Select>
+            </Field>
+
+            <Field label="Comments on this post" htmlFor="comments_enabled" error={err("comments_enabled")} variant="float-static"
+              hint="Readers can comment only while comments are also switched on in Blog → Settings.">
+              <Select id="comments_enabled" name="comments_enabled" defaultValue={post?.comments_enabled === false ? "0" : "1"}>
+                <option value="1">Open</option>
+                <option value="0">Closed</option>
+              </Select>
+            </Field>
+
+            <RelationPicker
+              name="category_ids"
+              label="Categories"
+              hint="Where the post is filed on the blog. Add or rename categories under Blog → Blog categories."
+              options={categories}
+              defaultValue={post?.category_ids ?? post?.categories?.map((c) => c.id) ?? []}
+              error={err("category_ids") ?? rowErr("category_ids")}
+            />
+            <Link href="/admin/blog-categories" className="-mt-2 mb-4 text-12-5 font-semibold text-brand-ink hover:underline">
+              Manage categories →
+            </Link>
           </aside>
         </div>
 

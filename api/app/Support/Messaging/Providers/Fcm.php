@@ -3,6 +3,7 @@
 namespace App\Support\Messaging\Providers;
 
 use App\Models\Setting;
+use App\Support\Mail\MailBrand;
 use App\Support\Seo\GoogleServiceAccount;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -47,12 +48,12 @@ class Fcm extends Provider
     {
         $link = $message->link();
 
-        return $this->push($message->to, $message->title() ?? (string) Setting::get('company_name', 'Technoware'), $message->body(), $message->template->mediaUrl(), $link);
+        return $this->push($message->to, $message->title() ?? MailBrand::name(), $message->body(), $message->template->mediaUrl(), $link);
     }
 
     public function test(string $to): string
     {
-        return $this->push($to, 'Technoware test', self::TEST_BODY, null, null);
+        return $this->push($to, MailBrand::name().' test', self::TEST_BODY, null, null);
     }
 
     private function push(string $token, string $title, string $body, ?string $image, ?string $link): string

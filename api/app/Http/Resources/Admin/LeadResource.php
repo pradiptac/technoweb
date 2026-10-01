@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin;
 
 use App\Models\Lead;
+use App\Models\Meeting;
 use App\Models\VisitRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -132,6 +133,11 @@ class LeadResource extends JsonResource
                 $visit instanceof VisitRequest,
                 $visit instanceof VisitRequest ? ['reference' => $visit->reference, 'admin_path' => $visit->adminPath()] : null,
             ),
+            // The online meeting a `meeting` lead came from (docs/meetings.md),
+            // or null — the lead screen links back to it.
+            'meeting' => $visit instanceof Meeting
+                ? ['reference' => $visit->reference, 'admin_path' => $visit->adminPath()]
+                : null,
             'submission' => $this->when(
                 $this->relationLoaded('source') && $this->source && $this->channel === 'form',
                 fn () => [

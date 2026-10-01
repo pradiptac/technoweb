@@ -40,6 +40,43 @@ export function settingEnabled(
 }
 
 /**
+ * Whether the customer portal is open (`portal_enabled`, Customers → Portal).
+ *
+ * Off, the API refuses every customer-principal route with
+ * `reason: portal_disabled`; this is the website's half — `/portal/*` renders
+ * `PortalClosed`, `getToken()` forwards no session, and every link into the
+ * portal is dropped from the chrome and the pages. Unset means open, the
+ * seeded default.
+ */
+export function portalEnabled(settings: SiteSettings): boolean {
+  return settingEnabled(settings, "portal_enabled", true);
+}
+
+/**
+ * A path into the customer portal — `/portal`, `/portal/…`, `/portal?…`.
+ *
+ * What the chrome drops while the portal is closed. A prefix test on the
+ * segment, so `/portal-cleaning` (a CMS page somebody might write) is left
+ * alone.
+ */
+export function isPortalHref(href: string | null | undefined): boolean {
+  if (!href) return false;
+  return /^\/portal(?:[/?#]|$)/.test(href);
+}
+
+/**
+ * Where a "raise a ticket" link goes: the portal's new-ticket form, or — with
+ * the portal switched off — the contact form, which pre-fills its subject
+ * from `?subject=` the same way. Callers say "Contact us" rather than "Raise
+ * a ticket" in the second case (`portalEnabled`), since a contact enquiry has
+ * no SLA clock and should not claim one.
+ */
+export function ticketHref(settings: SiteSettings, subject?: string): string {
+  const query = subject ? `?subject=${encodeURIComponent(subject)}` : "";
+  return portalEnabled(settings) ? `/portal/tickets/new${query}` : `/contact${query}`;
+}
+
+/**
  * The areas of the site that can carry a page banner.
  *
  * One per top-level entry in the navigation, plus `company` for the pages

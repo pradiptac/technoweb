@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\AnswerBlock;
+use App\Models\Backup;
+use App\Models\BackupRestore;
 use App\Models\BlogCategory;
 use App\Models\BlogComment;
 use App\Models\BlogPost;
@@ -36,6 +38,9 @@ use App\Models\LeadNote;
 use App\Models\Location;
 use App\Models\Media;
 use App\Models\MediaFolder;
+use App\Models\Meeting;
+use App\Models\MeetingTimeOff;
+use App\Models\MeetingType;
 use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\MessageBroadcast;
@@ -59,6 +64,7 @@ use App\Models\ProductReview;
 use App\Models\Redirect;
 use App\Models\SeoSuggestion;
 use App\Models\Service;
+use App\Models\ServiceCategory;
 use App\Models\Slider;
 use App\Models\Solution;
 use App\Models\StoreCategory;
@@ -79,6 +85,8 @@ use App\Support\InboundMail\ImapMailbox;
 use App\Support\InboundMail\InboundMail;
 use App\Support\InboundMail\Mailbox;
 use App\Support\InboundMail\MailboxScanner;
+use App\Support\Meetings\GoogleCalendar;
+use App\Support\Meetings\MeetingCalendar;
 use App\Support\QueueHealth;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -102,6 +110,16 @@ class AppServiceProvider extends ServiceProvider
          * that is not about HTTP.
          */
         $this->app->bind(AiProvider::class, OpenAiProvider::class);
+
+        /*
+         * The calendar online meetings are organised on (docs/meetings.md):
+         * the company's Google Workspace calendar, always bound. Whether an
+         * account is connected is read from the OAuth slot on each call, and
+         * with none a sync marks the meeting `off` — `NullMeetingCalendar`'s
+         * answer — so the customer gets our own `.ics`. A test binds
+         * `NullMeetingCalendar` or a fake here.
+         */
+        $this->app->bind(MeetingCalendar::class, GoogleCalendar::class);
 
         /*
          * The support mailbox tickets are read from. Built from Settings →
@@ -184,6 +202,8 @@ class AppServiceProvider extends ServiceProvider
             'product_category' => ProductCategory::class,
             'solution' => Solution::class,
             'service' => Service::class,
+            // Bound in an admin route (docs/catalogue.md, "Service categories").
+            'service_category' => ServiceCategory::class,
             'industry' => Industry::class,
             'page' => Page::class,
             'blog_post' => BlogPost::class,
@@ -265,6 +285,12 @@ class AppServiceProvider extends ServiceProvider
             'message_contact' => MessageContact::class,
             // Engineer visits: bound in admin routes, and the source of a lead.
             'visit_request' => VisitRequest::class,
+            // Online meetings (docs/meetings.md): bound in admin routes and
+            // the source of a lead; a type and a host's time off are bound
+            // by their own screens, so the activity log can name them.
+            'meeting' => Meeting::class,
+            'meeting_type' => MeetingType::class,
+            'meeting_time_off' => MeetingTimeOff::class,
 
             /*
              * The store's own catalogue. `store_product` rather than
@@ -301,6 +327,11 @@ class AppServiceProvider extends ServiceProvider
             // A WordPress import is bound on its routes, so the activity log
             // names it as the subject of a commit or a cancel.
             'wordpress_import' => WordPressImport::class,
+
+            // Backups and restores are bound on their routes (delete, cancel),
+            // so the activity log names them as the subject.
+            'backup' => Backup::class,
+            'backup_restore' => BackupRestore::class,
         ]);
     }
 }

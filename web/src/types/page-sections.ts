@@ -64,7 +64,8 @@ export type TestimonialSectionData = Picture<"photo"> & { quote: string; name: s
 export type VideoSectionData = { heading?: string; source: "youtube" | "mp4"; youtube?: string | null; video?: string | null; caption?: string };
 export type DividerSectionData = { size?: "small" | "medium" | "large"; rule?: boolean };
 
-type Of<T extends PageSectionType, D> = { id: string; type: T; background: SectionBackground | null; data: D };
+/** `reveal` is an id from `SECTION_REVEALS` (lib/motion-choices.ts), or null for the section's own default. */
+type Of<T extends PageSectionType, D> = { id: string; type: T; background: SectionBackground | null; reveal?: string | null; data: D };
 
 /** One section as the public site draws it. */
 export type PageSection =
@@ -89,6 +90,7 @@ export type StoredSection = {
   type: PageSectionType | string;
   hidden: boolean;
   background: SectionBackground | null;
+  reveal?: string | null;
   data: Record<string, unknown>;
 };
 

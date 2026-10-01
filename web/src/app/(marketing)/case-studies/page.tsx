@@ -10,11 +10,12 @@ import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
 import type { CaseStudy } from "@/types/api";
 import { CountUp } from "@/components/ui/count-up";
+import { brandName } from "@/lib/brand";
 
 export const metadata = buildMetadata({
   title: "Case studies",
   description:
-    "Selected Technoware deployments across manufacturing, healthcare and corporate sites — with the outcomes measured, not asserted.",
+    `Selected ${brandName()} deployments across manufacturing, healthcare and corporate sites — with the outcomes measured, not asserted.`,
   path: "/case-studies",
 });
 

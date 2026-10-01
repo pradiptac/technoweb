@@ -98,7 +98,7 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
 
   return (
     <fieldset ref={ref} className="sm:col-span-2">
-      <legend className="mb-1 text-13-5 font-semibold">Theme</legend>
+      <legend className="mb-1 text-13-5 font-semibold">Colour palette</legend>
       <p className="measure mb-4 text-13 text-muted">
         One choice, applied to the site, the portal and this console. Whatever you pick, every
         shade is adjusted so text stays readable — the build refuses a palette that is not.

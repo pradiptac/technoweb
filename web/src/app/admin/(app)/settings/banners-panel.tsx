@@ -2,7 +2,7 @@
 
 import { CoverField } from "@/components/admin/cover-field";
 import type { SettingGroups } from "@/lib/admin";
-import { Input } from "@/components/ui/input";
+import { SettingSwitchField } from "./settings-fields";
 
 /**
  * The page banners, drawn as a grid of cards.
@@ -38,7 +38,7 @@ const SECTIONS: { key: string; label: string; pages: string }[] = [
   { key: "banner_default_path", label: "Default banner", pages: "Every section with nothing of its own — one upload dresses the whole site." },
   { key: "banner_solutions_path", label: "Solutions", pages: "/solutions and every solution page." },
   { key: "banner_products_path", label: "Products", pages: "/products, every category and product page, and /brands." },
-  { key: "banner_services_path", label: "Web Services", pages: "/services and every service page." },
+  { key: "banner_services_path", label: "Services", pages: "/services and every service page." },
   { key: "banner_industries_path", label: "Industries", pages: "/industries and every industry page." },
   { key: "banner_store_path", label: "Store", pages: "Store product and category pages. The shop's own front page has its hero slider instead." },
   { key: "banner_support_path", label: "Support", pages: "/support." },
@@ -53,35 +53,19 @@ export function BannersPanel({ rows }: { rows: SettingGroups[string] }) {
   return (
     <div>
       {/*
-        The switch and the size advice on one strip, above the pictures.
-
-        In the generic flow the switch was a full-width text box occupying a
-        cell meant for an image picker, with the tallest empty space on the
-        screen beside it. It is one character, so it gets the width of one.
+        The switch on a strip of its own, above the pictures — in the generic
+        flow it took a cell meant for an image picker, with the tallest empty
+        space on the screen beside it. The same `SettingSwitchField` every
+        other boolean setting is drawn with; it was a one-character text box
+        for as long as the rest were.
       */}
       {enabled && (
-        <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-line-strong bg-surface px-4 py-3">
-          <label htmlFor="setting__banner_enabled" className="text-13-5 font-semibold">
-            Show page banners
-          </label>
-          {/*
-            A plain input, not a checkbox, because every other boolean on this
-            screen is one — `store_promo_enabled`, `newsletter_tracking_enabled`
-            and the rest all take 1 or 0. Inventing a switch for this one group
-            would make the screen inconsistent with itself, which is a worse
-            trade than the box being unfashionable.
-          */}
-          <Input
-            id="setting__banner_enabled"
-            name="setting__banner_enabled"
-            defaultValue={enabled.value ?? "1"}
-            inputMode="numeric"
-            className="h-9 w-14 px-2 py-0 text-center text-14"
-          />
-          <p className="min-w-0 flex-1 text-12-5 text-muted">
-            1 to show them, 0 to hide them all without clearing the pictures below.
-          </p>
-        </div>
+        <SettingSwitchField
+          id="setting__banner_enabled"
+          label="Show page banners"
+          hint="Off hides them all without clearing the pictures below."
+          defaultValue={enabled.value ?? "1"}
+        />
       )}
 
       <p className="measure mb-4 text-12-5 text-muted">

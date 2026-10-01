@@ -162,13 +162,19 @@ class CsvImporter
      * @param  array<string, int|null>  $mapping
      * @param  array<int, int>  $groupIds
      * @param  ?list<string>  $domains  lower-cased; null means every domain
+     * @param  array<string, ?string>  $defaults  a value for every row whose own cell is blank —
+     *                                            a website crawl's industry and location
      */
-    public static function run(NewsletterImport $import, string $path, array $mapping, array $groupIds, ?array $domains = null, bool $includeRoles = true): NewsletterImport
+    public static function run(NewsletterImport $import, string $path, array $mapping, array $groupIds, ?array $domains = null, bool $includeRoles = true, array $defaults = []): NewsletterImport
     {
         $parsed = Spreadsheet::read($path);
         $emailColumn = $mapping['email'] ?? null;
         $allowed = $domains === null ? null : array_flip(array_map('strtolower', $domains));
-        $source = $import->isMailbox() ? 'mailbox' : 'import';
+        $source = match (true) {
+            $import->isMailbox() => 'mailbox',
+            $import->isCrawl() => 'crawl',
+            default => 'import',
+        };
 
         $tally = ['imported' => 0, 'updated' => 0, 'invalid' => 0, 'duplicates' => 0, 'suppressed' => 0, 'excluded' => 0];
         $seen = [];
@@ -199,7 +205,7 @@ class CsvImporter
 
             $result = SubscriberIntake::take(
                 $email,
-                self::attributes($row, $mapping),
+                array_merge(array_filter($defaults, 'filled'), array_filter(self::attributes($row, $mapping), 'filled')),
                 $groupIds,
                 $source,
             );
@@ -268,6 +274,11 @@ class CsvImporter
             'last_name' => $get('last_name'),
             'company' => $get('company'),
             'phone' => $get('phone'),
+            // Filled by a website crawl, or by a spreadsheet with those columns.
+            'industry' => $get('industry'),
+            'location' => $get('location'),
+            'website' => $get('website'),
+            'source_url' => $get('source_url'),
         ];
     }
 

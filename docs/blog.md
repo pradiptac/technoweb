@@ -59,3 +59,30 @@ write, because a parent id is a number in a request body. The IP is hashed with
 trying all four billion. The desk notification is throttled to **one an hour**,
 not one per comment — nobody is waiting on a blog comment, and four hundred
 emails from one spam run is the notification people build a filter for.
+
+## The category pills are not cards
+
+A control that fills on hover is never `bg-card`: the public site's card-ground rule paints a gradient *image* over that class, so a hover `background-color` sits under it — the category pills went white-on-white on hover (Summit, 2026-09-27) until they took `bg-(--color-card)`.
+
+## Featured, comments and categories on the post form
+
+**The post form sets all three (2026-09-28), and for months the API was
+ready and nothing sent them.** `is_featured` and `category_ids` had rules on
+both the store and the update request and came back on the admin resource,
+so the hero's featured set and a post's categories could be changed only by
+a seeder or a hand-written request. `comments_enabled` was worse: the store
+request accepted it and `UpdateBlogPostRequest` did not, so a post's comments
+could be opened or closed when it was created and never again — a key with no
+rule is dropped from `validated()` in silence, and the save reported success.
+
+They sit in the Content tab's aside, under the author, and the tab's `fields`
+list names all three so a 422 lands there. Featured and Comments are selects, like the
+aside's status and author. `is_featured` is read as `=== "1"` and
+`comments_enabled` as `!== "0"`, so a submission without either control
+leaves a post unfeatured and its comments open — never closed by omission. Categories are the
+`RelationPicker` over every blog category, empty ones included (fetched with
+`per_page: 100`), posted as the whole ticked set and replaced wholesale:
+`[]` files the post under none. Comments on a post still need the site-wide
+`comments_enabled` switch in Blog → Settings, which the hint says.
+`BlogTaxonomyTest::test_an_existing_post_can_be_featured_closed_and_refiled`
+pins the update path, closing and reopening included.

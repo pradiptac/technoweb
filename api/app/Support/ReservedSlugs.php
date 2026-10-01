@@ -33,7 +33,7 @@ final class ReservedSlugs
         'about', 'blog', 'brands', 'careers', 'cart', 'case-studies', 'certifications',
         'checkout', 'clients', 'contact', 'industries', 'knowledge-base', 'locations',
         'newsletter', 'order', 'products', 'resources', 'search', 'services', 'solutions',
-        'store', 'support', 'team', 'book-a-visit', 'visit',
+        'store', 'support', 'team', 'book-a-visit', 'visit', 'book-a-meeting', 'meeting', 'ticket-survey',
         // The application root.
         'admin', 'api', 'embed', 'portal', 'push', 'theme-preview', 'indexnow',
         'favicon.ico', 'sitemap.xml', 'robots.txt', 'llms.txt', 'llms-full.txt',

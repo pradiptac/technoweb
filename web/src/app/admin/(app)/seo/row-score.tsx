@@ -125,7 +125,7 @@ export function RecordScore() {
   return (
     <div>
       <div className="flex items-center gap-2">
-        <Ring value={score.value} band={score.band} size={34} />
+        <Ring value={score.value} size={34} />
         <div className="leading-tight">
           <span className={cn("font-display text-15 font-semibold", band.text)}>
             {score.value}
@@ -174,7 +174,7 @@ export function RecordScore() {
           }
         >
           <div className="mb-4 flex items-center gap-3">
-            <Ring value={score.value} band={score.band} size={52} />
+            <Ring value={score.value} size={52} />
             <div>
               <p className={cn("font-display text-22 font-semibold leading-none", band.text)}>
                 {score.value}

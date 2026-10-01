@@ -9,11 +9,12 @@ import { TeamGrid } from "@/components/company/team-grid";
 import { publicApi } from "@/lib/api";
 import { buildMetadata } from "@/lib/seo";
 import { heroStats, processSteps } from "@/content/site";
+import { brandName } from "@/lib/brand";
 
 export const metadata = buildMetadata({
   title: "About",
   description:
-    "Technoware designs, deploys and supports network, server and security infrastructure — with the documentation and the support desk that most vendors leave out.",
+    `${brandName()} designs, deploys and supports network, server and security infrastructure — with the documentation and the support desk that most vendors leave out.`,
   path: "/about",
 });
 
@@ -54,7 +55,7 @@ export default async function AboutPage() {
         section="company"
         kicker="About"
         title="Engineers first, resellers second."
-        lede="Technoware supplies and supports the infrastructure businesses actually run on — networks, servers, storage, security and surveillance. The hardware is the easy part; being reachable afterwards is what people stay for."
+        lede={`${brandName()} supplies and supports the infrastructure businesses actually run on — networks, servers, storage, security and surveillance. The hardware is the easy part; being reachable afterwards is what people stay for.`}
         crumbs={[{ name: "About", path: "/about" }]}
       />
 

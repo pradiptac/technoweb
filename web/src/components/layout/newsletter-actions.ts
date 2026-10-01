@@ -69,3 +69,29 @@ export async function unsubscribeAction(token: string): Promise<{ ok?: string; e
     return { error: "We could not reach the server. Please try again." };
   }
 }
+
+/**
+ * Follow a rejoin link: the POST that lifts the address's own unsubscribe
+ * (docs/newsletter.md, "Rejoining after an unsubscribe"). A POST from a
+ * button, never on page load, so a mail scanner opening the link changes
+ * nothing. Every dead link comes back as the API's one sentence.
+ */
+export async function rejoinAction(token: string): Promise<{ ok?: string; error?: string }> {
+  try {
+    const response = await fetch(`${base()}/api/v1/newsletter/rejoin/${encodeURIComponent(token)}`, {
+      method: "POST",
+      headers: { Accept: "application/json", ...(await clientIpHeaders()) },
+      cache: "no-store",
+    });
+
+    const body = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      return { error: body.message ?? "That link is no longer valid." };
+    }
+
+    return { ok: body.message ?? "You are back on the list." };
+  } catch {
+    return { error: "We could not reach the server. Please try again." };
+  }
+}

@@ -19,7 +19,7 @@ export const metadata = buildMetadata({ title: "Subscribers", path: "/admin/news
 export default async function SubscribersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; group?: string; verification?: string; page?: string; per_page?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; group?: string; verification?: string; industry?: string; page?: string; per_page?: string }>;
 }) {
   await requireScreen();
   const params = await searchParams;
@@ -34,6 +34,7 @@ export default async function SubscribersPage({
         status: params.status,
         group: params.group,
         verification: params.verification,
+        industry: params.industry,
         page: Number(params.page) || 1,
         per_page: Number(params.per_page) || undefined,
       }),
@@ -48,7 +49,18 @@ export default async function SubscribersPage({
   }
 
   const rows = result.data;
-  const filtered = Boolean(params.q || params.status || params.group || params.verification);
+  const filtered = Boolean(params.q || params.status || params.group || params.verification || params.industry);
+
+  // The export downloads what the screen shows: every filter the API's export
+  // accepts, carried over. It used to pass `status` alone, so a search or a
+  // group filter exported the whole list under a filtered screen.
+  const exportQuery = new URLSearchParams();
+  for (const key of ["q", "status", "group", "verification", "industry"] as const) {
+    const value = params[key];
+    if (value) exportQuery.set(key, value);
+  }
+  const exportQs = exportQuery.toString();
+  const exportHref = `/api/admin/newsletter/export${exportQs ? `?${exportQs}` : ""}`;
 
   return (
     <>
@@ -75,6 +87,9 @@ export default async function SubscribersPage({
           <ButtonLink href="/admin/newsletter/subscribers/import/mailbox" variant="secondary" size="sm">
             From a mailbox
           </ButtonLink>
+          <ButtonLink href="/admin/newsletter/subscribers/import/crawl" variant="secondary" size="sm">
+            From a website
+          </ButtonLink>
           {/*
             A plain anchor, **not** `ButtonLink` — and this was measured rather
             than reasoned about.
@@ -90,7 +105,7 @@ export default async function SubscribersPage({
             navigate to a text/csv response.
           */}
           <a
-            href={`/api/admin/newsletter/export${params.status ? `?status=${params.status}` : ""}`}
+            href={exportHref}
             download
             className="inline-flex min-h-[34px] items-center rounded border border-line-strong bg-card px-3 text-13 font-semibold shadow-1 hover:border-faint"
           >
@@ -131,6 +146,15 @@ export default async function SubscribersPage({
           </Select>
         </FilterField>
 
+        {result.meta.industries.length > 0 && (
+          <FilterField label="Industry" htmlFor="industry">
+            <Select id="industry" name="industry" defaultValue={params.industry ?? ""}>
+              <option value="">Any</option>
+              {result.meta.industries.map((i) => <option key={i} value={i}>{i}</option>)}
+            </Select>
+          </FilterField>
+        )}
+
         <div className="flex gap-2">
           <button type="submit" className="rounded border border-brand-600 bg-brand-600 px-3 text-13 font-semibold text-brand-on hover:bg-brand-700">
             Apply
@@ -145,10 +169,14 @@ export default async function SubscribersPage({
         <EmptyState icon={<IconUsers />} title={filtered ? "Nothing matches" : "No subscribers yet"}>
           {filtered ? "Try a different term, or clear the filters." : (
             <>
-              Two ways to add people:{" "}
+              Several ways to add people:{" "}
               <Link href="/admin/newsletter/subscribers/import" className="font-semibold text-brand-ink underline">
                 import a CSV or Excel file
               </Link>
+              , read them from{" "}
+              <Link href="/admin/newsletter/subscribers/import/mailbox" className="font-semibold text-brand-ink underline">a mailbox</Link>{" "}
+              or{" "}
+              <Link href="/admin/newsletter/subscribers/import/crawl" className="font-semibold text-brand-ink underline">a website</Link>
               , or paste a list of addresses using the buttons above. Your portal customers
               are already here — they are kept in the{" "}
               <Link href="/admin/newsletter/groups" className="font-semibold text-brand-ink underline">
@@ -164,6 +192,7 @@ export default async function SubscribersPage({
             <tr className="border-b border-line text-left text-12 uppercase tracking-[.04em] text-muted">
               <th className="py-2 pr-3 font-semibold">Email</th>
               <th className="py-2 pr-3 font-semibold">Name</th>
+              <th className="py-2 pr-3 font-semibold">Industry</th>
               <th className="py-2 pr-3 font-semibold">Groups</th>
               <th className="py-2 pr-3 font-semibold">Status</th>
               <th className="py-2 font-semibold" />
@@ -178,7 +207,7 @@ export default async function SubscribersPage({
       <Pagination
         meta={result.meta}
         basePath="/admin/newsletter/subscribers"
-        params={{ q: params.q, status: params.status, group: params.group, verification: params.verification, per_page: params.per_page }}
+        params={{ q: params.q, status: params.status, group: params.group, verification: params.verification, industry: params.industry, per_page: params.per_page }}
       />
 
       {result.meta.total_suppressed > 0 && (

@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
+use App\Support\Mail\MailBrand;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -52,6 +53,6 @@ class RegistrationAttempted extends Notification implements ShouldQueue
             ->line('If that was you, sign in with your existing password instead.')
             ->action('Sign in', $base.'/portal/login')
             ->line('Forgotten it? Use the "Forgotten your password?" link on that page.')
-            ->salutation('— Technoware');
+            ->salutation(MailBrand::signoff());
     }
 }

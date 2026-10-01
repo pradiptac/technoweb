@@ -37,9 +37,13 @@ const PRIVATE = [
   "/embed/",
   "/products/compare",
   "/newsletter/unsubscribe/",
+  "/newsletter/rejoin/",
   // A guest's own visit request, opened by a token in a cookie (docs/visits.md).
   // `/book-a-visit` itself is public and stays allowed.
   "/visit/",
+  // A guest's own online meeting, the same arrangement (docs/meetings.md).
+  // `/book-a-meeting` is public and stays allowed.
+  "/meeting/",
 ];
 
 const AI_CRAWLERS = [

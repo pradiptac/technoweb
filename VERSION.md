@@ -21,6 +21,283 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.99.1 — 2026-09-30
+
+**Fixed: a new install could keep showing its first, unstyled pages for hours.**
+On some servers the home page and the main index pages stayed in the default
+theme, without the dropdown menus and without the colours chosen in the
+console, for hours after setup — although everything in the console was right.
+The installer now refreshes them itself, and the same is done at the end of
+every update. Nothing to do for a site that installs this version. A site
+installed from 0.99.0 that shows this heals by itself within a few hours, or
+sooner if you ask your supplier.
+
+## 0.99.0 — 2026-09-30
+
+**A satisfaction survey when a ticket is closed.** The customer is emailed one
+question — how would you rate the resolution you received from our support
+team? — with five buttons, Very Bad to Excellent. A button opens a page on
+your website that records it, then asks for feedback — what went wrong after a
+low rating, what went well after a high one. The answer appears on the ticket in the console, under **Customer
+satisfaction**.
+
+- **Sent once per ticket**, when it is closed by you, by the customer, or in
+  bulk. Reopening and closing again does not ask a second time, and a ticket
+  merged into another is not asked.
+- **On by default.** After this update, tickets closed from now on send the
+  survey. To switch it off, or to reword the email, see **Tickets → Email to ticket →
+  Satisfaction survey** and **System → Settings → Email templates**.
+
+## 0.98.1 — 2026-09-29
+
+**The Services menu opens to its categories.** Hover Services in the header
+and it shows Web services, Hardware services and Installation services, each
+with its icon, a line about it and its services underneath; the phone menu
+nests the same way, and every service in it has a small icon in its own
+colour. The header link is "Services" rather than "Web
+Services". A site whose menu was set up before this keeps its old list until
+you press **Rebuild to default** on Site → Menus (or regroup it there by hand) — nothing
+changes a menu you arranged. A category can be placed in any menu too, as
+its own item.
+
+- **Sales managers can find customers when scheduling a meeting.** The
+  search on Schedule a meeting only ever found customers for the support
+  desk; it now works for everyone who uses the diary, and "Open the
+  customer" appears only for those who can open one.
+
+
+**Customers book an online meeting at a time that is actually free.** A new
+page, **Book a meeting**, lets a visitor pick a kind of call, a day and a
+time, and book it — no back-and-forth. The times offered are the ones a
+host is really free: inside their working hours, clear of their time off,
+their other meetings (with a gap either side if the kind of call asks for
+one) and, with Google connected, their Google Calendar. Two people can
+never be booked into one host's slot. The booking goes on the company's
+Google Calendar with a **Google Meet link**, the customer gets a
+confirmation (with a calendar file when Google is not connected) and
+reminders a day and an hour before, and can move or cancel it from the
+link in their email or from the portal, up to a cut-off you set. Every
+booking is a lead.
+
+In the console, **Meetings** is the diary: schedule a call on somebody's
+behalf (outside working hours or over a busy time if you tick to say so),
+move it to another time or host, record whether it happened, and retry a
+Google sync that failed. **Meetings → Types** sets the kinds of call and
+their length; **Meetings → Hosts** says who takes calls and when (a host
+needs the new **Meeting host** role); **My meetings** is a host's own list.
+It is **off until you switch it on** in Meetings → Settings, and needs at
+least one type and one host first.
+
+Also in this release:
+
+- **Services are grouped into categories.** Catalogue → **Service
+  categories** makes groups — Web services, Hardware services, Installation
+  services to start with — and each service can be filed under one and given
+  a picture. The homepage's Services section and the Services page show one
+  tab per category, in every theme; a category can show its services'
+  pictures as the cards' backgrounds. The homepage used to show a fixed list
+  of web services that the console could not change.
+- **Service cards carry highlights** — a few words drawn as small tags in
+  the card's own colour, such as ".com · .in · .org" or "Google Workspace ·
+  Microsoft 365". Add up to six on each service's form, under the summary.
+- **The customer portal switch works.** Customers → Portal → **Customer
+  portal enabled**, off, closes the portal: nobody can sign in, register or
+  reset a password, a session already open stops working, and every link to
+  the portal leaves the website. Guest checkout and visit and meeting
+  requests still work. The switch was on the screen before and did nothing.
+- **The dashboard is grouped by desk** instead of one wall of same-sized
+  tiles, and shows today's meetings and the ones waiting for an outcome.
+- **A product's datasheet is kept when the product is saved.** The product
+  form had no datasheet field, so every save quietly removed the datasheet;
+  it has one now, with Remove.
+- **Every on/off setting is a switch**, and settings across the console
+  gained a line saying what they do.
+- **With no logo uploaded, the header shows your company's name** instead
+  of a fixed wordmark.
+- **The subscriber export downloads what the screen shows** — the filters
+  apply to the file too — and the SEO screen's "Draft for these" says how
+  many will really be queued.
+- Role descriptions on the Staff screen and the customer-approval wording
+  now match what each actually does.
+
+## 0.97.0 — 2026-09-28
+
+**Ticket, visit and order numbers carry your own letters.** The letters in
+front of every ticket number (`TW-2026-00042`), engineer visit and shop order
+are now settings: Settings → Identity → **Reference numbers**, two to six
+letters or digits starting with a letter. A new install starts from your
+company's initials — Acme Networks gets `AN-` tickets and `ANV-` visits;
+orders stay `ORD-` — and an install that already has numbers keeps the
+letters it had until you change them. A change applies to new numbers only:
+every existing ticket, visit and order keeps its number, the count starts
+again at 00001 under the new letters, and a customer replying by email to a
+ticket numbered under the old ones still reaches it. The examples in the
+email templates show the new shape.
+
+Also in this release:
+
+- **The blog post form sets Featured, Comments and Categories.** Mark a
+  post Featured to put it in the lead area at the top of the blog; open or
+  close its comments whenever you like (readers can comment only while Blog
+  → Settings allows comments too); and file it under any of the blog's
+  categories, with a link to add or rename them. None of the three could be
+  set from the console before.
+- **The software is called ALTIS TECH-CMS.** Each release arrives as
+  `altis-tech-cms-<version>.zip`, and the setup wizard names it. Your site,
+  your emails and your console carry your company's name, never ours.
+
+---
+
+## 0.96.0 — 2026-09-28
+
+**Installed from a zip, updated from the console.** The software now ships as
+one signed release file per version. A new install is set up in the browser:
+open `/install/` on the API address and a wizard checks the server, connects
+the database, asks for your company's name, your two addresses and your first
+administrator, creates everything, then connects the website and the
+scheduler. It keeps the made-up sample content out unless you ask for it,
+and puts your company's name, not ours, in every setting. Updates arrive the
+same way: **System → Updates** takes the zip (uploaded in pieces, or dropped
+in the `updates` folder), checks that your supplier signed it, and applies it
+while the console waits — a safety copy of the database first, then the new
+version, the database changes, a restart of the website and a refresh of
+every page. The version before stays on the server, and **Roll back** puts
+it back, the database with it when the update changed it. **System → System
+status** shows the installed version and whether the website, the database
+and the scheduler all agree with it. The manual for administrators ships in
+the zip.
+
+---
+
+## 0.95.0 — 2026-09-28
+
+**Subscribers from a website.** Campaign → Subscribers → **From a website**
+reads a site to the depth you choose — a trade directory, an association's
+member list, or one company's own site — and collects the names and
+addresses it publishes: `mailto:` links with their names, JSON-LD, the
+`name [at] domain [dot] com` spellings and Cloudflare-protected addresses,
+each given the business on its card or page. For a directory it can also
+open each listed business's own website (its home page and up to three
+contact-like pages), and it can ask Hunter for the addresses it knows at
+the domains found, within the plan's searches. Everyone is tagged with an
+industry and a location — new columns on the subscriber, and a group named
+after the industry, made at the review if you tick it. The review and the
+commit are the mailbox scan's: counts, the domain table, role addresses,
+groups; nothing is written until then and the do-not-mail list still wins.
+Polite by construction: robots.txt is obeyed, a site is asked once a
+second, only public addresses are fetched and every redirect is re-checked.
+The subscriber list gains an Industry column and filter, the export the
+four new columns, and a CSV or Excel import can fill them too. See
+`docs/newsletter.md`, "Crawling a website".
+
+Also in this release, on the public themes:
+
+- **Every Add to basket in a row of product cards sits on one line**, in
+  every theme, whatever the name, the summary or a discount badge above it.
+- **No homepage section ends on a half-empty row**, in any theme: a short
+  last row is left out and a short single row widens to fill; Horizon shows
+  its case studies four and six across instead of two.
+- **Canvas's cards are solid colour**: tiles and front-page cards turn
+  through the palette's brand, accent and secondary shades, each with an ink
+  that reads on it in both schemes, softer words under a heading that sits on
+  a Google-colour highlight, and the four statistics under the hero
+  are Google blue, red, yellow and green.
+- **Every dropdown fades in**, in every theme and the Customer Zone menu —
+  no more instant swap that read as a flicker between two menus.
+- **Editorial**: the masthead is shorter so the hero slider fits the first
+  screen, and the shop's products are bordered cards.
+- **Vantage**: the hero slider fills the window exactly, top to bottom, at
+  every size, with the info bar's ticker on top of it — it was hidden under
+  the slider — and the page no longer jumps when the header turns solid on
+  scroll.
+- **Keystone**: the footer shows the social tiles once rather than twice,
+  and "Subscribe to our newsletter" stays on one line.
+- **The team page is different in every theme.** Editorial a newspaper
+  staff box, Datacenter access badges, Terminal a directory listing,
+  Canvas centred profiles, Vantage photographs with the words on them,
+  Sentinel wide cards with a glowing seam, Summit a portrait floating over
+  the card, Keystone contact cards, Horizon a brand band behind a framed
+  photo, Enterprise leadership rows; Classic and Launch keep theirs. The
+  theme preview has a **Team** view to compare them.
+- **Datacenter and Terminal**: the shop's product pictures are larger and
+  the wishlist heart sits in the Add to basket row.
+- **Summit**: the hero and every page's title band are a deep brand-to-accent
+  gradient rather than black, a tile's name band is navy with no light line
+  under the picture, the hero text sits closer to the header, and a
+  certification card's name is no longer white on white. The blog's category
+  pills (every theme) no longer turn white on hover.
+
+## 0.94.0 — 2026-09-27
+
+**Backups: full and incremental, to S3, Google Drive and FTP/SFTP, and
+restores from the console.** System → Backups takes the database and the
+uploaded files — the media library, ticket attachments, CVs, invoices — on a
+schedule (a full on the chosen day, incrementals every 24, 12 or 6 hours) or
+on demand, and sends each backup to every destination switched on under
+Backup settings: Amazon S3 or anything S3-compatible (Backblaze B2,
+Cloudflare R2, Wasabi, DigitalOcean Spaces, MinIO), a Google Drive through a
+consent that sees only the files it made, and an SFTP, FTPS or FTP server,
+any of them at once. An incremental carries only the files that changed; the
+database is dumped whole every time (`mysqldump`, or PHP where the host will
+not run it). Old backups are deleted a whole chain at a time. A backup that
+fails, or does not reach a destination, says so on the screen and by email.
+Restore from any backup the server remembers, or — on a new server — from a
+folder found on a destination; a safety copy of the current database is
+taken first, and the site answers "try again in a few minutes" while the
+database is replaced. `php artisan technoware:backup` and
+`technoware:backup-restore` do the same from a terminal. See
+`docs/backups.md`.
+
+## 0.93.0 — 2026-09-27
+
+**Four more ways for a section to arrive: Assemble, Cascade, Focus, Unfold.**
+On the Appear select of every page-builder section and homepage row, and —
+Assemble, Cascade and Unfold — as the site-wide *Sections arriving* style
+(Focus was already there). Assemble brings a section's pieces in one after
+another, slightly smaller and tilted, settling on a spring; Cascade rises
+them in turn; Focus sharpens the section from a blur; Unfold uncovers it
+from the top. Pieces animate without touching a card's own hover, nothing
+moves for reduced motion, and nothing widens a phone screen (0px measured
+mid-flight at 320px). `scripts/probes/section-reveal-styles.mjs` measures
+all of it; see `docs/motion.md`.
+
+## 0.92.1 — 2026-09-27
+
+**The nav underline is drawn, not flicked.** The line under a hovered, focused
+or open header link sweeps in over 600ms (`--duration-draw`, a new token in
+`globals.css`) instead of 200ms, and retracts at `--duration-slow`. All four
+headers that carry one — classic, Terminal, Editorial, Datacenter. Sampled
+mid-flight: 57% of the width at ~200ms, 92% at 350ms, complete at 600ms.
+
+## 0.92.0 — 2026-09-27
+
+**Each section chooses how it appears.** Every page-builder section card and
+every homepage section row on the Themes screen has an **Appear** select —
+Rise, Fade, Zoom, Drop or None, plus Default on the builder — drawn with the
+existing scroll-reveal CSS, so the site-wide *Sections arriving* style still
+shapes it and reduced motion still turns it off. Defaults are what each
+section did before: builder sections rise, an opening hero never animates,
+homepage sections stay still until one is chosen. Stored as `reveal` on the
+builder section and on the homepage section row; nothing chosen serves the
+same markup as before.
+- The Motion and Sign-in screen pickers in Site settings span the whole
+  width: they sat in one column of the settings grid and stopped at half the
+  screen.
+
+---
+
+## 0.91.0 — 2026-09-27
+
+**Score gauges coloured by percentage.** Every score ring on `/admin/seo` —
+the site card, each row, the "to improve" dialog — and on the AEO tab of
+every entity form is now a 270° gauge open at the bottom, painted red,
+orange, yellow and green along the arc up to the score over a grey track.
+The stops sit on the bands (red at 0, orange 35, yellow 60, green from 80),
+so the colour at the tip agrees with the Good/Fair/Poor figure beside it.
+Four tokens, `--color-gauge-0…3`, in both schemes.
+
+---
+
 ## 0.90.1 — 2026-09-27
 
 **Two page-builder findings from the full audit run.**

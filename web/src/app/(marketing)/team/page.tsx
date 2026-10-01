@@ -8,11 +8,12 @@ import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
 import type { TeamMember } from "@/types/api";
+import { brandName } from "@/lib/brand";
 
 export const metadata = buildMetadata({
   title: "Our team",
   description:
-    "The engineers who design, install and support Technoware networks — and the certifications they hold.",
+    `The engineers who design, install and support ${brandName()} networks — and the certifications they hold.`,
   path: "/team",
 });
 

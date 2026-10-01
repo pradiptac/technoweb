@@ -7,7 +7,7 @@ use App\Enums\MessageEvent;
 use App\Jobs\SendChannelMessage;
 use App\Models\MessageAutomation;
 use App\Models\MessageDelivery;
-use App\Models\Setting;
+use App\Support\Mail\MailBrand;
 use App\Support\QueueHealth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -98,7 +98,7 @@ final class Messenger
         return $vars + [
             'customer_name' => $name,
             'first_name' => $name === '' ? '' : strtok($name, ' '),
-            'site_name' => (string) Setting::get('company_name', 'Technoware'),
+            'site_name' => MailBrand::name(),
         ];
     }
 

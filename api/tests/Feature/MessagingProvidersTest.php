@@ -178,7 +178,9 @@ class MessagingProvidersTest extends TestCase
         (new GupshupWhatsApp)->submitTemplate($template);
         Http::assertSent(fn (ClientRequest $r) => str_ends_with($r->url(), '/wa/app/app-1/template')
             && $r->data()['content'] === 'Hi {{1}}, we have your payment for {{2}} — {{3}}. Thank you, {{1}}.'
-            && $r->data()['example'] === 'Hi Neil, we have your payment for TW-10042 — ₹12,400. Thank you, Neil.');
+            // The review example is filled from Samples, whose order number
+            // follows the install's prefix and the year (ORD-YYYY-00042).
+            && $r->data()['example'] === 'Hi Neil, we have your payment for ORD-'.now()->year.'-00042 — ₹12,400. Thank you, Neil.');
     }
 
     public function test_gupshup_without_a_template_id_refuses_before_calling(): void

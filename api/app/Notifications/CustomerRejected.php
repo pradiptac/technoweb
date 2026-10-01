@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
+use App\Support\Mail\MailBrand;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -44,7 +45,7 @@ class CustomerRejected extends Notification implements ShouldQueue
     protected function defaultMail(object $notifiable): MailMessage
     {
         $mail = (new MailMessage)
-            ->subject('About your Technoware portal registration')
+            ->subject('About your '.MailBrand::name().' portal registration')
             ->greeting('Thanks for registering')
             ->line('We were not able to activate a support portal account for this address.')
             ->line('This usually means we could not match the address to a current support agreement.');
@@ -53,6 +54,6 @@ class CustomerRejected extends Notification implements ShouldQueue
             $mail->line('If you think that is wrong, reply to '.$this->supportEmail.' and we will sort it out.');
         }
 
-        return $mail->salutation('— Technoware');
+        return $mail->salutation(MailBrand::signoff());
     }
 }

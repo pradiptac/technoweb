@@ -1,10 +1,13 @@
 import "server-only";
 import { createElement, type ReactNode } from "react";
 import { publicApi } from "@/lib/api";
-import { iconMap, type IconName } from "@/components/icons";
+import { IdentityIcon, iconMap, type IconName } from "@/components/icons";
 import { IconTile } from "@/components/ui/icon-tile";
 import type { NavNode } from "@/types/api";
 import { navKey } from "@/lib/nav-key";
+import { isPortalHref } from "@/lib/site-settings";
+import { footerNav } from "@/content/site";
+import { groupServices } from "@/lib/service-groups";
 
 /*
  * Icons are resolved here, on the server, and cross to the header as
@@ -30,6 +33,15 @@ const tileFor = (name: string | null): ReactNode =>
 /** The same tile at the drawer's size. */
 const smallTileFor = (name: string | null): ReactNode =>
   isIcon(name) ? createElement(IconTile, { name, size: "sm" }) : null;
+
+/**
+ * A bare glyph in its identity hue, 16px, for a row below the first in a
+ * panel or the drawer — a service under its category — where a tile would
+ * make every level read as its own grid (the client, 2026-09-29: "small
+ * colourful icons for every service").
+ */
+const colourGlyphFor = (name: string | null | undefined): ReactNode =>
+  isIcon(name) ? createElement(IdentityIcon, { name, className: "size-4" }) : null;
 
 /** A bare glyph, for the flat bars — sized by the slot it sits in. */
 const glyphFor = (name: string | null | undefined): ReactNode =>
@@ -60,6 +72,8 @@ export type MenuItem = {
   tile: ReactNode | null;
   /** The same tile at the drawer's size. */
   icon: ReactNode | null;
+  /** A small bare glyph in its hue, drawn when the entry is a row below the first level. */
+  glyph?: ReactNode | null;
   summary?: string | null;
   /**
    * Open in a new tab, as the menu item was saved. `toItem` dropped this for
@@ -93,6 +107,7 @@ function toItem(node: NavNode): MenuItem {
     href: node.href,
     tile: tileFor(node.icon),
     icon: smallTileFor(node.icon),
+    glyph: colourGlyphFor(node.icon),
     summary: node.summary,
     newTab: node.new_tab,
     children: node.children.map(toItem),
@@ -108,12 +123,35 @@ export async function getMegaMenu(): Promise<Record<string, MenuSection>> {
     // `true` asks each endpoint for only what is marked for the menu. The
     // index pages call the same getters without it and still get everything --
     // being published and being in the navigation are separate decisions.
-    const [solutions, categories, services, industries] = await Promise.all([
+    const [solutions, categories, services, industries, serviceCategories] = await Promise.all([
       publicApi.solutions(true).then((r) => r.data),
       publicApi.productCategories(true).then((r) => r.data),
       publicApi.services(true).then((r) => r.data),
       publicApi.industries(true).then((r) => r.data),
+      // Caught on its own: without categories the services are one flat list.
+      publicApi.serviceCategories().then((r) => r.data).catch(() => []),
     ]);
+
+    /*
+     * Services → each service category → its services (the client,
+     * 2026-09-29), the grouping the Services section's tabs use. A category
+     * is an entry with its icon and description, linking to its own tab;
+     * its services are the plain list under it. With one group or none the
+     * panel stays the flat list it was, since a lone heading groups nothing.
+     */
+    const groups = groupServices(services, serviceCategories);
+    const serviceItems: MenuItem[] = groups.length > 1
+      ? groups.map((g) => ({
+          label: g.name,
+          href: `/services#${g.slug}`,
+          tile: tileFor(g.icon),
+          icon: smallTileFor(g.icon),
+          summary: g.description,
+          children: g.items.map((s) => ({ label: s.title, href: `/services/${s.slug}`, tile: null, icon: null, glyph: colourGlyphFor(s.icon) })),
+        }))
+      : services.map((s) => ({
+          label: s.title, href: `/services/${s.slug}`, tile: tileFor(s.icon), icon: smallTileFor(s.icon), summary: s.summary,
+        }));
 
     const sections: Record<string, MenuSection> = {
       "/solutions": {
@@ -132,10 +170,8 @@ export async function getMegaMenu(): Promise<Record<string, MenuSection>> {
       },
       "/services": {
         key: "/services",
-        viewAll: { label: "All web services", href: "/services" },
-        items: services.map((s) => ({
-          label: s.title, href: `/services/${s.slug}`, tile: tileFor(s.icon), icon: smallTileFor(s.icon), summary: s.summary,
-        })),
+        viewAll: { label: "All services", href: "/services" },
+        items: serviceItems,
       },
       "/industries": {
         key: "/industries",
@@ -374,4 +410,95 @@ export async function getFooterNav(): Promise<{ heading: string; href: string | 
   } catch {
     return null;
   }
+}
+
+/* ------------------------------------------------ the portal switched off */
+
+type FooterColumns = NonNullable<Awaited<ReturnType<typeof getFooterNav>>>;
+type PrimaryNav = NonNullable<Awaited<ReturnType<typeof getPrimaryNav>>>;
+
+/**
+ * The built-in footer columns in the shape `getFooterNav()` answers — what
+ * `SiteFooter` falls back to on its own. Needed here so a closed portal can
+ * take its three links out of the built-in Support column too.
+ */
+export function defaultFooterNav(): FooterColumns {
+  return footerNav.map((col) => ({
+    heading: col.heading,
+    href: null,
+    links: col.links.map((l) => ({ label: l.label, href: l.href, newTab: false })),
+  }));
+}
+
+/**
+ * A link into the portal is dropped; one with something left under it stays
+ * as a heading over that (a "Customer zone" pointing at the login page still
+ * holds Knowledge base); a heading left with nothing under it goes too.
+ */
+function prunedTree<T extends { href: string | null }>(
+  node: T,
+  children: readonly unknown[] | undefined,
+  pruned: readonly unknown[] | undefined,
+): T[] {
+  const hadChildren = (children?.length ?? 0) > 0;
+  const hasChildren = (pruned?.length ?? 0) > 0;
+  if (isPortalHref(node.href)) return hasChildren ? [{ ...node, href: null }] : [];
+  if (node.href === null && hadChildren && !hasChildren) return [];
+  return [node];
+}
+
+function withoutPortalItems(items: MenuItem[]): MenuItem[] {
+  return items.flatMap((item) => {
+    const children = item.children ? withoutPortalItems(item.children) : undefined;
+    return prunedTree({ ...item, ...(children ? { children } : {}) }, item.children, children);
+  });
+}
+
+function withoutPortalLinks(links: NavLink[]): NavLink[] {
+  return links.flatMap((link) => {
+    const children = link.children ? withoutPortalLinks(link.children) : undefined;
+    return prunedTree({ ...link, ...(children ? { children } : {}) }, link.children, children);
+  });
+}
+
+/**
+ * The chrome's navigation with every link into the customer portal taken
+ * out, for `portal_enabled` off (`lib/chrome.ts`). A closed portal would
+ * otherwise be advertised in the top bar, the drawer and the footer of every
+ * page — whether the link came from the built-in lists or from a menu an
+ * editor assigned. The built-in lists are resolved first, because a null
+ * here means "use the built-in one" and the built-in top bar and footer are
+ * exactly where Customer login and Track a ticket live.
+ */
+export function navWithoutPortal(nav: {
+  primary: PrimaryNav | null;
+  footerMenu: FooterColumns | null;
+  topBar: TopBarLink[] | null;
+  bottomBar: (NavLink & { href: string })[] | null;
+}) {
+  const topBar = (nav.topBar ?? defaultTopBar()).flatMap((link) => {
+    const items = withoutPortalItems(link.items);
+    return prunedTree({ ...link, items }, link.items, items);
+  });
+
+  const footerMenu = (nav.footerMenu ?? defaultFooterNav()).flatMap((col) => {
+    const links = withoutPortalLinks(col.links);
+    const href = isPortalHref(col.href) ? null : col.href;
+    return links.length === 0 && href === null ? [] : [{ ...col, href, links }];
+  });
+
+  const primary = nav.primary && {
+    links: withoutPortalLinks(nav.primary.links),
+    sections: Object.fromEntries(
+      Object.entries(nav.primary.sections).map(([key, section]) => [key, {
+        ...section,
+        items: withoutPortalItems(section.items),
+        viewAll: section.viewAll && isPortalHref(section.viewAll.href) ? null : section.viewAll,
+      }]),
+    ),
+  };
+
+  const bottomBar = nav.bottomBar && nav.bottomBar.filter((link) => !isPortalHref(link.href));
+
+  return { primary, footerMenu, topBar, bottomBar };
 }

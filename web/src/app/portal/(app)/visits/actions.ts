@@ -8,7 +8,7 @@ import { readPreferred } from "@/lib/visits";
 import type { VisitManageState } from "@/components/visits/visit-manage";
 
 /** The portal's two moves on a customer's own request — authorised by the session. */
-export async function cancelMyVisitAction(reference: string, _prev: VisitManageState): Promise<VisitManageState> {
+export async function cancelMyVisitAction(reference: string): Promise<VisitManageState> {
   try {
     await cancelMyVisit(reference);
   } catch (error) {

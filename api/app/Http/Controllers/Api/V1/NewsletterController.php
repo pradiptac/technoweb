@@ -14,6 +14,7 @@ use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterSuppression;
 use App\Models\Setting;
 use App\Support\Newsletter\BounceWebhook;
+use App\Support\Newsletter\Rejoin;
 use App\Support\Newsletter\SubscriberIntake;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -69,15 +70,60 @@ class NewsletterController extends Controller
         }
 
         $group = NewsletterGroup::where('slug', 'general-newsletter')->first();
+        $groupIds = $group ? [$group->id] : [];
 
-        SubscriberIntake::take(
-            $data['email'],
-            $data,
-            $group ? [$group->id] : [],
-            'signup',
-        );
+        $outcome = SubscriberIntake::take($data['email'], $data, $groupIds, 'signup');
+
+        /*
+         * An address that unsubscribed may come back — but only by saying so
+         * from its own inbox, because anybody can type anybody's address into
+         * this form. `Rejoin::offer()` mails the link when the suppression is
+         * the person's own unsubscribe and does nothing for a complaint, a
+         * bounce or a desk entry; the answer below is the same either way.
+         */
+        if ($outcome['outcome'] === SubscriberIntake::SUPPRESSED) {
+            Rejoin::offer($data['email'], $data, $groupIds);
+        }
 
         return $answer;
+    }
+
+    /**
+     * Whose rejoin link this is, so the page can name the address.
+     *
+     * One 404 for every dead link — unknown, expired, replaced by a newer one,
+     * or confirmed and since undone by a later unsubscribe. `confirmed` is true
+     * for a link already followed while the address is still on the list, so
+     * the page says "you are back" rather than offering the button again.
+     */
+    public function rejoinDetails(string $token): JsonResponse
+    {
+        $details = Rejoin::details($token);
+
+        if ($details === null) {
+            return response()->json(['message' => 'That link is no longer valid.'], 404);
+        }
+
+        return response()->json(['data' => $details]);
+    }
+
+    /**
+     * Follow a rejoin link: lift the address's own unsubscribe and make it
+     * active again. POST, so a mail scanner fetching the link changes nothing,
+     * and idempotent while the address is still on the list. See `Rejoin`.
+     */
+    public function rejoin(string $token): JsonResponse
+    {
+        $email = Rejoin::confirm($token);
+
+        if ($email === null) {
+            return response()->json(['message' => 'That link is no longer valid.'], 404);
+        }
+
+        return response()->json([
+            'data' => ['email' => $email],
+            'message' => 'You are back on the list. Thank you for coming back.',
+        ]);
     }
 
     /**

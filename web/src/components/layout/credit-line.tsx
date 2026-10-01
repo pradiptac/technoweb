@@ -10,11 +10,11 @@
  * and nobody notices until a client does.
  */
 export function CreditLine({
-  companyName = "Technoware",
+  companyName,
   className = "",
   linkClassName = "",
 }: {
-  companyName?: string;
+  companyName: string;
   className?: string;
   linkClassName?: string;
 }) {

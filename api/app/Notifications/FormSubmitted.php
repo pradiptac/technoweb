@@ -9,6 +9,7 @@ use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
 use App\Support\Crm\LeadMailLines;
 use App\Support\HtmlSanitiser;
+use App\Support\Mail\MailBrand;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -95,7 +96,7 @@ class FormSubmitted extends Notification implements ShouldQueue
             $message->replyTo($replyTo);
         }
 
-        return $message->salutation('— Technoware');
+        return $message->salutation(MailBrand::signoff());
     }
 
     /**

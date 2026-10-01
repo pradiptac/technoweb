@@ -48,7 +48,7 @@ export function PromptHeader({
     <>
       <header className="sticky top-0 z-40 border-b border-line-strong bg-page">
         <Container className={cn("flex h-14 min-w-0 items-center gap-2 font-mono", bigMenu && "relative")}>
-          <Link href="/" aria-label="Technoware home" className="flex shrink-0 items-center gap-2">
+          <Link href="/" aria-label={settings.company_name ? `${settings.company_name} home` : "Home"} className="flex shrink-0 items-center gap-2">
             <span aria-hidden className="text-13 text-brand-ink">$</span>
             <Logo
               className="max-[419px]:text-17"
@@ -66,7 +66,7 @@ export function PromptHeader({
                 menu={menu}
                 menuStyle={menuStyle}
                 isStoreItem={isStoreItem}
-                linkClassName="relative flex items-center gap-1 whitespace-nowrap px-2 py-4 text-12-5 text-ink-2 transition-colors duration-(--duration-base) hover:text-brand-ink after:absolute after:inset-x-2 after:bottom-0 after:h-[3px] after:origin-left after:scale-x-0 after:bg-brand-500 after:transition-[scale] after:duration-(--duration-base) after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-[:focus-within:not([data-closed])]:after:scale-x-100 motion-reduce:after:transition-none"
+                linkClassName="relative flex items-center gap-1 whitespace-nowrap px-2 py-4 text-12-5 text-ink-2 transition-colors duration-(--duration-base) hover:text-brand-ink after:absolute after:inset-x-2 after:bottom-0 after:h-[3px] after:origin-left after:scale-x-0 after:bg-brand-500 after:transition-[scale] after:duration-(--duration-slow) hover:after:duration-(--duration-draw) focus-visible:after:duration-(--duration-draw) group-[:focus-within:not([data-closed])]:after:duration-(--duration-draw) after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-[:focus-within:not([data-closed])]:after:scale-x-100 motion-reduce:after:transition-none"
                   chevronClassName="size-[11px]"
                   cartBadgeClassName="relative -top-[7px] -ml-0.5"
                   renderLabel={(label) => <><span aria-hidden className="text-faint">/</span>{label.toLowerCase()}</>}
@@ -89,18 +89,21 @@ export function PromptHeader({
               inputClassName="font-mono text-12-5"
               buttonClassName="size-6 rounded-none"
             />
-            <a
-              href={telHref(phone)}
-              aria-label={`Call ${phone}`}
-              title={phone}
-              // The ticker under the header carries the number at every width; the icon is for the widths with room.
-              className="hidden size-9 place-items-center text-ink-2 transition-colors duration-(--duration-base) hover:text-brand-ink min-[1600px]:grid"
-            >
-              <IconPhone className="size-4" />
-            </a>
+            {phone ? (
+              <a
+                href={telHref(phone)}
+                aria-label={`Call ${phone}`}
+                title={phone}
+                // The ticker under the header carries the number at every width; the icon is for the widths with room.
+                className="hidden size-9 place-items-center text-ink-2 transition-colors duration-(--duration-base) hover:text-brand-ink min-[1600px]:grid"
+              >
+                <IconPhone className="size-4" />
+              </a>
+            ) : null}
+            {/* Not below 360px, where it ran the menu button 8px off a 320px screen; the drawer carries contact. */}
             <Link
               href="/contact"
-              className="inline-flex h-9 items-center whitespace-nowrap border border-ink bg-ink px-3 text-12-5 font-semibold text-page transition-colors duration-(--duration-base) hover:bg-brand-600 hover:border-brand-600 hover:text-brand-on max-[419px]:px-2.5"
+              className="inline-flex h-9 items-center whitespace-nowrap border border-ink bg-ink px-3 text-12-5 font-semibold text-page transition-colors duration-(--duration-base) hover:bg-brand-600 hover:border-brand-600 hover:text-brand-on max-[419px]:px-2.5 max-[359px]:hidden"
             >
               <span className="hidden min-[1440px]:inline">[ talk to an engineer ]</span>
               <span className="min-[1440px]:hidden">[ engineer ]</span>

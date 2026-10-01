@@ -88,7 +88,7 @@ class TicketController extends Controller
         // Staff see everything, internal notes included.
         $ticket->load([
             'customer', 'category', 'assignee', 'attachments', 'mergedInto',
-            'messages.author', 'messages.attachments', 'events.user',
+            'messages.author', 'messages.attachments', 'events.user', 'survey',
         ]);
 
         return new TicketResource($ticket);

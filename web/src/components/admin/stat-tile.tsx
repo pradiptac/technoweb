@@ -38,7 +38,7 @@ export const TILE_TONES: Record<Tone, { skin: string; value: string; hover: stri
 };
 
 export function StatTile({
-  label, value, note, href, tone, icon: Icon,
+  label, value, note, href, tone, icon: Icon, compact = false,
 }: {
   label: string;
   /** Pre-formatted, because a rate is "24%" and a count is "1,204". */
@@ -47,10 +47,36 @@ export function StatTile({
   href?: string;
   tone: Tone;
   icon: (p: SVGProps<SVGSVGElement>) => React.ReactElement;
+  /**
+   * The dashboard's grouped size (the client, 2026-09-29): tiles sit four to
+   * a panel under a heading that already says what they are about, so the
+   * figure and the glyph step down a rung and the padding tightens.
+   */
+  compact?: boolean;
 }) {
   const t = TILE_TONES[tone];
 
-  const box = (
+  /*
+   * The compact tile puts the glyph on the figure's line, not beside the
+   * label, so the label has the tile's whole width and stays on one line from
+   * `sm` (the client, 2026-09-29: "Overdue follow-ups" and "Visits to confirm"
+   * wrapped to two lines beside a glyph). Should a panel ever be narrower than
+   * its longest label it ellipsises, and the full words are in `title`.
+   */
+  const compactBox = (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <p className={cn("font-display text-19 leading-none font-semibold tracking-[-.02em] tabular-nums", t.value)}>
+          {value}
+        </p>
+        <Icon aria-hidden className={cn("hidden size-5 shrink-0 opacity-30 sm:block", t.value)} />
+      </div>
+      <p title={label} className="mt-1.5 text-13 leading-snug text-ink-2 sm:truncate">{label}</p>
+      {note && <p className="mt-1 text-12 text-faint">{note}</p>}
+    </>
+  );
+
+  const box = compact ? compactBox : (
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
         {/*
@@ -88,7 +114,7 @@ export function StatTile({
     </div>
   );
 
-  const base = cn("block rounded-lg border p-4", t.skin);
+  const base = cn("block h-full min-w-0 rounded-lg border", compact ? "px-3 py-2.5" : "p-4", t.skin);
 
   return href ? (
     <Link

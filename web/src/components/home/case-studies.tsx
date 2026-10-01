@@ -21,7 +21,7 @@ export function CaseStudies({ items }: { items: CaseStudy[] }) {
           title="Projects, with the numbers attached."
           lede="Selected deployments where the brief was clear, the constraints were real and the outcome is measurable."
         />
-        <Collection kind="case-studies" cols={6}>
+        <Collection fill kind="case-studies" cols={6}>
           {items.map((c) => (
             <Tile
               key={c.slug}

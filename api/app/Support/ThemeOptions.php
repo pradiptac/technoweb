@@ -29,6 +29,13 @@ final class ThemeOptions
 
     private const HEX = '/^#[0-9a-f]{6}$/i';
 
+    /**
+     * The shape of a section's reveal id (`fade-up`, `zoom-in`, `none`…),
+     * shared with the builder's `SectionRules`. The list is the frontend's
+     * `SECTION_REVEALS`, beside the CSS that draws each one.
+     */
+    public const REVEAL = '/^[a-z][a-z0-9-]{0,15}$/';
+
     /** The most a row may hold — a few themes' worth, not a document. */
     private const MAX_BYTES = 32768;
 
@@ -127,6 +134,20 @@ final class ThemeOptions
             }
 
             $row = self::background($section, $bg);
+
+            // How the section arrives on scroll (2026-09-27). Kept beside the
+            // background rather than inside `background()`, which a builder
+            // section shares and which has no business with motion; and kept
+            // on a default-background row, which would otherwise store
+            // nothing and lose the choice.
+            $reveal = $bg['reveal'] ?? null;
+            if ($reveal !== null && $reveal !== '' && $reveal !== 'none') {
+                if (! is_string($reveal) || ! preg_match(self::REVEAL, $reveal)) {
+                    throw new \InvalidArgumentException("How \"{$section}\" appears is not the shape of a reveal id.");
+                }
+                $row = ($row ?? ['kind' => 'default']) + ['reveal' => $reveal];
+            }
+
             if ($row !== null) {
                 $out[$section] = $row;
             }

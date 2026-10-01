@@ -399,6 +399,104 @@ opened, the command declines before the wait and decides after it, the
 released three mailed with the second subject, the campaign completes, the
 report says B.
 
+## Crawling a website (2026-09-28)
+
+Campaign → Subscribers → **From a website** is the fourth way in, beside a
+file, a mailbox and a paste: a website read to a chosen depth for the names
+and addresses it publishes, every row tagged with an industry. Google
+business listings were asked for and set aside — scraping Google is against
+its terms, and the Places API is the legitimate route if it is wanted later;
+it would be one more way to produce the same file.
+
+**It is the mailbox scan with a different reader.** `POST
+/admin/newsletter/imports/crawl` writes a `newsletter_imports` row with
+`source = crawl` and the run's settings in `progress`, and dispatches
+`CrawlWebsiteForSubscribers` — the `ScanMailboxForSubscribers` shape:
+`$tries = 1`, `$timeout = 80`, forty seconds of work a slice, the cursor in
+`CrawlState` (a JSON file under `newsletter-imports/crawl-{id}.state.json`,
+written to a temporary name and moved), the next slice dispatched until
+the crawl is done or the row says cancelled. **Every loop does one unit of
+work before it reads the deadline**, or a slow host would make a chain that
+never advances. Done, the state becomes `crawl-{id}.csv`, `CsvImporter::dryRun()`
+makes the analysis, and the row is `ready` for a day — the review screen,
+the commit through `CsvImporter::run()` and `SubscriberIntake::take()`, the
+prune and the discard are the mailbox scan's own, widened from `isMailbox()`
+to `isScan()`. **Release is per source**: a mailbox scan's release forgets
+the mailbox consent, so a crawl calls `NewsletterImportController::release()`,
+which picks. **A scan's commit never takes the request's `mapping`**: the
+server wrote the file and knows its columns, and passing the console's copy
+through kept only `mapping.email` — validation's one declared key — so a
+mailbox scan and a crawl committed from the console arrived with no names,
+companies or websites (found by driving it, 2026-09-28; `CrawlImportTest`
+sends it back now).
+
+**What is read** (`WebsiteCrawler`): the start page, then level by level to
+the depth asked (0–4), on the same site only (`www.` or not), never more
+than the page limit (≤ 500), at most 200 links a page, never a file that is
+not a page (images, PDFs, archives, media) or a login, cart or feed. With
+**directory mode** on, links that leave the site are business websites, up
+to a limit (≤ 100): each one's home page and up to three pages whose path or
+link text looks like contact, about or team — social networks, stores,
+search engines and marketplaces never (`PLATFORMS`). **Hunter** comes last
+and only if asked: the domains met, most-mentioned first, one domain search
+each (`HunterClient::domainSearch()`), stopped by the run's own limit or by
+the plan's remaining *searches* (read once from `account()`), whichever is
+lower. A domain search is not written to `newsletter_verifications`: that
+ledger is the verification allowance, a different one, and counting searches
+in it would spend the nightly verification budget.
+
+**Polite by construction.** Every request goes through `SafeHttp` — public
+addresses only, the connection pinned, every redirect re-checked hop by hop,
+2 MB and ten seconds a page, HTML only. `robots.txt` is read once per host
+(`Robots`: the group naming `technoware-importer`, else `*`; the longest
+match wins, Allow on a tie; a 401/403 robots.txt is "keep out") and a page it
+refuses is never requested **and spends none of the page limit**. A host is
+asked at most once a second (`crawl.delay_ms`). A private start address is
+refused at the door (`SafeHttp::refusal`, plain http allowed — many small
+businesses' sites have no certificate); a bare host gets `https://`, and a
+typed scheme is kept — prefixing everything that does not start `http` made
+`ftp://site` a request to a host called "ftp". `CRAWL_ALLOW_PRIVATE` opens it
+to a local test site only under `APP_ENV=local`.
+
+**What is recognised** (`EmailExtractor`, pure): `mailto:` links, whose text
+is the name unless it is itself an address or a signpost ("Email us");
+JSON-LD `Person`/`Organization`/`LocalBusiness` with `email`, `name` and
+`worksFor`; Cloudflare's `data-cfemail` and `/cdn-cgi/l/email-protection#`,
+decoded; and the page's text after the common disguises are undone —
+`name [at] domain [dot] in`, `name(at)domain.in`, `name at domain dot co dot
+in`. Refused: anything `FILTER_VALIDATE_EMAIL` refuses, an asset "address"
+(`logo@2x.png`), an error tracker's hex key, placeholder domains
+(`example.com`, `yourdomain.com`, `sentry.io`) and placeholder locals
+(`you@`, `name@`). **The business** is the nearest heading within four
+ancestors of the address (`h1`–`h5`, `strong`, `b`) unless it is a signpost
+("Contact us"), so each directory card names its own business; otherwise
+the page's JSON-LD organisation, `og:site_name`, then the first part of the
+`<title>` that is not the page's own label — "Contact — Anand Hardware" names
+Anand Hardware. **The website** is the linked business's origin, or the
+address's domain unless that is freemail.
+
+**Every address is kept**, webmail included — the client's decision; the
+review is where they are unticked. `info@`, `sales@` and `office@` were never
+role addresses (`AddressKinds`), so the review's role switch starts **on**
+for a crawl and only hides `noreply@` and its kind.
+
+**Industry, twice.** `newsletter_subscribers` gains `industry` (indexed),
+`location`, `website` and `source_url` (the page the address was found on,
+or `Hunter: domain`). The commit passes the run's industry and location as
+**defaults** to every row (`CsvImporter::run(..., $defaults)`), filling
+blanks only like every other field `SubscriberIntake` writes; and with
+`industry_group` (default on) a group named after the industry is found or
+made and added to the chosen groups. The subscriber list filters by
+industry (`?industry=`, `meta.industries`), the export carries the four
+columns, and `Csv::guessMapping` reads "industry", "sector", "location",
+"city", "website" and "url" headings, so a spreadsheet fills them too.
+
+Tests: `CrawlImportTest` (the faked directory end to end — depth, robots,
+the page cap, directory mode, a paused slice resuming, Hunter within its
+limit and without searches, private addresses and redirects, the commit's
+group and fill-blanks rule, discard and prune), `EmailExtractorTest`,
+`RobotsTest`.
+
 ## Resending to non-openers (2026-09-20)
 
 **A resend is a campaign, and the copy goes through the one copy mechanism.**

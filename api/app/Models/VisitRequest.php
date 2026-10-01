@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\VisitStatus;
+use App\Support\References;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -75,15 +76,16 @@ class VisitRequest extends Model
     public static function nextReference(): string
     {
         $year = now()->year;
+        $prefix = References::visit();
 
         $last = self::query()
-            ->where('reference', 'like', "TV-{$year}-%")
+            ->where('reference', 'like', "{$prefix}-{$year}-%")
             ->orderByDesc('id')
             ->value('reference');
 
         $n = $last ? ((int) Str::afterLast($last, '-')) + 1 : 1;
 
-        return sprintf('TV-%d-%05d', $year, $n);
+        return sprintf('%s-%d-%05d', $prefix, $year, $n);
     }
 
     public function getRouteKeyName(): string

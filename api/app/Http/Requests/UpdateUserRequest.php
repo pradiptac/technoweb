@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\Role as RoleEnum;
 use App\Models\User;
+use App\Support\Meetings\MeetingActions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -73,6 +74,29 @@ class UpdateUserRequest extends FormRequest
 
                 if (! $keepsAdmin && $this->isLastAdministrator($target)) {
                     $validator->errors()->add('roles', 'This is the last administrator — promote someone else first.');
+                }
+            },
+            /*
+             * A host with meetings to come cannot stop being one — switched
+             * off, or the role taken away — until they are reassigned: the
+             * customer would be left with a meeting nobody hosts
+             * (docs/meetings.md).
+             */
+            function (Validator $validator) {
+                /** @var User $target */
+                $target = $this->route('user');
+                $deactivates = $this->has('is_active') && ! $this->boolean('is_active');
+                $dropsRole = $this->has('roles')
+                    && ! in_array(RoleEnum::MeetingHost->value, (array) $this->input('roles', []), true);
+
+                if (! $deactivates && ! $dropsRole) {
+                    return;
+                }
+
+                $hosting = MeetingActions::upcomingFor($target);
+
+                if ($hosting > 0) {
+                    $validator->errors()->add($deactivates ? 'is_active' : 'roles', MeetingActions::reassignFirst($hosting));
                 }
             },
             function (Validator $validator) {

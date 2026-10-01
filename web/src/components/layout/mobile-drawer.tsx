@@ -8,7 +8,7 @@ import { CartBadge } from "@/components/layout/cart-badge";
 import { IconChevronDown, IconClose, IconMail, IconPhone } from "@/components/icons-ui";
 import type { MenuItem, MenuSection, NavLink, TopBarLink } from "@/lib/navigation";
 import { navKey, newTabAttrs } from "@/lib/nav-key";
-import { telHref, type SiteSettings } from "@/lib/site-settings";
+import { portalEnabled, telHref, type SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import { usePresence } from "@/lib/hooks/use-presence";
 import { ShimmerLink } from "@/components/velora/shimmer-button";
@@ -265,9 +265,12 @@ export function MobileDrawer({
               })}
             </ul>
             <div className="mt-6 grid gap-3 border-t border-line pt-6">
-              <ButtonLink href="/portal/login" variant="secondary" onClick={() => onClose()}>
-                Customer login
-              </ButtonLink>
+              {/* Not while the portal is switched off (`portal_enabled`). */}
+              {portalEnabled(settings) && (
+                <ButtonLink href="/portal/login" variant="secondary" onClick={() => onClose()}>
+                  Customer login
+                </ButtonLink>
+              )}
               <ShimmerLink href="/contact" onClick={() => onClose()} className="h-11 rounded text-14 font-semibold">
                 Request a consultation
               </ShimmerLink>
@@ -342,22 +345,26 @@ export function MobileDrawer({
                     </div>
                   );
                 })}
-              <a
-                href={telHref(phone)}
-                onClick={() => onClose()}
-                className="flex items-center gap-2.5 rounded px-3 py-2.5 text-15 hover:bg-surface-2"
-              >
-                <IconPhone className="size-4 text-muted" />
-                {phone}
-              </a>
-              <a
-                href={`mailto:${email}`}
-                onClick={() => onClose()}
-                className="flex items-center gap-2.5 rounded px-3 py-2.5 text-15 break-all hover:bg-surface-2"
-              >
-                <IconMail className="size-4 shrink-0 text-muted" />
-                {email}
-              </a>
+              {phone ? (
+                <a
+                  href={telHref(phone)}
+                  onClick={() => onClose()}
+                  className="flex items-center gap-2.5 rounded px-3 py-2.5 text-15 hover:bg-surface-2"
+                >
+                  <IconPhone className="size-4 text-muted" />
+                  {phone}
+                </a>
+              ) : null}
+              {email ? (
+                <a
+                  href={`mailto:${email}`}
+                  onClick={() => onClose()}
+                  className="flex items-center gap-2.5 rounded px-3 py-2.5 text-15 break-all hover:bg-surface-2"
+                >
+                  <IconMail className="size-4 shrink-0 text-muted" />
+                  {email}
+                </a>
+              ) : null}
             </div>
           </div>
       </div>
@@ -516,7 +523,10 @@ function DrawerItems({
         // an indented list. The tile arrives rendered from the server, and
         // its 28px box is kept even when there is none, so a list of mixed
         // rows sits on one left edge.
-        const icon = depth === 0 ? <span className="grid size-7 shrink-0 place-items-center">{child.icon}</span> : null;
+        const icon = depth === 0
+          ? <span className="grid size-7 shrink-0 place-items-center">{child.icon}</span>
+          // Deeper rows carry the small bare glyph in its hue, when there is one.
+          : child.glyph ? <span aria-hidden className="grid shrink-0 place-items-center">{child.glyph}</span> : null;
 
         // A heading is a label over its own indented list, not a link.
         const Row = child.href === null ? "div" : Link;

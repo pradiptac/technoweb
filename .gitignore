@@ -45,3 +45,9 @@ _*.sh
 # Probe files from scripted testing — one of these held a live bearer token.
 .tok
 .pg
+
+# Release builder (release/build.mjs): its staging copy, its output, and the
+# private signing key — which must never reach the repository.
+/release/work/
+/release/dist/
+/release/keys/

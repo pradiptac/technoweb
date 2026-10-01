@@ -27,6 +27,9 @@ export const REVEALS: MotionChoice[] = [
   { id: "fade", label: "Fade", note: "Opacity only. The calmest option that still reveals." },
   { id: "zoom", label: "Zoom", note: "Each section settles in from 96% as it fades." },
   { id: "blur", label: "Focus", note: "Each section sharpens as it arrives. The most cinematic, and the heaviest on a phone." },
+  { id: "assemble", label: "Assemble", note: "A section's pieces — heading, text, cards, pictures — arrive one after another from slightly smaller and tilted, and click into place." },
+  { id: "cascade", label: "Cascade", note: "A section's pieces rise and fade in one after another, top to bottom." },
+  { id: "unfold", label: "Unfold", note: "Each section is uncovered from the top down, like a curtain lifting." },
   { id: "none", label: "None", note: "Everything is simply there. What reduced-motion visitors always get." },
 ];
 
@@ -60,6 +63,51 @@ export const HEROS: (MotionChoice & { id: HeroVariant })[] = [
   { id: "dots", label: "Dots", note: "A fine dot field, fading out toward the bottom." },
   { id: "none", label: "Plain", note: "No backdrop at all." },
 ];
+
+/**
+ * How one section arrives — a per-section choice (2026-09-27), made on a
+ * builder section in the page form and on a homepage section on the Themes
+ * screen. Each id but `default` and `none` is a `data-aos` value
+ * `globals.css` already styles, so the site-wide `motion_reveal` style
+ * (float, focus, none…) still applies on top of it and reduced motion still
+ * turns all of it off. Vertical and scale only: a horizontal slide fails the
+ * zero-tolerance overflow check. (Assemble's 2° tilt is on a piece already
+ * scaled to 90%, so it stays inside the piece's own box.) Assemble and
+ * cascade move a section's *pieces* rather than the section — the selector
+ * list and why they arrive by animation rather than transition are beside
+ * the CSS in globals.css. The API checks the shape of the id and
+ * `sectionReveal()` falls back, the rule every `motion_*` id follows.
+ *
+ * `default` is "what this kind of section does on its own" — a builder
+ * section rises, an opening hero and a content block do not — and is never
+ * stored. A homepage section's default is not to move (the 2026-09-15 UX
+ * audit), so the Themes screen offers the list without it, `none` first.
+ */
+export type SectionRevealAttr = "fade-up" | "fade" | "zoom-in" | "fade-down" | "assemble" | "cascade" | "focus" | "unfold";
+
+export const SECTION_REVEALS: MotionChoice[] = [
+  { id: "default", label: "Default", note: "What this kind of section does on its own." },
+  { id: "fade-up", label: "Rise", note: "Fades in while rising, in the site's Sections arriving style." },
+  { id: "fade", label: "Fade", note: "Fades in where it stands." },
+  { id: "zoom-in", label: "Zoom", note: "Fades in from slightly smaller." },
+  { id: "fade-down", label: "Drop", note: "Fades in while settling down from above." },
+  { id: "assemble", label: "Assemble", note: "Its pieces arrive one after another, slightly smaller and tilted, and click into place." },
+  { id: "cascade", label: "Cascade", note: "Its pieces rise and fade in one after another." },
+  { id: "focus", label: "Focus", note: "Sharpens from a soft blur as it fades in." },
+  { id: "unfold", label: "Unfold", note: "Uncovered from the top down, like a curtain lifting." },
+  { id: "none", label: "None", note: "Simply there, no animation." },
+];
+
+const REVEAL_ATTRS: readonly string[] = ["fade-up", "fade", "zoom-in", "fade-down", "assemble", "cascade", "focus", "unfold"];
+
+/**
+ * The `data-aos` value a section carries, or null for none. `fallback` is
+ * what `default` — and anything absent or unknown — resolves to.
+ */
+export function sectionReveal(id: string | null | undefined, fallback: SectionRevealAttr | null): SectionRevealAttr | null {
+  if (id === "none") return null;
+  return id && REVEAL_ATTRS.includes(id) ? (id as SectionRevealAttr) : fallback;
+}
 
 /**
  * The aurora backdrop's *ceiling* opacity per scheme. The value actually

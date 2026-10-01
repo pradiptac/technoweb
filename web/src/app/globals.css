@@ -195,6 +195,17 @@
    */
   --color-rating: #b47d00;  --color-rating-empty: #8d8579;
 
+  /*
+   * The score gauge's ramp (`app/admin/(app)/seo/score.tsx`): red, orange,
+   * yellow and green laid along the arc by percentage, so the colour at the
+   * tip says the grade before the figure is read. Vivid rather than the status
+   * inks above, because a stop that only has to be told apart from its
+   * neighbours is not text: the figure beside every gauge carries the value,
+   * and the gauge is `aria-hidden`.
+   */
+  --color-gauge-0: #e5484d;  --color-gauge-1: #f2811d;
+  --color-gauge-2: #f2c200;  --color-gauge-3: #2fa35a;
+
   /* type */
   /*
    * The fallbacks live inside the next/font variables, which already expand
@@ -329,6 +340,11 @@
      the other four are, and it is named for the motion rather than for the
      component so the next ambient thing does not invent a sixth. */
   --duration-drift: 900ms;
+  /* A line being drawn: the nav's underline sweeping in under a hovered,
+     focused or open link (the client, 2026-09-27 — at `base` it read as a
+     flick rather than a stroke). Arriving only; the underline retracts at
+     `slow`, because leaving is shorter than arriving. */
+  --duration-draw: 600ms;
   /* Velora's shimmer-button sweep (`components/velora/shimmer-button.tsx`);
      the keyframe is beside the other guarded ones further down. */
   --animate-shimmer: shimmer 2.5s linear infinite;
@@ -512,6 +528,26 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
 }
 
 /*
+ * The four Google colours as *fills* under words (Canvas's statistics, the
+ * client, 2026-09-28) — a different job from the glyph hues above, which are
+ * graded at 3:1 for an icon. Google's product shades, chosen so the ink
+ * beside each clears 4.5:1 with room: white on blue (700) 5.37, on red (600)
+ * 4.77, on green (600) 5.02; yellow cannot carry white at any Google shade,
+ * so it takes Google's near-black (8.32:1). The same in both schemes — a solid fill with its own
+ * ink does not invert.
+ */
+:root {
+  --color-g-blue-fill: #1967d2;
+  --color-g-blue-on: #ffffff;
+  --color-g-red-fill: #d93025;
+  --color-g-red-on: #ffffff;
+  --color-g-yellow-fill: #f9ab00;
+  --color-g-yellow-on: #202124;
+  --color-g-green-fill: #188038;
+  --color-g-green-on: #ffffff;
+}
+
+/*
  * The share row's marks in their own colours, on hover only (2026-09-21, the
  * client's ask). At rest the six glyphs are `text-muted` and graded; under
  * the pointer each takes the network's published colour — a brand mark is
@@ -559,6 +595,8 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
   --color-err:  #ef8b8b;  --color-err-soft:  #2b1616;  --color-err-fill:  #bf3b3b;
   --color-info: #7fb6d8;  --color-info-soft: #12222c;  --color-info-fill: #37789f;
   --color-rating: #f5af20;  --color-rating-empty: #877f73;
+  --color-gauge-0: #f2555a;  --color-gauge-1: #f79232;
+  --color-gauge-2: #f5cc2a;  --color-gauge-3: #3fc475;
 
   /*
    * The soft-UI light has to be re-aimed, not merely dimmed.
@@ -996,6 +1034,91 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
   }
 }
 
+/* ------------------------------------------ reveals: pieces and wipes */
+/*
+ * Four more ways in (2026-09-27), offered per section (`SECTION_REVEALS`)
+ * and — all but Focus, which is `blur` there already — as the site-wide
+ * style (`REVEALS`). See docs/motion.md, "A section's own reveal".
+ *
+ * **Assemble and cascade move a section's pieces, not the section.** A piece
+ * is anything in the list below that is not itself inside another piece or
+ * a nested `[data-aos]` (which reveals itself), so a slider, a marquee or a
+ * logo strip arrives as one block and keeps its own motion. Pieces are
+ * staggered by their position among their siblings, capped at the eighth,
+ * so a long grid never trails by seconds.
+ *
+ * **They arrive by animation, not transition, and the keyframes have only a
+ * `from`.** A `transition` on a piece would stay on it for good and replace a
+ * tile's own hover transitions; an animation with fill `backwards` and no
+ * `to` holds the start state through its delay and ends on the piece's own
+ * styles, whatever those are. The keyframes write `transform`, never the
+ * `translate`/`scale`/`rotate` properties Tailwind's hover lift sets.
+ *
+ * **Before the reveal a piece is only `opacity: 0`**, and not while the
+ * section holds focus (a keyboard user never lands on something unseen),
+ * never inside a console preview (`data-reveal-static`), never under the
+ * site-wide `none`.
+ *
+ * Nothing widens the document: assemble's 2° tilt is on a piece already at
+ * 90%, and unfold is a `clip-path`, which paints less and moves nothing.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes assemble-in { from { opacity: 0; transform: translateY(28px) scale(.9) rotate(var(--piece-tilt, 2deg)); } }
+  @keyframes cascade-in  { from { opacity: 0; transform: translateY(18px); } }
+  @keyframes unfold-in   { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0); } }
+
+  /* The site-wide styles are keyed on `fade-up`, whose own 20px rise would
+     move the whole section under its pieces. */
+  html[data-aos-ready] :is([data-motion-reveal="assemble"], [data-motion-reveal="cascade"], [data-motion-reveal="unfold"]) [data-aos="fade-up"]:not([data-aos-animate]) { transform: none; }
+
+  /* The section itself only needs to stop being hidden; its pieces carry
+     the motion. */
+  html[data-aos-ready] :is([data-aos="assemble"], [data-motion-reveal="assemble"] [data-aos="fade-up"], [data-aos="cascade"], [data-motion-reveal="cascade"] [data-aos="fade-up"])[data-aos-animate] { transition-duration: var(--duration-base); }
+
+  html[data-aos-ready] :is([data-aos="assemble"], [data-motion-reveal="assemble"] [data-aos="fade-up"], [data-aos="cascade"], [data-motion-reveal="cascade"] [data-aos="fade-up"]):not([data-aos-animate], :focus-within):not([data-motion-reveal="none"] *, [data-reveal-static] *) :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"]):not([data-aos], [data-aos] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"], [data-aos]) *) { opacity: 0; }
+
+  html[data-aos-ready] :is([data-aos="assemble"], [data-motion-reveal="assemble"] [data-aos="fade-up"])[data-aos-animate]:not([data-motion-reveal="none"] *, [data-reveal-static] *) :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"]):not([data-aos], [data-aos] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"], [data-aos]) *) {
+    animation: assemble-in var(--duration-spring) var(--ease-spring) backwards;
+    animation-delay: calc(var(--aos-delay, 0ms) + var(--piece-i, 0) * 70ms);
+  }
+  html[data-aos-ready] :is([data-aos="assemble"], [data-motion-reveal="assemble"] [data-aos="fade-up"])[data-aos-animate] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"]):not([data-aos], [data-aos] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"], [data-aos]) *):nth-child(even) { --piece-tilt: -2deg; }
+  html[data-aos-ready] :is([data-aos="cascade"], [data-motion-reveal="cascade"] [data-aos="fade-up"])[data-aos-animate]:not([data-motion-reveal="none"] *, [data-reveal-static] *) :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"]):not([data-aos], [data-aos] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"], [data-aos]) *) {
+    animation: cascade-in var(--duration-reveal) var(--ease-brand) backwards;
+    animation-delay: calc(var(--aos-delay, 0ms) + var(--piece-i, 0) * 70ms);
+  }
+  html[data-aos-ready] :is([data-aos="assemble"], [data-motion-reveal="assemble"] [data-aos="fade-up"], [data-aos="cascade"], [data-motion-reveal="cascade"] [data-aos="fade-up"])[data-aos-animate] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"]):not([data-aos], [data-aos] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"], [data-aos]) *) { --piece-i: 0; }
+  html[data-aos-ready] :is([data-aos="assemble"], [data-motion-reveal="assemble"] [data-aos="fade-up"], [data-aos="cascade"], [data-motion-reveal="cascade"] [data-aos="fade-up"])[data-aos-animate] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"]):not([data-aos], [data-aos] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"], [data-aos]) *):nth-child(2) { --piece-i: 1; }
+  html[data-aos-ready] :is([data-aos="assemble"], [data-motion-reveal="assemble"] [data-aos="fade-up"], [data-aos="cascade"], [data-motion-reveal="cascade"] [data-aos="fade-up"])[data-aos-animate] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"]):not([data-aos], [data-aos] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"], [data-aos]) *):nth-child(3) { --piece-i: 2; }
+  html[data-aos-ready] :is([data-aos="assemble"], [data-motion-reveal="assemble"] [data-aos="fade-up"], [data-aos="cascade"], [data-motion-reveal="cascade"] [data-aos="fade-up"])[data-aos-animate] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"]):not([data-aos], [data-aos] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"], [data-aos]) *):nth-child(4) { --piece-i: 3; }
+  html[data-aos-ready] :is([data-aos="assemble"], [data-motion-reveal="assemble"] [data-aos="fade-up"], [data-aos="cascade"], [data-motion-reveal="cascade"] [data-aos="fade-up"])[data-aos-animate] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"]):not([data-aos], [data-aos] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"], [data-aos]) *):nth-child(5) { --piece-i: 4; }
+  html[data-aos-ready] :is([data-aos="assemble"], [data-motion-reveal="assemble"] [data-aos="fade-up"], [data-aos="cascade"], [data-motion-reveal="cascade"] [data-aos="fade-up"])[data-aos-animate] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"]):not([data-aos], [data-aos] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"], [data-aos]) *):nth-child(6) { --piece-i: 5; }
+  html[data-aos-ready] :is([data-aos="assemble"], [data-motion-reveal="assemble"] [data-aos="fade-up"], [data-aos="cascade"], [data-motion-reveal="cascade"] [data-aos="fade-up"])[data-aos-animate] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"]):not([data-aos], [data-aos] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"], [data-aos]) *):nth-child(7) { --piece-i: 6; }
+  html[data-aos-ready] :is([data-aos="assemble"], [data-motion-reveal="assemble"] [data-aos="fade-up"], [data-aos="cascade"], [data-motion-reveal="cascade"] [data-aos="fade-up"])[data-aos-animate] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"]):not([data-aos], [data-aos] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"], [data-aos]) *):nth-child(8) { --piece-i: 7; }
+  html[data-aos-ready] :is([data-aos="assemble"], [data-motion-reveal="assemble"] [data-aos="fade-up"], [data-aos="cascade"], [data-motion-reveal="cascade"] [data-aos="fade-up"])[data-aos-animate] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"]):not([data-aos], [data-aos] :is(h1, h2, h3, h4, h5, h6, p, li, figure, img, video, iframe, blockquote, table, form, .btn, [data-tile], [data-card], [data-strip-mode], [data-marquee], [aria-roledescription="carousel"], [data-aos]) *):nth-child(n+9) { --piece-i: 7; }
+
+  /* Unfold: uncovered from the top. The clip lives only in the animation's
+     `from` (held through the delay by `backwards`), never in a start state:
+     a section clipped to nothing has no area, so the IntersectionObserver
+     never sees it arrive and it is never revealed (measured). Until then
+     it is hidden by the reveal's own `opacity: 0`. After the animation
+     `clip-path` is back to none, so a shadow or a dropdown is never cut. */
+  html[data-aos-ready] :is([data-aos="unfold"], [data-motion-reveal="unfold"] [data-aos="fade-up"])[data-aos-animate]:not([data-motion-reveal="none"] *, [data-reveal-static] *) {
+    animation: unfold-in calc(var(--duration-reveal) * 1.5) var(--ease-brand) backwards;
+    animation-delay: var(--aos-delay, 0ms);
+  }
+
+  /* Focus, per section: the site-wide `blur` style's numbers. */
+  html[data-aos-ready] [data-aos="focus"]:not([data-aos-animate]):not([data-motion-reveal="none"] *, [data-reveal-static] *) { filter: blur(10px); }
+  html[data-aos-ready] [data-aos="focus"][data-aos-animate] {
+    filter: none;
+    transition:
+      opacity var(--duration-reveal) var(--ease-brand),
+      transform var(--duration-reveal) var(--ease-brand),
+      filter var(--duration-reveal) var(--ease-brand);
+    transition-delay: var(--aos-delay, 0ms);
+  }
+}
+
 /* ---------------------------------------------------------------- buttons */
 /*
  * `.btn` is on every Button and ButtonLink (an ArrowLink is a text link and
@@ -1304,6 +1427,12 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
   .motion-tile:hover [data-demo="reveal-fade"]  { animation: demo-fade .6s var(--ease-brand); }
   .motion-tile:hover [data-demo="reveal-zoom"]  { animation: demo-zoom .6s var(--ease-brand); }
   .motion-tile:hover [data-demo="reveal-blur"]  { animation: demo-blur .6s var(--ease-brand); }
+  .motion-tile:hover [data-demo="reveal-assemble"] > span { animation: assemble-in .8s var(--ease-spring) backwards; }
+  .motion-tile:hover [data-demo="reveal-assemble"] > span:nth-child(even) { --piece-tilt: -2deg; }
+  .motion-tile:hover [data-demo="reveal-cascade"] > span  { animation: cascade-in .6s var(--ease-brand) backwards; }
+  .motion-tile:hover :is([data-demo="reveal-assemble"], [data-demo="reveal-cascade"]) > span:nth-child(2) { animation-delay: 70ms; }
+  .motion-tile:hover :is([data-demo="reveal-assemble"], [data-demo="reveal-cascade"]) > span:nth-child(3) { animation-delay: 140ms; }
+  .motion-tile:hover [data-demo="reveal-unfold"] { animation: unfold-in .9s var(--ease-brand); }
   .motion-tile:hover [data-demo="page-fade"]    { animation: demo-fade .32s var(--ease-brand); }
   .motion-tile:hover [data-demo="page-rise"]    { animation: demo-page-rise .38s var(--ease-brand); }
   .motion-tile:hover [data-demo="page-zoom"]    { animation: demo-page-zoom .38s var(--ease-brand); }
@@ -1518,6 +1647,92 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
    the point once and never reaches into the element it handed over. Unset
    is the centre — the browser's own default, and every tile as it was. */
 .public-site [data-tile-media] > img { object-position: var(--tile-focus, 50% 50%); }
+/*
+ * Pictures as the card (the client, 2026-09-29): a service category whose
+ * "Show service pictures as card backgrounds" is on stamps `data-tile-bg` on
+ * its collection, and each tile with a picture becomes the picture — Vantage's
+ * photo mosaic (`themes/vantage/theme.css`) lifted out of one theme so every
+ * theme can draw it. The media and the body share one grid cell; the body sits
+ * at the foot over a gradient whose first stop is the **opaque** scrim, so the
+ * audit grades the words against what they really sit on (the slide caption's
+ * rule — a translucent first stop is thrown away and the words are graded
+ * against the section ground); the words take the dark-band inks, which do not
+ * invert, so the card reads the same in both schemes; the identity icon goes.
+ *
+ * The selectors carry `.public-site` and three attributes and the `:has()`,
+ * (0,5,0) and up, so they beat every theme's three-attribute idiom — the rack
+ * rows of Datacenter, Terminal's listing and Editorial's ruled index included,
+ * whose numbering and row columns are reset here — and tie Vantage's own
+ * mosaic, which they follow in source order and agree with. A tile without a
+ * picture has no media child, matches nothing here and keeps its ground.
+ */
+.public-site [data-collection][data-tile-bg] [data-tile]:has(> [data-tile-media]) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 240px;
+  padding: 0;
+  gap: 0;
+}
+.public-site [data-collection][data-tile-bg] [data-tile]:has(> [data-tile-media])::before,
+.public-site [data-collection][data-tile-bg] [data-tile]:has(> [data-tile-media])::after { content: none; }
+.public-site [data-collection][data-tile-bg] [data-tile]:has(> [data-tile-media]) > [data-tile-media] {
+  grid-area: 1 / 1;
+  display: block;
+  width: auto;
+  height: 100%;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+}
+.public-site [data-collection][data-tile-bg] [data-tile]:has(> [data-tile-media]) > [data-tile-body] {
+  grid-area: 1 / 1;
+  /* Above the picture: the image inside the well is positioned, and a positioned box paints over an in-flow sibling whatever the order. */
+  position: relative;
+  z-index: 1;
+  align-self: end;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 0;
+  padding: 72px 20px 18px;
+  background: linear-gradient(to top, var(--color-scrim) 0%, color-mix(in srgb, var(--color-scrim) 78%, transparent) 55%, transparent 100%);
+  color: var(--color-dark-ink);
+}
+.public-site [data-collection][data-tile-bg] [data-tile]:has(> [data-tile-media]) [data-tile-title],
+.public-site [data-collection][data-tile-bg] [data-tile]:has(> [data-tile-media]) [data-tile-cta] { color: var(--color-dark-ink); }
+.public-site [data-collection][data-tile-bg] [data-tile]:has(> [data-tile-media]) [data-tile-summary],
+.public-site [data-collection][data-tile-bg] [data-tile]:has(> [data-tile-media]) [data-tile-kicker],
+.public-site [data-collection][data-tile-bg] [data-tile]:has(> [data-tile-media]) [data-tile-meta] { color: var(--color-dark-muted); }
+.public-site [data-collection][data-tile-bg] [data-tile]:has(> [data-tile-media]) [data-tile-summary] { flex: 0 0 auto; }
+.public-site [data-collection][data-tile-bg] [data-tile]:has(> [data-tile-media]) [data-tile-icon] { display: none; }
+/*
+ * A service card's highlights (2026-09-29): small chips in the tile's meta,
+ * washed in the card's own identity hue (`--tile-hue`, the icon's) — a tenth
+ * for the ground, a third for the edge, the meta's own ink for the words, so
+ * the contrast is the meta's on a barely tinted ground and a card's chips
+ * match its icon. A tile with no hue falls back to its ink. The rows wrap
+ * rather than hold a chip on one line: forty characters of mono is wider than
+ * a phone card.
+ */
+.public-site [data-tile-tags] > li {
+  background: color-mix(in srgb, var(--tile-hue, currentColor) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tile-hue, currentColor) 35%, transparent);
+  border-radius: 999px;
+  padding: 1px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+/*
+ * The Services tab strip (`components/services/service-tabs.tsx`) keeps the
+ * row to one line and scrolls it; the scrollbar is the thin one, so a strip
+ * that fits shows nothing and one that does not says it can move.
+ */
+[data-service-tabs-strip] { scrollbar-width: thin; }
 /* An icon and its heading share one line everywhere — a hub's route tiles
    stacked them until 2026-09-19, and the client asked for one line in
    every theme, so no idiom sets `flex-direction: column` on a head. */
@@ -3280,27 +3495,23 @@ html[data-announcement-closed] .announcement-bar { display: none; }
 }
 
 /*
- * Moving between two dropdowns is a swap, and a swap has no transitions.
- *
- * See `PANEL_CLASSES` in `mega-menu.tsx` and `markPanelSwap` in
- * `panel-host.ts`. Two rules, and both are needed:
+ * Moving between two dropdowns: the panel being left goes at once, and the
+ * one being entered fades in like any other (see `PANEL_CLASSES`).
  *
  * The panel being left goes at once -- but only once *another* host is
  * hovered (`:has`), not merely while the pointer is inside the nav. The
  * first cut keyed on `nav:hover`, so crossing the few pixels between two
- * items closed the first panel with nothing yet to replace it: a blank
- * frame, which the client still saw as a flicker (2026-09-17).
+ * items closed the first panel with nothing yet to replace it (2026-09-17).
+ * Left to its own fade it would cross-fade with the new one, two panels
+ * over each other, which was the first flicker.
  *
- * The panel being entered arrives at once while the nav carries
- * `data-panel-swap`, stamped for 300ms by leaving a host. Without it the
- * new panel faded in from nothing, and a transition holds its start value
- * until its first frame, so measured against the dev server the hovered
- * panel was still `visibility: hidden` 50ms after the hover. A fresh open
- * and leaving the nav altogether keep their fades. Unlayered, at the end
- * of the file, so both beat the utility's duration.
+ * The panel being entered used to arrive with no transition at all while
+ * the nav carried `data-panel-swap`; the client saw that instant pop as the
+ * flicker and asked for a fade on every open (2026-09-27), so that rule and
+ * the stamp are gone. Unlayered, at the end of the file, so it beats the
+ * utility's duration.
  */
 nav:has([data-panel-host]:hover) [data-panel-host]:not(:hover) > .panel-drop { transition-duration: 0s; }
-nav[data-panel-swap] [data-panel-host]:hover > .panel-drop { transition-duration: 0s; }
 
 /*
  * A setting reached by its hash from the command palette
@@ -3566,3 +3777,12 @@ nav[data-panel-swap] [data-panel-host]:hover > .panel-drop { transition-duration
     transform-origin: 50% 55%;
   }
 }
+
+/*
+ * A homepage selection never ends on a half-empty row (the client,
+ * 2026-09-28). `components/ui/full-rows.tsx` measures each `data-fill="rows"`
+ * collection where it landed and marks a short last row under a full one;
+ * this hides it. Server-rendered markup carries every item, so without
+ * JavaScript the section is simply the whole selection.
+ */
+[data-fill="rows"] > [data-row-cut] { display: none; }

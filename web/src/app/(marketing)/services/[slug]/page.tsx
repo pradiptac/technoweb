@@ -77,7 +77,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
         title={service.title}
         lede={service.summary}
         crumbs={[
-          { name: "Web services", path: "/services" },
+          { name: "Services", path: "/services" },
           { name: service.title, path: `/services/${service.slug}` },
         ]}
       >

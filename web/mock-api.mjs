@@ -140,6 +140,13 @@ function buildAdminDashboard(volumePeriod = 'month') {
     leads: { new: 2, open: 3, overdue: 1, unassigned: 1 },
     // Engineer visits (docs/visits.md): null for a role that cannot open the queue.
     visits: { awaiting: visitRequests.filter((v) => v.status === 'requested').length, today: 0 },
+    // Online meetings (docs/meetings-contract.md): null for a role that cannot open the list.
+    meetings: {
+      today: meetings.filter((m) => m.status === 'scheduled' && m.starts_at.slice(0, 10) === isoDay(0)).length,
+      needs_outcome: meetings.filter((m) => m.needs_outcome).length,
+    },
+    // Online meetings (docs/meetings-contract.md): null for a role that cannot open them.
+    meetings: { today: 0, needs_outcome: 0 },
     recent_tickets: tickets.slice(0, 8),
     high_priority: openTickets.filter((t) => t.priority === 'critical' || t.priority === 'high').slice(0, 5),
     status_breakdown: breakdown,
@@ -253,11 +260,64 @@ const solutionDetail = {
   seo:null,
 };
 
-const services = [
-  { id:1, title:'Domain registration', slug:'domains', icon:'globe', summary:'Register, transfer and renew domains with DNS managed correctly from day one.' },
-  { id:2, title:'Web hosting', slug:'web-hosting', icon:'cloud', summary:'Linux and Windows hosting with backups and SSL included.' },
-  { id:3, title:'Business email', slug:'business-email', icon:'mail', summary:'Professional mailboxes on your own domain.' },
+/*
+  Service categories (2026-09-29): the tabs the services are grouped under,
+  in the three the seeder makes. Hardware draws its services' pictures as the
+  card (`image_background`), so the picture-background layout renders against
+  the mock; the other two keep the ordinary card.
+*/
+const MOCK_PORT = Number(process.env.MOCK_PORT) || 8899;
+const serviceCategories = [
+  { id:1, name:'Web services', slug:'web-services', description:'Domains, hosting, email and the websites on top of them.', icon:'globe', sort_order:0, image_background:false, is_active:true },
+  { id:2, name:'Hardware services', slug:'hardware-services', description:'Repairs and support for the machines your people use every day.', icon:'wrench', sort_order:1, image_background:true, is_active:true },
+  { id:3, name:'Installation services', slug:'installation-services', description:'Cabling, cameras, Wi-Fi and racks, installed and documented.', icon:'cable', sort_order:2, image_background:false, is_active:true },
 ];
+const serviceImage = (slug) => `http://127.0.0.1:${MOCK_PORT}/storage/media/services/${slug}.jpg`;
+const serviceHighlights = {
+  domains: ['.com', '.in', '.co.in', '.org'],
+  'web-hosting': ['Shared', 'Business', 'Managed'],
+  'business-email': ['Google Workspace', 'Microsoft 365'],
+  ssl: ['DV', 'OV', 'EV', 'Wildcard'],
+  vps: ['Linux', 'Windows', 'Managed'],
+  'website-services': ['Design', 'Build', 'Maintain'],
+  'laptop-desktop-repair': ['Laptops', 'Desktops', 'Data kept intact'],
+  'server-hardware-support': ['Dell', 'HPE', 'Lenovo', 'On site'],
+  'printer-peripheral-service': ['Laser', 'Inkjet', 'Multifunction'],
+  'structured-network-cabling': ['Cat6', 'Cat6A', 'Fibre', 'Certified'],
+  'cctv-installation': ['IP cameras', 'NVR', 'Remote viewing'],
+  'wifi-installation': ['Site survey', 'Wi-Fi 6', 'Guest networks'],
+  'server-rack-installation': ['Racks', 'UPS', 'Cable management'],
+};
+const serviceRow = (id, title, slug, icon, summary, categoryId, withImage) => {
+  const c = serviceCategories.find((x) => x.id === categoryId) ?? null;
+  return {
+    id, title, slug, icon, summary, sort_order: id,
+    highlights: serviceHighlights[slug] ?? [],
+    category: c ? { id: c.id, name: c.name, slug: c.slug } : null,
+    image: withImage ? serviceImage(slug) : null,
+    image_alt: withImage ? `${title}.` : null,
+    image_focus: null,
+  };
+};
+const services = [
+  serviceRow(1, 'Domain registration', 'domains', 'globe', 'Register, transfer and renew domains with DNS managed correctly from day one.', 1, true),
+  serviceRow(2, 'Web hosting', 'web-hosting', 'cloud', 'Linux and Windows hosting with backups and SSL included.', 1, true),
+  serviceRow(3, 'Business email', 'business-email', 'mail', 'Professional mailboxes on your own domain.', 1, false),
+  serviceRow(4, 'SSL certificates', 'ssl', 'cert', 'DV, OV and wildcard certificates issued, installed and renewed on time.', 1, false),
+  serviceRow(5, 'VPS & cloud servers', 'vps', 'vps', 'Dedicated resources with root access for applications that outgrew shared hosting.', 1, false),
+  serviceRow(6, 'Website services', 'website-services', 'code', 'Corporate websites, migrations and ongoing maintenance.', 1, false),
+  serviceRow(7, 'Laptop and desktop repair', 'laptop-desktop-repair', 'laptop', 'Diagnosis, parts and repair for the machines on every desk, on site or at our bench.', 2, true),
+  serviceRow(8, 'Server hardware support', 'server-hardware-support', 'server', 'Disks, memory, power supplies and controllers replaced before a fault becomes an outage.', 2, true),
+  serviceRow(9, 'Printer and peripheral service', 'printer-peripheral-service', 'printer', 'Printers, scanners and the rest of the desk kept working.', 2, false),
+  serviceRow(10, 'Structured network cabling', 'structured-network-cabling', 'cable', 'Cat6 and fibre runs, patch panels and labels you can read a year later.', 3, true),
+  serviceRow(11, 'CCTV installation', 'cctv-installation', 'camera', 'Cameras, recorders and remote viewing, placed where they see what matters.', 3, false),
+  serviceRow(12, 'Wi-Fi installation', 'wifi-installation', 'wifi', 'Surveyed, installed and tuned wireless for offices, floors and campuses.', 3, false),
+  serviceRow(13, 'Server rack installation', 'server-rack-installation', 'rack', 'Racks built, powered, cooled and cable-managed for the room they sit in.', 3, false),
+];
+const adminServiceCategory = (c) => ({
+  ...c, services_count: services.filter((s) => s.category?.id === c.id).length,
+  created_at: '2026-09-29T00:00:00Z', updated_at: '2026-09-29T00:00:00Z',
+});
 
 const industries = [
   { id:1, name:'Small & mid-size business', slug:'smb', icon:'shop', summary:'Right-sized infrastructure without enterprise overhead.' },
@@ -855,6 +915,106 @@ const visitMeta = {
   default_minutes: 90, windows: visitWindows,
 };
 
+/* Online meetings (docs/meetings.md, docs/meetings-contract.md). The mock's
+   copy of `GET /meetings/options`, both forms of `GET /meetings/slots`, a
+   booking (a 64-hex token, the order's and the visit's rule), the guest and
+   portal reads, and the console's list and detail. Times are written with
+   the +05:30 offset and labelled IST, the way the API writes them in
+   APP_TIMEZONE. The build prerenders /book-a-meeting against this. */
+const MEETING_TOKEN = 'b'.repeat(64);
+const meetingTypes = [
+  { id: 1, name: 'Product demo', slug: 'product-demo', description: 'A walk through the hardware and the support that comes with it.', minutes: 30,
+    buffer_before: 0, buffer_after: 10, is_public: true, is_active: true, sort_order: 1, host_ids: [], hosts: [], meetings_count: 1,
+    created_at: '2026-09-29T10:00:00+05:30', updated_at: '2026-09-29T10:00:00+05:30' },
+  { id: 2, name: 'Network consultation', slug: 'network-consultation', description: 'An hour with an engineer about your network.', minutes: 60,
+    buffer_before: 10, buffer_after: 10, is_public: true, is_active: true, sort_order: 2, host_ids: [1], hosts: [{ id: 1, name: 'Ada Admin', eligible: true }], meetings_count: 0,
+    created_at: '2026-09-29T10:00:00+05:30', updated_at: '2026-09-29T10:00:00+05:30' },
+];
+const MEETING_DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MEETING_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const meetingDateLabel = (ymd) => {
+  const d = new Date(`${ymd}T00:00:00Z`);
+  return `${MEETING_DAY_LABELS[d.getUTCDay()]} ${d.getUTCDate()} ${MEETING_MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+};
+const meetingIso = (ymd, hm) => `${ymd}T${hm}:00+05:30`;
+const addMinutes = (hm, n) => {
+  const [h, m] = hm.split(':').map(Number);
+  const t = h * 60 + m + n;
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+};
+/* Weekdays 10:00–18:00 every 30 minutes, the seeded default hours; the
+   weekend and any date outside the window have none. */
+const meetingSlotsFor = (ymd, minutes) => {
+  const day = new Date(`${ymd}T00:00:00Z`).getUTCDay();
+  if (day === 0 || day === 6 || ymd < isoDay(1) || ymd > isoDay(30)) return [];
+  const out = [];
+  for (let hm = '10:00'; addMinutes(hm, minutes) <= '18:00'; hm = addMinutes(hm, 30)) {
+    if (ymd === isoDay(2) && hm === '15:30') continue; // taken — a day with a gap in it
+    out.push({ start: meetingIso(ymd, hm), end: meetingIso(ymd, addMinutes(hm, minutes)), time_label: hm });
+  }
+  return out;
+};
+const meetings = [
+  {
+    id: 1, reference: 'MT-2026-00001', status: 'scheduled', status_label: 'Scheduled', is_open: true, needs_outcome: false,
+    allowed_next: [{ value: 'scheduled', label: 'Scheduled' }, { value: 'completed', label: 'Completed' }, { value: 'no_show', label: 'No-show' }, { value: 'cancelled', label: 'Cancelled' }],
+    meeting_type: { id: 1, name: 'Product demo', slug: 'product-demo', minutes: 30 }, meeting_type_id: 1,
+    host_id: 1, host_name: 'Ada Admin', host: { id: 1, name: 'Ada Admin', email: 'admin@technoware.test' },
+    customer_id: 1, name: 'Priya Sharma', email: 'priya@meridianfoods.test', phone: '+91 98765 43210', company: 'Meridian Foods',
+    agenda: 'We are looking at replacing the core switches across two sites.',
+    starts_at: meetingIso(isoDay(2), '11:00'), ends_at: meetingIso(isoDay(2), '11:30'),
+    date_label: meetingDateLabel(isoDay(2)), time_label: '11:00 – 11:30', timezone: 'IST', minutes: 30,
+    blocked_from: meetingIso(isoDay(2), '11:00'), blocked_until: meetingIso(isoDay(2), '11:40'),
+    source: 'site', source_label: 'Website', created_by: null, reschedule_count: 0,
+    cancel_reason: null, cancelled_at: null, completed_at: null, staff_note: null, lead_id: 1,
+    meet_url: 'https://meet.google.com/abc-defg-hij',
+    google: { status: 'synced', status_label: 'In Google Calendar', event_id: 'a1b2c3', account: 'meetings@technoware.test', attempts: 1, error: null },
+    source_url: 'https://www.technoware.in/book-a-meeting', source_path: '/book-a-meeting', source_title: 'Book a meeting',
+    utm_source: null, utm_medium: null, utm_campaign: null, admin_path: '/admin/meetings/MT-2026-00001',
+    trail: [{ id: 1, type: 'booked', from: null, to: null, note: 'Booked from the website', actor_name: null, created_at: new Date().toISOString() }],
+    created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+  },
+];
+const customerMeeting = (m) => ({
+  reference: m.reference, status: m.status, status_label: m.status_label,
+  meeting_type: m.meeting_type ? { name: m.meeting_type.name, slug: m.meeting_type.slug, minutes: m.meeting_type.minutes } : null,
+  host_name: m.host_name, name: m.name, email: m.email, phone: m.phone, company: m.company, agenda: m.agenda,
+  starts_at: m.starts_at, ends_at: m.ends_at, date_label: m.date_label, time_label: m.time_label, timezone: m.timezone,
+  meet_url: m.status === 'scheduled' ? m.meet_url : null, cancel_reason: m.status === 'cancelled' ? m.cancel_reason : null,
+  can_cancel: m.status === 'scheduled', can_reschedule: m.status === 'scheduled', reschedules_left: 3 - m.reschedule_count,
+  change_cutoff_hours: 12, created_at: m.created_at,
+});
+const meetingMeta = {
+  statuses: [
+    { value: 'scheduled', label: 'Scheduled', open: true }, { value: 'completed', label: 'Completed', open: false },
+    { value: 'no_show', label: 'No-show', open: false }, { value: 'cancelled', label: 'Cancelled', open: false },
+  ],
+  types: meetingTypes.map((t) => ({ id: t.id, name: t.name, slug: t.slug, is_active: t.is_active })),
+  hosts: [{ id: 1, name: 'Ada Admin' }],
+  sources: [{ value: 'site', label: 'Website' }, { value: 'portal', label: 'Customer portal' }, { value: 'console', label: 'Console' }],
+  needs_outcome_count: 0, today_count: 0, google_failed_count: 0,
+  sorts: ['starts', 'created', 'name', 'status'], timezone: 'Asia/Kolkata', timezone_label: 'IST',
+};
+const meetingOf = (ref) => meetings.find((x) => x.reference === ref);
+/* The hosts on Meetings → Hosts: one, on the default hours. */
+const meetingHosts = [
+  { id: 1, name: 'Ada Admin', email: 'admin@technoware.test', is_active: true, uses_default_hours: true,
+    hours: [], time_off: [], upcoming_count: 1, free_busy: 'not_connected' },
+];
+const moveMeeting = (m, start) => {
+  const ymd = String(start).slice(0, 10);
+  const hm = String(start).slice(11, 16);
+  const end = addMinutes(hm, m.minutes);
+  Object.assign(m, {
+    starts_at: meetingIso(ymd, hm), ends_at: meetingIso(ymd, end), date_label: meetingDateLabel(ymd),
+    time_label: `${hm} – ${end}`, reschedule_count: m.reschedule_count + 1,
+  });
+};
+const cancelMeeting = (m, reason = null) => Object.assign(m, {
+  status: 'cancelled', status_label: 'Cancelled', is_open: false, cancel_reason: reason,
+  cancelled_at: new Date().toISOString(), allowed_next: [{ value: 'cancelled', label: 'Cancelled' }], meet_url: null,
+});
+
 const leadMeta = {
   statuses: [
     { value: 'new', label: 'New', open: true },
@@ -1008,9 +1168,9 @@ const MSG_TEMPLATE_META = {
   events: MSG_EVENTS,
   common_placeholders: ['customer_name', 'first_name', 'site_name'],
   samples: {
-    customer_name: 'Neil Basu', first_name: 'Neil', site_name: 'Technoware', order_number: 'TW-10042', order_total: '₹12,400',
+    customer_name: 'Neil Basu', first_name: 'Neil', site_name: 'Technoware', order_number: 'ORD-2026-00042', order_total: '₹12,400',
     order_url: 'https://www.technoware.in/store', courier: 'Blue Dart', tracking_number: 'BD1234567890', tracking_url: 'https://www.technoware.in/store',
-    reference: 'TW-2026-00042', subject: 'Switch keeps rebooting', ticket_url: 'https://www.technoware.in/store', basket_url: 'https://www.technoware.in/store',
+    reference: 'TK-2026-00042', subject: 'Switch keeps rebooting', ticket_url: 'https://www.technoware.in/store', basket_url: 'https://www.technoware.in/store',
     item_count: '2', basket_total: '₹12,400', coupon_code: 'COMEBACK10', product_name: 'Aruba 6100 48G switch', product_url: 'https://www.technoware.in/store',
     old_price: '₹14,999', new_price: '₹12,999',
   },
@@ -1500,12 +1660,12 @@ const SAMPLE_BUILDER_BLOCKS = [
 /** The presenter's shape, for this mock's few types: hidden ones gone, a live list resolved. */
 function presentSections(blocks) {
   return blocks.filter((b) => !b.hidden).map((b) => {
-    if (b.type !== 'cards') return { id: b.id, type: b.type, background: b.background, data: b.data };
+    if (b.type !== 'cards') return { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, data: b.data };
     const items = solutions.slice(0, b.data.limit || 6).map((s) => ({
       title: s.title, summary: s.summary ?? null, path: `/solutions/${s.slug}`,
       image: null, image_alt: null, image_focus: null, icon: s.icon ?? null, kicker: null, meta: null,
     }));
-    return { id: b.id, type: b.type, background: b.background, data: { ...b.data, items, index_path: '/solutions' } };
+    return { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, data: { ...b.data, items, index_path: '/solutions' } };
   });
 }
 cmsPages.push({ id: 6, title: 'Sample builder page', slug: 'sample-builder-page', template: 'builder', body: null,
@@ -1520,7 +1680,10 @@ const ADMIN_CMS = [
         faqs: solutionDetail.faqs.map(({ question, answer }) => ({ question, answer })),
         answer_blocks: SOLUTION_ANSWER_BLOCKS }
     : { problem_statement: null, overview: null, benefits: [], technologies: [], hero_image_path: null, product_ids: [], industry_ids: [] }) },
-  { base: '/admin/services', rows: services, detail: (r) => adminOf(r, { body: null }) },
+  { base: '/admin/services', rows: services, detail: (r) => adminOf(r, {
+      body: null, service_category_id: r.category?.id ?? null, category_name: r.category?.name ?? null,
+      image_path: r.image ? `media/services/${r.slug}.jpg` : null }) },
+  { base: '/admin/service-categories', rows: serviceCategories, detail: adminServiceCategory },
   { base: '/admin/industries', rows: industries, detail: (r) => adminOf(r, { body: null, solution_ids: [] }) },
   { base: '/admin/product-categories', rows: productCategories, detail: (r) => adminOf(r, { image_path: null, parent_name: null }) },
   { base: '/admin/brands', rows: brands, detail: (r) => adminOf(r, { logo_path: null, is_featured: false, product_count: 1 }) },
@@ -1620,6 +1783,29 @@ const adminEntry = (e) => ({
   custom_fields: e.custom_data, custom_field_media: {}, custom_field_groups: CUSTOM_FIELD_DEFINITIONS,
   created_at: e.published_at, updated_at: e.updated_at,
 });
+
+/* The satisfaction survey a closed ticket sends (docs/tickets.md). One per
+   ticket, created the first time it is closed; the token is 64 hex like the
+   real one and never appears in an admin read. */
+const surveys = [];
+const SURVEY_RATINGS = [[1, 'Very Bad'], [2, 'Poor'], [3, 'Average'], [4, 'Good'], [5, 'Excellent']];
+const ensureSurvey = (ref) => {
+  let s = surveys.find((x) => x.reference === ref);
+  if (!s) {
+    s = { reference: ref, token: [...Array(64)].map(() => Math.floor(Math.random() * 16).toString(16)).join(''), sent_at: new Date().toISOString(), rating: null, comment: null, answered_at: null };
+    surveys.push(s);
+  }
+  return s;
+};
+const surveyLabel = (n) => (SURVEY_RATINGS.find(([v]) => v === n) || [])[1] ?? null;
+const surveyPublic = (s) => {
+  const t = tickets.find((x) => x.reference === s.reference);
+  return {
+    reference: s.reference, subject: t ? t.subject : '', answered: s.rating !== null, rating: s.rating,
+    rating_label: surveyLabel(s.rating), comment: s.comment,
+    ratings: SURVEY_RATINGS.map(([value, label]) => ({ value, label })), comment_max: 1000,
+  };
+};
 
 const json = (res, code, body) => {
   res.writeHead(code, { 'Content-Type': 'application/json' });
@@ -1860,10 +2046,43 @@ createServer(async (req, res) => {
   if (p === '/newsletter/subscribe' && req.method === 'POST') {
     return json(res, 202, { message: 'Thank you. If that address is not already on the list, you will hear from us soon.' });
   }
+  {
+    const sm = p.match(/^\/ticket-surveys\/([a-f0-9]{64})$/);
+    if (p.startsWith('/ticket-surveys/') && !sm) return json(res, 404, { message: 'Not found.' });
+    if (sm) {
+      const sv = surveys.find((x) => x.token === sm[1]);
+      if (!sv) return json(res, 404, { message: 'Not found.' });
+      if (req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const rating = Number(body.rating);
+        if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+          return json(res, 422, { message: 'The rating field is invalid.', errors: { rating: ['The rating field is invalid.'] } });
+        }
+        const comment = String(body.comment ?? '').trim();
+        if (comment.length > 1000) {
+          return json(res, 422, { message: 'The comment field must not be greater than 1000 characters.', errors: { comment: ['The comment field must not be greater than 1000 characters.'] } });
+        }
+        sv.rating = rating;
+        sv.comment = comment === '' ? null : comment;
+        sv.answered_at = sv.answered_at ?? new Date().toISOString();
+      }
+      return json(res, 200, { data: surveyPublic(sv) });
+    }
+  }
   if (p.startsWith('/newsletter/unsubscribe/')) {
     return req.method === 'POST'
       ? json(res, 200, { data: { email: 'someone@example.test' }, message: 'You have been unsubscribed.' })
       : json(res, 200, { data: { email: 'someone@example.test', already: false } });
+  }
+  /* The way back from an unsubscribe (docs/newsletter.md, "Rejoining after an
+     unsubscribe"). GET names the address, POST confirms; a real token is 64
+     characters and anything else is the one neutral 404 every dead link gets. */
+  if (p.startsWith('/newsletter/rejoin/')) {
+    const token = decodeURIComponent(p.slice('/newsletter/rejoin/'.length));
+    if (!/^[A-Za-z0-9]{64}$/.test(token)) return json(res, 404, { message: 'That link is no longer valid.' });
+    return req.method === 'POST'
+      ? json(res, 200, { data: { email: 'someone@example.test' }, message: 'You are back on the list. Thank you for coming back.' })
+      : json(res, 200, { data: { email: 'someone@example.test', confirmed: false } });
   }
 
   if (p === '/ticket-categories') return json(res, 200, { data: categories });
@@ -1901,6 +2120,8 @@ createServer(async (req, res) => {
     // Messaging (Phase 2): WhatsApp live, so the checkout draws its box;
     // push live with a mock web config, so the store strip draws the bell.
     messaging_whatsapp_live: '1', messaging_rcs_live: '0', push_live: '1',
+    // Online meetings (docs/meetings-contract.md): the four public rows.
+    meetings_enabled: '1', meeting_slot_step: '30', meeting_min_notice_hours: '4', meeting_max_days: '30',
     push_api_key: 'AIzaMockKey000000000000000000000000000', push_project_id: 'technoware-push',
     push_messaging_sender_id: '123456789012', push_app_id: '1:123456789012:web:0a1b2c3d4e5f', push_vapid_key: 'BMockVapidKey',
     motion_reveal: 'lift', motion_buttons: 'lift', motion_page: 'none', motion_loader: 'none', motion_splash: '0', motion_hero: 'grid',
@@ -1993,6 +2214,156 @@ createServer(async (req, res) => {
        TypeScript, so a mock that omitted them would render a screen with
        empty dropdowns and no error. Indented into the `/admin/` block — below
        it nothing is reachable, since that block answers every admin path. */
+    /* Online meetings (docs/meetings-contract.md): the console's list,
+       slots, detail and its moves, the types, the hosts and the Google
+       panel. `meetings/google` and `meetings/slots` sit above the
+       reference match, which is held to the reference's shape anyway. */
+    if (p === '/admin/meetings/google' && req.method === 'GET') {
+      return json(res, 200, { data: {
+        is_connected: false, account: null, connected_at: null, client_configured: false, calendar_id: null,
+        error: null, callback_path: '/admin/meetings/google/callback', synced_future_count: 0,
+      } });
+    }
+    if (p === '/admin/meetings/google/authorize' && req.method === 'POST') {
+      return json(res, 422, { message: 'Save the client ID and secret first.', errors: { redirect_uri: ['Save the client ID and secret first.'] } });
+    }
+    if (p === '/admin/meetings/google/callback' && req.method === 'POST') {
+      return json(res, 200, { data: { account: 'meetings@technoware.test' } });
+    }
+    if (p === '/admin/meetings/google/disconnect' && req.method === 'POST') {
+      return json(res, 200, { data: { is_connected: false, synced_future_count: 0 } });
+    }
+    if (p === '/admin/meetings/google/test' && req.method === 'POST') {
+      return json(res, 422, { message: 'Connect a Google account first.', errors: { google: ['Connect a Google account first.'] } });
+    }
+    if (p === '/admin/meetings/customers' && req.method === 'GET') {
+      const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+      if (q.length < 2) return json(res, 422, { message: 'The q field must be at least 2 characters.', errors: { q: ['The q field must be at least 2 characters.'] } });
+      const rows = adminCustomers
+        .filter((c) => [c.name, c.email, c.company].some((v) => (v ?? '').toLowerCase().includes(q)))
+        .slice(0, 8)
+        .map(({ id, name, email, company, phone, status, status_label }) => ({ id, name, email, company, phone, status, status_label }));
+      return json(res, 200, { data: rows });
+    }
+    if (p === '/admin/meetings/slots' && req.method === 'GET' && url.searchParams.get('from') && url.searchParams.get('to')) {
+      const type = meetingTypes.find((t) => t.slug === url.searchParams.get('type')) ?? meetingTypes[0];
+      const days = [];
+      for (let ymd = url.searchParams.get('from'); ymd <= url.searchParams.get('to'); ymd = new Date(Date.parse(`${ymd}T00:00:00Z`) + 86400000).toISOString().slice(0, 10)) {
+        days.push({ date: ymd, count: meetingSlotsFor(ymd, type.minutes).length });
+      }
+      return json(res, 200, { data: { type: type.slug, from: url.searchParams.get('from'), to: url.searchParams.get('to'), timezone: 'Asia/Kolkata', timezone_label: 'IST', days } });
+    }
+    if (p === '/admin/meetings/slots' && req.method === 'GET') {
+      const type = meetingTypes.find((t) => t.slug === url.searchParams.get('type')) ?? meetingTypes[0];
+      const date = url.searchParams.get('date') ?? isoDay(2);
+      return json(res, 200, { data: {
+        type: type.slug, date, timezone: 'Asia/Kolkata', timezone_label: 'IST',
+        slots: meetingSlotsFor(date, type.minutes).map((sl) => ({ ...sl, hosts: [{ id: 1, name: 'Ada Admin' }] })),
+      } });
+    }
+    if ((p === '/admin/meetings' || p === '/admin/my-meetings') && req.method === 'GET') {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- `trail` is left off the list read on purpose
+      const rows = meetings.map(({ trail, ...m }) => m);
+      return json(res, 200, {
+        data: rows,
+        meta: { ...meetingMeta, current_page: 1, last_page: 1, per_page: 20, total: rows.length },
+        links: {},
+      });
+    }
+    if (p === '/admin/meetings' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const type = meetingTypes.find((t) => t.slug === body.type) ?? meetingTypes[0];
+      const m = { ...structuredClone(meetings[0]), id: meetings.length + 1, reference: `MT-2026-${String(meetings.length + 1).padStart(5, '0')}`,
+        name: body.name ?? 'New contact', email: body.email ?? 'new@example.test', phone: body.phone ?? null, company: body.company ?? null,
+        agenda: body.agenda ?? null, source: 'console', source_label: 'Console', meet_url: null, reschedule_count: -1,
+        meeting_type: { id: type.id, name: type.name, slug: type.slug, minutes: type.minutes }, meeting_type_id: type.id, minutes: type.minutes,
+        google: { status: 'pending', status_label: 'Waiting to sync', event_id: null, account: null, attempts: 0, error: null } };
+      m.admin_path = `/admin/meetings/${m.reference}`;
+      if (body.start) moveMeeting(m, body.start);
+      m.reschedule_count = 0;
+      meetings.push(m);
+      return json(res, 201, { data: m });
+    }
+    const meetingMatch = p.match(/^\/admin\/(?:my-)?meetings\/([A-Z][A-Z0-9]{1,5}-\d{4}-\d{5})(\/move|\/cancel|\/resync)?$/);
+    if (meetingMatch) {
+      const m = meetingOf(meetingMatch[1]);
+      if (!m) return json(res, 404, { message: 'Not found.' });
+      const body = req.method === 'GET' ? {} : await readJsonBody(req);
+      if (req.method === 'POST' && meetingMatch[2] === '/move') moveMeeting(m, body.start);
+      else if (req.method === 'POST' && meetingMatch[2] === '/cancel') cancelMeeting(m, body.reason ?? null);
+      else if (req.method === 'PATCH') {
+        if ('staff_note' in body) m.staff_note = body.staff_note;
+        if (body.status === 'completed' || body.status === 'no_show') {
+          Object.assign(m, { status: body.status, status_label: body.status === 'completed' ? 'Completed' : 'No-show', is_open: false });
+        }
+      }
+      return json(res, 200, { data: m });
+    }
+    if (p === '/admin/meeting-types' && req.method === 'GET') {
+      return json(res, 200, { data: meetingTypes, meta: { eligible_hosts: [{ id: 1, name: 'Ada Admin' }] } });
+    }
+    if (p === '/admin/meeting-types' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      if (!body.name) return json(res, 422, { message: 'Give it a name.', errors: { name: ['Give it a name.'] } });
+      const t = {
+        id: Math.max(0, ...meetingTypes.map((x) => x.id)) + 1, name: body.name,
+        slug: body.slug || String(body.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+        description: body.description ?? null, minutes: body.minutes ?? 30, buffer_before: body.buffer_before ?? 0,
+        buffer_after: body.buffer_after ?? 0, is_public: body.is_public !== false, is_active: body.is_active !== false,
+        sort_order: body.sort_order ?? 0, host_ids: body.host_ids ?? [],
+        hosts: (body.host_ids ?? []).map((id) => ({ id, name: 'Ada Admin', eligible: true })), meetings_count: 0,
+        created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      };
+      meetingTypes.push(t);
+      return json(res, 201, { data: t });
+    }
+    const meetingTypeMatch = p.match(/^\/admin\/meeting-types\/(\d+)$/);
+    if (meetingTypeMatch) {
+      const t = meetingTypes.find((x) => x.id === Number(meetingTypeMatch[1]));
+      if (!t) return json(res, 404, { message: 'Not found.' });
+      if (req.method === 'PATCH') {
+        const body = await readJsonBody(req);
+        Object.assign(t, body, {
+          hosts: (body.host_ids ?? t.host_ids).map((id) => ({ id, name: 'Ada Admin', eligible: true })),
+          updated_at: new Date().toISOString(),
+        });
+      }
+      if (req.method === 'DELETE') {
+        if (t.meetings_count > 0) {
+          return json(res, 422, { message: 'This type has meetings, so it cannot be deleted. Switch it off instead.', errors: { meeting_type: ['This type has meetings, so it cannot be deleted. Switch it off instead.'] } });
+        }
+        meetingTypes.splice(meetingTypes.indexOf(t), 1);
+        return json(res, 204, {});
+      }
+      return json(res, 200, { data: t });
+    }
+    if (p === '/admin/meeting-hosts' && req.method === 'GET') {
+      return json(res, 200, {
+        data: meetingHosts,
+        meta: { default_hours: [1, 2, 3, 4, 5].map((weekday) => ({ weekday, start: '10:00', end: '18:00' })), timezone: 'Asia/Kolkata', timezone_label: 'IST' },
+      });
+    }
+    const meetingHostMatch = p.match(/^\/admin\/meeting-hosts\/(\d+)(\/hours|\/time-off(?:\/(\d+))?)?$/);
+    if (meetingHostMatch) {
+      const h = meetingHosts.find((x) => x.id === Number(meetingHostMatch[1]));
+      if (!h) return json(res, 404, { message: 'Not found.' });
+      if (req.method === 'PUT' && meetingHostMatch[2] === '/hours') {
+        const body = await readJsonBody(req);
+        h.hours = body.hours ?? [];
+        h.uses_default_hours = h.hours.length === 0;
+      } else if (req.method === 'POST' && meetingHostMatch[2] === '/time-off') {
+        const body = await readJsonBody(req);
+        if (!body.starts_at || !body.ends_at || body.ends_at <= body.starts_at) {
+          return json(res, 422, { message: 'The end must be after the start.', errors: { ends_at: ['The end must be after the start.'] } });
+        }
+        h.time_off.push({ id: Date.now(), starts_at: `${body.starts_at}:00+05:30`, ends_at: `${body.ends_at}:00+05:30`, note: body.note ?? null,
+          label: `${body.starts_at.replace('T', ' ')} – ${body.ends_at.replace('T', ' ')}` });
+      } else if (req.method === 'DELETE' && meetingHostMatch[3]) {
+        h.time_off = h.time_off.filter((t) => t.id !== Number(meetingHostMatch[3]));
+        return json(res, 204, {});
+      }
+      return json(res, 200, { data: h });
+    }
     if (p === '/admin/visits' && req.method === 'GET') {
       return json(res, 200, {
         data: visitRequests,
@@ -2000,7 +2371,7 @@ createServer(async (req, res) => {
         links: {},
       });
     }
-    const av = p.match(/^\/admin\/visits\/(TV-\d{4}-\d{5})(\/confirm)?$/);
+    const av = p.match(/^\/admin\/visits\/([\w-]+)(\/confirm)?$/);
     if (av) {
       const v = visitRequests.find((x) => x.reference === av[1]);
       if (!v) return json(res, 404, { message: 'Not found.' });
@@ -2073,7 +2444,9 @@ createServer(async (req, res) => {
       const lead = leads.find(l => String(l.id) === p.split('/')[3]);
       if (!lead) return json(res, 404, { message: 'Not found.' });
       if (req.method === 'DELETE') return json(res, 200, { message: 'Lead deleted.' });
-      return json(res, 200, { data: lead });
+      // The meeting a `meeting` lead came from (docs/meetings-contract.md), else null.
+      const fromMeeting = meetings.find((m) => m.lead_id === lead.id);
+      return json(res, 200, { data: { ...lead, meeting: fromMeeting ? { reference: fromMeeting.reference, admin_path: fromMeeting.admin_path } : null } });
     }
 
     /* Menus. `meta` is the contract that matters: the console builds its
@@ -2249,7 +2622,22 @@ createServer(async (req, res) => {
     for (const entity of ADMIN_CMS) {
       if (p === entity.base && req.method === 'GET') {
         const q = (url.searchParams.get('q') || '').toLowerCase();
-        const rows = q ? entity.rows.filter((r) => `${r.title || r.name || ''} ${r.slug || ''}`.toLowerCase().includes(q)) : entity.rows;
+        let rows = q ? entity.rows.filter((r) => `${r.title || r.name || ''} ${r.slug || ''}`.toLowerCase().includes(q)) : entity.rows;
+        /* `/admin/services?category=<id|none>` and `/admin/service-categories?active=0|1`. */
+        const cat = entity.base === '/admin/services' ? url.searchParams.get('category') : null;
+        if (cat) rows = rows.filter((r) => (cat === 'none' ? !r.category : r.category?.id === Number(cat)));
+        const active = entity.base === '/admin/service-categories' ? url.searchParams.get('active') : null;
+        if (active === '0' || active === '1') rows = rows.filter((r) => r.is_active === (active === '1'));
+        /* `?sort=title|category|status|order|updated&dir=` on services; uncategorised last when ascending by category. */
+        const sortKey = entity.base === '/admin/services' ? url.searchParams.get('sort') : null;
+        if (sortKey) {
+          const dir = url.searchParams.get('dir') === 'desc' ? -1 : 1;
+          const key = {
+            title: (r) => r.title, status: () => 'published', order: (r) => r.sort_order ?? 0, updated: (r) => r.updated_at ?? '',
+            category: (r) => (r.category ? serviceCategories.find((c) => c.id === r.category.id)?.sort_order ?? 0 : Number.MAX_SAFE_INTEGER),
+          }[sortKey];
+          if (key) rows = [...rows].sort((x, y) => (key(x) > key(y) ? dir : key(x) < key(y) ? -dir : x.id - y.id));
+        }
         const page = paginate(rows.map((r) => entity.detail(r)));
         page.meta.answer_block_kinds = ANSWER_BLOCK_KINDS;
         if (entity.base === '/admin/pages') {
@@ -2257,6 +2645,7 @@ createServer(async (req, res) => {
           page.meta.section_presets = SECTION_PRESETS;
         }
         page.meta.custom_field_groups = entity.base === '/admin/pages' ? CUSTOM_FIELD_DEFINITIONS : [];
+        if (entity.base === '/admin/services') page.meta.sorts = ['title', 'category', 'status', 'order', 'updated'];
         if (entity.base === '/admin/store/products') {
           page.meta.types = [{ value: 'physical', label: 'Physical', description: 'Shipped.' }, { value: 'digital', label: 'Digital', description: 'A code.' }, { value: 'service', label: 'Service', description: 'Work.' }];
           page.meta.statuses = [{ value: 'draft', label: 'Draft' }, { value: 'published', label: 'Published' }, { value: 'archived', label: 'Archived' }];
@@ -2273,6 +2662,8 @@ createServer(async (req, res) => {
       if (m) {
         const r = entity.rows.find((x) => x.id === Number(m[1]));
         if (!r) return json(res, 404, { message: 'Not found.' });
+        /* A service category's delete answers 204, as Laravel's does. */
+        if (req.method === 'DELETE' && entity.base === '/admin/service-categories') { res.writeHead(204); return res.end(); }
         if (req.method === 'DELETE') return json(res, 200, { message: 'Deleted.' });
         if (req.method === 'PATCH') {
           const body = await readJsonBody(req);
@@ -2769,6 +3160,45 @@ createServer(async (req, res) => {
     if (/^\/admin\/imports\/wordpress\/\d+$/.test(p) && req.method === 'DELETE') return json(res, 200, { data: wpImport('cancelled') });
     if (/^\/admin\/imports\/wordpress\/\d+\/commit$/.test(p) && req.method === 'POST') return json(res, 202, { data: wpImport('running') });
 
+    /* Backups (2026-09-27, docs/backups.md): one full and one incremental that
+       reached S3, a failed one, the schedule on, S3 set up and the other two
+       not — so the list, the badges and the status cards all render in CI. */
+    const backupRow = (id, type, status, extra = {}) => ({
+      id, uuid: `00000000-0000-4000-8000-00000000000${id}`, folder: `2026092${id}-021500-${type === 'full' ? 'full' : 'incr'}-0000000${id}`,
+      type, trigger: 'schedule', status, error: status === 'failed' ? 'Access Denied (HTTP 403)' : null,
+      includes: { database: true, public: true, private: true }, base_id: type === 'full' ? null : 1, parent_id: type === 'full' ? null : 1,
+      dumper: 'mysqldump', db_bytes: 215431, file_count: type === 'full' ? 388 : 3, files_bytes: type === 'full' ? 92632257 : 41230, deleted_count: 0,
+      total_bytes: type === 'full' ? 92860000 : 260000, created_by: null, created_at: `2026-09-2${id}T02:15:00+05:30`,
+      started_at: `2026-09-2${id}T02:15:02+05:30`, finished_at: `2026-09-2${id}T02:16:40+05:30`, local: id === 2,
+      destinations: [{ key: 's3', label: 'S3 / S3-compatible', status: status === 'failed' ? 'failed' : 'done', bytes_sent: 1, bytes: 1, error: status === 'failed' ? 'Access Denied (HTTP 403)' : null }],
+      restorable_from: status === 'completed' ? (id === 2 ? ['s3', 'local'] : ['s3']) : [],
+      progress: { archived: 0, volumes: 1, dump_table: null }, ...extra,
+    });
+    if (p === '/admin/backups' && req.method === 'GET') {
+      return json(res, 200, {
+        data: [backupRow(3, 'incremental', 'failed'), backupRow(2, 'incremental', 'completed'), backupRow(1, 'full', 'completed')],
+        meta: {
+          running: null, restore: null, restoring: false, last_success: '2026-09-22T02:16:40+05:30', next_run: '2026-09-28T02:15:00+05:30',
+          schedule: { enabled: true, time: '02:15', full_day: 'sun', incremental_every: 24, keep_chains: 4 },
+          includes: { database: true, public: true, private: true },
+          destinations: [
+            { key: 's3', label: 'S3 / S3-compatible', enabled: true, configured: true, error: null, detail: { bucket: 'site-backups', endpoint: 'Amazon S3' } },
+            { key: 'gdrive', label: 'Google Drive', enabled: false, configured: false, error: null, detail: {} },
+            { key: 'ftp', label: 'FTP / FTPS / SFTP', enabled: false, configured: false, error: null, detail: { protocol: 'SFTP' } },
+          ],
+          error: 'The incremental backup of Wed 23 Sep 2026 2:15 AM did not reach S3 / S3-compatible. Access Denied (HTTP 403)',
+          scheduler: { known: true, last_run_seconds: 20, running: true },
+          dumper: { chosen: 'mysqldump', binary: true }, disk_free: 52428800000, code_schema: '2026_09_27_130000_create_backups',
+        },
+      });
+    }
+    if (p === '/admin/backups' && req.method === 'POST') return json(res, 202, { data: backupRow(4, 'full', 'pending') });
+    if (p === '/admin/backups/drive' && req.method === 'GET') {
+      return json(res, 200, { data: { is_connected: false, account: null, connected_at: null, client_configured: false, error: null, callback_path: '/admin/backups/drive/callback' } });
+    }
+    if (/^\/admin\/backups\/destinations\/[a-z0-9]+\/folders$/.test(p)) return json(res, 200, { data: [], meta: { total: 0 } });
+    if (/^\/admin\/backups\/destinations\/[a-z0-9]+\/test$/.test(p)) return json(res, 200, { data: { message: 'The mock answered.' } });
+
     /* Importing subscribers from a mailbox. Not connected, no client saved,
        the queue not delivering — the shapes the screen has to draw before
        anything works — and one scan fixture that is ready to review, so the
@@ -2790,6 +3220,16 @@ createServer(async (req, res) => {
     if (p === '/admin/newsletter/imports/mailbox/callback') return json(res, 422, { message: 'That connection link has expired or was already used. Start again from the import screen.' });
     if (p === '/admin/newsletter/imports/mailbox/disconnect') return json(res, 200, { data: { is_connected: false } });
     if (p === '/admin/newsletter/imports/mailbox/scan') return json(res, 422, { message: 'Nothing is draining the queue, so the scan would never start.', errors: { queue: ['Nothing is draining the queue, so the scan would never start. On the server add the cron entry `* * * * * cd /path/to/api && php artisan schedule:run >> /dev/null 2>&1`, or run `php artisan queue:work`.'] } });
+    /* Crawling a website for subscribers: no Hunter key, the queue not
+       delivering, nothing in flight -- the first step's shape. */
+    if (p === '/admin/newsletter/imports/crawl' && req.method === 'GET') {
+      return json(res, 200, { data: {
+        active: null, delivering: false, hunter_configured: false, hunter: null,
+        industries: ['Hospitals', 'Hardware retail'],
+        limits: { depth: 4, pages: 500, linked_sites: 100, hunter_domains: 50 },
+      } });
+    }
+    if (p === '/admin/newsletter/imports/crawl') return json(res, 422, { message: 'Nothing is draining the queue, so the crawl would never start.', errors: { queue: ['Nothing is draining the queue, so the crawl would never start. On the server add the cron entry `* * * * * cd /path/to/api && php artisan schedule:run >> /dev/null 2>&1`, or run `php artisan queue:work`.'] } });
     if (/^\/admin\/newsletter\/imports\/\d+$/.test(p) && req.method === 'DELETE') return json(res, 200, { data: { id: 7, source: 'mailbox', status: 'cancelled' } });
     if (/^\/admin\/newsletter\/imports\/\d+$/.test(p) && req.method === 'GET') {
       return json(res, 200, { data: {
@@ -3074,6 +3514,7 @@ createServer(async (req, res) => {
         t.status = patch.status;
         t.status_label = STATUS_LABELS[patch.status];
         t.allowed_transitions = nextStatuses(patch.status);
+        if (patch.status === 'closed') ensureSurvey(t.reference);
       }
       if (patch.priority) {
         t.priority = patch.priority;
@@ -3089,7 +3530,11 @@ createServer(async (req, res) => {
     if (am && req.method === 'GET') {
       const t = tickets.find((x) => x.reference === am[1]);
       if (!t) return json(res, 404, { message: 'Not found.' });
-      return json(res, 200, { data: { ...t, customer, messages: messages[t.reference] || [] } });
+      const sv = surveys.find((x) => x.reference === t.reference);
+      const survey = sv
+        ? { sent_at: sv.sent_at, rating: sv.rating, rating_label: surveyLabel(sv.rating), comment: sv.comment, answered_at: sv.answered_at }
+        : null;
+      return json(res, 200, { data: { ...t, customer, messages: messages[t.reference] || [], survey } });
     }
 
     // Merge: the same refusals as Laravel's, as 422s on `into`, and the
@@ -3191,6 +3636,11 @@ createServer(async (req, res) => {
       : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/services') return json(res, 200, { data: menuOnly(services) });
+  /* Active categories only, in order, the public shape (no counts, no flags beyond the one the cards need). */
+  if (p === '/service-categories') {
+    return json(res, 200, { data: serviceCategories.filter((c) => c.is_active).sort((a, b) => a.sort_order - b.sort_order)
+      .map(({ id, name, slug, description, icon, image_background }) => ({ id, name, slug, description, icon, image_background })) });
+  }
   if (p.startsWith('/services/')) {
     const s2 = services.find(x => x.slug === p.split('/')[2]);
     return s2
@@ -3828,6 +4278,59 @@ createServer(async (req, res) => {
       : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/enquiries' && req.method === 'POST') return json(res, 201, { message: 'Thanks', data: { id: 1 } });
+  // Online meetings (docs/meetings-contract.md): the options, the slots in
+  // both forms, a booking, and the guest link scoped by its token.
+  if (p === '/meetings/options') {
+    return json(res, 200, { data: {
+      enabled: true,
+      types: meetingTypes.filter((t) => t.is_active && t.is_public).map((t) => ({ id: t.id, name: t.name, slug: t.slug, description: t.description, minutes: t.minutes })),
+      step: 30, min_notice_hours: 4, max_days: 30, min_date: isoDay(1), max_date: isoDay(30), holidays: [],
+      timezone: 'Asia/Kolkata', timezone_label: 'IST', agenda_max: 2000,
+    } });
+  }
+  if (p === '/meetings/slots') {
+    const type = meetingTypes.find((t) => t.slug === url.searchParams.get('type'));
+    if (!type) return json(res, 422, { message: 'Choose a kind of meeting.', errors: { type: ['Choose a kind of meeting.'] } });
+    const date = url.searchParams.get('date');
+    if (date) {
+      return json(res, 200, { data: { type: type.slug, date, timezone: 'Asia/Kolkata', timezone_label: 'IST', slots: meetingSlotsFor(date, type.minutes) } });
+    }
+    const from = url.searchParams.get('from') ?? isoDay(0);
+    const to = url.searchParams.get('to') ?? isoDay(30);
+    const days = [];
+    for (let d = new Date(`${from}T00:00:00Z`); d.toISOString().slice(0, 10) <= to; d.setUTCDate(d.getUTCDate() + 1)) {
+      const ymd = d.toISOString().slice(0, 10);
+      days.push({ date: ymd, count: meetingSlotsFor(ymd, type.minutes).length });
+    }
+    return json(res, 200, { data: { type: type.slug, from, to, timezone: 'Asia/Kolkata', timezone_label: 'IST', days } });
+  }
+  if (p === '/meetings' && req.method === 'POST') {
+    const body = await readJsonBody(req);
+    if (!body.start) return json(res, 422, { message: 'Choose a time.', errors: { start: ['Choose a time.'] } });
+    if (String(body.start).includes('T15:30')) {
+      return json(res, 422, { message: 'That time was just taken — choose another.', errors: { start: ['That time was just taken — choose another.'] } });
+    }
+    const ymd = String(body.start).slice(0, 10);
+    const hm = String(body.start).slice(11, 16);
+    return json(res, 201, { message: 'Your meeting is booked.', data: {
+      reference: 'MT-2026-00001', access_token: MEETING_TOKEN, starts_at: body.start,
+      date_label: meetingDateLabel(ymd), time_label: `${hm} – ${addMinutes(hm, 30)}`, timezone: 'IST',
+    } });
+  }
+  const gm = p.match(/^\/meetings\/([A-Z][A-Z0-9]{1,5}-\d{4}-\d{5})(\/cancel|\/reschedule)?$/);
+  if (gm) {
+    const body = req.method === 'POST' ? await readJsonBody(req) : {};
+    const token = url.searchParams.get('token') ?? body.token;
+    const m = meetingOf(gm[1]);
+    if (!m || token !== MEETING_TOKEN) return json(res, 404, { message: 'Not found.' });
+    if (req.method === 'POST' && gm[2] === '/cancel') cancelMeeting(m);
+    // The API's "just taken" answer on a move too — a start at 15:30 is taken.
+    if (req.method === 'POST' && gm[2] === '/reschedule' && String(body.start ?? '').includes('T15:30')) {
+      return json(res, 422, { message: 'That time was just taken — choose another.', errors: { start: ['That time was just taken — choose another.'] } });
+    }
+    if (req.method === 'POST' && gm[2] === '/reschedule' && body.start) moveMeeting(m, body.start);
+    return json(res, 200, { data: customerMeeting(m), ...(req.method === 'POST' ? { message: 'Done.' } : {}) });
+  }
   // Engineer visits (docs/visits.md): what the form offers, a request, and the
   // guest link — scoped by its token, a wrong one the same 404 as Laravel's.
   if (p === '/visits/options') {
@@ -3846,7 +4349,7 @@ createServer(async (req, res) => {
     }
     return json(res, 201, { message: 'Thank you', data: { reference: 'TV-2026-00001', access_token: VISIT_TOKEN } });
   }
-  const gv = p.match(/^\/visits\/(TV-\d{4}-\d{5})(\/cancel|\/reschedule)?$/);
+  const gv = p.match(/^\/visits\/([\w-]+)(\/cancel|\/reschedule)?$/);
   if (gv) {
     const body = req.method === 'POST' ? await readJsonBody(req) : {};
     const token = url.searchParams.get('token') ?? body.token;
@@ -3878,11 +4381,28 @@ createServer(async (req, res) => {
     return json(res, 200, { data: messagingPreferences });
   }
   if (p === '/auth/profile' && req.method === 'PATCH') return json(res, 200, { data: customer });
+  if (p === '/my/meetings') {
+    const mine = meetings.filter((m) => m.customer_id === customer.id).map(customerMeeting);
+    return json(res, 200, { data: mine, links: { first: null, last: null, prev: null, next: null }, meta: { current_page: 1, last_page: 1, per_page: 20, total: mine.length } });
+  }
+  const mym = p.match(/^\/my\/meetings\/([A-Z][A-Z0-9]{1,5}-\d{4}-\d{5})(\/cancel|\/reschedule)?$/);
+  if (mym) {
+    const m = meetings.find((x) => x.reference === mym[1] && x.customer_id === customer.id);
+    if (!m) return json(res, 404, { message: 'Not found.' });
+    const body = req.method === 'POST' ? await readJsonBody(req) : {};
+    if (req.method === 'POST' && mym[2] === '/cancel') cancelMeeting(m);
+    // The API's "just taken" answer on a move too — a start at 15:30 is taken.
+    if (req.method === 'POST' && mym[2] === '/reschedule' && String(body.start ?? '').includes('T15:30')) {
+      return json(res, 422, { message: 'That time was just taken — choose another.', errors: { start: ['That time was just taken — choose another.'] } });
+    }
+    if (req.method === 'POST' && mym[2] === '/reschedule' && body.start) moveMeeting(m, body.start);
+    return json(res, 200, { data: customerMeeting(m), ...(req.method === 'POST' ? { message: 'Done.' } : {}) });
+  }
   if (p === '/my/visits') {
     const mine = visitRequests.filter((v) => v.customer_id === customer.id).map(customerVisit);
     return json(res, 200, { data: mine, links: { first: null, last: null, prev: null, next: null }, meta: { current_page: 1, last_page: 1, per_page: 20, total: mine.length } });
   }
-  const mv = p.match(/^\/my\/visits\/(TV-\d{4}-\d{5})(\/cancel|\/reschedule)?$/);
+  const mv = p.match(/^\/my\/visits\/([\w-]+)(\/cancel|\/reschedule)?$/);
   if (mv) {
     const v = visitRequests.find((x) => x.reference === mv[1] && x.customer_id === customer.id);
     return v ? json(res, 200, { data: customerVisit(v) }) : json(res, 404, { message: 'Not found.' });
@@ -3926,4 +4446,4 @@ createServer(async (req, res) => {
   }
 
   return json(res, 404, { message: 'Not found.' });
-}).listen(8899, () => console.log('mock api on 8899'));
+}).listen(MOCK_PORT, () => console.log(`mock api on ${MOCK_PORT}`));

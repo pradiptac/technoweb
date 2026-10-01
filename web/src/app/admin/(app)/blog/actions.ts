@@ -29,6 +29,10 @@ function payloadFrom(formData: FormData): BlogPostPayload {
     published_at: str(formData, "published_at"),
     author_id: authorId ? Number(authorId) : null,
     cover_image_path: str(formData, "cover_image_path"),
+    is_featured: formData.get("is_featured") === "1",
+    comments_enabled: formData.get("comments_enabled") !== "0",
+    // The picker shows the whole set, so nothing ticked means "none" and is sent as [].
+    category_ids: formData.getAll("category_ids").map(Number).filter((n) => Number.isInteger(n) && n > 0),
     faqs: jsonListFromFormData<FaqItem>(formData, "faqs"),
     answer_blocks: jsonListFromFormData<AnswerBlock>(formData, "answer_blocks"),
     ...(seo ? { seo: seo as BlogPostPayload["seo"] } : {}),

@@ -45,6 +45,8 @@ const PUBLIC_ROUTES = [
   "/team", "/clients", "/certifications",
   "/knowledge-base", "/about", "/contact", "/support", "/privacy", "/terms", "/returns", "/shipping",
   "/book-a-visit",
+  // Online meetings (docs/meetings.md) -- the day picker at 320px.
+  "/book-a-meeting", "/book-a-meeting?type=product-demo",
   "/search", "/search?q=switch",
   "/this-page-does-not-exist",   // the 404
   "/careers",
@@ -73,6 +75,8 @@ const PORTAL_ROUTES = [
   "/portal/wishlist",
   // Engineer visits (docs/visits.md).
   "/portal/visits",
+  // Online meetings (docs/meetings.md).
+  "/portal/meetings",
   ...(PORTAL_TICKET ? [`/portal/tickets/${PORTAL_TICKET}`] : []),
 ];
 
@@ -87,6 +91,7 @@ const ADMIN_ROUTES = [
   "/admin/faqs/new", "/admin/media", "/admin/products", "/admin/products/new",
   "/admin/product-categories", "/admin/brands", "/admin/solutions",
   "/admin/services", "/admin/industries", "/admin/seo", "/admin/redirects",
+  "/admin/service-categories", "/admin/service-categories/new",
   // The popup list and its form. The form is the one that matters here: a
   // section checklist plus a targeting summary is a lot of small controls in
   // 320px, which is exactly what this run measures.
@@ -113,7 +118,9 @@ const ADMIN_ROUTES = [
   // Outgoing webhooks: the form's event grid is two columns of cards from
   // `sm` and one below it, and the delivery log is a table with data-labels.
   "/admin/webhooks", "/admin/webhooks/new",
-  "/admin/imports/wordpress",
+  "/admin/imports/wordpress", "/admin/backups", "/admin/backups/settings",
+  // System → Status and Updates (2026-09-28, docs/distribution.md).
+  "/admin/system/status", "/admin/system/updates",
   "/admin/profile", "/admin/customers",
   // The editor is the one worth measuring: a subject field, a rich-text body,
   // a plain-text box and a palette of mono chips in 320px.
@@ -126,6 +133,11 @@ const ADMIN_ROUTES = [
   "/admin/newsletter/settings", "/admin/leads/settings", "/admin/tickets/settings", "/admin/customers/settings", "/admin/chat/settings",
   // Engineer visits (docs/visits.md).
   "/admin/visits", "/admin/visits/settings",
+  // Online meetings (docs/meetings.md): the table, the week view, the slot
+  // picker, the hours editor and the settings with the Google panel.
+  "/admin/meetings", "/admin/meetings?view=agenda", "/admin/meetings/new",
+  "/admin/meetings/types", "/admin/meetings/types/new", "/admin/meetings/hosts",
+  "/admin/meetings/settings", "/admin/my-meetings",
   "/admin/settings/tickets/callback",
   // The store: its own catalogue, its own role, and the table with the most
   // columns in the console -- which is where the phone layout bites.
@@ -137,7 +149,7 @@ const ADMIN_ROUTES = [
   // The Campaign section, in neither audit until the Verification tab came:
   // its nav strip is seven tabs now, which is what this run is for.
   "/admin/newsletter", "/admin/newsletter/subscribers", "/admin/newsletter/subscribers/import",
-  "/admin/newsletter/subscribers/import/mailbox", "/admin/newsletter/verification",
+  "/admin/newsletter/subscribers/import/mailbox", "/admin/newsletter/subscribers/import/crawl", "/admin/newsletter/verification",
   "/admin/newsletter/groups", "/admin/newsletter/campaigns", "/admin/newsletter/templates",
   "/admin/newsletter/unsubscribes",
   // Automation sequences: the list and the new screen; the record screen is

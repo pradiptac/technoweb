@@ -42,6 +42,7 @@ class NewsletterSubscriberController extends Controller
             ->when($request->boolean('suppressed'), fn ($q) => $q->whereIn('email',
                 NewsletterSuppression::query()->select('email')))
             ->when($request->filled('verification'), fn ($q) => $q->where('verification', $request->string('verification')))
+            ->when($request->filled('industry'), fn ($q) => $q->where('industry', $request->string('industry')))
             ->latest('id')
             ->paginate(min($request->integer('per_page', 25), 100))
             ->withQueryString();
@@ -50,6 +51,9 @@ class NewsletterSubscriberController extends Controller
             'meta' => [
                 'statuses' => SubscriberStatus::options(),
                 'verifications' => EmailVerification::options(),
+                // Every industry on the list, for the filter — what a crawl or
+                // a spreadsheet wrote, not a list anybody maintains.
+                'industries' => NewsletterSubscriber::query()->whereNotNull('industry')->distinct()->orderBy('industry')->limit(200)->pluck('industry'),
                 'total_active' => NewsletterSubscriber::where('status', SubscriberStatus::Active)->count(),
                 'total_suppressed' => NewsletterSuppression::count(),
             ],
@@ -64,6 +68,9 @@ class NewsletterSubscriberController extends Controller
             'last_name' => ['nullable', 'string', 'max:100'],
             'company' => ['nullable', 'string', 'max:150'],
             'phone' => ['nullable', 'string', 'max:40'],
+            'industry' => ['nullable', 'string', 'max:80'],
+            'location' => ['nullable', 'string', 'max:80'],
+            'website' => ['nullable', 'string', 'max:255', 'url:http,https'],
             'group_ids' => ['sometimes', 'array'],
             'group_ids.*' => ['integer', 'exists:newsletter_groups,id'],
         ]);
@@ -107,6 +114,9 @@ class NewsletterSubscriberController extends Controller
             'last_name' => ['nullable', 'string', 'max:100'],
             'company' => ['nullable', 'string', 'max:150'],
             'phone' => ['nullable', 'string', 'max:40'],
+            'industry' => ['nullable', 'string', 'max:80'],
+            'location' => ['nullable', 'string', 'max:80'],
+            'website' => ['nullable', 'string', 'max:255', 'url:http,https'],
             'group_ids' => ['sometimes', 'array'],
             'group_ids.*' => ['integer', 'exists:newsletter_groups,id'],
         ]);
@@ -292,17 +302,19 @@ class NewsletterSubscriberController extends Controller
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('group'), fn ($q) => $q->whereHas('groups',
                 fn ($g) => $g->where('newsletter_groups.id', $request->integer('group'))))
-            ->when($request->filled('verification'), fn ($q) => $q->where('verification', $request->string('verification')));
+            ->when($request->filled('verification'), fn ($q) => $q->where('verification', $request->string('verification')))
+            ->when($request->filled('industry'), fn ($q) => $q->where('industry', $request->string('industry')));
 
         $name = 'subscribers-'.now()->format('Y-m-d').'.csv';
 
         return response()->streamDownload(function () use ($query) {
             $handle = fopen('php://output', 'w');
 
-            Csv::write($handle, ['Email', 'First name', 'Last name', 'Company', 'Phone', 'Status', 'Verification', 'Groups', 'Subscribed'], (function () use ($query) {
+            Csv::write($handle, ['Email', 'First name', 'Last name', 'Company', 'Phone', 'Industry', 'Location', 'Website', 'Found on', 'Status', 'Verification', 'Groups', 'Subscribed'], (function () use ($query) {
                 foreach ($query->lazyById(500) as $s) {
                     yield [
                         $s->email, $s->first_name, $s->last_name, $s->company, $s->phone,
+                        $s->industry, $s->location, $s->website, $s->source_url,
                         $s->status->label(),
                         $s->verification->label(),
                         $s->groups->pluck('name')->implode(', '),

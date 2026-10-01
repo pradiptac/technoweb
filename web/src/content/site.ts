@@ -9,16 +9,19 @@ import type { IconName } from "@/components/icons";
  * the source should not require touching the components.
  */
 
-export const contact = {
-  phone: "+91 98765 43210",
-  phoneHref: "tel:+919876543210",
-  email: "support@technoware.in",
-} as const;
+// Blank on purpose: the product is sold under each owner's name, so the
+// number and the address come from Settings → Contact only. Every reader
+// hides its link when both are empty rather than dialling nothing.
+export const contact: { phone: string; phoneHref: string; email: string } = {
+  phone: "",
+  phoneHref: "",
+  email: "",
+};
 
 export const mainNav = [
   { label: "Solutions", href: "/solutions", hasChildren: true },
   { label: "Products", href: "/products", hasChildren: true },
-  { label: "Web Services", href: "/services", hasChildren: true },
+  { label: "Services", href: "/services", hasChildren: true },
   { label: "Industries", href: "/industries" },
   // The shop, which is a different list from Products above: that one is the
   // catalogue somebody researches a project from, this one is what can be
@@ -89,24 +92,26 @@ export const industries: { name: string; slug: string; icon: IconName; note: str
   { name: "Government", slug: "government", icon: "gov", note: "Compliance-aware deployment and documentation." },
 ];
 
-export const webServices: { title: string; slug: string; icon: IconName; body: string; note: string }[] = [
-  { title: "Domain registration", slug: "domains", icon: "globe",
-    body: "Register, transfer and renew domains with DNS managed correctly from day one.", note: ".com · .in · .co.in · .org" },
-  { title: "Web hosting", slug: "web-hosting", icon: "cloud",
-    body: "Linux and Windows hosting on managed infrastructure with backups and SSL included.", note: "Shared · Business · Managed" },
-  { title: "Business email", slug: "business-email", icon: "mail",
-    body: "Professional mailboxes on your own domain, with anti-spam, archiving and mobile sync.", note: "Google Workspace · Microsoft 365" },
-  { title: "SSL certificates", slug: "ssl", icon: "cert",
-    body: "DV, OV and wildcard certificates issued, installed and renewed before they expire.", note: "DV · OV · EV · Wildcard" },
-  { title: "VPS & cloud servers", slug: "vps", icon: "vps",
-    body: "Dedicated resources with root access for applications that have outgrown shared hosting.", note: "Linux · Windows · Managed" },
-  { title: "Website services", slug: "website-services", icon: "code",
-    body: "Corporate websites, migrations and ongoing maintenance built on modern, fast foundations.", note: "Design · Build · Maintain" },
+/**
+ * The footer's built-in Services column — what it shows while no footer menu
+ * is assigned, beside the Solutions and Products columns built the same way
+ * from the lists above. Titles and slugs only: the homepage's Services section
+ * and /services read the live services from the API since 2026-09-29, and the
+ * static grid these six entries used to feed is gone. The seeded footer menu
+ * (`technoware:seed-menus`) replaces the column with the live list.
+ */
+const footerServices: { title: string; slug: string }[] = [
+  { title: "Domain registration", slug: "domains" },
+  { title: "Web hosting", slug: "web-hosting" },
+  { title: "Business email", slug: "business-email" },
+  { title: "SSL certificates", slug: "ssl" },
+  { title: "VPS & cloud servers", slug: "vps" },
+  { title: "Website services", slug: "website-services" },
 ];
 
 /**
  * The store homepage's trust strip, less the delivery claim. Fixed marketing
- * chrome, the same shape as `webServices` above and `amcInclusions` below it
+ * chrome, the same shape as `amcInclusions` below it
  * — not a settings screen, because nobody has asked to reword these without a
  * deploy.
  *
@@ -178,7 +183,7 @@ export const footerNav = [
   // "Server infrastructure" into a bare "Server" in the footer.
   { heading: "Solutions", links: solutions.slice(0, 7).map((s) => ({ label: s.title, href: `/solutions/${s.slug}` })) },
   { heading: "Products", links: productCategories.slice(0, 7).map((c) => ({ label: c.name, href: `/products/${c.slug}` })) },
-  { heading: "Web services", links: webServices.map((s) => ({ label: s.title, href: `/services/${s.slug}` })) },
+  { heading: "Services", links: footerServices.map((s) => ({ label: s.title, href: `/services/${s.slug}` })) },
   { heading: "Support", links: [
     { label: "Customer login", href: "/portal/login" },
     { label: "Submit a ticket", href: "/portal/tickets/new" },

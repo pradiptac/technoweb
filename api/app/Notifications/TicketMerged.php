@@ -6,6 +6,7 @@ use App\Models\Ticket;
 use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
 use App\Support\InboundMail\MailHeaders;
+use App\Support\Mail\MailBrand;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -67,7 +68,7 @@ class TicketMerged extends Notification implements ShouldQueue
             ->line("**{$this->source->reference}** ({$this->source->subject}) was about the same thing as **{$this->target->reference}** ({$this->target->subject}), so everything you sent on it is now on the one ticket.")
             ->line("Quote {$this->target->reference} from now on. A reply to the old reference still reaches us, and it lands on the right ticket.")
             ->action('Open the ticket', $this->url())
-            ->salutation('— Technoware Support');
+            ->salutation(MailBrand::signoff().' Support');
 
         return MailHeaders::machine(MailHeaders::replyToMailbox($message), MailHeaders::REPLIED);
     }

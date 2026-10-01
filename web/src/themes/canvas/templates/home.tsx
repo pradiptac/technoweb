@@ -2,7 +2,7 @@ import { homeBlockSections } from "@/components/blocks/home-block-sections";
 import Link from "next/link";
 import { NocPanel } from "@/components/home/noc-panel";
 import {
-  CaseStudies, Credentials, Industries, Partners, Resources, SupportBand, TrustedBy, WebServices,
+  CaseStudies, Credentials, Industries, Partners, Resources, SupportBand, TrustedBy, Services,
 } from "@/components/home/sections";
 import { Reviews } from "@/components/home/reviews";
 import { ButtonLink } from "@/components/ui/button";
@@ -41,7 +41,7 @@ import { orderSections, type ThemeOptions } from "@/themes/options";
  * and the closing band.
  */
 export function Home({
-  settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
+  settings, solutions, categories, industries, services, serviceCategories, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
 }: HomeData & { options: ThemeOptions }) {
   const stats = statPairs(settings.hero_stats, heroStats);
   const look = statLookFor(settings);
@@ -86,7 +86,7 @@ export function Home({
       <Container>
         <dl className={cn("stat-figures grid gap-3", stripColumns(stats.length, 2))} {...statFigures(look)}>
           {stats.map((s) => (
-            <div key={s.label} className="rounded-xl border border-line bg-card px-5 py-4">
+            <div key={s.label} data-canvas-stat className="rounded-xl border border-line bg-surface-2 px-5 py-4">
               <StatFigure stat={s} inline />
             </div>
           ))}
@@ -101,7 +101,7 @@ export function Home({
         <SectionHeader kicker="What we do" title="Infrastructure, engineered properly the first time" />
         <div className="grid gap-5 md:grid-cols-3">
           {solutions.data.slice(0, 6).map((s) => (
-            <Link key={s.slug} href={`/solutions/${s.slug}`} data-card className="flex flex-col rounded-xl bg-surface-2 p-8 transition-colors duration-(--duration-base) hover:bg-surface">
+            <Link key={s.slug} href={`/solutions/${s.slug}`} data-card data-canvas-fill className="flex flex-col rounded-xl bg-surface-2 p-8 transition-[filter] duration-(--duration-base)">
               <span className="flex items-center gap-3">
                 <IconTile name={s.icon} size="sm" />
                 <h3 className="min-w-0 text-19">{s.title}</h3>
@@ -120,7 +120,7 @@ export function Home({
         <SectionHeader kicker="Which problem are you up against?" title="Hardware by what it is for" />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {categories.data.slice(0, 8).map((c) => (
-            <div key={c.slug} data-card className="flex flex-col rounded-xl border border-line-strong bg-card p-8">
+            <div key={c.slug} data-card data-canvas-fill className="flex flex-col rounded-xl border border-line-strong bg-surface-2 p-8 transition-[filter] duration-(--duration-base)">
               <h3 className="text-19">{c.name}</h3>
               {c.description && <p className="mt-2 text-14-5 leading-relaxed text-ink-2">{c.description}</p>}
               <Link href={`/products/${c.slug}`} className="mt-auto inline-flex items-center gap-1.5 pt-5 text-14 font-medium text-brand-ink hover:underline">
@@ -146,9 +146,9 @@ export function Home({
     { id: "credentials", node: <Credentials items={certifications.data} /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
     { id: "industries", node: <Industries items={industries.data.slice(0, 6)} /> },
-    { id: "web", node: <WebServices /> },
-    { id: "cases", node: <CaseStudies items={caseStudies.data.slice(0, 3)} /> },
-    { id: "resources", node: <Resources items={posts.data.slice(0, 3)} /> },
+    { id: "web", node: <Services services={services.data} categories={serviceCategories.data} /> },
+    { id: "cases", node: <CaseStudies items={caseStudies.data.slice(0, 6)} /> },
+    { id: "resources", node: <Resources items={posts.data.slice(0, 4)} /> },
     ...homeBlockSections(blocks),
     { id: "cta", node: <CtaBand tone="brand" size="lg" className="pt-0" /> },
   ];

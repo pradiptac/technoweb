@@ -1,0 +1,6 @@
+{
+  "min_from": "0.95.0",
+  "php_min": "8.3.0",
+  "node_min": "20.9.0",
+  "changelog_entries": 20
+}

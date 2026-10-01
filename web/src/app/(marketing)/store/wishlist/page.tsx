@@ -8,6 +8,8 @@ import { WishlistAlertsToggle, WishlistEmailForm } from "@/components/store/wish
 import { getWishlist } from "@/lib/wishlist";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
+import { getSiteSettings } from "@/lib/settings";
+import { portalEnabled } from "@/lib/site-settings";
 import type { VisibleWishlist } from "@/components/store/wishlist-actions";
 
 /**
@@ -29,7 +31,9 @@ export const metadata = buildMetadata({ title: "Your wishlist", path: "/store/wi
 const EMPTY: VisibleWishlist = { account: false, items: [], item_count: 0, email: null, alerts: false };
 
 export default async function WishlistPage() {
-  const found = await getWishlist();
+  const [found, settings] = await Promise.all([getWishlist(), getSiteSettings()]);
+  // No sign-in to offer while the portal is switched off (`portal_enabled`).
+  const portal = portalEnabled(settings);
   const list: VisibleWishlist = found ? stripToken(found) : EMPTY;
   const guestWithoutAddress = !list.account && list.items.length > 0 && !list.email;
 
@@ -80,8 +84,13 @@ export default async function WishlistPage() {
                     </>
                   ) : (
                     <>
-                      This list lives in this browser. <Link href="/portal/login" className="underline">Sign in</Link> and
-                      it moves to your account, where you can reach it from anywhere.
+                      This list lives in this browser.
+                      {portal && (
+                        <>
+                          {" "}<Link href="/portal/login" className="underline">Sign in</Link> and
+                          it moves to your account, where you can reach it from anywhere.
+                        </>
+                      )}
                     </>
                   )}
                 </p>

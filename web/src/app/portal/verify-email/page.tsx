@@ -8,10 +8,13 @@ import { getSiteSettings } from "@/lib/settings";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ResendButton } from "../register/check-your-email/resend-button";
+import { brandName } from "@/lib/brand";
+import { portalEnabled } from "@/lib/site-settings";
+import { PortalClosed } from "@/components/portal/portal-closed";
 
 export const metadata = buildMetadata({
   title: "Confirm your email address",
-  description: "Confirming your address for the Technoware support portal.",
+  description: `Confirming your address for the ${brandName()} support portal.`,
   path: "/portal/verify-email",
   seo: noIndex,
 });
@@ -45,6 +48,8 @@ export default async function VerifyEmailPage({
 }) {
   const { token, email } = await searchParams;
   const settings = await getSiteSettings();
+  // The portal switched off (`portal_enabled`): one page for every door in.
+  if (!portalEnabled(settings)) return <PortalClosed settings={settings} />;
 
   const outcome: Outcome = await (async () => {
     if (!token || !email) return { kind: "missing" as const };

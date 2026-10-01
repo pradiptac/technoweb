@@ -7,14 +7,10 @@ conventions and `API.md` for the endpoint reference; this file is just
 
 **In progress:** nothing — the last slice is committed and verified.
 
-**Latest (0.42.0, 2026-09-13):** Hunter.io verification of newsletter
-addresses — optional key, a nightly pass bounded by the plan's monthly
-allowance, Verified/Risky/Invalid/Disposable verdicts, invalid and disposable
-left off every send and never suppressed, a Verification tab with the donut —
-plus the Duplicate button the campaign endpoint always lacked, and a slider
-crossfade measured flicker-free. Before that, 0.41.0 was the performance
-pass; its one deliberate leftover stands: `/products/[slug]` is still dynamic
-(it awaits `searchParams` for the category listing's filters).
+**Latest (0.98.0, 2026-09-29):** online meetings — customers book a video
+call at a free slot, a Google Calendar event and Meet link per booking, the
+console diary, hosts and types — plus service categories on the Services
+section, and the customer portal switch made real. See the last section.
 
 **Branch:** work lands on `phase-3-admin-cms`. `main` is still at the end of
 Phase 2, so Phase 3 is not merged yet.
@@ -1704,3 +1700,30 @@ real WordPress** (WooCommerce's sample shop, ACF, Yoast, a custom post type,
 real orders; `docs/wordpress-import.md` "Verified against a real site"): the
 commit matched the review, orders reconciled, a second run updated in place;
 four findings fixed with tests (16 now, 180 assertions).
+
+## 0.91.0 to 0.98.0 — gauges, section reveals, backups, crawling, distribution, meetings
+
+The eight releases between the WordPress import and this one, each with its
+entry in `VERSION.md`:
+
+- [x] 0.91.0 — score gauges banded by percentage on `/admin/seo`
+- [x] 0.92.0, 0.92.1, 0.93.0 — a per-section Appear choice on the page
+      builder and the homepage sections, four new reveal styles, and the nav
+      underline drawn rather than flicked (`docs/motion.md`)
+- [x] 0.94.0 — backups, full and incremental, to S3, Google Drive and
+      SFTP/FTPS/FTP, with restore from the console or a terminal
+      (`docs/backups.md`)
+- [x] 0.95.0 — subscribers collected from a website crawl
+      (`docs/newsletter.md`, "Crawling a website")
+- [x] 0.96.0 — the signed release zip, the setup wizard, the updater with
+      rollback, and the customer manual (`docs/distribution.md`, `manual/`)
+- [x] 0.97.0 — reference prefixes as settings; the blog form's Featured,
+      Comments and Categories; the product named ALTIS TECH-CMS
+- [x] 0.98.0 — online meetings (`docs/meetings.md`,
+      `docs/meetings-contract.md`); service categories (`docs/catalogue.md`);
+      `portal_enabled` enforced at the API and on the site; the dashboard
+      grouped by desk; the datasheet field and the other fixes found by
+      checking the manual against the console
+
+Not done, and known: the Google consent and a real Meet link have not been driven against a real
+Workspace; the service-category stock pictures are not downloaded yet.

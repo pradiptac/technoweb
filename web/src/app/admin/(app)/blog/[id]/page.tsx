@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getAnswerBlockKinds, getBlogPost, getStaff } from "@/lib/admin";
+import { getAnswerBlockKinds, getBlogCategoryList, getBlogPost, getStaff } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { PostForm } from "../post-form";
@@ -33,8 +33,13 @@ export default async function EditBlogPostPage({
   let post: AdminBlogPost;
   let staff: StaffUser[] = [];
   let kinds: AnswerBlockKindOption[] = [];
+  let categories: { id: number; name: string }[] = [];
   try {
-    [post, staff, kinds] = await Promise.all([getBlogPost(numericId), getStaff(), getAnswerBlockKinds("/admin/blog-posts")]);
+    let list;
+    [post, staff, kinds, list] = await Promise.all([
+      getBlogPost(numericId), getStaff(), getAnswerBlockKinds("/admin/blog-posts"), getBlogCategoryList({ per_page: 100 }),
+    ]);
+    categories = list.data.map((c) => ({ id: c.id, name: c.name }));
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
     throw error;
@@ -57,7 +62,7 @@ export default async function EditBlogPostPage({
         )}
       </PageHeader>
 
-      <PostForm post={post} staff={staff} saved={Boolean(saved)} kinds={kinds} />
+      <PostForm post={post} staff={staff} categories={categories} saved={Boolean(saved)} kinds={kinds} />
     </>
   );
 }

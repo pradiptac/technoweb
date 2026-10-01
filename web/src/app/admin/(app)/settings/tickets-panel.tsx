@@ -46,7 +46,7 @@ const AFTER = [
 const AFTER_LABELS: Record<(typeof AFTER)[number], { label: string; hint?: string; placeholder?: string }> = {
   inbound_mail_address: {
     label: "The address customers write to",
-    placeholder: "support@technoware.in",
+    placeholder: "support@example.com",
     hint: "Blank means the login above. Replies to the acknowledgement are pointed here, so it must be the mailbox being read.",
   },
   inbound_mail_folder: { label: "Folder to read", placeholder: "INBOX" },

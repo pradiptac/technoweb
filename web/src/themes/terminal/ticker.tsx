@@ -21,7 +21,7 @@ export function Ticker({ settings }: { settings: SiteSettings }) {
   const items = [
     ...stats.map((s) => `${s.value} ${s.label.toLowerCase()}`),
     settings.hero_kicker ?? "Networking · Servers · Security · Surveillance",
-    `tel ${settings.phone ?? contact.phone}`,
+    ...((settings.phone ?? contact.phone) ? [`tel ${settings.phone ?? contact.phone}`] : []),
   ];
   const copy = items.map((text, i) => (
     <span key={i} className="mr-10 inline-flex items-center gap-2 whitespace-nowrap">

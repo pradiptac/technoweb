@@ -15,6 +15,8 @@ import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { KnowledgeArticle } from "@/types/api";
+import { getSiteSettings } from "@/lib/settings";
+import { portalEnabled, ticketHref } from "@/lib/site-settings";
 
 async function load(slug: string): Promise<KnowledgeArticle | null> {
   try {
@@ -71,10 +73,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function KnowledgeArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const article = await load(slug);
+  const [article, settings] = await Promise.all([load(slug), getSiteSettings()]);
 
   if (!article) notFound();
 
+  // Where "raise a ticket" goes — the contact form while the portal is
+  // switched off. A cached fetch, so this page stays in the ISR cache.
+  const portal = portalEnabled(settings);
   const tags = article.tags ?? [];
   const { html: body, headings } = withHeadingIds(article.body ?? "");
 
@@ -112,7 +117,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
           <AnswerBlocks blocks={article.answer_blocks} faqs={article.faqs ?? []} className="mt-10" />
           <RelatedEntities entity={article.entity} className="mt-10" />
 
-          <HelpfulVote slug={article.slug} title={article.title} />
+          <HelpfulVote slug={article.slug} ticketHref={ticketHref(settings, article.title)} />
 
           {tags.length > 0 && (
             <ul className="mt-10 flex flex-wrap gap-2 border-t border-line pt-6">
@@ -132,14 +137,14 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
           <div className="mt-10 rounded-xl border border-line-strong bg-surface p-6">
             <h2 className="text-[16px]">Did this not solve it?</h2>
             <p className="mt-1.5 mb-4 text-14 text-muted">
-              Raise a ticket and mention this article — the engineer will know what you have
+              {portal ? "Raise a ticket" : "Get in touch"} and mention this article — the engineer will know what you have
               already ruled out.
             </p>
             <Link
-              href={`/portal/tickets/new?subject=${encodeURIComponent(article.title)}`}
+              href={ticketHref(settings, article.title)}
               className="inline-flex items-center gap-2 rounded bg-brand-600 px-4 py-[11px] text-13-5 font-semibold text-brand-on hover:bg-brand-700"
             >
-              <IconTicket className="size-4" /> Raise a ticket
+              <IconTicket className="size-4" /> {portal ? "Raise a ticket" : "Contact us"}
             </Link>
           </div>
         </Container>

@@ -478,6 +478,33 @@ reader reading one page. The client wall and the certification cards
 carry `data-card` too, so the four card treatments reach them for free.
 Classic is measured unchanged.
 
+**And each theme lays the team card out its own way** (the client,
+2026-09-28: "the team design is absolutely the same in each theme" — the
+prints differed, the card did not). The list is `data-team` and every
+movable piece is named (`data-team-kicker`, `-name`, `-role`, `-bio`,
+`-certs`, `-chip`, `-contact`, `-link`), so each `theme.css` changes the
+*layout*, not just the photograph:
+
+| Theme | The card |
+|---|---|
+| Classic | the portrait card, unchanged |
+| Editorial | a staff box: ruled rows two across, a small square print beside a display-face name |
+| Datacenter | an access badge: dark tokens (the same in both schemes), an `ACCESS · 01` strip from a CSS counter with alt text `""`, the print framed, mono name |
+| Terminal | an `ls -l` listing: one row each, `~/name`, `$ role`, the bio as a `#` comment, links at the far end; stacked below 48rem |
+| Launch | its rising panel, kept |
+| Canvas | a centred profile: a 136px round portrait ringed in the person's hue |
+| Vantage | the photograph is the card; the words on a fade to the opaque dark at its foot, with the dark band's local palette (`surface-2` included, or the chips take the light card gradient) |
+| Sentinel | wide cards: the portrait the left two-fifths at full height, the rule turned into a glowing vertical seam; stacked on a phone |
+| Summit | a round portrait floating over the card's top edge, ringed in the page's ground, centred |
+| Keystone | a contact card: the brand-to-accent bar on top, a 72px round portrait beside name and role (`display: contents` on the body places them on the card's grid) |
+| Horizon | a brand band drawn as a `::before` (a background layer would be graded as the words' ground) with the square portrait framed across it |
+| Enterprise | leadership rows: a portrait column, uppercase role, the hue rule along the foot |
+
+Every row keeps a ground (the audit's card rule), and a dark card sets its
+own local palette so the words it already draws read on it.
+`/theme-preview/<id>/team` draws the real team under any theme; all twelve
+are clean in both schemes and at 320–414px.
+
 **The hero cannot be switched off.** The client's rule the same day: a
 homepage always opens on it. `LOCKED_SECTION` in `themes/options.ts`;
 `orderSections` keeps it whatever a stored row says and the console's row
@@ -508,8 +535,15 @@ for exactly this.
 
 **Summit (everestims.com).** A software product company: dark at the top
 — a near-black one-row header (Launch's header on the dark ground tokens,
-the same measured width gates) and a **centred hero** over a plexus
-picture at 30% with the kicker as a pill, the headline, the lede, two
+the same measured width gates) and a **centred hero** — on a `brand-900` →
+`accent-900` gradient since 2026-09-28 (the client: "other than black"), as is
+every inner page's heading band; both steps stay dark in both schemes and are
+the gate's `white on brand-900`/`accent-900` pairs — and every tile's name band (a
+product's brand and name, a collection's heading) is `brand-900` → `brand-800`
+at an angle rather than black, meeting the picture with no seam: the well's
+`border-b border-line` is dropped inside a Summit tile — over a plexus
+picture at 30% with the kicker as a pill (48px under the header from
+`lg`, 40px on a phone — halved on 2026-09-27, the client's ask), the headline, the lede, two
 buttons and a row of trust badges (the certifications; this site has no
 G2 rating) under them, and the slider framed beneath like a product
 screenshot when there is one — then the partners, the statistics as
@@ -684,6 +718,19 @@ body face no other theme uses.
   three plates. Plus Jakarta Sans and Public Sans; the accent ramp carries
   the reference's cyan; two Freepik photographs under
   `public/themes/vantage/`.
+
+  **The hero is the window, exactly, and the ticker sits on it** (the
+  client, 2026-09-28). The slider is `h-svh` (360px floor) at every width,
+  from the very top of the page: the info bar stays in the flow, is lifted
+  over the hero (`z-index: 41`), and the wrapper's negative margin is the
+  info bar's height plus its own — zero high in glass, `--h-site-header`
+  high once solid — so the page sits in the same place in both states.
+  `--h-info-bar` is the bar's one-line height (24px, 27px from `sm`) and 0
+  without a bar or once it is closed; the page hero's top padding adds it.
+  The first version took the header's height off a wrapper that was
+  already zero high: the hero started 72px above the page, painted over
+  the info bar (the ticker could not be seen), ended 97–570px short of the
+  window's foot, and the page jumped 72px the moment the pill turned solid.
 - **Keystone** (truenas.com) is white with the sections inside one
   bordered pill and the two calls beside it. The headline's closing words
   run through a brand-to-accent gradient — `GradientHeading`, whose span
@@ -697,7 +744,11 @@ body face no other theme uses.
   brand-600 band carries one white card with the credentials and the
   customer's words; the closing card fades from `dark` into `brand-900`.
   Red Hat Display at 700–800, DM Sans; the `plate` footer; two Freepik
-  photographs under `public/themes/keystone/`.
+  photographs under `public/themes/keystone/`. The `plate` footer
+  draws the social row once, on the right under the newsletter pill —
+  `Brand` takes `social={false}` there, since it drew the row as well — and
+  that column is `max-content`, so the pill never wraps inside its fixed
+  40px height (2026-09-28).
 
 **A theme's chrome is a factory call (2026-09-18).** `themes/chrome.tsx` exports `themeChrome({ Header, footer, between })`: the info bar, the header fed the assigned menu or the built-in one, `<main id="main">` under `PageEnter`, the footer fed the assigned columns. Eight `templates/chrome.tsx` files were those twenty lines around a header and a footer layout; each is now one line, Terminal's with `between` for its ticker. Every theme header takes `ThemeHeaderProps`. Classic's chrome stays its own file because it picks the footer per inheriting theme through `footerLayoutFor`. Gated on a snapshot of header, drawer and footer markup on all twelve previews before and after: identical.
 
@@ -844,3 +895,60 @@ one was 4. Widening the audit's threshold would widen a loophole; the bar is
 a `::before` now — a box no text is inside — and the theme grades clean on
 `/resources` and `/` in both schemes. The theme matrix for `/resources` and
 `/team` under all twelve themes is otherwise clean, light and dark.
+
+## A homepage section's Appear (2026-09-27)
+
+Each section row on the Themes screen has an **Appear** select under its
+background, and the choice rides in the same row of `site_theme_options`:
+`"sections": {"solutions": {"kind": "default", "reveal": "fade-up"}}`.
+`ThemeOptions::cleanSections()` keeps it beside what `background()` returns —
+`background()` itself is shared with the builder and knows nothing of motion —
+and keeps a default-ground row for it alone, as it already did for the
+switch. `none` is the homepage's default and stores nothing. `HomeSection`
+draws the choice as a `data-aos` wrapper inside `SectionBg`, so all twelve
+themes have it without a template changing; the hero never animates and the
+closing band has no control. See `docs/motion.md`, "A section's own reveal".
+
+## Editorial: the lead fits the first screen, and the shop's products are cards (2026-09-27)
+
+- **The nameplate is 76px from `sm` (68px on a phone)**, down from 112px, and the
+  lead slider from `lg` is `max(360px, min(21:9 of the width, 100svh - 216px))`:
+  216px is the info bar (reserved whether it shows or not), the dateline strip,
+  the nameplate and the rail. Measured: the slider's dots are inside the
+  viewport at 1280×720, 1440×800, 1707×937, 1920×960 and 2560×1300. At 112px
+  and a pure 21:9 the dots sat below the fold on every one of them.
+- **The shop's products are bordered cards, not ruled rows.** The index idiom
+  (no edge, a ground a shade off the page, a 132px monochrome plate) left each
+  product as text floating between hairlines, the picture half hidden under the
+  Sale badge and the heart. `[data-collection="products"]` now gets a 1px border
+  that darkens under the pointer, 20px padding (16px on a phone), a 1.25rem gap,
+  and a 168px square picture in colour (112px on a phone). Square corners and the
+  serif type keep it Editorial; the other collections keep the ruled index.
+
+## Datacenter and Terminal: the shop's pictures are 168px and the heart is a button (2026-09-27)
+
+- Both themes draw products as rack/listing rows, where a 64–76px thumbnail
+  carried the Sale badge and the heart over most of it. `[data-collection="products"]`
+  now gets a 168px picture (the inner well keeps its 4:3), in colour on Terminal
+  too — a price needs to show what it prices; the page listings stay grey.
+- **The heart moves into the row of buttons.** `ProductCard` renders a second
+  `WishlistHeart` inside `[data-tile-actions]`, wrapped in
+  `[data-tile-save-inline]` and `hidden` by default; the card heart carries
+  `data-tile-save`. A theme that wants it in the row shows the inline one and
+  sets the corner one to `display: none` — both read the one wishlist store,
+  and `display: none` keeps a keyboard and a screen reader to exactly one.
+  Classic and every other theme are unchanged.
+- **On a phone the row stacks**: the picture at the column's full width on top,
+  the words and the three buttons under it. Beside the words, three buttons left
+  Add to cart 45px at 390 and nothing at 320.
+- Terminal's header drops its `[ engineer ]` CTA below 360px: at 320 it pushed
+  the menu button 8px off the screen (`audit:mobile` named it). The drawer
+  carries contact.
+
+## Full rows on the homepage (2026-09-28)
+
+A homepage tile section never ends on a half-empty row, in any theme (the client, 2026-09-28: Horizon's two case studies sat in a grid of four): the six home `Collection`s pass `fill` (`data-fill="rows"`) and `components/ui/full-rows.tsx`, mounted beside `Reveal`, measures where the items landed (layout offsets, so a reveal's transform does not count) on every change of the grid's own box — a short last row under a full one is marked `data-row-cut` and hidden, a list shorter than one row gets `repeat(n)` columns inline. Measured because the columns are Collection's breakpoints *and* the themes' overrides (Datacenter's two, Launch's twelve-column bento). Never on an index page, which shows everything; without JavaScript the section is the whole selection. `scripts/probes/full-rows.mjs` checks twelve themes at four widths.
+
+## Canvas in solid colour (2026-09-28)
+
+Canvas's cards are solid colour (the client, 2026-09-28, chosen from three rendered options over a navy and a single-brand version): every collection tile (not the shop's products, not the resources routes) and the front page's hand-rolled cards (`data-canvas-fill`) turn through brand, accent and secondary at 600 and then 900, six to a cycle; each fill brings its own ink — the palette's `-on` on a 600, `dark-ink` on a 900 — set as a local palette (`ink`, `ink-2`, `muted`, `faint`, the coloured inks and the hairlines all become it), with `--color-card` left alone so an icon keeps its pale disc. The four statistics under the hero are Google's four colours in order, from `--color-g-*-fill`/`-on` in `globals.css` (Google's product shades with the ink each needs; yellow takes near-black). A card on a fill is never `bg-card` in the markup, or the card-ground gradient paints over it. The words under a heading are softer than it — the same hue's 100 step on a 600 fill (pale in light, dark in dark, so it softens in the right direction in both) and `dark-muted` on a 900 — and every heading sits on a solid Google-colour chip (`--color-g-*-fill` with its `-on`), paired with the fill so blue never sits on blue.

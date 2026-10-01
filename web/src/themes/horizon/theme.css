@@ -142,3 +142,22 @@
   background-image: linear-gradient(155deg, color-mix(in srgb, var(--tile-hue, var(--color-card)) 14%, var(--color-card)) 0%, var(--color-card) 55%, var(--color-surface-2) 100%);
   border-top: 3px solid var(--tile-hue, var(--color-line-strong));
 }
+
+/*
+  The people under a band of the brand colour (2026-09-28): the band is a
+  `::before` (a background layer would be graded as the words' ground, the
+  Horizon bar lesson) and the square portrait sits framed in the card's
+  ground across its lower edge, everything under it centred.
+*/
+[data-theme="horizon"] [data-team] > li { align-items: center; text-align: center; border-radius: 12px; }
+[data-theme="horizon"] [data-team] > li::before { content: ""; position: absolute; inset: 0 0 auto; height: 92px; background: var(--color-brand-700); }
+[data-theme="horizon"] [data-team] [data-team-photo] {
+  position: relative; width: 136px; aspect-ratio: 1; flex: none; margin-top: 28px;
+  border: 5px solid var(--color-card); border-radius: 14px; box-shadow: var(--shadow-3);
+}
+[data-theme="horizon"] [data-team] [data-team-photo] > span { font-size: 36px; }
+[data-theme="horizon"] [data-team] [data-team-rule] { display: none; }
+[data-theme="horizon"] [data-team] [data-team-body] { align-items: center; width: 100%; }
+[data-theme="horizon"] [data-team] [data-team-role] { text-transform: uppercase; letter-spacing: .08em; font-size: 12px; }
+[data-theme="horizon"] [data-team] [data-team-certs],
+[data-theme="horizon"] [data-team] [data-team-contact] { justify-content: center; }

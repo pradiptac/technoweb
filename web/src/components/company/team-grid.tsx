@@ -48,6 +48,15 @@ import type { CSSProperties } from "react";
  * Vantage) pin `aspect-ratio: 1` themselves, so the 4:5 base cannot make
  * an oval of them; every hue use here is a class, so a theme's own rule
  * on the same part still wins.
+ *
+ * **Each theme lays the card out its own way** (the client, 2026-09-28:
+ * "the team design is absolutely the same in each theme"). The list is
+ * `data-team` and every piece a theme may move is named — `data-team-kicker`,
+ * `-name`, `-role`, `-bio`, `-certs`, `-chip`, `-contact`, `-link` — so a
+ * `theme.css` can make the card a row, a badge, a photo with the words on
+ * it or a contact card (`display: contents` on the body puts the name
+ * beside the photo) without a second component. Classic is this markup as
+ * it stands; `/theme-preview/<id>/team` draws each theme's.
  */
 export function TeamGrid({
   members, groupByDepartment = false, headingLevel = 2, className,
@@ -86,7 +95,7 @@ export function TeamGrid({
             keeps two medium cards and leaves the empty tracks empty,
             rather than stretching both across the row.
           */}
-          <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-5">
+          <ul data-team className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-5">
             {g.members.map((m, i) => (
               <li
                 key={m.id}
@@ -123,9 +132,9 @@ export function TeamGrid({
 
                 <div data-team-body className="flex flex-1 flex-col p-5">
                   {!grouped && m.department && (
-                    <p className="mb-1.5 text-11-5 font-semibold uppercase tracking-[.08em] text-muted">{m.department}</p>
+                    <p data-team-kicker className="mb-1.5 text-11-5 font-semibold uppercase tracking-[.08em] text-muted">{m.department}</p>
                   )}
-                  <CardHeading className="text-18 font-semibold leading-snug tracking-[-.01em]">{m.name}</CardHeading>
+                  <CardHeading data-team-name className="text-18 font-semibold leading-snug tracking-[-.01em]">{m.name}</CardHeading>
                   {m.designation && (
                     <p data-team-role className="mt-0.5 text-13-5 font-medium text-brand-ink">{m.designation}</p>
                   )}
@@ -135,14 +144,15 @@ export function TeamGrid({
                         // Four lines on the card, the whole text in the title. Nothing
                         // here appears on hover; a theme that wants a rising panel
                         // draws its own (Launch).
-                        <p className="mt-3 line-clamp-4 text-14 leading-[1.6] text-muted" title={m.bio}>{m.bio}</p>
+                        <p data-team-bio className="mt-3 line-clamp-4 text-14 leading-[1.6] text-muted" title={m.bio}>{m.bio}</p>
                       )}
 
                       {m.certifications.length > 0 && (
-                        <ul className="mt-4 flex flex-wrap gap-1.5" aria-label={`${m.name}'s certifications`}>
+                        <ul data-team-certs className="mt-4 flex flex-wrap gap-1.5" aria-label={`${m.name}'s certifications`}>
                           {m.certifications.map((c) => (
                             <li
                               key={c.name}
+                              data-team-chip
                               title={c.issuer ? `${c.name} — ${c.issuer}` : c.name}
                               className="inline-flex items-center gap-1 rounded-full border border-[color-mix(in_srgb,var(--member-hue)_35%,transparent)] bg-card px-2.5 py-1 text-12 font-semibold text-ink"
                             >
@@ -156,10 +166,11 @@ export function TeamGrid({
                   )}
 
                   {(m.email || m.linkedin_url) && (
-                    <ul className="mt-auto flex flex-wrap gap-2 pt-5">
+                    <ul data-team-contact className="mt-auto flex flex-wrap gap-2 pt-5">
                       {m.email && (
                         <li>
                           <a
+                            data-team-link
                             href={`mailto:${m.email}`}
                             title={`Email ${m.name}`}
                             className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line-strong bg-card px-3 text-13 font-medium text-muted transition-colors duration-(--duration-base) hover:border-brand-300 hover:text-brand-ink"
@@ -172,6 +183,7 @@ export function TeamGrid({
                       {m.linkedin_url && (
                         <li>
                           <a
+                            data-team-link
                             href={m.linkedin_url}
                             target="_blank"
                             rel="noopener noreferrer"

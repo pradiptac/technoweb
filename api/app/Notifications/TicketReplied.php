@@ -8,6 +8,7 @@ use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
 use App\Support\HtmlSanitiser;
 use App\Support\InboundMail\MailHeaders;
+use App\Support\Mail\MailBrand;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -102,7 +103,7 @@ class TicketReplied extends Notification implements ShouldQueue
             ->line($this->excerpt())
             ->action($this->toCustomer ? 'Read and reply' : 'Open in the console',
                 rtrim(config('app.frontend_url'), '/').$path)
-            ->salutation('— Technoware Support');
+            ->salutation(MailBrand::signoff().' Support');
 
         // A customer's reply to this lands in the support mailbox when one
         // is being read; the desk's copy points nowhere, because a staff

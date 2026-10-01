@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\VisitRequest;
 use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
+use App\Support\Mail\MailBrand;
 use App\Support\Visits\VisitText;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -66,6 +67,6 @@ class VisitRequested extends Notification implements ShouldQueue
         return $message
             ->line('This is a request, not a booking yet. We will confirm the actual time by email once an engineer is free.')
             ->action('Cancel or ask for another time', $v->manageUrl())
-            ->salutation('— Technoware');
+            ->salutation(MailBrand::signoff());
     }
 }

@@ -8,8 +8,10 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { EditorField } from "@/components/admin/editor-field";
+import { StringListField } from "@/components/admin/string-list-field";
 import { FaqField } from "@/components/admin/faq-field";
 import { IconField } from "@/components/admin/icon-field-lazy";
+import { CoverField } from "@/components/admin/cover-field";
 import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
 import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
@@ -26,8 +28,8 @@ const initial: ServiceFormState = {};
 /** Four panels; the field lists map a 422 back to the tab holding it. */
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
-    fields: ["title", "slug", "summary", "body", "status", "sort_order", "show_in_menu"] },
-  { id: "media", label: "Media", fields: ["icon"] },
+    fields: ["title", "slug", "summary", "highlights", "body", "status", "service_category_id", "sort_order", "show_in_menu"] },
+  { id: "media", label: "Media", fields: ["icon", "image_path"] },
   { id: "related", label: "Related", fields: ["faqs"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
   // The AEO tab (docs/aeo-geo-contract.md §7). Last, so every tab above keeps its place.
@@ -35,9 +37,11 @@ const GROUPS: TabGroup[] = [
 ];
 
 export function ServiceForm({
-  service, saved, kinds, fieldGroups,
+  service, saved, kinds, fieldGroups, categories = [],
 }: {
   service?: AdminService;
+  /** The service categories, for the Category select. */
+  categories?: { id: number; name: string }[];
   saved?: boolean;
   /** `meta.answer_block_kinds` from this entity's admin index. */
   kinds: AnswerBlockKindOption[];
@@ -92,6 +96,17 @@ export function ServiceForm({
               <Textarea id="summary" name="summary" rows={3} defaultValue={service?.summary ?? ""} maxLength={500} />
             </Field>
 
+            <StringListField
+              name="highlights"
+              label="Highlights"
+              hint="A few words each, drawn as small tags on the service's card — “.com”, “Microsoft 365”, “Wi-Fi 6”. Up to six."
+              placeholder="Microsoft 365"
+              defaultValue={service?.highlights ?? []}
+              error={err("highlights") ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith("highlights."))?.[1]?.[0]}
+              max={6}
+              maxLength={40}
+            />
+
             <EditorField name="body" defaultValue={service?.body ?? ""} error={err("body")} />
           </div>
 
@@ -101,6 +116,20 @@ export function ServiceForm({
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
                 <option value="archived">Archived</option>
+              </Select>
+            </Field>
+
+            <Field label="Category" htmlFor="service_category_id" error={err("service_category_id")}
+              hint="The tab it is listed under on the homepage and on /services." variant="float-static">
+              <Select
+                id="service_category_id" name="service_category_id"
+                defaultValue={service?.service_category_id ? String(service.service_category_id) : ""}
+                aria-invalid={Boolean(err("service_category_id"))}
+              >
+                <option value="">No category</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
               </Select>
             </Field>
 
@@ -129,8 +158,16 @@ export function ServiceForm({
           </aside>
         </div>
 
-        <div>
+        <div className="grid gap-x-8 md:grid-cols-2">
           <IconField defaultValue={service?.icon ?? null} error={err("icon")} />
+
+          <CoverField
+            label="Service picture"
+            name="image_path"
+            hint="PNG, JPG or WebP, landscape, around 1600 x 1000 px. Shown on the service's card — as the whole card where its category draws pictures as backgrounds."
+            defaultPath={service?.image_path ?? null}
+            defaultUrl={service?.image ?? null}
+          />
         </div>
 
         <div>

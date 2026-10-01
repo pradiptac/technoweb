@@ -292,4 +292,36 @@ class BlogTaxonomyTest extends TestCase
 
         $this->assertCount(0, BlogPost::findOrFail($created['id'])->categories);
     }
+
+    /**
+     * The edit form's Featured, Comments and Categories controls (2026-09-28).
+     * `comments_enabled` had no rule on update, so a post's comments could be
+     * closed when it was created and never after.
+     */
+    public function test_an_existing_post_can_be_featured_closed_and_refiled(): void
+    {
+        $post = $this->article('Wi-Fi survey notes', 'wifi-survey-notes');
+        $ai = BlogCategory::create(['name' => 'Artificial Intelligence']);
+
+        $this->actingAs($this->editor(), 'sanctum')
+            ->patchJson("/api/v1/admin/blog-posts/{$post->id}", [
+                'is_featured' => true,
+                'comments_enabled' => false,
+                'category_ids' => [$ai->id],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.is_featured', true)
+            ->assertJsonPath('data.comments_enabled', false)
+            ->assertJsonPath('data.category_ids', [$ai->id]);
+
+        $post->refresh();
+        $this->assertTrue($post->is_featured);
+        $this->assertFalse($post->comments_enabled);
+
+        $this->actingAs($this->editor(), 'sanctum')
+            ->patchJson("/api/v1/admin/blog-posts/{$post->id}", ['comments_enabled' => true])
+            ->assertOk();
+
+        $this->assertTrue($post->fresh()->comments_enabled);
+    }
 }

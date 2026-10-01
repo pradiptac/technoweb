@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\Enquiry;
 use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
+use App\Support\Mail\MailBrand;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -63,6 +64,6 @@ class EnquiryAcknowledged extends Notification implements ShouldQueue
             // not agreed to is worse than none, and the invented figures on
             // the homepage are already on the must-not-ship list.
             ->line('If it is urgent, calling is faster than waiting for a reply to this.')
-            ->salutation('— Technoware');
+            ->salutation(MailBrand::signoff());
     }
 }

@@ -8,6 +8,8 @@ import { VisitManage } from "@/components/visits/visit-manage";
 import { getGuestVisit, getVisitOptions, guestToken } from "@/lib/visits";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
+import { getSiteSettings } from "@/lib/settings";
+import { portalEnabled } from "@/lib/site-settings";
 import { cancelGuestVisitAction, rescheduleGuestVisitAction } from "./actions";
 import type { CustomerVisit } from "@/types/api";
 
@@ -37,7 +39,7 @@ export default async function GuestVisitPage({ params }: { params: Promise<{ ref
     notFound();
   }
 
-  const rules = await getVisitOptions().catch(() => null);
+  const [rules, settings] = await Promise.all([getVisitOptions().catch(() => null), getSiteSettings()]);
 
   return (
     <>
@@ -63,10 +65,13 @@ export default async function GuestVisitPage({ params }: { params: Promise<{ ref
               rescheduleAction={rescheduleGuestVisitAction.bind(null, visit.reference)}
             />
 
-            <p className="text-14 text-muted">
-              Requests made while signed in to the portal are listed under{" "}
-              <Link href="/portal/visits" className="font-semibold text-brand-ink underline">My visits</Link>.
-            </p>
+            {/* Not while the portal is switched off (`portal_enabled`). */}
+            {portalEnabled(settings) && (
+              <p className="text-14 text-muted">
+                Requests made while signed in to the portal are listed under{" "}
+                <Link href="/portal/visits" className="font-semibold text-brand-ink underline">My visits</Link>.
+              </p>
+            )}
           </div>
         </Container>
       </section>

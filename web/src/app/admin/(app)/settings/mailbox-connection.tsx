@@ -15,7 +15,7 @@ import { formatDate } from "@/lib/dates";
  */
 export function MailboxConnection({
   account, connectedAt, isConnected, providerLabel, busy, onConnect, onDisconnect,
-  connectLabel, disconnectWarning, hint,
+  connectLabel, disconnectWarning, hint, emptyLabel = "No mailbox connected",
 }: {
   account: string | null;
   connectedAt: string | null;
@@ -30,6 +30,8 @@ export function MailboxConnection({
   disconnectWarning: string;
   /** What to do before pressing Connect. */
   hint: string;
+  /** The heading when nothing is connected — the Drive panel is not about a mailbox. */
+  emptyLabel?: string;
 }) {
   return (
     <div className={cn(
@@ -61,7 +63,7 @@ export function MailboxConnection({
         </>
       ) : (
         <>
-          <p className="text-13-5 font-semibold text-ink">No mailbox connected</p>
+          <p className="text-13-5 font-semibold text-ink">{emptyLabel}</p>
           <p className="measure mt-0.5 text-12-5 text-muted">{hint}</p>
           <Button type="button" size="sm" className="mt-2.5" disabled={busy} onClick={onConnect}>
             {busy ? `Opening ${providerLabel}…` : connectLabel}

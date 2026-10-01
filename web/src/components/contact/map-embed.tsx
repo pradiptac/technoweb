@@ -21,14 +21,14 @@ import { IconMapPin } from "@/components/icons-ui";
  * host on write, because an unchecked one is somebody else's page inside
  * this origin.
  */
-export function MapEmbed({ src, address }: { src: string; address?: string | null }) {
+export function MapEmbed({ src, address, company }: { src: string; address?: string | null; company: string }) {
   const [shown, setShown] = useState(false);
 
   if (shown) {
     return (
       <iframe
         src={src}
-        title="Map showing the Technoware office"
+        title={`Map showing the ${company} office`}
         referrerPolicy="no-referrer-when-downgrade"
         className="block h-[320px] w-full border-0 lg:h-[420px]"
       />

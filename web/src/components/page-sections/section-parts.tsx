@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { ButtonLink } from "@/components/ui/button";
+import type { SectionRevealAttr } from "@/lib/motion-choices";
 import { cn } from "@/lib/utils";
 import type { SectionButton } from "@/types/api";
 
@@ -7,7 +8,8 @@ import type { SectionButton } from "@/types/api";
  * The pieces every builder section is made of (`docs/page-builder.md`).
  *
  * `SectionFrame` is the band: the public site's vertical rhythm
- * (`.section-y`) and a reveal, with the type named in `data-page-section`
+ * (`.section-y`) and a reveal — `fade-up` unless the section chose another
+ * (`reveal`, from `SECTION_REVEALS`) or none (`null`), with the type named in `data-page-section`
  * so a theme's `theme.css` can restyle one kind by attribute — the
  * `[data-collection]` rule, applied to sections. Nothing theme-specific
  * lives here.
@@ -17,9 +19,10 @@ import type { SectionButton } from "@/types/api";
  * `PageHero`'s otherwise, so a section is always one level below it.
  */
 export function SectionFrame({
-  type, size = "md", className, children,
+  type, size = "md", reveal = "fade-up", className, children,
 }: {
   type: string;
+  reveal?: SectionRevealAttr | null;
   size?: "md" | "lg" | "none";
   className?: string;
   children: ReactNode;
@@ -27,7 +30,7 @@ export function SectionFrame({
   return (
     <section
       data-page-section={type}
-      data-aos="fade-up"
+      data-aos={reveal ?? undefined}
       className={cn(size === "lg" ? "section-y-lg" : size === "md" ? "section-y" : "", className)}
     >
       {children}

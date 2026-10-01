@@ -10,6 +10,7 @@ import { Gallery } from "@/components/ui/gallery";
 import { IconTile, hueForIcon } from "@/components/ui/icon-tile";
 import { SliderFor } from "@/components/ui/slider-for";
 import { publicApi } from "@/lib/api";
+import type { SectionRevealAttr } from "@/lib/motion-choices";
 import type {
   CardsSectionData, ContentBlockSectionData, EmbedSectionData, FaqSectionData, LogosSectionData,
 } from "@/types/api";
@@ -38,11 +39,11 @@ const KIND: Record<string, string> = {
  * line here knowing. A tile's title is an `h3` under the section's `h2`, or
  * a `b` when the section has no heading.
  */
-export function CardsSection({ data, eager }: { data: CardsSectionData; eager: boolean }) {
+export function CardsSection({ data, eager, reveal }: { data: CardsSectionData; eager: boolean; reveal?: SectionRevealAttr | null }) {
   const cols = data.columns ?? 3;
 
   return (
-    <SectionFrame type="cards">
+    <SectionFrame type="cards" reveal={reveal}>
       <Container>
         <SectionHead kicker={data.kicker} heading={data.heading} lede={data.lede} />
         <Collection kind={KIND[data.source] ?? "related"} cols={cols}>
@@ -81,16 +82,16 @@ export function CardsSection({ data, eager }: { data: CardsSectionData; eager: b
 }
 
 /** A published content block, drawn as a page section — `BlockView` brings its own band. */
-export function ContentBlockSection({ data }: { data: ContentBlockSectionData }) {
-  return <div data-page-section="content_block"><BlockView block={data.block} /></div>;
+export function ContentBlockSection({ data, reveal }: { data: ContentBlockSectionData; reveal?: SectionRevealAttr | null }) {
+  return <div data-page-section="content_block" data-aos={reveal ?? undefined}><BlockView block={data.block} /></div>;
 }
 
-export async function SliderSection({ data }: { data: EmbedSectionData }) {
+export async function SliderSection({ data, reveal }: { data: EmbedSectionData; reveal?: SectionRevealAttr | null }) {
   const slider = await publicApi.slider(data.slug).then((r) => r.data).catch(() => null);
   if (!slider) return null;
 
   return (
-    <SectionFrame type="slider">
+    <SectionFrame type="slider" reveal={reveal}>
       <Container>
         <SectionHead heading={data.heading} />
         <SliderFor slider={slider} aspect="aspect-[16/9]" />
@@ -99,12 +100,12 @@ export async function SliderSection({ data }: { data: EmbedSectionData }) {
   );
 }
 
-export async function GallerySection({ data }: { data: EmbedSectionData }) {
+export async function GallerySection({ data, reveal }: { data: EmbedSectionData; reveal?: SectionRevealAttr | null }) {
   const gallery = await publicApi.gallery(data.slug).then((r) => r.data).catch(() => null);
   if (!gallery) return null;
 
   return (
-    <SectionFrame type="gallery">
+    <SectionFrame type="gallery" reveal={reveal}>
       <Container>
         <SectionHead heading={data.heading} />
         <Gallery gallery={gallery} />
@@ -113,12 +114,12 @@ export async function GallerySection({ data }: { data: EmbedSectionData }) {
   );
 }
 
-export async function FormSection({ data }: { data: EmbedSectionData }) {
+export async function FormSection({ data, reveal }: { data: EmbedSectionData; reveal?: SectionRevealAttr | null }) {
   const form = await publicApi.form(data.slug).then((r) => r.data).catch(() => null);
   if (!form) return null;
 
   return (
-    <SectionFrame type="form">
+    <SectionFrame type="form" reveal={reveal}>
       <Container>
         <div className="mx-auto max-w-3xl">
           <SectionHead heading={data.heading} lede={data.lede} />
@@ -134,11 +135,11 @@ export async function FormSection({ data }: { data: EmbedSectionData }) {
  * question blocks use. No `FAQPage` here: the API's `faq_schema` already
  * counts these questions, and the page renders that one graph.
  */
-export function FaqSection({ data }: { data: FaqSectionData }) {
+export function FaqSection({ data, reveal }: { data: FaqSectionData; reveal?: SectionRevealAttr | null }) {
   if (!data.items.length) return null;
 
   return (
-    <SectionFrame type="faq">
+    <SectionFrame type="faq" reveal={reveal}>
       <Container>
         <SectionHead heading={data.heading || "Common questions"} />
         <QuestionAccordion items={data.items.map((q, i) => ({ key: i, question: q.question, answer: q.answer }))} />
@@ -168,7 +169,7 @@ const STRIP_MODES: Record<string, { brands?: StripMode; clients?: StripMode }> =
   vantage: { brands: "bob", clients: "parallax" },
 };
 
-export async function LogosSection({ data, themeId }: { data: LogosSectionData; themeId: string }) {
+export async function LogosSection({ data, themeId, reveal }: { data: LogosSectionData; themeId: string; reveal?: SectionRevealAttr | null }) {
   const mode = STRIP_MODES[themeId]?.[data.source];
 
   if (data.source === "clients") {
@@ -177,7 +178,7 @@ export async function LogosSection({ data, themeId }: { data: LogosSectionData; 
     const shown = (featured.length ? featured : clients).slice(0, 12);
 
     return (
-      <div data-page-section="logos">
+      <div data-page-section="logos" data-aos={reveal ?? undefined}>
         <LogoMarquee
           items={shown.map((c) => ({ id: c.id, name: c.name, logo: c.logo, detail: c.industry?.name ?? null }))}
           caption={data.heading || undefined}
@@ -191,7 +192,7 @@ export async function LogosSection({ data, themeId }: { data: LogosSectionData; 
 
   const brands = await publicApi.brands().then((r) => r.data).catch(() => []);
   return (
-    <div data-page-section="logos">
+    <div data-page-section="logos" data-aos={reveal ?? undefined}>
       <LogoMarquee items={brands} caption={data.heading || undefined} mode={mode ?? "marquee"} />
     </div>
   );

@@ -9,6 +9,7 @@ import { noIndex } from "@/lib/no-index";
 import { SearchForm } from "@/components/forms/search-form";
 import type { SearchResults } from "@/types/api";
 import { CountUp } from "@/components/ui/count-up";
+import { brandName } from "@/lib/brand";
 
 /**
  * Results are noindex.
@@ -20,7 +21,7 @@ import { CountUp } from "@/components/ui/count-up";
  */
 export const metadata = buildMetadata({
   title: "Search",
-  description: "Search products, solutions, guides and articles across the Technoware site.",
+  description: `Search products, solutions, guides and articles across the ${brandName()} site.`,
   path: "/search",
   seo: noIndex,
 });

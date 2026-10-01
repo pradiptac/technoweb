@@ -1,7 +1,7 @@
 import { homeBlockSections } from "@/components/blocks/home-block-sections";
 import Image from "next/image";
 import {
-  CaseStudies, Credentials, Partners, Resources, SupportBand, TrustedBy, WebServices,
+  CaseStudies, Credentials, Partners, Resources, SupportBand, TrustedBy, Services,
 } from "@/components/home/sections";
 import { Reviews } from "@/components/home/reviews";
 import { Backdrop } from "@/components/ui/backdrop";
@@ -41,7 +41,7 @@ import { CatalogueTabs } from "../catalogue-tabs";
  * page is the same near-black in both schemes; the rest sits on the page.
  */
 export function Home({
-  settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
+  settings, solutions, categories, industries, services, serviceCategories, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
 }: HomeData & { options: ThemeOptions }) {
   const stats = statPairs(settings.hero_stats, heroStats);
   const look = statLookFor(settings);
@@ -52,10 +52,10 @@ export function Home({
 
   const hero = (
     <>
-      <section className="relative overflow-hidden bg-dark text-dark-ink">
+      <section className="relative overflow-hidden bg-linear-135 from-brand-900 to-accent-900 text-dark-ink">
         <Image src="/themes/summit/plexus.jpg" alt="" aria-hidden fill sizes="100vw" priority className="object-cover opacity-30" />
         <Backdrop variant={motionFor(settings).hero} tone="dark" size={56} mask="radial-gradient(ellipse 70% 60% at 50% 0%, #000 10%, transparent 75%)" />
-        <Container className="relative flex flex-col items-center pt-16 pb-14 text-center lg:pt-24 lg:pb-16">
+        <Container className="relative flex flex-col items-center pt-10 pb-14 text-center lg:pt-12 lg:pb-16">
           <span className="inline-flex items-center gap-2 rounded-full border border-dark-line bg-dark-2 px-3.5 py-1.5 text-12 font-semibold text-brand-300">
             <i aria-hidden className="size-1.5 rounded-full bg-brand-300" />
             {kicker}
@@ -132,7 +132,7 @@ export function Home({
     { id: "why", node: quote },
     { id: "clients", node: <TrustedBy items={clients.data} mode="bob" /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
-    { id: "web", node: <WebServices /> },
+    { id: "web", node: <Services services={services.data} categories={serviceCategories.data} /> },
     { id: "support", node: <SupportBand settings={settings} /> },
     { id: "cases", node: <CaseStudies items={caseStudies.data.slice(0, 6)} /> },
     { id: "resources", node: <Resources items={posts.data.slice(0, 4)} /> },

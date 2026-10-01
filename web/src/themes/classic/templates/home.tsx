@@ -2,7 +2,7 @@ import { homeBlockSections } from "@/components/blocks/home-block-sections";
 import { Hero } from "@/components/home/hero";
 import {
   CaseStudies, Credentials, Industries, Partners, ProductCategories,
-  Resources, Solutions, SupportBand, TrustedBy, WebServices, WhyUs,
+  Resources, Solutions, SupportBand, TrustedBy, Services, WhyUs,
 } from "@/components/home/sections";
 import { Reviews } from "@/components/home/reviews";
 import { CtaBand } from "@/components/ui/cta-band";
@@ -23,7 +23,10 @@ import { orderSections, type ThemeOptions } from "@/themes/options";
  * first thing the UX audit of 2026-09-15 named as reading "generated", on
  * the page people land on first. (`data-aos` stays on inner pages, where
  * the same sections are reached one at a time rather than scrolled
- * through.)
+ * through.) That is the default and not a lock: since 2026-09-27 an editor
+ * may give any section but the hero and the closing band its own **Appear**
+ * on the Themes screen, which `HomeSection` draws as a `data-aos` wrapper —
+ * for every theme at once, since they all render through it.
  *
  * Every section is one entry of `SECTIONS`, keyed by its id in
  * `HOME_SECTIONS`: `orderSections()` draws them in the order the theme
@@ -33,7 +36,7 @@ import { orderSections, type ThemeOptions } from "@/themes/options";
  * renamed here is a setting an editor made that stops applying.
  */
 export function Home({
-  settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
+  settings, solutions, categories, industries, services, serviceCategories, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
 }: HomeData & { options: ThemeOptions }) {
   const bg = { sections: options.sections, seeds: homeSeeds(settings) };
   const SECTIONS = [
@@ -48,7 +51,7 @@ export function Home({
     { id: "credentials", node: <Credentials items={certifications.data} /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
     { id: "industries", node: <Industries items={industries.data.slice(0, 6)} /> },
-    { id: "web", node: <WebServices /> },
+    { id: "web", node: <Services services={services.data} categories={serviceCategories.data} /> },
     { id: "support", node: <SupportBand settings={settings} /> },
     // 2xl:grid-cols-6, matching the product category grid — six is one full row.
     { id: "cases", node: <CaseStudies items={caseStudies.data.slice(0, 6)} /> },

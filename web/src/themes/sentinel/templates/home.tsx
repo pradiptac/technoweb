@@ -1,7 +1,7 @@
 import { homeBlockSections } from "@/components/blocks/home-block-sections";
 import Link from "next/link";
 import {
-  CaseStudies, Credentials, Industries, Partners, Resources, Solutions, SupportBand, TrustedBy, WebServices, WhyUs,
+  CaseStudies, Credentials, Industries, Partners, Resources, Solutions, SupportBand, TrustedBy, Services, WhyUs,
 } from "@/components/home/sections";
 import { NocPanel } from "@/components/home/noc-panel";
 import { Reviews } from "@/components/home/reviews";
@@ -41,7 +41,7 @@ import { orderSections, type ThemeOptions } from "@/themes/options";
  * photograph.
  */
 export function Home({
-  settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
+  settings, solutions, categories, industries, services, serviceCategories, caseStudies, posts, brands, clients, certifications, heroSlider, blocks, options,
 }: HomeData & { options: ThemeOptions }) {
   const stats = statPairs(settings.hero_stats, heroStats);
   const look = statLookFor(settings);
@@ -161,7 +161,7 @@ export function Home({
     { id: "clients", node: <TrustedBy items={clients.data} mode="ring" /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
     { id: "industries", node: <Industries items={industries.data.slice(0, 6)} /> },
-    { id: "web", node: <WebServices /> },
+    { id: "web", node: <Services services={services.data} categories={serviceCategories.data} /> },
     { id: "support", node: <SupportBand settings={settings} /> },
     { id: "cases", node: <CaseStudies items={caseStudies.data.slice(0, 6)} /> },
     { id: "resources", node: <Resources items={posts.data.slice(0, 4)} /> },

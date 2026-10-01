@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getAnswerBlockKinds, getService } from "@/lib/admin";
+import { getAnswerBlockKinds, getService, getServiceCategoryOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ServiceForm } from "../service-form";
@@ -32,8 +32,13 @@ export default async function EditServicePage({
 
   let service: AdminService;
   let kinds: AnswerBlockKindOption[] = [];
+  let categories: { id: number; name: string }[] = [];
   try {
-    [service, kinds] = await Promise.all([getService(numericId), getAnswerBlockKinds("/admin/services")]);
+    [service, kinds, categories] = await Promise.all([
+      getService(numericId),
+      getAnswerBlockKinds("/admin/services"),
+      getServiceCategoryOptions().catch(() => []),
+    ]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
     throw error;
@@ -53,7 +58,7 @@ export default async function EditServicePage({
         )}
       </PageHeader>
 
-      <ServiceForm service={service} saved={Boolean(saved)} kinds={kinds} />
+      <ServiceForm service={service} saved={Boolean(saved)} kinds={kinds} categories={categories} />
     </>
   );
 }

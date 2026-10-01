@@ -50,10 +50,10 @@ export function LoginPicker({ rows }: { rows: SettingRow[] }) {
   const animated = backdrop !== "image";
 
   return (
-    <div ref={ref} className="space-y-8">
+    <div ref={ref} className="space-y-8 sm:col-span-2">
       <Choices
         name="setting__login_backdrop" legend="Behind the form" value={backdrop} onChange={(id) => setBackdrop(id as LoginBackdropId)}
-        choices={BACKDROPS} columns="sm:grid-cols-3"
+        choices={BACKDROPS} columns="sm:grid-cols-3 xl:grid-cols-5"
         intro="The left half of the sign-in, registration and password screens. Hidden on phones, where the form has the whole screen."
         preview={(c) => (
           <span className="relative block h-16 overflow-hidden rounded bg-dark" aria-hidden>

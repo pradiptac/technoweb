@@ -5,6 +5,7 @@ import { IconTile } from "@/components/ui/icon-tile";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { YouTubeEmbed } from "@/components/blog/youtube-embed";
 import { focalStyle } from "@/lib/focal";
+import type { SectionRevealAttr } from "@/lib/motion-choices";
 import { cn } from "@/lib/utils";
 import type {
   DividerSectionData, FeaturesSectionData, MediaTextSectionData, RichTextSectionData,
@@ -19,9 +20,9 @@ import { SectionButtons, SectionFrame, SectionHead } from "./section-parts";
  */
 
 /** Editor text, shortcodes expanded as components (never by string substitution — see `lib/shortcodes.ts`). */
-export function RichTextSection({ data }: { data: RichTextSectionData }) {
+export function RichTextSection({ data, reveal }: { data: RichTextSectionData; reveal?: SectionRevealAttr | null }) {
   return (
-    <SectionFrame type="rich_text">
+    <SectionFrame type="rich_text" reveal={reveal}>
       <Container>
         <SectionHead heading={data.heading} />
         <ProseWithShortcodes html={data.body} />
@@ -36,7 +37,7 @@ export function RichTextSection({ data }: { data: RichTextSectionData }) {
  * the poster is drawn here, never fetched from `i.ytimg.com`) or a file from
  * the library with its own controls.
  */
-export function MediaTextSection({ data, eager }: { data: MediaTextSectionData; eager: boolean }) {
+export function MediaTextSection({ data, eager, reveal }: { data: MediaTextSectionData; eager: boolean; reveal?: SectionRevealAttr | null }) {
   const media = data.media === "youtube" && data.youtube
     ? <YouTubeEmbed url={data.youtube} title={data.heading} />
     : data.media === "mp4" && data.video
@@ -58,7 +59,7 @@ export function MediaTextSection({ data, eager }: { data: MediaTextSectionData; 
         : null;
 
   return (
-    <SectionFrame type="media_text">
+    <SectionFrame type="media_text" reveal={reveal}>
       <Container>
         <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
           <div className={cn("min-w-0", data.side === "left" && "lg:order-2")}>
@@ -77,11 +78,11 @@ export function MediaTextSection({ data, eager }: { data: MediaTextSectionData; 
 const COLS = { 2: "sm:grid-cols-2", 3: "sm:grid-cols-2 lg:grid-cols-3", 4: "sm:grid-cols-2 lg:grid-cols-4" } as const;
 
 /** Short points in columns: an icon, a title (`h3`, under the section's `h2`), a line, an optional link. */
-export function FeaturesSection({ data }: { data: FeaturesSectionData }) {
+export function FeaturesSection({ data, reveal }: { data: FeaturesSectionData; reveal?: SectionRevealAttr | null }) {
   const cols = COLS[data.columns ?? 3] ?? COLS[3];
 
   return (
-    <SectionFrame type="features">
+    <SectionFrame type="features" reveal={reveal}>
       <Container>
         <SectionHead kicker={data.kicker} heading={data.heading} lede={data.lede} />
         <ul className={cn("grid gap-4", cols)}>
@@ -104,9 +105,9 @@ export function FeaturesSection({ data }: { data: FeaturesSectionData }) {
 }
 
 /** One quotation, as a `figure` so the attribution belongs to it. */
-export function TestimonialSection({ data }: { data: TestimonialSectionData }) {
+export function TestimonialSection({ data, reveal }: { data: TestimonialSectionData; reveal?: SectionRevealAttr | null }) {
   return (
-    <SectionFrame type="testimonial">
+    <SectionFrame type="testimonial" reveal={reveal}>
       <Container>
         <figure data-card className="mx-auto max-w-4xl rounded-xl border border-line-strong bg-card p-8 lg:p-12">
           <svg viewBox="0 0 24 24" className="size-8 fill-brand-ink" aria-hidden>
@@ -133,11 +134,11 @@ export function TestimonialSection({ data }: { data: TestimonialSectionData }) {
 }
 
 /** A video on its own: the YouTube facade, or a library file with controls. */
-export function VideoSection({ data }: { data: VideoSectionData }) {
+export function VideoSection({ data, reveal }: { data: VideoSectionData; reveal?: SectionRevealAttr | null }) {
   const title = data.heading || data.caption || "Video";
 
   return (
-    <SectionFrame type="video">
+    <SectionFrame type="video" reveal={reveal}>
       <Container>
         <SectionHead heading={data.heading} />
         <figure className="mx-auto max-w-5xl">
@@ -156,9 +157,9 @@ export function VideoSection({ data }: { data: VideoSectionData }) {
 const SPACE = { small: "py-4", medium: "py-10", large: "py-20" } as const;
 
 /** Space between two sections, with or without a rule. Decoration only, so the rule is `aria-hidden`. */
-export function DividerSection({ data }: { data: DividerSectionData }) {
+export function DividerSection({ data, reveal }: { data: DividerSectionData; reveal?: SectionRevealAttr | null }) {
   return (
-    <div data-page-section="divider" className={SPACE[data.size ?? "medium"] ?? SPACE.medium}>
+    <div data-page-section="divider" data-aos={reveal ?? undefined} className={SPACE[data.size ?? "medium"] ?? SPACE.medium}>
       {data.rule && <Container><hr aria-hidden className="border-line" /></Container>}
     </div>
   );

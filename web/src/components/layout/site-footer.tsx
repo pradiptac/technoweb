@@ -11,6 +11,7 @@ import { settingEnabled, telHref, type SiteSettings } from "@/lib/site-settings"
 import { NewsletterSignup } from "@/components/layout/newsletter-signup";
 import { IconMail, IconMapPin, IconPhone } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
+import { brandName } from "@/lib/brand";
 
 /**
  * How the footer is arranged — one per theme (2026-09-17, "a different
@@ -158,8 +159,11 @@ type Parts = { settings: SiteSettings; nav: Column[]; legal: Legal[]; signup: bo
 
 /* ----------------------------------------------------------------- pieces */
 
-/** The logo, the tagline, the address and phone, the social row. `onDark` picks the band's tokens. */
-function Brand({ settings, tagline, onDark, centred = false, className }: { settings: SiteSettings; tagline: string; onDark: boolean; centred?: boolean; className?: string }) {
+/**
+ * The logo, the tagline, the address and phone, the social row. `onDark` picks the band's tokens;
+ * `social={false}` for a layout that draws the social row somewhere else, or the footer shows it twice.
+ */
+function Brand({ settings, tagline, onDark, centred = false, social = true, className }: { settings: SiteSettings; tagline: string; onDark: boolean; centred?: boolean; social?: boolean; className?: string }) {
   return (
     <div className={cn(centred && "flex flex-col items-center text-center", className)}>
       <Logo
@@ -191,7 +195,7 @@ function Brand({ settings, tagline, onDark, centred = false, className }: { sett
           </address>
         </section>
       )}
-      <SocialLinks settings={settings} />
+      {social && <SocialLinks settings={settings} />}
     </div>
   );
 }
@@ -264,7 +268,7 @@ function BottomRow({ settings, legal, onDark, className, mono = false }: { setti
   return (
     <div className={cn("flex flex-wrap justify-between gap-x-6 gap-y-3 py-5.5 text-13", mono && "font-mono text-12-5", className)}>
       <CreditLine
-        companyName={settings.company_name ?? "Technoware"}
+        companyName={settings.company_name ?? brandName()}
         linkClassName={cn("font-medium hover:underline", onDark ? "text-dark-ink hover:text-white" : "text-ink hover:text-brand-ink")}
       />
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
@@ -335,7 +339,7 @@ function Columns({ settings, nav, legal, signup, tagline }: Parts) {
 
 /** The company name huge across the top over hairline rules; the columns as a ruled row; the page ground. Editorial. */
 function Masthead({ settings, nav, legal, signup, tagline }: Parts) {
-  const name = settings.company_name ?? "Technoware";
+  const name = settings.company_name ?? brandName();
   return (
     <footer data-footer="masthead" className="border-t-2 border-ink bg-page pt-8 text-sm text-muted">
       <Container>
@@ -362,7 +366,7 @@ function Console({ settings, nav, legal, signup, tagline }: Parts) {
       <div className="border-b border-dark-line">
         <Container>
           <p className="flex flex-wrap items-center gap-x-5 gap-y-1 py-2.5 font-mono text-12 uppercase tracking-[.08em]">
-            <span className="text-dark-ink">{settings.company_name ?? "Technoware"}</span>
+            <span className="text-dark-ink">{settings.company_name ?? brandName()}</span>
             <span aria-hidden className="inline-flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-ok" />systems nominal</span>
             <span>{year}</span>
             {settings.phone && <span className="ml-auto">tel {settings.phone}</span>}
@@ -597,18 +601,22 @@ function Contact({ settings, nav, legal, signup, tagline }: Parts) {
   );
 }
 
-/** Dark, the brand block with the address left, bold headings, the signup as one pill button and the social row on the right. Keystone. */
+/**
+ * Dark, the brand block with the address left, bold headings, the signup as one pill button and the social row on the right. Keystone.
+ * The social row is drawn on the right only — `Brand` is told not to — and that column is as wide as its widest
+ * piece (`max-content`), so the pill stays one line; a `1fr` share wrapped it to two inside a 40px-high pill.
+ */
 function Plate({ settings, nav, legal, signup, tagline }: Parts) {
   return (
     <footer data-footer="plate" className="bg-dark pt-14 text-sm text-dark-muted">
       <Container>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-9 pb-11 lg:grid-cols-[1.3fr_repeat(var(--footer-cols),minmax(0,1fr))_1fr] lg:gap-9"
+        <div className="grid grid-cols-2 gap-x-6 gap-y-9 pb-11 lg:grid-cols-[1.3fr_repeat(var(--footer-cols),minmax(0,1fr))_max-content] lg:gap-9"
           style={{ "--footer-cols": nav.length } as CSSProperties}>
-          <Brand settings={settings} tagline={tagline} onDark className="col-span-2 lg:col-span-1" />
+          <Brand settings={settings} tagline={tagline} onDark social={false} className="col-span-2 lg:col-span-1" />
           {nav.map((col) => <FooterColumn key={col.heading} col={col} onDark headingClass="normal-case tracking-normal text-14 font-bold text-white" />)}
           <div className="col-span-2 flex flex-col items-start gap-4 lg:col-span-1 lg:items-end">
             {signup && (
-              <a href="#newsletter" className="inline-flex h-10 items-center rounded-full bg-brand-600 px-5 text-13-5 font-semibold text-brand-on transition-colors duration-(--duration-base) hover:bg-brand-700">
+              <a href="#newsletter" className="inline-flex h-10 items-center whitespace-nowrap rounded-full bg-brand-600 px-5 text-13-5 font-semibold text-brand-on transition-colors duration-(--duration-base) hover:bg-brand-700">
                 Subscribe to our newsletter
               </a>
             )}

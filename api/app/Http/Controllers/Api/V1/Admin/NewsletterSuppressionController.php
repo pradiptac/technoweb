@@ -106,9 +106,18 @@ class NewsletterSuppressionController extends Controller
     {
         $row = NewsletterSuppression::findOrFail($id);
 
+        /*
+         * An unsubscribe is undone by the person alone: signing up again on
+         * the site mails them a link, and following it lifts this row
+         * (`App\Support\Newsletter\Rejoin`). A complaint has no way back at
+         * all — the mail provider holds it against the domain whatever this
+         * table says, so nothing here offers one.
+         */
         if ($row->reason->isTheirDecision()) {
             return response()->json([
-                'message' => 'This address unsubscribed itself. Only they can undo that — ask them to sign up again.',
+                'message' => $row->reason === SuppressionReason::Unsubscribed
+                    ? 'This address unsubscribed itself. Only they can undo that — ask them to sign up again on the site, and confirm from the email we send them.'
+                    : 'This address marked our email as spam. That cannot be undone from here.',
             ], 422);
         }
 

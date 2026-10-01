@@ -13,9 +13,11 @@ use App\Models\ContentBlock;
 use App\Models\Coupon;
 use App\Models\Setting;
 use App\Support\Announcement;
+use App\Support\Backups\BackupSettings;
 use App\Support\Chat\ChatSettings;
 use App\Support\HtmlSanitiser;
 use App\Support\InboundMail\InboundMail;
+use App\Support\Meetings\MeetingSettings;
 use App\Support\Messaging\ProviderOption;
 use App\Support\Messaging\Providers\Fcm;
 use App\Support\Messaging\Providers\GoogleRbm;
@@ -272,7 +274,8 @@ class SettingController extends Controller
             'messaging_push_provider' => self::messagingOptions(MessageChannel::Push),
             // The support mailbox's choices: provider, what to do with a
             // processed message, unknown senders, priority, encryption.
-            default => InboundMail::options()[$key] ?? null,
+            // Online meetings' switches and the slot step (docs/meetings.md).
+            default => InboundMail::options()[$key] ?? BackupSettings::OPTIONS[$key] ?? MeetingSettings::OPTIONS[$key] ?? null,
         };
     }
 
@@ -358,6 +361,7 @@ class SettingController extends Controller
         $this->validateAnnouncement($request, $existing);
         $this->validateMessaging($request, $existing);
         $this->validateVisits($request);
+        BackupSettings::validate((array) $request->input('settings', []), $existing);
 
         /*
          * A setting with a fixed set of choices is checked against that set.
@@ -903,6 +907,13 @@ class SettingController extends Controller
             'google_analytics_id' => ['/^G-[A-Z0-9]+$/', 'A GA4 measurement id looks like G-XXXXXXXXXX.'],
             'google_tag_manager_id' => ['/^GTM-[A-Z0-9]+$/', 'A Tag Manager container id looks like GTM-XXXXXXX.'],
             'meta_pixel_id' => ['/^\d+$/', 'A Meta Pixel id is digits only.'],
+            // The prefix on a ticket, visit or order number (App\Support\References),
+            // read back upper-cased: it must stay something the email-to-ticket
+            // reader and a person on the telephone can both parse.
+            'ticket_reference_prefix' => ['/^[A-Z][A-Z0-9]{1,5}$/i', 'Two to six letters or digits, starting with a letter — for example TK.'],
+            'visit_reference_prefix' => ['/^[A-Z][A-Z0-9]{1,5}$/i', 'Two to six letters or digits, starting with a letter — for example SV.'],
+            'meeting_reference_prefix' => ['/^[A-Z][A-Z0-9]{1,5}$/i', 'Two to six letters or digits, starting with a letter — for example MT.'],
+            'order_number_prefix' => ['/^[A-Z][A-Z0-9]{1,5}$/i', 'Two to six letters or digits, starting with a letter — for example ORD.'],
         ];
 
         foreach ($request->input('settings', []) as $i => $row) {
@@ -1015,7 +1026,11 @@ class SettingController extends Controller
     private function validateVisits(Request $request): void
     {
         foreach ($request->input('settings', []) as $i => $row) {
-            $refusal = VisitSettings::refusalFor((string) ($row['key'] ?? ''), $row['value'] ?? null);
+            $key = (string) ($row['key'] ?? '');
+            // The `meetings` group is read the same way, by `MeetingSettings`
+            // (2026-09-29, docs/meetings.md).
+            $refusal = VisitSettings::refusalFor($key, $row['value'] ?? null)
+                ?? MeetingSettings::refusalFor($key, $row['value'] ?? null);
 
             if ($refusal !== null) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => $refusal]);

@@ -9,6 +9,7 @@ use App\Models\Media;
 use App\Models\Setting;
 use App\Models\Solution;
 use App\Support\Chat\ChatSettings;
+use App\Support\Meetings\MeetingSettings;
 use App\Support\Visits\VisitSettings;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -120,6 +121,20 @@ class PublicSettings
          * (`VisitSettings::PUBLIC_KEYS`, 2026-09-26).
          */
         foreach (VisitSettings::PUBLIC_KEYS as $key) {
+            $value = $rows[$key]['value'] ?? null;
+
+            if ($value !== null && $value !== '') {
+                $values[$key] = $value;
+            }
+        }
+
+        /*
+         * The meeting booking page's four, named for the same reason: the
+         * `meetings` group also holds the desk's address, the per-contact and
+         * per-address limits and the reminder offsets
+         * (`MeetingSettings::PUBLIC_KEYS`, 2026-09-29, docs/meetings.md).
+         */
+        foreach (MeetingSettings::PUBLIC_KEYS as $key) {
             $value = $rows[$key]['value'] ?? null;
 
             if ($value !== null && $value !== '') {

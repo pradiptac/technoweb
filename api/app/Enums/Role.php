@@ -40,6 +40,18 @@ enum Role: string
      */
     case SalesManager = 'sales_manager';
 
+    /*
+     * Who may host an online meeting (2026-09-29, docs/meetings.md).
+     *
+     * Not every staff member takes calls with customers, and the slot engine
+     * offers a customer only the hosts who do — so eligibility is this role,
+     * held **explicitly**: the administrator's implicit pass through every
+     * role check does not make somebody a host, or every administrator would
+     * be booked into calls they never agreed to take. A host who is neither
+     * sales nor support reaches their own diary through "My meetings".
+     */
+    case MeetingHost = 'meeting_host';
+
     public function label(): string
     {
         return match ($this) {
@@ -50,6 +62,7 @@ enum Role: string
             self::CampaignManager => 'Campaign manager',
             self::StoreManager => 'Store manager',
             self::SalesManager => 'Sales manager',
+            self::MeetingHost => 'Meeting host',
         };
     }
 
@@ -57,12 +70,13 @@ enum Role: string
     {
         return match ($this) {
             self::Admin => 'Full access to every module, including users and settings.',
-            self::SupportEngineer => 'Tickets, customers and the knowledge base.',
+            self::SupportEngineer => 'Tickets and saved replies, customers and their approval, job applications and engineer visits.',
             self::ContentManager => 'Pages, catalogue, blog, case studies and media.',
-            self::SeoManager => 'SEO metadata, redirects and the sitemap.',
+            self::SeoManager => 'SEO metadata, the sitemap, redirects, landing pages and places.',
             self::CampaignManager => 'Newsletter subscribers, groups and campaigns. A send cannot be recalled.',
             self::StoreManager => 'The store: products, prices, stock, orders, coupons and digital codes.',
             self::SalesManager => 'Leads and enquiries: the pipeline, follow-ups and everyone who has written in.',
+            self::MeetingHost => 'Hosts online meetings with customers: offered for booking in their working hours, and sees their own meetings.',
         };
     }
 }

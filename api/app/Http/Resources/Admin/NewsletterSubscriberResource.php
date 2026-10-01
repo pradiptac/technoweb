@@ -19,6 +19,11 @@ class NewsletterSubscriberResource extends JsonResource
             'name' => $this->name(),
             'company' => $this->company,
             'phone' => $this->phone,
+            'industry' => $this->industry,
+            'location' => $this->location,
+            'website' => $this->website,
+            // The page a crawl found the address on; null for every other source.
+            'source_url' => $this->source_url,
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
             'source' => $this->source,

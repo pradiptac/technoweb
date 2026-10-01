@@ -6,12 +6,13 @@ import { getDashboard } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
-import { IconTicket, IconClock, IconUsers, IconBox, IconPen, IconMail, IconTools } from "@/components/icons";
+import { IconTicket, IconClock, IconUsers, IconBox, IconPen, IconMail, IconTools, IconMeeting } from "@/components/icons";
 import { istDate } from "@/lib/visit-dates";
 import { StatTile, type Tone } from "@/components/admin/stat-tile";
+import { Card } from "@/components/ui/card";
 import { DashboardMetricsPanel } from "./metrics";
 import type { AdminDashboard, Ticket, TicketStatus } from "@/types/api";
-import type { SVGProps } from "react";
+import type { CSSProperties, SVGProps } from "react";
 import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Dashboard", path: "/admin", seo: noIndex });
@@ -78,10 +79,17 @@ export default async function AdminDashboardPage({ searchParams }: {
    * leads pipeline only for somebody who may: the tile is shown to every
    * role and the list answers 403 to most of them.
    */
-  const tiles: {
+  type Tile = {
     label: string; value: string; href?: string; tone: Tone;
     icon: (p: SVGProps<SVGSVGElement>) => React.ReactElement;
-  }[] = [
+  };
+
+  /*
+   * Grouped by the desk each figure belongs to (the client, 2026-09-29): a
+   * wall of thirteen same-sized tiles made the reader sort them every time.
+   * A group with no tiles for this role is not drawn at all.
+   */
+  const support: Tile[] = [
     { label: "Open tickets", value: n(dashboard.counts.open_tickets), href: "/admin/tickets?open=1", tone: "info", icon: IconTicket },
     {
       label: "Overdue tickets", value: n(dashboard.counts.overdue_tickets),
@@ -93,8 +101,12 @@ export default async function AdminDashboardPage({ searchParams }: {
       icon: IconClock,
     },
     { label: "Active customers", value: n(dashboard.counts.customers), href: "/admin/customers?status=active", tone: "ok", icon: IconUsers },
+  ];
+  const content: Tile[] = [
     { label: "Published products", value: n(dashboard.counts.products), href: "/admin/products?status=published", tone: "brand", icon: IconBox },
     { label: "Published blog posts", value: n(dashboard.counts.blog_posts), href: "/admin/blog?status=published", tone: "brand", icon: IconPen },
+  ];
+  const sales: Tile[] = [
     {
       label: "New enquiries", value: n(dashboard.counts.new_enquiries),
       href: dashboard.leads ? "/admin/leads?status=new" : undefined,
@@ -121,8 +133,10 @@ export default async function AdminDashboardPage({ searchParams }: {
    * Each href is the filter that produces the number, so the tile and the list
    * it opens cannot disagree — the rule the store's `attention` block follows.
    */
+  const diary: Tile[] = [];
+
   if (dashboard.leads) {
-    tiles.push(
+    sales.push(
       {
         label: "New leads", value: n(dashboard.leads.new),
         href: "/admin/leads?status=new",
@@ -151,7 +165,7 @@ export default async function AdminDashboardPage({ searchParams }: {
   */
   if (dashboard.visits) {
     const todayIst = istDate();
-    tiles.push(
+    diary.push(
       {
         label: "Visits to confirm", value: n(dashboard.visits.awaiting),
         href: "/admin/visits?status=requested",
@@ -167,6 +181,29 @@ export default async function AdminDashboardPage({ searchParams }: {
     );
   }
 
+  /*
+    Online meetings (2026-09-29): what is in today's diary, and what is over
+    and still owed an outcome. Null for a role that cannot open the list, the
+    rule the visits and leads tiles follow; each href is the list's filter.
+  */
+  if (dashboard.meetings) {
+    const todayIst = istDate();
+    diary.push(
+      {
+        label: "Meetings today", value: n(dashboard.meetings.today),
+        href: `/admin/meetings?status=scheduled&from=${todayIst}&to=${todayIst}`,
+        tone: "info",
+        icon: IconMeeting,
+      },
+      {
+        label: "Meetings to record", value: n(dashboard.meetings.needs_outcome),
+        href: "/admin/meetings?needs_outcome=1",
+        tone: dashboard.meetings.needs_outcome > 0 ? "warn" : "ok",
+        icon: IconClock,
+      },
+    );
+  }
+
   const breakdown = Object.entries(dashboard.status_breakdown);
   const breakdownTotal = breakdown.reduce((sum, [, n]) => sum + n, 0) || 1;
 
@@ -174,11 +211,37 @@ export default async function AdminDashboardPage({ searchParams }: {
     <>
       <PageHeader title="Dashboard" />
 
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {tiles.map((t) => (
-          <li key={t.label}><StatTile {...t} /></li>
+      {/*
+        Each group keeps its tiles on one row from `sm`, and asks for as much
+        width as that row needs — 9.5rem a tile, enough for "Overdue
+        follow-ups" on one line — growing in proportion to its tile count. The
+        panels then wrap by themselves: two or three abreast on a desktop, one
+        a row where the screen cannot hold that, never a group split over two
+        rows of its own (the client, 2026-09-29: one line per title).
+      */}
+      <div className="flex flex-wrap gap-3">
+        {([
+          ["Support", support],
+          ["Sales", sales],
+          ["Visits and meetings", diary],
+          ["Content", content],
+        ] as const).filter(([, list]) => list.length > 0).map(([title, list]) => (
+          <Card
+            key={title} as="section" interactive={false} padding="none" className="min-w-0 p-3"
+            style={{ flex: `${list.length} 1 calc(${list.length} * 9.5rem + ${list.length - 1} * 0.5rem + 1.5rem + 2px)` }}
+          >
+            <h2 className="mb-2 text-12-5 font-semibold text-muted">{title}</h2>
+            <ul
+              className="grid grid-cols-2 gap-2 sm:grid-cols-[repeat(var(--tiles),minmax(0,1fr))]"
+              style={{ "--tiles": list.length } as CSSProperties}
+            >
+              {list.map((t) => (
+                <li key={t.label}><StatTile {...t} compact /></li>
+              ))}
+            </ul>
+          </Card>
         ))}
-      </ul>
+      </div>
 
       <DashboardMetricsPanel metrics={dashboard.metrics} />
 

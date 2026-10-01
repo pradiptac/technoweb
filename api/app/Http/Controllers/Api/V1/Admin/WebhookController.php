@@ -10,6 +10,7 @@ use App\Http\Resources\Admin\WebhookDeliveryResource;
 use App\Http\Resources\Admin\WebhookResource;
 use App\Models\Webhook;
 use App\Models\WebhookDelivery;
+use App\Support\Mail\MailBrand;
 use App\Support\Webhooks\Webhooks;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -132,7 +133,7 @@ class WebhookController extends Controller
     public function ping(Request $request, Webhook $webhook): JsonResponse
     {
         $delivery = Webhooks::deliverTo($webhook, WebhookEvent::Ping, [
-            'message' => 'Hello from Technoware. If you can read this, the endpoint and the secret are right.',
+            'message' => 'Hello from '.MailBrand::name().'. If you can read this, the endpoint and the secret are right.',
             'webhook' => ['id' => $webhook->id, 'name' => $webhook->name],
             'sent_by' => $request->user()?->name,
             'sent_at' => now()->toIso8601String(),

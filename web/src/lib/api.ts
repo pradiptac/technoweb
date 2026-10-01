@@ -6,7 +6,7 @@ import type {
   BlogPost,
   PublicComment,
   BlogTaxonomy, Brand, CaseStudy, Certification, Client, Collection, Industry, KnowledgeArticle, Paginated, TeamMember,
-  CmsPage, Product, ProductCategory, Service, Single, SiteForm, Slider, Solution,
+  CmsPage, Product, ProductCategory, Service, ServiceCategory, Single, SiteForm, Slider, Solution,
   CmsPageSummary, Gallery, JobOpening, Popup,
   ContentEntry, ContentTypeSummary,
   SearchResults,
@@ -199,6 +199,13 @@ export const publicApi = {
     }),
   service: (slug: string) =>
     apiFetch<Single<Service>>(`/services/${slug}`, { revalidate: 600, tags: ["services", `service:${slug}`] }),
+  /**
+   * The service categories, active only and in order — the tabs the services
+   * are grouped under. Tagged `services`, which every service and category
+   * save purges, so moving a service between tabs shows on the next request.
+   */
+  serviceCategories: () =>
+    apiFetch<Collection<ServiceCategory>>("/service-categories", { revalidate: 600, tags: ["services"] }),
 
   industries: (inMenu = false) =>
     apiFetch<Collection<Industry>>(`/industries${inMenu ? "?in_menu=1" : ""}`, {

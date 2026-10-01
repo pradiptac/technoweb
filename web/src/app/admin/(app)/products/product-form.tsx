@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea, Select } from "@/components/ui/input";
 import { EditorField } from "@/components/admin/editor-field";
 import { FaqField } from "@/components/admin/faq-field";
+import { DocumentField } from "@/components/admin/document-field";
 import { GalleryField } from "@/components/admin/gallery-field";
 import { RelationPicker } from "@/components/admin/relation-picker";
 import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
@@ -198,6 +199,21 @@ export function ProductForm({
             defaultPaths={product?.images ?? []}
             defaultUrls={product?.image_urls ?? []}
             error={rowErr("images")}
+          />
+
+          {/*
+            The hidden input always posts, so an existing datasheet is kept on
+            save and "Remove" posts "" — which the action turns into null.
+            Without this control the action posted null on every save and
+            silently dropped whatever datasheet the product had.
+          */}
+          <DocumentField
+            name="datasheet_path"
+            label="Datasheet (PDF)"
+            hint="Optional. Linked from the product page as “Download datasheet”. It is a public document."
+            defaultPath={product?.datasheet_path ?? null}
+            defaultName={product?.datasheet_path?.split("/").pop() ?? null}
+            error={err("datasheet_path")}
           />
         </div>
 

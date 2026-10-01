@@ -22,6 +22,10 @@ export const PUBLIC_ROUTES = [
   "/team", "/clients", "/certifications",
   // The engineer visit request form (docs/visits.md), and with a service preselected.
   "/book-a-visit", "/book-a-visit?service=web-hosting",
+  // Online meetings (docs/meetings.md): the booking page, prerendered; the
+  // day picker and the times load after mount. `?type=` opens step two on
+  // the mock's type -- an unknown slug on a real install is just step one.
+  "/book-a-meeting", "/book-a-meeting?type=product-demo",
   // The assistant links here when somebody with no account has a fault, and
   // nothing had ever loaded it on this audit -- `audit:mobile` covered it and
   // this did not, which is exactly the gap a hard-coded path lives in.

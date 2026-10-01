@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\VisitRequest;
 use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
+use App\Support\Mail\MailBrand;
 use App\Support\Visits\Ics;
 use App\Support\Visits\VisitText;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -80,7 +81,7 @@ class VisitConfirmed extends Notification implements ShouldQueue
         $message
             ->line('The calendar file attached adds it to your diary. We will remind you the day before.')
             ->action('Cancel or ask for another time', $v->manageUrl())
-            ->salutation('— Technoware');
+            ->salutation(MailBrand::signoff());
 
         $ics = Ics::forVisit($v);
 

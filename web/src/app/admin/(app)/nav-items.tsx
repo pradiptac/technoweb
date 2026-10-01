@@ -6,7 +6,7 @@ import {
   IconArrows, IconBook, IconBox, IconBuilding, IconCert, IconChart,   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
   IconClock, IconHeadset, IconMegaphone, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
-  IconWrench, IconNewspaper, IconBriefcase, IconShield, IconPlug, IconChat,
+  IconWrench, IconNewspaper, IconBriefcase, IconShield, IconPlug, IconChat, IconBackup, IconCloud, IconMeeting,
 } from "@/components/icons";
 
 /**
@@ -28,7 +28,7 @@ type Icon = (p: React.SVGProps<SVGSVGElement>) => React.ReactElement;
 /**
  * The staff roles, as the API spells them. `admin` passes every check.
  */
-export type RoleSlug = "support_engineer" | "content_manager" | "seo_manager" | "campaign_manager" | "store_manager" | "sales_manager" | "admin";
+export type RoleSlug = "support_engineer" | "content_manager" | "seo_manager" | "campaign_manager" | "store_manager" | "sales_manager" | "meeting_host" | "admin";
 
 /**
  * A row reachable by either of two roles, spelled the way the route's
@@ -125,6 +125,25 @@ export const NAV: NavItem[] = [
     links: [
       { role: "sales_manager,support_engineer", href: "/admin/visits", label: "Visits", icon: IconClock },
       { role: "admin", href: "/admin/visits/settings", label: "Visit settings", icon: IconSliders },
+    ],
+  },
+  /*
+    Online meetings (2026-09-29, docs/meetings.md), beside Visits: the same
+    two desks work the list, so its row carries both roles as the route
+    middleware spells them. Types are the sales manager's; the hosts' hours
+    and the settings (with the Google connection) are an administrator's.
+    "My meetings" is a host's own diary — the one row a `meeting_host` with
+    no other role sees, which `navFor` flattens to a plain link. Never
+    `exact` on Meetings: its detail pages resolve to it by the longest match.
+  */
+  {
+    kind: "group", id: "meetings", label: "Meetings", icon: IconMeeting,
+    links: [
+      { role: "sales_manager,support_engineer", href: "/admin/meetings", label: "Meetings", icon: IconClock },
+      { role: "sales_manager", href: "/admin/meetings/types", label: "Meeting types", icon: IconGrid },
+      { role: "admin", href: "/admin/meetings/hosts", label: "Hosts", icon: IconUsers },
+      { role: "meeting_host", href: "/admin/my-meetings", label: "My meetings", icon: IconHeadset },
+      { role: "admin", href: "/admin/meetings/settings", label: "Settings", icon: IconSliders },
     ],
   },
   /*
@@ -291,10 +310,11 @@ export const NAV: NavItem[] = [
     kind: "group", id: "catalogue", label: "Catalogue", icon: IconRack,
     links: [
       { role: "content_manager", href: "/admin/products", label: "Products", icon: IconBox },
-      { role: "content_manager", href: "/admin/product-categories", label: "Categories", icon: IconGrid },
+      { role: "content_manager", href: "/admin/product-categories", label: "Product categories", icon: IconGrid },
       { role: "content_manager", href: "/admin/brands", label: "Brands", icon: IconTag },
       { role: "content_manager", href: "/admin/solutions", label: "Solutions", icon: IconNetwork },
       { role: "content_manager", href: "/admin/services", label: "Services", icon: IconTools },
+      { role: "content_manager", href: "/admin/service-categories", label: "Service categories", icon: IconLayers },
       { role: "content_manager", href: "/admin/industries", label: "Industries", icon: IconBuilding },
     ],
   },
@@ -460,6 +480,25 @@ export const NAV: NavItem[] = [
         to `admin/imports/wordpress` directly.
       */
       { role: "admin", href: "/admin/imports/wordpress", label: "WordPress import", icon: IconArrows },
+      /*
+        Backups and their settings (2026-09-27, docs/backups.md). `role:admin`:
+        a backup is every customer and every ticket attachment in one file, and
+        a restore replaces the lot. The paths are the API's, so
+        `AdminNavRolesTest` maps both rows to real routes; the settings row is
+        the Settings row at the end of this module, the rule every module's
+        own settings follow. Never `exact` on Backups — the sidebar lights the
+        longest match (`nav-match.ts`).
+      */
+      { role: "admin", href: "/admin/backups", label: "Backups", icon: IconBackup },
+      { role: "admin", href: "/admin/backups/settings", label: "Backup settings", icon: IconSliders },
+      /*
+        The installed version and whether its parts agree, and applying a new
+        release (2026-09-28, docs/distribution.md). `role:admin`: an update
+        replaces the whole application. The paths are the API's, so
+        `AdminNavRolesTest` maps both rows to real routes.
+      */
+      { role: "admin", href: "/admin/system/status", label: "System status", icon: IconGauge },
+      { role: "admin", href: "/admin/system/updates", label: "Updates", icon: IconCloud },
       // Beside Staff: both answer questions about people rather than content.
       { role: "admin", href: "/admin/activity", label: "Activity", icon: IconClock },
       /*

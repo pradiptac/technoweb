@@ -2,6 +2,7 @@
 
 namespace App\Support\InboundMail;
 
+use App\Support\Mail\MailBrand;
 use Illuminate\Notifications\Messages\MailMessage;
 use Symfony\Component\Mime\Email;
 
@@ -52,7 +53,7 @@ final class MailHeaders
     {
         $address = InboundMail::replyTo();
 
-        return $address !== null ? $message->replyTo($address, 'Technoware Support') : $message;
+        return $address !== null ? $message->replyTo($address, MailBrand::name().' Support') : $message;
     }
 
     /** The closing line of the acknowledgement, true in both modes. */

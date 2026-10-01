@@ -1,8 +1,9 @@
 import { ErrorState } from "@/components/ui/empty";
 import { PageHeader } from "@/components/admin/page-header";
 import { ApiError } from "@/lib/api";
-import { getInboundMailStatus, getMailStatus, getMessagingStatus, getSettings, type SettingsPayload } from "@/lib/admin";
-import type { InboundMailStatus, MailStatus, MessagingStatus } from "@/types/api";
+import { getBackupDriveStatus, getInboundMailStatus, getMailStatus, getMeetingsGoogleStatus, getMessagingStatus, getSettings, type SettingsPayload } from "@/lib/admin";
+import type { BackupDriveStatus, InboundMailStatus, MailStatus, MessagingStatus } from "@/types/api";
+import type { MeetingsGoogleStatus } from "@/types/meetings";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { screenAt } from "./settings-copy";
@@ -34,12 +35,17 @@ export async function SettingsScreen({ path }: { path: string }) {
   let mail: MailStatus | undefined;
   let inbound: InboundMailStatus | undefined;
   let messaging: MessagingStatus | undefined;
+  let drive: BackupDriveStatus | undefined;
+  let meetingsGoogle: MeetingsGoogleStatus | undefined;
   try {
-    [settings, mail, inbound, messaging] = await Promise.all([
+    [settings, mail, inbound, messaging, drive, meetingsGoogle] = await Promise.all([
       getSettings(),
       screen.needs?.includes("mail") ? getMailStatus() : undefined,
       screen.needs?.includes("inbound") ? getInboundMailStatus() : undefined,
       screen.needs?.includes("messaging") ? getMessagingStatus() : undefined,
+      screen.needs?.includes("backups") ? getBackupDriveStatus() : undefined,
+      // The panel says what it can when the status read fails; the settings still draw.
+      screen.needs?.includes("meetings") ? getMeetingsGoogleStatus().catch(() => undefined) : undefined,
     ]);
   } catch (error) {
     // Settings are administrator-only, so a content manager landing here gets
@@ -72,6 +78,8 @@ export async function SettingsScreen({ path }: { path: string }) {
         mail={mail}
         inbound={inbound}
         messaging={messaging}
+        drive={drive}
+        meetingsGoogle={meetingsGoogle}
       />
     </>
   );

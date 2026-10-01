@@ -6,11 +6,11 @@ import { stripColumns } from "@/lib/strip-columns";
 import { supportStats } from "@/content/site";
 import { StatFigure, statFigures } from "@/components/ui/stat";
 import { statLookFor } from "@/lib/stat-look";
-import { statPairs, type SiteSettings } from "@/lib/site-settings";
+import { portalEnabled, statPairs, ticketHref, type SiteSettings } from "@/lib/site-settings";
 
-// The process diagram, the AMC inclusion list and the web-services grid are
-// genuinely static page furniture, not records anyone edits. Everything that
-// IS a record — solutions, categories, industries, case studies, posts,
+// The process diagram and the AMC inclusion list are genuinely static page
+// furniture, not records anyone edits. Everything that IS a record —
+// solutions, categories, industries, services, case studies, posts,
 // brands — arrives as props from the CMS, because editing one in the admin
 // previously changed every page except this one.
 
@@ -31,6 +31,9 @@ const sampleTickets = [
 export function SupportBand({ settings = {} }: { settings?: SiteSettings }) {
   const stats = statPairs(settings.support_stats, supportStats);
   const look = statLookFor(settings);
+  // With the portal switched off (`portal_enabled`) the button goes to the
+  // contact form and the copy stops promising a portal login.
+  const portal = portalEnabled(settings);
   return (
     <section id="support" className="section-y-lg relative overflow-hidden bg-dark text-dark-ink">
       <div
@@ -43,13 +46,13 @@ export function SupportBand({ settings = {} }: { settings?: SiteSettings }) {
             <span className="text-11-5 font-semibold uppercase tracking-[.13em] text-brand-300">Support</span>
             <h2 className="display-2 mt-3.5">A support desk, not a call queue.</h2>
             <p className="lede mt-4 text-dark-muted">
-              Every contract customer gets a portal login, full ticket history and a named
-              engineer. Raise a ticket, watch it move, see who has it — no chasing, no
-              re-explaining the problem to a third person.
+              {portal
+                ? "Every contract customer gets a portal login, full ticket history and a named engineer. Raise a ticket, watch it move, see who has it — no chasing, no re-explaining the problem to a third person."
+                : "Every contract customer gets a named engineer who knows their network. Tell us what is wrong and the person who picks it up keeps it — no chasing, no re-explaining the problem to a third person."}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <ButtonLink href="/portal/tickets/new" variant="onDark">
-                <IconTicket /> Submit a ticket
+              <ButtonLink href={ticketHref(settings)} variant="onDark">
+                <IconTicket /> {portal ? "Submit a ticket" : "Get in touch"}
               </ButtonLink>
               <ButtonLink href="/knowledge-base" variant="onDarkOutline">
                 <IconBook /> Knowledge base

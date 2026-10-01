@@ -23,9 +23,19 @@
 /*
   The header over the page.
 
-  The sticky wrapper carries a negative bottom margin the height of the
-  bar, so whatever follows starts under it — the hero, on the pages that
-  have one. Which pages is decided here rather than in the component:
+  The hero starts at the very top of the window, under the info bar and
+  under the pill (the client, 2026-09-28: the ticker sits *on* the slider,
+  not above it). The info bar stays in the flow and is lifted over the
+  hero (`z-index`); the wrapper takes a negative bottom margin of the info
+  bar's height, plus its own height when it has one, so whatever follows
+  starts at the top of the page in both states — the glass wrapper is
+  zero high, the scrolled one is `--h-site-header` high, and the two
+  margins leave the page where it was. It used to take the header's
+  height off a wrapper already zero high, which put the hero 72px above
+  the page's top — over the info bar, so the ticker could not be seen —
+  and moved the whole page 72px the moment the header turned solid.
+  `--h-info-bar` is the bar's one-line height (24px, 27px from `sm`; every
+  style is one line) and 0 when there is none or it was closed. Which pages is decided here rather than in the component:
   `:has([data-vantage-dark])` is true on the front page and on every page
   that opens on the theme's page hero, both of which stamp the attribute,
   and false on the shop, which opens on a light band the pill must not be
@@ -36,13 +46,19 @@
   since the band under it is `bg-dark` with the photograph on top, and the
   ancestor the contrast audit walks to for a translucent pill.
 */
+[data-theme="vantage"] { --h-info-bar: 24px; }
+@media (width >= 40rem) { [data-theme="vantage"] { --h-info-bar: 27px; } }
+[data-theme="vantage"]:not(:has(.announcement-bar)),
+html[data-announcement-closed] [data-theme="vantage"] { --h-info-bar: 0px; }
+[data-theme="vantage"]:has([data-vantage-dark]) .announcement-bar { z-index: 41; }
 [data-theme="vantage"]:has([data-vantage-dark]) .vantage-head {
-  margin-bottom: calc(-1 * var(--h-site-header));
+  margin-bottom: calc(-1 * (var(--h-site-header) + var(--h-info-bar)));
 }
 [data-theme="vantage"]:has([data-vantage-dark]) .vantage-head:not([data-scrolled]) {
   background: var(--color-dark);
   height: 0;
   padding: 0;
+  margin-bottom: calc(-1 * var(--h-info-bar));
   overflow: visible;
 }
 [data-theme="vantage"]:has([data-vantage-dark]) .vantage-head:not([data-scrolled]) > header {
@@ -121,9 +137,6 @@
 /* The pause control sits above the plate rather than under it. */
 [data-theme="vantage"] .vantage-hero [aria-roledescription="carousel"] > button[aria-pressed] { bottom: 74px; right: 20px; }
 
-/* The people: a round photograph, the detail under it. */
-[data-theme="vantage"] [data-team-photo] { aspect-ratio: 1; }
-[data-theme="vantage"] [data-team-photo] img { border-radius: 9999px; }
 
 /*
   The utility bar's panel as a floating pill card, the header's own shape:
@@ -232,3 +245,30 @@
 [data-theme="vantage"] [data-collection="routes"] [data-tile] {
   border-top: 4px solid var(--tile-hue, var(--color-line-strong));
 }
+
+/*
+  The people as photographs with the words on them (2026-09-28), the
+  theme's photo-mosaic idiom: the portrait fills the card, and the name,
+  role, bio, chips and links sit on its foot over a fade whose lowest stop
+  is the opaque dark (the slider's rule, so the audit grades them against
+  what they are really on). The foot sets the dark band's local palette.
+*/
+[data-theme="vantage"] [data-team] { grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr)); }
+[data-theme="vantage"] [data-team] > li {
+  display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); min-height: 460px;
+  background-color: var(--color-dark); background-image: none; border: 0; border-radius: 18px;
+}
+[data-theme="vantage"] [data-team] [data-team-photo] { grid-area: 1 / 1; aspect-ratio: auto; height: 100%; }
+[data-theme="vantage"] [data-team] [data-team-rule] { display: none; }
+[data-theme="vantage"] [data-team] [data-team-body] {
+  grid-area: 1 / 1; align-self: end; position: relative;
+  padding-top: 96px;
+  background-image: linear-gradient(to top, var(--color-dark) 55%, transparent);
+  color: var(--color-dark-ink);
+  --color-ink: var(--color-dark-ink); --color-ink-2: var(--color-dark-ink);
+  --color-muted: var(--color-dark-muted); --color-brand-ink: var(--color-dark-muted-brand); --color-brand-300: var(--color-dark-muted-brand);
+  --color-card: var(--color-dark); --color-surface-2: var(--color-dark-2); --color-line-strong: var(--color-dark-line);
+}
+[data-theme="vantage"] [data-team] [data-team-name] { font-size: 21px; }
+[data-theme="vantage"] [data-team] [data-team-bio] { -webkit-line-clamp: 3; }
+[data-theme="vantage"] [data-team] [data-team-contact] { margin-top: 0; padding-top: 14px; }

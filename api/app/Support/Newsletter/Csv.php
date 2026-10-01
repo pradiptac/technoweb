@@ -141,6 +141,9 @@ class Csv
             'last_name' => ['lastname', 'last', 'lname', 'surname', 'familyname'],
             'company' => ['company', 'organisation', 'organization', 'business', 'firm'],
             'phone' => ['phone', 'telephone', 'mobile', 'contactnumber', 'tel'],
+            'industry' => ['industry', 'sector', 'businesstype', 'vertical'],
+            'location' => ['location', 'city', 'town', 'region'],
+            'website' => ['website', 'web', 'url', 'homepage', 'site'],
         ];
 
         $mapping = [];

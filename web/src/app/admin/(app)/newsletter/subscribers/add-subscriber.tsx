@@ -65,6 +65,12 @@ export function AddSubscriber({ groups }: { groups: NewsletterGroup[] }) {
           <Field label="Last name" htmlFor="last_name" variant="float">
             <Input id="last_name" name="last_name" />
           </Field>
+          <Field label="Industry" htmlFor="industry" variant="float">
+            <Input id="industry" name="industry" maxLength={80} />
+          </Field>
+          <Field label="Website" htmlFor="website" variant="float">
+            <Input id="website" name="website" type="url" placeholder="https://" />
+          </Field>
 
           <GroupPicker groups={groups} />
 

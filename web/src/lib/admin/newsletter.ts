@@ -2,7 +2,7 @@ import "server-only";
 import { apiFetch, apiUpload } from "@/lib/api";
 import { query, token } from "./_shared";
 import type {
-  Paginated, NewsletterSubscriber, NewsletterGroup, NewsletterCampaign, NewsletterTemplate, NewsletterAudience, NewsletterHealth, NewsletterSuppression, NewsletterWebhookMeta, NewsletterDashboard, NewsletterVerificationReport, NewsletterReport, QueueHealth, NewsletterImportAnalysis, NewsletterMailboxStatus, NewsletterMailboxImport,
+  Paginated, NewsletterSubscriber, NewsletterGroup, NewsletterCampaign, NewsletterTemplate, NewsletterAudience, NewsletterHealth, NewsletterSuppression, NewsletterWebhookMeta, NewsletterDashboard, NewsletterVerificationReport, NewsletterReport, QueueHealth, NewsletterImportAnalysis, NewsletterMailboxStatus, NewsletterMailboxImport, NewsletterCrawlStatus,
   NewsletterSequence, NewsletterSequenceEnrolment, NewsletterSequenceReport, NewsletterEnrolTally,
 } from "@/types/api";
 
@@ -12,7 +12,7 @@ export async function getNewsletterDashboard(): Promise<NewsletterDashboard> {
 }
 
 export type SubscriberQuery = {
-  q?: string; status?: string; group?: string; suppressed?: string; verification?: string;
+  q?: string; status?: string; group?: string; suppressed?: string; verification?: string; industry?: string;
   page?: number; per_page?: number;
 };
 
@@ -20,6 +20,8 @@ export type SubscriberIndex = Paginated<NewsletterSubscriber> & {
   meta: Paginated<NewsletterSubscriber>["meta"] & {
     statuses: { value: string; label: string }[];
     verifications: { value: string; label: string }[];
+    /** Every industry on the list, for the filter. */
+    industries: string[];
     total_active: number;
     total_suppressed: number;
   };
@@ -275,6 +277,20 @@ export async function disconnectNewsletterMailbox(): Promise<void> {
 /** Start a scan. 202: the work is queued; poll `getNewsletterImport`. */
 export async function startNewsletterMailboxScan(payload: Record<string, unknown>): Promise<NewsletterMailboxImport> {
   const res = await apiFetch<{ data: NewsletterMailboxImport }>("/admin/newsletter/imports/mailbox/scan", {
+    method: "POST", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+/* ------------------------------------------------ importing from a website */
+
+export async function getNewsletterCrawlStatus(): Promise<NewsletterCrawlStatus> {
+  const res = await apiFetch<{ data: NewsletterCrawlStatus }>("/admin/newsletter/imports/crawl", { token: await token() });
+  return res.data;
+}
+
+export async function startNewsletterCrawl(payload: Record<string, unknown>): Promise<NewsletterMailboxImport> {
+  const res = await apiFetch<{ data: NewsletterMailboxImport }>("/admin/newsletter/imports/crawl", {
     method: "POST", body: payload, token: await token(),
   });
   return res.data;

@@ -22,7 +22,7 @@ const base = { background: "#ffffff", text: "#12130f", fontDisplay: DEFAULT_DISP
 
 export const PRESETS: Preset[] = [
   {
-    id: "technoware", name: "Technoware",
+    id: "technoware", name: "House",
     note: "The house olive, with the gold the dashboard already uses as its accent.",
     inputs: { ...base, primary: "#6f8641", secondary: "#5b7a5e", accent: "#c9993c" },
   },

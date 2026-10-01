@@ -27,7 +27,7 @@ export function RedirectForm({ record, saved }: { record?: AdminRedirect; saved?
       {editing && <input type="hidden" name="id" value={record!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
-      {saved && !state.error && <Alert tone="ok" title="Saved">The redirect is live immediately.</Alert>}
+      {saved && !state.error && <Alert tone="ok" title="Saved">The site picks the redirect up within a minute.</Alert>}
 
       {editing && record!.created_automatically && (
         <Alert tone="warn" title="Written automatically">

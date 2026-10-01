@@ -65,13 +65,19 @@ const COLS = {
 } as const;
 
 export function Collection({
-  kind, cols = 3, as: Tag = "ul", gap = "md", className, children, ...rest
+  kind, cols = 3, as: Tag = "ul", gap = "md", fill = false, className, children, ...rest
 }: {
   /** What the tiles are — `industries`, `categories`, `case-studies` … — so an idiom can treat one kind specially. */
   kind: string;
   cols?: keyof typeof COLS;
   as?: "ul" | "div";
   gap?: "sm" | "md" | "lg";
+  /**
+   * A homepage selection: never end on a half-empty row. `FullRows` drops a
+   * short last row under a full one and widens a list shorter than a row.
+   * Never on an index page, which shows everything.
+   */
+  fill?: boolean;
   className?: string;
   children: ReactNode;
 } & Record<`data-${string}`, string | undefined>) {
@@ -79,6 +85,7 @@ export function Collection({
     <Tag
       data-collection={kind}
       data-cols={cols}
+      data-fill={fill ? "rows" : undefined}
       className={cn("grid", { sm: "gap-3", md: "gap-4", lg: "gap-5" }[gap], COLS[cols], className)}
       {...rest}
     >

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Enums\MailTransport;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Support\Mail\MailBrand;
 use App\Support\MailOAuth;
 use App\Support\OAuth\CallbackPath;
 use App\Support\QueueHealth;
@@ -180,11 +181,11 @@ class MailController extends Controller
 
         try {
             Mail::raw(
-                "This is a test from the Technoware admin console.\n\n"
+                'This is a test from the '.MailBrand::name()." admin console.\n\n"
                 .'If you are reading it, outgoing mail is working: ticket receipts, enquiry '
                 ."alerts and password resets will reach people.\n\n"
                 ."Sent via {$transport->label()} at ".now()->toDayDateTimeString().'.',
-                fn ($message) => $message->to($recipient)->subject('Technoware test message'),
+                fn ($message) => $message->to($recipient)->subject(MailBrand::name().' test message'),
             );
         } catch (\Throwable $e) {
             // Recorded as well as returned, so the banner agrees with what the

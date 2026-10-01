@@ -38,6 +38,15 @@ export function SubscriberRow({ subscriber }: { subscriber: NewsletterSubscriber
         {subscriber.company && <span className="block text-12 text-faint">{subscriber.company}</span>}
       </td>
 
+      <td data-label="Industry" className="max-w-[20ch] truncate py-2 pr-3 text-12-5">
+        {subscriber.industry ?? <span className="text-faint">—</span>}
+        {subscriber.website && (
+          <a href={subscriber.website} target="_blank" rel="noopener noreferrer" className="block truncate text-12 text-brand-ink hover:underline">
+            {subscriber.website.replace(/^https?:\/\/(www\.)?/, "")}
+          </a>
+        )}
+      </td>
+
       <td data-label="Groups" className="max-w-[26ch] truncate py-2 pr-3 text-12-5 text-muted">
         {subscriber.groups?.length
           ? subscriber.groups.map((g) => g.name).join(", ")

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CustomerMeetingController;
 use App\Http\Controllers\Api\V1\CustomerOrderController;
 use App\Http\Controllers\Api\V1\CustomerVisitController;
 use App\Http\Controllers\Api\V1\MessagingPreferenceController;
@@ -18,7 +19,10 @@ use Illuminate\Support\Facades\Route;
 // Guarded as customer-only: these endpoints authorise by comparing
 // the caller's id against a ticket's customer_id, and a staff id is
 // drawn from a different table. Staff have /admin equivalents.
-Route::middleware('customer')->group(function () {
+// `portal` after it: with `portal_enabled` off every route here answers 403
+// `reason: portal_disabled`, so a token issued before the switch was thrown
+// stops working with it (EnsurePortalEnabled).
+Route::middleware(['customer', 'portal'])->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
     Route::get('auth/me', [AuthController::class, 'me'])->name('auth.me');
     Route::patch('auth/profile', [AuthController::class, 'updateProfile'])->name('auth.profile');
@@ -43,6 +47,16 @@ Route::middleware('customer')->group(function () {
         ->middleware('throttle:10,1')->name('my.visits.cancel');
     Route::post('my/visits/{reference}/reschedule', [CustomerVisitController::class, 'reschedule'])
         ->middleware('throttle:10,1')->name('my.visits.reschedule');
+
+    // Their online meetings (docs/meetings.md) — `my/` for the same reason:
+    // `meetings/{reference}` is the guest route, authorised by a token.
+    Route::get('my/meetings', [CustomerMeetingController::class, 'index'])->name('my.meetings.index');
+    Route::get('my/meetings/{reference}', [CustomerMeetingController::class, 'show'])
+        ->where('reference', '[A-Z][A-Z0-9]{1,5}-\d{4}-\d{5}')->name('my.meetings.show');
+    Route::post('my/meetings/{reference}/cancel', [CustomerMeetingController::class, 'cancel'])
+        ->where('reference', '[A-Z][A-Z0-9]{1,5}-\d{4}-\d{5}')->middleware('throttle:10,1')->name('my.meetings.cancel');
+    Route::post('my/meetings/{reference}/reschedule', [CustomerMeetingController::class, 'reschedule'])
+        ->where('reference', '[A-Z][A-Z0-9]{1,5}-\d{4}-\d{5}')->middleware('throttle:10,1')->name('my.meetings.reschedule');
 
     // Which channels this customer is told things on (WhatsApp, RCS, push).
     Route::get('messaging/preferences', [MessagingPreferenceController::class, 'show'])->name('messaging.preferences.show');

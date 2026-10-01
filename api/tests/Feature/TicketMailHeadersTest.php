@@ -9,6 +9,7 @@ use App\Models\Ticket;
 use App\Notifications\TicketAcknowledged;
 use App\Notifications\TicketCreated;
 use App\Notifications\TicketReplied;
+use App\Support\Mail\MailBrand;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -83,7 +84,7 @@ class TicketMailHeadersTest extends TestCase
         $this->pipingOn();
 
         $on = $this->render((new TicketAcknowledged($ticket))->toMail($ticket->customer));
-        $this->assertSame([['tickets@technoware.in', 'Technoware Support']], $on['mail']->replyTo);
+        $this->assertSame([['tickets@technoware.in', MailBrand::name().' Support']], $on['mail']->replyTo);
         $rendered = $on['mail']->render();
         $this->assertStringContainsString('Reply to this email', $rendered);
         $this->assertStringNotContainsString('will not reach us', $rendered);
@@ -98,7 +99,7 @@ class TicketMailHeadersTest extends TestCase
 
         $mail = (new TicketAcknowledged($ticket))->toMail($ticket->customer);
 
-        $this->assertSame([['support@technoware.in', 'Technoware Support']], $mail->replyTo);
+        $this->assertSame([['support@technoware.in', MailBrand::name().' Support']], $mail->replyTo);
     }
 
     public function test_reply_notifications_are_machine_mail_and_only_the_customers_copy_points_back(): void
@@ -111,7 +112,7 @@ class TicketMailHeadersTest extends TestCase
 
         $toCustomer = $this->render((new TicketReplied($ticket, $message, toCustomer: true))->toMail($ticket->customer));
         $this->assertSame('auto-replied', $toCustomer['email']->getHeaders()->get('Auto-Submitted')?->getBodyAsString());
-        $this->assertSame([['tickets@technoware.in', 'Technoware Support']], $toCustomer['mail']->replyTo);
+        $this->assertSame([['tickets@technoware.in', MailBrand::name().' Support']], $toCustomer['mail']->replyTo);
 
         $toDesk = $this->render((new TicketReplied($ticket, $message, toCustomer: false))->toMail($ticket->customer));
         $this->assertSame('auto-generated', $toDesk['email']->getHeaders()->get('Auto-Submitted')?->getBodyAsString());

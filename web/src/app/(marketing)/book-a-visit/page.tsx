@@ -4,7 +4,7 @@ import { PageHero } from "@/components/ui/page-hero";
 import { Alert } from "@/components/ui/input";
 import { getVisitOptions } from "@/lib/visits";
 import { getSiteSettings } from "@/lib/settings";
-import { settingEnabled, telHref } from "@/lib/site-settings";
+import { portalEnabled, settingEnabled, telHref, ticketHref } from "@/lib/site-settings";
 import { buildMetadata } from "@/lib/seo";
 import { contact } from "@/content/site";
 import { VisitRequestForm } from "./visit-request-form";
@@ -69,11 +69,15 @@ export default async function BookAVisitPage({
             <div className="min-w-0">
               {!options ? (
                 <Alert tone="warn" title="The form could not be loaded" dismissible={false}>
-                  Call us on <a href={telHref(phone)} className="font-semibold underline">{phone}</a> and we will book the visit over the phone.
+                  {phone
+                    ? <>Call us on <a href={telHref(phone)} className="font-semibold underline">{phone}</a> and we will book the visit over the phone.</>
+                    : <>Please try again shortly, or <Link href="/contact" className="font-semibold underline">get in touch</Link> and we will book it for you.</>}
                 </Alert>
               ) : !options.enabled ? (
                 <Alert tone="info" title="We are not taking visit requests online at the moment" dismissible={false}>
-                  Call us on <a href={telHref(phone)} className="font-semibold underline">{phone}</a> and we will arrange it over the phone.
+                  {phone
+                    ? <>Call us on <a href={telHref(phone)} className="font-semibold underline">{phone}</a> and we will arrange it over the phone.</>
+                    : <><Link href="/contact" className="font-semibold underline">Get in touch</Link> and we will arrange it with you.</>}
                 </Alert>
               ) : (
                 <VisitRequestForm options={options} preset={preset} messagingChannels={messagingChannels} />
@@ -97,8 +101,10 @@ export default async function BookAVisitPage({
               </ol>
               <p className="mt-6 text-14 text-muted">
                 Something down right now? A visit is booked ahead —{" "}
-                <Link href="/portal/tickets/new" className="font-semibold text-brand-ink underline">raise a support ticket</Link>{" "}
-                or call <a href={telHref(phone)} className="font-semibold text-brand-ink underline">{phone}</a>.
+                <Link href={ticketHref(settings)} className="font-semibold text-brand-ink underline">
+                  {portalEnabled(settings) ? "raise a support ticket" : "tell us about it"}
+                </Link>
+                {phone ? <>{" "}or call <a href={telHref(phone)} className="font-semibold text-brand-ink underline">{phone}</a></> : null}.
               </p>
             </aside>
           </div>

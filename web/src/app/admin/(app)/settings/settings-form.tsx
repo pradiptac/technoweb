@@ -26,15 +26,18 @@ import { saveSettingsAction, type SettingsFormState } from "./actions";
 import {
   GROUP_TITLES, HIDDEN, LABELS, STANDALONE_GROUPS, SYSTEM_SCREEN, orderFields, screenFor, sectionFor, type SettingsScreen,
 } from "./settings-copy";
-import { ChoiceField, ServerLimits, SettingColourField } from "./settings-fields";
+import { ChoiceField, ServerLimits, SettingColourField, SettingSwitchField } from "./settings-fields";
 import type { PaymentsMeta, SettingGroups, UploadLimits } from "@/lib/admin";
-import type { InboundMailStatus, MailStatus, MessagingStatus } from "@/types/api";
+import type { BackupDriveStatus, InboundMailStatus, MailStatus, MessagingStatus } from "@/types/api";
 import { MessagingPanel } from "./messaging-panel";
+import { BackupDestinationPanel } from "./backup-destination-panel";
+import { MeetingsGooglePanel } from "./meetings-google-panel";
+import type { MeetingsGoogleStatus } from "@/types/meetings";
 
 const initial: SettingsFormState = {};
 
 export function SettingsForm({
-  screen, groups, uploads, payments, mail, inbound, messaging,
+  screen, groups, uploads, payments, mail, inbound, messaging, drive, meetingsGoogle,
 }: {
   screen: SettingsScreen;
   groups: SettingGroups;
@@ -46,6 +49,10 @@ export function SettingsForm({
   inbound?: InboundMailStatus;
   /** Only Messaging → Settings draws the channels panel. */
   messaging?: MessagingStatus;
+  /** Only Backup settings draws the Drive connection. */
+  drive?: BackupDriveStatus;
+  /** Only Meeting settings draws the Google Calendar connection. */
+  meetingsGoogle?: MeetingsGoogleStatus;
 }) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);
 
@@ -64,7 +71,7 @@ export function SettingsForm({
   }
 
   const panel = (group: string) => (
-    <GroupPanel key={group} group={group} rows={groups[group]} uploads={uploads} payments={payments} mail={mail} inbound={inbound} messaging={messaging} />
+    <GroupPanel key={group} group={group} rows={groups[group]} uploads={uploads} payments={payments} mail={mail} inbound={inbound} messaging={messaging} drive={drive} meetingsGoogle={meetingsGoogle} />
   );
 
   return (
@@ -122,7 +129,7 @@ export function SettingsForm({
  * can draw a group the same way.
  */
 function GroupPanel({
-  group, rows, uploads, payments, mail, inbound, messaging,
+  group, rows, uploads, payments, mail, inbound, messaging, drive, meetingsGoogle,
 }: {
   group: string;
   rows: SettingGroups[string];
@@ -131,6 +138,8 @@ function GroupPanel({
   mail?: MailStatus;
   inbound?: InboundMailStatus;
   messaging?: MessagingStatus;
+  drive?: BackupDriveStatus;
+  meetingsGoogle?: MeetingsGoogleStatus;
 }) {
   const meta = GROUP_TITLES[group] ?? { title: group, blurb: "" };
 
@@ -306,6 +315,14 @@ function GroupPanel({
             );
           }
 
+          // An on/off setting with no named choices: a switch, decided by
+          // the row's seeded `type` — see SettingSwitchField.
+          if (row.type === "boolean") {
+            return (
+              <SettingSwitchField key={row.key} id={id} label={meta.label} hint={meta.hint} defaultValue={row.value} />
+            );
+          }
+
           /*
             Rich text, so it gets the editor rather than a textarea.
 
@@ -396,6 +413,36 @@ function GroupPanel({
             );
           }
 
+          /*
+            A secret that spans lines — an SSH private key, a service
+            account's JSON — cannot go in a password input: a browser strips
+            the line breaks out of an <input>'s value, and a PEM key without
+            them is a key nothing can read. A textarea keeps them, and like
+            the password input it is never given the stored value.
+          */
+          if (row.is_secret && row.type === "text") {
+            return (
+              <div key={row.key} className="sm:col-span-2">
+                <Field
+                  label={meta.label}
+                  htmlFor={id}
+                  hint={row.is_set ? "A value is saved. Leave blank to keep it, or paste a new one to replace it." : meta.hint}
+                >
+                  <Textarea
+                    id={id}
+                    name={id}
+                    rows={4}
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="font-mono text-12-5"
+                    placeholder={row.is_set ? "(saved)" : meta.placeholder}
+                  />
+                </Field>
+                {row.is_set && <ClearSecretButton settingKey={row.key} label={meta.label} />}
+              </div>
+            );
+          }
+
           if (row.is_secret) {
             return (
               <div key={row.key}>
@@ -442,6 +489,12 @@ function GroupPanel({
           own: the generic rows draw a key correctly, and what was
           missing was a way to prove it works.
         */}
+        {/* A backup destination's test, last refusal and its own extras (Drive's consent, SFTP's key). */}
+        {group.startsWith("backups_") && <BackupDestinationPanel group={group} rows={rows} drive={drive} />}
+
+        {/* The Workspace calendar every meeting is organised on: its consent, a test, the last refusal. */}
+        {group === "meetings_google" && <MeetingsGooglePanel status={meetingsGoogle} rows={rows} />}
+
         {group === "integrations" && (
           <>
             <HunterTest configured={rows.some((r) => r.key === "hunter_api_key" && Boolean(r.is_set))} />

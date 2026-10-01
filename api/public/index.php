@@ -4,8 +4,10 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
-// Maintenance mode
-if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
+// Maintenance mode — in the install's own storage when it has one (bootstrap/home.php).
+$home = require __DIR__.'/../bootstrap/home.php';
+
+if (file_exists($maintenance = ($home !== null ? $home.'/storage' : __DIR__.'/../storage').'/framework/maintenance.php')) {
     require $maintenance;
 }
 

@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
  */
 export function Logo({
   className, onDark = false, logoUrl, logoWidth, logoHeight,
-  companyName = "Technoware",
+  companyName = "",
 }: {
   className?: string;
   onDark?: boolean;
@@ -100,10 +100,30 @@ export function Logo({
     );
   }
 
+  /*
+    The text wordmark is the company's own name, never a literal: the product is
+    sold under each customer's name, and it drew "TECHNOWARE" on every install
+    that had not uploaded a logo yet (2026-09-28). The last word takes the brand
+    ink when there is more than one, which is the two-tone the old literal had.
+
+    A name is as long as the customer's name is, so it gets the image's width
+    caps and truncates past them — a header row that fits 320px with a 190px
+    mark does not fit it with "Sunrise Enterprise Solutions Pvt Ltd".
+  */
+  const words = companyName.trim().split(/\s+/).filter(Boolean);
+  const last = words.length > 1 ? words.pop() : undefined;
+  const head = words.join(" ");
+
   return (
-    <span className={cn("font-display text-[25px] font-bold leading-none tracking-[-.045em] sm:text-[23px]", className)}>
-      <span className={onDark ? "text-white" : "text-ink"}>TECHNO</span>
-      <span className={onDark ? "text-brand-400" : "text-brand-ink"}>WARE</span>
+    <span
+      title={companyName}
+      className={cn(
+        "inline-block max-w-[128px] truncate align-middle font-display text-[25px] font-bold leading-[1.15] tracking-[-.045em] min-[360px]:max-w-[164px] min-[390px]:max-w-[190px] sm:max-w-[260px] sm:text-[23px]",
+        className,
+      )}
+    >
+      <span className={onDark ? "text-white" : "text-ink"}>{head}</span>
+      {last && <span className={onDark ? "text-brand-400" : "text-brand-ink"}> {last}</span>}
     </span>
   );
 }

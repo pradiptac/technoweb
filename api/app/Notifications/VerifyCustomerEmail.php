@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Customer;
 use App\Notifications\Concerns\Templated;
+use App\Support\Mail\MailBrand;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -79,6 +80,6 @@ class VerifyCustomerEmail extends Notification
             // confirmed address is not yet an account they can sign in to.
             ->line('Once confirmed, a member of our team reviews the account and activates it. We will email you when that is done.')
             ->line('If you did not ask for this, you can ignore this email — no account will be created.')
-            ->salutation('— Technoware');
+            ->salutation(MailBrand::signoff());
     }
 }

@@ -54,7 +54,9 @@ export function MergeForm({ ticket, others }: { ticket: Ticket; others: Ticket[]
 
           <Field label="Or a reference" htmlFor="merge-into" error={err}
             hint="Typed here, it wins over the pick above. It has to be one of this customer's open tickets.">
-            <Input id="merge-into" name="into" placeholder="TW-2026-00042" className="font-mono" maxLength={32}
+            {/* The example follows this ticket's own reference, so it shows
+                the install's prefix rather than a literal one. */}
+            <Input id="merge-into" name="into" placeholder={ticket.reference.replace(/-\d+$/, "-00042")} className="font-mono" maxLength={32}
               aria-invalid={Boolean(err)} />
           </Field>
 

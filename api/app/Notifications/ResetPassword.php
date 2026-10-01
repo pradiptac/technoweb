@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Notifications\Concerns\Templated;
+use App\Support\Mail\MailBrand;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -74,7 +75,7 @@ class ResetPassword extends Notification
         $minutes = config('auth.passwords.'.($this->audience === 'admin' ? 'users' : 'customers').'.expire', 60);
 
         return (new MailMessage)
-            ->subject('Reset your Technoware password')
+            ->subject('Reset your '.MailBrand::name().' password')
             ->greeting('Password reset')
             ->line('Someone asked to reset the password for this address.')
             ->action('Choose a new password', $url)
@@ -83,6 +84,6 @@ class ResetPassword extends Notification
             // reset request proves nothing, and the honest advice is simply
             // that ignoring it changes nothing.
             ->line('If you did not ask for this, you can ignore this email — nothing will change.')
-            ->salutation('— Technoware');
+            ->salutation(MailBrand::signoff());
     }
 }

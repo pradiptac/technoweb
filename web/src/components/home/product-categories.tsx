@@ -25,7 +25,7 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
           title="A catalogue backed by people who install it."
           lede="Every line we carry is hardware our engineers deploy and support in the field. Browse the catalogue, then ask us what actually fits."
         />
-        <Collection kind="categories" cols={6}>
+        <Collection fill kind="categories" cols={6}>
           {items.map((c) => {
             const hue = hueForIcon(c.icon, "switch");
             return (

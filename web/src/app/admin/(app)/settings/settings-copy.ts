@@ -18,6 +18,27 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Notice duration (seconds)",
     hint: "How long a \"saved\" notice stays on screen in this console before it leaves. A failure stays until it is dismissed.",
   },
+  // The prefixes on the numbers people read out (App\Support\References).
+  ticket_reference_prefix: {
+    label: "Ticket number prefix",
+    hint: "Two to six letters or digits. A new install starts with the company's initials, so AN makes AN-2026-00042. New tickets only — existing ones keep their numbers, and replies quoting them still reach them.",
+    placeholder: "AN",
+  },
+  visit_reference_prefix: {
+    label: "Engineer visit prefix",
+    hint: "The same for a site-visit request — a new install starts with the initials and a V, so ANV makes ANV-2026-00007. New requests only.",
+    placeholder: "ANV",
+  },
+  order_number_prefix: {
+    label: "Order number prefix",
+    hint: "The same for a shop order: ORD makes ORD-2026-00118. New orders only.",
+    placeholder: "ORD",
+  },
+  meeting_reference_prefix: {
+    label: "Online meeting prefix",
+    hint: "The same for an online meeting — a new install starts with the initials and an M, so ANM makes ANM-2026-00003. New meetings only.",
+    placeholder: "ANM",
+  },
 
   /*
     The website assistant. Every key in the `chatbot` group had been rendering
@@ -32,7 +53,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   */
   chatbot_enabled: {
     label: "Website assistant",
-    hint: "1 to enable, 0 to disable. Off by default, because switched on it spends money on every message.",
+    hint: "Off by default, because switched on it spends money on every message.",
   },
   chatbot_name: {
     label: "Assistant name",
@@ -52,7 +73,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   },
   chatbot_auto_open: {
     label: "Open by itself",
-    hint: "1 to enable, 0 to disable. Off by default. Opened once per visit rather than per page, so a panel somebody dismissed does not reappear on every article afterwards.",
+    hint: "Off by default. Opened once per visit rather than per page, so a panel somebody dismissed does not reappear on every article afterwards.",
   },
   chatbot_colour: {
     label: "Assistant colour",
@@ -102,11 +123,11 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   },
   chatbot_intake_enabled: {
     label: "Ask who the visitor is first",
-    hint: "1 to enable, 0 to disable. On by default. The assistant greets, collects the details below one question at a time, and answers nothing until it is done — then files a lead. Every question can be declined, and a signed-in customer is never asked for what their account already holds.",
+    hint: "On by default. The assistant greets, collects the details below one question at a time, and answers nothing until it is done — then files a lead. Every question can be declined, and a signed-in customer is never asked for what their account already holds.",
   },
   chatbot_smart_intake: {
     label: "Read the answers with the model",
-    hint: "1 to enable, 0 to disable. On by default. With an API key configured, the model reads each answer before the rules do: keyboard noise is refused where a shape check would let it through, a name is lifted out of the sentence around it, and a question asked instead of an answer is answered with the intake question put back. One small call per answer; never charged without a key, and never past the daily cap. The rules still have the last word.",
+    hint: "On by default. With an API key configured, the model reads each answer before the rules do: keyboard noise is refused where a shape check would let it through, a name is lifted out of the sentence around it, and a question asked instead of an answer is answered with the intake question put back. One small call per answer; never charged without a key, and never past the daily cap. The rules still have the last word.",
   },
   chatbot_intake_questions: {
     label: "The questions it asks",
@@ -118,7 +139,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   },
   chatbot_forward_unanswered: {
     label: "Email unanswered questions",
-    hint: "1 to enable, 0 to disable. Off by default. Sends the sales address the question and whoever asked it. The Unanswered screen already groups these; this is for catching somebody while they are still on the site, and switched on a busy afternoon is a lot of email.",
+    hint: "Off by default. Sends the sales address the question and whoever asked it. The Unanswered screen already groups these; this is for catching somebody while they are still on the site, and switched on a busy afternoon is a lot of email.",
   },
   chatbot_model: {
     label: "AI model",
@@ -147,11 +168,11 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   */
   seo_ai_enabled: {
     label: "AI SEO assistant",
-    hint: "1 to enable, 0 to disable. Off by default. It only ever runs when somebody presses a button on a record; it is never called while a page is being rendered.",
+    hint: "Off by default. It only ever runs when somebody presses a button on a record; it is never called while a page is being rendered.",
   },
   seo_ai_model: {
     label: "AI model",
-    hint: "Leave blank to use whatever the chatbot uses. Press Test after changing it — a model this account cannot call fails silently on every request otherwise.",
+    hint: "Leave blank to use whatever the chatbot uses. After changing it, ask for one suggestion on any record to confirm the model works — a model this account cannot call fails on every request.",
   },
   seo_ai_daily_cap: {
     label: "AI requests per day",
@@ -167,7 +188,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   },
   seo_ai_locations: {
     label: "Where it operates",
-    hint: "Falls back to the places on the Locations screen, then to the postal address.",
+    hint: "Falls back to the places under SEO → Places, then to the postal address.",
   },
   /*
     Engineer visits (2026-09-26, docs/visits.md). Six of the eight reach the
@@ -176,7 +197,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   */
   visits_enabled: {
     label: "Take visit requests online",
-    hint: "1 to show the Book a site visit form, 0 to show a line asking people to call instead.",
+    hint: "On shows the Book a site visit form; off shows a line asking people to call instead.",
   },
   visit_windows: {
     label: "Parts of the day",
@@ -206,6 +227,78 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Default visit length (minutes)",
     hint: "What the confirm form suggests, and how long the calendar entry is when nobody says otherwise.",
   },
+  /*
+    Online meetings (2026-09-29, docs/meetings.md). The defaults every host
+    works unless Meetings → Hosts gives them hours of their own, the booking
+    window, the reminders and the limits that keep the public form honest.
+  */
+  meetings_enabled: {
+    label: "Take bookings online",
+    hint: "On shows the Book a meeting page and the portal's booking. Off, the console can still schedule meetings.",
+  },
+  meeting_default_hours: {
+    label: "Default working hours",
+    hint: "One line per stretch, as days|start|end on the 24-hour clock — mon-fri|10:00|18:00, or sat|10:00|13:00. Several lines for one day make a split day. A host with hours of their own on Meetings → Hosts ignores these.",
+  },
+  meeting_slot_step: {
+    label: "Start times every",
+    hint: "How far apart the times offered are. Every meeting starts on one of these, whatever its length.",
+  },
+  meeting_min_notice_hours: {
+    label: "Notice needed (hours)",
+    hint: "The soonest a customer may book, counted from now. The console may book sooner.",
+  },
+  meeting_max_days: {
+    label: "How far ahead (days)",
+    hint: "The latest day a customer may book, counted from today.",
+  },
+  meeting_holidays: {
+    label: "Closed dates",
+    hint: "One per line as YYYY-MM-DD, with anything after the date as a note — 2026-10-20 Diwali. Nobody is offered a time on these.",
+  },
+  meeting_reminders: {
+    label: "Reminders (minutes before)",
+    hint: "Comma-separated, as 1440,60 — a day before and an hour before. A reminder already past when the meeting is booked is skipped.",
+    placeholder: "1440,60",
+  },
+  meetings_email: {
+    label: "Bookings go to",
+    hint: "The desk's address for new bookings, moves and cancellations. Blank sends them to the sales inbox. The host is always told.",
+  },
+  meeting_block_google_busy: {
+    label: "Google busy time blocks bookings",
+    hint: "On, a host's busy time in their own Google calendar is taken out of what customers are offered. Needs the calendar connected, and each host sharing free/busy with it.",
+  },
+  meeting_change_cutoff_hours: {
+    label: "Customers may change up to (hours before)",
+    hint: "Inside this a customer can no longer cancel or move their own meeting — the desk still can.",
+  },
+  meeting_max_open_per_contact: {
+    label: "Upcoming bookings per person",
+    hint: "How many future meetings one email address or mobile number may hold at once.",
+  },
+  meeting_max_reschedules: {
+    label: "Moves a customer may make",
+    hint: "After this many a customer has to ask the desk to move it again.",
+  },
+  meeting_daily_ip_cap: {
+    label: "Bookings per address per day",
+    hint: "How many meetings one internet address may book in a day — a ceiling against a script filling the diary.",
+  },
+  ticket_survey_enabled: {
+    label: "Send the satisfaction survey",
+    hint: "When a ticket is closed the customer gets one email with five ratings, Very Bad to Excellent, and a page to add a comment. Once per ticket — closing it again after a reopen asks nothing more — and never for a ticket merged into another. Answers appear on the ticket.",
+  },
+  meetings_google_oauth_client_id: {
+    label: "OAuth client ID",
+    hint: "A Web application client in the company's Google Cloud project, with the Calendar API switched on, the consent screen set to Internal, and the callback below registered.",
+  },
+  meetings_google_oauth_client_secret: { label: "OAuth client secret" },
+  meetings_google_calendar_id: {
+    label: "Calendar",
+    hint: "Blank uses the connected account's own calendar. Or a calendar's ID from its settings in Google Calendar.",
+    placeholder: "primary",
+  },
   lead_intent_words: {
     label: "More buying words",
     hint: "One word or phrase per line, added to the built-in list. Whole words only, so \"PO\" does not match \"port\"; plurals and -ing forms are matched for you.",
@@ -234,7 +327,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   announcement_ends_at: { label: "Show until" },
   banner_enabled: {
     label: "Show page banners",
-    hint: "1 to enable, 0 to disable. On by default — with nothing uploaded below there is no banner to show, so this exists to drop them all at once without clearing the pictures.",
+    hint: "On by default — with nothing uploaded below there is no banner to show, so this exists to drop them all at once without clearing the pictures.",
   },
   banner_default_path: {
     label: "Default banner",
@@ -242,7 +335,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   },
   banner_solutions_path: { label: "Solutions banner", hint: "/solutions and every solution page." },
   banner_products_path: { label: "Products banner", hint: "/products, every category and product page, and /brands." },
-  banner_services_path: { label: "Web Services banner", hint: "/services and every service page." },
+  banner_services_path: { label: "Services banner", hint: "/services and every service page." },
   banner_industries_path: { label: "Industries banner", hint: "/industries and every industry page." },
   banner_store_path: { label: "Store banner", hint: "Store product pages. The shop's own front page has its hero slider instead." },
   banner_support_path: { label: "Support banner", hint: "/support." },
@@ -321,7 +414,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   },
   meta_catalogue_enabled: {
     label: "Meta catalogue feed",
-    hint: "1 publishes /meta-catalogue.xml and /meta-catalogue.csv for Facebook, Instagram and WhatsApp Business (Commerce Manager); 0 answers both with not found. The same products and prices as the Google feed.",
+    hint: "On publishes /meta-catalogue.xml and /meta-catalogue.csv for Facebook, Instagram and WhatsApp Business (Commerce Manager); off answers both with not found. The same products and prices as the Google feed.",
   },
   store_promo_enabled: { label: "Show the promo banner" },
   store_promo_kicker: { label: "Kicker", hint: "The short line above the heading — a category, an offer, a season.", placeholder: "Business laptops, in stock" },
@@ -377,7 +470,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   */
   logo_path: {
     label: "Logo",
-    hint: "PNG or SVG with a transparent background, around 600 x 80 px. Leave empty to use the TECHNOWARE wordmark.",
+    hint: "PNG or SVG with a transparent background, around 600 x 80 px. Leave empty to show the built-in text wordmark instead.",
   },
   favicon_path: {
     label: "Favicon",
@@ -414,6 +507,10 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   phone: { label: "Phone", hint: "Shown in the header bar and on the contact page." },
   support_email: { label: "Support email" },
   sales_email: { label: "Sales email" },
+  careers_email: {
+    label: "Careers email",
+    hint: "Where job applications are sent, and the address shown on each vacancy page. Blank uses the support email.",
+  },
   address: { label: "Address", hint: "Shown in the footer and on the contact page. Line breaks are kept." },
   map_embed_url: {
     label: "Map embed URL",
@@ -429,18 +526,18 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Default social image",
     hint: "Path to an image in the media library. 1200 x 630 px — the size every social network crops its preview to.",
   },
-  portal_enabled: { label: "Customer portal enabled", hint: "1 to enable, 0 to disable." },
-  registration_enabled: { label: "Self-registration enabled", hint: "1 lets anybody register through the portal; 0 means accounts are created by staff or by paying." },
+  portal_enabled: { label: "Customer portal enabled", hint: "Off closes the portal: nobody signs in or registers, a session already open stops working, and every link to it leaves the site. Guest checkout and visit requests still work." },
+  registration_enabled: { label: "Self-registration enabled", hint: "On, anybody may register through the portal; off, accounts are created by staff or by paying." },
   /*
     Labelled on 2026-09-20. These fields drew under their raw keys —
     `comments_closed_after_days` as a label — and a field with no label is
     also left out of the command palette, which lists only what it can name.
   */
   blog_video_url: { label: "Sidebar video", hint: "A YouTube link. The widget is absent while this is blank." },
-  comments_enabled: { label: "Comments enabled", hint: "1 puts a comment form on every article and a moderation queue on somebody's desk; 0 (the default) keeps both off." },
+  comments_enabled: { label: "Comments enabled", hint: "Off by default. On puts a comment form on every article and a moderation queue on somebody's desk." },
   comments_closed_after_days: { label: "Close comments after (days)", hint: "Counted from publication. An old article is where spam collects; 0 never closes them." },
-  store_enabled: { label: "Store open", hint: "1 to open the shop, 0 to close it. A closed shop keeps its catalogue and refuses the basket." },
-  digital_auto_fulfil: { label: "Issue activation codes automatically", hint: "1 hands a code over the moment payment lands; 0 waits for somebody to press Fulfil on the order." },
+  store_enabled: { label: "Store open", hint: "Off closes the shop. A closed shop keeps its catalogue and refuses the basket." },
+  digital_auto_fulfil: { label: "Issue activation codes automatically", hint: "On hands a code over the moment payment lands; off waits for somebody to press Issue the codes on the order." },
   landing_page_cap: { label: "Published landing pages, at most", hint: "The ceiling on how many programmatic pages may be live at once — the one rule about the set rather than the page.", placeholder: "40" },
   newsletter_webhook_secret: { label: "Bounce webhook secret", hint: "What a provider's bounce webhook must prove. With none set, nothing is accepted." },
   activity_retention_days: { label: "Keep the activity log for (days)", hint: "A floor of 30 days applies whatever is set." },
@@ -449,7 +546,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   comment_retention_days: { label: "Keep spam and binned comments for (days)", hint: "Published and waiting comments never age out." },
   customer_approval_required: {
     label: "Customer account activation required",
-    hint: "1 to require staff approval before a self-registered account can sign in, 0 to activate it automatically the moment its email address is confirmed.",
+    hint: "On, a self-registered account waits for staff approval before it can sign in; off, it is active the moment its email address is confirmed.",
   },
   default_login_method: {
     // The hint comes from the chosen option's own description, which the API
@@ -458,15 +555,15 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   },
   otp_login_enabled: {
     label: "Customers sign in with a code",
-    hint: "1 to enable, 0 to disable. On, the portal asks for an address and emails a six-digit code.",
+    hint: "On, the portal asks for an address and emails a six-digit code.",
   },
   otp_admin_login_enabled: {
     label: "Staff sign in with a code",
-    hint: "1 to enable, 0 to disable. Convenient, and it makes the staff mailbox the only thing standing between an attacker and this console.",
+    hint: "Convenient, and it makes the staff mailbox the only thing standing between an attacker and this console.",
   },
   password_login_enabled: {
     label: "Passwords still accepted",
-    hint: "1 to enable, 0 to disable. Turning this off with mail misconfigured locks everybody out, and the way back in is a database edit.",
+    hint: "Turning this off with mail misconfigured locks everybody out, and getting back in then needs somebody with access to the server.",
   },
   social_linkedin: { label: "LinkedIn", placeholder: "https://www.linkedin.com/company/…" },
   social_x: { label: "X", placeholder: "https://x.com/…" },
@@ -521,7 +618,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   },
   cookie_consent_enabled: {
     label: "Ask for consent",
-    hint: "1 to require consent before any analytics loads, 0 to load it for everyone. With this off, the tags fire for every visitor.",
+    hint: "On, no analytics loads until a visitor agrees. Off, the tags fire for every visitor.",
   },
   cookie_consent_title: { label: "Banner heading" },
   cookie_consent_message: { label: "Banner text", hint: "Placeholder copy — replace it with wording your legal adviser is happy with." },
@@ -533,17 +630,20 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   smtp_username: { label: "Username" },
   smtp_password: { label: "Password", hint: "Leave blank to keep the current one." },
   smtp_encryption: { label: "Encryption", hint: "tls, ssl, or none." },
-  mail_from_address: { label: "From address", placeholder: "support@technoware.in" },
-  mail_from_name: { label: "From name", placeholder: "Technoware Support" },
-  openai_api_key: { label: "OpenAI API key", hint: "Stored for future use. Nothing on the site calls it yet." },
+  mail_from_address: { label: "From address", placeholder: "support@example.com" },
+  mail_from_name: { label: "From name", placeholder: "Your company Support" },
+  openai_api_key: {
+    label: "OpenAI API key",
+    hint: "One key for every AI feature: the website assistant (its answers, and reading visitors' answers while it asks who they are), and the AI SEO assistant — on a record's form, in bulk from the SEO overview, alt text suggested in the media library, and article drafts made from the questions the assistant could not answer. Nothing is called until the website assistant (Assistant → Settings) or the AI SEO assistant (SEO → Settings) is switched on, and each keeps to its own daily ceiling.",
+  },
   gsc_service_account: {
     label: "Search Console service account (JSON key file)",
     hint: "Optional. In Google Cloud make a service account, download its JSON key and paste the whole file here; then in Search Console add the account's email to the property as a user. With one saved, the SEO overview shows each page's clicks, impressions and position for the last 28 days, can list the pages shown but never opened, and the assistant is told what a page already ranks for. Encrypted, never shown again.",
   },
   gsc_site_url: {
     label: "Search Console property",
-    hint: "As Search Console names it: sc-domain:technoware.in for a domain property, or the exact URL prefix for a URL property. Leave blank to use the site's own domain.",
-    placeholder: "sc-domain:technoware.in",
+    hint: "As Search Console names it: sc-domain:example.com for a domain property, or the exact URL prefix for a URL property. Leave blank to use the site's own domain.",
+    placeholder: "sc-domain:example.com",
   },
   ga4_property_id: {
     label: "Google Analytics 4 property id",
@@ -582,25 +682,82 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Figure size",
     hint: "How large the figures are drawn.",
   },
-  why_kicker: { label: "Why block kicker", hint: "The small line above the heading of the \"Why Technoware\" block, lower down the homepage." },
+  why_kicker: { label: "Why block kicker", hint: "The small line above the heading of the \"Why us\" block, lower down the homepage." },
   why_heading: { label: "Why block heading" },
   why_lede: { label: "Why block paragraph" },
   why_steps: {
     label: "The steps",
     hint: "Numbered in the order shown here — assess, design, deploy, support, or whatever the process is. Four fit the column.",
   },
-  testimonial_enabled: { label: "Show the testimonial", hint: "1 shows the pull-quote beside the steps; 0 hides the block. A blank quote with it on shows the built-in one." },
+  testimonial_enabled: { label: "Show the testimonial", hint: "On shows the pull-quote beside the steps; off hides the block. A blank quote with it on shows the built-in one." },
   testimonial_quote: { label: "Testimonial", hint: "The pull-quote beside the steps." },
   testimonial_author: { label: "Testimonial author", hint: "The initials on the disc are taken from this name." },
   testimonial_role: { label: "Testimonial role", placeholder: "IT Manager, Company" },
   amc_heading: { label: "AMC card heading" },
-  amc_enabled: { label: "Show the AMC card", hint: "1 shows the card under the testimonial; 0 hides it." },
+  amc_enabled: { label: "Show the AMC card", hint: "On shows the card under the testimonial; off hides it." },
   amc_inclusions: { label: "AMC card list", hint: "One line each." },
   amc_link_label: { label: "AMC card link text" },
   amc_link_href: { label: "AMC card link", hint: "A path on this site, or a full address.", placeholder: "/solutions/amc" },
+
+  /*
+    Backups (2026-09-27, docs/backups.md): the schedule and what is in it on
+    the first tab, then one tab per destination. The switches arrive with
+    options from the API, so they draw as choices rather than "1 or 0".
+  */
+  backup_enabled: { label: "Scheduled backups" },
+  backup_time: { label: "Backup time", hint: "24-hour clock, this site’s time zone. Pick a quiet hour — the database is read while people use the site.", placeholder: "02:15" },
+  backup_full_day: { label: "Full backup on" },
+  backup_incremental_every: { label: "Incremental backups" },
+  backup_max_chain: { label: "Incrementals before the next full", hint: "However the calendar falls, a chain this long starts again with a full backup. A restore needs the full and every incremental after it." },
+  backup_include_db: { label: "Database" },
+  backup_include_public: { label: "Media library" },
+  backup_include_private: { label: "Private files" },
+  backup_keep_chains: { label: "Full backups to keep", hint: "Each with the incrementals built on it. Older ones are deleted from every destination, a whole chain at a time." },
+  backup_keep_local: { label: "Copies kept on this server", hint: "The newest backups also kept here, for a fast restore. 0 keeps none once a destination has the backup; a backup that reached no destination is always kept." },
+  backups_email: { label: "Tell this address when a backup fails", hint: "Blank sends it to the support address.", placeholder: "it@example.com" },
+  backup_s3_enabled: { label: "Send backups to S3" },
+  backup_s3_endpoint: { label: "Endpoint", hint: "Blank for Amazon S3. For anything else, the https:// address its documentation gives — https://s3.eu-central-003.backblazeb2.com, https://<account>.r2.cloudflarestorage.com, https://s3.wasabisys.com.", placeholder: "https://…" },
+  backup_s3_region: { label: "Region", hint: "Amazon’s region code (ap-south-1 is Mumbai), or what the provider says — auto for Cloudflare R2.", placeholder: "ap-south-1" },
+  backup_s3_bucket: { label: "Bucket", hint: "Create it first, private. The backups go under technoware-backups/ inside it." },
+  backup_s3_prefix: { label: "Folder in the bucket", hint: "Optional — for a bucket shared with other things.", placeholder: "technoware" },
+  backup_s3_key: { label: "Access key ID", hint: "An access key allowed to list, read, write and delete in this bucket and nothing else." },
+  backup_s3_secret: { label: "Secret access key" },
+  backup_s3_path_style: { label: "Addressing" },
+  backup_gdrive_enabled: { label: "Send backups to Google Drive" },
+  backup_gdrive_oauth_client_id: { label: "OAuth client ID", hint: "A Web application client in Google Cloud, with the Drive API switched on and the callback below registered." },
+  backup_gdrive_oauth_client_secret: { label: "OAuth client secret" },
+  backup_ftp_enabled: { label: "Send backups to this server" },
+  backup_ftp_protocol: { label: "Protocol" },
+  backup_ftp_host: { label: "Server", hint: "The name or address. It has to be public unless BACKUP_ALLOW_PRIVATE_HOSTS is set in the API’s .env.", placeholder: "backup.example.in" },
+  backup_ftp_port: { label: "Port", hint: "Blank for the usual one: 22 for SFTP, 21 for FTP and FTPS.", placeholder: "22" },
+  backup_ftp_username: { label: "User name" },
+  backup_ftp_password: { label: "Password", hint: "For SFTP with a private key, the key’s passphrase, if it has one." },
+  backup_ftp_private_key: { label: "Private key (SFTP)", hint: "Paste the whole key, BEGIN and END lines included. Used instead of the password to sign in." },
+  backup_ftp_folder: { label: "Folder on the server", hint: "Where technoware-backups/ is made. Blank is the account’s home folder.", placeholder: "/backups" },
+  backup_ftp_passive: { label: "FTP mode" },
 };
 
 export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
+  references: {
+    title: "Reference numbers",
+    blurb: "The letters in front of every ticket, engineer visit, online meeting and order number, the part people read out on the telephone. Changing one changes new numbers only.",
+  },
+  backups: {
+    title: "Schedule",
+    blurb: "When backups run and what they hold. A full backup copies everything; an incremental copies only the files that changed since the backup before it — the database is dumped whole every time. Nothing runs by itself until this is On, and nothing leaves this server until a destination is switched on.",
+  },
+  backups_s3: {
+    title: "S3",
+    blurb: "Amazon S3, or anything that speaks its API — Backblaze B2, Cloudflare R2, Wasabi, DigitalOcean Spaces, MinIO. Save, then test.",
+  },
+  backups_gdrive: {
+    title: "Google Drive",
+    blurb: "A Google account’s Drive, through a consent that can see only the files this site creates. Save the client ID and secret, then connect.",
+  },
+  backups_ftp: {
+    title: "FTP / SFTP",
+    blurb: "A server of your own: SFTP (recommended), FTPS or plain FTP. Save, then test — SFTP remembers the server’s key the first time and refuses a different one afterwards.",
+  },
   general: { title: "General", blurb: "Company identity, used across the site and in structured data." },
   contact: { title: "Contact", blurb: "Shown in the header bar, the footer and on the contact page." },
   homepage: {
@@ -620,7 +777,7 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
   },
   login: {
     title: "Sign-in screen",
-    blurb: "What sits beside the sign-in, registration and password forms \u2014 staff and customer alike. A photograph, or one of eight animations drawn in the site's own colours, with how much of it and how fast. Hidden on phones, where the form takes the whole screen; still for visitors who have asked their device for less motion.",
+    blurb: "What sits beside the sign-in, registration and password forms \u2014 staff and customer alike. A photograph, or one of fifteen animations drawn in the site's own colours, with how much of it and how fast. Hidden on phones, where the form takes the whole screen; still for visitors who have asked their device for less motion.",
   },
   motion: {
     title: "Motion",
@@ -641,13 +798,25 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     blurb: "Who campaigns come from, what the footer says, and how fast they go out. The postal address is not optional — a campaign without one is refused before it sends.",
   },
   seo: { title: "SEO defaults", blurb: "Fallbacks for pages with no override of their own." },
+  meetings: {
+    title: "Booking",
+    blurb: "When meetings can be booked: the hours every host works unless they have their own, how far apart the start times are, how much notice a booking needs and how far ahead it reaches, the reminders, and the limits on what one person may book. Off by default — switch it on once the hosts and the types are set up.",
+  },
+  meetings_google: {
+    title: "Google Calendar",
+    blurb: "The Workspace account every meeting is organised on — meetings@, say. Each booking becomes an event on its calendar with a Meet link, and the host and the customer are both invited. Save the client ID and secret, then connect.",
+  },
+  ticket_survey: {
+    title: "Satisfaction survey",
+    blurb: "A few seconds' rating asked of the customer when their ticket is closed. The wording of the email is under System → Settings → Email templates (Satisfaction survey — to the customer).",
+  },
   visits: {
     title: "Engineer visits",
     blurb: "The Book a site visit form: which days and parts of the day it offers, how much notice it needs and how far ahead it reaches, the dates you are closed, and where requests are sent. A request is a wish list — the desk confirms the actual time.",
   },
   leads: {
     title: "Leads",
-    blurb: "How an enquiry is scored on arrival. The built-in list of buying words is tuned for hardware procurement in India — tender, PO, AMC, quotation — and this extends it once real enquiries have been read for a while. A score is taken at intake and not rewritten; `php artisan technoware:rescore-leads --write` restates the whole table on the current words.",
+    blurb: "How an enquiry is scored on arrival. The built-in list of buying words is tuned for hardware procurement in India — tender, RFQ, AMC, quotation — and this extends it once real enquiries have been read for a while. A score is taken at intake and is not rewritten when this list changes; a developer can re-score the existing leads against the current words.",
   },
   chatbot: {
     title: "Website assistant",
@@ -675,7 +844,7 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
   },
   store_reminders: {
     title: "Basket reminders",
-    blurb: "Up to two emails to somebody who left something in their basket, the second of which may carry a discount code. The wording is under Settings → Email templates. The dashboard counts a basket as recovered when it became an order after a reminder.",
+    blurb: "Up to two emails to somebody who left something in their basket, the second of which may carry a discount code. The wording is under System → Email templates. The dashboard counts a basket as recovered when it became an order after a reminder.",
   },
   indexnow: {
     title: "IndexNow",
@@ -746,7 +915,16 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
  * tagline. Anything not listed keeps its API position, after the listed ones.
  */
 export const FIELD_ORDER: Record<string, string[]> = {
+  backups: ["backup_enabled", "backup_time", "backup_full_day", "backup_incremental_every", "backup_max_chain",
+            "backup_include_db", "backup_include_public", "backup_include_private",
+            "backup_keep_chains", "backup_keep_local", "backups_email"],
+  backups_s3: ["backup_s3_enabled", "backup_s3_endpoint", "backup_s3_region", "backup_s3_bucket", "backup_s3_prefix",
+               "backup_s3_key", "backup_s3_secret", "backup_s3_path_style"],
+  backups_gdrive: ["backup_gdrive_enabled", "backup_gdrive_oauth_client_id", "backup_gdrive_oauth_client_secret"],
+  backups_ftp: ["backup_ftp_enabled", "backup_ftp_protocol", "backup_ftp_host", "backup_ftp_port", "backup_ftp_username",
+                "backup_ftp_password", "backup_ftp_private_key", "backup_ftp_folder", "backup_ftp_passive"],
   general: ["company_name", "tagline", "logo_path", "favicon_path", "console_notice_seconds"],
+  references: ["ticket_reference_prefix", "visit_reference_prefix", "meeting_reference_prefix", "order_number_prefix"],
   login: ["login_backdrop", "login_intensity", "login_speed", "login_image_path", "login_message"],
   seo: ["default_meta_description", "default_og_image", "landing_page_cap",
         "seo_ai_enabled", "seo_ai_model", "seo_ai_daily_cap",
@@ -754,7 +932,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
   banners: ["banner_enabled", "banner_default_path", "banner_solutions_path", "banner_products_path",
             "banner_services_path", "banner_industries_path", "banner_store_path", "banner_support_path",
             "banner_resources_path", "banner_company_path"],
-  contact: ["phone", "support_email", "sales_email", "address", "map_embed_url", "map_link"],
+  contact: ["phone", "support_email", "sales_email", "careers_email", "address", "map_embed_url", "map_link"],
   /*
     Read as a sequence somebody sets up in order: switch it on, name it, decide
     how it introduces itself, decide whether it appears by itself, decide what
@@ -767,7 +945,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
             "chatbot_intake_enabled", "chatbot_smart_intake", "chatbot_intake_questions",
             "chatbot_whatsapp_number", "chatbot_forward_unanswered",
             "chatbot_model", "chatbot_max_message_chars", "chatbot_max_messages",
-            "chatbot_context_messages", "chatbot_daily_reply_cap", "chat_retention_days"],
+            "chatbot_context_messages", "chatbot_daily_reply_cap"],
   homepage: ["hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats", "stats_colour", "stats_size", "stats_animation", "home_stats_block", "home_stack_block", "home_pricing_block",
              "why_kicker", "why_heading", "why_lede", "why_steps",
              "testimonial_enabled", "testimonial_quote", "testimonial_author", "testimonial_role",
@@ -803,6 +981,11 @@ export const FIELD_ORDER: Record<string, string[]> = {
           "store_price_drop_min_percent", "store_review_requests_enabled", "store_review_request_days", "meta_catalogue_enabled"],
   store_reminders: ["store_cart_reminders_enabled", "store_cart_reminder_1_hours", "store_cart_reminder_2_days", "store_cart_reminder_coupon"],
   leads: ["lead_intent_words"],
+  meetings: ["meetings_enabled", "meeting_default_hours", "meeting_slot_step", "meeting_min_notice_hours", "meeting_max_days",
+             "meeting_holidays", "meeting_reminders", "meeting_block_google_busy", "meetings_email",
+             "meeting_change_cutoff_hours", "meeting_max_reschedules", "meeting_max_open_per_contact", "meeting_daily_ip_cap"],
+  ticket_survey: ["ticket_survey_enabled"],
+  meetings_google: ["meetings_google_oauth_client_id", "meetings_google_oauth_client_secret", "meetings_google_calendar_id"],
   visits: ["visits_enabled", "visit_windows", "visit_days", "visit_min_notice_days", "visit_max_days", "visit_holidays",
            "visits_email", "visit_default_minutes"],
   push: ["push_api_key", "push_project_id", "push_messaging_sender_id", "push_app_id", "push_vapid_key"],
@@ -829,6 +1012,11 @@ export const HIDDEN = new Set([
   // Written by a refused send or test and cleared by a success; the messaging panel shows them.
   "messaging_whatsapp_error", "messaging_rcs_error", "messaging_push_error",
   "newsletter_oauth_provider", "newsletter_oauth_refresh_token", "newsletter_oauth_account", "newsletter_oauth_connected_at", "newsletter_oauth_error",
+  // Backups: the banners the destination panels show, the Drive consent and folder, the pinned SFTP key.
+  "backup_error", "backup_s3_error", "backup_gdrive_error", "backup_ftp_error", "backup_gdrive_folder_id",
+  "backup_gdrive_oauth_refresh_token", "backup_gdrive_oauth_account", "backup_gdrive_oauth_connected_at", "backup_ftp_sftp_fingerprint",
+  // Meetings: the Google consent and its last refusal, shown by the connection panel.
+  "meetings_google_oauth_refresh_token", "meetings_google_oauth_account", "meetings_google_oauth_connected_at", "meetings_google_error",
 ]);
 
 /**
@@ -880,7 +1068,7 @@ export type SettingsScreen = {
   lede: string;
   saveLabel: string;
   /** Status reads beyond `getSettings()` that a panel on this screen needs. */
-  needs?: ("mail" | "inbound" | "messaging")[];
+  needs?: ("mail" | "inbound" | "messaging" | "backups" | "meetings")[];
   /** The groups drawn, in order. A `label` puts a heading over those tabs. */
   sections: { label?: string; groups: string[] }[];
 };
@@ -894,7 +1082,7 @@ export const SCREENS: SettingsScreen[] = [
     saveLabel: "Save settings",
     needs: ["mail"],
     sections: [
-      { label: "Identity", groups: ["general", "contact", "social"] },
+      { label: "Identity", groups: ["general", "contact", "social", "references"] },
       /*
         Both doors. The sign-in screen's picture and the code-or-password
         choice serve staff and customers alike, which is what keeps them
@@ -970,6 +1158,24 @@ export const SCREENS: SettingsScreen[] = [
     sections: [{ groups: ["leads"] }],
   },
   {
+    path: "/admin/backups/settings",
+    title: "Backup settings",
+    area: "System",
+    lede: "When the database and the uploaded files are backed up, and where to: S3 or anything S3-compatible, Google Drive, and FTP or SFTP — any of them at once.",
+    saveLabel: "Save backup settings",
+    needs: ["backups"],
+    sections: [{ groups: ["backups", "backups_s3", "backups_gdrive", "backups_ftp"] }],
+  },
+  {
+    path: "/admin/meetings/settings",
+    title: "Meeting settings",
+    area: "Meetings",
+    lede: "When online meetings can be booked, the reminders and limits, and the Google Workspace calendar every meeting is organised on. Each host's own hours and time off are on Meetings → Hosts.",
+    saveLabel: "Save meeting settings",
+    needs: ["meetings"],
+    sections: [{ groups: ["meetings", "meetings_google"] }],
+  },
+  {
     path: "/admin/visits/settings",
     title: "Visit settings",
     area: "Visits",
@@ -981,10 +1187,10 @@ export const SCREENS: SettingsScreen[] = [
     path: "/admin/tickets/settings",
     title: "Email to ticket",
     area: "Tickets",
-    lede: "A support mailbox read once a minute, every new message becoming a ticket. Off by default.",
-    saveLabel: "Save mailbox settings",
+    lede: "A support mailbox read once a minute, every new message becoming a ticket (off by default), and the satisfaction survey sent when a ticket is closed.",
+    saveLabel: "Save ticket settings",
     needs: ["inbound"],
-    sections: [{ groups: ["tickets"] }],
+    sections: [{ groups: ["tickets", "ticket_survey"] }],
   },
   {
     path: "/admin/customers/settings",

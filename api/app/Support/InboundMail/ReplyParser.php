@@ -2,11 +2,13 @@
 
 namespace App\Support\InboundMail;
 
+use App\Support\References;
+
 /**
  * Reading a reply the way a person does: which ticket it is about, and
  * where the new words stop and the quoted ones start.
  *
- * The reference is the `TW-YYYY-NNNNN` every ticket notification puts in
+ * The reference is the `PREFIX-YYYY-NNNNN` every ticket notification puts in
  * its subject, so a reply to any of them carries it back. Quoted text is
  * cut at the markers the common clients write — Gmail's "On … wrote:",
  * Outlook's "-----Original Message-----" and its underscored separator,
@@ -16,7 +18,22 @@ namespace App\Support\InboundMail;
  */
 final class ReplyParser
 {
-    private const REFERENCE = '/\bTW-\d{4}-\d{5}\b/i';
+    /**
+     * `PREFIX-YYYY-NNNNN` for the prefixes named — today's and every one a
+     * ticket already carries (`References::ticketPrefixes()`), never "any
+     * letters": a generic pattern would read an order number in a
+     * customer's email as a ticket.
+     *
+     * @param  list<string>|null  $prefixes
+     */
+    private static function pattern(?array $prefixes, bool $bracketed = false): string
+    {
+        $prefixes ??= References::ticketPrefixes();
+        $alternatives = implode('|', array_map(fn (string $p) => preg_quote($p, '/'), $prefixes ?: ['TW']));
+        $core = '(?:'.$alternatives.')-\d{4}-\d{5}';
+
+        return $bracketed ? '/\[\s*'.$core.'\s*\]/i' : '/\b'.$core.'\b/i';
+    }
 
     /** @var list<string> */
     private const QUOTE_MARKERS = [
@@ -30,10 +47,14 @@ final class ReplyParser
         '/^\s*El .{0,200}? escribió:\s*$/mu',
     ];
 
-    /** The ticket a subject names, upper-cased, or null. */
-    public static function reference(string $subject): ?string
+    /**
+     * The ticket a subject names, upper-cased, or null.
+     *
+     * @param  list<string>|null  $prefixes  null asks `References`
+     */
+    public static function reference(string $subject, ?array $prefixes = null): ?string
     {
-        return preg_match(self::REFERENCE, $subject, $m) ? strtoupper($m[0]) : null;
+        return preg_match(self::pattern($prefixes), $subject, $m) ? strtoupper($m[0]) : null;
     }
 
     /**
@@ -42,10 +63,11 @@ final class ReplyParser
      * new ticket's own notifications would carry two references and the
      * next reply would match the wrong one.
      */
-    public static function withoutReference(string $subject): string
+    public static function withoutReference(string $subject, ?array $prefixes = null): string
     {
-        $s = preg_replace('/\[\s*TW-\d{4}-\d{5}\s*\]/i', ' ', $subject) ?? $subject;
-        $s = preg_replace(self::REFERENCE, ' ', $s) ?? $s;
+        $prefixes ??= References::ticketPrefixes();
+        $s = preg_replace(self::pattern($prefixes, bracketed: true), ' ', $subject) ?? $subject;
+        $s = preg_replace(self::pattern($prefixes), ' ', $s) ?? $s;
         $s = preg_replace('/^(\s*(re|fwd?|aw|sv|tr|wg)\s*:\s*)+/i', '', $s) ?? $s;
         $s = preg_replace('/\s+/', ' ', $s) ?? $s;
 

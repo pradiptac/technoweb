@@ -191,3 +191,15 @@ const priorityLabel: Record<TicketPriority, string> = {
 export function PriorityBadge({ priority }: { priority: TicketPriority }) {
   return <Badge tone={priorityTone[priority]}>{priorityLabel[priority]}</Badge>;
 }
+
+/**
+ * A survey answer, 1 to 5, as a tone: red for the two low ones, amber for the
+ * middle, green for the two high — the scale the survey email draws. The tone
+ * map is the badge's own, so the rating reads in both schemes with no colour of
+ * its own.
+ */
+const surveyTone: Record<number, Tone> = { 1: "urgent", 2: "urgent", 3: "progress", 4: "resolved", 5: "resolved" };
+
+export function SurveyBadge({ rating, label }: { rating: number; label: string }) {
+  return <Badge tone={surveyTone[rating] ?? "closed"}>{rating} / 5 · {label}</Badge>;
+}

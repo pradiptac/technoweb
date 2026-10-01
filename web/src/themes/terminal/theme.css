@@ -231,6 +231,28 @@
   [data-theme="terminal"] [data-collection] [data-tile]::after { display: none; }
   [data-theme="terminal"] [data-collection] [data-tile-media] { width: 48px; }
 }
+/*
+  The shop's products (the client, 2026-09-27), as Datacenter's: a 64px
+  monochrome thumbnail with the heart and the badge over it showed nothing of
+  the product. The picture is 168px and in colour (a price needs to show what
+  it prices, where a listing of pages can stay grey), the heart joins the row
+  of buttons (`data-tile-save-inline`), and on a phone the picture takes the
+  column's width on top with the words and buttons under it.
+*/
+[data-theme="terminal"] [data-collection="products"] [data-tile] { padding-top: 12px; padding-bottom: 12px; }
+[data-theme="terminal"] [data-collection="products"] [data-tile-media] { width: 168px; aspect-ratio: auto; border: 0; filter: none; }
+[data-theme="terminal"] [data-collection="products"] [data-tile-media] > a { border: 1px solid var(--color-line); overflow: hidden; }
+[data-theme="terminal"] [data-collection="products"] [data-tile-media] [data-tile-save] { display: none; }
+[data-theme="terminal"] [data-collection="products"] [data-tile-save-inline] { display: flex; flex: 0 0 auto; }
+@media (width < 40rem) {
+  [data-theme="terminal"] [data-collection="products"] [data-tile] { grid-template-columns: 3ch minmax(0, 1fr); row-gap: 12px; }
+  [data-theme="terminal"] [data-collection="products"] [data-tile]::before { grid-row: 1 / span 2; align-self: center; }
+  [data-theme="terminal"] [data-collection="products"] [data-tile-media] { grid-column: 2; grid-row: 1; width: 100%; }
+  [data-theme="terminal"] [data-collection="products"] [data-tile-body] { grid-column: 2; grid-row: 2; }
+  [data-theme="terminal"] [data-collection="products"] [data-tile-actions] { flex: 1 1 100%; margin-left: 0; }
+  [data-theme="terminal"] [data-collection="products"] [data-tile-actions] > div:first-child { min-width: 0; flex: 1 1 auto; }
+}
+
 /* The shop's furniture: square, like everything else here. */
 [data-theme="terminal"] [data-store-disc] { border-radius: 0; }
 [data-theme="terminal"] [data-store-filter] form { box-shadow: none; }
@@ -247,4 +269,34 @@
   content: "\25A0";
   margin-right: 8px;
   color: var(--tile-hue, var(--color-brand-ink));
+}
+
+/*
+  The people as a directory listing (2026-09-28): one person per row under
+  a dashed rule, a small two-ink print, then name and role, the bio as a
+  `#` comment and the contact links at the far end, the columns of an
+  `ls -l`, which fold into a stack on a phone.
+*/
+[data-theme="terminal"] [data-team] { grid-template-columns: minmax(0, 1fr); gap: 0; }
+[data-theme="terminal"] [data-team] > li {
+  display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 18px; align-items: start;
+  border-width: 0 0 1px; border-style: dashed; border-radius: 0; padding: 16px;
+}
+[data-theme="terminal"] [data-team] > li:first-child { border-top-width: 1px; }
+[data-theme="terminal"] [data-team] [data-team-photo] { aspect-ratio: 1; }
+[data-theme="terminal"] [data-team] [data-team-photo] > span { font-size: 20px; }
+[data-theme="terminal"] [data-team] [data-team-rule] { display: none; }
+[data-theme="terminal"] [data-team] [data-team-body] { padding: 0; }
+[data-theme="terminal"] [data-team] [data-team-name] { font-family: var(--font-display); font-size: 16px; }
+[data-theme="terminal"] [data-team] [data-team-name]::before { content: "~/" / ""; color: var(--color-muted); }
+[data-theme="terminal"] [data-team] [data-team-bio] { margin-top: 6px; font-family: var(--font-display); font-size: 13px; }
+[data-theme="terminal"] [data-team] [data-team-bio]::before { content: "# " / ""; }
+[data-theme="terminal"] [data-team] [data-team-certs] { margin-top: 8px; }
+[data-theme="terminal"] [data-team] [data-team-contact] { padding-top: 10px; }
+@media (width >= 48rem) {
+  [data-theme="terminal"] [data-team] [data-team-body] { display: grid; grid-template-columns: minmax(0, 16rem) minmax(0, 1fr) auto; column-gap: 28px; align-content: start; }
+  [data-theme="terminal"] [data-team] [data-team-body] > :not([data-team-detail]):not([data-team-contact]) { grid-column: 1; }
+  [data-theme="terminal"] [data-team] [data-team-detail] { grid-column: 2; grid-row: 1 / span 3; }
+  [data-theme="terminal"] [data-team] [data-team-detail] > :first-child { margin-top: 0; }
+  [data-theme="terminal"] [data-team] [data-team-contact] { grid-column: 3; grid-row: 1 / span 3; padding-top: 0; margin-top: 0; }
 }
