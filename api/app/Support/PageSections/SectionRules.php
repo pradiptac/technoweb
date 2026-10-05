@@ -50,6 +50,27 @@ final class SectionRules
     /** A page is a stack of sections, not a document of them. */
     public const MAX_SECTIONS = 40;
 
+    /**
+     * A section's style (2026-10-05, docs/page-builder.md "Style"): how it
+     * sits on the page, beside what it says. Every key is optional and each
+     * value is a choice from its list — never a number or a colour, so
+     * whatever an editor picks still passes the audits. The first of each is
+     * what the section does on its own and is never stored.
+     */
+    public const STYLE = [
+        'pad_top' => ['default', 'none', 's', 'l', 'xl'],
+        'pad_bottom' => ['default', 'none', 's', 'l', 'xl'],
+        'width' => ['default', 'medium', 'narrow'],
+        'align' => ['default', 'center'],
+        'heading' => ['default', 's', 'l'],
+    ];
+
+    /** Where a section may be shown; all three is the default. */
+    public const DEVICES = ['phone', 'tablet', 'desktop'];
+
+    /** An in-page link target: `#pricing`. */
+    public const ANCHOR = '/^[a-z][a-z0-9-]{0,47}$/';
+
     public const HERO_LAYOUTS = ['split', 'centered', 'cover'];
 
     /** The live lists a `cards` section can draw; `SectionPresenter::cards()` reads each. */
@@ -84,6 +105,15 @@ final class SectionRules
             // `SECTION_REVEALS`, checked for shape only — the rule every
             // `motion_*` id follows, since the list lives with the CSS.
             "{$prefix}.*.reveal" => ['nullable', 'string', 'regex:'.ThemeOptions::REVEAL],
+            "{$prefix}.*.style" => ['nullable', 'array'],
+            "{$prefix}.*.style.pad_top" => ['nullable', Rule::in(self::STYLE['pad_top'])],
+            "{$prefix}.*.style.pad_bottom" => ['nullable', Rule::in(self::STYLE['pad_bottom'])],
+            "{$prefix}.*.style.width" => ['nullable', Rule::in(self::STYLE['width'])],
+            "{$prefix}.*.style.align" => ['nullable', Rule::in(self::STYLE['align'])],
+            "{$prefix}.*.style.heading" => ['nullable', Rule::in(self::STYLE['heading'])],
+            "{$prefix}.*.style.anchor" => ['nullable', 'string', 'regex:'.self::ANCHOR],
+            "{$prefix}.*.style.show_on" => ['nullable', 'array', 'min:1'],
+            "{$prefix}.*.style.show_on.*" => ['string', Rule::in(self::DEVICES)],
             "{$prefix}.*.data" => ['present', 'array'],
         ];
 
@@ -271,12 +301,22 @@ final class SectionRules
         }
 
         $seen = [];
+        $anchors = [];
 
         foreach ($blocks as $i => $block) {
             if (! is_array($block)) {
                 continue;
             }
             $at = "{$prefix}.{$i}";
+
+            // An anchor is a link target, so two sections cannot share one.
+            $anchor = is_array($block['style'] ?? null) ? ($block['style']['anchor'] ?? null) : null;
+            if (is_string($anchor) && $anchor !== '') {
+                if (isset($anchors[$anchor])) {
+                    $validator->errors()->add("{$at}.style.anchor", 'Another section already uses this link name.');
+                }
+                $anchors[$anchor] = true;
+            }
 
             $id = $block['id'] ?? null;
             if (is_string($id)) {
@@ -474,11 +514,44 @@ final class SectionRules
                 // `default` is what the section does on its own, so it is
                 // never stored: absent and `default` are one answer.
                 'reveal' => self::reveal($block['reveal'] ?? null),
+                'style' => self::style($block['style'] ?? null),
                 'data' => (object) $data,
             ];
         }
 
         return $out;
+    }
+
+    /**
+     * The style as stored: only the keys that differ from what the section
+     * does on its own, or null when nothing does — so a section nobody styled
+     * stores and renders exactly as before.
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function style(mixed $style): ?array
+    {
+        if (! is_array($style)) {
+            return null;
+        }
+        $out = [];
+        foreach (self::STYLE as $key => $choices) {
+            $value = $style[$key] ?? null;
+            if (is_string($value) && $value !== $choices[0] && in_array($value, $choices, true)) {
+                $out[$key] = $value;
+            }
+        }
+        if (is_string($style['anchor'] ?? null) && preg_match(self::ANCHOR, $style['anchor'])) {
+            $out['anchor'] = $style['anchor'];
+        }
+        if (is_array($style['show_on'] ?? null)) {
+            $devices = array_values(array_intersect(self::DEVICES, $style['show_on']));
+            if ($devices !== [] && count($devices) < count(self::DEVICES)) {
+                $out['show_on'] = $devices;
+            }
+        }
+
+        return $out === [] ? null : $out;
     }
 
     /** A stored reveal id, or null for the section's own default. */

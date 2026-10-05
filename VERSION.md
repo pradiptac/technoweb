@@ -21,6 +21,26 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.104.0 — 2026-10-05
+
+**Every section in the page builder has a Style panel.** Beside what a
+section says, you can now set how it sits on the page:
+
+- space above and below (none, small, large, extra large);
+- content width (full, medium, narrow — narrow suits a block of text);
+- heading and text left or centred;
+- heading size (smaller or larger);
+- a link name, so a menu item or a button can jump straight to it
+  (`/about#pricing`);
+- which devices show it — phones, tablets, computers — for a section that
+  only makes sense on one of them.
+
+The choices are buttons you can see rather than lists to open, the preview
+shows them before saving, and every option is drawn to keep the page
+readable and inside the screen on a phone.
+
+---
+
 ## 0.103.0 — 2026-10-05
 
 **Cards can float, outline or tilt.** Two new choices for every card on the

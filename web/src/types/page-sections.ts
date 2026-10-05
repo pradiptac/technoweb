@@ -64,8 +64,24 @@ export type TestimonialSectionData = Picture<"photo"> & { quote: string; name: s
 export type VideoSectionData = { heading?: string; source: "youtube" | "mp4"; youtube?: string | null; video?: string | null; caption?: string };
 export type DividerSectionData = { size?: "small" | "medium" | "large"; rule?: boolean };
 
+/**
+ * How a section sits on the page (2026-10-05, `SectionRules::STYLE`): only
+ * the keys that differ from the section's own behaviour are ever sent.
+ */
+export type SectionStyle = {
+  pad_top?: "none" | "s" | "l" | "xl";
+  pad_bottom?: "none" | "s" | "l" | "xl";
+  width?: "medium" | "narrow";
+  align?: "center";
+  heading?: "s" | "l";
+  /** An in-page link target: `/about#pricing`. */
+  anchor?: string;
+  /** The devices it shows on; absent is all three. */
+  show_on?: ("phone" | "tablet" | "desktop")[];
+};
+
 /** `reveal` is an id from `SECTION_REVEALS` (lib/motion-choices.ts), or null for the section's own default. */
-type Of<T extends PageSectionType, D> = { id: string; type: T; background: SectionBackground | null; reveal?: string | null; data: D };
+type Of<T extends PageSectionType, D> = { id: string; type: T; background: SectionBackground | null; reveal?: string | null; style?: SectionStyle | null; data: D };
 
 /** One section as the public site draws it. */
 export type PageSection =
@@ -91,6 +107,7 @@ export type StoredSection = {
   hidden: boolean;
   background: SectionBackground | null;
   reveal?: string | null;
+  style?: SectionStyle | null;
   data: Record<string, unknown>;
 };
 

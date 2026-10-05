@@ -3949,3 +3949,46 @@ nav:has([data-panel-host]:hover) [data-panel-host]:not(:hover) > .panel-drop { t
   .motion-tile:hover [data-demo="cards-lift"] { translate: 0 -2px; box-shadow: var(--shadow-2); }
   .motion-tile:hover [data-demo="cards-tilt"] { transform: perspective(600px) rotateX(5deg) rotateY(-9deg); box-shadow: var(--shadow-2); }
 }
+
+/*
+ * A builder section's style (2026-10-05, `SectionStyle`, docs/page-builder.md
+ * "Style"): `PageSections` wraps a styled section in `[data-section-style]`
+ * and these read its attributes. Every value is a step on a fixed scale, so
+ * nothing an editor picks can widen the page, shrink type under the floor or
+ * change a colour the contrast audit reads. Spacing multiplies by
+ * `--density`, so a section's own choice and the site's spacing setting
+ * compose. Unlayered: they beat `.section-y` and any `py-*` utility.
+ */
+[data-section-style] { scroll-margin-top: 6rem; }
+
+[data-section-style][data-pad-top="none"] > [data-page-section] { padding-top: 0; }
+[data-section-style][data-pad-top="s"] > [data-page-section] { padding-top: calc(1.5rem * var(--density, 1)); }
+[data-section-style][data-pad-top="l"] > [data-page-section] { padding-top: calc(4.5rem * var(--density, 1)); }
+[data-section-style][data-pad-top="xl"] > [data-page-section] { padding-top: calc(6rem * var(--density, 1)); }
+[data-section-style][data-pad-bottom="none"] > [data-page-section] { padding-bottom: 0; }
+[data-section-style][data-pad-bottom="s"] > [data-page-section] { padding-bottom: calc(1.5rem * var(--density, 1)); }
+[data-section-style][data-pad-bottom="l"] > [data-page-section] { padding-bottom: calc(4.5rem * var(--density, 1)); }
+[data-section-style][data-pad-bottom="xl"] > [data-page-section] { padding-bottom: calc(6rem * var(--density, 1)); }
+@media (width >= 64rem) {
+  [data-section-style][data-pad-top="l"] > [data-page-section] { padding-top: calc(6.5rem * var(--density, 1)); }
+  [data-section-style][data-pad-top="xl"] > [data-page-section] { padding-top: calc(9rem * var(--density, 1)); }
+  [data-section-style][data-pad-bottom="l"] > [data-page-section] { padding-bottom: calc(6.5rem * var(--density, 1)); }
+  [data-section-style][data-pad-bottom="xl"] > [data-page-section] { padding-bottom: calc(9rem * var(--density, 1)); }
+}
+
+/* Width narrows the section's container, never widens it: 90% of the screen
+   stays the ceiling, so a phone is unaffected. */
+[data-section-style][data-width="medium"] [data-container] { max-width: 72rem; }
+[data-section-style][data-width="narrow"] [data-container] { max-width: 48rem; }
+
+[data-section-style][data-align="center"] :is([data-section-head], [data-page-section="rich_text"], [data-page-section="testimonial"]) { text-align: center; }
+[data-section-style][data-align="center"] [data-section-head] .lede { margin-inline: auto; }
+[data-section-style][data-align="center"] [data-section-buttons] { justify-content: center; }
+/* Centred text with bullets at the left edge reads as a mistake: the markers move in with it. */
+[data-section-style][data-align="center"] [data-page-section="rich_text"] :is(ul, ol) { list-style-position: inside; padding-inline-start: 0; }
+
+/* Heading size: one rung down or up the display scale, never below it. */
+[data-section-style][data-heading="s"] [data-page-section] h2.display-2 { font-size: clamp(21px, 2.8vw, 27px); }
+[data-section-style][data-heading="s"] [data-page-section] .display-1 { font-size: clamp(27px, 4.2vw, 42px); }
+[data-section-style][data-heading="l"] [data-page-section] h2.display-2 { font-size: clamp(32px, 3.3vw + 12px, 56px); }
+[data-section-style][data-heading="l"] [data-page-section] .display-1 { font-size: clamp(40px, 4.4vw + 14px, 76px); }

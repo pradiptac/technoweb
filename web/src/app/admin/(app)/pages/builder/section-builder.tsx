@@ -15,6 +15,7 @@ import type { SectionBackground } from "@/themes/options";
 import type { PageBuilderOptions, PageSectionType, SectionPreset, StoredSection } from "@/types/api";
 import { BlockEditorProvider, setIn, type Json, type Obj, type Path } from "../../blocks/editors/shared";
 import { BackgroundField } from "./background-field";
+import { StyleField } from "./style-field";
 import { PreviewDialog } from "./preview-dialog";
 import { SectionEditor, blankData, summaryOf } from "./section-editors";
 
@@ -293,6 +294,16 @@ function SectionCard({
             error={errors[`${prefix}.background`]?.[0]}
             idPrefix={idPrefix}
             media={media}
+          />
+          <StyleField
+            value={section.style}
+            onChange={(style) => patch(section.id, (s) => ({ ...s, style }))}
+            idPrefix={idPrefix}
+            errors={Object.fromEntries(
+              Object.entries(errors)
+                .filter(([k]) => k.startsWith(`${prefix}.style.`))
+                .map(([k, v]) => [k.slice(`${prefix}.style.`.length).split(".")[0], v[0]]),
+            )}
           />
         </div>
       )}

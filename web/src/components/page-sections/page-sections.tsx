@@ -5,6 +5,8 @@ import { sectionReveal } from "@/lib/motion-choices";
 import { getSiteSettings } from "@/lib/settings";
 import { activeTheme } from "@/themes";
 import type { PageSection } from "@/types/api";
+import type { SectionStyle } from "@/types/page-sections";
+import { cn } from "@/lib/utils";
 import { HeroSection } from "./hero-section";
 import {
   DividerSection, FeaturesSection, MediaTextSection, RichTextSection, TestimonialSection, VideoSection,
@@ -52,10 +54,42 @@ export async function PageSections({ sections, crumbs, ownsH1 = true }: {
 
         return (
           <SectionBg key={section.id} id={`page-${section.type}`} bg={section.background ?? undefined} seeds={seeds} eager={i <= 1}>
-            {node}
+            <StyledSection style={section.style}>{node}</StyledSection>
           </SectionBg>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * A section's style choices (`SectionStyle`), as one wrapper the CSS reads —
+ * `[data-section-style]` in globals.css — so no section component had to
+ * learn about spacing, width, alignment or heading size. No style, no
+ * wrapper: an unstyled section's markup is what it always was.
+ *
+ * Devices it is not shown on are the `hidden` **class** at those widths
+ * (Tailwind v4's preflight makes the attribute `!important`, which no
+ * breakpoint could win back).
+ */
+function StyledSection({ style, children }: { style?: SectionStyle | null; children: ReactNode }) {
+  if (!style) return <>{children}</>;
+  const shown = style.show_on;
+  const hide = shown
+    ? cn(!shown.includes("phone") && "max-sm:hidden", !shown.includes("tablet") && "sm:max-lg:hidden", !shown.includes("desktop") && "lg:hidden")
+    : undefined;
+  return (
+    <div
+      data-section-style
+      id={style.anchor}
+      data-pad-top={style.pad_top}
+      data-pad-bottom={style.pad_bottom}
+      data-width={style.width}
+      data-align={style.align}
+      data-heading={style.heading}
+      className={hide || undefined}
+    >
+      {children}
     </div>
   );
 }

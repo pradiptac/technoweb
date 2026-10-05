@@ -62,6 +62,38 @@ one-level form still works. Every other text field is plain and escaped by
 React at the sink; shortcodes in a body are expanded as components by
 `ProseWithShortcodes`, never by string substitution.
 
+## Style (0.104.0)
+
+Each section may carry `style` beside `hidden`, `background` and `reveal`:
+how it sits on the page, separate from what it says. `SectionRules::STYLE`
+is the list — `pad_top`/`pad_bottom` (`none`, `s`, `l`, `xl`), `width`
+(`medium`, `narrow`), `align` (`center`), `heading` (`s`, `l`) — plus
+`anchor` (`^[a-z][a-z0-9-]{0,47}$`, unique on the page, `after()`) and
+`show_on` (a non-empty subset of `phone`, `tablet`, `desktop`).
+
+- **Choices, never values.** No number and no colour, so nothing an editor
+  picks can widen the page, put type under the floor or change a colour the
+  audit reads. `default` (the first of each list) and all three devices are
+  never stored; `SectionRules::style()` returns null when nothing differs,
+  and the presenter sends it on.
+- **One wrapper, no section learned anything.** `PageSections` wraps a
+  styled section in `<div data-section-style data-pad-top … id=anchor>`
+  (none for an unstyled one, so its markup is unchanged) and
+  `globals.css` reads it: padding on the section's root
+  (`> [data-page-section]`, multiplied by `--density`), width on its
+  `[data-container]` (`Container` carries the marker since 0.104.0; a
+  width only ever narrows), alignment on `[data-section-head]`,
+  `[data-section-buttons]`, a rich-text or testimonial body (centred lists
+  take their bullets in with them), heading size one rung up or down the
+  display scale. Devices not shown get `max-sm:hidden`,
+  `sm:max-lg:hidden` or `lg:hidden` — the class, never the attribute.
+- **The Style panel** (`builder/style-field.tsx`) is rows of `aria-pressed`
+  buttons rather than selects, with a small spacing diagram from `lg`; the
+  last device cannot be switched off (that is Hide's job). Errors from
+  `blocks.N.style.*` land under their row.
+- Probe: `scripts/probes/section-style.mjs` drives the panel and checks the
+  unsaved preview; it saves nothing.
+
 ## Presented for the public site
 
 `SectionPresenter::present()` is the public shape, and it is what

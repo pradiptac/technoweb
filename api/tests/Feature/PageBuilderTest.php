@@ -241,6 +241,42 @@ class PageBuilderTest extends TestCase
             ->assertJsonPath('data.sections.2.reveal', null);
     }
 
+    public function test_a_style_is_a_set_of_choices_stored_only_where_it_differs(): void
+    {
+        foreach ([
+            ['pad_top' => '40px'],
+            ['width' => 'full-bleed'],
+            ['anchor' => 'Pricing Table'],
+            ['show_on' => []],
+            ['show_on' => ['watch']],
+        ] as $bad) {
+            $this->create([self::section('divider', [], ['style' => $bad])])->assertStatus(422);
+        }
+
+        $this->create([
+            self::section('divider', [], ['style' => ['anchor' => 'pricing']]),
+            self::section('divider', [], ['style' => ['anchor' => 'pricing']]),
+        ])->assertStatus(422)->assertJsonValidationErrors('blocks.1.style.anchor');
+
+        $this->create([
+            self::section('divider', [], ['style' => [
+                'pad_top' => 'xl', 'pad_bottom' => 'default', 'width' => 'narrow', 'align' => 'center',
+                'heading' => 'l', 'anchor' => 'pricing', 'show_on' => ['desktop', 'phone'],
+            ]]),
+            // Every value the section's own: nothing is stored.
+            self::section('divider', [], ['style' => ['pad_top' => 'default', 'show_on' => ['phone', 'tablet', 'desktop']]]),
+        ])->assertCreated()
+            ->assertJsonPath('data.blocks.0.style', [
+                'pad_top' => 'xl', 'width' => 'narrow', 'align' => 'center', 'heading' => 'l',
+                'anchor' => 'pricing', 'show_on' => ['phone', 'desktop'],
+            ])
+            ->assertJsonPath('data.blocks.1.style', null);
+
+        $this->getJson('/api/v1/pages/built-page')->assertOk()
+            ->assertJsonPath('data.sections.0.style.anchor', 'pricing')
+            ->assertJsonPath('data.sections.1.style', null);
+    }
+
     public function test_a_cards_section_is_resolved_to_the_live_list(): void
     {
         Solution::create(['title' => 'Networking', 'slug' => 'networking', 'summary' => 'Switching and routing.', 'icon' => 'network', 'status' => PublishStatus::Published, 'sort_order' => 1]);

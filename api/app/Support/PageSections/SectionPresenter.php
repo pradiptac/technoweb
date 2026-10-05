@@ -79,6 +79,7 @@ final class SectionPresenter
                 'type' => $type->value,
                 'background' => self::background($block['background'] ?? null),
                 'reveal' => SectionRules::reveal($block['reveal'] ?? null),
+                'style' => SectionRules::style($block['style'] ?? null),
                 'data' => (object) $data,
             ];
         }

@@ -1168,7 +1168,13 @@ its id; a background is the Themes screen's section background, checked by
 the same rule; ids are unique. `data.body` on `rich_text` and `media_text` is
 rich text, cleaned on write like any body; every other field is plain text.
 Only declared keys are stored. Absent leaves the sections alone; `[]` clears
-them. `reveal` is how the section arrives on scroll — an id checked for
+them. A section may also carry **`style`** (0.104.0): `pad_top`/`pad_bottom`
+of `none`/`s`/`l`/`xl`, `width` of `medium`/`narrow`, `align` of `center`,
+`heading` of `s`/`l`, `anchor` (`^[a-z][a-z0-9-]{0,47}$`, a 422 on
+`blocks.N.style.anchor` when another section has it) and `show_on` (a
+non-empty subset of `phone`, `tablet`, `desktop`). Values that are the
+section's own (`default`, all three devices) are not stored, and `style` is
+null when nothing differs; both reads carry it. `reveal` is how the section arrives on scroll — an id checked for
 shape only (`^[a-z][a-z0-9-]{0,15}$`, the list is the frontend's
 `SECTION_REVEALS`), 422 on `blocks.N.reveal` otherwise; `default` and a blank
 are stored as null, and both the admin and the public reads carry it.

@@ -74,7 +74,7 @@ export function SectionButtons({
   if (!buttons.length) return null;
 
   return (
-    <div className={cn("mt-8 flex flex-wrap gap-3", center && "justify-center", className)}>
+    <div data-section-buttons className={cn("mt-8 flex flex-wrap gap-3", center && "justify-center", className)}>
       {buttons.map((b, i) => (
         <ButtonLink
           key={`${i}-${b.href}`}
