@@ -56,6 +56,12 @@ class SocialStyleSettingsTest extends TestCase
 
         $this->save(['theme_radius' => 'pill'])->assertStatus(422)->assertJsonValidationErrors('settings.0.value');
         $this->save(['theme_density' => 'cramped'])->assertStatus(422);
+
+        $this->assertSame('flat', $public['theme_surface'] ?? $this->getJson('/api/v1/settings')->json('data.theme_surface'));
+        $this->save(['theme_surface' => 'elevated'])->assertOk();
+        $this->save(['theme_surface' => 'glossy'])->assertStatus(422);
+        $this->save(['motion_cards' => 'tilt'])->assertOk();
+        $this->save(['motion_cards' => 'Tilt It!'])->assertStatus(422);
     }
 
     public function test_both_keys_are_seeded_public_with_flip_as_the_default(): void

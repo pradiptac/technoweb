@@ -620,6 +620,7 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             // the controls existed, so a fresh install and an old one match.
             ['group' => 'appearance', 'key' => 'theme_radius', 'value' => 'soft', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_density', 'value' => 'comfortable', 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'theme_surface', 'value' => 'flat', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_primary', 'value' => '#6f8641', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_secondary', 'value' => '#5b7a5e', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_accent', 'value' => '#c9993c', 'type' => 'string'],
@@ -676,6 +677,8 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'motion', 'key' => 'motion_loader', 'value' => 'none', 'type' => 'string'],
             ['group' => 'motion', 'key' => 'motion_splash', 'value' => '0', 'type' => 'boolean'],
             ['group' => 'motion', 'key' => 'motion_hero', 'value' => 'grid', 'type' => 'string'],
+            // What a card does under the pointer (2026-10-05): lift is the site as it was.
+            ['group' => 'motion', 'key' => 'motion_cards', 'value' => 'lift', 'type' => 'string'],
 
             /*
              * The site theme: which folder under `web/src/themes/` builds the

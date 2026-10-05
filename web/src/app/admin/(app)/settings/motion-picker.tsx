@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Backdrop } from "@/components/ui/backdrop";
 import {
-  BUTTONS, HEROS, LOADERS, PAGES, REVEALS, SPLASH_NOTE,
+  BUTTONS, CARDS, HEROS, LOADERS, PAGES, REVEALS, SPLASH_NOTE,
   type HeroVariant, type MotionChoice,
 } from "@/lib/motion-choices";
 import type { SettingRow } from "@/lib/admin";
@@ -38,6 +38,7 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
   const [loader, setLoader] = useState(stored.motion_loader || LOADERS[0].id);
   const [splash, setSplash] = useState(stored.motion_splash === "1" ? "1" : "0");
   const [hero, setHero] = useState(stored.motion_hero || HEROS[0].id);
+  const [cards, setCards] = useState(stored.motion_cards || CARDS[0].id);
 
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -46,6 +47,7 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
     const chosen: Record<string, string> = {
       setting__motion_reveal: reveal, setting__motion_buttons: buttons, setting__motion_page: page,
       setting__motion_loader: loader, setting__motion_splash: splash, setting__motion_hero: hero,
+      setting__motion_cards: cards,
     };
     for (const input of el.querySelectorAll<HTMLInputElement>('input[type="radio"]')) {
       const should = input.value === chosen[input.name];
@@ -75,6 +77,16 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
         preview={(c) => (
           <span className="flex h-14 items-center justify-center" data-motion-buttons={c.id}>
             <Button type="button" size="sm" tabIndex={-1}>Enquire</Button>
+          </span>
+        )}
+      />
+
+      <Choices
+        name="setting__motion_cards" legend="Cards" value={cards} onChange={setCards} choices={CARDS}
+        intro="What a card does under the pointer, on a computer. Phones and reduced-motion visitors always see it still. Hover a tile to try it."
+        preview={(c) => (
+          <span className="flex h-14 items-center justify-center" data-motion-cards={c.id} aria-hidden>
+            <span data-card data-demo={`cards-${c.id}`} className="block h-10 w-20 rounded border border-line-strong bg-card shadow-1 transition-[translate,box-shadow,transform] duration-(--duration-base) ease-brand" />
           </span>
         )}
       />

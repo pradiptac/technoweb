@@ -1,6 +1,32 @@
 # Look and feel: textures, illustrations, progress, onboarding, corners, spacing
 
-0.101.0–0.102.0 (2026-10-05), the visual track of the October roadmap.
+0.101.0–0.103.0 (2026-10-05), the visual track of the October roadmap.
+
+## Card surfaces and card motion (0.103.0)
+
+- **`theme_surface`** (`flat`, `elevated`, `outline`; appearance, offered as
+  options, 422 outside): `flat` stamps nothing. The others set only
+  `box-shadow` and `border-color` on `[data-card]`/`[data-tile]` under
+  `.public-site[data-surface]` — the same specificity as a theme's idiom
+  selector, later in the file, so it wins the tie — and never the card's
+  ground, so no surface can fail "never a card without a ground".
+- **`motion_cards`** (`lift`, `tilt`, `float`, `still`; motion group,
+  shape-checked like the other motion ids, resolved by `motionFor()` and
+  stamped as `data-motion-cards`): `lift` is the hover cards always had.
+  `tilt` is `components/ui/card-tilt.tsx`, one delegated, rAF-throttled
+  pointer listener mounted by the public layout (and the theme preview) only
+  when chosen; it writes `--tilt-x/--tilt-y` and `data-tilting`, and the CSS
+  turns them into a `transform` — never `translate`, which the hover lift
+  already owns. Every effect sits inside `(hover: hover) and (pointer: fine)`
+  and `prefers-reduced-motion: no-preference`: a phone sees still cards.
+- A spotlight that follows the pointer was considered and not built: it
+  needs a pseudo-element, and Datacenter, Horizon, Keystone and Terminal
+  already draw their tiles' rules and corner marks with `::before`/`::after`.
+- Looks carry a surface (Corporate and Editorial outline, Modern and Bold
+  elevated). The live preview sends it with the rest.
+- Probe: `scripts/probes/cards.mjs` (`HOLD=1`, `RESTORE=1`). A dev page needs
+  a few seconds to hydrate before the pointer is moved, or the listener is
+  not attached yet.
 
 ## Corners, spacing, looks and the live preview (0.102.0)
 

@@ -12,6 +12,7 @@ import { loadHome } from "@/lib/home-data";
 import { motionAttrs } from "@/lib/motion-choices";
 import { lookAttrs, lookFor } from "@/lib/look";
 import { PreviewBridge } from "@/components/layout/preview-bridge";
+import { CardTilt } from "@/components/ui/card-tilt";
 import { noIndex } from "@/lib/no-index";
 import { buildMetadata } from "@/lib/seo";
 import { activeTheme, forcePreviewTheme } from "@/themes";
@@ -72,6 +73,7 @@ export default async function ThemePreviewPage({
       <div className="public-site" data-theme={theme.manifest.id} {...motionAttrs(chrome.motion)} {...lookAttrs(lookFor(chrome.settings))}>
         {/* The appearance screen's live preview talks to this page (same origin only). */}
         <PreviewBridge />
+        {chrome.motion.cards === "tilt" && <CardTilt />}
         <div className="bg-warn-soft px-4 py-2 text-center text-12-5 text-warn">
           Previewing the <b>{theme.manifest.name}</b> theme. Links open the live site in its
           current theme.{" "}

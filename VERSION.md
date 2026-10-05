@@ -21,6 +21,24 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.103.0 — 2026-10-05
+
+**Cards can float, outline or tilt.** Two new choices for every card on the
+website:
+
+- **Cards** beside Corners and Spacing (Site → Settings → Colour palette):
+  flat as before, *elevated* on a soft shadow that deepens under the pointer,
+  or *outline* with a crisp border. The looks set it too.
+- **Cards** on the Motion tab: lift as before, *tilt* — a card leans towards
+  the pointer in 3-D as it moves across it — *float*, or *still*.
+
+Phones and visitors who prefer less motion always see cards sitting still.
+The live preview shows the card choice before saving.
+
+Run `php artisan db:seed --class=SettingsSeeder` on update (the updater does).
+
+---
+
 ## 0.102.0 — 2026-10-05
 
 **Choose a whole look in one press, and see it before you save.** Site →

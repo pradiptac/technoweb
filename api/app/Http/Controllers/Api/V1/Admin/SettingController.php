@@ -198,6 +198,13 @@ class SettingController extends Controller
         ['value' => 'round', 'label' => 'Round', 'description' => 'Generous curves on cards, buttons and pictures. Friendly, modern.'],
     ];
 
+    /** How a card sits on the page: flat is the site as it was. */
+    public const SURFACES = [
+        ['value' => 'flat', 'label' => 'Flat', 'description' => 'A hairline border and a soft ground — the site as it has always been.'],
+        ['value' => 'elevated', 'label' => 'Elevated', 'description' => 'Cards float on a soft shadow that deepens under the pointer.'],
+        ['value' => 'outline', 'label' => 'Outline', 'description' => 'A crisp, firmer border and no shadow. Precise and technical.'],
+    ];
+
     public const DENSITIES = [
         ['value' => 'comfortable', 'label' => 'Comfortable', 'description' => 'The spacing between sections the site has always had.'],
         ['value' => 'compact', 'label' => 'Compact', 'description' => 'Sections closer together — more on each screen.'],
@@ -283,6 +290,7 @@ class SettingController extends Controller
             'social_style' => self::SOCIAL_STYLES,
             'theme_radius' => self::RADII,
             'theme_density' => self::DENSITIES,
+            'theme_surface' => self::SURFACES,
             'home_stats_block' => self::blockOptions(ContentBlockType::Stats),
             'home_pricing_block' => self::blockOptions(ContentBlockType::Pricing),
             'home_stack_block' => self::blockOptions(ContentBlockType::Stack),
@@ -648,7 +656,7 @@ class SettingController extends Controller
     {
         // The sign-in screen's three ids ride on the same rule: same shape,
         // same list-on-the-frontend reasoning (login-backdrop-choices.ts).
-        $ids = ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_hero', 'login_backdrop', 'login_intensity', 'login_speed'];
+        $ids = ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_hero', 'motion_cards', 'login_backdrop', 'login_intensity', 'login_speed'];
 
         foreach ($request->input('settings', []) as $i => $row) {
             $key = $row['key'] ?? '';
@@ -746,7 +754,7 @@ class SettingController extends Controller
                 && ! ContentBlock::query()->published()->where('type', self::HOME_BLOCKS[$key])->where('slug', $value)->exists()) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a published block of this kind, or None.']);
             }
-            foreach (['theme_radius' => self::RADII, 'theme_density' => self::DENSITIES] as $lookKey => $choices) {
+            foreach (['theme_radius' => self::RADII, 'theme_density' => self::DENSITIES, 'theme_surface' => self::SURFACES] as $lookKey => $choices) {
                 if ($key === $lookKey && filled($value) && ! in_array($value, array_column($choices, 'value'), true)) {
                     throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose one from the list.']);
                 }

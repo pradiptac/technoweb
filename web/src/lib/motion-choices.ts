@@ -42,6 +42,20 @@ export const BUTTONS: MotionChoice[] = [
   { id: "flat", label: "Flat", note: "Colour change only. No movement at all." },
 ];
 
+/**
+ * What a card does under the pointer (`motion_cards`, 0.103.0). `lift` is
+ * the hover the site always had. `tilt` follows the pointer in 3-D through
+ * `components/ui/card-tilt.tsx`, the only one that needs JavaScript; every
+ * one is a fine-pointer, motion-allowed effect — on a phone a card simply
+ * sits there, which is all a tap needs.
+ */
+export const CARDS: MotionChoice[] = [
+  { id: "lift", label: "Lift", note: "A card rises a little under the pointer. The current behaviour." },
+  { id: "tilt", label: "Tilt", note: "A card leans towards the pointer in 3-D as it moves across it." },
+  { id: "float", label: "Float", note: "A card rises further and casts a deeper shadow. More presence." },
+  { id: "still", label: "Still", note: "Cards do not move. The border and colour still answer the pointer." },
+];
+
 export const PAGES: MotionChoice[] = [
   { id: "none", label: "None", note: "The next page paints at once. The current behaviour." },
   { id: "fade", label: "Fade", note: "Each page fades in over 320ms." },
@@ -128,6 +142,7 @@ export type Motion = {
   loader: string;
   splash: boolean;
   hero: HeroVariant;
+  cards: string;
 };
 
 const pick = (list: MotionChoice[], id: string | undefined): string =>
@@ -142,6 +157,7 @@ export function motionFor(settings: Record<string, string | undefined>): Motion 
     loader: pick(LOADERS, settings.motion_loader),
     splash: settings.motion_splash === "1",
     hero: pick(HEROS, settings.motion_hero) as HeroVariant,
+    cards: pick(CARDS, settings.motion_cards),
   };
 }
 
@@ -155,5 +171,6 @@ export function motionAttrs(m: Motion): Record<string, string> {
     "data-motion-buttons": m.buttons,
     "data-motion-page": m.page,
     "data-motion-hero": m.hero,
+    "data-motion-cards": m.cards,
   };
 }

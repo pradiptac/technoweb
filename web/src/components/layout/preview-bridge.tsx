@@ -20,10 +20,11 @@ import { useEffect } from "react";
  * expects. The CSS is written as text into a `<style>`, which cannot run a
  * script, and the attribute values are checked against their lists.
  */
-type LookMessage = { type: "tw:look"; css: string; radius: string; density: string };
+type LookMessage = { type: "tw:look"; css: string; radius: string; density: string; surface?: string };
 
 const RADII = new Set(["soft", "sharp", "round"]);
 const DENSITIES = new Set(["comfortable", "compact", "airy"]);
+const SURFACES = new Set(["flat", "elevated", "outline"]);
 
 export function PreviewBridge() {
   useEffect(() => {
@@ -42,6 +43,8 @@ export function PreviewBridge() {
       else delete site.dataset.radius;
       if (m.density && DENSITIES.has(m.density) && m.density !== "comfortable") site.dataset.density = m.density;
       else delete site.dataset.density;
+      if (m.surface && SURFACES.has(m.surface) && m.surface !== "flat") site.dataset.surface = m.surface;
+      else delete site.dataset.surface;
     };
     window.addEventListener("message", onMessage);
     // Say so once ready, so the screen sends its current choice straight away.

@@ -7,6 +7,7 @@ import { CustomCode } from "@/components/layout/custom-code";
 import { PwaLoader } from "@/components/pwa/pwa-loader";
 import { pwaFor } from "@/lib/pwa";
 import { lookAttrs, lookFor } from "@/lib/look";
+import { CardTilt } from "@/components/ui/card-tilt";
 import { brandName } from "@/lib/brand";
 import { APP_VERSION } from "@/lib/version";
 import { loadChrome } from "@/lib/chrome";
@@ -159,6 +160,8 @@ export default async function MarketingLayout({ children }: { children: React.Re
         the reason the assistant is — an install offer inside the console is
         chrome in the way of work.
       */}
+      {/* Cards leaning towards the pointer — shipped only when chosen (Motion → Cards). */}
+      {motion.cards === "tilt" && <CardTilt />}
       <PwaLoader
         enabled={pwa.enabled}
         prompt={pwa.prompt}

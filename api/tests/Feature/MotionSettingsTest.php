@@ -66,6 +66,7 @@ class MotionSettingsTest extends TestCase
             'motion_loader' => 'none',
             'motion_splash' => '0',
             'motion_hero' => 'grid',
+            'motion_cards' => 'lift',
         ];
 
         foreach ($defaults as $key => $value) {
@@ -108,7 +109,7 @@ class MotionSettingsTest extends TestCase
 
         $this->assertArrayHasKey('motion', $groups);
         $this->assertEqualsCanonicalizing(
-            ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_splash', 'motion_hero'],
+            ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_splash', 'motion_hero', 'motion_cards'],
             collect($groups['motion'])->pluck('key')->all(),
         );
     }

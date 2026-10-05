@@ -15,24 +15,32 @@ import type { SiteSettings } from "@/lib/site-settings";
  */
 export type Radius = "soft" | "sharp" | "round";
 export type Density = "comfortable" | "compact" | "airy";
+/** How a card sits on the page (`theme_surface`, 0.103.0). */
+export type Surface = "flat" | "elevated" | "outline";
 
 export const RADII: readonly Radius[] = ["soft", "sharp", "round"];
 export const DENSITIES: readonly Density[] = ["comfortable", "compact", "airy"];
+export const SURFACES: readonly Surface[] = ["flat", "elevated", "outline"];
 
-export function lookFor(settings: SiteSettings): { radius: Radius; density: Density } {
+export type Look = { radius: Radius; density: Density; surface: Surface };
+
+export function lookFor(settings: SiteSettings): Look {
   const r = settings.theme_radius as Radius | undefined;
   const d = settings.theme_density as Density | undefined;
+  const s = settings.theme_surface as Surface | undefined;
   return {
     radius: r && RADII.includes(r) ? r : "soft",
     density: d && DENSITIES.includes(d) ? d : "comfortable",
+    surface: s && SURFACES.includes(s) ? s : "flat",
   };
 }
 
 /** The wrapper's attributes: none at all for the defaults. */
-export function lookAttrs(look: { radius: Radius; density: Density }): Record<string, string> {
+export function lookAttrs(look: Look): Record<string, string> {
   const attrs: Record<string, string> = {};
   if (look.radius !== "soft") attrs["data-radius"] = look.radius;
   if (look.density !== "comfortable") attrs["data-density"] = look.density;
+  if (look.surface !== "flat") attrs["data-surface"] = look.surface;
   return attrs;
 }
 
@@ -53,12 +61,13 @@ export type LookPreset = {
   fontBody: string;
   radius: Radius;
   density: Density;
+  surface: Surface;
 };
 
 export const LOOK_PRESETS: readonly LookPreset[] = [
-  { id: "corporate", label: "Corporate", blurb: "Navy and steel, IBM Plex, square corners. Reads like an enterprise.", palette: "corporate", fontDisplay: "ibm-plex", fontBody: "ibm-plex", radius: "sharp", density: "comfortable" },
-  { id: "modern", label: "Modern", blurb: "Bright blue, Plus Jakarta, round corners, room to breathe.", palette: "velora-blue", fontDisplay: "plus-jakarta", fontBody: "inter", radius: "round", density: "airy" },
-  { id: "bold", label: "Bold", blurb: "Deep violet, Outfit headlines, generous curves. Confident.", palette: "velora-violet", fontDisplay: "outfit", fontBody: "dm-sans", radius: "round", density: "comfortable" },
-  { id: "calm", label: "Calm", blurb: "Slate and green, Manrope, soft corners, airy sections.", palette: "slate", fontDisplay: "manrope", fontBody: "manrope", radius: "soft", density: "airy" },
-  { id: "editorial", label: "Editorial", blurb: "Warm cream, a serif headline, tight and text-led.", palette: "canvas", fontDisplay: "fraunces", fontBody: "inter", radius: "sharp", density: "compact" },
+  { id: "corporate", label: "Corporate", blurb: "Navy and steel, IBM Plex, square corners. Reads like an enterprise.", palette: "corporate", fontDisplay: "ibm-plex", fontBody: "ibm-plex", radius: "sharp", density: "comfortable", surface: "outline" },
+  { id: "modern", label: "Modern", blurb: "Bright blue, Plus Jakarta, round corners, room to breathe.", palette: "velora-blue", fontDisplay: "plus-jakarta", fontBody: "inter", radius: "round", density: "airy", surface: "elevated" },
+  { id: "bold", label: "Bold", blurb: "Deep violet, Outfit headlines, generous curves. Confident.", palette: "velora-violet", fontDisplay: "outfit", fontBody: "dm-sans", radius: "round", density: "comfortable", surface: "elevated" },
+  { id: "calm", label: "Calm", blurb: "Slate and green, Manrope, soft corners, airy sections.", palette: "slate", fontDisplay: "manrope", fontBody: "manrope", radius: "soft", density: "airy", surface: "flat" },
+  { id: "editorial", label: "Editorial", blurb: "Warm cream, a serif headline, tight and text-led.", palette: "canvas", fontDisplay: "fraunces", fontBody: "inter", radius: "sharp", density: "compact", surface: "outline" },
 ];

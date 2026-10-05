@@ -2880,6 +2880,7 @@ Section textures, spot illustrations, the ticket stepper and the "Getting starte
 - The ticket stepper is `Stepper` + `ticketSteps()`; an order's journey is `OrderTimeline`, and there is no second order mapping.
 - `GET /admin/onboarding` answers each step from real state (the seeders' exact sample values), never a tick; the card folds per browser through `useSyncExternalStore`.
 - Corners and spacing are `theme_radius`/`theme_density` (`lib/look.ts`): the defaults stamp no attribute and `.section-y` multiplies by `var(--density, 1)`, so an untouched install is pixel-identical; the attributes go on the public, preview and portal wrappers, never the console's. Looks (`LOOK_PRESETS`) set palette, fonts, corners and spacing together.
+- `theme_surface` (flat/elevated/outline) sets only `box-shadow` and `border-color` on cards — never the ground the audit requires; `motion_cards` (lift/tilt/float/still) is a motion id, and `tilt` ships `CardTilt` only when chosen, as a `transform` inside the fine-pointer, motion-allowed guard. Do not add a pointer effect on a tile's `::before`/`::after`: four themes draw with them. `scripts/probes/cards.mjs`.
 - The appearance tab's live preview frames `/theme-preview/current` and posts `themeTokensCss()` — the root layout's own function — to `PreviewBridge`; same-origin, framed, shape-checked messages only. `scripts/probes/look.mjs`.
 
 ## Conventions

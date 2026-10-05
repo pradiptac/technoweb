@@ -3737,7 +3737,10 @@ icon.
 **`theme_radius` and `theme_density`** (2026-10-05) are `appearance` rows,
 public: `soft`/`sharp`/`round` and `comfortable`/`compact`/`airy`, offered as
 `options` and a 422 outside them; seeded `soft` and `comfortable`, which are
-the site as it was.
+the site as it was. **`theme_surface`** (`flat`/`elevated`/`outline`, the
+same rules, seeded `flat`) joined them in 0.103.0, and **`motion_cards`**
+(`lift`, `tilt`, `float`, `still`; seeded `lift`) the `motion` group, checked
+for the shape of an id like the other motion keys.
 
 **The `pwa` group is public** (2026-10-05, `docs/pwa.md`): `pwa_enabled` and
 `pwa_install_prompt` (`0`/`1`, both on by default), `pwa_name` (≤ 45),

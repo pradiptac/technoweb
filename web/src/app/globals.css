@@ -3893,3 +3893,59 @@ nav:has([data-panel-host]:hover) [data-panel-host]:not(:hover) > .panel-drop { t
 }
 [data-density="compact"] { --density: .72; }
 [data-density="airy"] { --density: 1.35; }
+
+/*
+ * How a card sits on the page (`theme_surface`, 0.103.0) and what it does
+ * under the pointer (`motion_cards`). `flat` and `lift` are the site as it
+ * was and stamp nothing / change nothing here.
+ *
+ * Specificity: `.public-site[data-surface] :is([data-card],[data-tile])` is
+ * one class and two attributes — the same weight as a theme's idiom selector
+ * (`[data-theme] [data-collection] [data-tile]`) — and this file comes after
+ * the theme stylesheets, so a surface wins a tie on `box-shadow` and
+ * `border-color`. Only those two properties: the card ground (the gradient
+ * the audit requires) is never touched, so no surface can make a card fail
+ * "never a card without a ground".
+ */
+.public-site[data-surface="elevated"] :is([data-card], [data-tile]) {
+  box-shadow: var(--shadow-2);
+  border-color: color-mix(in oklab, var(--color-line-strong) 60%, transparent);
+}
+.public-site[data-surface="elevated"] :is([data-card], [data-tile]):hover {
+  box-shadow: var(--shadow-3);
+}
+.public-site[data-surface="outline"] :is([data-card], [data-tile]) {
+  box-shadow: none;
+  border-color: color-mix(in oklab, var(--color-ink) 28%, var(--color-card));
+}
+.public-site[data-surface="outline"] :is([data-card], [data-tile]):hover {
+  box-shadow: none;
+  border-color: var(--color-brand-ink);
+}
+
+/* Cards under the pointer. Fine pointers only, motion allowed only: on a
+   phone or under reduced motion every choice is simply `still`. */
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  [data-motion-cards="tilt"] :is([data-card], [data-tile]) {
+    transition: transform var(--duration-slow) var(--ease-brand), translate var(--duration-base) var(--ease-brand),
+      box-shadow var(--duration-base) var(--ease-brand), border-color var(--duration-base) var(--ease-brand);
+  }
+  [data-motion-cards="tilt"] :is([data-card], [data-tile])[data-tilting] {
+    transform: perspective(900px) rotateX(calc(var(--tilt-y, 0) * -8deg)) rotateY(calc(var(--tilt-x, 0) * 8deg));
+    transition-duration: 90ms, var(--duration-base), var(--duration-base), var(--duration-base);
+  }
+  [data-motion-cards="float"] :is([data-card], [data-tile]):hover {
+    translate: 0 -6px;
+    box-shadow: var(--shadow-float);
+  }
+}
+[data-motion-cards="still"] :is([data-card], [data-tile]):hover { translate: none; }
+
+/* The Motion tab's Cards tiles: lift and tilt cannot use the live rules
+   inside the console (lift is the card's own utility, tilt needs the page's
+   pointer island), so each tile shows its effect on hover with the same
+   numbers. */
+@media (prefers-reduced-motion: no-preference) {
+  .motion-tile:hover [data-demo="cards-lift"] { translate: 0 -2px; box-shadow: var(--shadow-2); }
+  .motion-tile:hover [data-demo="cards-tilt"] { transform: perspective(600px) rotateX(5deg) rotateY(-9deg); box-shadow: var(--shadow-2); }
+}
