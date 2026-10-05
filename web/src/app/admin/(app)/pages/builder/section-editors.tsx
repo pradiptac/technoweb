@@ -5,7 +5,7 @@ import { CoverField } from "@/components/admin/cover-field";
 import { EditorField } from "@/components/admin/editor-field";
 import { Field, Select } from "@/components/ui/input";
 import {
-  Choice, IconPick, ImagePath, NumberInput, Repeater, Row, Text, Toggle, getIn, useBlock, type Path,
+  Choice, FilePath, IconPick, ImagePath, NumberInput, Repeater, Row, Text, Toggle, getIn, useBlock, type Path,
 } from "../../blocks/editors/shared";
 import type { PageBuilderOptions, PageSectionType } from "@/types/api";
 
@@ -46,6 +46,11 @@ export function blankData(type: PageSectionType): Record<string, unknown> {
     case "timeline": return { items: [{}, {}, {}] };
     case "before_after": return { before_label: "Before", after_label: "After", start: 50 };
     case "testimonials": return { items: [{}, {}, {}] };
+    case "team": return {};
+    case "downloads": return { items: [{}] };
+    case "countdown": return {};
+    case "columns": return { columns: [{}, {}] };
+    case "map": return {};
     default: return {};
   }
 }
@@ -218,6 +223,42 @@ function ComparisonEditor() {
         )} />
       <Text path={["primary", "label"]} label="Button under the table — label" />
       <Text path={["primary", "href"]} label="Button under the table — link" placeholder="/contact" />
+    </>
+  );
+}
+
+/** Each column's heading and editor body; the bodies are cleaned on save like any page body. */
+function ColumnsEditor({ sectionId }: { sectionId: string }) {
+  const { content, set, err } = useBlock();
+  const columns = Array.isArray(content.columns) ? (content.columns as { heading?: string; body?: string }[]) : [];
+
+  return (
+    <>
+      <Head />
+      <fieldset className="mb-6">
+        <legend className="mb-1 text-14 font-semibold">Columns</legend>
+        <p className="mb-3 text-12-5 text-faint">Two or three, side by side from tablet width.</p>
+        <ol className="grid gap-4">
+          {columns.map((c, i) => (
+            <li key={i} className="rounded-lg border border-line-strong bg-card p-4">
+              <Text path={["columns", i, "heading"]} label={`Column ${i + 1} — heading`} />
+              <EditorField
+                name={`_sb_${sectionId}_col${i}`}
+                label="Text"
+                defaultValue={typeof c?.body === "string" ? c.body : ""}
+                error={err(["columns", i, "body"])}
+                onChange={(html) => set(["columns", i, "body"], html || undefined)}
+              />
+              {columns.length > 2 && (
+                <button type="button" onClick={() => set(["columns"], columns.filter((_, j) => j !== i) as never)} className="text-12-5 font-semibold text-err underline">Remove this column</button>
+              )}
+            </li>
+          ))}
+        </ol>
+        {columns.length < 3 && (
+          <button type="button" onClick={() => set(["columns"], [...columns, {}] as never)} className="mt-3 rounded border border-line-strong bg-card px-3 py-1.5 text-13 font-semibold">Add a column</button>
+        )}
+      </fieldset>
     </>
   );
 }
@@ -582,6 +623,62 @@ export function SectionEditor({ type, sectionId, options }: {
               <ImagePath path={[...p, "photo_path"]} label="Photo" hint="Optional. Without one, their initial is drawn." />
             </>
           )} />
+        </>
+      );
+
+    case "team":
+      return (
+        <>
+          <Head />
+          <Row>
+            <Text path={["department"]} label="Department" hint="Blank for everybody; or one department, spelled as on Company → Team." />
+            <NumberInput path={["limit"]} label="How many, at most" min={1} max={48} />
+          </Row>
+          <Toggle path={["group"]} label="Group the people by department" />
+          <p className="-mt-2 mb-4 text-12-5 text-faint">A live list: the published team, in its own order, drawn as the theme draws its team cards. <Link href="/admin/team-members" className="font-semibold text-brand-ink underline">Edit the team</Link>.</p>
+        </>
+      );
+
+    case "downloads":
+      return (
+        <>
+          <Head />
+          <Repeater path={["items"]} label="Files" subject="File" min={1} max={20} blank={() => ({})} row={(p) => (
+            <>
+              <Text path={[...p, "title"]} label="Title" required placeholder="AMC brochure" />
+              <FilePath path={[...p, "file_path"]} label="File" noun="a file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
+                hint="From the media library's Files tab. Its size and kind are shown beside the button." />
+              <Text path={[...p, "note"]} label="One line about it" placeholder="Four pages, updated October 2026" />
+            </>
+          )} />
+        </>
+      );
+
+    case "countdown":
+      return (
+        <>
+          <Text path={["kicker"]} label="Kicker" />
+          <Text path={["heading"]} label="Heading" required placeholder="The offer ends in" />
+          <Text path={["lede"]} label="Lede" multiline />
+          <Row>
+            <Text path={["ends_at"]} label="Ends" type="datetime-local" required hint="In the site's own timezone." />
+            <Text path={["done_text"]} label="Once it has passed" placeholder="This offer has ended." />
+          </Row>
+          <Buttons />
+        </>
+      );
+
+    case "columns":
+      return <ColumnsEditor sectionId={sectionId} />;
+
+    case "map":
+      return (
+        <>
+          <Text path={["heading"]} label="Heading" placeholder="Find us" />
+          <Text path={["lede"]} label="Lede" multiline />
+          <Text path={["url"]} label="Google Maps embed address" required placeholder="https://www.google.com/maps/embed?pb=…"
+            hint={"In Google Maps: Share, then “Embed a map”, then copy the src=\"…\" from the code."} />
+          <Text path={["address"]} label="Address" multiline hint="Shown on the map's card until somebody loads the map." />
         </>
       );
 

@@ -467,6 +467,41 @@ section is capped at `min(70vh, 620px)` tall and centred (an inline width an
 editor set still wins), and a text section directly after another starts at
 the first's padding rather than doubling it.
 
+## Team, downloads, countdown, columns, map (0.111.0)
+
+Five more types, in `page-sections/people-sections.tsx`:
+
+- **`team`** — a live list, like `cards`: the published team from Company →
+  Team in its own order, with current certifications only (`/team`'s query),
+  optionally one `department`, at most `limit` (1–48), grouped by department
+  when `group` is on. Drawn by `TeamGrid` — the `/team` page's own markup — so
+  every theme's team idiom reaches it; the cards are `h3` under a section
+  heading and `h2` without one. Nobody published drops the section.
+- **`downloads`** — one to twenty files from the media library (`title`,
+  `file_path`, `note`); `after()` checks each is in the library. The public
+  read gives each its `url`, `size` in bytes and `extension`, never the path;
+  a file deleted since is left out, and nothing left drops the section. The
+  files are one `max-w-3xl` column whatever the count — a list of files is
+  read down, and two columns of three left an orphan row. The console's
+  `FilePath` takes `accept` and `noun` now (documents, not only a PDF).
+- **`countdown`** — `ends_at` is a wall-clock `Y-m-d\TH:i` in the site's
+  timezone; the public read turns it into an instant with its offset
+  (`2030-01-01T10:00:00+05:30`) and adds `ends_label`, the API's words for it.
+  `countdown.tsx` reads the clock through `useSyncExternalStore` with a null
+  server snapshot, so the boxes are drawn empty until hydration and nothing
+  about the visitor's clock can mismatch it; the ticking boxes are
+  `aria-hidden` and "Ends …" is the words a screen reader hears. After the end
+  it says `done_text`. Buttons as any band.
+- **`columns`** — two or three columns, each an optional heading and an editor
+  body. The bodies are rich text a second list deep,
+  `blocks.*.data.columns.*.body`: `SanitisesRichText::cleanAt()` walks any
+  number of `*`s now (it took one), and the page, preview and library requests
+  name the path. Two columns from `md`, three from `lg`.
+- **`map`** — a Google Maps embed address (`starts_with` Google's embed URL,
+  the `map_embed_url` setting's rule) and an address, drawn by the contact
+  page's `MapEmbed`: a card until pressed, so nothing reaches Google before
+  then.
+
 ## Tests
 
 `tests/Feature/PageBuilderTest.php` — every type's rules valid and invalid, an

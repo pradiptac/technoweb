@@ -5,6 +5,7 @@ namespace App\Support\PageSections;
 use App\Enums\PageSectionType;
 use App\Enums\PublishStatus;
 use App\Http\Resources\ContentBlockResource;
+use App\Http\Resources\TeamMemberResource;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\ContentBlock;
@@ -13,6 +14,7 @@ use App\Models\Form;
 use App\Models\Gallery;
 use App\Models\Industry;
 use App\Models\KnowledgeArticle;
+use App\Models\Media;
 use App\Models\Page;
 use App\Models\Product;
 use App\Models\SavedSection;
@@ -20,8 +22,10 @@ use App\Models\Service;
 use App\Models\Slider;
 use App\Models\Solution;
 use App\Models\StoreProduct;
+use App\Models\TeamMember;
 use App\Support\MediaMeta;
 use App\Support\Money;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
@@ -200,6 +204,9 @@ final class SectionPresenter
                 array_values((array) ($data['items'] ?? [])),
             )],
             PageSectionType::BeforeAfter => self::picture(self::picture($data, 'before'), 'after'),
+            PageSectionType::Team => self::team($data),
+            PageSectionType::Downloads => self::downloads($data),
+            PageSectionType::Countdown => self::countdown($data),
             default => $data,
         };
     }
@@ -274,6 +281,83 @@ final class SectionPresenter
         }
 
         return empty($data['items']) ? null : $data;
+    }
+
+    /**
+     * The team, as `/team` reads it: published, current certifications only.
+     * An empty list drops the section.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    private static function team(array $data): ?array
+    {
+        $department = is_string($data['department'] ?? null) && $data['department'] !== '' ? $data['department'] : null;
+        $members = TeamMember::query()->published()
+            ->when($department, fn ($q) => $q->where('department', $department))
+            ->with(['certifications' => fn ($q) => $q->current()])
+            ->orderBy('sort_order')->orderBy('id')
+            ->limit(max(1, min(48, (int) ($data['limit'] ?? 48))))
+            ->get();
+
+        $data['members'] = TeamMemberResource::collection($members)->resolve();
+
+        return $data['members'] === [] ? null : $data;
+    }
+
+    /**
+     * Each file's address, size and kind from the library; a file that has
+     * gone is left out, and a list with nothing left drops the section.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    private static function downloads(array $data): ?array
+    {
+        $items = array_values(array_filter((array) ($data['items'] ?? []), 'is_array'));
+        $rows = Media::query()->whereIn('path', array_filter(array_column($items, 'file_path'), 'is_string'))->get()->keyBy('path');
+
+        $out = [];
+        foreach ($items as $item) {
+            $media = $rows->get((string) ($item['file_path'] ?? ''));
+            if (! $media) {
+                continue;
+            }
+            $out[] = array_filter([
+                'title' => $item['title'] ?? $media->filename,
+                'note' => $item['note'] ?? null,
+                'url' => self::url($media->path),
+                'size' => (int) $media->size,
+                'extension' => strtolower(pathinfo((string) ($media->filename ?: $media->path), PATHINFO_EXTENSION)) ?: null,
+            ], fn ($v) => $v !== null);
+        }
+        $data['items'] = $out;
+
+        return $out === [] ? null : $data;
+    }
+
+    /**
+     * The end as an instant with its offset, so a browser in any timezone
+     * counts to the same moment the editor meant in the site's own.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    private static function countdown(array $data): ?array
+    {
+        try {
+            $end = CarbonImmutable::createFromFormat('Y-m-d\TH:i', (string) ($data['ends_at'] ?? ''), config('app.timezone'));
+        } catch (\Throwable) {
+            return null;
+        }
+        if (! $end) {
+            return null;
+        }
+        $data['ends_at'] = $end->toIso8601String();
+        // The label is the API's, in the site's own timezone — never a browser's.
+        $data['ends_label'] = $end->format('j F Y, g:i a');
+
+        return $data;
     }
 
     /**

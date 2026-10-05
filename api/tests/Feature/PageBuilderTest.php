@@ -11,6 +11,7 @@ use App\Models\Page;
 use App\Models\Role;
 use App\Models\Slider;
 use App\Models\Solution;
+use App\Models\TeamMember;
 use App\Models\User;
 use App\Support\MediaMeta;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -141,6 +142,13 @@ class PageBuilderTest extends TestCase
             'timeline' => ['timeline', ['items' => [['date' => '2010', 'title' => 'Founded'], ['date' => '2020', 'title' => 'Grew']]], ['items' => [['date' => '2010', 'title' => 'A'], ['title' => 'B']]], 'items.1.date'],
             'before and after' => ['before_after', ['before_path' => 'media/a.jpg', 'after_path' => 'media/a.jpg'], ['after_path' => 'media/a.jpg'], 'before_path'],
             'testimonials' => ['testimonials', ['items' => [['quote' => 'Good', 'name' => 'A'], ['quote' => 'Fine', 'name' => 'B']]], ['items' => [['quote' => 'Good', 'name' => 'A']]], 'items'],
+            'team' => ['team', ['department' => 'Support', 'limit' => 6, 'group' => true], ['limit' => 100], 'limit'],
+            'downloads' => ['downloads', ['items' => [['title' => 'Brochure', 'file_path' => 'media/a.jpg']]], ['items' => [['title' => 'No file']]], 'items.0.file_path'],
+            'downloads file' => ['downloads', ['items' => [['title' => 'Brochure', 'file_path' => 'media/a.jpg']]], ['items' => [['title' => 'Gone', 'file_path' => 'media/nowhere.pdf']]], 'items.0.file_path'],
+            'countdown' => ['countdown', ['heading' => 'Launch', 'ends_at' => '2030-01-01T10:00'], ['heading' => 'Launch', 'ends_at' => 'next Tuesday'], 'ends_at'],
+            'columns' => ['columns', ['columns' => [['body' => '<p>a</p>'], ['heading' => 'B', 'body' => '<p>b</p>']]], ['columns' => [['body' => '<p>only one</p>']]], 'columns'],
+            'columns body' => ['columns', ['columns' => [['body' => '<p>a</p>'], ['body' => '<p>b</p>']]], ['columns' => [['body' => '<p>a</p>'], ['heading' => 'B']]], 'columns.1.body'],
+            'map' => ['map', ['url' => 'https://www.google.com/maps/embed?pb=!1m18'], ['url' => 'https://evil.example/maps/embed'], 'url'],
         ];
     }
 
@@ -244,6 +252,57 @@ class PageBuilderTest extends TestCase
         $this->assertArrayNotHasKey('before_path', $sections[2]['data']);
         $this->assertSame('A customer', $sections[3]['data']['items'][0]['photo_alt']);
         $this->assertArrayNotHasKey('photo', $sections[3]['data']['items'][1]);
+    }
+
+    public function test_team_downloads_countdown_columns_and_map_are_stored_and_presented(): void
+    {
+        $this->media('media/brochure.pdf', 'application/pdf');
+        Media::query()->where('path', 'media/brochure.pdf')->update(['size' => 245760, 'filename' => 'AMC brochure.pdf']);
+        TeamMember::create(['name' => 'Asha Rao', 'designation' => 'Engineer', 'department' => 'Support', 'status' => 'published', 'sort_order' => 1]);
+        TeamMember::create(['name' => 'Ravi Sen', 'designation' => 'Sales', 'department' => 'Sales', 'status' => 'published', 'sort_order' => 2]);
+
+        $this->create([
+            self::section('team', ['heading' => 'Our engineers', 'department' => 'Support', 'group' => '0']),
+            self::section('downloads', ['items' => [
+                ['title' => 'AMC brochure', 'file_path' => 'media/brochure.pdf', 'note' => 'Four pages'],
+            ]]),
+            self::section('countdown', ['heading' => 'Offer ends', 'ends_at' => '2030-01-01T10:00', 'done_text' => 'The offer has ended.']),
+            self::section('columns', ['columns' => [
+                ['heading' => 'Offices', 'body' => '<p>Desks</p><script>alert(1)</script>'],
+                ['heading' => 'Factories', 'body' => '<p>Rugged <img src=x onerror="x()"></p>'],
+            ]]),
+            self::section('map', ['url' => 'https://www.google.com/maps/embed?pb=!1m18', 'address' => 'Salt Lake, Kolkata']),
+        ])->assertCreated();
+
+        $stored = Page::query()->where('slug', 'built-page')->first()->blocks;
+        $this->assertSame(['team', 'downloads', 'countdown', 'columns', 'map'], array_column($stored, 'type'));
+        $this->assertFalse($stored[0]['data']['group']);
+        // Both columns' bodies are cleaned, a second list deep.
+        $this->assertStringNotContainsString('<script', $stored[3]['data']['columns'][0]['body']);
+        $this->assertStringNotContainsString('onerror', $stored[3]['data']['columns'][1]['body']);
+
+        $sections = $this->getJson('/api/v1/pages/built-page')->assertOk()->json('data.sections');
+        $this->assertSame(['Asha Rao'], array_column($sections[0]['data']['members'], 'name'), 'one department only');
+        $file = $sections[1]['data']['items'][0];
+        $this->assertSame(['AMC brochure', 'Four pages', 245760, 'pdf'], [$file['title'], $file['note'], $file['size'], $file['extension']]);
+        $this->assertStringEndsWith('storage/media/brochure.pdf', $file['url']);
+        $this->assertArrayNotHasKey('file_path', $file);
+        // An instant with its offset, so every browser counts to the same moment.
+        $this->assertSame('2030-01-01T10:00:00+05:30', $sections[2]['data']['ends_at']);
+        $this->assertSame('Salt Lake, Kolkata', $sections[4]['data']['address']);
+    }
+
+    public function test_an_empty_team_or_a_vanished_download_drops_the_section(): void
+    {
+        $this->media('media/gone.pdf', 'application/pdf');
+        $this->create([
+            self::section('team', ['department' => 'Nobody']),
+            self::section('downloads', ['items' => [['title' => 'Gone', 'file_path' => 'media/gone.pdf']]]),
+            self::section('divider', []),
+        ])->assertCreated();
+        Media::query()->where('path', 'media/gone.pdf')->delete();
+
+        $this->assertSame(['divider'], array_column($this->getJson('/api/v1/pages/built-page')->json('data.sections'), 'type'));
     }
 
     public function test_before_and_after_pictures_and_testimonial_photos_must_be_library_pictures(): void

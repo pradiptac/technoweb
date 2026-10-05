@@ -1628,6 +1628,11 @@ const SECTION_TYPES = [
   { value: 'timeline', label: 'Timeline', blurb: 'Dated milestones joined by a line — a company history, a project, a roll-out.' },
   { value: 'before_after', label: 'Before and after', blurb: 'Two pictures of one place with a divider somebody drags across — a rack before and after, a site before and after.' },
   { value: 'testimonials', label: 'Testimonials', blurb: 'Two to nine quotations as cards, each with who said it and an optional photo.' },
+  { value: 'team', label: 'Team', blurb: 'The people from Company → Team, as the theme draws its team cards — everybody, or one department. It follows the team as it changes.' },
+  { value: 'downloads', label: 'Downloads', blurb: 'Files from the media library — brochures, datasheets, price lists — each with its size and a download button.' },
+  { value: 'countdown', label: 'Countdown', blurb: 'Days, hours, minutes and seconds to a date — a launch, an offer ending, an event — with a line for when it has passed.' },
+  { value: 'columns', label: 'Columns of text', blurb: 'Two or three columns side by side, each with a heading and a body from the editor.' },
+  { value: 'map', label: 'Map', blurb: 'A Google map, loaded only when somebody presses it, with the address beside it.' },
 ];
 const SECTION_PRESETS = [
   { value: 'landing', label: 'Landing page', blurb: 'A hero, three reasons, a live list of solutions, questions and a close.', sections: [

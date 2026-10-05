@@ -29,7 +29,7 @@ class StorePageRequest extends FormRequest
      */
     protected function richTextFields(): array
     {
-        return ['body', 'answer_blocks.*.detail', 'blocks.*.data.body'];
+        return ['body', 'answer_blocks.*.detail', 'blocks.*.data.body', 'blocks.*.data.columns.*.body'];
     }
 
     public function authorize(): bool

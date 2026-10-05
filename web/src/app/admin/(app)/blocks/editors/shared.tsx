@@ -176,8 +176,16 @@ export function ImagePath({ path, label, hint }: { path: Path; label: string; hi
   );
 }
 
-/** A document from the library's Files tab — the gated download's PDF. */
-export function FilePath({ path, label, hint }: { path: Path; label: string; hint?: string }) {
+/** A document from the library's Files tab — the gated download's PDF, a downloads section's file. */
+export function FilePath({ path, label, hint, accept = ".pdf", noun = "a PDF" }: {
+  path: Path;
+  label: string;
+  hint?: string;
+  /** The extensions offered; a PDF by default. */
+  accept?: string;
+  /** What the button chooses: "a PDF", "a file". */
+  noun?: string;
+}) {
   const { content, set, err } = useBlock();
   const [open, setOpen] = useState(false);
   const value = getIn(content, path);
@@ -190,12 +198,12 @@ export function FilePath({ path, label, hint }: { path: Path; label: string; hin
         <span className={cn("min-w-0 flex-1 truncate rounded border border-line-strong bg-card px-3 py-2.5 text-13", !stored && "text-faint")}>
           {stored ? stored.split("/").pop() : "No file chosen"}
         </span>
-        <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>Choose a PDF</Button>
+        <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>Choose {noun}</Button>
         {stored && <Button type="button" variant="ghost" size="sm" onClick={() => set(path, undefined)}>Clear</Button>}
       </div>
       {hint && <p className="mt-1.5 text-12-5 text-faint">{hint}</p>}
       {message && <p className="mt-1.5 text-12-5 text-err">{message}</p>}
-      <MediaBrowser open={open} onClose={() => setOpen(false)} kind="file" title="Choose a PDF" accept=".pdf" onPick={(f) => { set(path, f.path); setOpen(false); }} />
+      <MediaBrowser open={open} onClose={() => setOpen(false)} kind="file" title={`Choose ${noun}`} accept={accept} onPick={(f) => { set(path, f.path); setOpen(false); }} />
     </div>
   );
 }

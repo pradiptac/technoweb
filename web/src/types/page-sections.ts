@@ -12,6 +12,7 @@
  * renders nothing rather than failing a check nobody runs across the wire.
  */
 import type { ContentBlock } from "./blocks";
+import type { TeamMember } from "./api";
 import type { SectionBackground } from "@/themes/options";
 
 export type PageSectionType =
@@ -21,6 +22,8 @@ export type PageSectionType =
   | "stats" | "steps" | "tabs" | "checklist" | "cta"
   /** The four of 0.109.0. */
   | "comparison" | "timeline" | "before_after" | "testimonials"
+  /** The five of 0.111.0. */
+  | "team" | "downloads" | "countdown" | "columns" | "map"
   /** A library section placed linked (0.106.0): stored as `{saved_id}`, drawn as the library's section. */
   | "saved";
 
@@ -101,6 +104,17 @@ export type BeforeAfterSectionData = Picture<"before"> & Picture<"after"> & {
 };
 export type TestimonialItem = Picture<"photo"> & { quote: string; name: string; role?: string };
 export type TestimonialsSectionData = Head & { items: TestimonialItem[] };
+/** The team as a live list — the public read carries `members` in `/team`'s shape. */
+export type TeamSectionData = Head & { department?: string; limit?: number; group?: boolean; members?: TeamMember[] };
+/** Each file resolved from the library: its address, size in bytes and extension. */
+export type DownloadsSectionData = Head & { items: { title: string; note?: string; url: string; size?: number; extension?: string }[] };
+/** `ends_at` is an instant with its offset; `ends_label` the API's words for it. */
+export type CountdownSectionData = Head & {
+  heading: string; ends_at: string; ends_label?: string; done_text?: string;
+  primary?: SectionButton; secondary?: SectionButton;
+};
+export type ColumnsSectionData = Head & { columns: { heading?: string; body: string }[] };
+export type MapSectionData = { heading?: string; lede?: string; url: string; address?: string };
 
 /**
  * How a section sits on the page (2026-10-05, `SectionRules::STYLE`): only
@@ -145,7 +159,12 @@ export type PageSection =
   | Of<"comparison", ComparisonSectionData>
   | Of<"timeline", TimelineSectionData>
   | Of<"before_after", BeforeAfterSectionData>
-  | Of<"testimonials", TestimonialsSectionData>;
+  | Of<"testimonials", TestimonialsSectionData>
+  | Of<"team", TeamSectionData>
+  | Of<"downloads", DownloadsSectionData>
+  | Of<"countdown", CountdownSectionData>
+  | Of<"columns", ColumnsSectionData>
+  | Of<"map", MapSectionData>;
 
 /** A section as stored and edited: paths and ids, and whatever the type's fields are. */
 export type StoredSection = {

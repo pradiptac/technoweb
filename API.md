@@ -1179,7 +1179,15 @@ items `{date, title, body?}`), `before_after` (`before_path`, `after_path`,
 both library pictures, `before_label?`, `after_label?`, `start?` 10–90,
 `caption?`; read as `before`/`after` with `_alt`/`_focus`) and `testimonials`
 (2–9 items `{quote, name, role?, photo_path?}`, each photo read as
-`photo`/`photo_alt`/`photo_focus`) — and
+`photo`/`photo_alt`/`photo_focus`), and since 0.111.0 `team` (`department?`,
+`limit?` 1–48, `group?`; read with `members` in `GET /team`'s shape, dropped
+when nobody matches), `downloads` (1–20 items `{title, file_path, note?}`, each
+file in the library; read as `{title, note?, url, size, extension}`, a missing
+file left out), `countdown` (`heading`, `ends_at` as `Y-m-d\TH:i` in the site's
+timezone, `done_text?`, buttons; read with `ends_at` as an instant with its
+offset and `ends_label`), `columns` (2–3 `{heading?, body}`, each body rich
+text — `blocks.*.data.columns.*.body` is cleaned on write) and `map` (`url`
+beginning `https://www.google.com/maps/embed`, `address?`) — and
 `data` is checked by that type's own rules (`SectionRules`), so a 422 names the
 field: `blocks.3.data.heading`. A picture or video must be in the media
 library and of the right kind; a content block, slider, gallery or form is

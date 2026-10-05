@@ -18,6 +18,7 @@ import {
   BeforeAfterSection, ChecklistSection, ComparisonSection, CtaSection, StatsSection, StepsSection, TabsSection,
   TestimonialsSection, TimelineSection,
 } from "./visual-sections";
+import { ColumnsSection, CountdownSection, DownloadsSection, MapSection, TeamSection } from "./people-sections";
 
 /**
  * A builder page's sections, in order (`docs/page-builder.md`).
@@ -140,6 +141,11 @@ function renderSection(
     case "timeline": return <TimelineSection data={section.data} reveal={reveal} />;
     case "before_after": return <BeforeAfterSection data={section.data} reveal={reveal} />;
     case "testimonials": return <TestimonialsSection data={section.data} reveal={reveal} />;
+    case "team": return <TeamSection data={section.data} reveal={reveal} />;
+    case "downloads": return <DownloadsSection data={section.data} reveal={reveal} />;
+    case "countdown": return <CountdownSection data={section.data} reveal={reveal} />;
+    case "columns": return <ColumnsSection data={section.data} reveal={reveal} />;
+    case "map": return <MapSection data={section.data} reveal={reveal} />;
     default: return null;
   }
 }

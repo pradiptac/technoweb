@@ -337,6 +337,50 @@ final class SectionRules
                 'items.*.role' => ['nullable', 'string', 'max:160'],
                 'items.*.photo_path' => ['nullable', 'string', 'max:255'],
             ],
+            // The team as a live list: everybody, or one department.
+            PageSectionType::Team => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'department' => ['nullable', 'string', 'max:80'],
+                'limit' => ['nullable', 'integer', 'min:1', 'max:48'],
+                'group' => ['nullable', 'boolean'],
+            ],
+            PageSectionType::Downloads => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'items' => ['required', 'array', 'min:1', 'max:20'],
+                'items.*.title' => ['required', 'string', 'max:120'],
+                'items.*.file_path' => ['required', 'string', 'max:255'],
+                'items.*.note' => ['nullable', 'string', 'max:200'],
+            ],
+            // A wall-clock time, read in the site's timezone.
+            PageSectionType::Countdown => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => ['required', 'string', 'max:160'],
+                'lede' => $lede,
+                'ends_at' => ['required', 'string', 'date_format:Y-m-d\TH:i'],
+                'done_text' => ['nullable', 'string', 'max:160'],
+                ...self::button('primary', $at),
+                ...self::button('secondary', $at),
+            ],
+            // Each column's body is rich text, cleaned on write
+            // (`blocks.*.data.columns.*.body` in the page requests).
+            PageSectionType::Columns => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'columns' => ['required', 'array', 'min:2', 'max:3'],
+                'columns.*.heading' => ['nullable', 'string', 'max:120'],
+                'columns.*.body' => ['required', 'string', 'max:20000'],
+            ],
+            PageSectionType::Map => [
+                'heading' => $heading,
+                'lede' => $lede,
+                'url' => ['required', 'string', 'max:2048', 'starts_with:https://www.google.com/maps/embed'],
+                'address' => ['nullable', 'string', 'max:300'],
+            ],
             // A linked library section: only which one. That it exists and is
             // a section (not a template) is checked in `checkData`.
             PageSectionType::Saved => [
@@ -411,6 +455,14 @@ final class SectionRules
             "{$d}.gallery_id.required" => 'Choose a gallery.',
             "{$d}.form_id.required" => 'Choose a form.',
             "{$d}.source.required" => 'Choose what this section shows.',
+            "{$d}.items.*.file_path.required" => 'Choose the file from the media library.',
+            "{$d}.ends_at.required" => 'Say when the countdown ends.',
+            "{$d}.ends_at.date_format" => 'Give the end as a date and a time.',
+            "{$d}.columns.required" => 'Add the columns.',
+            "{$d}.columns.min" => 'Two columns at least.',
+            "{$d}.columns.*.body.required" => 'Write the text for this column.',
+            "{$d}.url.required" => 'Paste the Google Maps embed address.',
+            "{$d}.url.starts_with" => 'Use a Google Maps embed address: Share, then "Embed a map", then the src from the iframe.',
         ];
     }
 
@@ -547,6 +599,14 @@ final class SectionRules
             case PageSectionType::Testimonials:
                 $itemPictures('photo_path');
                 break;
+            case PageSectionType::Downloads:
+                foreach ((array) ($data['items'] ?? []) as $n => $item) {
+                    $path = is_array($item) ? ($item['file_path'] ?? null) : null;
+                    if (is_string($path) && $path !== '' && ! self::mediaExists($path)) {
+                        $validator->errors()->add("{$at}.items.{$n}.file_path", 'Choose the file from the media library.');
+                    }
+                }
+                break;
             case PageSectionType::BeforeAfter:
                 $media('before_path', 'image/');
                 $media('after_path', 'image/');
@@ -645,7 +705,7 @@ final class SectionRules
                     $data[$int] = (int) $data[$int];
                 }
             }
-            foreach (['rule', 'call'] as $bool) {
+            foreach (['rule', 'call', 'group'] as $bool) {
                 if (isset($data[$bool])) {
                     $data[$bool] = filter_var($data[$bool], FILTER_VALIDATE_BOOLEAN);
                 }

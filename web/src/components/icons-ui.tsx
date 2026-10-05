@@ -118,6 +118,10 @@ export const IconMenu = (p: P) => (
 export const IconMail = (p: P) => (
   <svg {...base} {...p}><rect x="2.6" y="4.8" width="18.8" height="14.4" rx="2.2" /><path d="m2.6 7.4 9.4 6 9.4-6" /></svg>
 );
+/** A download: an arrow down onto a tray — the downloads section's button (0.111.0). */
+export const IconDownload = (p: P) => (
+  <svg {...base} {...p}><path d="M12 3.5v11.5" /><path d="m7 10.5 5 5 5-5" /><path d="M4 16.5v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /></svg>
+);
 /** A map pin — the footer's address plate (Vantage). */
 export const IconMapPin = (p: P) => (
   <svg {...base} {...p}><path d="M12 21.5s-6.8-6.1-6.8-11.2a6.8 6.8 0 0 1 13.6 0c0 5.1-6.8 11.2-6.8 11.2z" /><circle cx="12" cy="10.2" r="2.5" /></svg>

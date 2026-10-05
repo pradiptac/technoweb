@@ -21,6 +21,26 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.111.0 — 2026-10-06
+
+**Five more builder sections.**
+
+- **Team** — your people from Company → Team, drawn the way the active theme
+  draws its team cards: everybody, or one department, optionally grouped. It
+  stays in step as the team changes.
+- **Downloads** — brochures, datasheets and price lists from the media
+  library, each with its file type, size and a download button. A file
+  deleted from the library simply drops off the list.
+- **Countdown** — days, hours, minutes and seconds to a date and time (an
+  offer ending, a launch, an event), with your own words for when it has
+  passed and up to two buttons.
+- **Columns of text** — two or three columns side by side, each with a
+  heading and a body from the editor.
+- **Map** — a Google map that loads only when somebody presses it, with the
+  address shown on its card until then.
+
+---
+
 ## 0.110.0 — 2026-10-05
 
 **The WordPress import now recognises forms, price tables, galleries and

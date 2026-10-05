@@ -51,6 +51,16 @@ enum PageSectionType: string
     case Timeline = 'timeline';
     case BeforeAfter = 'before_after';
     case Testimonials = 'testimonials';
+    /*
+     * Five more on 2026-10-06 (0.111.0): the team as a live list, files to
+     * download, a countdown to a date, two or three columns of text, and a
+     * map that loads when pressed.
+     */
+    case Team = 'team';
+    case Downloads = 'downloads';
+    case Countdown = 'countdown';
+    case Columns = 'columns';
+    case Map = 'map';
     /**
      * A section from the library, placed linked (2026-10-05): it stores only
      * `saved_id`, and the presenter draws the library's section in its place,
@@ -84,6 +94,11 @@ enum PageSectionType: string
             self::Timeline => 'Timeline',
             self::BeforeAfter => 'Before and after',
             self::Testimonials => 'Testimonials',
+            self::Team => 'Team',
+            self::Downloads => 'Downloads',
+            self::Countdown => 'Countdown',
+            self::Columns => 'Columns of text',
+            self::Map => 'Map',
             self::Saved => 'Saved section',
         };
     }
@@ -118,6 +133,11 @@ enum PageSectionType: string
             self::Timeline => 'Dated milestones joined by a line — a company history, a project, a roll-out.',
             self::BeforeAfter => 'Two pictures of one place with a divider somebody drags across — a rack before and after, a site before and after.',
             self::Testimonials => 'Two to nine quotations as cards, each with who said it and an optional photo.',
+            self::Team => 'The people from Company → Team, as the theme draws its team cards — everybody, or one department. It follows the team as it changes.',
+            self::Downloads => 'Files from the media library — brochures, datasheets, price lists — each with its size and a download button.',
+            self::Countdown => 'Days, hours, minutes and seconds to a date — a launch, an offer ending, an event — with a line for when it has passed.',
+            self::Columns => 'Two or three columns side by side, each with a heading and a body from the editor.',
+            self::Map => 'A Google map, loaded only when somebody presses it, with the address beside it.',
             self::Saved => 'A section from the library, kept in step with it: edit it once and every page that places it changes.',
         };
     }
