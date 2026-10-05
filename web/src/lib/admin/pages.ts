@@ -126,6 +126,17 @@ export async function getPageBuilderOptions(): Promise<PageBuilderOptions> {
 }
 
 /**
+ * A page body laid out as builder sections (0.109.0): split at its headings
+ * by the API, cleaned as a saved body is. Writes nothing.
+ */
+export async function sectionsFromBody(body: string): Promise<StoredSection[]> {
+  const res = await apiFetch<{ data: { sections: StoredSection[] } }>("/admin/pages/sections-from-body", {
+    method: "POST", body: { body }, token: await token(),
+  });
+  return res.data.sections;
+}
+
+/**
  * The unsaved-draft preview: the sections as typed, validated by the rules a
  * save runs and presented as the public site reads them. Writes nothing.
  */

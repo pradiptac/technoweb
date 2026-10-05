@@ -195,6 +195,11 @@ final class SectionPresenter
                 fn ($item) => is_array($item) ? self::picture($item, 'image') : [],
                 array_values((array) ($data['items'] ?? [])),
             )],
+            PageSectionType::Testimonials => [...$data, 'items' => array_map(
+                fn ($item) => is_array($item) ? self::picture($item, 'photo') : [],
+                array_values((array) ($data['items'] ?? [])),
+            )],
+            PageSectionType::BeforeAfter => self::picture(self::picture($data, 'before'), 'after'),
             default => $data,
         };
     }

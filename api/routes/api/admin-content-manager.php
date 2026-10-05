@@ -142,6 +142,7 @@ Route::middleware('role:content_manager')->group(function () {
     // "builder" as a page and 404s.
     Route::get('pages/builder', [AdminPageController::class, 'builder'])->name('pages.builder');
     Route::post('pages/preview', [AdminPageController::class, 'preview'])->middleware('throttle:60,1')->name('pages.preview');
+    Route::post('pages/sections-from-body', [AdminPageController::class, 'sectionsFromBody'])->middleware('throttle:30,1')->name('pages.sections-from-body');
     // The section library and page templates (2026-10-05, docs/page-builder.md).
     Route::get('saved-sections', [SavedSectionController::class, 'index'])->name('saved-sections.index');
     Route::post('saved-sections', [SavedSectionController::class, 'store'])->name('saved-sections.store');

@@ -1624,6 +1624,10 @@ const SECTION_TYPES = [
   { value: 'tabs', label: 'Tabs', blurb: 'Two to eight panels behind tabs, each with words and an optional picture.' },
   { value: 'checklist', label: 'Checklist', blurb: 'A list of short points with a tick or an icon, in one to three columns.' },
   { value: 'cta', label: 'Call to action', blurb: 'A closing band — a heading, a line and buttons — drawn the way the theme draws its own.' },
+  { value: 'comparison', label: 'Comparison table', blurb: 'Two to four plans side by side, feature by feature, with a tick, a cross or a few words in each cell.' },
+  { value: 'timeline', label: 'Timeline', blurb: 'Dated milestones joined by a line — a company history, a project, a roll-out.' },
+  { value: 'before_after', label: 'Before and after', blurb: 'Two pictures of one place with a divider somebody drags across — a rack before and after, a site before and after.' },
+  { value: 'testimonials', label: 'Testimonials', blurb: 'Two to nine quotations as cards, each with who said it and an optional photo.' },
 ];
 const SECTION_PRESETS = [
   { value: 'landing', label: 'Landing page', blurb: 'A hero, three reasons, a live list of solutions, questions and a close.', sections: [
@@ -2612,6 +2616,20 @@ createServer(async (req, res) => {
       if (bad !== -1) return json(res, 422, { message: 'That is not a kind of section this site can draw.', errors: { [`blocks.${bad}.type`]: ['That is not a kind of section this site can draw.'] } });
       return json(res, 200, { data: { sections: presentSections(blocks) } });
     }
+    // A page body laid out as sections, split at its <h2>s (BodySections, 0.109.0). Writes nothing.
+    if (p === '/admin/pages/sections-from-body' && req.method === 'POST') {
+      const body = String((await readJsonBody(req)).body ?? '').replace(/<script[\s\S]*?<\/script>/gi, '');
+      if (!body.replace(/<[^>]*>/g, '').trim()) return json(res, 422, { message: 'This page has no content to lay out yet.', errors: { body: ['This page has no content to lay out yet.'] } });
+      const parts = body.split(/<h2[^>]*>([\s\S]*?)<\/h2>/i);
+      const sections = [];
+      const add = (heading, html) => {
+        if (!html.replace(/<[^>]*>/g, '').trim()) return;
+        sections.push({ id: crypto.randomUUID(), type: 'rich_text', hidden: false, background: null, reveal: null, style: null, data: heading ? { heading, body: html } : { body: html } });
+      };
+      add(null, parts[0]);
+      for (let i = 1; i < parts.length; i += 2) add(parts[i].replace(/<[^>]*>/g, '').trim(), parts[i + 1] ?? '');
+      return json(res, 200, { data: { sections } });
+    }
 
     /* Custom field groups. */
     if (p === '/admin/custom-field-groups' && req.method === 'GET') {
@@ -3186,6 +3204,7 @@ createServer(async (req, res) => {
         notices: ['Every imported page, post, product and category gets a redirect from its old address. Old "?p=123" links cannot be redirected.'],
         decisions: {
           media_scope: { value: 'referenced', library: 1480 },
+          page_layout: { value: 'sections', pages: 18 },
           currency: 'INR',
           tax_basis: { value: 'keep', choices: ['keep', 'add_gst'] },
           content_types: [{ source: 'portfolio', name: 'Portfolio', slug: 'portfolio', problem: null, imported: false, entries: 14 }],

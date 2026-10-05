@@ -405,6 +405,68 @@ The library: `GET/POST /admin/saved-sections`, `GET/PATCH/DELETE /admin/saved-se
 | `POST`/`PATCH` | `/admin/pages`, `/admin/pages/{id}` | `blocks[]`, `template: builder`. The admin detail read returns `blocks`, `blocks_media` and `sections` |
 | `GET` | `/pages/{slug}` | `sections` for a builder page only; `faq_schema` counts its questions |
 
+## Comparison, timeline, before and after, testimonials (0.109.0)
+
+Four more section types, on 0.107.0's rule that the component decides the
+proportion:
+
+- **`comparison`** — two to four `plans` (`name`, `note`), up to twenty `rows`
+  (`label`, `cells`), and an optional `highlight` (a plan's position). A cell
+  is `yes` (a tick), `no` (a cross), a few words, or blank (a dash). From
+  `sm` it is a real `<table>` with row and column headers, held to
+  `max-w-5xl`, four plans keeping a 600px table that scrolls inside its card;
+  **below `sm` it is one card per plan** listing every feature, because three
+  columns beside a label column do not fit 330px and a sideways scroll hides
+  the plan people came to compare. The two are alternatives by breakpoint, so
+  a screen reader meets one. `cells` is a list of plain values kept by
+  position — `SectionRules::keep()` learned that shape (`children === ['*']`)
+  for it, blank as null.
+- **`timeline`** — two to twelve milestones (`date`, `title`, `body`). The
+  line runs down the left on a phone and down the middle from `lg`, the
+  milestones alternating sides; it draws on the reveal (`data-step-line`).
+- **`before_after`** — two library pictures, their labels and where the
+  divider `start`s (10–90). A client island, `before-after.tsx`: a native
+  range input over the whole picture (a pointer drags anywhere, the arrows
+  move it, a screen reader hears a slider), the handle drawn beside it with
+  the input's focus ring through `peer-focus-visible`, the labels on opaque
+  `bg-card` chips. Held to `max-w-5xl`, 16:10.
+- **`testimonials`** — two to nine quotations (`quote`, `name`, `role`,
+  `photo_path`). Four are two by two; any other count is rows of up to three,
+  the last row centred. Without a photo, the person's initial on a solid disc.
+
+The comparison editor removes a plan with **one** write
+(`set([], next)`): each `set` starts from the same snapshot of the section,
+so three in a row kept only the last, and a removed plan left its column of
+cells under the next plan.
+
+## From a page's own content (0.109.0)
+
+A page written in the editor — or imported as one body — used to open the
+builder empty when switched to it, and a builder page never draws its body,
+so the content seemed to vanish. Three things fix that:
+
+- **"This page's content"** is the first thing the empty builder offers when
+  the page has a body: **Lay it out as sections** (`POST
+  /admin/pages/sections-from-body`, `App\Support\PageSections\BodySections`:
+  a `rich_text` section at each `<h2>` — at each `<h3>` when there is no
+  `<h2>` and at least two `<h3>`s — the heading as the section's heading,
+  what came before the first as a section of its own, cleaned as a saved body
+  is, nothing written) or **Keep it as one text section**. Through `apply`,
+  so Undo puts the empty builder back. The page form passes `readBody()`,
+  which reads the uncontrolled body editor's field at the press.
+- `BodySections` keeps every result saveable: a heading over nothing keeps its
+  words as an `<h2>` in the body (an empty `body` is refused on save), a
+  section over 180,000 characters is cut between elements, and past
+  `MAX_SECTIONS` the rest joins the last section.
+- **A builder page with no sections renders its body** as the default
+  template does (`(marketing)/[slug]/page.tsx`), so a page switched to the
+  builder and saved before anything was laid out is never blank.
+
+Two CSS rules keep a laid-out page in proportion: a picture in a `rich_text`
+section is capped at `min(70vh, 620px)` tall and centred (an inline width an
+editor set still wins), and a text section directly after another starts at
+the first's padding rather than doubling it.
+
 ## Tests
 
 `tests/Feature/PageBuilderTest.php` — every type's rules valid and invalid, an
@@ -415,3 +477,7 @@ by the theme rule, a live list resolved, faq sections joining the one
 `FAQPage`, the preview presenting without writing, the options endpoint, every
 preset saved through the real rules, the role gate.
 `tests/Unit/SanitisesRichTextTest.php` — the nested wildcard path.
+`tests/Unit/BodySectionsTest.php` — the heading split, `h3`s, a heading over
+nothing, an empty body, the forty cap, the size cut. `PageBuilderTest` also
+pins the four 0.109.0 types and `sections-from-body` (cleaned, role-gated,
+writes nothing, saveable as returned).

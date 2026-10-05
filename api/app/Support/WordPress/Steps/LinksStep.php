@@ -19,6 +19,10 @@ use Illuminate\Database\Eloquent\Model;
  * `#fragment`. A link to a file in the old uploads directory (a PDF, say)
  * brings the file into the media library and points at it there.
  *
+ * A page laid out as builder sections (0.109.0) carries its words in each
+ * section's `body` and its links in buttons' and features' `href`s as well
+ * as its own body, and those are rewritten the same way.
+ *
  * It runs in the commit only, after the last record step; in the review it
  * has nothing to count.
  */
@@ -71,14 +75,30 @@ class LinksStep extends Step
                 $model = ImportMap::resolve($row);
                 $column = self::BODIES[$row->target_type];
 
-                if ($model === null || ! is_string($html = $model->getAttribute($column)) || $html === '') {
+                if ($model === null) {
                     return;
                 }
 
-                $rewritten = $this->rewrite($ctx, $html, $paths, (string) $model->getAttribute('title') ?: (string) $model->getAttribute('name'));
+                $label = (string) $model->getAttribute('title') ?: (string) $model->getAttribute('name');
+                $changed = false;
 
-                if ($rewritten !== $html) {
-                    $model->setAttribute($column, $rewritten);
+                if (is_string($html = $model->getAttribute($column)) && $html !== '') {
+                    $rewritten = $this->rewrite($ctx, $html, $paths, $label);
+                    if ($rewritten !== $html) {
+                        $model->setAttribute($column, $rewritten);
+                        $changed = true;
+                    }
+                }
+
+                if ($row->target_type === 'page' && is_array($blocks = $model->getAttribute('blocks')) && $blocks !== []) {
+                    $rewritten = $this->rewriteSections($ctx, $blocks, $paths, $label);
+                    if ($rewritten !== $blocks) {
+                        $model->setAttribute('blocks', $rewritten);
+                        $changed = true;
+                    }
+                }
+
+                if ($changed) {
                     $model->save();
                     $ctx->report->count($this->key(), 'update');
                 }
@@ -135,6 +155,29 @@ class LinksStep extends Step
         }
 
         return $path === '/' ? null : $path;
+    }
+
+    /**
+     * A section list with every `body` rewritten as markup and every `href`
+     * as a link, at any depth.
+     *
+     * @param  array<int|string, mixed>  $value
+     * @param  array<string, string>  $paths
+     * @return array<int|string, mixed>
+     */
+    private function rewriteSections(Context $ctx, array $value, array $paths, string $label): array
+    {
+        foreach ($value as $key => $item) {
+            if (is_array($item)) {
+                $value[$key] = $this->rewriteSections($ctx, $item, $paths, $label);
+            } elseif ($key === 'body' && is_string($item) && $item !== '') {
+                $value[$key] = $this->rewrite($ctx, $item, $paths, $label);
+            } elseif ($key === 'href' && is_string($item) && $item !== '') {
+                $value[$key] = html_entity_decode((string) preg_replace('/^href="|"$/', '', $this->rewrite($ctx, 'href="'.e($item).'"', $paths, $label)), ENT_QUOTES);
+            }
+        }
+
+        return $value;
     }
 
     /** @param  array<string, string>  $paths */

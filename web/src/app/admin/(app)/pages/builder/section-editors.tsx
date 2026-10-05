@@ -42,6 +42,10 @@ export function blankData(type: PageSectionType): Record<string, unknown> {
     case "tabs": return { items: [{}, {}] };
     case "checklist": return { columns: 2, items: [{}, {}, {}] };
     case "cta": return { tone: "accent", call: true };
+    case "comparison": return { plans: [{}, {}], rows: [{}, {}, {}] };
+    case "timeline": return { items: [{}, {}, {}] };
+    case "before_after": return { before_label: "Before", after_label: "After", start: 50 };
+    case "testimonials": return { items: [{}, {}, {}] };
     default: return {};
   }
 }
@@ -151,6 +155,70 @@ function Body({ sectionId, label = "Text" }: { sectionId: string; label?: string
       hint="Shortcodes work here, as in any page body."
       onChange={(html) => set(["body"], html || undefined)}
     />
+  );
+}
+
+/**
+ * Plans, then rows with one cell per plan. A row's cells are addressed by
+ * the plan's position, so the inputs are labelled with each plan's name and
+ * a removed plan takes its column of cells with it.
+ */
+function ComparisonEditor() {
+  const { content, set } = useBlock();
+  const plans = Array.isArray(content.plans) ? (content.plans as { name?: string }[]) : [];
+  const highlightOptions = [{ value: "", label: "None" }, ...plans.map((p, i) => ({ value: String(i), label: p?.name || `Plan ${i + 1}` }))];
+
+  // Removing a plan removes that position from every row, so cells stay under
+  // their plans — one write, because each `set` starts from the same snapshot.
+  const removePlan = (i: number) => {
+    const rows = Array.isArray(content.rows) ? (content.rows as { cells?: unknown[] }[]) : [];
+    const hl = typeof content.highlight === "number" ? content.highlight : null;
+    const next: Record<string, unknown> = {
+      ...content,
+      plans: plans.filter((_, j) => j !== i),
+      rows: rows.map((r) => (Array.isArray(r?.cells) ? { ...r, cells: r.cells.filter((_, j) => j !== i) } : r)),
+    };
+    if (hl === null || hl === i) delete next.highlight;
+    else if (hl > i) next.highlight = hl - 1;
+    set([], next as never);
+  };
+
+  return (
+    <>
+      <Head />
+      <fieldset className="mb-6">
+        <legend className="mb-1 text-14 font-semibold">Plans, across the top</legend>
+        <p className="mb-3 text-12-5 text-faint">Two to four.</p>
+        <ol className="grid gap-3 sm:grid-cols-2">
+          {plans.map((_, i) => (
+            <li key={i} className="rounded-lg border border-line-strong bg-card p-4">
+              <Text path={["plans", i, "name"]} label={`Plan ${i + 1} — name`} required />
+              <Text path={["plans", i, "note"]} label="Under the name" placeholder="₹9,000 a year" />
+              {plans.length > 2 && (
+                <button type="button" onClick={() => removePlan(i)} className="text-12-5 font-semibold text-err underline">Remove this plan</button>
+              )}
+            </li>
+          ))}
+        </ol>
+        {plans.length < 4 && (
+          <button type="button" onClick={() => set(["plans"], [...plans, {}] as never)} className="mt-3 rounded border border-line-strong bg-card px-3 py-1.5 text-13 font-semibold">Add a plan</button>
+        )}
+      </fieldset>
+      <NumberChoice path={["highlight"]} label="Recommended plan" options={highlightOptions.slice(1)} placeholder="None" />
+      <Repeater path={["rows"]} label="Rows, down the side" subject="Row" min={1} max={20} blank={() => ({})}
+        hint="In each cell: yes for a tick, no for a cross, a few words, or leave it blank." row={(p) => (
+          <>
+            <Text path={[...p, "label"]} label="Feature" required />
+            <div className="grid gap-x-3 sm:grid-cols-2 lg:grid-cols-4">
+              {plans.map((plan, j) => (
+                <Text key={j} path={[...p, "cells", j]} label={plan?.name || `Plan ${j + 1}`} placeholder="yes" />
+              ))}
+            </div>
+          </>
+        )} />
+      <Text path={["primary", "label"]} label="Button under the table — label" />
+      <Text path={["primary", "href"]} label="Button under the table — link" placeholder="/contact" />
+    </>
   );
 }
 
@@ -460,6 +528,60 @@ export function SectionEditor({ type, sectionId, options }: {
           ]} hint="Drawn the way the active theme draws its closing band." />
           <Buttons />
           <Toggle path={["call"]} label="With no second button, offer “Call” with the site’s number" />
+        </>
+      );
+
+    case "comparison":
+      return <ComparisonEditor />;
+
+    case "timeline":
+      return (
+        <>
+          <Head />
+          <Repeater path={["items"]} label="Milestones" subject="Milestone" min={2} max={12} blank={() => ({})} row={(p) => (
+            <>
+              <Row>
+                <Text path={[...p, "date"]} label="Date" required placeholder="2014" hint="A year, a month, a quarter." />
+                <Text path={[...p, "title"]} label="What happened" required />
+              </Row>
+              <Text path={[...p, "body"]} label="One or two lines" multiline />
+            </>
+          )} />
+        </>
+      );
+
+    case "before_after":
+      return (
+        <>
+          <Text path={["heading"]} label="Heading" />
+          <Text path={["lede"]} label="Lede" multiline />
+          <Row>
+            <ImagePath path={["before_path"]} label="Before" hint="Both pictures are drawn 16:10; take them from the same spot." />
+            <ImagePath path={["after_path"]} label="After" />
+          </Row>
+          <Row cols={3}>
+            <Text path={["before_label"]} label="Before — label" placeholder="Before" />
+            <Text path={["after_label"]} label="After — label" placeholder="After" />
+            <NumberInput path={["start"]} label="Divider starts at" min={10} max={90} hint="10 to 90 percent from the left." />
+          </Row>
+          <Text path={["caption"]} label="Caption" />
+        </>
+      );
+
+    case "testimonials":
+      return (
+        <>
+          <Head />
+          <Repeater path={["items"]} label="Quotations" subject="Quotation" min={2} max={9} blank={() => ({})} row={(p) => (
+            <>
+              <Text path={[...p, "quote"]} label="Quotation" multiline required />
+              <Row>
+                <Text path={[...p, "name"]} label="Who said it" required />
+                <Text path={[...p, "role"]} label="Their role" />
+              </Row>
+              <ImagePath path={[...p, "photo_path"]} label="Photo" hint="Optional. Without one, their initial is drawn." />
+            </>
+          )} />
         </>
       );
 

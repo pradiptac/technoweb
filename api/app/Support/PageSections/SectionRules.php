@@ -292,6 +292,51 @@ final class SectionRules
                 ...self::button('primary', $at),
                 ...self::button('secondary', $at),
             ],
+            // Plans across, features down. A cell is "yes", "no", a few words
+            // or blank, by position under the plan it belongs to.
+            PageSectionType::Comparison => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'plans' => ['required', 'array', 'min:2', 'max:4'],
+                'plans.*.name' => ['required', 'string', 'max:40'],
+                'plans.*.note' => ['nullable', 'string', 'max:60'],
+                'highlight' => ['nullable', 'integer', 'min:0', 'max:3'],
+                'rows' => ['required', 'array', 'min:1', 'max:20'],
+                'rows.*.label' => ['required', 'string', 'max:120'],
+                'rows.*.cells' => ['nullable', 'array', 'max:4'],
+                'rows.*.cells.*' => ['nullable', 'string', 'max:60'],
+                ...self::button('primary', $at),
+            ],
+            PageSectionType::Timeline => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'items' => ['required', 'array', 'min:2', 'max:12'],
+                'items.*.date' => ['required', 'string', 'max:24'],
+                'items.*.title' => ['required', 'string', 'max:120'],
+                'items.*.body' => ['nullable', 'string', 'max:400'],
+            ],
+            PageSectionType::BeforeAfter => [
+                'heading' => $heading,
+                'lede' => $lede,
+                'before_path' => ['required', 'string', 'max:255'],
+                'after_path' => ['required', 'string', 'max:255'],
+                'before_label' => ['nullable', 'string', 'max:24'],
+                'after_label' => ['nullable', 'string', 'max:24'],
+                'start' => ['nullable', 'integer', 'min:10', 'max:90'],
+                'caption' => ['nullable', 'string', 'max:300'],
+            ],
+            PageSectionType::Testimonials => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'items' => ['required', 'array', 'min:2', 'max:9'],
+                'items.*.quote' => ['required', 'string', 'max:600'],
+                'items.*.name' => ['required', 'string', 'max:120'],
+                'items.*.role' => ['nullable', 'string', 'max:160'],
+                'items.*.photo_path' => ['nullable', 'string', 'max:255'],
+            ],
             // A linked library section: only which one. That it exists and is
             // a section (not a template) is checked in `checkData`.
             PageSectionType::Saved => [
@@ -337,6 +382,16 @@ final class SectionRules
             "{$d}.items.*.percent.required_if" => 'Rings and bars need a percentage, 0 to 100.',
             "{$d}.items.*.text.required" => 'Every point needs its words.',
             "{$d}.items.*.body.required" => 'Every tab needs its words.',
+            "{$d}.items.*.date.required" => 'Every milestone needs its date.',
+            "{$d}.items.*.quote.required" => 'Every quotation needs its words.',
+            "{$d}.items.*.name.required" => 'Say who said it.',
+            "{$d}.plans.required" => 'Add the plans to compare.',
+            "{$d}.plans.min" => 'Compare at least two plans.',
+            "{$d}.plans.*.name.required" => 'Every plan needs a name.',
+            "{$d}.rows.required" => 'Add at least one row.',
+            "{$d}.rows.*.label.required" => 'Every row needs its feature.',
+            "{$d}.before_path.required" => 'Choose the “before” picture.',
+            "{$d}.after_path.required" => 'Choose the “after” picture.',
             "{$d}.items.min" => 'Add at least two.',
             "{$d}.display.required" => 'Choose how the figures are drawn.',
             "{$d}.layout.required" => 'Choose a layout.',
@@ -453,6 +508,20 @@ final class SectionRules
             }
         };
 
+        // A picture on each item of a list: a tab's, a quotation's photo.
+        $itemPictures = function (string $key) use ($validator, $data, $at) {
+            foreach ((array) ($data['items'] ?? []) as $n => $item) {
+                $path = is_array($item) ? ($item[$key] ?? null) : null;
+                if (! is_string($path) || $path === '') {
+                    continue;
+                }
+                $row = Media::query()->where('path', $path)->first();
+                if (! $row || ! str_starts_with((string) $row->mime, 'image/')) {
+                    $validator->errors()->add("{$at}.items.{$n}.{$key}", 'Choose a picture from the media library.');
+                }
+            }
+        };
+
         $mediaKind = $data['media'] ?? null;
         $source = $data['source'] ?? null;
 
@@ -473,16 +542,14 @@ final class SectionRules
                 $media('photo_path', 'image/');
                 break;
             case PageSectionType::Tabs:
-                foreach ((array) ($data['items'] ?? []) as $n => $item) {
-                    $path = is_array($item) ? ($item['image_path'] ?? null) : null;
-                    if (! is_string($path) || $path === '') {
-                        continue;
-                    }
-                    $row = Media::query()->where('path', $path)->first();
-                    if (! $row || ! str_starts_with((string) $row->mime, 'image/')) {
-                        $validator->errors()->add("{$at}.items.{$n}.image_path", 'Choose a picture from the media library.');
-                    }
-                }
+                $itemPictures('image_path');
+                break;
+            case PageSectionType::Testimonials:
+                $itemPictures('photo_path');
+                break;
+            case PageSectionType::BeforeAfter:
+                $media('before_path', 'image/');
+                $media('after_path', 'image/');
                 break;
             case PageSectionType::Video:
                 if ($source === 'mp4') {
@@ -573,7 +640,7 @@ final class SectionRules
 
             $data = self::keep(is_array($block['data'] ?? null) ? $block['data'] : [], array_keys(self::for($type)));
 
-            foreach (['block_id', 'slider_id', 'gallery_id', 'form_id', 'saved_id', 'limit', 'columns'] as $int) {
+            foreach (['block_id', 'slider_id', 'gallery_id', 'form_id', 'saved_id', 'limit', 'columns', 'highlight', 'start'] as $int) {
                 if (isset($data[$int]) && is_numeric($data[$int])) {
                     $data[$int] = (int) $data[$int];
                 }
@@ -697,6 +764,20 @@ final class SectionRules
                 continue;
             }
             $value = $data[$key];
+
+            // A list of plain values — a comparison row's cells — kept by
+            // position, a blank one as null, so each stays under its column.
+            if ($children === ['*']) {
+                if (is_array($value)) {
+                    ksort($value, SORT_NUMERIC);
+                    $out[$key] = array_map(
+                        fn ($v) => is_string($v) ? (trim($v) === '' ? null : trim($v)) : (is_scalar($v) ? $v : null),
+                        array_values($value),
+                    );
+                }
+
+                continue;
+            }
 
             if ($children === []) {
                 // A leaf: scalars only. An object where a string belongs is dropped.

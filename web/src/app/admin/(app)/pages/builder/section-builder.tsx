@@ -18,7 +18,7 @@ import { BackgroundField } from "./background-field";
 import { StyleField } from "./style-field";
 import { PreviewDialog } from "./preview-dialog";
 import { SectionEditor, blankData, summaryOf } from "./section-editors";
-import { libraryBlocksAction, saveToLibraryAction } from "../library-actions";
+import { libraryBlocksAction, saveToLibraryAction, sectionsFromBodyAction } from "../library-actions";
 
 type Errors = Record<string, string[]>;
 
@@ -64,7 +64,7 @@ type Errors = Record<string, string[]>;
 const CLIP_KEY = "tw_section_clipboard";
 const CLIP_TAG = "tw-section";
 const HISTORY = 50;
-export function SectionBuilder({ sections, setSections, options, media, errors, pageId, inLibrary = false }: {
+export function SectionBuilder({ sections, setSections, options, media, errors, pageId, inLibrary = false, readBody }: {
   sections: StoredSection[];
   setSections: Dispatch<SetStateAction<StoredSection[]>>;
   options: PageBuilderOptions;
@@ -73,6 +73,12 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
   pageId: number | null;
   /** Editing a library item: no Save to library, no Save as template, no library to place from. */
   inLibrary?: boolean;
+  /**
+   * The page's body as it stands in the form (0.109.0) — what "This page's
+   * content" lays out. Read when the builder is drawn and again at the press,
+   * because the body editor is uncontrolled.
+   */
+  readBody?: () => string;
 }) {
   const toast = useToast();
   const [open, setOpen] = useState<Set<string>>(() => new Set(sections.length <= 3 ? sections.map((s) => s.id) : []));
@@ -286,6 +292,32 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
     apply(() => copies);
     setOpen(new Set(copies.slice(0, 1).map((s) => s.id)));
   };
+  /*
+   * "This page's content" (0.109.0): the body the page already has — written
+   * in the editor, or imported — laid out as sections split at its headings
+   * by the API, or kept whole as one text section. Through `apply`, so Undo
+   * puts the empty builder back.
+   */
+  const [bodyHtml] = useState(() => readBody?.() ?? "");
+  const hasBody = bodyHtml.replace(/<[^>]*>/g, "").trim() !== "" || /<img\b/i.test(bodyHtml);
+  const [laying, setLaying] = useState(false);
+  const fromBody = async (whole: boolean) => {
+    const body = readBody?.() ?? bodyHtml;
+    if (whole) {
+      const one: StoredSection = { id: crypto.randomUUID(), type: "rich_text", hidden: false, background: null, data: { body } };
+      apply(() => [one]);
+      setOpen(new Set([one.id]));
+      return;
+    }
+    setLaying(true);
+    const result = await sectionsFromBodyAction(body);
+    setLaying(false);
+    if (!result.sections?.length) { toast({ tone: "err", title: "The page could not be laid out", body: result.error }); return; }
+    apply(() => result.sections!);
+    setOpen(new Set(result.sections.slice(0, 1).map((s) => s.id)));
+    toast({ tone: "ok", title: `${result.sections.length} section${result.sections.length === 1 ? "" : "s"} from this page’s content` });
+  };
+
   /* "Make a copy here": the library's section, inline, under this card's id. */
   const detach = async (i: number) => {
     const link = sections[i];
@@ -308,6 +340,20 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
         {!inLibrary && <Button type="button" size="sm" variant="ghost" onClick={() => setSaving({ kind: "template" })} disabled={!sections.length}>Save as template</Button>}
         <span className="ml-auto text-12 text-faint">Drag a section by its handle, or use its arrows.</span>
       </div>
+
+      {sections.length === 0 && hasBody && (
+        <section className="mb-6 rounded-lg border border-brand-ink/30 bg-card p-4 sm:p-5">
+          <h2 className="mb-1 text-15 font-semibold">This page’s content</h2>
+          <p className="measure mb-3 text-13 text-muted">
+            The page already has words and pictures. Lay them out as sections — a new one at each main heading — and
+            then rearrange them, or keep everything together in one text section.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" onClick={() => fromBody(false)} pending={laying}>Lay it out as sections</Button>
+            <Button type="button" size="sm" variant="secondary" onClick={() => fromBody(true)} disabled={laying}>Keep it as one text section</Button>
+          </div>
+        </section>
+      )}
 
       {sections.length === 0 && (options.library?.templates.length ?? 0) > 0 && (
         <section className="mb-6">

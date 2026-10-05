@@ -28,6 +28,9 @@ use Illuminate\Validation\ValidationException;
  *    blank leaves it out.
  *  - **acf_kinds** — per kind of record, per ACF field, the kind it becomes
  *    or `skip`.
+ *  - **page_layout** — `sections` (default: each page laid out as builder
+ *    sections from its WordPress blocks, or split at its headings) or `html`
+ *    (one text body, as before 0.109.0).
  *
  * The newsletter notice is a fact rather than a choice: the client decided
  * imported customers join "Existing customers" like any other, and the
@@ -66,6 +69,13 @@ final class Decisions
             if ($addsTax && array_intersect(['catalogue', 'customers'], $import->sections ?? [])) {
                 $out['tax_basis'] = ['value' => $ctx->decision('tax_basis', 'keep'), 'choices' => ['keep', 'add_gst']];
             }
+        }
+
+        if ($import->wants('content')) {
+            $out['page_layout'] = [
+                'value' => $ctx->decision('page_layout', 'sections'),
+                'pages' => (int) (($site['harvest_counts'] ?? [])['pages'] ?? 0),
+            ];
         }
 
         if ($import->wants('custom')) {
@@ -155,6 +165,12 @@ final class Decisions
             $out['media_scope'] = in_array($input['media_scope'], ['referenced', 'all'], true)
                 ? $input['media_scope']
                 : throw ValidationException::withMessages(['media_scope' => 'Choose the files something imported shows, or the whole library.']);
+        }
+
+        if (array_key_exists('page_layout', $input)) {
+            $out['page_layout'] = in_array($input['page_layout'], ['sections', 'html'], true)
+                ? $input['page_layout']
+                : throw ValidationException::withMessages(['page_layout' => 'Choose builder sections or one text body.']);
         }
 
         if (array_key_exists('tax_basis', $input)) {

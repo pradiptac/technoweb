@@ -3859,6 +3859,31 @@ nav:has([data-panel-host]:hover) [data-panel-host]:not(:hover) > .panel-drop { t
 }
 
 /*
+ * A picture in a builder text section never outgrows the screen (0.109.0).
+ * A page laid out from its body — written in the editor, or imported from
+ * WordPress — carries its photographs inline, and `Prose` caps one only at
+ * the container's width: a 2400px photo became a 1300×900 wall between two
+ * short paragraphs. Capped by height instead, so it keeps its ratio and
+ * centres; a size an editor set on the picture (an inline width) still wins.
+ */
+[data-page-section="rich_text"] img {
+  width: auto;
+  max-height: min(70vh, 620px);
+  margin-inline: auto;
+}
+
+/*
+ * Text sections one after another read as one document — what a page laid
+ * out from its body is — so the second starts at the first's padding rather
+ * than doubling it: two `.section-y`s were a 130px gap between a paragraph
+ * and the next heading. Only directly adjacent and unstyled: a section with
+ * its own ground or spacing sits in a wrapper, and keeps its band.
+ */
+section[data-page-section="rich_text"] + section[data-page-section="rich_text"] {
+  padding-top: 0;
+}
+
+/*
  * The builder's measured bands (0.107.0, `page-sections/visual-sections.tsx`):
  * a bar grows, a ring sweeps and the steps' line draws down — once, when the
  * reveal observer stamps `data-aos-animate` on the section, so a band below

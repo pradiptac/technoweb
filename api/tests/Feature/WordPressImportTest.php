@@ -13,6 +13,7 @@ use App\Models\CouponUsage;
 use App\Models\Customer;
 use App\Models\CustomField;
 use App\Models\Entry;
+use App\Models\Media;
 use App\Models\Menu;
 use App\Models\NewsletterSubscriber;
 use App\Models\Order;
@@ -522,6 +523,90 @@ class WordPressImportTest extends TestCase
         $this->assertSame('sync', config('queue.default'));
 
         $this->asAdmin()->getJson(self::API)->assertOk()->assertJsonPath('meta.delivering', true);
+    }
+
+    /** A page written in the block editor, for the layout tests. */
+    private function blockPage(): array
+    {
+        return [
+            'id' => 33, 'slug' => 'about-us', 'status' => 'publish', 'date_gmt' => '2024-02-01T00:00:00', 'parent' => 0,
+            'title' => ['raw' => 'About us'], 'link' => self::SITE.'/about-us/',
+            'content' => [
+                'raw' => '<!-- wp:cover {"url":"https://shop.example/wp-content/uploads/2024/02/team-1024x768.png"} --><div class="wp-block-cover"><div class="wp-block-cover__inner-container">'
+                    .'<!-- wp:heading {"level":1} --><h1>Engineers you can call</h1><!-- /wp:heading -->'
+                    .'<!-- wp:paragraph --><p>Since 2010.</p><!-- /wp:paragraph --></div></div><!-- /wp:cover -->'
+                    .'<!-- wp:heading --><h2>Our story</h2><!-- /wp:heading -->'
+                    .'<!-- wp:paragraph --><p>Read the <a href="https://shop.example/2024/05/cabling-guide/">cabling guide</a>.</p><!-- /wp:paragraph -->'
+                    .'<!-- wp:latest-posts /-->',
+                'rendered' => '<h1>Engineers you can call</h1><p>Since 2010.</p><h2>Our story</h2><p>Read the guide.</p>',
+            ],
+        ];
+    }
+
+    public function test_pages_arrive_as_builder_sections_read_from_their_blocks(): void
+    {
+        $site = $this->site();
+        $site['wp/v2/pages'][] = $this->blockPage();
+        $this->fakeSite($site);
+
+        $import = $this->start();
+        $warnings = collect($import->fresh()->analysis['steps'] ?? [])->firstWhere('key', 'pages')['reasons'] ?? [];
+        $this->assertStringContainsString('latest posts', json_encode($warnings));
+        $this->assertSame('sections', $import->fresh()->analysis['decisions']['page_layout']['value']);
+
+        $done = $this->commit($import);
+        $this->assertSame('completed', $done->status, (string) $done->error);
+
+        $page = Page::query()->where('slug', 'about-us')->firstOrFail();
+        $this->assertSame('builder', $page->template);
+        $this->assertSame(['hero', 'rich_text'], array_column($page->blocks, 'type'));
+        $hero = $page->blocks[0]['data'];
+        $this->assertSame('Engineers you can call', $hero['heading']);
+        $this->assertSame('cover', $hero['layout']);
+        $this->assertTrue(Media::query()->where('path', $hero['image_path'])->exists(), 'the cover picture is in the library');
+        $this->assertSame('Our story', $page->blocks[1]['data']['heading']);
+        $this->assertStringContainsString('href="/blog/cabling-guide"', $page->blocks[1]['data']['body'], 'a link between imported pages is rewritten inside a section');
+        $this->assertNotNull($page->body, 'the body is kept as the fallback');
+
+        // A classic page (here, one whose shortcode only the rendered page expanded) is split at its headings.
+        $classic = Page::query()->where('title', 'Our services')->firstOrFail();
+        $this->assertSame('builder', $classic->template);
+        $this->assertSame(['rich_text'], array_column($classic->blocks, 'type'));
+        $this->assertStringContainsString('We install networks.', $classic->blocks[0]['data']['body']);
+    }
+
+    public function test_page_layout_html_keeps_each_page_one_text_body(): void
+    {
+        $site = $this->site();
+        $site['wp/v2/pages'][] = $this->blockPage();
+        $this->fakeSite($site);
+
+        $import = $this->start();
+        $this->asAdmin()->patchJson(self::API.'/'.$import->id, ['decisions' => ['page_layout' => 'html']])->assertStatus(202);
+        $this->asAdmin()->patchJson(self::API.'/'.$import->id, ['decisions' => ['page_layout' => 'grid']])->assertStatus(422);
+        $this->commit($import->fresh());
+
+        $page = Page::query()->where('slug', 'about-us')->firstOrFail();
+        $this->assertSame('default', $page->template);
+        $this->assertEmpty($page->blocks);
+        $this->assertStringContainsString('Engineers you can call', (string) $page->body);
+    }
+
+    public function test_a_second_run_leaves_sections_arranged_here_alone(): void
+    {
+        $site = $this->site();
+        $site['wp/v2/pages'][] = $this->blockPage();
+        $this->fakeSite($site);
+        $this->commit($this->start());
+
+        $page = Page::query()->where('slug', 'about-us')->firstOrFail();
+        $mine = [$page->blocks[1]];
+        $page->forceFill(['blocks' => $mine])->save();
+
+        $this->commit($this->start());
+
+        $this->assertSame($mine[0]['id'], $page->fresh()->blocks[0]['id']);
+        $this->assertCount(1, $page->fresh()->blocks);
     }
 
     public function test_a_second_run_updates_rather_than_copies(): void

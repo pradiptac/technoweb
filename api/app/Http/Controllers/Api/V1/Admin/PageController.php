@@ -8,6 +8,7 @@ use App\Enums\PublishStatus;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PreviewPageSectionsRequest;
+use App\Http\Requests\SectionsFromBodyRequest;
 use App\Http\Requests\StorePageRequest;
 use App\Http\Requests\UpdatePageRequest;
 use App\Http\Resources\Admin\PageResource;
@@ -20,6 +21,7 @@ use App\Models\SavedSection;
 use App\Models\Slider;
 use App\Models\StoreCategory;
 use App\Support\CustomFields\CustomFields;
+use App\Support\PageSections\BodySections;
 use App\Support\PageSections\SectionPresenter;
 use App\Support\PageSections\SectionPresets;
 use App\Support\PageSections\SectionRules;
@@ -113,6 +115,17 @@ class PageController extends Controller
         $blocks = json_decode((string) json_encode(SectionRules::normalise($request->validated('blocks'))), true);
 
         return response()->json(['data' => ['sections' => SectionPresenter::present($blocks, $page)]]);
+    }
+
+    /**
+     * A page body laid out as builder sections (0.109.0): split at its
+     * headings by `BodySections`, cleaned as a saved body is, and written
+     * nowhere — the console seeds the builder with it and the page is saved
+     * as any other edit.
+     */
+    public function sectionsFromBody(SectionsFromBodyRequest $request): JsonResponse
+    {
+        return response()->json(['data' => ['sections' => BodySections::fromHtml((string) $request->validated('body'))]]);
     }
 
     public function show(Page $page): JsonResource

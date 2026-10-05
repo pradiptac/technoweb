@@ -81,6 +81,13 @@ export function PageForm({
   const [sections, setSections] = useState<StoredSection[]>(page?.blocks ?? []);
   const sectionsInput = useRef<HTMLInputElement>(null);
   const tabs = isBuilder ? allTabs : allTabs.filter((t) => t.id !== "builder");
+  // The body as it stands in the editor (uncontrolled), for the builder's "This page's content".
+  // On the server — the builder renders there too — it is the stored body.
+  const readBody = () => {
+    if (typeof document === "undefined") return page?.body ?? "";
+    const field = sectionsInput.current?.closest("form")?.elements.namedItem("body");
+    return field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement ? field.value : page?.body ?? "";
+  };
 
   // A structural change — add, move, hide, remove — fires no input event of
   // its own, so the draft keeper and the leave guard are told here.
@@ -141,6 +148,7 @@ export function PageForm({
               <p className="mb-[18px] rounded border border-dashed border-line-strong bg-surface px-4 py-3 text-13-5 text-muted">
                 This page is built from sections — see the <strong>Builder</strong> tab. The body below is kept, and
                 comes back if the template is switched.
+                {sections.length === 0 && " Its content can be laid out as sections from there in one press."}
               </p>
             )}
             <div hidden={isBuilder}>
@@ -184,6 +192,7 @@ export function PageForm({
             media={page?.blocks_media ?? {}}
             errors={state.fieldErrors ?? {}}
             pageId={page?.id ?? null}
+            readBody={readBody}
           />,
         ] : []),
 

@@ -228,6 +228,16 @@ export function WordPressImportWizard({
             </fieldset>
           )}
 
+          {options.page_layout && (
+            <fieldset>
+              <legend className="mb-1 text-13 font-semibold">How pages arrive{options.page_layout.pages ? ` (${n(options.page_layout.pages)})` : ""}</legend>
+              <Radio name="page_layout" value="sections" checked={chosen("page_layout") !== "html"} onChange={() => setDecisions({ ...decisions, page_layout: "sections" })}
+                label="As builder sections" hint="Laid out from the WordPress blocks — a cover becomes the hero, columns become features, a quote a testimonial — or split at each main heading. Ready to rearrange in the builder." />
+              <Radio name="page_layout" value="html" checked={chosen("page_layout") === "html"} onChange={() => setDecisions({ ...decisions, page_layout: "html" })}
+                label="As one text body" hint="Each page in the text editor, as it was on the old site. It can still be laid out as sections later, from the builder." />
+            </fieldset>
+          )}
+
           <fieldset>
             <legend className="mb-1 text-13 font-semibold">Pictures and files</legend>
             <Radio name="media_scope" value="referenced" checked={chosen("media_scope") !== "all"} onChange={() => setDecisions({ ...decisions, media_scope: "referenced" })}

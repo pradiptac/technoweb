@@ -136,6 +136,11 @@ class PageBuilderTest extends TestCase
             'tabs' => ['tabs', ['items' => [['label' => 'A', 'body' => 'a'], ['label' => 'B', 'body' => 'b']]], ['items' => [['label' => 'A', 'body' => 'a'], ['label' => 'B']]], 'items.1.body'],
             'checklist' => ['checklist', ['columns' => 2, 'items' => [['text' => 'Fast']]], ['columns' => 4, 'items' => [['text' => 'Fast']]], 'columns'],
             'cta' => ['cta', ['heading' => 'Talk to us', 'tone' => 'brand', 'call' => true], ['heading' => 'H', 'tone' => 'neon'], 'tone'],
+            'comparison' => ['comparison', ['plans' => [['name' => 'Basic'], ['name' => 'Pro']], 'rows' => [['label' => 'Support', 'cells' => ['yes', 'no']]]], ['plans' => [['name' => 'Only']], 'rows' => [['label' => 'x']]], 'plans'],
+            'comparison cell' => ['comparison', ['plans' => [['name' => 'A'], ['name' => 'B']], 'rows' => [['label' => 'x']]], ['plans' => [['name' => 'A'], ['name' => 'B']], 'rows' => [['label' => 'x', 'cells' => [str_repeat('a', 61)]]]], 'rows.0.cells.0'],
+            'timeline' => ['timeline', ['items' => [['date' => '2010', 'title' => 'Founded'], ['date' => '2020', 'title' => 'Grew']]], ['items' => [['date' => '2010', 'title' => 'A'], ['title' => 'B']]], 'items.1.date'],
+            'before and after' => ['before_after', ['before_path' => 'media/a.jpg', 'after_path' => 'media/a.jpg'], ['after_path' => 'media/a.jpg'], 'before_path'],
+            'testimonials' => ['testimonials', ['items' => [['quote' => 'Good', 'name' => 'A'], ['quote' => 'Fine', 'name' => 'B']]], ['items' => [['quote' => 'Good', 'name' => 'A']]], 'items'],
         ];
     }
 
@@ -203,6 +208,77 @@ class PageBuilderTest extends TestCase
             ['features', 'rich_text', 'steps', 'cta'],
             array_column(Page::query()->where('slug', 'built-page')->first()->blocks, 'type'),
         );
+    }
+
+    public function test_the_comparison_timeline_before_after_and_testimonials_are_stored_and_presented(): void
+    {
+        $this->media('media/before.jpg', 'image/jpeg', 'The rack before');
+        $this->media('media/after.jpg', 'image/jpeg', 'The rack after');
+        $this->media('media/face.jpg', 'image/jpeg', 'A customer');
+
+        $this->create([
+            self::section('comparison', [
+                'plans' => [['name' => 'Basic', 'note' => '₹9,000'], ['name' => 'Pro'], ['name' => 'Plus']],
+                'highlight' => '1',
+                // A blank cell stays in its column as null; a stray key is dropped.
+                'rows' => [['label' => 'On-site visits', 'cells' => ['yes', ' ', 'Two a month'], 'colour' => 'red']],
+            ]),
+            self::section('timeline', ['items' => [['date' => '2010', 'title' => 'Founded'], ['date' => '2026', 'title' => 'Today', 'body' => 'Twelve engineers']]]),
+            self::section('before_after', ['before_path' => 'media/before.jpg', 'after_path' => 'media/after.jpg', 'start' => '40']),
+            self::section('testimonials', ['items' => [
+                ['quote' => 'Quick.', 'name' => 'Asha', 'photo_path' => 'media/face.jpg'],
+                ['quote' => 'Tidy.', 'name' => 'Ravi'],
+            ]]),
+        ])->assertCreated();
+
+        $stored = Page::query()->where('slug', 'built-page')->first()->blocks;
+        $this->assertSame(['comparison', 'timeline', 'before_after', 'testimonials'], array_column($stored, 'type'));
+        $this->assertSame(['yes', null, 'Two a month'], $stored[0]['data']['rows'][0]['cells']);
+        $this->assertArrayNotHasKey('colour', $stored[0]['data']['rows'][0]);
+        $this->assertSame(1, $stored[0]['data']['highlight']);
+        $this->assertSame(40, $stored[2]['data']['start']);
+
+        $sections = $this->getJson('/api/v1/pages/built-page')->assertOk()->json('data.sections');
+        $this->assertStringEndsWith('storage/media/before.jpg', $sections[2]['data']['before']);
+        $this->assertSame('The rack after', $sections[2]['data']['after_alt']);
+        $this->assertArrayNotHasKey('before_path', $sections[2]['data']);
+        $this->assertSame('A customer', $sections[3]['data']['items'][0]['photo_alt']);
+        $this->assertArrayNotHasKey('photo', $sections[3]['data']['items'][1]);
+    }
+
+    public function test_before_and_after_pictures_and_testimonial_photos_must_be_library_pictures(): void
+    {
+        $this->media('media/real.jpg', 'image/jpeg', 'Real');
+
+        $this->create([
+            self::section('before_after', ['before_path' => 'media/real.jpg', 'after_path' => 'media/nowhere.jpg']),
+            self::section('testimonials', ['items' => [
+                ['quote' => 'a', 'name' => 'A', 'photo_path' => 'media/nowhere.jpg'],
+                ['quote' => 'b', 'name' => 'B'],
+            ]]),
+        ])->assertStatus(422)->assertJsonValidationErrors(['blocks.0.data.after_path', 'blocks.1.data.items.0.photo_path']);
+    }
+
+    public function test_a_page_body_is_laid_out_as_sections_and_nothing_is_written(): void
+    {
+        $pages = Page::query()->count();
+
+        $sections = $this->actingAs($this->user(), 'sanctum')->postJson('/api/v1/admin/pages/sections-from-body', [
+            'body' => '<p>Intro</p><script>alert(1)</script><h2>Cabling</h2><p>Cat6A.</p><h2>Wi-Fi</h2><p>Surveys.</p>',
+        ])->assertOk()->json('data.sections');
+
+        $this->assertSame(['rich_text', 'rich_text', 'rich_text'], array_column($sections, 'type'));
+        $this->assertSame('Cabling', $sections[1]['data']['heading']);
+        $this->assertStringNotContainsString('script', json_encode($sections), 'cleaned as a saved body is');
+        $this->assertSame($pages, Page::query()->count());
+
+        // What comes back is saveable as it stands.
+        $this->create($sections)->assertCreated();
+
+        $this->actingAs($this->user(), 'sanctum')->postJson('/api/v1/admin/pages/sections-from-body', ['body' => ''])
+            ->assertStatus(422)->assertJsonValidationErrors('body');
+        $this->actingAs($this->user(RoleEnum::SupportEngineer), 'sanctum')->postJson('/api/v1/admin/pages/sections-from-body', ['body' => '<p>x</p>'])
+            ->assertForbidden();
     }
 
     public function test_a_tab_picture_must_be_a_library_picture(): void

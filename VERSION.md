@@ -21,6 +21,34 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.109.0 — 2026-10-05
+
+**Imported pages arrive ready to edit in the builder, and four new
+sections.**
+
+- **WordPress import**: pages now arrive laid out as builder sections. A page
+  written in WordPress's block editor keeps its shape: its cover becomes the
+  opening hero, a picture beside text stays that way, columns become feature
+  points, quotes become testimonials, YouTube videos and question lists come
+  across as their own sections, and the rest is text split at each heading.
+  Pages built with Elementor or Divi, or written in the classic editor, are
+  split at their headings. The review offers "As one text body" for anyone
+  who wants the old behaviour, and a second import never overwrites sections
+  you have arranged.
+- **"This page's content"**: switching an existing page to the builder no
+  longer shows an empty builder. It offers to lay the page's text out as
+  sections, one per heading, or keep it as one text section, and Undo
+  reverses either.
+- **A builder page with no sections** shows its text instead of an empty
+  page.
+- **Four new sections**: a **comparison table** of plans (one card per plan
+  on a phone), a **timeline** of dated milestones, a **before and after**
+  picture with a divider to drag, and **testimonials** (two to nine quotes).
+- Pictures inside text sections stay in proportion, and text sections that
+  follow each other no longer leave large gaps between them.
+
+---
+
 ## 0.108.0 — 2026-10-05
 
 **Every homepage section, in every theme, in proportion at every screen

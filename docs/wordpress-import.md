@@ -184,6 +184,43 @@ head (above), the WordPress administrator arriving as a customer,
 "Uncategorized" as a blog category, and WooCommerce refusing its own keys
 over http (the application password now reads the shop too).
 
+## Pages as builder sections (0.109.0)
+
+The review's **How pages arrive** (`page_layout`, default `sections`): a page
+is laid out as builder sections, its body kept beside them as the fallback,
+or (`html`) arrives as one text body as before. Posts and articles have no
+builder and are unchanged.
+
+- **Read from the blocks** when the page was written in the block editor:
+  `content.raw` (harvested with `context=edit`) is parsed by
+  `App\Support\WordPress\GutenbergSections` — a tokenizer for the
+  `<!-- wp:… -->` comments that keeps each container's own markup and its
+  children in their saved order (`seq`). The page's first `core/cover` (or a
+  level-1/2 heading with a picture straight after it) becomes the **hero**,
+  `core/media-text` a **picture with text**, `core/columns` of two to four
+  short columns **features**, a quote with a citation a **testimonial**, a
+  YouTube embed a **video**, a separator a **divider**, consecutive
+  `core/details` a **questions** section, and `core/buttons` the buttons of
+  the hero or picture-with-text before them. Everything else gathers into
+  text sections, a new one at each level-2 heading.
+- **Nothing is dropped for not fitting**: a quote with nobody named, a column
+  too long to be a point, a cover with no heading falls back to its markup in
+  a text section. A dynamic block whose saved markup is empty (latest posts)
+  has nothing to bring and the review names it.
+- **Split at headings instead** (`BodySections` on the rendered body) for a
+  classic-editor page, a page laid out by Elementor, Divi or WPBakery, or one
+  whose shortcodes only the rendered HTML expanded — the raw blocks would
+  show `[contact-form-7]` as text.
+- Every piece of markup goes through `Step::body()` (uploads re-homed in the
+  library, the sanitiser); picture fields take the path `Context::media()`
+  answers, by attachment id first and URL second.
+- **A second run** lays a page out only while it is still as the import left
+  it — `template = default` and no sections. A template or sections chosen
+  here since are never overwritten.
+- **Links** between imported pages are rewritten inside sections too: every
+  section `body` as markup and every `href` (buttons, features) by
+  `LinksStep`.
+
 ## Tests
 
 `tests/Feature/WordPressImportTest.php` drives the whole flow against a faked
@@ -191,4 +228,9 @@ site (`Http::fake`, `PublicHost::RESOLVER` bound): the review's counts and
 reasons, credentials kept off the row and off other hosts, the commit's
 every mapping, nothing sent and no webhook, a second run updating in place,
 `add_gst`, a foreign currency, menus, private and disguised hosts and a
-redirect into the network refused.
+redirect into the network refused; a block-editor page arriving as a hero and
+text sections with its cover in the library and its links rewritten inside a
+section, a classic page split at its headings, `page_layout: html`, and a
+second run leaving sections arranged here alone.
+`tests/Unit/GutenbergSectionsTest.php` — the parser's nesting and saved order,
+each mapping, the fallbacks and the named dynamic blocks.

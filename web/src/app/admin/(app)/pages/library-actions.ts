@@ -3,7 +3,7 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { ApiError } from "@/lib/api";
-import { createSavedSection, deleteSavedSection, getSavedSection, updateSavedSection, type SavedSectionPayload } from "@/lib/admin";
+import { createSavedSection, deleteSavedSection, getSavedSection, sectionsFromBody, updateSavedSection, type SavedSectionPayload } from "@/lib/admin";
 import type { StoredSection } from "@/types/api";
 
 /**
@@ -64,5 +64,20 @@ export async function libraryBlocksAction(id: number): Promise<StoredSection[] |
     return (await getSavedSection(id)).blocks ?? [];
   } catch {
     return null;
+  }
+}
+
+/**
+ * "This page's content" (0.109.0): the page's body as builder sections,
+ * split at its headings by the API. Nothing is saved — the builder is seeded
+ * and the page saves as any other edit.
+ */
+export async function sectionsFromBodyAction(body: string): Promise<{ sections?: StoredSection[]; error?: string }> {
+  try {
+    return { sections: await sectionsFromBody(body) };
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) redirect("/admin/login");
+    if (error instanceof ApiError && error.status === 422) return { error: error.message || "This page has no content to lay out yet." };
+    return { error: "We could not lay the page out. Try again shortly." };
   }
 }

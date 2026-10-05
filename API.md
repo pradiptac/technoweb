@@ -915,7 +915,7 @@ Scan, review, commit (2026-09-27). See `docs/wordpress-import.md`.
 | `GET` | `/admin/imports/wordpress` | The last twenty imports, newest first. `meta.active` — the import in flight, ready or failed, in full, or null; `meta.delivering`; `meta.sections` |
 | `POST` | `/admin/imports/wordpress` | `site_url`, `sections[]` of `content`, `catalogue`, `customers`, `custom`, `wp_user`, `wp_password` (an application password — it reads WooCommerce too, from a shop manager or an administrator), `wc_key` (`ck_…`) and `wc_secret` (`cs_…`, optional, together; used instead of the application password for `wc/v3`). **202**; the scan and then the dry run run on the queue. 422 on `site_url` for a private, numeric or unresolvable host or plain http, on `queue` when nothing drains it, and while another import is in flight. Throttled 6/min. An import of any site still `ready` is cancelled |
 | `GET` | `/admin/imports/wordpress/{id}` | The import: `status` (`pending`, `scanning`, `analysing`, `ready`, `running`, `completed`, `failed`, `cancelled`, `expired`), `progress`, `site` (name, WooCommerce/ACF/Yoast found, counts, `missing` — optional endpoints the site refused, in its words), `analysis` (`steps[]` of `{key, label, create, update, skip, warn, reasons[{reason, count, kind, examples}]}`, `notices[]`, `decisions` — the review's options), `result` (the commit's steps), `can_resume` |
-| `PATCH` | `/admin/imports/wordpress/{id}` | `decisions`: `media_scope` (`referenced`/`all`), `tax_basis` (`keep`/`add_gst`), `type_slugs{wp slug: address or ""}`, `acf_kinds{target: {field: kind or "skip"}}`. `ready` only; **202**, the dry run re-runs |
+| `PATCH` | `/admin/imports/wordpress/{id}` | `decisions`: `media_scope` (`referenced`/`all`), `page_layout` (`sections`, the default, or `html` — 0.109.0), `tax_basis` (`keep`/`add_gst`), `type_slugs{wp slug: address or ""}`, `acf_kinds{target: {field: kind or "skip"}}`. `ready` only; **202**, the dry run re-runs. `analysis.decisions.page_layout` is `{value, pages}` |
 | `POST` | `/admin/imports/wordpress/{id}/commit` | `ready`, or `failed` with a commit cursor (resume). **202**. Throttled 6/min |
 | `DELETE` | `/admin/imports/wordpress/{id}` | Cancels a scan or a commit, or discards a review; deletes the harvest. What a commit already wrote stays. 422 on a completed import |
 
@@ -1158,6 +1158,7 @@ A CMS page whose `template` is `builder` is a stack of typed sections
 | `GET` | `/admin/saved-sections/{id}` | Adds `blocks`, `blocks_media`, `sections` (presented) and `linked_from[{id, title, kind}]` |
 | `PATCH` | `/admin/saved-sections/{id}` | `name`, `description`, `blocks`; `kind` is fixed. A linked section's pages show the change on their next render |
 | `DELETE` | `/admin/saved-sections/{id}` | 204, or **422** `{message, linked_from}` while a page or template places the section linked |
+| `POST` | `/admin/pages/sections-from-body` | `role:content_manager`, throttled 30/min. `{body}` (required). The body cleaned as a saved one is and split into `rich_text` sections at its `<h2>`s (its `<h3>`s when it has none) — `{data: {sections}}` in the stored shape, ids included; **nothing written**. 0.109.0 |
 | `POST` | `/admin/pages/preview` | `role:content_manager`, throttled 60/min. `{blocks, page_id?}` — validated exactly as a save is, presented, **nothing written**. 200 `{data: {sections}}`, or a 422 keyed `blocks.N.data.field` |
 
 **`blocks` on `POST`/`PATCH /admin/pages`** is a list of at most 40
@@ -1171,7 +1172,14 @@ percent?}` — `percent` required for rings and bars, dropped for figures),
 `{label, heading?, body (plain text), image_path?}`, each picture resolved on
 the public read to `image`/`image_alt`/`image_focus`), `checklist` (`columns`
 1–3, up to 24 items) and `cta` (`heading`, `tone` brand/accent, `call`,
-buttons) — and
+buttons), and since 0.109.0 `comparison` (2–4 `plans` `{name, note?}`,
+`highlight?` a plan's position, 1–20 `rows` `{label, cells[]}` — a cell is
+`yes`, `no`, up to 60 characters or null, kept by position), `timeline` (2–12
+items `{date, title, body?}`), `before_after` (`before_path`, `after_path`,
+both library pictures, `before_label?`, `after_label?`, `start?` 10–90,
+`caption?`; read as `before`/`after` with `_alt`/`_focus`) and `testimonials`
+(2–9 items `{quote, name, role?, photo_path?}`, each photo read as
+`photo`/`photo_alt`/`photo_focus`) — and
 `data` is checked by that type's own rules (`SectionRules`), so a 422 names the
 field: `blocks.3.data.heading`. A picture or video must be in the media
 library and of the right kind; a content block, slider, gallery or form is

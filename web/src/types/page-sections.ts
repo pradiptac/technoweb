@@ -19,6 +19,8 @@ export type PageSectionType =
   | "slider" | "gallery" | "form" | "faq" | "logos" | "testimonial" | "video" | "divider"
   /** The five self-contained bands of 0.107.0. */
   | "stats" | "steps" | "tabs" | "checklist" | "cta"
+  /** The four of 0.109.0. */
+  | "comparison" | "timeline" | "before_after" | "testimonials"
   /** A library section placed linked (0.106.0): stored as `{saved_id}`, drawn as the library's section. */
   | "saved";
 
@@ -85,6 +87,21 @@ export type CtaSectionData = {
   primary?: SectionButton; secondary?: SectionButton;
 };
 
+export type ComparisonSectionData = Head & {
+  plans: { name: string; note?: string }[];
+  /** The plan drawn as recommended, by position. */
+  highlight?: number;
+  /** One cell per plan, by position: "yes", "no", a few words, or null. */
+  rows: { label: string; cells?: (string | null)[] }[];
+  primary?: SectionButton;
+};
+export type TimelineSectionData = Head & { items: { date: string; title: string; body?: string }[] };
+export type BeforeAfterSectionData = Picture<"before"> & Picture<"after"> & {
+  heading?: string; lede?: string; before_label?: string; after_label?: string; start?: number; caption?: string;
+};
+export type TestimonialItem = Picture<"photo"> & { quote: string; name: string; role?: string };
+export type TestimonialsSectionData = Head & { items: TestimonialItem[] };
+
 /**
  * How a section sits on the page (2026-10-05, `SectionRules::STYLE`): only
  * the keys that differ from the section's own behaviour are ever sent.
@@ -124,7 +141,11 @@ export type PageSection =
   | Of<"steps", StepsSectionData>
   | Of<"tabs", TabsSectionData>
   | Of<"checklist", ChecklistSectionData>
-  | Of<"cta", CtaSectionData>;
+  | Of<"cta", CtaSectionData>
+  | Of<"comparison", ComparisonSectionData>
+  | Of<"timeline", TimelineSectionData>
+  | Of<"before_after", BeforeAfterSectionData>
+  | Of<"testimonials", TestimonialsSectionData>;
 
 /** A section as stored and edited: paths and ids, and whatever the type's fields are. */
 export type StoredSection = {

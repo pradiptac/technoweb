@@ -14,7 +14,10 @@ import {
 import {
   CardsSection, ContentBlockSection, FaqSection, FormSection, GallerySection, LogosSection, SliderSection,
 } from "./embed-sections";
-import { ChecklistSection, CtaSection, StatsSection, StepsSection, TabsSection } from "./visual-sections";
+import {
+  BeforeAfterSection, ChecklistSection, ComparisonSection, CtaSection, StatsSection, StepsSection, TabsSection,
+  TestimonialsSection, TimelineSection,
+} from "./visual-sections";
 
 /**
  * A builder page's sections, in order (`docs/page-builder.md`).
@@ -133,6 +136,10 @@ function renderSection(
     case "tabs": return <TabsSection data={section.data} reveal={reveal} id={`tabs-${section.id.slice(0, 8)}`} />;
     case "checklist": return <ChecklistSection data={section.data} reveal={reveal} />;
     case "cta": return <CtaSection data={section.data} />;
+    case "comparison": return <ComparisonSection data={section.data} reveal={reveal} />;
+    case "timeline": return <TimelineSection data={section.data} reveal={reveal} />;
+    case "before_after": return <BeforeAfterSection data={section.data} reveal={reveal} />;
+    case "testimonials": return <TestimonialsSection data={section.data} reveal={reveal} />;
     default: return null;
   }
 }

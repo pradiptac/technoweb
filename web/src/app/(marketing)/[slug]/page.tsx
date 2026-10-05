@@ -65,8 +65,10 @@ export default async function CmsPageRoute({ params, searchParams }: { params: P
 
   // A builder page (2026-09-26, docs/page-builder.md) renders its sections
   // instead of the body. Its own branch, so the default and wide templates
-  // below are untouched.
-  if (page.template === "builder") return <BuilderPage page={page} slug={slug} />;
+  // below are untouched. One with no sections yet — switched to the builder
+  // and saved before anything was laid out — shows its body as before rather
+  // than an empty page (0.109.0).
+  if (page.template === "builder" && (page.sections?.length ?? 0) > 0) return <BuilderPage page={page} slug={slug} />;
 
   const updated = new Intl.DateTimeFormat("en-IN", {
     day: "numeric", month: "long", year: "numeric",
