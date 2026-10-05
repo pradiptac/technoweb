@@ -21,6 +21,27 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.102.0 — 2026-10-05
+
+**Choose a whole look in one press, and see it before you save.** Site →
+Settings → Colour palette now starts with five looks — Corporate, Modern,
+Bold, Calm and Editorial — each setting the colours, the fonts, the corners
+and the spacing together. Pick one and adjust from there.
+
+**Corners and spacing are yours to set.** Two new choices beside the
+palette: corners (soft, sharp or round — cards, buttons, pictures and
+fields together) and spacing between sections (comfortable, compact or
+airy). Both apply to the website and the customer portal; the defaults are
+exactly how the site looked before.
+
+**A live preview of the real site.** Under the palette, the actual homepage
+or an inner page — on a desktop or a phone width — changes as you choose
+colours, fonts, a look, corners or spacing, before anything is saved.
+
+Run `php artisan db:seed --class=SettingsSeeder` on update (the updater does).
+
+---
+
 ## 0.101.0 — 2026-10-05
 
 **Sections can carry a texture.** Any section with a background of its own —

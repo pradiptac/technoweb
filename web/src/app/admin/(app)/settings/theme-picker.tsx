@@ -8,7 +8,8 @@ import { FONT_CHOICES } from "@/lib/font-choices";
 import { differs, nearestStep } from "@/lib/palette";
 import { ColourField } from "./settings-fields";
 import { DEFAULT_PRESET, PRESETS, generate, isHex, presetById, type Preset } from "@/lib/presets";
-import { expand, paletteFor, themeVars, topBarFor, type PaletteInputs, type Theme } from "@/lib/themes";
+import { expand, paletteFor, themeTokensCss, themeVars, topBarFor, type PaletteInputs, type Theme } from "@/lib/themes";
+import { DENSITIES, LOOK_PRESETS, RADII, type Density, type LookPreset, type Radius } from "@/lib/look";
 import type { SettingRow } from "@/lib/admin";
 
 /**
@@ -53,6 +54,9 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
   // Blank is a value here: the theme's own dark band. Kept apart from
   // `inputs` because it is not one of the five the generator reads.
   const [topbar, setTopbar] = useState(isHex(stored.theme_topbar) ? stored.theme_topbar : "");
+  // Corners and spacing (2026-10-05, `lib/look.ts`); unknown values read as the defaults.
+  const [radius, setRadius] = useState<Radius>(RADII.includes(stored.theme_radius as Radius) ? stored.theme_radius as Radius : "soft");
+  const [density, setDensity] = useState<Density>(DENSITIES.includes(stored.theme_density as Density) ? stored.theme_density as Density : "comfortable");
 
   const preset = presetById(chosen);
 
@@ -96,6 +100,42 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
 
   const set = (key: keyof PaletteInputs, value: string) => setInputs((i) => ({ ...i, [key]: value }));
 
+  /* A look: palette, fonts, corners and spacing in one press — a starting point to nudge. */
+  const chooseLook = (look: LookPreset) => {
+    const p = presetById(look.palette);
+    if (p) {
+      setChosen(p.id);
+      setInputs({ ...p.inputs, fontDisplay: look.fontDisplay, fontBody: look.fontBody });
+    }
+    setRadius(look.radius);
+    setDensity(look.density);
+  };
+  const lookMatches = (look: LookPreset) => chosen === look.palette && inputs.fontDisplay === look.fontDisplay
+    && inputs.fontBody === look.fontBody && radius === look.radius && density === look.density;
+
+  /*
+   * The live preview: the real site, framed, told what this form would save.
+   * `/theme-preview/current` renders the active theme with `PreviewBridge`,
+   * which swaps its token stylesheet and its two attributes for whatever is
+   * posted here — the same `themeTokensCss()` string the root layout renders,
+   * so the frame cannot show a palette the site would not.
+   */
+  const frame = useRef<HTMLIFrameElement>(null);
+  const [device, setDevice] = useState<"desktop" | "phone">("desktop");
+  const [view, setView] = useState<"" | "specimen">("");
+  const tokens = useMemo(() => themeTokensCss(theme), [theme]);
+  useEffect(() => {
+    const post = () => frame.current?.contentWindow?.postMessage(
+      { type: "tw:look", css: tokens, radius, density }, window.location.origin,
+    );
+    post();
+    const onReady = (e: MessageEvent) => {
+      if (e.origin === window.location.origin && e.source === frame.current?.contentWindow && e.data?.type === "tw:look-ready") post();
+    };
+    window.addEventListener("message", onReady);
+    return () => window.removeEventListener("message", onReady);
+  }, [tokens, radius, density]);
+
   return (
     <fieldset ref={ref} className="sm:col-span-2">
       <legend className="mb-1 text-13-5 font-semibold">Colour palette</legend>
@@ -105,6 +145,35 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
         Most of the site follows Primary; Secondary carries the eyebrows and the outlined
         buttons&apos; hover, Accent the highlights and the bands.
       </p>
+
+      {/* ------------------------------------------------------ looks */}
+      <p className="mb-2 text-11-5 font-semibold uppercase tracking-[.1em] text-muted">Start from a look</p>
+      <div className="mb-5 grid grid-cols-1 gap-2.5 min-[420px]:grid-cols-2 lg:grid-cols-5">
+        {LOOK_PRESETS.map((look) => {
+          const p = presetById(look.palette);
+          const on = lookMatches(look);
+          return (
+            <button
+              key={look.id}
+              type="button"
+              aria-pressed={on}
+              onClick={() => chooseLook(look)}
+              className={cn(
+                "flex flex-col items-start gap-1.5 rounded-lg border p-3 text-left transition-colors duration-(--duration-fast)",
+                on ? "border-brand-500 bg-brand-50 ring-2 ring-brand-500/30" : "border-line-strong bg-card hover:border-faint",
+              )}
+            >
+              <span className="flex items-center gap-1" aria-hidden>
+                {p && [p.inputs.primary, p.inputs.secondary, p.inputs.accent].map((hex, i) => (
+                  <span key={i} className="block size-4 border border-black/10" style={{ background: hex, borderRadius: look.radius === "sharp" ? 2 : look.radius === "round" ? 999 : 5 }} />
+                ))}
+              </span>
+              <span className="text-13-5 font-semibold text-ink">{look.label}</span>
+              <span className="text-12 leading-snug text-muted">{look.blurb}</span>
+            </button>
+          );
+        })}
+      </div>
 
       {/* ----------------------------------------------- the nine presets */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
@@ -175,6 +244,26 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
         </Field>
       </div>
 
+      {/* --------------------------------------------- corners, spacing */}
+      <div className="mt-2 grid gap-x-4 sm:grid-cols-2">
+        <Field label="Corners" htmlFor="setting__theme_radius" variant="float-static"
+          hint="Cards, buttons, pictures and fields together, on the site and in the portal. Soft is how the site has always looked.">
+          <Select id="setting__theme_radius" name="setting__theme_radius" value={radius} onChange={(e) => setRadius(e.target.value as Radius)}>
+            <option value="soft">Soft</option>
+            <option value="sharp">Sharp — nearly square</option>
+            <option value="round">Round — generous curves</option>
+          </Select>
+        </Field>
+        <Field label="Spacing" htmlFor="setting__theme_density" variant="float-static"
+          hint="The room between the site's sections. Comfortable is how the site has always looked.">
+          <Select id="setting__theme_density" name="setting__theme_density" value={density} onChange={(e) => setDensity(e.target.value as Density)}>
+            <option value="comfortable">Comfortable</option>
+            <option value="compact">Compact — more on each screen</option>
+            <option value="airy">Airy — calm and premium</option>
+          </Select>
+        </Field>
+      </div>
+
       {/* ---------------------------------------------------- top bar */}
       <div className="mt-2 grid gap-x-4 sm:grid-cols-2">
         <Field label="Top bar colour" htmlFor="setting__theme_topbar" variant="float-static" hint={
@@ -220,6 +309,36 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
         <Specimen theme={theme} scheme="light" />
         <Specimen theme={theme} scheme="dark" />
       </div>
+
+      {/* ------------------------------------------------ live preview */}
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-11-5 font-semibold uppercase tracking-[.1em] text-muted">Live preview — the real site, before you save</p>
+        <div className="flex flex-wrap gap-1.5">
+          {([["", "Homepage"], ["specimen", "Inner page"]] as const).map(([v, label]) => (
+            <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}
+              className={cn("min-h-8 rounded-md border px-2.5 text-12-5 font-semibold", view === v ? "border-brand-500 bg-brand-50 text-brand-ink" : "border-line-strong text-muted hover:text-ink")}>
+              {label}
+            </button>
+          ))}
+          {([["desktop", "Desktop"], ["phone", "Phone"]] as const).map(([d, label]) => (
+            <button key={d} type="button" aria-pressed={device === d} onClick={() => setDevice(d)}
+              className={cn("min-h-8 rounded-md border px-2.5 text-12-5 font-semibold", device === d ? "border-brand-500 bg-brand-50 text-brand-ink" : "border-line-strong text-muted hover:text-ink")}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mt-2 overflow-hidden rounded-lg border border-line-strong bg-surface-2 p-2">
+        <iframe
+          ref={frame}
+          key={view}
+          title="Live preview of the site in this look"
+          src={`/theme-preview/current${view ? `/${view}` : ""}`}
+          loading="lazy"
+          className={cn("mx-auto block h-[560px] rounded-md border border-line bg-page", device === "phone" ? "w-[390px] max-w-full" : "w-full")}
+        />
+      </div>
+
       <p className="mt-2 text-13 text-muted">
         Currently selected: <strong className="text-ink">{theme.name}</strong>
         {" · "}{theme.fonts.display.label} / {theme.fonts.body.label}. Saving applies it at once — nothing else needs republishing.

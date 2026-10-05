@@ -744,12 +744,15 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
    * The console does not use these. Its density is deliberate and it is worked
    * at a desk for hours; this is about a marketing page read once.
    */
-  .section-y { padding-block: 3rem; }        /* was 4rem   (py-16) */
-  .section-y-lg { padding-block: 3.5rem; }   /* was 4.75rem (py-19) */
+  /* `--density` is 1 unless Site → Appearance says otherwise
+     (`[data-density]` below, `lib/look.ts`); `calc(3rem * 1)` computes to
+     exactly 3rem, so an untouched install did not move a pixel. */
+  .section-y { padding-block: calc(3rem * var(--density, 1)); }        /* was 4rem   (py-16) */
+  .section-y-lg { padding-block: calc(3.5rem * var(--density, 1)); }   /* was 4.75rem (py-19) */
 
   @media (width >= 64rem) {
-    .section-y { padding-block: 4rem; }      /* was 5rem    (py-20) */
-    .section-y-lg { padding-block: 4.5rem; } /* was 5.75rem (py-23) */
+    .section-y { padding-block: calc(4rem * var(--density, 1)); }      /* was 5rem    (py-20) */
+    .section-y-lg { padding-block: calc(4.5rem * var(--density, 1)); } /* was 5.75rem (py-23) */
   }
 
   /*
@@ -3867,3 +3870,26 @@ nav:has([data-panel-host]:hover) [data-panel-host]:not(:hover) > .panel-drop { t
   background-position: center;
   mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 25%, transparent 78%);
 }
+
+/*
+ * Corners and breathing room (2026-10-05, `lib/look.ts`, Site → Settings →
+ * Appearance). The defaults stamp no attribute, so these rules apply only
+ * when somebody chose otherwise, and only inside the wrapper that carries
+ * the attribute — the public site and the portal; the console never does.
+ *
+ * Radius re-points the tokens every `rounded*` utility reads, so a button, a
+ * card, a picture and an input change together; `rounded-full` (pills,
+ * discs) is a shape, not a style, and is left alone. Density scales the
+ * section paddings (`.section-y`), never the type or the gaps inside a
+ * component, which is what keeps a compact page from feeling cramped.
+ */
+[data-radius="sharp"] {
+  --radius-xs: 1px; --radius-sm: 2px; --radius: 3px; --radius-md: 3px;
+  --radius-lg: 4px; --radius-xl: 6px; --radius-2xl: 8px; --radius-3xl: 10px;
+}
+[data-radius="round"] {
+  --radius-xs: 4px; --radius-sm: 8px; --radius: 12px; --radius-md: 12px;
+  --radius-lg: 18px; --radius-xl: 24px; --radius-2xl: 28px; --radius-3xl: 32px;
+}
+[data-density="compact"] { --density: .72; }
+[data-density="airy"] { --density: 1.35; }

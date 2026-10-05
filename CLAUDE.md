@@ -2879,6 +2879,8 @@ Section textures, spot illustrations, the ticket stepper and the "Getting starte
 - Illustrations are `components/ui/illustrations.tsx`, token colours mixed into `--color-card`, no text, `aria-hidden`; `EmptyState` draws `empty` unless given `illustration` or an `icon`, and `compact` makes its title a `<p>` under the card's own heading. In SVG, spread a shared props object **before** the prop it should not override.
 - The ticket stepper is `Stepper` + `ticketSteps()`; an order's journey is `OrderTimeline`, and there is no second order mapping.
 - `GET /admin/onboarding` answers each step from real state (the seeders' exact sample values), never a tick; the card folds per browser through `useSyncExternalStore`.
+- Corners and spacing are `theme_radius`/`theme_density` (`lib/look.ts`): the defaults stamp no attribute and `.section-y` multiplies by `var(--density, 1)`, so an untouched install is pixel-identical; the attributes go on the public, preview and portal wrappers, never the console's. Looks (`LOOK_PRESETS`) set palette, fonts, corners and spacing together.
+- The appearance tab's live preview frames `/theme-preview/current` and posts `themeTokensCss()` — the root layout's own function — to `PreviewBridge`; same-origin, framed, shape-checked messages only. `scripts/probes/look.mjs`.
 
 ## Conventions
 

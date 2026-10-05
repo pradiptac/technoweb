@@ -6,6 +6,7 @@ import { CookieConsent } from "@/components/layout/cookie-consent";
 import { CustomCode } from "@/components/layout/custom-code";
 import { PwaLoader } from "@/components/pwa/pwa-loader";
 import { pwaFor } from "@/lib/pwa";
+import { lookAttrs, lookFor } from "@/lib/look";
 import { brandName } from "@/lib/brand";
 import { APP_VERSION } from "@/lib/version";
 import { loadChrome } from "@/lib/chrome";
@@ -83,7 +84,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
     // rather than on <html> so every rule they key is scoped to this area:
     // the console stamps nothing and is untouched by construction.
     <ToastProvider>
-    <div className="public-site" data-theme={theme.manifest.id} {...motionAttrs(motion)}>
+    <div className="public-site" data-theme={theme.manifest.id} {...motionAttrs(motion)} {...lookAttrs(lookFor(settings))}>
       {/*
         The first-visit splash, before everything else in the tree so it is
         the first thing painted. Its markup is `display: none` on the server;

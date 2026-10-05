@@ -186,6 +186,25 @@ class SettingController extends Controller
     ];
 
     /**
+     * The corners and the breathing room of the public site and the portal
+     * (2026-10-05, docs/look-and-feel.md). The first of each is what the site
+     * drew before the setting existed, so an install that never opens the
+     * control renders byte for byte as it did. The frontend's `lib/look.ts`
+     * resolves them and falls back to the first.
+     */
+    public const RADII = [
+        ['value' => 'soft', 'label' => 'Soft', 'description' => 'Gently rounded corners — the site as it has always been.'],
+        ['value' => 'sharp', 'label' => 'Sharp', 'description' => 'Nearly square corners. Engineered, precise, corporate.'],
+        ['value' => 'round', 'label' => 'Round', 'description' => 'Generous curves on cards, buttons and pictures. Friendly, modern.'],
+    ];
+
+    public const DENSITIES = [
+        ['value' => 'comfortable', 'label' => 'Comfortable', 'description' => 'The spacing between sections the site has always had.'],
+        ['value' => 'compact', 'label' => 'Compact', 'description' => 'Sections closer together — more on each screen.'],
+        ['value' => 'airy', 'label' => 'Airy', 'description' => 'More room around every section. Calm and premium.'],
+    ];
+
+    /**
      * How a statistic's figure arrives the first time it scrolls into view.
      * Drawn by the frontend's `StatValue`; the list is here because the
      * console builds its select from `options`, the rule `stats_size` and
@@ -262,6 +281,8 @@ class SettingController extends Controller
             'chatbot_animation' => ChatSettings::ANIMATIONS,
             'stats_size' => self::STAT_SIZES,
             'social_style' => self::SOCIAL_STYLES,
+            'theme_radius' => self::RADII,
+            'theme_density' => self::DENSITIES,
             'home_stats_block' => self::blockOptions(ContentBlockType::Stats),
             'home_pricing_block' => self::blockOptions(ContentBlockType::Pricing),
             'home_stack_block' => self::blockOptions(ContentBlockType::Stack),
@@ -724,6 +745,11 @@ class SettingController extends Controller
             if (isset(self::HOME_BLOCKS[$key]) && filled($value)
                 && ! ContentBlock::query()->published()->where('type', self::HOME_BLOCKS[$key])->where('slug', $value)->exists()) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a published block of this kind, or None.']);
+            }
+            foreach (['theme_radius' => self::RADII, 'theme_density' => self::DENSITIES] as $lookKey => $choices) {
+                if ($key === $lookKey && filled($value) && ! in_array($value, array_column($choices, 'value'), true)) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose one from the list.']);
+                }
             }
             if ($key === 'social_style' && filled($value) && ! in_array($value, array_column(self::SOCIAL_STYLES, 'value'), true)) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a style from the list.']);

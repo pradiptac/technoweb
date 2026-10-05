@@ -43,6 +43,21 @@ class SocialStyleSettingsTest extends TestCase
         ]);
     }
 
+    public function test_corners_and_spacing_are_public_offered_and_refused_outside_their_lists(): void
+    {
+        $public = $this->getJson('/api/v1/settings')->assertOk()->json('data');
+        $this->assertSame('soft', $public['theme_radius']);
+        $this->assertSame('comfortable', $public['theme_density']);
+
+        $this->save(['theme_radius' => 'round', 'theme_density' => 'airy'])->assertOk();
+        $public = $this->getJson('/api/v1/settings')->json('data');
+        $this->assertSame('round', $public['theme_radius']);
+        $this->assertSame('airy', $public['theme_density']);
+
+        $this->save(['theme_radius' => 'pill'])->assertStatus(422)->assertJsonValidationErrors('settings.0.value');
+        $this->save(['theme_density' => 'cramped'])->assertStatus(422);
+    }
+
     public function test_both_keys_are_seeded_public_with_flip_as_the_default(): void
     {
         $public = $this->getJson('/api/v1/settings')->assertOk()->json('data');

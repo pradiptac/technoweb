@@ -3734,6 +3734,11 @@ LinkedIn, X, Facebook, Instagram, YouTube, WhatsApp and, since 2026-09-24,
 (letters and digits, at most 7 — one tile each — stored in capitals). A blank URL hides its
 icon.
 
+**`theme_radius` and `theme_density`** (2026-10-05) are `appearance` rows,
+public: `soft`/`sharp`/`round` and `comfortable`/`compact`/`airy`, offered as
+`options` and a 422 outside them; seeded `soft` and `comfortable`, which are
+the site as it was.
+
 **The `pwa` group is public** (2026-10-05, `docs/pwa.md`): `pwa_enabled` and
 `pwa_install_prompt` (`0`/`1`, both on by default), `pwa_name` (≤ 45),
 `pwa_short_name` (≤ 12 — what a launcher prints under the icon; a 422 above

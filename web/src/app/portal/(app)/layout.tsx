@@ -8,6 +8,7 @@ import { ToastFromParams } from "@/components/ui/toast-from-params";
 import { getCurrentCustomer, isImpersonated } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/settings";
 import { portalEnabled } from "@/lib/site-settings";
+import { lookAttrs, lookFor } from "@/lib/look";
 import { PortalClosed } from "@/components/portal/portal-closed";
 import { motionAttrs, motionFor } from "@/lib/motion-choices";
 import { PageEnter } from "@/components/ui/page-enter";
@@ -60,7 +61,7 @@ export default async function PortalLayout({ children }: { children: React.React
   */
   return (
     <ToastProvider>
-      <div className="flex min-h-screen flex-col bg-surface" {...motionAttrs(motion)}>
+      <div className="flex min-h-screen flex-col bg-surface" {...motionAttrs(motion)} {...lookAttrs(lookFor(settings))}>
         {motion.loader !== "none" && (
           <Suspense fallback={null}>
             <RouteProgress style={motion.loader as "bar" | "pulse"} />

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { ALL_FONT_VARIABLES } from "@/lib/fonts";
-import { themeCss, topBarFor } from "@/lib/themes";
+import { themeTokensCss, topBarFor } from "@/lib/themes";
 import { themeFor } from "@/lib/presets";
 import { motionFor } from "@/lib/motion-choices";
 import { announcementFor } from "@/lib/announcement";
@@ -147,8 +147,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <style
           id="theme-tokens"
           dangerouslySetInnerHTML={{
-            __html: themeCss(theme, "light")
-              + `:root[data-scheme="dark"]{${themeCss(theme, "dark").replace(/^:root\{|\}$/g, "")}}`,
+            __html: themeTokensCss(theme),
           }}
         />
 

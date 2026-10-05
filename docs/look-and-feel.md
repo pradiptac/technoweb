@@ -1,6 +1,35 @@
-# Look and feel: textures, illustrations, progress, onboarding
+# Look and feel: textures, illustrations, progress, onboarding, corners, spacing
 
-0.101.0 (2026-10-05), the visual track of the October roadmap.
+0.101.0–0.102.0 (2026-10-05), the visual track of the October roadmap.
+
+## Corners, spacing, looks and the live preview (0.102.0)
+
+Two `appearance` settings, `theme_radius` (`soft`, `sharp`, `round`) and
+`theme_density` (`comfortable`, `compact`, `airy`), offered by the API as
+`options` and refused outside them (`SettingController::RADII`/`DENSITIES`),
+resolved by `lib/look.ts`.
+
+- **The defaults stamp nothing.** `soft` and `comfortable` are what the site
+  drew before; `lookAttrs()` returns no attribute for them, and `.section-y`
+  multiplies by `var(--density, 1)`, which computes to the old pixels. An
+  install that never opens the control is unchanged.
+- **Where they apply.** `data-radius` / `data-density` on the public site's
+  wrapper, the theme preview's and the portal's — never the console's.
+  Radius re-points the `--radius-*` tokens every `rounded*` utility reads
+  (`rounded-full` is a shape and stays); density scales section padding only.
+- **Looks** (`LOOK_PRESETS`): Corporate, Modern, Bold, Calm, Editorial — a
+  palette preset, two fonts, corners and spacing set together on the
+  appearance tab, a starting point to nudge before saving.
+- **The live preview** frames `/theme-preview/current` (the active theme)
+  under the palette picker, with Homepage/Inner page and Desktop/Phone
+  toggles. The picker posts `{type: "tw:look", css, radius, density}`;
+  `components/layout/preview-bridge.tsx` replaces the frame's
+  `#theme-tokens` text and the two attributes. The CSS is
+  `themeTokensCss()` — the function the root layout renders with — so the
+  frame cannot show a palette the site would not. Same-origin, framed and
+  shape-checked messages only; nothing is saved until Save.
+- Probe: `scripts/probes/look.mjs` (`HOLD=1` keeps Round + Airy for an
+  audit run, `RESTORE=1` puts them back).
 
 ## Section textures
 

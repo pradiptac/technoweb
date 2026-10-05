@@ -308,3 +308,14 @@ export function auroraAlpha(theme: Theme, scheme: Scheme): number {
 export function themeCss(theme: Theme, scheme: Scheme = "light"): string {
   return `:root{${Object.entries(themeVars(theme, scheme)).map(([k, v]) => `${k}:${v}`).join(";")}}`;
 }
+
+/**
+ * Both palettes, light then dark, exactly as the root layout's
+ * `<style id="theme-tokens">` carries them — dark second, because `:root`
+ * and `:root[data-scheme="dark"]` have equal specificity and source order
+ * decides. One function so the appearance screen's live preview sends the
+ * page the very string the page would render (2026-10-05).
+ */
+export function themeTokensCss(theme: Theme): string {
+  return themeCss(theme, "light") + `:root[data-scheme="dark"]{${themeCss(theme, "dark").replace(/^:root\{|\}$/g, "")}}`;
+}

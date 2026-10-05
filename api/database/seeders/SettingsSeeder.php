@@ -616,6 +616,10 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * `admin_path` was caught by, and the fallback makes it unneeded.
              */
             ['group' => 'appearance', 'key' => 'theme', 'value' => 'technoware', 'type' => 'string'],
+            // Corners and spacing (2026-10-05): the values the site drew before
+            // the controls existed, so a fresh install and an old one match.
+            ['group' => 'appearance', 'key' => 'theme_radius', 'value' => 'soft', 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'theme_density', 'value' => 'comfortable', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_primary', 'value' => '#6f8641', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_secondary', 'value' => '#5b7a5e', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_accent', 'value' => '#c9993c', 'type' => 'string'],
