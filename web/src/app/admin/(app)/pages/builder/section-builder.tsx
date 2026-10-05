@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type Dispatch, type SetStateAction } from "react";
 import { MoveButton, ReorderButtons } from "@/components/admin/reorder-buttons";
 import { IconChevronDown, IconEye, IconEyeOff, IconLayers } from "@/components/icons-ui";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import { BlockEditorProvider, setIn, type Json, type Obj, type Path } from "../.
 import { BackgroundField } from "./background-field";
 import { StyleField } from "./style-field";
 import { PreviewDialog } from "./preview-dialog";
+import { LivePreview } from "./live-preview";
 import { SectionEditor, blankData, summaryOf } from "./section-editors";
 import { libraryBlocksAction, saveToLibraryAction, sectionsFromBodyAction } from "../library-actions";
 
@@ -61,6 +62,37 @@ type Errors = Record<string, string[]>;
  * cut the link. Save as template keeps the whole stack; a new page can start
  * from it under "Start from".
  */
+/*
+ * The live preview (0.112.0, docs/page-builder.md "Live preview"): beside the
+ * sections from 1400px wide, where both columns still have room for their
+ * fields; below that the Preview button's dialog is the preview. Whether it
+ * is shown is this browser's choice, kept in localStorage and read through
+ * `useSyncExternalStore` (server snapshot: off), so the server's markup and
+ * the first client render agree.
+ */
+const LIVE_KEY = "tw_builder_live";
+const LIVE_EVENT = "tw:builder-live";
+const WIDE = "(min-width: 1400px)";
+const subscribeLive = (fn: () => void) => {
+  window.addEventListener("storage", fn);
+  window.addEventListener(LIVE_EVENT, fn);
+  const mq = window.matchMedia(WIDE);
+  mq.addEventListener("change", fn);
+  return () => {
+    window.removeEventListener("storage", fn);
+    window.removeEventListener(LIVE_EVENT, fn);
+    mq.removeEventListener("change", fn);
+  };
+};
+const livePref = () => {
+  try { return localStorage.getItem(LIVE_KEY) !== "0"; } catch { return true; }
+};
+const liveState = () => `${window.matchMedia(WIDE).matches ? 1 : 0}${livePref() ? 1 : 0}`;
+const setLivePref = (on: boolean) => {
+  try { localStorage.setItem(LIVE_KEY, on ? "1" : "0"); } catch { /* private window */ }
+  window.dispatchEvent(new Event(LIVE_EVENT));
+};
+
 const CLIP_KEY = "tw_section_clipboard";
 const CLIP_TAG = "tw-section";
 const HISTORY = 50;
@@ -205,13 +237,31 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
     [options.section_types],
   );
 
-  const toggle = (id: string, force?: boolean) =>
+  /* The live preview, and the section it should be showing. */
+  const live = useSyncExternalStore(subscribeLive, liveState, () => "00");
+  const wide = live[0] === "1";
+  const showLive = wide && live[1] === "1";
+  const [focus, setFocus] = useState<{ id: string } | null>(null);
+
+  const toggle = (id: string, force?: boolean) => {
+    if (force ?? !open.has(id)) setFocus({ id });
     setOpen((prev) => {
       const next = new Set(prev);
       if (force ?? !next.has(id)) next.add(id);
       else next.delete(id);
       return next;
     });
+  };
+
+  // A section pressed in the preview: open its card and bring it into view.
+  const selectFromPreview = useCallback((id: string) => {
+    setOpen((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
+    window.requestAnimationFrame(() => {
+      const card = root.current?.querySelector<HTMLElement>(`[data-section-card-id="${CSS.escape(id)}"]`);
+      card?.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      card?.querySelector<HTMLElement>("button[aria-expanded]")?.focus({ preventScroll: true });
+    });
+  }, []);
 
   const add = (type: PageSectionType) => {
     const section: StoredSection = { id: crypto.randomUUID(), type, hidden: false, background: null, data: blankData(type) };
@@ -328,7 +378,8 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
   };
 
   return (
-    <div data-section-builder ref={root}>
+    <div data-section-builder ref={root} className={cn(showLive && "grid grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] items-start gap-6")}>
+      <div className="min-w-0">
       {errs.blocks && <p className="mb-3 text-13 text-err">{errs.blocks[0]}</p>}
 
       {/* The edit bar: history and the clipboard. */}
@@ -339,6 +390,11 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
         <Button type="button" size="sm" variant="ghost" onClick={paste}>Paste a section</Button>
         {!inLibrary && <Button type="button" size="sm" variant="ghost" onClick={() => setSaving({ kind: "template" })} disabled={!sections.length}>Save as template</Button>}
         <span className="ml-auto text-12 text-faint">Drag a section by its handle, or use its arrows.</span>
+        {wide && (
+          <Button type="button" size="sm" variant={showLive ? "secondary" : "ghost"} aria-pressed={showLive} onClick={() => setLivePref(!showLive)}>
+            {showLive ? "Hide live preview" : "Show live preview"}
+          </Button>
+        )}
       </div>
 
       {sections.length === 0 && hasBody && (
@@ -432,6 +488,9 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
           </Link>
         )}
       </div>
+      </div>
+
+      {showLive && <LivePreview sections={sections} pageId={pageId} focus={focus} onSelect={selectFromPreview} />}
 
       <Modal open={picking} onClose={() => setPicking(false)} title="Add a section" size="lg"
         description="Each is a set of fields; the theme decides how it looks.">
@@ -597,6 +656,7 @@ function SectionCard({
   return (
     <li
       data-section-card={section.type}
+      data-section-card-id={section.id}
       onDragOver={(e) => {
         e.preventDefault();
         const box = e.currentTarget.getBoundingClientRect();

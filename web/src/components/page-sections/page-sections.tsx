@@ -36,9 +36,15 @@ import { ColumnsSection, CountdownSection, DownloadsSection, MapSection, TeamSec
  * gone; a type this build does not know renders nothing, since a stored
  * type outlives the code that drew it.
  */
-export async function PageSections({ sections, crumbs, ownsH1 = true }: {
+export async function PageSections({ sections, crumbs, ownsH1 = true, marked = false }: {
   sections: PageSection[];
   crumbs: Crumb[];
+  /**
+   * The builder's live preview (0.112.0): each section in a box carrying its
+   * id, which `BuilderPreviewBridge` reads to tell the builder which section
+   * was pressed and to scroll to the one being edited. Never on a public page.
+   */
+  marked?: boolean;
   /**
    * False inside the console's previews, where the screen already has its
    * `h1`: an opening hero is then an `h2` with no trail, so the preview
@@ -57,11 +63,13 @@ export async function PageSections({ sections, crumbs, ownsH1 = true }: {
         const node = renderSection(section, { first: ownsH1 && i === 0, eager: i <= 1, crumbs, themeId: theme.manifest.id });
         if (!node) return null;
 
-        return (
+        const drawn = (
           <SectionBg key={section.id} id={`page-${section.type}`} bg={section.background ?? undefined} seeds={seeds} eager={i <= 1}>
             <StyledSection style={section.style}>{node}</StyledSection>
           </SectionBg>
         );
+
+        return marked ? <div key={section.id} data-builder-id={section.id}>{drawn}</div> : drawn;
       })}
     </div>
   );

@@ -4080,3 +4080,23 @@ section[data-page-section="rich_text"] + section[data-page-section="rich_text"] 
 [data-section-style][data-heading="s"] [data-page-section] .display-1 { font-size: clamp(27px, 4.2vw, 42px); }
 [data-section-style][data-heading="l"] [data-page-section] h2.display-2 { font-size: clamp(32px, 3.3vw + 12px, 56px); }
 [data-section-style][data-heading="l"] [data-page-section] .display-1 { font-size: clamp(40px, 4.4vw + 14px, 76px); }
+
+/*
+ * The builder's live preview (0.112.0, docs/page-builder.md "Live preview"):
+ * a section can be pressed to open its card, so it says so under the pointer,
+ * and the one being edited is outlined for a moment when the preview scrolls
+ * to it. Only inside the framed draft preview (`BuilderPreviewBridge` sets
+ * the attribute); never on a public page. An outline paints no ground, so
+ * the contrast audit is untouched.
+ */
+html[data-builder-preview] [data-builder-id] {
+  cursor: pointer;
+  outline: 2px dashed transparent;
+  outline-offset: -4px;
+}
+html[data-builder-preview] [data-builder-id]:hover {
+  outline-color: color-mix(in oklab, var(--color-brand-ink) 60%, transparent);
+}
+html[data-builder-preview] [data-builder-id][data-builder-flash] {
+  outline: 3px solid var(--color-brand-ink);
+}

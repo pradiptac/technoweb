@@ -355,6 +355,44 @@ card grounds and the theme's rules apply, and `data-reveal-static`. **Both pass
 `ownsH1={false}`**: the console screen has its own `h1`, so an opening hero is
 drawn as an `h2` there, and the preview keeps the one-`h1` rule.
 
+### Live preview (0.112.0)
+
+**From 1400px wide the page sits beside its sections and redraws as they
+change** (`builder/live-preview.tsx`). Below 1400px there is no room for two
+columns of fields and the Preview button's dialog is the preview. Whether it
+is shown is the browser's choice — "Hide/Show live preview" in the toolbar,
+kept in `localStorage` (`tw_builder_live`, default on) and read through
+`useSyncExternalStore` with an "off" server snapshot, so the server markup and
+the first client render agree.
+
+- **Each redraw is the unsaved preview** — `previewSectionsAction`, the save's
+  rules, a draft id, `/admin/draft-preview/{id}` — sent 900ms after the last
+  change (600ms for the first, so the editors settling on mount are one
+  request). A newer change cancels an older answer by a sequence number.
+- **A section still missing a required field is left out, never allowed to
+  stop the preview**: on a 422 the `blocks.N` it names are dropped, the rest
+  drawn, and the pane says which ("Section 4 is left out until its required
+  fields are filled in"). The fields themselves are marked on save or Preview,
+  as before.
+- **No flash and no lost place**: the next frame loads hidden behind the shown
+  one, copies its `scrollY` on load, and only then swaps in.
+- **Desktop / Tablet / Phone** draw the frame at 1280, 768 or 390 and scale it
+  to the pane with `transform: scale()` — a desktop page is seen as a desktop
+  page, smaller.
+- **The two directions are joined**: `PageSections marked` wraps each section
+  in `data-builder-id`, and `BuilderPreviewBridge` (framed only) makes a press
+  on a section post `tw:builder-select` to the builder, which opens that card
+  and scrolls to it; opening a card posts `tw:builder-show` back, which
+  scrolls the preview to the section and outlines it for 1.4s. Same-origin
+  messages only, checked both ways. Links and submits inside the preview do
+  nothing — a press there means "edit this".
+- `preview-drafts`' cap went from 100 to 400, since a live session makes a
+  draft per pause in typing.
+
+A throwaway browser probe checked it: beside at 1600, no
+redraw while idle, typing reaches the frame, a press opens the card, opening a
+card outlines the section, the phone width, hide/show, absent at 1280.
+
 **Each section card has an Appear select** (2026-09-27), above its
 background: `SECTION_REVEALS` from `lib/motion-choices.ts`, stored on the
 section as `reveal` beside `hidden` and `background` — never `default`, which

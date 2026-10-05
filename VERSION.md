@@ -21,6 +21,22 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.112.0 — 2026-10-06
+
+**The page builder shows the page beside its sections, live.**
+
+- From 1400px wide, the page sits to the right of the sections in the active
+  theme and redraws about a second after you stop typing — nothing flashes and
+  the preview keeps its scroll position.
+- Desktop, tablet and phone widths, each drawn at its real width and scaled to
+  fit.
+- Press a section in the preview to open its card; open a card and the
+  preview scrolls to that section and outlines it.
+- A section still missing something it needs is left out of the preview, and
+  the pane says which, rather than the whole preview stopping.
+- "Hide live preview" puts the old single column back, and the browser
+  remembers the choice. Below 1400px the Preview button works as before.
+
 ## 0.111.0 — 2026-10-06
 
 **Five more builder sections.**

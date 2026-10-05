@@ -24,7 +24,11 @@ import type { PageSection } from "@/types/api";
 type Draft = { owner: string; sections: PageSection[]; expires: number };
 
 const TTL_MS = 10 * 60 * 1000;
-const MAX = 100;
+/*
+ * The live preview (0.112.0) makes one draft per pause in typing, so the cap
+ * has room for several editors at once; a draft is a few kilobytes of JSON.
+ */
+const MAX = 400;
 
 const store = ((globalThis as { __twPreviewDrafts?: Map<string, Draft> }).__twPreviewDrafts ??= new Map());
 
