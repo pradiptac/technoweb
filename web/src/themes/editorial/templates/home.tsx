@@ -255,16 +255,25 @@ export function Home({
   );
 }
 
-/** The lead's words — on the page under a slider, or on the picture. */
+/**
+ * The lead's words — on the page under a slider, or on the picture. From
+ * `lg` the headline and the deck sit side by side, the newspaper's own
+ * arrangement: stacked, an 18ch headline left three-quarters of a wide band
+ * empty beside it and the lede ran on as one 1,100px line under it (the
+ * client's proportion review, 2026-10-05).
+ */
 function Words({ onDark, kicker, heading, lede }: { onDark: boolean; kicker: string; heading: string; lede: string }) {
   return (
-  <div className={cn(onDark ? "text-white" : "text-ink")}>
-    <span className={cn("flex items-center gap-3 text-11-5 font-semibold uppercase tracking-[.16em]", onDark ? "text-brand-200" : "text-brand-ink")}>
-      <span aria-hidden className="h-px w-8 bg-current" />
-      {kicker}
-    </span>
-    <h1 className="display-1 mt-4 max-w-[18ch] font-normal tracking-[-.01em] text-balance">{heading}</h1>
-    <p className={cn("mt-5 text-[18px] leading-[1.55]", onDark ? "text-dark-ink" : "text-ink-2")}>{lede}</p>
+  <div className={cn("lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-end lg:gap-16", onDark ? "text-white" : "text-ink")}>
+    <div className="min-w-0">
+      <span className={cn("flex items-center gap-3 text-11-5 font-semibold uppercase tracking-[.16em]", onDark ? "text-brand-200" : "text-brand-ink")}>
+        <span aria-hidden className="h-px w-8 bg-current" />
+        {kicker}
+      </span>
+      <h1 className="display-1 mt-4 max-w-[18ch] font-normal tracking-[-.01em] text-balance lg:max-w-[22ch]">{heading}</h1>
+    </div>
+    <div className="min-w-0 lg:pb-2">
+    <p className={cn("mt-5 max-w-[60ch] text-[18px] leading-[1.55] lg:mt-0", onDark ? "text-dark-ink" : "text-ink-2")}>{lede}</p>
     <div className="mt-7 flex flex-wrap gap-3">
       <ButtonLink href="/contact" variant={onDark ? "onDark" : "primary"}>
         Talk to an engineer <IconArrowRight />
@@ -272,6 +281,7 @@ function Words({ onDark, kicker, heading, lede }: { onDark: boolean; kicker: str
       <ButtonLink href="/solutions" variant={onDark ? "onDarkOutline" : "secondary"} className={onDark ? "border-white/30 text-white" : undefined}>
         Explore solutions
       </ButtonLink>
+    </div>
     </div>
   </div>
   );

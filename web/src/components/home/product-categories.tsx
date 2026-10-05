@@ -25,7 +25,13 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
           title="A catalogue backed by people who install it."
           lede="Every line we carry is hardware our engineers deploy and support in the field. Browse the catalogue, then ask us what actually fits."
         />
-        <Collection fill kind="categories" cols={6}>
+        {/*
+          Two to a row on a phone, picture and name only: one to a row, twelve
+          categories were ~4,800px of scrolling (the client's proportion
+          review, 2026-10-05). Layered utilities, so a theme that lays the
+          collection out itself — Datacenter's rack, Launch's bento — keeps it.
+        */}
+        <Collection fill kind="categories" cols={6} className="max-[479px]:grid-cols-2 max-[479px]:[&_[data-tile-summary]]:hidden">
           {items.map((c) => {
             const hue = hueForIcon(c.icon, "switch");
             return (

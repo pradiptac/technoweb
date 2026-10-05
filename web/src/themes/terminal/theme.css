@@ -141,6 +141,26 @@
   color: var(--color-muted);
 }
 [data-theme="terminal"] [data-collection] > li + li { border-top: 1px solid var(--color-line); }
+/*
+  Pictures as the card (`data-tile-bg`) are photographs, not listing rows:
+  one to a row they ran 1,330×240 at 1920. They sit in a grid under the same
+  `$ ls` header, the seams drawn by a one-pixel gap over the line colour
+  (the client's proportion review, 2026-10-05).
+*/
+[data-theme="terminal"] [data-collection][data-tile-bg] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1px;
+  background-color: var(--color-line);
+}
+[data-theme="terminal"] [data-collection][data-tile-bg]::before { grid-column: 1 / -1; }
+[data-theme="terminal"] [data-collection][data-tile-bg] > li + li { border-top: 0; }
+@media (width >= 40rem) {
+  [data-theme="terminal"] [data-collection][data-tile-bg] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (width >= 64rem) {
+  [data-theme="terminal"] [data-collection][data-tile-bg] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 [data-theme="terminal"] [data-collection] [data-tile] {
   display: grid;
   grid-template-columns: 3ch max-content minmax(0, 1fr) auto;
@@ -215,6 +235,8 @@
   color: var(--color-muted);
 }
 [data-theme="terminal"] [data-collection] [data-tile-summary]::before { content: "// "; opacity: .6; }
+/* A summary drawn as a truncated block (the certifications' issuer) keeps to the comment's line, or `//` sat alone above it. */
+[data-theme="terminal"] [data-collection] [data-tile-summary] > span { display: inline; }
 [data-theme="terminal"] [data-collection] [data-tile-meta] { margin: 0; font-family: var(--font-display); font-size: 12px; }
 [data-theme="terminal"] [data-collection] [data-tile-results] { border-top: 0; padding-top: 0; gap: 14px; }
 [data-theme="terminal"] [data-collection] [data-tile-results] dd { font-family: var(--font-display); font-size: 14px; }

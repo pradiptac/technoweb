@@ -119,9 +119,12 @@ export function Home({
     </section>
   );
 
+  // From `xl` the words take seven parts to the picture's five: half and half,
+  // a 4:3 photograph ran 830px wide beside a short list and a quotation
+  // (the client's proportion review, 2026-10-05).
   const why = (
     <section className="section-y bg-surface">
-      <Container className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16 [&>*]:min-w-0">
+      <Container className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] [&>*]:min-w-0">
         <div>
           <SectionHeader kicker="Why choose us" title="Skill, scale and someone who answers" className="mb-6" />
           <ul className="grid gap-3 sm:grid-cols-2">

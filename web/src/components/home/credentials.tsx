@@ -34,16 +34,18 @@ export function Credentials({ items }: { items: Certification[] }) {
           see `components/ui/collection.tsx`. The certificate sits in the
           icon slot as a 3:4 portrait — it is a sheet of paper — so an
           idiom that moves the icon moves it. `min-w-0` on each item: the
-          name is `truncate`, and `nowrap` text makes a grid item's
+          issuer is `truncate`, and `nowrap` text makes a grid item's
           min-content the full run of it — at 320px the card ran 16px past
-          the screen. The phone audit named it.
+          the screen. The phone audit named it. The name runs to two lines
+          instead: cut to "MSME Udyam regis…" it was the one thing the card
+          is for (the proportion review, 2026-10-05).
         */}
         <Collection fill kind="certifications" cols={4} className="mt-8">
           {items.slice(0, 6).map((c) => (
             <Tile
               key={c.id}
               titleAs="b"
-              title={<span className="block truncate">{c.name}</span>}
+              title={<span className="line-clamp-2 [overflow-wrap:anywhere]">{c.name}</span>}
               summary={c.issuer && <span className="block truncate">{c.issuer}</span>}
               padding="sm"
               icon={

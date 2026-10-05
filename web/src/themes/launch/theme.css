@@ -114,10 +114,21 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 14px;
 }
+/* The product categories two to a row on a phone, as every other theme draws them: one a row was ten screens of pictures. */
+@media (width < 30rem) {
+  [data-theme="launch"] [data-collection="categories"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Two to a row at 320, 22px a side left "Virtualisation" a pixel short of its tile. */
+  [data-theme="launch"] [data-collection="categories"] [data-tile] [data-tile-body] { padding: 16px; }
+}
 @media (width >= 40rem) {
   [data-theme="launch"] [data-collection] { grid-template-columns: repeat(12, minmax(0, 1fr)); }
   [data-theme="launch"] [data-collection] > li { grid-column: span 6; }
-  [data-theme="launch"] [data-collection] > li:first-child { grid-column: span 12; }
+  /* The bento lead is a picture: a text-only first tile made big is an empty box (the proportion review, 2026-10-05). */
+  [data-theme="launch"] [data-collection] > li:first-child:has([data-tile-media]) { grid-column: span 12; }
+}
+/* Full-width on a tablet, the lead's picture keeps a wide ratio: at the tiles' own it was 540px tall at 768. */
+@media (40rem <= width < 64rem) {
+  [data-theme="launch"] [data-collection] > li:first-child:has([data-tile-media]) [data-tile-media] { aspect-ratio: 21 / 9; }
 }
 @media (width >= 64rem) {
   [data-theme="launch"] [data-collection][data-cols="1"] > li { grid-column: span 12; }
@@ -125,7 +136,9 @@
   [data-theme="launch"] [data-collection][data-cols="3"] > li { grid-column: span 4; }
   [data-theme="launch"] [data-collection][data-cols="4"] > li,
   [data-theme="launch"] [data-collection][data-cols="6"] > li { grid-column: span 3; }
-  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child { grid-column: span 6; grid-row: span 2; }
+  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child:has([data-tile-media]) { grid-column: span 6; grid-row: span 2; }
+  /* Beside a three-column row the lead is eight columns, or two of the twelve stay empty beside it. */
+  [data-theme="launch"] [data-collection][data-cols="3"] > li:first-child:has([data-tile-media]) { grid-column: span 8; }
 }
 [data-theme="launch"] [data-collection] [data-tile] {
   border: 0;
@@ -157,17 +170,17 @@
 [data-theme="launch"] [data-collection] [data-tile-kicker] { color: var(--color-brand-ink); }
 /* The lead tile: the brand wash, the name at a display size, the picture taller. */
 @media (width >= 64rem) {
-  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child [data-tile] {
+  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child:has([data-tile-media]) [data-tile] {
     background-image: linear-gradient(165deg, var(--color-brand-50), var(--color-card) 60%, var(--color-surface-2));
   }
-  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child [data-tile-body] { padding: 28px; }
-  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child [data-tile-title] { font-size: 24px; }
-  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child [data-tile-summary] { font-size: 15px; }
-  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child [data-tile-media] { aspect-ratio: auto; flex: 1 1 0; min-height: 180px; }
+  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child:has([data-tile-media]) [data-tile-body] { padding: 28px; }
+  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child:has([data-tile-media]) [data-tile-title] { font-size: 24px; }
+  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child:has([data-tile-media]) [data-tile-summary] { font-size: 15px; }
+  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child:has([data-tile-media]) [data-tile-media] { aspect-ratio: auto; flex: 1 1 0; min-height: 180px; }
   /* The picture takes the lead tile's extra height, not the words: the body's `flex-1` would share it. */
-  [data-theme="launch"] [data-collection]:not([data-cols="1"]):not([data-collection="products"]) > li:first-child [data-tile]:has(> [data-tile-media]) > [data-tile-body] { flex: 0 0 auto; }
-  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child [data-tile-icon] > span:not([data-tile-portrait]):not([data-tile-date]) { width: 52px; height: 52px; }
-  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child [data-tile-icon] svg { width: 26px; height: 26px; }
+  [data-theme="launch"] [data-collection]:not([data-cols="1"]):not([data-collection="products"]) > li:first-child:has([data-tile-media]) [data-tile]:has(> [data-tile-media]) > [data-tile-body] { flex: 0 0 auto; }
+  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child:has([data-tile-media]) [data-tile-icon] > span:not([data-tile-portrait]):not([data-tile-date]) { width: 52px; height: 52px; }
+  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child:has([data-tile-media]) [data-tile-icon] svg { width: 26px; height: 26px; }
 }
 /* The shop's furniture: pills and big radii, like its header. */
 [data-theme="launch"] [data-store-filter] form { border-radius: 24px; border: 0; box-shadow: var(--shadow-float); }

@@ -129,6 +129,23 @@
 [data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-kicker] + [data-tile-title] {
   background-image: linear-gradient(135deg, var(--color-brand-900), var(--color-brand-800));
 }
+/*
+  A picture as the card (`data-tile-bg`) already carries the words over its
+  own dark foot, so the band is not drawn on it: the bar crossed the middle
+  of every photograph and hid most of it (the client's proportion review,
+  2026-10-05). The words take the foot's own spacing.
+*/
+[data-theme="summit"] [data-collection][data-tile-bg] [data-tile]:has(> [data-tile-media]) [data-tile-head],
+[data-theme="summit"] [data-collection][data-tile-bg] [data-tile]:has(> [data-tile-media]) [data-tile-kicker] {
+  padding: 0;
+  background: none;
+}
+[data-theme="summit"] [data-collection][data-tile-bg] [data-tile]:has(> [data-tile-media]) :is([data-tile-summary], [data-tile-meta], [data-tile-cta]) {
+  margin-left: 0;
+  margin-right: 0;
+}
+[data-theme="summit"] [data-collection][data-tile-bg] [data-tile]:has(> [data-tile-media]) [data-tile-summary] { margin-top: 6px; }
+[data-theme="summit"] [data-collection][data-tile-bg] [data-tile]:has(> [data-tile-media]) [data-tile-body] > :last-child { margin-bottom: 0; }
 [data-theme="summit"] #products:not([data-section] *),
 [data-theme="summit"] #industries:not([data-section] *),
 [data-theme="summit"] #resources:not([data-section] *) {

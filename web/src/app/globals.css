@@ -3182,6 +3182,42 @@ summary:focus-visible {
   will-change: transform;
 }
 .strip-cascade { height: calc(var(--slot-h) * 3 + 2 * 1.25rem); }
+/*
+ * Without motion a moving strip is its list once, as a still wrapped grid —
+ * never its frozen loop, which repeats every logo to fill the track
+ * (`LogoMarquee`, 2026-10-05). The still list is in the markup always and
+ * shown only here, so nothing depends on JavaScript.
+ */
+/*
+ * A wrapped logo list sets its marks two to a row on a phone: two 160px
+ * slots and a 40px gap are wider than a 360px screen's column, so every
+ * logo took a row to itself (the proportion review, 2026-10-05). The mark
+ * is `object-contain` in its slot, so a narrower slot only scales it.
+ */
+@media (width < 40rem) {
+  .strip-wrap > li { width: calc(50% - .5rem); }
+}
+
+/*
+ * Two category tiles to a row on a phone leave a name about ninety pixels
+ * beside its icon, and "Virtualisation" is wider than that: it broke as
+ * "Virtualisati-on". The picture above already says what the tile is, so the
+ * icon steps aside there and the name takes the row a size down; the
+ * wrap is the last resort for a name longer than any seeded (the proportion
+ * review, 2026-10-05). Unlayered and after the theme imports, so it wins a
+ * theme's three-attribute idiom rule on order. Datacenter's rack and
+ * Terminal's listing are one row a category, with room for both, so they
+ * keep theirs.
+ */
+@media (width < 30rem) {
+  .public-site:not([data-theme="datacenter"], [data-theme="terminal"]) [data-collection="categories"] [data-tile]:has([data-tile-media]) [data-tile-icon] { display: none; }
+  .public-site:not([data-theme="datacenter"], [data-theme="terminal"]) [data-collection="categories"] [data-tile-title] { font-size: 14px; line-height: 1.3; hyphens: auto; overflow-wrap: break-word; }
+}
+.strip-still { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .strip-still { display: flex; }
+  .strip-moving { display: none; }
+}
 .brand-marquee-fade-y {
   -webkit-mask-image: linear-gradient(180deg, transparent, #000 14%, #000 86%, transparent);
           mask-image: linear-gradient(180deg, transparent, #000 14%, #000 86%, transparent);

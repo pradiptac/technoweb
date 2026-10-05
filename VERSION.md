@@ -21,6 +21,30 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.108.0 — 2026-10-05
+
+**Every homepage section, in every theme, in proportion at every screen
+width.**
+
+- **Logo strips**: with reduced motion switched on, a strip shows each logo
+  once instead of a frozen loop repeating them; on a phone logos sit two to a
+  row instead of one.
+- **Product categories** sit two to a row on a phone in every theme, with
+  every name whole — they took ten screens of scrolling before.
+- **Editorial's hero** sets the headline beside the introduction on a wide
+  screen instead of running the text the full width.
+- **Launch**: the four figures pair up on a phone and tablet, the hero
+  picture and the lead tile keep a wide shape on a tablet, and a lead tile
+  without a picture is no longer drawn as a big empty box.
+- **Datacenter and Terminal**: pictured services sit two or three to a row
+  instead of one photograph per full-width row.
+- **Summit**, **Horizon** and **Terminal**: a caption band no longer crosses
+  its photograph, the "why" picture no longer outweighs its words, and a
+  certification note no longer wraps under itself.
+- **Certification names** wrap to two lines instead of being cut off.
+
+---
+
 ## 0.107.0 — 2026-10-05
 
 **Five new builder sections, and sections that hold their proportions.**

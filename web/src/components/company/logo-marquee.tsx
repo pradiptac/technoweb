@@ -83,8 +83,14 @@ const MIN_PER_COPY = 18;
  * still logos is decoration on content that stays put, and it is inside
  * the reduced-motion guard like everything else here. `lens` and `ring`
  * render the same wrapped grid as their markup and are placed by CSS only
- * inside that guard, so a reader who has asked for less motion gets a
- * still grid, not half a carousel; `cascade` freezes like the marquee does.
+ * inside that guard; their head count is padded with repeats, so under
+ * reduced motion they too give way to the still list below. **Every moving mode renders the same
+ * still grid too** (`strip-still`), shown in place of its moving markup
+ * (`strip-moving`) under reduced motion. Frozen, a loop is each list repeated
+ * to fill its track, so a still page showed Cisco twice and Aruba three
+ * times, and the client wall each client twice — a repeat a moving loop
+ * hides and a still page cannot (the client's proportion review,
+ * 2026-10-05).
  * The slot's size travels as `--slot-w`/`--slot-h` for the two that
  * position logos by arithmetic.
  */
@@ -186,7 +192,9 @@ export function LogoMarquee({
   // repeated well past the window.
   const columns: MarqueeLogo[][] = cascade
     ? CASCADE_COLUMNS[size].map((_, c) => {
-        const start = (c * Math.ceil(items.length / CASCADE_COLUMNS[size].length)) % items.length;
+        // Spread evenly over the list: `c * ceil(n / cols)` wrapped the fifth
+        // column back to the first logo at 1920, two identical columns in view.
+        const start = Math.round((c * items.length) / CASCADE_COLUMNS[size].length) % items.length;
         const col = [...items.slice(start), ...items.slice(0, start)];
         const out: MarqueeLogo[] = [];
         while (out.length < MIN_PER_COLUMN) out.push(...col);
@@ -198,8 +206,48 @@ export function LogoMarquee({
   // them reads `--n`, and a ring of two is a see-saw.
   const fixed = (n: number) => copy.slice(0, n);
 
-  const slot = (item: MarqueeLogo, key: string, style?: React.CSSProperties) => (
-    <li key={key} style={style} className={cn("relative flex shrink-0 items-center justify-center", still ? "" : cascade ? "mb-5" : "mr-10", SLOT[size])}>
+  /** A client tile or a flip tile, as the wall draws it; `bare` drops the loop's trailing margin. */
+  const wallTile = (item: MarqueeLogo, key: string, bare = false) => variant === "flip" ? (
+    // Still, 150px until `lg`: two to a row on a phone, four on a tablet, where 200px tiles left one alone on a second row.
+    <li key={key} className={cn("flip-tile shrink-0", bare ? "size-[150px] lg:size-[200px]" : "mr-4 size-[200px]")}>
+      <div className="flip-tile__inner relative size-full">
+        <div className="flip-tile__face absolute inset-0 grid place-items-center overflow-hidden rounded-xl border border-line-strong bg-card p-6">
+          {item.logo ? (
+            <span className="relative size-full">
+              <Image src={item.logo} alt="" fill sizes="200px" className="brand-logo object-contain" />
+            </span>
+          ) : (
+            <span className="font-display text-17 font-semibold tracking-[-.02em] text-faint">{item.name}</span>
+          )}
+        </div>
+        <div className="flip-tile__face flip-tile__back absolute inset-0 grid place-items-center rounded-xl bg-brand-600 p-5 text-center text-brand-on">
+          <span>
+            <span className="block font-display text-17 font-semibold leading-tight">{item.name}</span>
+            {item.detail && <span className="mt-1.5 block text-12-5 opacity-90">{item.detail}</span>}
+          </span>
+        </div>
+      </div>
+    </li>
+  ) : (
+    <li
+      key={key}
+      className={cn("flex shrink-0 items-center gap-3 rounded-full border border-line-strong bg-card py-2 pl-2.5 pr-5 transition-colors duration-(--duration-base) hover:border-brand-300", !bare && "mr-3")}
+    >
+      <span className="relative size-8 shrink-0 overflow-hidden rounded-full bg-surface-2">
+        {item.logo ? (
+          <Image src={item.logo} alt="" fill sizes="32px" className="brand-logo object-cover" />
+        ) : (
+          <span className="grid h-full place-items-center font-display text-13 font-semibold text-muted">
+            {item.name.slice(0, 1)}
+          </span>
+        )}
+      </span>
+      <span className="whitespace-nowrap text-14 font-medium text-ink">{item.name}</span>
+    </li>
+  );
+
+  const slot = (item: MarqueeLogo, key: string, style?: React.CSSProperties, bare = still) => (
+    <li key={key} style={style} className={cn("relative flex shrink-0 items-center justify-center", bare ? "" : cascade ? "mb-5" : "mr-10", SLOT[size])}>
       {item.logo ? (
         <Image src={item.logo} alt="" fill sizes="224px" className="brand-logo object-contain" />
       ) : (
@@ -228,6 +276,18 @@ export function LogoMarquee({
           {items.map((item) => <li key={item.id}>{item.name}</li>)}
         </ul>
 
+        {!grid && (
+          /*
+            The list once, still — what a reader who asked for less motion
+            sees in place of the loop. The lens and the ring included: they
+            place a fixed head count padded with repeats (four clients made
+            a ring of fourteen), which a still grid shows as duplicates.
+          */
+          <ul aria-hidden="true" className={cn("strip-still flex-wrap items-center justify-center", variant === "logos" ? "strip-wrap gap-x-4 gap-y-6 sm:gap-x-10" : "gap-3")}>
+            {items.map((item) => (variant === "logos" ? slot(item, `still-${item.id}`, undefined, true) : wallTile(item, `still-${item.id}`, true)))}
+          </ul>
+        )}
+
         {grid ? (
           /*
             One copy, wrapped and centred, nothing moving on its own: the
@@ -237,7 +297,7 @@ export function LogoMarquee({
           */
           <ul
             aria-hidden="true"
-            className="strip-grid flex flex-wrap items-center justify-center gap-x-10 gap-y-6"
+            className="strip-grid strip-wrap flex flex-wrap items-center justify-center gap-x-4 gap-y-6 sm:gap-x-10"
             style={{ "--n": items.length } as React.CSSProperties}
           >
             {items.map((item, i) => slot(item, String(item.id), { "--i": i } as React.CSSProperties))}
@@ -249,7 +309,7 @@ export function LogoMarquee({
             guard, so without motion this is a grid of logos and nothing is
             missing from it. `--n` is what the arithmetic divides by.
           */
-          <div data-marquee className={cn("brand-marquee relative", "brand-marquee-fade", ring ? "strip-ring-host" : "strip-lens-host")}>
+          <div data-marquee className={cn("strip-moving brand-marquee relative", "brand-marquee-fade", ring ? "strip-ring-host" : "strip-lens-host")}>
             <ul
               aria-hidden="true"
               className={cn("flex flex-wrap items-center justify-center gap-x-10 gap-y-6", ring ? "strip-ring" : "strip-lens")}
@@ -267,7 +327,7 @@ export function LogoMarquee({
             *below* it for the same reason it is beside it in the strip.
             Columns join as the Container widens — `CASCADE_COLUMNS`.
           */
-          <div data-marquee className="brand-marquee brand-marquee-fade-y strip-cascade relative flex justify-center gap-10 overflow-hidden">
+          <div data-marquee className="strip-moving brand-marquee brand-marquee-fade-y strip-cascade relative flex justify-center gap-10 overflow-hidden">
             {columns.map((col, c) => (
               <ul
                 key={c}
@@ -287,7 +347,7 @@ export function LogoMarquee({
             and so above) at three-fifths the pace and scaled down by CSS,
             which is what makes it read as further away.
           */
-          <div data-marquee className={cn("brand-marquee brand-marquee-fade relative overflow-hidden", parallax ? "space-y-2" : "space-y-5")}>
+          <div data-marquee className={cn("strip-moving brand-marquee brand-marquee-fade relative overflow-hidden", parallax ? "space-y-2" : "space-y-5")}>
             {(parallax ? [...rows].reverse() : rows).map((row, r) => (
               <ul
                 key={r}
@@ -312,7 +372,7 @@ export function LogoMarquee({
           way to stop it — and moving content that starts by itself has to be
           stoppable by everyone, not by whoever has a pointer.
         */}
-        <div data-marquee className="brand-marquee brand-marquee-fade relative overflow-hidden">
+        <div data-marquee className="strip-moving brand-marquee brand-marquee-fade relative overflow-hidden">
           <ul
             aria-hidden="true"
             className="brand-marquee-track flex w-max items-center"
@@ -321,45 +381,9 @@ export function LogoMarquee({
             style={{ animationDuration: `${copy.length * (variant === "tiles" ? 2 : variant === "flip" ? 2.2 : 2.5)}s` }}
           >
             {[...copy, ...copy].map((item, i) => (
-              variant === "flip" ? (
-                <li key={`${item.id}-${i}`} className="flip-tile mr-4 size-[200px] shrink-0">
-                  <div className="flip-tile__inner relative size-full">
-                    <div className="flip-tile__face absolute inset-0 grid place-items-center overflow-hidden rounded-xl border border-line-strong bg-card p-6">
-                      {item.logo ? (
-                        <span className="relative size-full">
-                          <Image src={item.logo} alt="" fill sizes="200px" className="brand-logo object-contain" />
-                        </span>
-                      ) : (
-                        <span className="font-display text-17 font-semibold tracking-[-.02em] text-faint">{item.name}</span>
-                      )}
-                    </div>
-                    <div className="flip-tile__face flip-tile__back absolute inset-0 grid place-items-center rounded-xl bg-brand-600 p-5 text-center text-brand-on">
-                      <span>
-                        <span className="block font-display text-17 font-semibold leading-tight">{item.name}</span>
-                        {item.detail && <span className="mt-1.5 block text-12-5 opacity-90">{item.detail}</span>}
-                      </span>
-                    </div>
-                  </div>
-                </li>
-              ) : variant === "tiles" ? (
-                <li
-                  key={`${item.id}-${i}`}
-                  className="mr-3 flex shrink-0 items-center gap-3 rounded-full border border-line-strong bg-card py-2 pl-2.5 pr-5 transition-colors duration-(--duration-base) hover:border-brand-300"
-                >
-                  <span className="relative size-8 shrink-0 overflow-hidden rounded-full bg-surface-2">
-                    {item.logo ? (
-                      <Image src={item.logo} alt="" fill sizes="32px" className="brand-logo object-cover" />
-                    ) : (
-                      <span className="grid h-full place-items-center font-display text-13 font-semibold text-muted">
-                        {item.name.slice(0, 1)}
-                      </span>
-                    )}
-                  </span>
-                  <span className="whitespace-nowrap text-14 font-medium text-ink">{item.name}</span>
-                </li>
-              ) : (
-                slot(item, `${item.id}-${i}`, { "--i": i } as React.CSSProperties)
-              )
+              variant === "logos"
+                ? slot(item, `${item.id}-${i}`, { "--i": i } as React.CSSProperties)
+                : wallTile(item, `${item.id}-${i}`)
             ))}
           </ul>
           <MarqueeToggle />

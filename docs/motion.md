@@ -406,4 +406,16 @@ styles through the Motion tab); `audit.mjs` light and dark and
 `audit:mobile` clean on a page carrying all four, and 0px of overflow at
 320px sampled every 30ms through each reveal.
 
+## A frozen loop is a repeat (0.108.0, 2026-10-05)
 
+Under `prefers-reduced-motion: reduce` every moving `LogoMarquee` mode —
+marquee, drift, bob, spotlight, parallax, lens, cascade, ring — stops, and
+a stopped loop is its list repeated to fill the track: a still page showed
+one logo two or three times and the client wall each client twice. Each
+moving mode now renders the list once as a wrapped grid (`.strip-still`,
+`aria-hidden`) beside its moving markup (`.strip-moving`), and one rule in
+`globals.css` shows the first and hides the second under the reduced-motion
+query. Both are in the server's HTML, so nothing waits on JavaScript. The
+grid modes (rise, wipe, pulse, flicker, deal) render the list once already
+and carry no still copy. `.strip-wrap` sets a wrapped list two to a row
+below 40rem.

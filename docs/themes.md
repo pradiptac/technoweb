@@ -952,3 +952,48 @@ A homepage tile section never ends on a half-empty row, in any theme (the client
 ## Canvas in solid colour (2026-09-28)
 
 Canvas's cards are solid colour (the client, 2026-09-28, chosen from three rendered options over a navy and a single-brand version): every collection tile (not the shop's products, not the resources routes) and the front page's hand-rolled cards (`data-canvas-fill`) turn through brand, accent and secondary at 600 and then 900, six to a cycle; each fill brings its own ink — the palette's `-on` on a 600, `dark-ink` on a 900 — set as a local palette (`ink`, `ink-2`, `muted`, `faint`, the coloured inks and the hairlines all become it), with `--color-card` left alone so an icon keeps its pale disc. The four statistics under the hero are Google's four colours in order, from `--color-g-*-fill`/`-on` in `globals.css` (Google's product shades with the ink each needs; yellow takes near-black). A card on a fill is never `bg-card` in the markup, or the card-ground gradient paints over it. The words under a heading are softer than it — the same hue's 100 step on a 600 fill (pale in light, dark in dark, so it softens in the right direction in both) and `dark-muted` on a 900 — and every heading sits on a solid Google-colour chip (`--color-g-*-fill` with its `-on`), paired with the fill so blue never sits on blue.
+
+## The proportion pass (0.108.0, 2026-10-05)
+
+The client's rule: a card or any other object out of proportion with the
+screen it is on reads as a fault, so every section of every theme is judged
+by eye at 360, 768, 1280 and 1920 before it is called finished. What that
+review found, and the rule each fix leaves behind:
+
+- **A split's two halves are sized by what is in them.** Editorial's hero was
+  a headline over a lede over buttons, the lede running the full 1920px. It is
+  `7fr | 5fr` from `lg`, headline left, lede and buttons right on its
+  baseline. Horizon's "why" picture was half the row against four short
+  lines; it is `7fr | 5fr` from `xl`.
+- **A moving logo strip frozen is a repeat.** Under reduced motion a loop is
+  its list repeated to fill the track, so a still page showed one logo two or
+  three times. Every moving mode renders the list once as a wrapped still
+  grid (`strip-still`) beside its moving markup (`strip-moving`), and only the
+  reduced-motion query decides which is drawn. The cascade's columns start at
+  an even share of the list, so at 1920 no two columns open on the same logo.
+- **A wrapped logo list is two to a row on a phone** (`.strip-wrap`): two
+  160px slots and a 40px gap are wider than a 360px column, so every logo
+  had a row to itself. Still flip tiles are 150px until `lg`, two to a phone
+  row and four to a tablet row.
+- **A full-width picture strip is a grid, not a stack.** Datacenter and
+  Terminal drew pictured services one per full-width row; they are two
+  columns from 40rem and three from 64rem, hairlines between.
+- **Launch's bento lead is a picture or nothing.** A text-only first tile
+  made big was an empty box; the lead rules need `:has([data-tile-media])`.
+  Beside three columns the lead is eight of twelve, and full width on a
+  tablet its picture is 21:9 — at its own ratio it was 540px tall at 768.
+  The hero picture is 16:10 from `sm`; the four statistics pair up below
+  `lg`.
+- **The categories are two to a row on a phone in every theme** — one a row
+  was ten screens of pictures. Below 30rem the name loses its icon (the
+  picture above already says what the tile is) and steps down to 14px, so
+  "Virtualisation" fits whole at 320 rather than breaking mid-word;
+  Datacenter's rack and Terminal's listing keep both.
+- **A certification's name wraps to two lines**, never an ellipsis: cut to
+  "MSME Udyam regis…" it was the one thing the card is for.
+- **Summit's caption band no longer crosses the photograph** on a pictured
+  tile, and Terminal's certification note no longer wraps under its own
+  comment marker.
+
+`scripts/probes/full-rows.mjs` and the audits measure what can be measured;
+the review is still a person looking at the four widths.

@@ -51,14 +51,15 @@ export function Home({
   const hero = (
     <section className="pt-6 pb-10 lg:pt-8 lg:pb-14">
       <Container>
-        <div className="grid gap-4 lg:grid-cols-12">
+        {/* Two columns below `lg` so the four statistics pair up; one a row left four wide tiles a figure each (the proportion review, 2026-10-05). */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-12">
           {/* The words. */}
           {/* `p-5` on a phone: at 320 the tile is 288px and `p-8` left 224 for the
               headline, whose longest word at display size was the grid track's
               min-content — every tile in the column ran 7px past the edge.
               `[overflow-wrap:anywhere]` is the guard behind it, for a heading an
               editor writes with a longer word still. */}
-          <div data-card className="flex flex-col justify-center rounded-3xl border border-line-strong bg-card p-5 sm:p-8 lg:col-span-7 lg:p-12">
+          <div data-card className="col-span-2 flex flex-col justify-center rounded-3xl border border-line-strong bg-card p-5 sm:p-8 lg:col-span-7 lg:p-12">
             <span className="inline-flex w-fit items-center gap-2 rounded-full bg-brand-50 px-3.5 py-1.5 text-12 font-semibold text-brand-ink">
               <i aria-hidden className="size-1.5 rounded-full bg-brand-500" />
               {kicker}
@@ -72,9 +73,9 @@ export function Home({
           </div>
 
           {/* The picture. */}
-          <div data-card className="relative min-h-[300px] overflow-hidden rounded-3xl border border-line-strong bg-surface-2 lg:col-span-5">
+          <div data-card className="relative col-span-2 min-h-[300px] overflow-hidden rounded-3xl border border-line-strong bg-surface-2 lg:col-span-5">
             {hasSlider ? (
-              <SliderFor slider={heroSlider!} aspect="aspect-[4/5] lg:aspect-auto lg:h-full" sizes="(min-width: 1024px) 40vw, 100vw" priority className="h-full" />
+              <SliderFor slider={heroSlider!} aspect="aspect-[4/5] sm:aspect-[16/10] lg:aspect-auto lg:h-full" sizes="(min-width: 1024px) 40vw, 100vw" priority className="h-full" />
             ) : (
               <Image src="/themes/launch/cubes.jpg" alt="" aria-hidden fill sizes="(min-width: 1024px) 40vw, 100vw" priority className="object-cover" />
             )}
@@ -82,13 +83,13 @@ export function Home({
 
           {/* The statistics. */}
           {stats.map((s) => (
-            <div key={s.label} data-card className="stat-figures rounded-3xl bg-brand-50 p-6 lg:col-span-3" {...statFigures(look)}>
+            <div key={s.label} data-card className="stat-figures min-w-0 rounded-3xl bg-brand-50 p-5 sm:p-6 lg:col-span-3" {...statFigures(look)}>
               <StatFigure stat={s} labelClassName="font-medium text-ink-2" />
             </div>
           ))}
 
           {/* The support desk. */}
-          <div data-card className="relative min-h-[360px] overflow-hidden rounded-3xl border border-line-strong bg-surface-2 lg:col-span-6">
+          <div data-card className="relative col-span-2 min-h-[360px] overflow-hidden rounded-3xl border border-line-strong bg-surface-2 lg:col-span-6">
             <Image src="/themes/launch/desk.jpg" alt="" aria-hidden fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" />
             <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-line-strong bg-card p-5">
               <span className="text-11-5 font-semibold uppercase tracking-[.12em] text-brand-ink">Support</span>
@@ -108,7 +109,7 @@ export function Home({
           </div>
 
           {/* The solutions. */}
-          <div data-card className="rounded-3xl border border-line-strong bg-card p-6 lg:col-span-6 lg:p-8">
+          <div data-card className="col-span-2 rounded-3xl border border-line-strong bg-card p-6 lg:col-span-6 lg:p-8">
             <div className="flex items-end justify-between gap-4">
               <div>
                 <span className="text-11-5 font-semibold uppercase tracking-[.12em] text-brand-ink">Solutions</span>
