@@ -4,6 +4,7 @@ namespace App\Support\WordPress;
 
 use App\Support\LinkPattern;
 use App\Support\PageSections\BodySections;
+use App\Support\WordPress\Rendered\RenderedSections;
 use App\Support\YouTube;
 use Closure;
 use Illuminate\Support\Str;
@@ -36,6 +37,15 @@ use Illuminate\Support\Str;
  * section. A dynamic block whose saved markup is empty — latest posts, a
  * shortcode block — has nothing to bring and is counted in `$skipped`.
  *
+ * **A plugin's block is read by what it draws** (0.110.0): any block this
+ * class does not map itself — a gallery, a group, Spectra's or Kadence's
+ * blocks, columns that are not features — has its saved markup offered to
+ * `RenderedSections`, whose recognisers know price tables, forms, counters,
+ * accordions and the rest; what they find becomes its own sections, and a
+ * block they find nothing in stays text. A form block that saved only its
+ * id (WPForms, Gravity Forms) takes the page's next rendered form
+ * (`$nextForm`).
+ *
  * Markup goes through the caller's `$body` (the import's `Step::body()`:
  * uploads re-homed in the media library, then the sanitiser), and a picture
  * field through `$media`, which answers a library path or null.
@@ -62,14 +72,27 @@ final class GutenbergSections
     /** @var list<array{question: string, answer: string}> consecutive questions being gathered */
     private array $questions = [];
 
+    /** Blocks this class reads itself, or that are only ever text. */
+    private const OWN = [
+        'core/paragraph', 'core/heading', 'core/list', 'core/list-item', 'core/image', 'core/table', 'core/freeform',
+        'core/preformatted', 'core/code', 'core/verse', 'core/buttons', 'core/button', 'core/separator', 'core/details',
+        'core/spacer', 'core/quote', 'core/pullquote', 'core/embed', 'core/media-text', 'core/cover',
+    ];
+
     /** Empty blocks that are layout rather than content, and are not worth naming. */
     private const QUIET = ['core/spacer', 'core/more', 'core/nextpage', 'core/paragraph', 'core/heading', 'core/freeform', 'core/separator'];
 
     /**
      * @param  Closure(string): ?string  $body  markup → cleaned markup
      * @param  Closure(int|string): ?string  $media  attachment id or URL → library path
+     * @param  ?Closure(): list<array<string, mixed>>  $nextForm  the page's next rendered form, as sections
      */
-    public function __construct(private Closure $body, private Closure $media) {}
+    public function __construct(
+        private Closure $body,
+        private Closure $media,
+        private ?RenderedSections $rendered = null,
+        private ?Closure $nextForm = null,
+    ) {}
 
     /** Whether the content was written in the block editor at all. */
     public static function isBlocks(string $raw): bool
@@ -185,7 +208,7 @@ final class GutenbergSections
 
         $kept = [];
         foreach ($blocks as $block) {
-            if (! self::blank($block)) {
+            if (! self::blank($block) || ($this->nextForm !== null && self::formBlock($block['name']))) {
                 $kept[] = $block;
             } elseif (! in_array($block['name'], self::QUIET, true)) {
                 $this->skipped[] = $block['name'];
@@ -218,6 +241,19 @@ final class GutenbergSections
 
                     continue;
                 }
+            }
+
+            // A form block that saved only its id: the page's next rendered form.
+            if ($this->nextForm !== null && self::formBlock($name) && self::blank($block)) {
+                $rows = ($this->nextForm)();
+                if ($rows === []) {
+                    $this->skipped[] = $name;
+                } else {
+                    $this->flushText();
+                    array_push($this->out, ...$rows);
+                }
+
+                continue;
             }
 
             $section = match ($name) {
@@ -258,6 +294,17 @@ final class GutenbergSections
                 continue;
             }
 
+            // Anything else is read by what it draws.
+            if ($this->rendered !== null && ! in_array($name, self::OWN, true)) {
+                $pieces = $this->rendered->pieces(self::markup($block), false);
+                if (RenderedSections::recognised($pieces)) {
+                    $this->flushText();
+                    array_push($this->out, ...$this->rendered->rows($pieces));
+
+                    continue;
+                }
+            }
+
             if ($name === 'core/heading' && (int) ($block['attrs']['level'] ?? 2) === 2) {
                 $this->flushText();
                 $this->pending['heading'] = self::plain($block['html']);
@@ -271,11 +318,7 @@ final class GutenbergSections
         $this->flushText();
         $this->flushQuestions();
 
-        while ($this->out !== [] && end($this->out)['type'] === 'divider') {
-            array_pop($this->out);
-        }
-
-        return BodySections::cap($this->out);
+        return BodySections::cap(RenderedSections::trimDividers($this->out));
     }
 
     /** The text gathered so far as a section — or its heading alone, kept as words. */
@@ -555,6 +598,12 @@ final class GutenbergSections
         }
 
         return trim(strip_tags($block['html'], '<img><iframe><hr><table>')) === '';
+    }
+
+    /** A plugin's form block: `wpforms/form-selector`, `gravityforms/form`. */
+    private static function formBlock(string $name): bool
+    {
+        return ! str_starts_with($name, 'core/') && (bool) preg_match('/form/', $name);
     }
 
     private static function fullName(string $name): string

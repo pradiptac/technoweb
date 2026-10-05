@@ -221,6 +221,70 @@ builder and are unchanged.
   section `body` as markup and every `href` (buttons, features) by
   `LinksStep`.
 
+## What the import recognises (0.110.0)
+
+A page builder leaves a signature in the rendered page — Elementor's
+`elementor-widget-*` classes and `data-widget_type`, Divi's `et_pb_*`,
+Spectra's `wp-block-uagb-*`, Kadence's, Stackable's `stk-*`, the core
+`wp-block-*` — and the rendered HTML has every shortcode expanded, so a form
+is a real `<form>`. `App\Support\WordPress\Rendered\RenderedSections` walks
+it: each element is offered to the recognisers in `Rendered/Recognisers/`, the
+first to claim it answers a piece, and an element nobody claims is looked
+inside when it is only a wrapper and kept as text when it is not.
+
+| Found | Becomes |
+|---|---|
+| a form (Contact Form 7, WPForms, Gravity Forms, Elementor, Divi, Formidable, or any `<form>` with fields) | a published **form** + a `form` section |
+| price tables (Elementor, Divi, Stackable, a theme's `pricing-table`/`price-card`), or a row of two to four cards each with a price, a list and a link | a published **pricing block** (`three_tier`, four plans a block) + a `content_block` section |
+| a gallery or carousel (core, `[gallery]`, Elementor, Divi, Spectra, Kadence) | a published **gallery** + a `gallery` section |
+| testimonials | `testimonial` (one) / `testimonials` (two or more) |
+| counters / progress bars | `stats` as figures / as bars |
+| accordions, toggles, Yoast and Rank Math FAQ blocks, `<details>` | `faq` |
+| tabs | `tabs` |
+| a call-to-action box | `cta` |
+| icon boxes, image boxes, blurbs, info boxes | `features` |
+| icon lists | `checklist` |
+| a timeline / how-to steps | `timeline` / `steps` |
+| a YouTube video | `video` |
+| a cover or full-width header opening the page | `hero` |
+| a divider | `divider` |
+
+- **Neighbours of one kind are one section** (`Piece::MERGES`): three price
+  tables in three columns are one block of three plans, four counters one
+  figures section. A heading just above becomes the section's heading, and a
+  short line above that heading its kicker.
+- **Everything must pass its target's rules** — `SectionRules::for()`, the
+  pricing block's `BlockRules` with `after()`, `StoreFormRequest::formRules()`
+  for a form's fields. One that does not (one milestone, a plan without a
+  price) is kept as its markup in a text section; nothing is lost and nothing
+  invalid is stored.
+- **A price is paise only when it says rupees and a period** (`₹1,999/month`,
+  `Rs. 24000 per year`); anything else — `$49`, `Custom`, a rupee figure with
+  no period, which the block would label "per month" — is kept as the words
+  shown (`PriceReader`). A plan's link to the old site becomes a path, which
+  the redirects step answers.
+- **A form** (`FormReader`): labels from `<label for>`, a wrapping label, the
+  field group's label, `aria-label` or the placeholder; a radio group or a set
+  of checkboxes becomes a choice from a list, a lone checkbox a tick box;
+  hidden fields, honeypots, captchas, passwords and buttons are left out, and a
+  file upload is named in the review ("has no field here"). A field key is the
+  plugin's own name where it means something (`your-email` → `email`) and the
+  label otherwise (`wpforms[fields][3]` → `company_name`), never `website`.
+  `notify_email` is left blank, so submissions go to the sales address and the
+  leads pipeline.
+- **One form per form**: the same Contact Form 7 form on twelve pages is one
+  form, found by the plugin's id (`cf7:123`, `wpforms:45`, `gform:2`,
+  `elementor:<id>`) or by its fields. Pricing blocks and galleries are keyed
+  by the page and their place on it.
+- **The records are created in the commit only** (`Parts`, writing mode). The
+  review counts them under a step of its own, "Forms, pricing tables and
+  galleries", once per run, as reasons of kind `info`. A second run reuses a
+  record it finds in the map and leaves it as it stands here.
+- **A block-editor page** uses the same recognisers for any block
+  `GutenbergSections` does not map itself (a gallery, a group, a plugin's
+  block, columns that are not features), and a form block that saved only its
+  id (WPForms, Gravity Forms) takes the page's next rendered form.
+
 ## Tests
 
 `tests/Feature/WordPressImportTest.php` drives the whole flow against a faked
@@ -234,3 +298,10 @@ section, a classic page split at its headings, `page_layout: html`, and a
 second run leaving sections arranged here alone.
 `tests/Unit/GutenbergSectionsTest.php` — the parser's nesting and saved order,
 each mapping, the fallbacks and the named dynamic blocks.
+`tests/Unit/RenderedSectionsTest.php` — Elementor, Divi, Spectra, Yoast,
+Contact Form 7, WPForms and Gravity fixtures, the grouping, headings and
+kickers, prices, the fallbacks. `WordPressImportTest` adds an Elementor site
+whose form, pricing block and gallery are created published and placed (one
+form for two pages, submitted into the leads pipeline, reused on a second run,
+nothing created in the review or under `page_layout: html`) and a form block
+that saved only its id.

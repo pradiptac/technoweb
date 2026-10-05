@@ -21,6 +21,37 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.110.0 — 2026-10-05
+
+**The WordPress import now recognises forms, price tables, galleries and
+the other page-builder widgets, and turns each into a builder section.**
+
+- **Forms come across as forms.** A Contact Form 7, WPForms, Gravity Forms,
+  Elementor or Divi form becomes a published form here, with its fields,
+  labels, choices and button wording, placed on the page where it was. The
+  same form used on several pages is created once. Submissions go to the
+  leads pipeline like every other form. A file-upload field has no
+  equivalent here and the review says so.
+- **Price tables become pricing blocks**, with each plan's name, price,
+  features, button and "popular" badge. Rupee prices per month or year
+  become real prices; anything else (dollars, "Custom") is kept exactly as
+  written.
+- **Galleries and carousels become galleries**, their pictures brought into
+  the media library with alt text and captions.
+- **Testimonials, counters, progress bars, accordions and FAQs, tabs, call-
+  to-action boxes, icon boxes, icon lists, timelines, how-to steps, YouTube
+  videos and dividers** each become the matching section, from Elementor,
+  Divi, Spectra, Kadence, Stackable, Yoast, Rank Math and the block editor.
+  Neighbouring widgets of one kind become one section, under the heading
+  above them.
+- **Nothing is lost**: anything that does not fit a section's rules comes
+  across as text.
+- **The review shows what will be created** — "Forms, pricing tables and
+  galleries" — before anything is written, and a second import reuses what
+  the first created.
+
+---
+
 ## 0.109.0 — 2026-10-05
 
 **Imported pages arrive ready to edit in the builder, and four new

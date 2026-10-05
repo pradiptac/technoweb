@@ -8,11 +8,15 @@ export type WordPressImportStatus =
 
 export type WordPressImportSection = "content" | "catalogue" | "customers" | "custom";
 
-/** Why records were skipped, or written with something missing — grouped, largest first. */
+/**
+ * Why records were skipped, or written with something missing — grouped,
+ * largest first. `info` says what was made of something (0.110.0: the forms,
+ * pricing blocks and galleries a page held), neither a loss nor a refusal.
+ */
 export type WordPressImportReason = {
   reason: string;
   count: number;
-  kind: "skip" | "warn";
+  kind: "skip" | "warn" | "info";
   examples: string[];
 };
 

@@ -7,12 +7,16 @@ use App\Enums\Role as RoleEnum;
 use App\Models\BlogCategory;
 use App\Models\BlogComment;
 use App\Models\BlogPost;
+use App\Models\ContentBlock;
 use App\Models\ContentType;
 use App\Models\Coupon;
 use App\Models\CouponUsage;
 use App\Models\Customer;
 use App\Models\CustomField;
 use App\Models\Entry;
+use App\Models\Form;
+use App\Models\Gallery;
+use App\Models\Lead;
 use App\Models\Media;
 use App\Models\Menu;
 use App\Models\NewsletterSubscriber;
@@ -573,6 +577,145 @@ class WordPressImportTest extends TestCase
         $this->assertSame('builder', $classic->template);
         $this->assertSame(['rich_text'], array_column($classic->blocks, 'type'));
         $this->assertStringContainsString('We install networks.', $classic->blocks[0]['data']['body']);
+    }
+
+    /**
+     * A page an Elementor site drew: a heading over three price tables, a
+     * gallery, two counters and a Contact Form 7 form.
+     */
+    private function elementorPage(int $id, string $slug, bool $withTables = true): array
+    {
+        $price = fn (string $name, string $whole) => '<div class="elementor-column"><div class="elementor-widget elementor-widget-price-table"><div class="elementor-widget-container"><div class="elementor-price-table">'
+            .'<div class="elementor-price-table__header"><h3 class="elementor-price-table__heading">'.$name.'</h3></div>'
+            .'<div class="elementor-price-table__price"><span class="elementor-price-table__currency">₹</span><span class="elementor-price-table__integer-part">'.$whole.'</span><span class="elementor-price-table__period">/month</span></div>'
+            .'<ul class="elementor-price-table__features-list"><li><span>Remote support</span></li><li><span>Site visits</span></li></ul>'
+            .'<div class="elementor-price-table__footer"><a class="elementor-button" href="https://shop.example/services/">Choose</a></div></div></div></div></div>';
+        $counter = fn (string $to, string $title) => '<div class="elementor-widget elementor-widget-counter"><div class="elementor-counter"><span class="elementor-counter-number" data-to-value="'.$to.'">0</span><div class="elementor-counter-title">'.$title.'</div></div></div>';
+
+        $rendered = '<div class="elementor elementor-'.$id.'">'
+            .($withTables ? '<div class="elementor-widget elementor-widget-heading"><h2 class="elementor-heading-title">Support plans</h2></div>'
+                .'<div class="elementor-container">'.$price('Basic', '1,999').$price('Plus', '3,999').$price('Enterprise', '9,999').'</div>'
+                .'<div class="elementor-widget elementor-widget-image-gallery"><div class="gallery">'
+                .'<figure class="gallery-item"><a href="https://shop.example/wp-content/uploads/2024/02/rack.png"><img src="https://shop.example/wp-content/uploads/2024/02/rack-300x300.png" alt="A rack"></a></figure>'
+                .'<figure class="gallery-item"><a href="https://shop.example/wp-content/uploads/2024/02/desk.png"><img src="https://shop.example/wp-content/uploads/2024/02/desk-300x300.png" alt="A desk"></a></figure></div></div>'
+                .$counter('16', 'Years').$counter('340', 'Sites') : '')
+            .'<h2>Write to us</h2>'
+            .'<div class="wpcf7 no-js" id="wpcf7-f123-p'.$id.'-o1"><form class="wpcf7-form" method="post"><input type="hidden" name="_wpcf7" value="123">'
+            .'<p><label> Your name<br><input type="text" name="your-name" aria-required="true"></label></p>'
+            .'<p><label> Your email<br><input type="email" name="your-email" aria-required="true"></label></p>'
+            .'<p><label> Message<br><textarea name="your-message"></textarea></label></p>'
+            .'<p><input type="submit" value="Send"></p></form></div></div>';
+
+        return [
+            'id' => $id, 'slug' => $slug, 'status' => 'publish', 'date_gmt' => '2024-02-01T00:00:00', 'parent' => 0,
+            'title' => ['raw' => ucfirst(str_replace('-', ' ', $slug))], 'link' => self::SITE.'/'.$slug.'/',
+            'meta' => ['_elementor_edit_mode' => 'builder'],
+            'content' => ['raw' => '', 'rendered' => $rendered],
+        ];
+    }
+
+    public function test_widgets_become_sections_and_the_form_pricing_and_gallery_records(): void
+    {
+        $site = $this->site();
+        $site['wp/v2/pages'][] = $this->elementorPage(34, 'plans');
+        $site['wp/v2/pages'][] = $this->elementorPage(35, 'get-in-touch', withTables: false);
+        $this->fakeSite($site);
+
+        // The review counts the parts and creates none of them.
+        $import = $this->start();
+        $parts = collect($import->fresh()->analysis['steps'])->firstWhere('key', 'page_parts');
+        $this->assertSame(3, $parts['create'], 'one form for two pages, one pricing block, one gallery');
+        $this->assertEqualsCanonicalizing(['Forms, placed as form sections', 'Pricing tables, made pricing blocks', 'Galleries and carousels, made galleries'], array_column($parts['reasons'], 'reason'));
+        $this->assertSame(0, Form::query()->count() + ContentBlock::query()->where('type', 'pricing')->count() + Gallery::query()->count());
+        $pageWarnings = json_encode(collect($import->fresh()->analysis['steps'])->firstWhere('key', 'pages')['reasons']);
+        $this->assertStringContainsString('its widgets were read into sections', $pageWarnings);
+
+        $done = $this->commit($import);
+        $this->assertSame('completed', $done->status, (string) $done->error);
+
+        $page = Page::query()->where('slug', 'plans')->firstOrFail();
+        $this->assertSame('builder', $page->template);
+        $this->assertSame(['content_block', 'gallery', 'stats', 'form'], array_column($page->blocks, 'type'));
+
+        $block = ContentBlock::query()->findOrFail($page->blocks[0]['data']['block_id']);
+        $this->assertSame('published', $block->status->value);
+        $this->assertSame('Support plans', $block->data['heading']);
+        $this->assertSame(['Basic', 'Plus', 'Enterprise'], array_column($block->data['sets'][0]['plans'], 'name'));
+        $this->assertSame(399900, $block->data['sets'][0]['plans'][1]['price_monthly_paise']);
+        $this->assertSame('/services/', $block->data['sets'][0]['plans'][0]['cta']['href'], 'a link to the old site is a path here, which the redirects answer');
+
+        $gallery = Gallery::query()->with('items')->findOrFail($page->blocks[1]['data']['gallery_id']);
+        $this->assertSame('published', $gallery->status->value);
+        $this->assertCount(2, $gallery->items);
+        $this->assertSame('A rack', $gallery->items[0]->alt_text);
+        $this->assertTrue(Media::query()->where('path', $gallery->items[0]->media_path)->exists());
+
+        $this->assertEquals(['value' => '16', 'label' => 'Years'], $page->blocks[2]['data']['items'][0]);
+
+        // One form, on both pages.
+        $this->assertSame(1, Form::query()->count());
+        $form = Form::query()->with('fields')->firstOrFail();
+        $this->assertSame('published', $form->status->value);
+        $this->assertSame(['name', 'email', 'message'], $form->fields->pluck('name')->all());
+        $this->assertSame('Write to us', $page->blocks[3]['data']['heading']);
+        $this->assertSame($form->id, $page->blocks[3]['data']['form_id']);
+        $contact = Page::query()->where('slug', 'get-in-touch')->firstOrFail();
+        $this->assertSame($form->id, $contact->blocks[0]['data']['form_id']);
+
+        // The form takes submissions, which reach the leads pipeline.
+        $this->postJson('/api/v1/forms/'.$form->slug, ['name' => 'Asha Rao', 'email' => 'asha@example.in', 'message' => 'Call me.'])->assertSuccessful();
+        $this->assertSame(1, Lead::query()->where('email', 'asha@example.in')->count());
+
+        // A second run reuses the records rather than copying them.
+        $page->forceFill(['template' => 'default', 'blocks' => []])->save();
+        $second = $this->commit($this->start());
+        $this->assertSame('completed', $second->status, (string) $second->error);
+        $this->assertSame(1, Form::query()->count());
+        $this->assertSame(1, ContentBlock::query()->where('type', 'pricing')->count());
+        $this->assertSame(1, Gallery::query()->count());
+        $this->assertSame($block->id, $page->fresh()->blocks[0]['data']['block_id']);
+        $again = collect($second->fresh()->analysis['steps'])->firstWhere('key', 'page_parts');
+        $this->assertSame(3, $again['update']);
+    }
+
+    public function test_a_form_block_that_saved_only_its_id_takes_the_rendered_form(): void
+    {
+        $site = $this->site();
+        $site['wp/v2/pages'][] = [
+            'id' => 36, 'slug' => 'enquire', 'status' => 'publish', 'date_gmt' => '2024-02-01T00:00:00', 'parent' => 0,
+            'title' => ['raw' => 'Enquire'], 'link' => self::SITE.'/enquire/',
+            'content' => [
+                'raw' => '<!-- wp:heading --><h2>Ask us</h2><!-- /wp:heading --><!-- wp:wpforms/form-selector {"formId":"45"} /-->',
+                'rendered' => '<h2>Ask us</h2><div class="wpforms-container" id="wpforms-45"><form id="wpforms-form-45" class="wpforms-form" data-formid="45">'
+                    .'<div class="wpforms-field"><label class="wpforms-field-label" for="f1">Your phone</label><input type="tel" id="f1" name="wpforms[fields][1]"></div>'
+                    .'<button type="submit" name="wpforms[submit]">Ask</button></form></div>',
+            ],
+        ];
+        $this->fakeSite($site);
+
+        $done = $this->commit($this->start());
+        $this->assertSame('completed', $done->status, (string) $done->error);
+
+        $page = Page::query()->where('slug', 'enquire')->firstOrFail();
+        $this->assertSame(['rich_text', 'form'], array_column($page->blocks, 'type'));
+        $form = Form::query()->with('fields')->findOrFail($page->blocks[1]['data']['form_id']);
+        $this->assertSame(['phone'], $form->fields->pluck('name')->all());
+        $this->assertSame('Ask', $form->submit_label);
+    }
+
+    public function test_page_layout_html_creates_no_parts(): void
+    {
+        $site = $this->site();
+        $site['wp/v2/pages'][] = $this->elementorPage(34, 'plans');
+        $this->fakeSite($site);
+
+        $import = $this->start();
+        $this->asAdmin()->patchJson(self::API.'/'.$import->id, ['decisions' => ['page_layout' => 'html']])->assertStatus(202);
+        $this->assertNull(collect($import->fresh()->analysis['steps'])->firstWhere('key', 'page_parts'));
+        $this->commit($import->fresh());
+
+        $this->assertSame(0, Form::query()->count() + ContentBlock::query()->where('type', 'pricing')->count() + Gallery::query()->count());
+        $this->assertSame('default', Page::query()->where('slug', 'plans')->firstOrFail()->template);
     }
 
     public function test_page_layout_html_keeps_each_page_one_text_body(): void

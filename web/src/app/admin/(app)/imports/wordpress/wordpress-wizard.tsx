@@ -531,7 +531,7 @@ function StepsTable({ steps, done = false }: { steps: WordPressImportStep[]; don
                     <ul className="grid gap-1.5">
                       {s.reasons.map((r) => (
                         <li key={r.reason} className="text-12-5">
-                          <Badge tone={r.kind === "skip" ? "urgent" : "progress"} dot={false} className="mr-1.5">{n(r.count)}</Badge>
+                          <Badge tone={r.kind === "skip" ? "urgent" : r.kind === "info" ? "resolved" : "progress"} dot={false} className="mr-1.5">{n(r.count)}</Badge>
                           {r.reason}
                           {r.examples.length > 0 && <span className="block text-muted">e.g. {r.examples.join(" · ")}</span>}
                         </li>

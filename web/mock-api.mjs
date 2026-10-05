@@ -3220,6 +3220,12 @@ createServer(async (req, res) => {
             { reason: 'In the bin on the old site.', count: 2, kind: 'skip', examples: ['Old launch notes'] },
             { reason: 'Had tags, which are not kept: the blog has categories only.', count: 6, kind: 'warn', examples: ['Cabling guide', 'Wi-Fi survey'] },
           ] },
+          { key: 'page_parts', label: 'Forms, pricing tables and galleries', create: 5, update: 0, skip: 0, warn: 1, reasons: [
+            { reason: 'Forms, placed as form sections', count: 2, kind: 'info', examples: ['Contact', 'Get a quote'] },
+            { reason: 'Galleries and carousels, made galleries', count: 2, kind: 'info', examples: ['Projects', 'About us'] },
+            { reason: 'Pricing tables, made pricing blocks', count: 1, kind: 'info', examples: ['AMC plans'] },
+            { reason: 'A file upload field has no field here and was left out of its form.', count: 1, kind: 'warn', examples: ['Careers — Your CV'] },
+          ] },
           { key: 'media', label: 'Files and pictures', create: 212, update: 0, skip: 1, warn: 0, reasons: [
             { reason: 'Not a file type the library accepts (.psd).', count: 1, kind: 'skip', examples: ['brochure.psd'] },
           ] },
