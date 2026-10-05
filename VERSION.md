@@ -21,6 +21,21 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.105.0 — 2026-10-05
+
+**The page builder is easier to work in.**
+
+- **Undo and redo** for every change — adding, moving, duplicating, hiding,
+  removing and editing sections — from the buttons above the list or
+  Ctrl/⌘ Z and Ctrl/⌘ Shift Z. Typing in a field is undone in one step, not a
+  letter at a time.
+- **Drag a section by its handle** to move it; the arrows still work, and are
+  what phones and tablets use.
+- **Copy a section to another page**: press Copy on it, open any other page's
+  builder and press Paste a section.
+
+---
+
 ## 0.104.0 — 2026-10-05
 
 **Every section in the page builder has a Style panel.** Beside what a

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { MoveButton, ReorderButtons } from "@/components/admin/reorder-buttons";
 import { IconChevronDown, IconEye, IconEyeOff, IconLayers } from "@/components/icons-ui";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +36,24 @@ type Errors = Record<string, string[]>;
  *
  * Removing a section is undoable from its toast, for as long as the toast is
  * up — a section is a lot of typing to lose to one press.
+ *
+ * **Undo and redo** (0.105.0) cover every change the builder makes: the
+ * buttons above the list, and Ctrl/⌘ Z, Ctrl/⌘ Shift Z and Ctrl/⌘ Y while
+ * focus is in the builder but not in a text field, which keeps its own
+ * native undo. Typing into one section within a second is one step, not one
+ * per keystroke. Fifty steps are kept, in memory only — a reload starts
+ * fresh, and the form's own draft (`FormDraft`) is what survives that.
+ *
+ * **Drag a section by its handle** to reorder; the arrows stay for the
+ * keyboard and for touch screens, where HTML drag and drop does not fire.
+ * **Copy** puts a section on the clipboard (and in this browser's storage,
+ * for when the clipboard cannot be read back); **Paste** adds it to any
+ * page's builder with a fresh id — the server validates it on save like
+ * anything typed.
  */
+const CLIP_KEY = "tw_section_clipboard";
+const CLIP_TAG = "tw-section";
+const HISTORY = 50;
 export function SectionBuilder({ sections, setSections, options, media, errors, pageId }: {
   sections: StoredSection[];
   setSections: Dispatch<SetStateAction<StoredSection[]>>;
@@ -48,6 +65,109 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
   const toast = useToast();
   const [open, setOpen] = useState<Set<string>>(() => new Set(sections.length <= 3 ? sections.map((s) => s.id) : []));
   const [picking, setPicking] = useState(false);
+
+  /*
+   * History. Every change goes through `apply`, which computes the next list
+   * from the current one, records the current one, and hands the next to
+   * the form. No setState inside another's updater: React may run an
+   * updater twice, and a history push in one would record a step twice.
+   */
+  const [past, setPast] = useState<StoredSection[][]>([]);
+  const [future, setFuture] = useState<StoredSection[][]>([]);
+  const lastPush = useRef<{ key: string; at: number }>({ key: "", at: 0 });
+  const apply = useCallback(
+    (change: (prev: StoredSection[]) => StoredSection[], coalesce?: string) => {
+      const next = change(sections);
+      if (next === sections) return;
+      const now = Date.now();
+      const merge = coalesce && lastPush.current.key === coalesce && now - lastPush.current.at < 1000;
+      if (!merge) setPast((p) => [...p.slice(-(HISTORY - 1)), sections]);
+      lastPush.current = { key: coalesce ?? "", at: now };
+      setFuture([]);
+      setSections(next);
+    },
+    [sections, setSections],
+  );
+  const undo = useCallback(() => {
+    if (!past.length) return;
+    setFuture((f) => [sections, ...f].slice(0, HISTORY));
+    setPast((p) => p.slice(0, -1));
+    lastPush.current = { key: "", at: 0 };
+    setSections(past[past.length - 1]);
+  }, [past, sections, setSections]);
+  const redo = useCallback(() => {
+    if (!future.length) return;
+    setPast((p) => [...p, sections].slice(-HISTORY));
+    setFuture((f) => f.slice(1));
+    lastPush.current = { key: "", at: 0 };
+    setSections(future[0]);
+  }, [future, sections, setSections]);
+
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || !root.current?.contains(document.activeElement)) return;
+      const el = document.activeElement as HTMLElement | null;
+      // A text field keeps its own undo.
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+      const key = e.key.toLowerCase();
+      if (key === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
+      else if ((key === "z" && e.shiftKey) || key === "y") { e.preventDefault(); redo(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [undo, redo]);
+
+  /* Drag and drop: which section is held, and where it would land. */
+  const [dragging, setDragging] = useState<number | null>(null);
+  const [dropAt, setDropAt] = useState<number | null>(null);
+  const drop = (to: number) => {
+    if (dragging === null) return;
+    const from = dragging;
+    setDragging(null);
+    setDropAt(null);
+    if (to === from || to === from + 1) return;
+    apply((prev) => {
+      const next = [...prev];
+      const [item] = next.splice(from, 1);
+      next.splice(to > from ? to - 1 : to, 0, item);
+      return next;
+    });
+  };
+
+  /* Copy and paste between pages. */
+  const copy = async (section: StoredSection) => {
+    const text = JSON.stringify({ [CLIP_TAG]: 1, section });
+    try { localStorage.setItem(CLIP_KEY, text); } catch { /* private window */ }
+    await navigator.clipboard?.writeText(text).catch(() => undefined);
+    toast({ tone: "ok", title: `${labelOf(section.type)} copied`, body: "Open any page's builder and press Paste a section." });
+  };
+  const readClip = (text: string | null | undefined): StoredSection | null => {
+    try {
+      const parsed = JSON.parse(text ?? "");
+      const s = parsed?.[CLIP_TAG] === 1 ? parsed.section : null;
+      if (!s || typeof s !== "object" || !options.section_types.some((t) => t.value === s.type) || typeof s.data !== "object") return null;
+      return { id: crypto.randomUUID(), type: s.type, hidden: Boolean(s.hidden), background: s.background ?? null, reveal: s.reveal ?? null, style: s.style ?? null, data: s.data };
+    } catch {
+      return null;
+    }
+  };
+  const paste = async () => {
+    const fromClipboard = await navigator.clipboard?.readText().catch(() => null);
+    let section = readClip(fromClipboard);
+    if (!section) {
+      let stored: string | null = null;
+      try { stored = localStorage.getItem(CLIP_KEY); } catch { /* private window */ }
+      section = readClip(stored);
+    }
+    if (!section) {
+      toast({ tone: "warn", title: "Nothing to paste", body: "Press Copy on a section first — on this page or another." });
+      return;
+    }
+    apply((prev) => [...prev, section]);
+    toggle(section.id, true);
+    toast({ tone: "ok", title: `${labelOf(section.type)} pasted at the end` });
+  };
 
   // A preview's refusal shows on the sections like a save's does, until the next save answers.
   const [previewErrors, setPreviewErrors] = useState<Errors | null>(null);
@@ -73,19 +193,19 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
 
   const add = (type: PageSectionType) => {
     const section: StoredSection = { id: crypto.randomUUID(), type, hidden: false, background: null, data: blankData(type) };
-    setSections((prev) => [...prev, section]);
+    apply((prev) => [...prev, section]);
     toggle(section.id, true);
     setPicking(false);
   };
 
   const applyPreset = (preset: SectionPreset) => {
     const fresh = preset.sections.map((s) => ({ ...structuredClone(s), id: crypto.randomUUID() }) as StoredSection);
-    setSections(fresh);
+    apply(() => fresh);
     setOpen(new Set(fresh.slice(0, 1).map((s) => s.id)));
   };
 
   const move = (i: number, delta: -1 | 1) =>
-    setSections((prev) => {
+    apply((prev) => {
       const next = [...prev];
       const [item] = next.splice(i, 1);
       next.splice(i + delta, 0, item);
@@ -94,17 +214,17 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
 
   const duplicate = (i: number) => {
     const id = crypto.randomUUID();
-    setSections((prev) => [...prev.slice(0, i + 1), { ...structuredClone(prev[i]), id }, ...prev.slice(i + 1)]);
+    apply((prev) => [...prev.slice(0, i + 1), { ...structuredClone(prev[i]), id }, ...prev.slice(i + 1)]);
     toggle(id, true);
   };
 
   const toggleHidden = (i: number) =>
-    setSections((prev) => prev.map((s, j) => (j === i ? { ...s, hidden: !s.hidden } : s)));
+    apply((prev) => prev.map((s, j) => (j === i ? { ...s, hidden: !s.hidden } : s)));
 
   const remove = (i: number) => {
     const removed = sections[i];
     if (!removed) return;
-    setSections((prev) => prev.filter((s) => s.id !== removed.id));
+    apply((prev) => prev.filter((s) => s.id !== removed.id));
     toast({
       tone: "info",
       title: `${labelOf(removed.type)} removed`,
@@ -121,14 +241,24 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
     });
   };
 
+  // Typing into one section within a second is one undo step.
   const patch = useCallback(
-    (id: string, change: (s: StoredSection) => StoredSection) => setSections((prev) => prev.map((s) => (s.id === id ? change(s) : s))),
-    [setSections],
+    (id: string, change: (s: StoredSection) => StoredSection) => apply((prev) => prev.map((s) => (s.id === id ? change(s) : s)), `patch:${id}`),
+    [apply],
   );
 
   return (
-    <div data-section-builder>
+    <div data-section-builder ref={root}>
       {errs.blocks && <p className="mb-3 text-13 text-err">{errs.blocks[0]}</p>}
+
+      {/* The edit bar: history and the clipboard. */}
+      <div className="mb-3 flex flex-wrap items-center gap-2" role="toolbar" aria-label="Builder history">
+        <Button type="button" size="sm" variant="ghost" onClick={undo} disabled={!past.length} title="Undo (Ctrl/⌘ Z)">Undo</Button>
+        <Button type="button" size="sm" variant="ghost" onClick={redo} disabled={!future.length} title="Redo (Ctrl/⌘ Shift Z)">Redo</Button>
+        <span className="mx-1 h-5 w-px bg-line" aria-hidden />
+        <Button type="button" size="sm" variant="ghost" onClick={paste}>Paste a section</Button>
+        <span className="ml-auto text-12 text-faint">Drag a section by its handle, or use its arrows.</span>
+      </div>
 
       {sections.length === 0 && options.section_presets.length > 0 && (
         <section className="mb-6">
@@ -150,9 +280,16 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
         </section>
       )}
 
-      <ol className="grid gap-3">
+      <ol className="grid gap-3" onDragEnd={() => { setDragging(null); setDropAt(null); }}>
         {sections.map((section, i) => (
           <SectionCard
+            dragging={dragging === i}
+            dropBefore={dropAt === i && dragging !== null && dragging !== i && dragging !== i - 1}
+            dropAfter={i === sections.length - 1 && dropAt === sections.length && dragging !== null && dragging !== i}
+            onDragStart={() => setDragging(i)}
+            onDragOverHalf={(after) => setDropAt(after ? i + 1 : i)}
+            onDrop={() => drop(dropAt ?? i)}
+            onCopy={() => copy(section)}
             key={section.id}
             section={section}
             index={i}
@@ -204,7 +341,15 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
 
 function SectionCard({
   section, index, count, label, expanded, errors, options, media, onToggle, onMove, onDuplicate, onHide, onRemove, patch,
+  dragging, dropBefore, dropAfter, onDragStart, onDragOverHalf, onDrop, onCopy,
 }: {
+  dragging: boolean;
+  dropBefore: boolean;
+  dropAfter: boolean;
+  onDragStart: () => void;
+  onDragOverHalf: (after: boolean) => void;
+  onDrop: () => void;
+  onCopy: () => void;
   section: StoredSection;
   index: number;
   count: number;
@@ -243,9 +388,30 @@ function SectionCard({
   return (
     <li
       data-section-card={section.type}
-      className={cn("min-w-0 rounded-lg border bg-card", bad ? "border-err" : "border-line-strong", section.hidden && "opacity-80")}
+      onDragOver={(e) => {
+        e.preventDefault();
+        const box = e.currentTarget.getBoundingClientRect();
+        onDragOverHalf(e.clientY > box.top + box.height / 2);
+      }}
+      onDrop={(e) => { e.preventDefault(); onDrop(); }}
+      className={cn(
+        "relative min-w-0 rounded-lg border bg-card transition-opacity duration-(--duration-fast)",
+        bad ? "border-err" : "border-line-strong", section.hidden && "opacity-80", dragging && "opacity-50",
+      )}
     >
+      {/* Where a dragged section will land. */}
+      {dropBefore && <span aria-hidden className="absolute inset-x-2 -top-2 h-1 rounded-full bg-brand-500" />}
+      {dropAfter && <span aria-hidden className="absolute inset-x-2 -bottom-2 h-1 rounded-full bg-brand-500" />}
       <div className="flex flex-wrap items-center gap-2 p-3">
+        <span
+          draggable
+          onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", section.id); onDragStart(); }}
+          title="Drag to move"
+          aria-hidden
+          className="hidden cursor-grab touch-none select-none rounded px-1 text-16 leading-none text-faint hover:bg-surface-2 hover:text-ink active:cursor-grabbing sm:block"
+        >
+          ⠿
+        </span>
         <button
           type="button"
           onClick={onToggle}
@@ -262,6 +428,9 @@ function SectionCard({
         {bad && <Badge tone="urgent">{mine.length} to fix</Badge>}
         <ReorderButtons index={index} count={count} subject={`section ${index + 1}`} onMove={onMove} onRemove={onRemove} dense>
           <MoveButton label={`Duplicate section ${index + 1}`} onClick={onDuplicate}><IconLayers className="size-3.5" /></MoveButton>
+          <MoveButton label={`Copy section ${index + 1} to paste on another page`} onClick={onCopy}>
+            <svg aria-hidden viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h8" /></svg>
+          </MoveButton>
           <MoveButton label={section.hidden ? `Show section ${index + 1}` : `Hide section ${index + 1}`} onClick={onHide}>
             {section.hidden ? <IconEyeOff className="size-3.5" /> : <IconEye className="size-3.5" />}
           </MoveButton>

@@ -94,6 +94,29 @@ is the list — `pad_top`/`pad_bottom` (`none`, `s`, `l`, `xl`), `width`
 - Probe: `scripts/probes/section-style.mjs` drives the panel and checks the
   unsaved preview; it saves nothing.
 
+## Editing: undo, drag, copy and paste (0.105.0)
+
+All in `builder/section-builder.tsx`, client-side only; the API is unchanged.
+
+- **History.** Every change goes through `apply()`, which computes the next
+  list from the current one, pushes the current one and hands the next to
+  the form — never a history push inside a state updater, which React may
+  run twice. Fifty steps, in memory; typing into one section within a second
+  is one step (`patch:<id>` coalescing). Undo/Redo buttons, and Ctrl/⌘ Z,
+  Ctrl/⌘ Shift Z, Ctrl/⌘ Y while focus is in the builder **but not in a text
+  field**, which keeps its native undo. Remove's toast Undo still works.
+- **Drag and drop.** A `⠿` handle (from `sm`) is the HTML5 drag source; the
+  card under the pointer shows a brand line where the section will land
+  (its top or bottom half). The arrows stay: HTML drag and drop does not
+  fire on touch, and the keyboard needs them.
+- **Copy and paste.** Copy writes `{"tw-section": 1, section}` to the
+  clipboard and to `localStorage` (`tw_section_clipboard`), so Paste works
+  where the clipboard cannot be read back. Paste checks the shape and the
+  type against `section_types`, gives it a fresh id and appends it; the
+  server validates it on save like anything typed (a picture from another
+  install is a 422, as it should be).
+- Probe: `scripts/probes/builder-editing.mjs` (saves nothing).
+
 ## Presented for the public site
 
 `SectionPresenter::present()` is the public shape, and it is what
