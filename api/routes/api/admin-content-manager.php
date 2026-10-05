@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\V1\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Api\V1\Admin\PopupController as AdminPopupController;
 use App\Http\Controllers\Api\V1\Admin\ProductCategoryController as AdminProductCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Api\V1\Admin\SavedSectionController;
 use App\Http\Controllers\Api\V1\Admin\ServiceCategoryController as AdminServiceCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ServiceController as AdminServiceController;
 use App\Http\Controllers\Api\V1\Admin\SliderController as AdminSliderController;
@@ -141,6 +142,12 @@ Route::middleware('role:content_manager')->group(function () {
     // "builder" as a page and 404s.
     Route::get('pages/builder', [AdminPageController::class, 'builder'])->name('pages.builder');
     Route::post('pages/preview', [AdminPageController::class, 'preview'])->middleware('throttle:60,1')->name('pages.preview');
+    // The section library and page templates (2026-10-05, docs/page-builder.md).
+    Route::get('saved-sections', [SavedSectionController::class, 'index'])->name('saved-sections.index');
+    Route::post('saved-sections', [SavedSectionController::class, 'store'])->name('saved-sections.store');
+    Route::get('saved-sections/{savedSection}', [SavedSectionController::class, 'show'])->name('saved-sections.show');
+    Route::patch('saved-sections/{savedSection}', [SavedSectionController::class, 'update'])->name('saved-sections.update');
+    Route::delete('saved-sections/{savedSection}', [SavedSectionController::class, 'destroy'])->name('saved-sections.destroy');
     Route::get('pages/{page:id}', [AdminPageController::class, 'show'])->name('pages.show');
     Route::patch('pages/{page:id}', [AdminPageController::class, 'update'])->name('pages.update');
     Route::delete('pages/{page:id}', [AdminPageController::class, 'destroy'])->name('pages.destroy');

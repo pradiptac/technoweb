@@ -32,6 +32,12 @@ enum PageSectionType: string
     case Testimonial = 'testimonial';
     case Video = 'video';
     case Divider = 'divider';
+    /**
+     * A section from the library, placed linked (2026-10-05): it stores only
+     * `saved_id`, and the presenter draws the library's section in its place,
+     * so an edit to it reaches every page that places it.
+     */
+    case Saved = 'saved';
 
     public function label(): string
     {
@@ -50,6 +56,7 @@ enum PageSectionType: string
             self::Testimonial => 'Testimonial',
             self::Video => 'Video',
             self::Divider => 'Divider',
+            self::Saved => 'Saved section',
         };
     }
 
@@ -74,6 +81,7 @@ enum PageSectionType: string
             self::Testimonial => 'One quotation, with who said it and a photo.',
             self::Video => 'A YouTube video, played only when somebody presses it, or a video from the library.',
             self::Divider => 'Space between two sections, with or without a rule.',
+            self::Saved => 'A section from the library, kept in step with it: edit it once and every page that places it changes.',
         };
     }
 

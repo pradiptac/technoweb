@@ -277,6 +277,8 @@ export const NAV: NavItem[] = [
       { role: "content_manager", href: "/admin/knowledge-base", label: "Knowledge base", icon: IconEducation },
       { role: "content_manager", href: "/admin/case-studies", label: "Case studies", icon: IconCert },
       { role: "content_manager", href: "/admin/pages", label: "Pages", icon: IconLayers },
+      // Saved sections and page templates (docs/page-builder.md "The library").
+      { role: "content_manager", href: "/admin/pages/library", label: "Section library", icon: IconBox },
       { role: "content_manager", href: "/admin/faqs", label: "FAQs", icon: IconLifebuoy },
       { role: "content_manager", href: "/admin/media", label: "Media", icon: IconImage },
       { role: "admin", href: "/admin/media/settings", label: "Media settings", icon: IconSliders },

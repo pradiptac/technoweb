@@ -16,6 +16,7 @@ use App\Models\Form;
 use App\Models\Gallery;
 use App\Models\Page;
 use App\Models\ProductCategory;
+use App\Models\SavedSection;
 use App\Models\Slider;
 use App\Models\StoreCategory;
 use App\Support\CustomFields\CustomFields;
@@ -76,6 +77,14 @@ class PageController extends Controller
         return response()->json(['data' => [
             'section_types' => PageSectionType::options(),
             'section_presets' => SectionPresets::all(),
+            // The library (2026-10-05): what "Add a section" offers from it,
+            // and the templates a new page may start from.
+            'library' => [
+                'sections' => SavedSection::query()->where('kind', SavedSection::KIND_SECTION)->orderBy('name')->get()
+                    ->map(fn (SavedSection $s) => ['id' => $s->id, 'name' => $s->name, 'type' => $s->blocks[0]['type'] ?? null])->values(),
+                'templates' => SavedSection::query()->where('kind', SavedSection::KIND_TEMPLATE)->orderBy('name')->get()
+                    ->map(fn (SavedSection $s) => ['id' => $s->id, 'name' => $s->name, 'description' => $s->description, 'count' => count($s->blocks ?? [])])->values(),
+            ],
             'hero_layouts' => [
                 ['value' => 'centered', 'label' => 'Centred', 'blurb' => 'The words centred on the section’s ground; no picture needed.'],
                 ['value' => 'split', 'label' => 'Split', 'blurb' => 'The words on one side, the picture framed on the other.'],

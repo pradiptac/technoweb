@@ -1627,6 +1627,15 @@ const SECTION_PRESETS = [
     { type: 'cards', hidden: false, background: null, data: { heading: 'What we build', source: 'solutions', limit: 6, columns: 3 } },
   ] },
 ];
+/* The section library: kept in memory for the run, like the mock's other writes. */
+const savedSections = [];
+const savedResource = (x, detail) => ({
+  id: x.id, kind: x.kind, name: x.name, description: x.description,
+  type: x.kind === 'section' ? (x.blocks[0]?.type ?? null) : null,
+  type_label: x.kind === 'section' ? (SECTION_TYPES.find((t) => t.value === x.blocks[0]?.type)?.label ?? null) : null,
+  count: x.blocks.length, author: 'Mock editor', updated_at: x.updated_at,
+  ...(detail ? { blocks: x.blocks, blocks_media: {}, sections: x.blocks, linked_from: [] } : {}),
+});
 const BUILDER_OPTIONS = {
   section_types: SECTION_TYPES,
   section_presets: SECTION_PRESETS,
@@ -2553,7 +2562,44 @@ createServer(async (req, res) => {
     }
 
     /* The page builder's pickers and its unsaved-draft preview (docs/page-builder.md). */
-    if (p === '/admin/pages/builder' && req.method === 'GET') return json(res, 200, { data: BUILDER_OPTIONS });
+    if (p === '/admin/pages/builder' && req.method === 'GET') {
+      return json(res, 200, { data: { ...BUILDER_OPTIONS, library: {
+        sections: savedSections.filter((x) => x.kind === 'section').map(({ id, name, blocks }) => ({ id, name, type: blocks[0]?.type ?? null })),
+        templates: savedSections.filter((x) => x.kind === 'template').map(({ id, name, description, blocks }) => ({ id, name, description, count: blocks.length })),
+      } } });
+    }
+
+    /* The section library and page templates (docs/page-builder.md "The library"). */
+    if (p === '/admin/saved-sections' && req.method === 'GET') {
+      const kind = url.searchParams.get('kind');
+      const rows = savedSections.filter((x) => !kind || x.kind === kind).map((x) => savedResource(x, false));
+      return json(res, 200, { data: rows, meta: { current_page: 1, last_page: 1, per_page: 100, total: rows.length }, links: {} });
+    }
+    if (p === '/admin/saved-sections' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const blocks = Array.isArray(body.blocks) ? body.blocks : [];
+      if (!body.name || !['section', 'template'].includes(body.kind) || !blocks.length || (body.kind === 'section' && blocks.length !== 1)) {
+        return json(res, 422, { message: 'Check the library item.', errors: { blocks: ['A section is one section; a template is one or more.'] } });
+      }
+      const item = { id: savedSections.length ? Math.max(...savedSections.map((x) => x.id)) + 1 : 1, kind: body.kind, name: body.name, description: body.description ?? null, blocks, updated_at: new Date().toISOString() };
+      savedSections.push(item);
+      return json(res, 201, { data: savedResource(item, true) });
+    }
+    {
+      const m = p.match(/^\/admin\/saved-sections\/(\d+)$/);
+      if (m) {
+        const item = savedSections.find((x) => x.id === Number(m[1]));
+        if (!item) return json(res, 404, { message: 'Not found.' });
+        if (req.method === 'GET') return json(res, 200, { data: savedResource(item, true) });
+        if (req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          for (const k of ['name', 'description', 'blocks']) if (k in body) item[k] = body[k];
+          item.updated_at = new Date().toISOString();
+          return json(res, 200, { data: savedResource(item, true) });
+        }
+        if (req.method === 'DELETE') { savedSections.splice(savedSections.indexOf(item), 1); res.writeHead(204); return res.end(); }
+      }
+    }
     if (p === '/admin/pages/preview' && req.method === 'POST') {
       const body = await readJsonBody(req);
       const blocks = Array.isArray(body.blocks) ? body.blocks : [];

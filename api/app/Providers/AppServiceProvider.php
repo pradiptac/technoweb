@@ -62,6 +62,7 @@ use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductReview;
 use App\Models\Redirect;
+use App\Models\SavedSection;
 use App\Models\SeoSuggestion;
 use App\Models\Service;
 use App\Models\ServiceCategory;
@@ -235,6 +236,7 @@ class AppServiceProvider extends ServiceProvider
             'team_member' => TeamMember::class,
             'slider' => Slider::class,
             'content_block' => ContentBlock::class,
+            'saved_section' => SavedSection::class,
             // Custom fields (docs/custom-content.md): the group is bound in
             // an admin route; a value's `fieldable` is one of the aliases above.
             'custom_field_group' => CustomFieldGroup::class,

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type 
 import { MoveButton, ReorderButtons } from "@/components/admin/reorder-buttons";
 import { IconChevronDown, IconEye, IconEyeOff, IconLayers } from "@/components/icons-ui";
 import { Badge } from "@/components/ui/badge";
-import { Field, Select } from "@/components/ui/input";
+import { Field, Input, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
@@ -18,6 +18,7 @@ import { BackgroundField } from "./background-field";
 import { StyleField } from "./style-field";
 import { PreviewDialog } from "./preview-dialog";
 import { SectionEditor, blankData, summaryOf } from "./section-editors";
+import { libraryBlocksAction, saveToLibraryAction } from "../library-actions";
 
 type Errors = Record<string, string[]>;
 
@@ -51,20 +52,35 @@ type Errors = Record<string, string[]>;
  * page's builder with a fresh id — the server validates it on save like
  * anything typed.
  */
+/*
+ * The library (0.106.0, docs/page-builder.md "The library"): Save to library
+ * on a section, placed again from "Add a section" either **linked** — stored
+ * as `{type: "saved", data: {saved_id}}`, drawn as the library's section, so
+ * an edit there reaches every page — or as a **copy**. A linked card shows
+ * which library section it is, a link to edit it, and "Make a copy here" to
+ * cut the link. Save as template keeps the whole stack; a new page can start
+ * from it under "Start from".
+ */
 const CLIP_KEY = "tw_section_clipboard";
 const CLIP_TAG = "tw-section";
 const HISTORY = 50;
-export function SectionBuilder({ sections, setSections, options, media, errors, pageId }: {
+export function SectionBuilder({ sections, setSections, options, media, errors, pageId, inLibrary = false }: {
   sections: StoredSection[];
   setSections: Dispatch<SetStateAction<StoredSection[]>>;
   options: PageBuilderOptions;
   media: Record<string, string>;
   errors: Errors;
   pageId: number | null;
+  /** Editing a library item: no Save to library, no Save as template, no library to place from. */
+  inLibrary?: boolean;
 }) {
   const toast = useToast();
   const [open, setOpen] = useState<Set<string>>(() => new Set(sections.length <= 3 ? sections.map((s) => s.id) : []));
   const [picking, setPicking] = useState(false);
+  const [library, setLibrary] = useState(options.library?.sections ?? []);
+  const [saving, setSaving] = useState<{ kind: "section" | "template"; index?: number } | null>(null);
+  const libraryName = useCallback((id: unknown) => library.find((l) => l.id === Number(id))?.name ?? "a library section", [library]);
+
 
   /*
    * History. Every change goes through `apply`, which computes the next list
@@ -179,7 +195,7 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
   const errs = previewErrors ?? errors;
 
   const labelOf = useCallback(
-    (type: string) => options.section_types.find((t) => t.value === type)?.label ?? type,
+    (type: string) => options.section_types.find((t) => t.value === type)?.label ?? (type === "saved" ? "Saved section" : type),
     [options.section_types],
   );
 
@@ -247,6 +263,38 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
     [apply],
   );
 
+  /* Fresh ids for sections arriving from the library or a template. */
+  const fresh = (blocks: StoredSection[]) => blocks.map((b) => ({ ...structuredClone(b), id: crypto.randomUUID() }) as StoredSection);
+
+  const placeLinked = (id: number) => {
+    const section: StoredSection = { id: crypto.randomUUID(), type: "saved", hidden: false, background: null, data: { saved_id: id } };
+    apply((prev) => [...prev, section]);
+    setPicking(false);
+  };
+  const placeCopy = async (id: number) => {
+    const blocks = await libraryBlocksAction(id);
+    if (!blocks?.length) { toast({ tone: "err", title: "That library section could not be read" }); return; }
+    const copies = fresh(blocks);
+    apply((prev) => [...prev, ...copies]);
+    copies.forEach((c) => toggle(c.id, true));
+    setPicking(false);
+  };
+  const applyTemplate = async (id: number) => {
+    const blocks = await libraryBlocksAction(id);
+    if (!blocks?.length) { toast({ tone: "err", title: "That template could not be read" }); return; }
+    const copies = fresh(blocks);
+    apply(() => copies);
+    setOpen(new Set(copies.slice(0, 1).map((s) => s.id)));
+  };
+  /* "Make a copy here": the library's section, inline, under this card's id. */
+  const detach = async (i: number) => {
+    const link = sections[i];
+    const blocks = await libraryBlocksAction(Number(link?.data.saved_id));
+    if (!link || !blocks?.[0]) { toast({ tone: "err", title: "That library section could not be read" }); return; }
+    apply((prev) => prev.map((s) => (s.id === link.id ? { ...structuredClone(blocks[0]), id: link.id, hidden: link.hidden } : s)));
+    toggle(link.id, true);
+  };
+
   return (
     <div data-section-builder ref={root}>
       {errs.blocks && <p className="mb-3 text-13 text-err">{errs.blocks[0]}</p>}
@@ -257,8 +305,25 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
         <Button type="button" size="sm" variant="ghost" onClick={redo} disabled={!future.length} title="Redo (Ctrl/⌘ Shift Z)">Redo</Button>
         <span className="mx-1 h-5 w-px bg-line" aria-hidden />
         <Button type="button" size="sm" variant="ghost" onClick={paste}>Paste a section</Button>
+        {!inLibrary && <Button type="button" size="sm" variant="ghost" onClick={() => setSaving({ kind: "template" })} disabled={!sections.length}>Save as template</Button>}
         <span className="ml-auto text-12 text-faint">Drag a section by its handle, or use its arrows.</span>
       </div>
+
+      {sections.length === 0 && (options.library?.templates.length ?? 0) > 0 && (
+        <section className="mb-6">
+          <h2 className="mb-1 text-15 font-semibold">Start from a template</h2>
+          <p className="mb-3 text-13 text-muted">A page your team saved — every section is copied, so this page can change without changing it.</p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {options.library!.templates.map((t) => (
+              <button key={t.id} type="button" onClick={() => applyTemplate(t.id)}
+                className="flex flex-col gap-1 rounded-lg border border-line-strong bg-card p-4 text-left transition-colors duration-(--duration-base) hover:border-brand-300">
+                <span className="text-14 font-semibold">{t.name}</span>
+                <span className="text-12-5 text-muted">{t.description || `${t.count} section${t.count === 1 ? "" : "s"}`}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {sections.length === 0 && options.section_presets.length > 0 && (
         <section className="mb-6">
@@ -290,6 +355,9 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
             onDragOverHalf={(after) => setDropAt(after ? i + 1 : i)}
             onDrop={() => drop(dropAt ?? i)}
             onCopy={() => copy(section)}
+            linkedName={section.type === "saved" ? libraryName(section.data.saved_id) : undefined}
+            onSaveToLibrary={inLibrary ? undefined : () => setSaving({ kind: "section", index: i })}
+            onDetach={() => detach(i)}
             key={section.id}
             section={section}
             index={i}
@@ -321,8 +389,25 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
 
       <Modal open={picking} onClose={() => setPicking(false)} title="Add a section" size="lg"
         description="Each is a set of fields; the theme decides how it looks.">
+        {library.length > 0 && (
+          <div className="mb-5">
+            <p className="mb-2 text-12-5 font-semibold uppercase tracking-[.08em] text-muted">From your library</p>
+            <ul className="grid gap-2">
+              {library.map((l) => (
+                <li key={l.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-line-strong bg-card p-3">
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-14 font-semibold">{l.name}</span>
+                    <span className="block text-12 text-muted">{labelOf(l.type ?? "")}</span>
+                  </span>
+                  <Button type="button" size="sm" onClick={() => placeLinked(l.id)} title="Edits to the library section reach this page">Place linked</Button>
+                  <Button type="button" size="sm" variant="secondary" onClick={() => placeCopy(l.id)} title="A copy this page owns">Place a copy</Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="grid gap-2 sm:grid-cols-2">
-          {options.section_types.map((t) => (
+          {options.section_types.filter((t) => t.value !== "saved").map((t) => (
             <button
               key={t.value}
               type="button"
@@ -335,14 +420,91 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
           ))}
         </div>
       </Modal>
+
+      <SaveToLibrary
+        saving={saving}
+        label={saving?.kind === "section" && saving.index !== undefined ? labelOf(sections[saving.index]?.type ?? "") : ""}
+        onClose={() => setSaving(null)}
+        onSave={async (name, description, link) => {
+          if (!saving) return null;
+          const blocks = saving.kind === "section" && saving.index !== undefined ? [sections[saving.index]] : sections;
+          const result = await saveToLibraryAction({ kind: saving.kind, name, description: description || null, blocks });
+          if (!result.ok || !result.id) return result.error ?? "It could not be saved.";
+          if (saving.kind === "section") {
+            setLibrary((l) => [...l, { id: result.id!, name, type: blocks[0]?.type ?? null }]);
+            const at = saving.index!;
+            if (link) {
+              apply((prev) => prev.map((s, j) => (j === at ? { id: s.id, type: "saved", hidden: s.hidden, background: null, data: { saved_id: result.id } } : s)));
+            }
+          }
+          toast({ tone: "ok", title: saving.kind === "template" ? `Template “${name}” saved` : `“${name}” saved to the library` });
+          setSaving(null);
+          return null;
+        }}
+      />
     </div>
+  );
+}
+
+/** Name a section or the whole page for the library. */
+function SaveToLibrary({ saving, label, onClose, onSave }: {
+  saving: { kind: "section" | "template"; index?: number } | null;
+  label: string;
+  onClose: () => void;
+  onSave: (name: string, description: string, link: boolean) => Promise<string | null>;
+}) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [link, setLink] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const template = saving?.kind === "template";
+
+  return (
+    <Modal open={saving !== null} onClose={() => { setError(null); onClose(); }} size="md"
+      title={template ? "Save as a page template" : `Save this ${label.toLowerCase() || "section"} to the library`}
+      description={template
+        ? "Every section on this page, kept as a starting point for new pages. A page started from it is a copy."
+        : "Place it again on any page from Add a section — linked, so editing it here reaches every page, or as a copy."}>
+      <div className="grid gap-1">
+        <Field label="Name" htmlFor="library-name" error={error ?? undefined}>
+          <Input id="library-name" value={name} maxLength={120} onChange={(e) => setName(e.target.value)} />
+        </Field>
+        {template && (
+          <Field label="Description (optional)" htmlFor="library-description">
+            <Input id="library-description" value={description} maxLength={300} onChange={(e) => setDescription(e.target.value)} />
+          </Field>
+        )}
+        {!template && (
+          <label className="mb-4 flex items-start gap-2 text-13-5">
+            <input type="checkbox" checked={link} onChange={(e) => setLink(e.target.checked)} className="mt-1 size-4 accent-brand-600" />
+            <span>Link this section to it, so it changes when the library section does.</span>
+          </label>
+        )}
+        <div className="flex gap-2">
+          <Button type="button" pending={busy} disabled={!name.trim() || busy} onClick={async () => {
+            setBusy(true);
+            const problem = await onSave(name.trim(), description.trim(), link);
+            setBusy(false);
+            setError(problem);
+            if (!problem) { setName(""); setDescription(""); }
+          }}>
+            Save
+          </Button>
+          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
 function SectionCard({
   section, index, count, label, expanded, errors, options, media, onToggle, onMove, onDuplicate, onHide, onRemove, patch,
-  dragging, dropBefore, dropAfter, onDragStart, onDragOverHalf, onDrop, onCopy,
+  dragging, dropBefore, dropAfter, onDragStart, onDragOverHalf, onDrop, onCopy, linkedName, onSaveToLibrary, onDetach,
 }: {
+  linkedName?: string;
+  onSaveToLibrary?: () => void;
+  onDetach: () => void;
   dragging: boolean;
   dropBefore: boolean;
   dropAfter: boolean;
@@ -371,7 +533,8 @@ function SectionCard({
   const show = expanded || bad;
   const idPrefix = `s${index}-${section.id.slice(0, 8)}`;
   const bodyId = `${idPrefix}-body`;
-  const summary = summaryOf(section.data);
+  const linked = section.type === "saved";
+  const summary = linked ? (linkedName ?? "") : summaryOf(section.data);
   // Errors no field on the card owns: the id, the type, the data as a whole.
   const stray = mine.filter(([k]) => [`${prefix}.id`, `${prefix}.type`, `${prefix}.data`, prefix].includes(k));
 
@@ -428,6 +591,11 @@ function SectionCard({
         {bad && <Badge tone="urgent">{mine.length} to fix</Badge>}
         <ReorderButtons index={index} count={count} subject={`section ${index + 1}`} onMove={onMove} onRemove={onRemove} dense>
           <MoveButton label={`Duplicate section ${index + 1}`} onClick={onDuplicate}><IconLayers className="size-3.5" /></MoveButton>
+          {!linked && onSaveToLibrary && (
+            <MoveButton label={`Save section ${index + 1} to the library`} onClick={onSaveToLibrary}>
+              <svg aria-hidden viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12v18l-6-4-6 4z" /></svg>
+            </MoveButton>
+          )}
           <MoveButton label={`Copy section ${index + 1} to paste on another page`} onClick={onCopy}>
             <svg aria-hidden viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h8" /></svg>
           </MoveButton>
@@ -447,9 +615,27 @@ function SectionCard({
           {section.hidden && (
             <p className="mb-3 text-12-5 text-faint">Hidden: kept with the page and left off the public site.</p>
           )}
+          {linked ? (
+            /* A linked library section: what it is, where to change it, and the way out. */
+            <div className="rounded-lg border border-brand-ink/25 bg-brand-50 p-4">
+              <p className="text-13-5 text-ink">
+                Linked to <strong>{linkedName}</strong> in the section library. Its words, style and background come
+                from there, so an edit to it reaches every page that places it.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link href={`/admin/pages/library/${String(section.data.saved_id)}`} className="inline-flex min-h-9 items-center rounded-md border border-line-strong bg-card px-3 text-13 font-semibold text-brand-ink hover:border-brand-300">
+                  Edit it in the library
+                </Link>
+                <Button type="button" size="sm" variant="secondary" onClick={onDetach}>Make a copy here</Button>
+              </div>
+              {errors[`${prefix}.data.saved_id`] && <p className="mt-2 text-12-5 text-err">{errors[`${prefix}.data.saved_id`][0]}</p>}
+            </div>
+          ) : (
           <BlockEditorProvider value={ctx}>
             <SectionEditor type={section.type} sectionId={section.id} options={options} />
           </BlockEditorProvider>
+          )}
+          {!linked && (<>
           <RevealField
             id={`${idPrefix}-reveal`}
             value={section.reveal ?? null}
@@ -474,6 +660,7 @@ function SectionCard({
                 .map(([k, v]) => [k.slice(`${prefix}.style.`.length).split(".")[0], v[0]]),
             )}
           />
+          </>)}
         </div>
       )}
     </li>

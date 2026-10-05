@@ -9,6 +9,7 @@ use App\Models\Form;
 use App\Models\Gallery;
 use App\Models\Media;
 use App\Models\ProductCategory;
+use App\Models\SavedSection;
 use App\Models\Slider;
 use App\Models\StoreCategory;
 use App\Support\Blocks\BlockRules;
@@ -236,6 +237,11 @@ final class SectionRules
                 'size' => ['nullable', Rule::in(['small', 'medium', 'large'])],
                 'rule' => ['nullable', 'boolean'],
             ],
+            // A linked library section: only which one. That it exists and is
+            // a section (not a template) is checked in `checkData`.
+            PageSectionType::Saved => [
+                'saved_id' => ['required', 'integer'],
+            ],
         };
     }
 
@@ -425,6 +431,12 @@ final class SectionRules
             case PageSectionType::Cards:
                 self::checkCategory($validator, $data, $at);
                 break;
+            case PageSectionType::Saved:
+                $id = $data['saved_id'] ?? null;
+                if (is_numeric($id) && ! SavedSection::query()->whereKey((int) $id)->where('kind', SavedSection::KIND_SECTION)->exists()) {
+                    $validator->errors()->add("{$at}.saved_id", 'That saved section is no longer in the library.');
+                }
+                break;
             default:
                 break;
         }
@@ -479,7 +491,7 @@ final class SectionRules
 
             $data = self::keep(is_array($block['data'] ?? null) ? $block['data'] : [], array_keys(self::for($type)));
 
-            foreach (['block_id', 'slider_id', 'gallery_id', 'form_id', 'limit', 'columns'] as $int) {
+            foreach (['block_id', 'slider_id', 'gallery_id', 'form_id', 'saved_id', 'limit', 'columns'] as $int) {
                 if (isset($data[$int]) && is_numeric($data[$int])) {
                     $data[$int] = (int) $data[$int];
                 }

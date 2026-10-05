@@ -16,7 +16,9 @@ import type { SectionBackground } from "@/themes/options";
 
 export type PageSectionType =
   | "hero" | "rich_text" | "media_text" | "features" | "cards" | "content_block"
-  | "slider" | "gallery" | "form" | "faq" | "logos" | "testimonial" | "video" | "divider";
+  | "slider" | "gallery" | "form" | "faq" | "logos" | "testimonial" | "video" | "divider"
+  /** A library section placed linked (0.106.0): stored as `{saved_id}`, drawn as the library's section. */
+  | "saved";
 
 export type SectionButton = { label?: string | null; href?: string | null };
 
@@ -126,4 +128,26 @@ export type PageBuilderOptions = {
   forms: { id: number; name: string; slug: string }[];
   product_categories: { id: number; name: string; slug: string }[];
   store_categories: { id: number; name: string; slug: string }[];
+  /** The section library and the page templates (0.106.0). Optional for an older API. */
+  library?: {
+    sections: { id: number; name: string; type: string | null }[];
+    templates: { id: number; name: string; description: string | null; count: number }[];
+  };
+};
+
+/** A library item (`/admin/saved-sections`, 0.106.0). */
+export type SavedSection = {
+  id: number;
+  kind: "section" | "template";
+  name: string;
+  description: string | null;
+  type: string | null;
+  type_label: string | null;
+  count: number;
+  author?: string | null;
+  updated_at: string | null;
+  /** Detail only. */
+  blocks?: StoredSection[];
+  blocks_media?: Record<string, string>;
+  linked_from?: { id: number; title: string; kind: "page" | "template" }[];
 };

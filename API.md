@@ -1152,11 +1152,16 @@ A CMS page whose `template` is `builder` is a stack of typed sections
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/pages/builder` | `role:content_manager`. `section_types`, `section_presets`, `hero_layouts`, `card_sources`, and the **published** `content_blocks`, `sliders`, `galleries`, `forms`, plus `product_categories` and `store_categories`. Declared above `pages/{page:id}` |
+| `GET` | `/admin/pages/builder` | `role:content_manager`. `section_types`, `section_presets`, `hero_layouts`, `card_sources`, and the **published** `content_blocks`, `sliders`, `galleries`, `forms`, plus `product_categories` and `store_categories`, and `library: {sections[{id, name, type}], templates[{id, name, description, count}]}`. Declared above `pages/{page:id}` |
+| `GET` | `/admin/saved-sections` | `role:content_manager`. The section library and page templates, by kind then name. `?kind=section\|template`, `?q=`, `?per_page=` (max 100). Rows: `id`, `kind`, `name`, `description`, `type`/`type_label` (a section's), `count`, `author`, `updated_at`. `meta.kinds` |
+| `POST` | `/admin/saved-sections` | `kind`, `name` (120), `description?` (300), `blocks` (1–40, the page's shape and rules). A `section` is exactly one block and never of type `saved` (422 on `blocks`/`blocks.0.type`). **201** |
+| `GET` | `/admin/saved-sections/{id}` | Adds `blocks`, `blocks_media`, `sections` (presented) and `linked_from[{id, title, kind}]` |
+| `PATCH` | `/admin/saved-sections/{id}` | `name`, `description`, `blocks`; `kind` is fixed. A linked section's pages show the change on their next render |
+| `DELETE` | `/admin/saved-sections/{id}` | 204, or **422** `{message, linked_from}` while a page or template places the section linked |
 | `POST` | `/admin/pages/preview` | `role:content_manager`, throttled 60/min. `{blocks, page_id?}` — validated exactly as a save is, presented, **nothing written**. 200 `{data: {sections}}`, or a 422 keyed `blocks.N.data.field` |
 
 **`blocks` on `POST`/`PATCH /admin/pages`** is a list of at most 40
-`{id (uuid), type, hidden, background, reveal, data}`; `template` accepts `builder`
+`{id (uuid), type, hidden, background, reveal, data}`; `type: saved` with `data: {saved_id}` places a library section linked — it must name a library *section* that exists, and the public read draws that section in its place (the page's `id` and `hidden` kept); `template` accepts `builder`
 beside `default` and `wide`. `type` is `App\Enums\PageSectionType` — `hero`,
 `rich_text`, `media_text`, `features`, `cards`, `content_block`, `slider`,
 `gallery`, `form`, `faq`, `logos`, `testimonial`, `video`, `divider` — and

@@ -15,6 +15,7 @@ use App\Models\Industry;
 use App\Models\KnowledgeArticle;
 use App\Models\Page;
 use App\Models\Product;
+use App\Models\SavedSection;
 use App\Models\Service;
 use App\Models\Slider;
 use App\Models\Solution;
@@ -60,8 +61,8 @@ final class SectionPresenter
     {
         $out = [];
 
-        foreach ($blocks ?? [] as $block) {
-            if (! is_array($block) || filter_var($block['hidden'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+        foreach (self::resolve($blocks) as $block) {
+            if (filter_var($block['hidden'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
                 continue;
             }
             $type = PageSectionType::tryFrom((string) ($block['type'] ?? ''));
@@ -97,8 +98,8 @@ final class SectionPresenter
     public static function faqEntries(?array $blocks): array
     {
         $entries = [];
-        foreach ($blocks ?? [] as $block) {
-            if (! is_array($block) || filter_var($block['hidden'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+        foreach (self::resolve($blocks) as $block) {
+            if (filter_var($block['hidden'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
                 continue;
             }
             $data = (array) ($block['data'] ?? []);
@@ -115,6 +116,47 @@ final class SectionPresenter
         }
 
         return $entries;
+    }
+
+    /**
+     * The list with every linked library section (`saved`) replaced by the
+     * library's section (2026-10-05). The page's own id and its Hidden switch
+     * are kept — a page may hide a linked section without touching the
+     * library — and everything else is the library's, which is what "linked"
+     * means. One query for all of them; a link to a section that has gone,
+     * or to a template, is dropped like any other dead reference. One level
+     * only: a library section cannot itself be a link (`SavedSectionRequest`).
+     *
+     * @param  array<int, mixed>|null  $blocks
+     * @return list<array<string, mixed>>
+     */
+    public static function resolve(?array $blocks): array
+    {
+        $blocks = array_values(array_filter($blocks ?? [], 'is_array'));
+        $ids = collect($blocks)
+            ->filter(fn (array $b) => ($b['type'] ?? null) === PageSectionType::Saved->value)
+            ->map(fn (array $b) => (int) ($b['data']['saved_id'] ?? 0))
+            ->filter()->unique()->values();
+        if ($ids->isEmpty()) {
+            return $blocks;
+        }
+
+        $library = SavedSection::query()->whereIn('id', $ids)->where('kind', SavedSection::KIND_SECTION)->get()->keyBy('id');
+        $out = [];
+        foreach ($blocks as $block) {
+            if (($block['type'] ?? null) !== PageSectionType::Saved->value) {
+                $out[] = $block;
+
+                continue;
+            }
+            $inner = $library->get((int) ($block['data']['saved_id'] ?? 0))?->blocks[0] ?? null;
+            if (! is_array($inner) || ($inner['type'] ?? null) === PageSectionType::Saved->value) {
+                continue;
+            }
+            $out[] = ['id' => (string) ($block['id'] ?? ''), 'hidden' => (bool) ($block['hidden'] ?? false)] + $inner;
+        }
+
+        return $out;
     }
 
     /** @return array<string, mixed>|null */

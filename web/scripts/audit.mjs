@@ -62,7 +62,7 @@ const ADMIN_ROUTES = [
   // sat on it unnoticed. The builder behind it has the same history.
   "/admin/menus",
   "/admin/jobs", "/admin/jobs/new", "/admin/jobs/reference", "/admin/applications",
-  "/admin/knowledge-base", "/admin/case-studies", "/admin/pages", "/admin/faqs",
+  "/admin/knowledge-base", "/admin/case-studies", "/admin/pages", "/admin/pages/library", "/admin/faqs",
   "/admin/media", "/admin/products", "/admin/products/new", "/admin/product-categories",
   "/admin/brands", "/admin/solutions", "/admin/services", "/admin/industries",
   "/admin/service-categories", "/admin/service-categories/new",
@@ -181,6 +181,8 @@ const DISCOVER = [
   { from: "/admin/knowledge-base", match: /^\/admin\/knowledge-base\/\d+$/, admin: true },
   { from: "/admin/case-studies", match: /^\/admin\/case-studies\/\d+$/, admin: true },
   { from: "/admin/pages", match: /^\/admin\/pages\/\d+$/, admin: true },
+  // A library item exists only once an editor saved one; the index says so when it yields nothing.
+  { from: "/admin/pages/library", match: /^\/admin\/pages\/library\/\d+$/, admin: true },
   /*
    * The page builder (2026-09-26): the seeded sample builder page — a draft,
    * so its public route 404s until somebody publishes it and is audited by

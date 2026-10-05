@@ -117,6 +117,52 @@ All in `builder/section-builder.tsx`, client-side only; the API is unchanged.
   install is a 422, as it should be).
 - Probe: `scripts/probes/builder-editing.mjs` (saves nothing).
 
+## The library: saved sections and page templates (0.106.0)
+
+`saved_sections` (`App\Models\SavedSection`) holds two kinds of item, both
+in the builder's stored shape and normalised by `SectionRules::normalise()`
+exactly as a page's sections are, so placing one stores what the page would
+have stored:
+
+- **A section** — exactly one section, never itself a link (`saved` is
+  refused inside the library: a link to a link is a cycle waiting to happen).
+  Made from the bookmark button on a builder card ("Save to library"), with
+  "Link this section to it" ticked by default, which swaps the card for a
+  link in place.
+- **A page template** — a whole stack. Made from **Save as template** above
+  the list; offered under "Start from a template" on an empty builder page,
+  where every section is **copied** with a fresh id. A page started from a
+  template owes it nothing afterwards.
+
+**Placed linked** a section is `{type: "saved", data: {saved_id}}` on the
+page. `SectionRules` checks the id is a library *section* that still exists
+(422 on `blocks.N.data.saved_id`), and `SectionPresenter::resolve()` swaps it
+for the library's section — keeping the page's own `id` and Hidden switch —
+in one query for the whole page, before anything else is presented, so FAQ
+schema, cards and every other rule see a real section. Style, background and
+Appear come from the library; a linked card shows none of those controls,
+only which item it is, **Edit it in the library**, and **Make a copy here**,
+which replaces the link with the library section's contents under the card's
+id (one undo step, like any change).
+
+**Placed as a copy** it is just sections, as if pasted.
+
+**Deleting** a section placed linked anywhere — a page or a template — is a
+422 naming how many (`SavedSection::linkedFrom()` reads every page's and
+template's blocks; there is no join table to drift). Make a copy on those
+pages first. Templates and copies never block a delete.
+
+**Editing** an item at `/admin/pages/library/{id}` saves through
+`updateLibraryAction`, which calls `updateTag("pages")`: nothing records which
+public pages place it linked short of reading them all, and the tag is the one
+every page fetch carries. The screen uses the same `SectionBuilder` with
+`inLibrary`, which hides Save to library and Save as template.
+
+`role:content_manager`; the sidebar row is Content → Section library.
+Probe: `scripts/probes/section-library.mjs` (creates one section and one
+template through the real buttons, places the section linked on a throwaway
+page, and deletes all three).
+
 ## Presented for the public site
 
 `SectionPresenter::present()` is the public shape, and it is what
@@ -280,6 +326,8 @@ it published, with its sections, so a build against `npm run mock` renders
 the builder route.
 
 ## API
+
+The library: `GET/POST /admin/saved-sections`, `GET/PATCH/DELETE /admin/saved-sections/{id}`, and `library` on `GET /admin/pages/builder` (see API.md).
 
 | Method | Path | Notes |
 |---|---|---|

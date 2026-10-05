@@ -21,6 +21,21 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.106.0 — 2026-10-05
+
+**A section library and page templates.**
+
+- **Save to library** on any builder section, then place it on other pages
+  from Add a section — **linked**, so editing it once in the library changes
+  every page that uses it, or as a **copy** the page owns. A linked section
+  says what it is, links to its library entry, and offers "Make a copy here"
+  to cut the link.
+- **Save as template** keeps a whole page's sections; a new builder page can
+  start from it, as a copy.
+- **Content → Section library** lists both, edits them in the same builder,
+  and deletes them — refusing a section still placed linked on a page, and
+  saying how many.
+
 ## 0.105.0 — 2026-10-05
 
 **The page builder is easier to work in.**

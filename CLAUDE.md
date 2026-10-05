@@ -2766,6 +2766,7 @@ A CMS page laid out as a stack of typed sections (2026-09-26): `pages.blocks` is
 - `media-src` names the asset origins (a library video — a builder `video` section or a slide — is served from there).
 - A section's `style` (0.104.0, `SectionRules::STYLE`): spacing, width, alignment, heading size, anchor, devices — choices only, defaults never stored, applied by one `[data-section-style]` wrapper in `PageSections` that the CSS reads, so no section component knows about it. Width targets `[data-container]` and only narrows; hidden devices are the `hidden` class. `scripts/probes/section-style.mjs`.
 - The builder's history is `apply()` in `section-builder.tsx`: compute next from current, push, set — never a push inside a state updater; typing coalesces per section per second; Ctrl/⌘ Z is left to a focused text field. Drag uses a handle, the arrows stay for touch and keyboard; Copy/Paste round-trips `{"tw-section":1,…}` through the clipboard and `localStorage`. `scripts/probes/builder-editing.mjs`.
+- The section library (0.106.0, `saved_sections`): a *section* is one section and never a link, a *template* a stack copied with fresh ids; a page places a section linked as `{type:"saved", data:{saved_id}}`, which `SectionPresenter::resolve()` swaps for the library's section (page's id and Hidden kept) in one query before anything else is presented; deleting one still placed linked is a 422 from `linkedFrom()`, and a library edit purges `pages`. `scripts/probes/section-library.mjs`.
 
 ### Engineer visits — `docs/visits.md`
 
