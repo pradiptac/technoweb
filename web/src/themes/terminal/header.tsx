@@ -49,7 +49,8 @@ export function PromptHeader({
       <header className="sticky top-0 z-40 border-b border-line-strong bg-page">
         <Container className={cn("flex h-14 min-w-0 items-center gap-2 font-mono", bigMenu && "relative")}>
           <Link href="/" aria-label={settings.company_name ? `${settings.company_name} home` : "Home"} className="flex shrink-0 items-center gap-2">
-            <span aria-hidden className="text-13 text-brand-ink">$</span>
+            {/* The prompt goes below 420px: with a real logo it ran the menu button 3px off a 390px screen. */}
+            <span aria-hidden className="text-13 text-brand-ink max-[419px]:hidden">$</span>
             <Logo
               className="max-[419px]:text-17"
               logoUrl={settings.logo_url}

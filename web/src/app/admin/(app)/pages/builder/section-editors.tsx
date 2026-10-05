@@ -37,6 +37,11 @@ export function blankData(type: PageSectionType): Record<string, unknown> {
     case "logos": return { source: "clients" };
     case "video": return { source: "youtube" };
     case "divider": return { size: "medium", rule: true };
+    case "stats": return { display: "figures", columns: 4, items: [{}, {}, {}] };
+    case "steps": return { layout: "vertical", items: [{}, {}, {}] };
+    case "tabs": return { items: [{}, {}] };
+    case "checklist": return { columns: 2, items: [{}, {}, {}] };
+    case "cta": return { tone: "accent", call: true };
     default: return {};
   }
 }
@@ -51,6 +56,18 @@ export function summaryOf(data: Record<string, unknown>): string {
 }
 
 const COLUMNS = [{ value: "2", label: "Two" }, { value: "3", label: "Three" }, { value: "4", label: "Four" }];
+const LIST_COLUMNS = [{ value: "1", label: "One" }, { value: "2", label: "Two" }, { value: "3", label: "Three" }];
+
+/** The kicker, heading and lede most bands open with. */
+function Head() {
+  return (
+    <>
+      <Text path={["kicker"]} label="Kicker" />
+      <Text path={["heading"]} label="Heading" />
+      <Text path={["lede"]} label="Lede" multiline />
+    </>
+  );
+}
 
 /**
  * A select over a **number** — columns, and the id of a block, slider,
@@ -354,6 +371,96 @@ export function SectionEditor({ type, sectionId, options }: {
           ]} />
           <div className="pt-3"><Toggle path={["rule"]} label="Draw a line" /></div>
         </Row>
+      );
+
+    case "stats": {
+      const display = typeof content.display === "string" ? content.display : "figures";
+      const measured = display !== "figures";
+      return (
+        <>
+          <Head />
+          <Row>
+            <Choice path={["display"]} label="Drawn as" fallback="figures" options={[
+              { value: "figures", label: "Large figures" }, { value: "rings", label: "Rings" }, { value: "bars", label: "Bars" },
+            ]} hint={measured ? "Each figure needs a percentage — how full its ring or bar is." : "Each figure counts up as the section arrives."} />
+            {display !== "bars" && <NumberChoice path={["columns"]} label="Columns, at most" options={COLUMNS} hint="Never more columns than figures." />}
+          </Row>
+          <Repeater path={["items"]} label="Figures" subject="Figure" min={1} max={8} blank={() => ({})} row={(p) => (
+            <>
+              <Row>
+                <Text path={[...p, "value"]} label="Figure" required placeholder="340+" />
+                <Text path={[...p, "label"]} label="What it counts" required placeholder="Sites supported" />
+              </Row>
+              {measured
+                ? <NumberInput path={[...p, "percent"]} label="Percentage" min={0} max={100} hint="0 to 100." />
+                : <IconPick path={[...p, "icon"]} />}
+            </>
+          )} />
+        </>
+      );
+    }
+
+    case "steps":
+      return (
+        <>
+          <Head />
+          <Choice path={["layout"]} label="Layout" fallback="vertical" options={[
+            { value: "vertical", label: "Down the page, joined by a line" }, { value: "horizontal", label: "Across the page, as cards" },
+          ]} />
+          <Repeater path={["items"]} label="Steps" subject="Step" min={2} max={8} blank={() => ({})} row={(p) => (
+            <>
+              <Text path={[...p, "title"]} label="Title" required />
+              <Text path={[...p, "body"]} label="One or two lines" multiline />
+              <IconPick path={[...p, "icon"]} />
+            </>
+          )} />
+        </>
+      );
+
+    case "tabs":
+      return (
+        <>
+          <Head />
+          <Repeater path={["items"]} label="Tabs" subject="Tab" min={2} max={8} blank={() => ({})} row={(p) => (
+            <>
+              <Row>
+                <Text path={[...p, "label"]} label="Tab label" required hint="A word or two." />
+                <Text path={[...p, "heading"]} label="Heading in the panel" />
+              </Row>
+              <Text path={[...p, "body"]} label="Words" multiline required hint="Plain text; a blank line starts a new paragraph." />
+              <ImagePath path={[...p, "image_path"]} label="Picture" hint="Optional. Shown beside the words from laptop width, in 4:3." />
+            </>
+          )} />
+        </>
+      );
+
+    case "checklist":
+      return (
+        <>
+          <Head />
+          <NumberChoice path={["columns"]} label="Columns, at most" options={LIST_COLUMNS} />
+          <Repeater path={["items"]} label="Points" subject="Point" min={1} max={24} blank={() => ({})} row={(p) => (
+            <>
+              <Text path={[...p, "text"]} label="Point" required />
+              <IconPick path={[...p, "icon"]} />
+            </>
+          )} />
+          <Buttons />
+        </>
+      );
+
+    case "cta":
+      return (
+        <>
+          <Text path={["kicker"]} label="Kicker" />
+          <Text path={["heading"]} label="Heading" required />
+          <Text path={["lede"]} label="Line under it" multiline />
+          <Choice path={["tone"]} label="Colour" fallback="accent" options={[
+            { value: "accent", label: "Accent — as the inner pages close" }, { value: "brand", label: "Brand — as the homepage closes" },
+          ]} hint="Drawn the way the active theme draws its closing band." />
+          <Buttons />
+          <Toggle path={["call"]} label="With no second button, offer “Call” with the site’s number" />
+        </>
       );
 
     default:

@@ -5,6 +5,7 @@ import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
 import { ToastProvider } from "@/components/ui/toast";
 import { TeamGrid } from "@/components/company/team-grid";
+import { PageSections, startsWithHero } from "@/components/page-sections/page-sections";
 import { getCurrentStaff } from "@/lib/admin-auth";
 import { publicApi } from "@/lib/api";
 import { loadChrome } from "@/lib/chrome";
@@ -27,6 +28,9 @@ export const metadata = buildMetadata({ title: "Theme preview", path: "/theme-pr
  * is a made-up inner page that exercises the other two slots — a `PageHero`
  * with a trail and a section banner, a grid of `Card`s, a `CtaBand` — so
  * the gallery's Preview shows what an inner page will look like too.
+ * `/theme-preview/<id>/page/<slug>` is a published builder page under that
+ * theme (0.107.0) — how a section is judged in every theme before one is
+ * chosen, rather than only in the one the site wears.
  *
  * Outside `(marketing)`, so the real layout is not applied and its chrome
  * is not drawn twice; under the root layout, so the fonts, the tokens and
@@ -63,7 +67,8 @@ export default async function ThemePreviewPage({
   if (!staff) redirect("/admin/login");
 
   const view = path.join("/");
-  if (view !== "" && view !== "specimen" && view !== "team") notFound();
+  const pageSlug = path[0] === "page" && path.length === 2 && /^[a-z0-9-]{1,120}$/.test(path[1]) ? path[1] : null;
+  if (view !== "" && view !== "specimen" && view !== "team" && !pageSlug) notFound();
 
   const [theme, { chrome }] = await Promise.all([activeTheme(), loadChrome()]);
   const Chrome = theme.templates.Chrome;
@@ -84,7 +89,7 @@ export default async function ThemePreviewPage({
           <a href={`/theme-preview/${id}/team`} className="font-semibold underline">Team</a>
         </div>
         <Chrome {...chrome} options={theme.options} themeId={theme.manifest.id}>
-          {view === "" ? <HomeView /> : view === "team" ? <TeamView /> : <Specimen />}
+          {pageSlug ? <BuilderView slug={pageSlug} /> : view === "" ? <HomeView /> : view === "team" ? <TeamView /> : <Specimen />}
         </Chrome>
       </div>
     </ToastProvider>
@@ -95,6 +100,20 @@ async function HomeView() {
   const [theme, data] = await Promise.all([activeTheme(), loadHome()]);
   const Home = theme.templates.Home;
   return <Home {...data} options={theme.options} />;
+}
+
+/** A published builder page's sections under this theme; anything else is a 404. */
+async function BuilderView({ slug }: { slug: string }) {
+  const page = await publicApi.page(slug).then((r) => r.data).catch(() => null);
+  if (!page || page.template !== "builder") notFound();
+  const sections = page.sections ?? [];
+  const crumbs = [{ name: page.title, path: `/${slug}` }];
+  return (
+    <>
+      {!startsWithHero(sections) && <PageHero title={page.title} crumbs={crumbs} />}
+      <PageSections sections={sections} crumbs={crumbs} />
+    </>
+  );
 }
 
 /** The team page's grid under this theme — every theme lays the card out its own way. */

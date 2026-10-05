@@ -1164,7 +1164,14 @@ A CMS page whose `template` is `builder` is a stack of typed sections
 `{id (uuid), type, hidden, background, reveal, data}`; `type: saved` with `data: {saved_id}` places a library section linked — it must name a library *section* that exists, and the public read draws that section in its place (the page's `id` and `hidden` kept); `template` accepts `builder`
 beside `default` and `wide`. `type` is `App\Enums\PageSectionType` — `hero`,
 `rich_text`, `media_text`, `features`, `cards`, `content_block`, `slider`,
-`gallery`, `form`, `faq`, `logos`, `testimonial`, `video`, `divider` — and
+`gallery`, `form`, `faq`, `logos`, `testimonial`, `video`, `divider`, and since
+0.107.0 `stats` (`display` figures/rings/bars, items `{value, label, icon?,
+percent?}` — `percent` required for rings and bars, dropped for figures),
+`steps` (`layout` vertical/horizontal, 2–8 items), `tabs` (2–8 items
+`{label, heading?, body (plain text), image_path?}`, each picture resolved on
+the public read to `image`/`image_alt`/`image_focus`), `checklist` (`columns`
+1–3, up to 24 items) and `cta` (`heading`, `tone` brand/accent, `call`,
+buttons) — and
 `data` is checked by that type's own rules (`SectionRules`), so a 422 names the
 field: `blocks.3.data.heading`. A picture or video must be in the media
 library and of the right kind; a content block, slider, gallery or form is

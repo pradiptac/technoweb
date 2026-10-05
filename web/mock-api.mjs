@@ -1619,6 +1619,11 @@ const SECTION_TYPES = [
   { value: 'testimonial', label: 'Testimonial', blurb: 'One quotation, with who said it and a photo.' },
   { value: 'video', label: 'Video', blurb: 'A YouTube video or a video from the library.' },
   { value: 'divider', label: 'Divider', blurb: 'Space between two sections, with or without a rule.' },
+  { value: 'stats', label: 'Figures', blurb: 'Up to eight figures that count up as they arrive — as plain numbers, rings or bars.' },
+  { value: 'steps', label: 'Steps', blurb: 'A numbered process, down the page with a line joining the steps or across it.' },
+  { value: 'tabs', label: 'Tabs', blurb: 'Two to eight panels behind tabs, each with words and an optional picture.' },
+  { value: 'checklist', label: 'Checklist', blurb: 'A list of short points with a tick or an icon, in one to three columns.' },
+  { value: 'cta', label: 'Call to action', blurb: 'A closing band — a heading, a line and buttons — drawn the way the theme draws its own.' },
 ];
 const SECTION_PRESETS = [
   { value: 'landing', label: 'Landing page', blurb: 'A hero, three reasons, a live list of solutions, questions and a close.', sections: [

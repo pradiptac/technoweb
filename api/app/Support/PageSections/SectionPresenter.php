@@ -191,6 +191,10 @@ final class SectionPresenter
             PageSectionType::Gallery => self::slug($data, 'gallery_id', Gallery::class),
             PageSectionType::Form => self::slug($data, 'form_id', Form::class),
             PageSectionType::Faq => self::faq($data, $page),
+            PageSectionType::Tabs => [...$data, 'items' => array_map(
+                fn ($item) => is_array($item) ? self::picture($item, 'image') : [],
+                array_values((array) ($data['items'] ?? [])),
+            )],
             default => $data,
         };
     }

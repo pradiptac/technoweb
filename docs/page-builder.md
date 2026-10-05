@@ -117,6 +117,75 @@ All in `builder/section-builder.tsx`, client-side only; the API is unchanged.
   install is a 422, as it should be).
 - Probe: `scripts/probes/builder-editing.mjs` (saves nothing).
 
+## Figures, steps, tabs, checklists and calls to action (0.107.0)
+
+Five self-contained types, each validated by `SectionRules::for()` and drawn
+by `components/page-sections/visual-sections.tsx`:
+
+| Type | Holds | Drawn as |
+|---|---|---|
+| `stats` | `display` of `figures`/`rings`/`bars` (`STAT_DISPLAYS`), `columns`, up to 8 items `{value, label, icon?, percent?}` — `percent` 0–100, required for rings and bars and **dropped** by `normalise()` for figures | figures count up (`CountUp`); rings are `Ring`; bars grow |
+| `steps` | `layout` of `vertical`/`horizontal`, 2–8 items `{title, body?, icon?}` | a numbered list joined by a line, or cards in rows |
+| `tabs` | 2–8 items `{label, heading?, body, image_path?}` — `body` is **plain text**, a blank line a new paragraph | `section-tabs.tsx`, the WAI-ARIA tabs pattern; every panel in the markup |
+| `checklist` | `columns` 1–3, up to 24 items `{text, icon?}`, two buttons | a tick (or the item's icon) beside each line |
+| `cta` | `heading`, `kicker`, `lede`, `tone` (`accent`/`brand`), `call`, two buttons | `ThemeBand` — the active theme's own closing band; `call` keeps its "Call" button when no second button is set |
+
+A tab's picture is checked like any other (a library picture, 422 on
+`blocks.N.data.items.M.image_path`) and the presenter resolves each item's
+`image_path` to `image`/`image_alt`/`image_focus`. A `cta` section closes the
+page like a CTA content block: the route draws no second `CtaBand`.
+
+**Proportion is the component's, not the editor's.** The client's rule
+(2026-10-05): every section must sit in a proper ratio to the screen it is
+on, in every theme.
+
+- **No empty columns.** A row never has more columns than items, and a
+  short last row is **centred** (`rowItem()`): five steps are three and two,
+  never three and two-and-a-hole.
+- **Phones.** Figures and rings sit two to a row on a phone, where one full
+  card each read as sparse. Rings are 108px, so they fit in a half-width card
+  at 320px.
+- **Read lists sit beside their heading.** Bars and vertical steps are read
+  rather than scanned, so from `lg` they sit beside their heading
+  (`SplitHead`, the heading held sticky) instead of running 1,700px wide or
+  leaving half the band empty.
+- **Tab pictures.** A tab's picture is 4:3, capped at `max-w-2xl` below `lg`.
+  From `xl` it takes five parts to the words' seven at 16:10, so it never
+  becomes a billboard beside a short paragraph.
+- **Horizontal steps on a phone.** The number sits beside the words, not
+  above them.
+
+**Tailwind generates only class names it can read in the source.**
+`rowItem()` spells out every width as a literal string. The first cut built
+the `sm:` width from a template string, and the class did not exist: steps
+stacked one per row at 768.
+
+**Motion** is `[data-meter-fill]`, `[data-meter-ring]` and `[data-step-line]`
+in `globals.css`.
+- The bars grow, the rings sweep (a `from`-only `stroke-dasharray`) and the
+  steps' line draws down.
+- It starts when the reveal observer stamps `data-aos-animate`, so a band
+  below the fold moves when it is reached. Each item is staggered by `--i`.
+- It is inside the reduced-motion guard. A section set to appear with "None"
+  has no `data-aos` and simply shows its final state.
+
+`scripts/probes/section-bands.mjs` samples a bar mid-flight and at rest,
+checks the tabs from the keyboard, and checks reduced motion.
+
+**`normalise()` puts sections back in the order they were sent.**
+`validated()` rebuilds the list rule by rule, so a section whose only fields
+sit under a wildcard came back after the sections behind it. Examples are a
+Features section holding only its points, and every Tabs section.
+`array_values()` then made that the stored order, so a save moved the section
+down the page. Both levels — sections, and a section's items — are
+`ksort`ed first. `PageBuilderTest::test_sections_keep_the_order_they_were_sent_in`
+fails without it.
+
+**Any theme can be previewed on a real page.** `/theme-preview/<theme>/page/<slug>`
+draws a published builder page under that theme, for an administrator. That
+is how a section is judged in every theme, not only in the one the site
+wears.
+
 ## The library: saved sections and page templates (0.106.0)
 
 `saved_sections` (`App\Models\SavedSection`) holds two kinds of item, both

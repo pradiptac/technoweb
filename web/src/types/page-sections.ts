@@ -17,6 +17,8 @@ import type { SectionBackground } from "@/themes/options";
 export type PageSectionType =
   | "hero" | "rich_text" | "media_text" | "features" | "cards" | "content_block"
   | "slider" | "gallery" | "form" | "faq" | "logos" | "testimonial" | "video" | "divider"
+  /** The five self-contained bands of 0.107.0. */
+  | "stats" | "steps" | "tabs" | "checklist" | "cta"
   /** A library section placed linked (0.106.0): stored as `{saved_id}`, drawn as the library's section. */
   | "saved";
 
@@ -66,6 +68,23 @@ export type TestimonialSectionData = Picture<"photo"> & { quote: string; name: s
 export type VideoSectionData = { heading?: string; source: "youtube" | "mp4"; youtube?: string | null; video?: string | null; caption?: string };
 export type DividerSectionData = { size?: "small" | "medium" | "large"; rule?: boolean };
 
+type Head = { kicker?: string; heading?: string; lede?: string };
+export type StatFigure = { value: string; label: string; icon?: string; percent?: number };
+export type StatsSectionData = Head & { display: "figures" | "rings" | "bars"; columns?: 2 | 3 | 4; items: StatFigure[] };
+export type StepItem = { title: string; body?: string; icon?: string };
+export type StepsSectionData = Head & { layout: "vertical" | "horizontal"; items: StepItem[] };
+export type TabItem = Picture<"image"> & { label: string; heading?: string; body: string };
+export type TabsSectionData = Head & { items: TabItem[] };
+export type ChecklistSectionData = Head & {
+  columns?: 1 | 2 | 3; items: { text: string; icon?: string }[]; primary?: SectionButton; secondary?: SectionButton;
+};
+export type CtaSectionData = {
+  kicker?: string; heading: string; lede?: string; tone?: "brand" | "accent";
+  /** No second button: offer the site's "Call" button, as the theme's own band does. */
+  call?: boolean;
+  primary?: SectionButton; secondary?: SectionButton;
+};
+
 /**
  * How a section sits on the page (2026-10-05, `SectionRules::STYLE`): only
  * the keys that differ from the section's own behaviour are ever sent.
@@ -100,7 +119,12 @@ export type PageSection =
   | Of<"logos", LogosSectionData>
   | Of<"testimonial", TestimonialSectionData>
   | Of<"video", VideoSectionData>
-  | Of<"divider", DividerSectionData>;
+  | Of<"divider", DividerSectionData>
+  | Of<"stats", StatsSectionData>
+  | Of<"steps", StepsSectionData>
+  | Of<"tabs", TabsSectionData>
+  | Of<"checklist", ChecklistSectionData>
+  | Of<"cta", CtaSectionData>;
 
 /** A section as stored and edited: paths and ids, and whatever the type's fields are. */
 export type StoredSection = {

@@ -32,6 +32,16 @@ enum PageSectionType: string
     case Testimonial = 'testimonial';
     case Video = 'video';
     case Divider = 'divider';
+    /*
+     * Five self-contained bands added on 2026-10-05 (0.107.0): figures,
+     * a numbered process, tabs, a checklist and a call to action drawn in
+     * the theme's own closing-band style.
+     */
+    case Stats = 'stats';
+    case Steps = 'steps';
+    case Tabs = 'tabs';
+    case Checklist = 'checklist';
+    case Cta = 'cta';
     /**
      * A section from the library, placed linked (2026-10-05): it stores only
      * `saved_id`, and the presenter draws the library's section in its place,
@@ -56,6 +66,11 @@ enum PageSectionType: string
             self::Testimonial => 'Testimonial',
             self::Video => 'Video',
             self::Divider => 'Divider',
+            self::Stats => 'Figures',
+            self::Steps => 'Steps',
+            self::Tabs => 'Tabs',
+            self::Checklist => 'Checklist',
+            self::Cta => 'Call to action',
             self::Saved => 'Saved section',
         };
     }
@@ -81,6 +96,11 @@ enum PageSectionType: string
             self::Testimonial => 'One quotation, with who said it and a photo.',
             self::Video => 'A YouTube video, played only when somebody presses it, or a video from the library.',
             self::Divider => 'Space between two sections, with or without a rule.',
+            self::Stats => 'Up to eight figures that count up as they arrive — as plain numbers, rings or bars.',
+            self::Steps => 'A numbered process, down the page with a line joining the steps or across it.',
+            self::Tabs => 'Two to eight panels behind tabs, each with words and an optional picture.',
+            self::Checklist => 'A list of short points with a tick or an icon, in one to three columns.',
+            self::Cta => 'A closing band — a heading, a line and buttons — drawn the way the theme draws its own.',
             self::Saved => 'A section from the library, kept in step with it: edit it once and every page that places it changes.',
         };
     }

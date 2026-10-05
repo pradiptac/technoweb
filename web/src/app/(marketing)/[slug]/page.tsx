@@ -128,7 +128,7 @@ function BuilderPage({ page, slug }: { page: CmsPage; slug: string }) {
   const sections = page.sections ?? [];
   const crumbs = [{ name: page.title, path: `/${slug}` }];
   const showsPageFaqs = sections.some((s) => s.type === "faq" && s.data.source === "page");
-  const closesItself = sections.some((s) => s.type === "content_block" && s.data.block.type === "cta");
+  const closesItself = sections.some((s) => s.type === "cta" || (s.type === "content_block" && s.data.block.type === "cta"));
 
   return (
     <>

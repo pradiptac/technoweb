@@ -41,6 +41,8 @@
   justify-content: center;
   gap: .25rem;
 }
+/* A builder Tabs section opens on a left-aligned heading, so its strip starts where the heading does. */
+[data-theme="keystone"] [data-section-tabs] [role="tablist"] { justify-content: flex-start; }
 [data-theme="keystone"] [role="tab"] {
   border-bottom: 0;
   margin-bottom: 0;

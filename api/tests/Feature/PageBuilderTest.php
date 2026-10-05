@@ -130,6 +130,12 @@ class PageBuilderTest extends TestCase
             'video' => ['video', ['source' => 'youtube', 'youtube' => 'dQw4w9WgXcQ'], ['source' => 'mp4'], 'video_path'],
             'divider' => ['divider', ['size' => 'large', 'rule' => true], ['size' => 'huge'], 'size'],
             'content block' => ['content_block', ['block_id' => 0], [], 'block_id'],
+            'stats' => ['stats', ['display' => 'figures', 'items' => [['value' => '340+', 'label' => 'Sites']]], ['display' => 'pie', 'items' => [['value' => '1', 'label' => 'x']]], 'display'],
+            'stats percent' => ['stats', ['display' => 'rings', 'items' => [['value' => '99%', 'label' => 'Uptime', 'percent' => 99]]], ['display' => 'bars', 'items' => [['value' => '9', 'label' => 'x']]], 'items.0.percent'],
+            'steps' => ['steps', ['layout' => 'vertical', 'items' => [['title' => 'One'], ['title' => 'Two']]], ['layout' => 'vertical', 'items' => [['title' => 'Only one']]], 'items'],
+            'tabs' => ['tabs', ['items' => [['label' => 'A', 'body' => 'a'], ['label' => 'B', 'body' => 'b']]], ['items' => [['label' => 'A', 'body' => 'a'], ['label' => 'B']]], 'items.1.body'],
+            'checklist' => ['checklist', ['columns' => 2, 'items' => [['text' => 'Fast']]], ['columns' => 4, 'items' => [['text' => 'Fast']]], 'columns'],
+            'cta' => ['cta', ['heading' => 'Talk to us', 'tone' => 'brand', 'call' => true], ['heading' => 'H', 'tone' => 'neon'], 'tone'],
         ];
     }
 
@@ -147,6 +153,64 @@ class PageBuilderTest extends TestCase
         }
         $this->create([self::section($type, $invalid)], ['title' => 'Refused'])
             ->assertStatus(422)->assertJsonValidationErrors("blocks.0.data.{$key}");
+    }
+
+    public function test_the_new_bands_are_stored_as_declared_and_presented(): void
+    {
+        $this->media('media/tab.jpg', 'image/jpeg', 'A tab picture');
+
+        $this->create([
+            self::section('stats', ['display' => 'figures', 'items' => [['value' => '16', 'label' => 'Years', 'percent' => '40', 'colour' => 'red']]]),
+            self::section('stats', ['display' => 'bars', 'items' => [['value' => '99%', 'label' => 'Uptime', 'percent' => '99']]]),
+            self::section('tabs', ['items' => [
+                ['label' => 'One', 'body' => 'First', 'image_path' => 'media/tab.jpg'],
+                ['label' => 'Two', 'body' => 'Second'],
+            ]]),
+            self::section('cta', ['heading' => 'Call us', 'call' => '1']),
+        ])->assertCreated();
+
+        $stored = Page::query()->where('slug', 'built-page')->first()->blocks;
+        // A percentage belongs to rings and bars only, and nothing undeclared is kept
+        // (MySQL reorders a JSON object's keys, so the comparison ignores order).
+        $this->assertEquals(['value' => '16', 'label' => 'Years'], $stored[0]['data']['items'][0]);
+        $this->assertSame(99, $stored[1]['data']['items'][0]['percent']);
+        $this->assertSame(['stats', 'stats', 'tabs', 'cta'], array_column($stored, 'type'));
+        $this->assertTrue($stored[3]['data']['call']);
+
+        $sections = $this->getJson('/api/v1/pages/built-page')->assertOk()->json('data.sections');
+        $this->assertStringEndsWith('storage/media/tab.jpg', $sections[2]['data']['items'][0]['image']);
+        $this->assertSame('A tab picture', $sections[2]['data']['items'][0]['image_alt']);
+        $this->assertArrayNotHasKey('image_path', $sections[2]['data']['items'][0]);
+        $this->assertArrayNotHasKey('image', $sections[2]['data']['items'][1]);
+    }
+
+    /**
+     * `validated()` rebuilds the list rule by rule, so a section whose only
+     * fields sit under a wildcard came back after the sections behind it, and
+     * a save moved it down the page. Pinned with a features section holding
+     * nothing but its points, ahead of one with a plain heading.
+     */
+    public function test_sections_keep_the_order_they_were_sent_in(): void
+    {
+        $this->create([
+            self::section('features', ['items' => [['title' => 'Only points']]]),
+            self::section('rich_text', ['heading' => 'After', 'body' => '<p>x</p>']),
+            self::section('steps', ['layout' => 'vertical', 'items' => [['title' => 'A'], ['title' => 'B']]]),
+            self::section('cta', ['heading' => 'Last']),
+        ])->assertCreated();
+
+        $this->assertSame(
+            ['features', 'rich_text', 'steps', 'cta'],
+            array_column(Page::query()->where('slug', 'built-page')->first()->blocks, 'type'),
+        );
+    }
+
+    public function test_a_tab_picture_must_be_a_library_picture(): void
+    {
+        $this->create([self::section('tabs', ['items' => [
+            ['label' => 'One', 'body' => 'a', 'image_path' => 'media/nowhere.jpg'],
+            ['label' => 'Two', 'body' => 'b'],
+        ]])])->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.items.0.image_path');
     }
 
     public function test_rich_text_in_a_section_is_sanitised(): void

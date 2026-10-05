@@ -14,6 +14,7 @@ import {
 import {
   CardsSection, ContentBlockSection, FaqSection, FormSection, GallerySection, LogosSection, SliderSection,
 } from "./embed-sections";
+import { ChecklistSection, CtaSection, StatsSection, StepsSection, TabsSection } from "./visual-sections";
 
 /**
  * A builder page's sections, in order (`docs/page-builder.md`).
@@ -100,7 +101,7 @@ export function startsWithHero(sections: PageSection[] | undefined): boolean {
 }
 
 /** The types that do not reveal unless an editor asks them to. */
-const STILL: ReadonlySet<string> = new Set(["content_block", "logos", "divider"]);
+const STILL: ReadonlySet<string> = new Set(["content_block", "logos", "divider", "cta"]);
 
 function renderSection(
   section: PageSection,
@@ -127,6 +128,11 @@ function renderSection(
     case "testimonial": return <TestimonialSection data={section.data} reveal={reveal} />;
     case "video": return <VideoSection data={section.data} reveal={reveal} />;
     case "divider": return <DividerSection data={section.data} reveal={reveal} />;
+    case "stats": return <StatsSection data={section.data} reveal={reveal} />;
+    case "steps": return <StepsSection data={section.data} reveal={reveal} />;
+    case "tabs": return <TabsSection data={section.data} reveal={reveal} id={`tabs-${section.id.slice(0, 8)}`} />;
+    case "checklist": return <ChecklistSection data={section.data} reveal={reveal} />;
+    case "cta": return <CtaSection data={section.data} />;
     default: return null;
   }
 }

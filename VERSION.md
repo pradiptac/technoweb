@@ -21,6 +21,26 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.107.0 — 2026-10-05
+
+**Five new builder sections, and sections that hold their proportions.**
+
+- **Figures**: up to eight numbers that count up, drawn as large figures,
+  rings or bars.
+- **Steps**: a numbered process, either down the page with a joining line or
+  across it as cards.
+- **Tabs**: two to eight panels, each with words and an optional picture.
+- **Checklist**: short points with ticks, in one to three columns.
+- **Call to action**: a closing band drawn in the active theme's own style.
+- **Proportion at every screen width**: a row never shows empty slots, and
+  short rows are centred. Bars and steps sit beside their heading on wide
+  screens. Figures sit two to a phone row. Pictures never outgrow the words
+  beside them. All checked in all twelve themes.
+- **Fixed**: saving a builder page could move a section down the page.
+- **Fixed**: the Terminal theme's header was 3px too wide on a 390px phone.
+- **Theme previews** now show any builder page:
+  `/theme-preview/<theme>/page/<slug>`.
+
 ## 0.106.0 — 2026-10-05
 
 **A section library and page templates.**

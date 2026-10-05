@@ -3823,6 +3823,33 @@ nav:has([data-panel-host]:hover) [data-panel-host]:not(:hover) > .panel-drop { t
 }
 
 /*
+ * The builder's measured bands (0.107.0, `page-sections/visual-sections.tsx`):
+ * a bar grows, a ring sweeps and the steps' line draws down — once, when the
+ * reveal observer stamps `data-aos-animate` on the section, so a band below
+ * the fold moves when it is reached rather than on load. `from`-only
+ * keyframes, so the resting state is the markup's own and a section set to
+ * appear with "None" (no `data-aos`) never moves. Staggered by `--i`.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes meter-grow { from { transform: scaleX(0); } }
+  @keyframes meter-sweep { from { stroke-dasharray: 0 1000; } }
+  @keyframes step-line { from { transform: scaleY(0); } }
+
+  html[data-aos-ready] [data-aos-animate] [data-meter-fill] {
+    animation: meter-grow calc(var(--duration-slow) * 3) var(--ease-brand) both;
+    animation-delay: calc(var(--i, 0) * 90ms + 150ms);
+  }
+  html[data-aos-ready] [data-aos-animate] [data-meter-ring] svg circle + circle {
+    animation: meter-sweep calc(var(--duration-slow) * 4) var(--ease-brand) both;
+    animation-delay: calc(var(--i, 0) * 110ms + 150ms);
+  }
+  html[data-aos-ready] [data-aos-animate] [data-step-line] {
+    animation: step-line calc(var(--duration-slow) * 4) var(--ease-brand) both;
+    animation-delay: 200ms;
+  }
+}
+
+/*
  * Section textures (2026-10-05, `SECTION_TEXTURES` in themes/options.ts): a
  * decorative layer `SectionBg` draws as a sibling of the content, inside the
  * section's local palette, so every colour below resolves to that section's

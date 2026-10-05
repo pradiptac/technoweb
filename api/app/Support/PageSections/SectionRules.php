@@ -88,6 +88,9 @@ final class SectionRules
 
     private const ICON = 'regex:/^[a-z0-9-]{1,40}$/';
 
+    /** How a `stats` section draws its figures; rings and bars need a percentage. */
+    public const STAT_DISPLAYS = ['figures', 'rings', 'bars'];
+
     /**
      * The rules for the whole list, generated per row from each row's type.
      *
@@ -237,6 +240,58 @@ final class SectionRules
                 'size' => ['nullable', Rule::in(['small', 'medium', 'large'])],
                 'rule' => ['nullable', 'boolean'],
             ],
+            PageSectionType::Stats => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'display' => ['required', Rule::in(self::STAT_DISPLAYS)],
+                'columns' => ['nullable', 'integer', Rule::in([2, 3, 4])],
+                'items' => ['required', 'array', 'min:1', 'max:8'],
+                'items.*.value' => ['required', 'string', 'max:24'],
+                'items.*.label' => ['required', 'string', 'max:80'],
+                'items.*.icon' => ['nullable', 'string', self::ICON],
+                'items.*.percent' => ['nullable', "required_if:{$at}.display,rings,bars", 'integer', 'min:0', 'max:100'],
+            ],
+            PageSectionType::Steps => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'layout' => ['required', Rule::in(['vertical', 'horizontal'])],
+                'items' => ['required', 'array', 'min:2', 'max:8'],
+                'items.*.title' => ['required', 'string', 'max:80'],
+                'items.*.body' => ['nullable', 'string', 'max:400'],
+                'items.*.icon' => ['nullable', 'string', self::ICON],
+            ],
+            PageSectionType::Tabs => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'items' => ['required', 'array', 'min:2', 'max:8'],
+                'items.*.label' => ['required', 'string', 'max:40'],
+                'items.*.heading' => ['nullable', 'string', 'max:120'],
+                'items.*.body' => ['required', 'string', 'max:2000'],
+                'items.*.image_path' => ['nullable', 'string', 'max:255'],
+            ],
+            PageSectionType::Checklist => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'columns' => ['nullable', 'integer', Rule::in([1, 2, 3])],
+                'items' => ['required', 'array', 'min:1', 'max:24'],
+                'items.*.text' => ['required', 'string', 'max:200'],
+                'items.*.icon' => ['nullable', 'string', self::ICON],
+                ...self::button('primary', $at),
+                ...self::button('secondary', $at),
+            ],
+            PageSectionType::Cta => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => ['required', 'string', 'max:160'],
+                'lede' => $lede,
+                'tone' => ['nullable', Rule::in(['brand', 'accent'])],
+                'call' => ['nullable', 'boolean'],
+                ...self::button('primary', $at),
+                ...self::button('secondary', $at),
+            ],
             // A linked library section: only which one. That it exists and is
             // a section (not a template) is checked in `checkData`.
             PageSectionType::Saved => [
@@ -277,6 +332,14 @@ final class SectionRules
             "{$d}.items.required" => 'Add at least one item.',
             "{$d}.items.required_if" => 'Add at least one question, or use this page’s FAQs.',
             "{$d}.items.*.title.required" => 'Every item needs a title.',
+            "{$d}.items.*.value.required" => 'Every figure needs its number.',
+            "{$d}.items.*.label.required" => 'Every item needs a label.',
+            "{$d}.items.*.percent.required_if" => 'Rings and bars need a percentage, 0 to 100.',
+            "{$d}.items.*.text.required" => 'Every point needs its words.',
+            "{$d}.items.*.body.required" => 'Every tab needs its words.',
+            "{$d}.items.min" => 'Add at least two.',
+            "{$d}.display.required" => 'Choose how the figures are drawn.',
+            "{$d}.layout.required" => 'Choose a layout.',
             "{$d}.items.*.question.required" => 'Every question needs its question.',
             "{$d}.items.*.answer.required" => 'Every question needs an answer.',
             "{$d}.quote.required" => 'Write the quotation.',
@@ -409,6 +472,18 @@ final class SectionRules
             case PageSectionType::Testimonial:
                 $media('photo_path', 'image/');
                 break;
+            case PageSectionType::Tabs:
+                foreach ((array) ($data['items'] ?? []) as $n => $item) {
+                    $path = is_array($item) ? ($item['image_path'] ?? null) : null;
+                    if (! is_string($path) || $path === '') {
+                        continue;
+                    }
+                    $row = Media::query()->where('path', $path)->first();
+                    if (! $row || ! str_starts_with((string) $row->mime, 'image/')) {
+                        $validator->errors()->add("{$at}.items.{$n}.image_path", 'Choose a picture from the media library.');
+                    }
+                }
+                break;
             case PageSectionType::Video:
                 if ($source === 'mp4') {
                     $media('video_path', 'video/');
@@ -483,6 +558,13 @@ final class SectionRules
 
         $out = [];
 
+        // Validated input comes back keyed by position but not in position
+        // order: `validated()` rebuilds the list rule by rule, and a section
+        // whose first validated key is under a wildcard (a features section
+        // with only its points, a tabs section) is rebuilt after the ones
+        // behind it. Sorting by key puts the page back the way it was sent.
+        ksort($blocks, SORT_NUMERIC);
+
         foreach (array_values($blocks) as $block) {
             $type = is_array($block) ? PageSectionType::tryFrom((string) ($block['type'] ?? '')) : null;
             if (! $type) {
@@ -496,8 +578,23 @@ final class SectionRules
                     $data[$int] = (int) $data[$int];
                 }
             }
-            if (isset($data['rule'])) {
-                $data['rule'] = filter_var($data['rule'], FILTER_VALIDATE_BOOLEAN);
+            foreach (['rule', 'call'] as $bool) {
+                if (isset($data[$bool])) {
+                    $data[$bool] = filter_var($data[$bool], FILTER_VALIDATE_BOOLEAN);
+                }
+            }
+            // A percentage belongs to rings and bars, and is a number.
+            if ($type === PageSectionType::Stats && is_array($data['items'] ?? null)) {
+                $measured = in_array($data['display'] ?? null, ['rings', 'bars'], true);
+                $data['items'] = array_map(function (array $item) use ($measured) {
+                    if ($measured && isset($item['percent']) && is_numeric($item['percent'])) {
+                        $item['percent'] = (int) $item['percent'];
+                    } else {
+                        unset($item['percent']);
+                    }
+
+                    return $item;
+                }, $data['items']);
             }
             if (isset($data['youtube']) && is_string($data['youtube'])) {
                 $data['youtube'] = YouTube::id($data['youtube']);
@@ -616,6 +713,8 @@ final class SectionRules
 
             $wild = array_values(array_map(fn ($c) => substr($c, 2), array_filter($children, fn ($c) => str_starts_with($c, '*.'))));
             if ($wild !== []) {
+                // The same reordering `normalise()` undoes for sections, one level in.
+                ksort($value, SORT_NUMERIC);
                 $out[$key] = array_map(
                     fn ($row) => is_array($row) ? self::keep($row, $wild) : [],
                     array_values($value),
