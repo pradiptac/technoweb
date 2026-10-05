@@ -12,10 +12,17 @@ import type { PushConfig } from "@/lib/push";
  * (`firebaseinstallations.googleapis.com`), and a registration that trades
  * the subscription for a token (`fcmregistrations.googleapis.com`). Both
  * hosts are in `connect-src`; nothing is loaded from a CDN, and the service
- * worker at `/firebase-messaging-sw.js` handles the push itself.
+ * worker handles the push itself.
+ *
+ * The worker is the site's one worker, `/sw.js`, which imports the push
+ * handlers (2026-10-05): a scope holds one worker, and the installable app
+ * registers at the same scope. So a registration that already exists is
+ * reused as it is — re-registering with a different query string would
+ * switch the app's offline caching off — and only a browser with none
+ * registers the push-only form.
  */
 
-const WORKER = "/firebase-messaging-sw.js";
+const WORKER = "/sw.js?pwa=0";
 export const TOKEN_KEY = "tw_push_token";
 export const PUSH_EVENT = "tw:push";
 
@@ -50,7 +57,8 @@ export async function subscribe(config: PushConfig): Promise<string> {
   const permission = await Notification.requestPermission();
   if (permission !== "granted") throw new Error("Notifications are blocked for this site in your browser's settings.");
 
-  const registration = await navigator.serviceWorker.register(WORKER, { scope: "/" });
+  const existing = await navigator.serviceWorker.getRegistration("/");
+  const registration = existing?.active ? existing : await navigator.serviceWorker.register(WORKER, { scope: "/" });
   await navigator.serviceWorker.ready;
 
   const subscription = (await registration.pushManager.getSubscription())
@@ -86,7 +94,9 @@ export async function subscribe(config: PushConfig): Promise<string> {
 
 /** Drop the browser's push subscription; the API is told separately. */
 export async function unsubscribe(): Promise<void> {
-  const registration = await navigator.serviceWorker.getRegistration(WORKER);
+  // By the scope the page is in, not the script: the worker may be `/sw.js`
+  // with any query string, or the push worker a browser registered before.
+  const registration = await navigator.serviceWorker.getRegistration("/");
   const subscription = await registration?.pushManager.getSubscription();
   await subscription?.unsubscribe();
 }

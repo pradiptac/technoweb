@@ -1,19 +1,24 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
-import { StatusBadge, PriorityBadge, TONE_BAR, statusTone, statusLabel } from "@/components/ui/badge";
-import { ErrorState } from "@/components/ui/empty";
-import { getDashboard } from "@/lib/admin";
+import { StatusBadge, PriorityBadge, statusTone, statusLabel } from "@/components/ui/badge";
+import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { getDashboard, getOnboarding } from "@/lib/admin";
+import { OnboardingCard } from "@/components/admin/onboarding-card";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
-import { cn } from "@/lib/utils";
 import { IconTicket, IconClock, IconUsers, IconBox, IconPen, IconMail, IconTools, IconMeeting } from "@/components/icons";
 import { istDate } from "@/lib/visit-dates";
 import { StatTile, type Tone } from "@/components/admin/stat-tile";
 import { Card } from "@/components/ui/card";
 import { DashboardMetricsPanel } from "./metrics";
+import { Donut } from "@/components/charts/donut";
+import { Funnel } from "@/components/charts/funnel";
+import type { ChartTone } from "@/components/charts/tones";
 import type { AdminDashboard, Ticket, TicketStatus } from "@/types/api";
 import type { CSSProperties, SVGProps } from "react";
 import { requireScreen } from "@/lib/admin-screen";
+import { Suspense } from "react";
+import { DashboardSkeleton } from "@/components/admin/skeletons";
 
 export const metadata = buildMetadata({ title: "Dashboard", path: "/admin", seo: noIndex });
 
@@ -47,9 +52,32 @@ export default async function AdminDashboardPage({ searchParams }: {
   await requireScreen();
   // The volume chart's period. The API allowlists it and falls back to a month.
   const { volume } = await searchParams;
+
+  /*
+   * The heading at once and the figures as they arrive (2026-10-05). The
+   * dashboard is one API call that aggregates thirty days of tickets, and the
+   * generic table skeleton `loading.tsx` draws is the wrong shape for tiles
+   * and charts, so the page streams its own: tile groups, the chart, the
+   * bars. Not keyed on the period, so switching 1M to 3M keeps the chart on
+   * screen while the next one loads rather than flashing the skeleton.
+   */
+  return (
+    <>
+      <PageHeader title="Dashboard" />
+      <Suspense fallback={<DashboardSkeleton />}>
+        <DashboardBody volume={typeof volume === "string" ? volume : undefined} />
+      </Suspense>
+    </>
+  );
+}
+
+async function DashboardBody({ volume }: { volume?: string }) {
   let dashboard: AdminDashboard | null = null;
+  // The checklist alongside, never in the way: null for a non-administrator
+  // or an unreachable API, and the dashboard is drawn either way.
+  const onboarding = getOnboarding();
   try {
-    dashboard = await getDashboard(typeof volume === "string" ? volume : undefined);
+    dashboard = await getDashboard(volume);
   } catch {
     return (
       <ErrorState title="We could not load the dashboard">
@@ -82,6 +110,7 @@ export default async function AdminDashboardPage({ searchParams }: {
   type Tile = {
     label: string; value: string; href?: string; tone: Tone;
     icon: (p: SVGProps<SVGSVGElement>) => React.ReactElement;
+    spark?: number[];
   };
 
   /*
@@ -142,6 +171,8 @@ export default async function AdminDashboardPage({ searchParams }: {
         href: "/admin/leads?status=new",
         tone: dashboard.leads.new > 0 ? "warn" : "info",
         icon: IconMail,
+        // New leads a day over thirty days: is the pipeline filling or drying up.
+        spark: dashboard.leads.series,
       },
       {
         label: "Overdue follow-ups", value: n(dashboard.leads.overdue),
@@ -205,11 +236,19 @@ export default async function AdminDashboardPage({ searchParams }: {
   }
 
   const breakdown = Object.entries(dashboard.status_breakdown);
-  const breakdownTotal = breakdown.reduce((sum, [, n]) => sum + n, 0) || 1;
+  const breakdownTotal = breakdown.reduce((sum, [, n]) => sum + n, 0);
+  /* A badge tone as a chart tone: the ring and the queue's badges agree about
+     what "In progress" looks like, by construction. */
+  const statusChart: Record<string, ChartTone> = {
+    open: "info", progress: "warn", resolved: "ok", closed: "muted", urgent: "err", brand: "brand", accent: "accent",
+  };
+  const funnel = dashboard.leads?.funnel;
+
+  const checklist = await onboarding;
 
   return (
     <>
-      <PageHeader title="Dashboard" />
+      {checklist && checklist.done < checklist.total && <OnboardingCard data={checklist} />}
 
       {/*
         Each group keeps its tiles on one row from `sm`, and asks for as much
@@ -245,6 +284,44 @@ export default async function AdminDashboardPage({ searchParams }: {
 
       <DashboardMetricsPanel metrics={dashboard.metrics} />
 
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+        <Card as="section" interactive={false} padding="sm">
+          <h2 className="mb-3 text-13 font-semibold">Every ticket, by status</h2>
+          {breakdownTotal === 0 ? (
+            <p className="text-13 text-muted">No tickets yet, so there is nothing to break down.</p>
+          ) : (
+            /* The API sends the status value; the wording is this side's
+               business, and `statusLabel` is the one place it is decided. */
+            <Donut
+              caption="tickets"
+              segments={breakdown.map(([status, total]) => ({
+                key: status,
+                label: statusLabel[status as TicketStatus] ?? status,
+                value: total,
+                tone: statusChart[statusTone[status as TicketStatus] ?? "closed"],
+                href: `/admin/tickets?status=${encodeURIComponent(status)}`,
+              }))}
+            />
+          )}
+        </Card>
+
+        {funnel && (
+          <Card as="section" interactive={false} padding="sm">
+            <h2 className="text-13 font-semibold">Sales pipeline</h2>
+            <p className="mb-3 text-12 text-muted">
+              What happened to the leads that arrived in the last {funnel.days} days. Spam is left out.
+            </p>
+            <Funnel
+              stages={[
+                { label: "Received", value: funnel.received, href: "/admin/leads" },
+                { label: "Replied to", value: funnel.contacted, href: "/admin/leads?status=contacted" },
+                { label: "Won", value: funnel.won, href: "/admin/leads?status=won" },
+              ]}
+            />
+          </Card>
+        )}
+      </div>
+
       {/* Recent tickets used to sit beside this. It was the queue with a
           different heading — /admin/tickets already lists newest-first and is
           one click away — so the dashboard was spending half its width
@@ -252,7 +329,7 @@ export default async function AdminDashboardPage({ searchParams }: {
       <section className="mt-9">
         <h2 className="mb-3.5 text-15 font-semibold">High priority</h2>
         {dashboard.high_priority.length === 0 ? (
-          <p className="text-13-5 text-muted">Nothing critical or high priority open right now.</p>
+          <EmptyState illustration="done" title="Nothing urgent">Nothing critical or high priority is open right now.</EmptyState>
         ) : (
           <ul className="grid gap-2 lg:grid-cols-2">
             {dashboard.high_priority.map((t) => <TicketRow key={t.id} ticket={t} />)}
@@ -260,38 +337,6 @@ export default async function AdminDashboardPage({ searchParams }: {
         )}
       </section>
 
-      <section className="mt-9">
-        <h2 className="mb-3.5 text-15 font-semibold">Status breakdown</h2>
-        {/* An empty ul renders as a blank card that reads as broken, and a
-            division by a zero total would render NaN-width bars anyway. */}
-        {breakdownTotal === 0 ? (
-          <p className="rounded-lg border border-line-strong bg-card p-5 text-14 text-muted">
-            No tickets yet, so there is nothing to break down.
-          </p>
-        ) : (
-        <ul className="grid gap-2.5 rounded-lg border border-line-strong bg-card p-5">
-          {breakdown.map(([label, count]) => (
-            <li key={label} className="flex items-center gap-3">
-              {/* The API sends the status value; the wording is this side's
-                  business, and `statusLabel` is the one place it is decided. */}
-              <span className="w-[132px] shrink-0 text-13 text-muted">
-                {statusLabel[label as TicketStatus] ?? label}
-              </span>
-              <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
-                <span
-                  // Same tone the status badge uses for that word. One map,
-                  // exported from badge.tsx, so the chart and the queue cannot
-                  // disagree about what "In progress" looks like.
-                  className={cn("block h-full rounded-full", TONE_BAR[statusTone[label as TicketStatus] ?? "closed"])}
-                  style={{ width: `${Math.round((count / breakdownTotal) * 100)}%` }}
-                />
-              </span>
-              <span className="w-6 shrink-0 text-right text-13 font-semibold">{count}</span>
-            </li>
-          ))}
-        </ul>
-        )}
-      </section>
     </>
   );
 }

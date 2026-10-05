@@ -16,6 +16,8 @@ import {
 import type { StoreDashboard } from "@/types/api";
 import type { SVGProps } from "react";
 import { requireScreen } from "@/lib/admin-screen";
+import { AreaChart } from "@/components/charts/area-chart";
+import { StatTile } from "@/components/admin/stat-tile";
 
 export const metadata = buildMetadata({ title: "Store", path: "/admin/store", seo: noIndex });
 
@@ -24,45 +26,12 @@ const WINDOWS = [7, 30, 90] as const;
 /** "28 Jul" — short enough to sit under a narrow column without wrapping. */
 
 /**
- * A round number at or above the peak, in paise.
- *
- * A bar sized against the peak is a shape rather than a quantity — the lesson
- * the ticket chart had to be taught, where the tallest bar was full height
- * whether it stood for two tickets or two hundred. Money makes it worse than
- * tickets did: an axis reading "₹47,318" is a number nobody can use as a ruler,
- * so the top is snapped to 1, 2 or 5 × a power of ten and the midpoint is then
- * always a round figure too.
- */
-function niceCeiling(peak: number): number {
-  if (peak <= 0) return 100_000; // ₹1,000, so an empty chart still has a scale.
-
-  const magnitude = 10 ** Math.floor(Math.log10(peak));
-  const steps = [1, 2, 5, 10];
-
-  return magnitude * (steps.find((s) => peak <= magnitude * s) ?? 10);
-}
-
-/** ₹1.2L / ₹47.3k / ₹800 — an axis label has no room for digit grouping. */
-function compactPaise(paise: number): string {
-  const rupees = paise / 100;
-
-  if (rupees === 0) return "0";
-  if (rupees >= 10_000_000) return `₹${(rupees / 10_000_000).toFixed(1).replace(/\.0$/, "")}Cr`;
-  if (rupees >= 100_000) return `₹${(rupees / 100_000).toFixed(1).replace(/\.0$/, "")}L`;
-  if (rupees >= 1_000) return `₹${(rupees / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
-
-  return `₹${Math.round(rupees)}`;
-}
-
-/**
- * A headline figure.
- *
- * `font-display` and a tabular figure set, because these sit in a row and a
- * proportional "1" makes four numbers of the same length look like four
- * different lengths.
+ * A headline figure — the console's shared `StatTile` since 2026-10-05,
+ * rather than a fifth hand-rolled card. A figure with no tone is neutral:
+ * revenue is not good or bad news until it is compared with something.
  */
 function Figure({
-  label, value, footnote, icon: Icon, tone,
+  label, value, footnote, icon, tone,
 }: {
   label: string;
   value: string;
@@ -70,29 +39,7 @@ function Figure({
   icon: (p: SVGProps<SVGSVGElement>) => React.ReactElement;
   tone?: "brand" | "ok" | "warn";
 }) {
-  return (
-    <div className="relative rounded-lg border border-line-strong bg-card p-4">
-      {/*
-        Pinned to the corner rather than sitting as a flex sibling: the
-        footnotes here run from "Median" to "Across 2 paid orders", and in a row
-        the mark would sit at a different height in every tile. `text-faint`
-        rather than the figure's own tone — the number is the thing being read.
-      */}
-      <Icon aria-hidden className="absolute top-4 right-4 size-8 text-faint opacity-40" />
-      <p className="pr-10 text-12 text-muted">{label}</p>
-      <p
-        className={cn(
-          "mt-1 font-display text-24 leading-none font-semibold tracking-[-.02em] tabular-nums",
-          tone === "brand" && "text-brand-ink",
-          tone === "ok" && "text-ok",
-          tone === "warn" && "text-warn",
-        )}
-      >
-        {value}
-      </p>
-      {footnote && <p className="mt-1.5 text-11-5 text-faint">{footnote}</p>}
-    </div>
-  );
+  return <StatTile label={label} value={value} note={footnote} icon={icon} tone={tone ?? "neutral"} />;
 }
 
 /**
@@ -182,121 +129,34 @@ function Panel({
   );
 }
 
+/**
+ * Daily revenue on the chart kit (2026-10-05): a read-out under the pointer
+ * and the keyboard, the same figures as a table or a CSV. It was bars of
+ * divs with a `title` per day, which said nothing until hovered and nothing
+ * at all to a keyboard.
+ */
 function RevenueChart({ series, days }: { series: StoreDashboard["series"]; days: number }) {
-  const peak = Math.max(...series.map((d) => d.revenue_paise), 0);
-  const axisTop = niceCeiling(peak);
-  const sold = series.some((d) => d.orders > 0);
-
-  /*
-   * Roughly five dated columns, and the last one always. Labelling all thirty
-   * is unreadable at any width the console has; labelling only the two ends is
-   * what the ticket chart did before it was fixed, and it leaves the bars
-   * floating over a range nobody can locate a Tuesday in.
-   */
-  const step = Math.max(1, Math.round(days / 5));
-
-  /*
-   * The last column is always dated, so a regular step can land a label right
-   * beside it — "26 Aug" and "31 Aug" overlapped at 360px, where the plot is
-   * about 250px wide and a date is 40 of them. Anything inside one step of the
-   * end is dropped in favour of the end, which is the label that anchors the
-   * whole axis.
-   */
-  const labelled = (i: number) =>
-    i === series.length - 1 || (i % step === 0 && series.length - 1 - i >= step);
-
-  if (!sold) {
+  if (!series.some((d) => d.orders > 0)) {
     return (
       <p className="grid min-h-40 flex-1 place-items-center text-center text-13 text-muted">
         Nothing has sold in this window.
       </p>
     );
   }
-
+  // Roughly five dated ticks, none within a step of the end, where "Today" is pinned.
+  const step = Math.max(1, Math.round(days / 5));
   return (
-    <div className="flex min-h-48 flex-1 flex-col">
-      <div className="flex flex-1 gap-2">
-        <ul className="flex w-9 shrink-0 flex-col justify-between text-right text-11 tabular-nums text-faint">
-          {[axisTop, axisTop / 2, 0].map((tick) => (
-            <li key={tick} className="-translate-y-1/2 first:translate-y-0 last:translate-y-0">
-              {compactPaise(tick)}
-            </li>
-          ))}
-        </ul>
-
-        <div className="relative flex-1">
-          {/* The line at zero is the baseline every bar is measured from, so it
-              is solid where the two guesses above it are faint. */}
-          <div aria-hidden className="absolute inset-0 flex flex-col justify-between">
-            <span className="block border-t border-line" />
-            <span className="block border-t border-line" />
-            <span className="block border-t border-line-strong" />
-          </div>
-
-          {/*
-            `absolute inset-0` and `h-full` on every row, which is the only
-            arrangement in which the bars' percentage heights resolve against
-            anything. In flow the list has an automatic height, a percentage
-            against an auto height is not a length, and every bar collapses to
-            nothing — a chart with a correct axis, correct gridlines, correct
-            dates and no bars at all, which is exactly how this rendered first.
-          */}
-          <ol className="absolute inset-0 flex items-end gap-px">
-            {series.map((d) => (
-              <li key={d.day} className="flex h-full flex-1 items-end">
-                <span className="sr-only">
-                  {formatTableDate(d.day)}: {formatPaise(d.revenue_paise)} from {d.orders} order
-                  {d.orders === 1 ? "" : "s"}
-                </span>
-                <span
-                  aria-hidden
-                  title={`${formatTableDate(d.day)} — ${formatPaise(d.revenue_paise)}`}
-                  className="block w-full rounded-t-[2px] bg-brand-500 transition-colors hover:bg-brand-600"
-                  /* A day with revenue too small to see still gets a pixel and a
-                     half: a bar of zero height and a day that sold nothing must
-                     not look the same. */
-                  style={{ height: d.revenue_paise > 0 ? `max(2px, ${(d.revenue_paise / axisTop) * 100}%)` : "0" }}
-                />
-              </li>
-            ))}
-          </ol>
-        </div>
-      </div>
-
-      {/*
-        Anchored to the row, not laid out as flex columns.
-
-        Thirty `flex-1` cells each holding a `whitespace-nowrap` date have a
-        min-content width of the whole date, so the row could not be narrower
-        than about 30 × 40px and pushed the page 65px sideways at 360 — a page
-        that scrolls with no element visibly over the edge, which is the exact
-        signature the "Today" label on the ticket dashboard produced. Positioned
-        against the plot instead, a label costs the layout nothing; the two ends
-        are anchored to the edges rather than centred so neither hangs off.
-      */}
-      <div aria-hidden className="relative mt-2 ml-11 h-4 text-11 text-faint">
-        {series.map((d, i) =>
-          labelled(i) ? (
-            <span
-              key={d.day}
-              className={cn(
-                "absolute top-0 whitespace-nowrap",
-                i === 0 && "left-0",
-                i === series.length - 1 && "right-0",
-                i !== 0 && i !== series.length - 1 && "-translate-x-1/2",
-              )}
-              style={
-                i === 0 || i === series.length - 1
-                  ? undefined
-                  : { left: `${((i + 0.5) / series.length) * 100}%` }
-              }
-            >
-              {formatTableDate(d.day)}
-            </span>
-          ) : null,
-        )}
-      </div>
-    </div>
+    <AreaChart
+      className="flex-1"
+      height={180}
+      format="paise"
+      labels={series.map((d) => `${formatTableDate(d.day)} · ${d.orders} order${d.orders === 1 ? "" : "s"}`)}
+      ticks={series.map((d, i) => (i % step === 0 && series.length - 1 - i >= step ? formatTableDate(d.day) : null))}
+      lastTick="Today"
+      csvName={`store-revenue-${days}-days`}
+      summary={`Paid revenue per day over the last ${days} days.`}
+      series={[{ key: "revenue", label: "Revenue", tone: "brand", values: series.map((d) => d.revenue_paise) }]}
+    />
   );
 }
 

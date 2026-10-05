@@ -13,6 +13,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { relativeTime } from "@/lib/dates";
 import { requireScreen } from "@/lib/admin-screen";
+import { BarList } from "@/components/charts/bar-list";
 
 export const metadata = buildMetadata({ title: "Leads", path: "/admin/leads", seo: noIndex });
 
@@ -255,20 +256,17 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
       */}
       {result.meta.top_pages.length > 0 && (
         <section className="mt-6 rounded-lg border border-line-strong bg-card p-4">
-          <h2 className="mb-2 text-13 font-semibold">Where leads come from</h2>
-          <ul className="flex flex-col gap-1 text-13">
-            {result.meta.top_pages.map((page) => (
-              <li key={page.path} className="flex min-w-0 items-baseline justify-between gap-3">
-                <Link
-                  href={`/admin/leads?source_path=${encodeURIComponent(page.path)}`}
-                  className="min-w-0 truncate font-mono text-12-5 text-brand-ink hover:underline"
-                >
-                  {page.path}
-                </Link>
-                <span className="shrink-0 tabular-nums text-muted">{page.total}</span>
-              </li>
-            ))}
-          </ul>
+          <h2 className="mb-3 text-13 font-semibold">Where leads come from</h2>
+          {/* Ranked bars (2026-10-05): each row opens the pipeline filtered to that page. */}
+          <BarList
+            labelWidth="min(16rem, 40%)"
+            rows={result.meta.top_pages.map((page) => ({
+              label: page.path,
+              value: page.total,
+              tone: "brand",
+              href: `/admin/leads?source_path=${encodeURIComponent(page.path)}`,
+            }))}
+          />
         </section>
       )}
     </>

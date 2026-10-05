@@ -10,8 +10,8 @@ import { isHex } from "@/lib/presets";
 import { cn } from "@/lib/utils";
 import { MANIFESTS } from "@/themes/manifests";
 import {
-  HEADING_ALIGNS, HERO_STYLES, HOME_SECTIONS, MENU_STYLES, SECTION_KINDS,
-  type Choice, type HeadingAlign, type HeroStyle, type MenuStyle, type SectionBackground, type SectionKind,
+  HEADING_ALIGNS, HERO_STYLES, HOME_SECTIONS, MENU_STYLES, SECTION_KINDS, SECTION_TEXTURES,
+  type Choice, type HeadingAlign, type HeroStyle, type MenuStyle, type SectionBackground, type SectionKind, type SectionTexture,
 } from "@/themes/options";
 
 /**
@@ -306,12 +306,20 @@ function SectionRow({
               // change of kind carries them across rather than dropping them.
               onChange(next === "default"
                 ? (enabled && !value?.reveal ? null : { kind: "default", enabled: value?.enabled, reveal: value?.reveal })
-                : { kind: next, colour: value?.colour ?? (next === "image" ? "#0b0b12" : "#1e3a8a"), colour2: value?.colour2 ?? "#0b1020", overlay: value?.overlay ?? 60, image_path: value?.image_path, image_url: value?.image_url, enabled: value?.enabled, reveal: value?.reveal });
+                : { kind: next, colour: value?.colour ?? (next === "image" ? "#0b0b12" : "#1e3a8a"), colour2: value?.colour2 ?? "#0b1020", overlay: value?.overlay ?? 60, image_path: value?.image_path, image_url: value?.image_url, enabled: value?.enabled, reveal: value?.reveal, texture: value?.texture });
             }}
           >
             {SECTION_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
           </Select>
         </Field>
+        {/* A decorative layer over the ground — any ground but the theme's own. */}
+        {kind !== "default" && (
+          <Field label="Texture" htmlFor={`${id}-texture`} variant="float-static" className="mb-0">
+            <Select id={`${id}-texture`} value={value?.texture ?? "none"} onChange={(e) => patch({ texture: e.target.value === "none" ? undefined : e.target.value as SectionTexture })}>
+              {SECTION_TEXTURES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+            </Select>
+          </Field>
+        )}
         {/* How the section arrives on scroll. A homepage section is still unless
             one is chosen here (the 2026-09-15 UX audit), so the list has no
             "Default" and opens on None; the site-wide Motion style shapes the

@@ -45,6 +45,8 @@ const PUBLIC_ROUTES = [
   "/team", "/clients", "/certifications",
   "/knowledge-base", "/about", "/contact", "/support", "/privacy", "/terms", "/returns", "/shipping",
   "/book-a-visit",
+  // The installed app's offline page (docs/pwa.md), which the service worker serves in place of any page not yet saved.
+  "/offline",
   // Online meetings (docs/meetings.md) -- the day picker at 320px.
   "/book-a-meeting", "/book-a-meeting?type=product-demo",
   "/search", "/search?q=switch",

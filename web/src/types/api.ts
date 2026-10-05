@@ -2605,7 +2605,17 @@ export type AdminDashboard = {
    * rather than showing figures whose tile answers 403 when pressed. Null and
    * not zeroes: zero is a measurement, this is the absence of one.
    */
-  leads: { new: number; open: number; overdue: number; unassigned: number } | null;
+  leads: {
+    new: number; open: number; overdue: number; unassigned: number;
+    /** New leads a day over the last thirty days, oldest first (2026-10-05). */
+    series?: number[];
+    /**
+     * What happened to the last `days` days' leads, spam left out: how many
+     * arrived, how many somebody replied to, how many were won. The stages
+     * can only narrow. Optional for an older API.
+     */
+    funnel?: { days: number; received: number; contacted: number; won: number };
+  } | null;
   /**
    * Engineer visits (2026-09-26): waiting for a time, and in today's diary.
    * Null for a role that cannot open the queue; optional for an older API.
@@ -2625,6 +2635,14 @@ export type AdminDashboard = {
 
 export type VolumePeriod = "month" | "quarter" | "half" | "year";
 
+/**
+ * The dashboard's "Getting started" checklist (`GET /admin/onboarding`,
+ * `role:admin`). Each step is answered from the install's real state; `href`
+ * is a console path.
+ */
+export type OnboardingStep = { key: string; label: string; hint: string; href: string; done: boolean };
+export type Onboarding = { steps: OnboardingStep[]; done: number; total: number };
+
 export type DashboardMetrics = {
   window_days: number;
   /** One entry per day in the window, oldest first, gaps filled with zeroes. */
@@ -2638,6 +2656,8 @@ export type DashboardMetrics = {
     period: VolumePeriod;
     bucket: "day" | "week" | "month";
     points: { date: string; end: string; created: number; resolved: number }[];
+    /** The same number of buckets immediately before, aligned by position. Optional for an older API. */
+    previous?: { date: string; end: string; created: number; resolved: number }[];
   };
   /** `change` is null when the previous window was empty — see TicketMetrics. */
   volume_trend: { current: number; previous: number; change: number | null };
@@ -2648,6 +2668,12 @@ export type DashboardMetrics = {
   sla_first_response: { pct: number | null; of: number };
   open_by_priority: { label: string; total: number }[];
   open_by_category: { label: string; total: number }[];
+  /**
+   * When tickets arrive: `cells[d][h]`, weekday `d` (0 = Monday) by hour
+   * `h` in IST, over the last `days` days, every cell present. Optional for
+   * an older API.
+   */
+  arrivals?: { days: number; cells: number[][]; peak: number; total: number };
 };
 
 /** A slide in a carousel. `kind` decides which element renders. */

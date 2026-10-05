@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge, PriorityBadge, StatusBadge } from "@/components/ui/badge";
+import { Stepper } from "@/components/ui/stepper";
+import { ticketSteps } from "@/lib/progress";
 import { Alert } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import { getCurrentCustomer } from "@/lib/auth";
@@ -85,6 +87,13 @@ export default async function TicketDetailPage({
         </div>
         <h2 className="display-3 mt-3">{ticket.subject}</h2>
       </div>
+
+      {/* Where the ticket is, as a journey; a merged ticket's journey is the other one's. */}
+      {!merged && (
+        <div className="mb-6 rounded-lg border border-line-strong bg-card p-4 sm:p-5">
+          <Stepper label="Ticket progress" steps={ticketSteps(ticket.status)} />
+        </div>
+      )}
 
       <dl className="mb-8 grid gap-px overflow-hidden rounded-lg border border-line-strong bg-line sm:grid-cols-2 lg:grid-cols-4">
         {[

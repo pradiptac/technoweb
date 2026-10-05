@@ -9,6 +9,8 @@ import { FullRows } from "@/components/ui/full-rows";
 import { SchemeSync } from "@/components/ui/scheme-sync";
 import { SITE } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
+import { brandName } from "@/lib/brand";
+import { pwaFor } from "@/lib/pwa";
 import "./globals.css";
 
 // Built per call rather than at module load: the origin and the company are
@@ -37,10 +39,23 @@ const baseMetadata = (): Metadata => ({
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
   const metadata = baseMetadata();
+  const pwa = pwaFor(settings, brandName());
 
-  return settings.favicon_url
-    ? { ...metadata, icons: { icon: settings.favicon_url, shortcut: settings.favicon_url, apple: settings.favicon_url } }
-    : metadata;
+  /*
+   * The installable website (2026-10-05): the manifest link is Next's, from
+   * `app/manifest.ts`; Apple reads neither the manifest's icons nor its
+   * display mode, so the touch icon is the generated square PNG (a favicon
+   * is usually an .ico or an SVG, which iOS draws as a screenshot instead)
+   * and `appleWebApp` says the site may open full screen.
+   */
+  const apple = { apple: { url: "/pwa-icon/180", sizes: "180x180", type: "image/png" } };
+  return {
+    ...metadata,
+    icons: settings.favicon_url
+      ? { icon: settings.favicon_url, shortcut: settings.favicon_url, ...apple }
+      : apple,
+    appleWebApp: pwa.enabled ? { capable: true, title: pwa.shortName, statusBarStyle: "default" } : undefined,
+  };
 }
 
 export async function generateViewport(): Promise<Viewport> {
@@ -49,8 +64,13 @@ export async function generateViewport(): Promise<Viewport> {
   // the theme's dark band otherwise, never a hex written here.
   const settings = await getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>);
 
+  const theme = themeFor(settings);
   return {
-    themeColor: topBarFor(themeFor(settings), "light").bar,
+    // Per scheme, so an installed app's title bar matches the page it frames.
+    themeColor: [
+      { media: "(prefers-color-scheme: light)", color: topBarFor(theme, "light").bar },
+      { media: "(prefers-color-scheme: dark)", color: topBarFor(theme, "dark").bar },
+    ],
     width: "device-width",
     initialScale: 1,
   };

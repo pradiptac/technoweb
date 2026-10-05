@@ -156,6 +156,9 @@ Contents:
   - Importing a WordPress / WooCommerce site — `docs/wordpress-import.md`
   - Backups — `docs/backups.md`
   - Distribution: the release zip, the setup wizard, the updater — `docs/distribution.md`
+  - The chart kit — `docs/charts.md`
+  - The installable website (PWA) — `docs/pwa.md`
+  - Look and feel: textures, illustrations, progress, onboarding — `docs/look-and-feel.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -2845,6 +2848,37 @@ One signed zip per version, installed by a browser wizard and updated from Syste
 - Steps are driven by the run's own `key` (`POST /api/v1/system/updates/continue`, `X-Update-Key`, `Updater::stepWithKey`), because a rollback's restore drops `personal_access_tokens` while those steps drive it; `EnsureNotRestoring` keeps `admin/system/*` and that path open under `RestoreMode` too. Every folder move is skipped once done (a retry finishes a half swap), a rollback swaps `web` back in `optimize()` like an update, and a path is refused for a *segment* that is `..` — Next's catch-alls are `[...rest]`. All three were found by the end-to-end rollback from real zips.
 - A one-off "run this after deploying" is an **upgrade step** (`app/Support/Upgrade/Steps/`, listed in `UpgradeSteps::STEPS`, recorded in `system_upgrade_steps`), never a README line. `SettingsSeeder` and `RoleSeeder` run on every update.
 - `optimize` never runs in a test (it writes the real `bootstrap/cache`); `Updater::useHome()` is the test seam. A step raises a web request's `max_execution_time` and never sets one where there is none: an unconditional `set_time_limit(90)` put a wall-clock limit on the whole test process on Windows and aborted the suite. `SystemUpdateTest`, `SystemStatusTest`, `BrandingTest`.
+
+### The chart kit — `docs/charts.md`
+
+`components/charts/` (0.100.0): AreaChart, BarList, Donut, Funnel, Heatmap, Sparkline; the console's dashboards draw with it.
+
+- Marks are SVG in a stretched 0..100 box, every word is HTML (axis, ticks, read-out, the dots on it); colours are `CHART_TONES` (`var(--color-*)` by meaning), a delta's arrow is coloured and its words stay `ink-2`.
+- `AreaChart` is the one client island: the read-out is clamped from a width read in the event handler, never on render; one tab stop, arrows/Home/End/Escape, a polite live region; legend toggles never hide the last series; Compare draws `previous` dashed; Table and CSV carry the same numbers; `format="paise"` labels money with `compactPaise`.
+- Arrival is `[data-chart-draw|grow|grow-centre|sweep|cell]` in `globals.css`, `from`-only keyframes inside the reduced-motion guard, once on paint.
+- `niceMax` for every axis, `percentChange` (null under five) for every delta, a funnel only from a cohort (`leads.funnel`), never a status snapshot.
+- `StatTile` takes `spark` and `delta` and is the one figure tile — the store's `Figure` and the chat's `Total` now render through it.
+- Skeletons are shaped (`components/admin/skeletons.tsx`): a `loading.tsx` in every console `[id]`/`new`/record route, `<Suspense>` with `DashboardSkeleton` on `/admin`. `scripts/probes/charts.mjs`.
+
+### The installable website (PWA) — `docs/pwa.md`
+
+Manifest, generated icons, one service worker, an offline page and an install card (0.100.0), from the public `pwa` settings group.
+
+- One worker at `/`: `/sw.js` imports `firebase-messaging-sw.js`, and `lib/push-client.ts` reuses an existing registration — a second script at `/` would replace the first and drop the push subscription.
+- The worker's configuration is its query string (`pwa=1|0`, `v=<APP_VERSION>`); off deletes the `tw-*` caches on the next visit and never unregisters (that would end push).
+- Never cached: signed-in, paying and secret-bearing routes (`PWA_NEVER_CACHE` in `lib/pwa.ts` and the list in `sw.js` — change both), non-GET, other origins (bar `/storage/` images), RSC payloads.
+- Not registered under `next dev` unless `PWA_IN_DEV=1`; the offline page is precached with every `/_next/static` file its HTML names.
+- The install card: from the second page, never over `[data-cookie-banner]` or the compare tray, a month quiet once dismissed, iPhone gets Share instructions; below `sm` a 4.5rem right gutter keeps it clear of the launcher. `scripts/probes/pwa.mjs` checks 360 and 1280.
+- `/offline`, `/pwa-icon`, `sw.js` and `manifest.webmanifest` are in `ReservedSlugs`.
+
+### Look and feel — `docs/look-and-feel.md`
+
+Section textures, spot illustrations, the ticket stepper and the "Getting started" checklist (0.101.0).
+
+- A section texture (`grain|mesh|glow|grid|dots`) is a property of the shared background, checked by `ThemeOptions::background()` for the homepage and the builder alike, and drawn by `SectionBg` as an empty sibling `<span data-texture>` — never an ancestor of text, so the contrast audit still grades the ink against the ground. `scripts/probes/textures.mjs`.
+- Illustrations are `components/ui/illustrations.tsx`, token colours mixed into `--color-card`, no text, `aria-hidden`; `EmptyState` draws `empty` unless given `illustration` or an `icon`, and `compact` makes its title a `<p>` under the card's own heading. In SVG, spread a shared props object **before** the prop it should not override.
+- The ticket stepper is `Stepper` + `ticketSteps()`; an order's journey is `OrderTimeline`, and there is no second order mapping.
+- `GET /admin/onboarding` answers each step from real state (the seeders' exact sample values), never a tick; the card folds per browser through `useSyncExternalStore`.
 
 ## Conventions
 

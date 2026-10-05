@@ -111,7 +111,9 @@ function buildVolumeSeries(period) {
       resolved: ((i * 5) % 4) * scale,
     };
   });
-  return { period: key, bucket, points };
+  // The period before, the same shape: the API's `previous` (2026-10-05).
+  const previous = points.map((pt, i) => ({ ...pt, created: Math.max(0, pt.created - (i % 2)), resolved: Math.max(0, pt.resolved - (i % 3 === 0 ? 1 : 0)) }));
+  return { period: key, bucket, points, previous };
 }
 
 function buildAdminDashboard(volumePeriod = 'month') {
@@ -137,7 +139,11 @@ function buildAdminDashboard(volumePeriod = 'month') {
      * administrator, who passes every role check — the real API sends null to
      * anyone without `sales_manager`, so the console must handle both.
      */
-    leads: { new: 2, open: 3, overdue: 1, unassigned: 1 },
+    leads: {
+      new: 2, open: 3, overdue: 1, unassigned: 1,
+      series: Array.from({ length: 30 }, (_, i) => (i * 7) % 4),
+      funnel: { days: 90, received: 48, contacted: 31, won: 9 },
+    },
     // Engineer visits (docs/visits.md): null for a role that cannot open the queue.
     visits: { awaiting: visitRequests.filter((v) => v.status === 'requested').length, today: 0 },
     // Online meetings (docs/meetings-contract.md): null for a role that cannot open the list.
@@ -160,6 +166,13 @@ function buildAdminDashboard(volumePeriod = 'month') {
       sla_first_response: { pct: 88, of: 17 },
       open_by_priority: [{ label: 'high', total: 2 }, { label: 'medium', total: 1 }],
       open_by_category: [{ label: 'Networking', total: 2 }, { label: 'Hardware', total: 1 }],
+      // A working week's shape: busy mornings Monday to Friday, quiet weekends.
+      arrivals: (() => {
+        const cells = Array.from({ length: 7 }, (_, d) => Array.from({ length: 24 }, (_, h) =>
+          d < 5 && h >= 9 && h <= 18 ? ((d + h) % 5) + (h < 13 ? 2 : 0) : (h % 7 === 0 ? 1 : 0)));
+        const flat = cells.flat();
+        return { days: 90, cells, peak: Math.max(...flat), total: flat.reduce((a, b) => a + b, 0) };
+      })(),
     },
   };
 }
@@ -3434,6 +3447,22 @@ createServer(async (req, res) => {
     }
     if (p === '/admin/auth/logout' && req.method === 'POST') return json(res, 200, { message: 'Signed out.' });
     if (p === '/admin/dashboard') return json(res, 200, { data: buildAdminDashboard(url.searchParams.get('volume') || 'month') });
+    // The "Getting started" checklist (App\Support\Onboarding): half done, like a fresh install part-way through.
+    if (p === '/admin/onboarding') {
+      const steps = [
+        ['logo', 'Add your logo', '/admin/settings?tab=general#setting__logo_path', true],
+        ['contact', 'Replace the sample phone number and address', '/admin/settings?tab=contact', false],
+        ['figures', 'Put your own figures on the homepage', '/admin/site/settings?tab=homepage', false],
+        ['social', 'Check the social links', '/admin/settings?tab=social', true],
+        ['look', 'Choose a look', '/admin/themes', true],
+        ['mail', 'Send a test email', '/admin/settings?tab=mail', false],
+        ['scheduler', 'Add the scheduler’s cron line', '/admin/system', true],
+        ['backups', 'Turn on backups', '/admin/backups/settings', false],
+        ['team', 'Invite your team', '/admin/users/new', true],
+        ['legal', 'Have the privacy and terms pages reviewed', '/admin/pages', false],
+      ].map(([key, label, href, done]) => ({ key, label, hint: '', href, done }));
+      return json(res, 200, { data: { steps, done: steps.filter((s) => s.done).length, total: steps.length } });
+    }
     if (p === '/admin/users') return json(res, 200, { data: staffList });
 
     if (p === '/admin/tickets' && req.method === 'GET') {

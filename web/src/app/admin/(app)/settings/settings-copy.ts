@@ -625,6 +625,20 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   cookie_consent_accept_label: { label: "Accept button" },
   cookie_consent_reject_label: { label: "Decline button" },
   cookie_consent_policy_url: { label: "Policy link", hint: "Where “Read more” goes. Leave blank to hide the link.", placeholder: "/privacy" },
+  pwa_enabled: {
+    label: "Installable website",
+    hint: "On, visitors can add the site to their phone's home screen or their desktop, and pages they have opened still load without a connection. Off, the site behaves as an ordinary website again on each visitor's next visit.",
+  },
+  pwa_name: { label: "App name", hint: "Shown on the install prompt and the splash screen. Blank uses the company name.", placeholder: "Technoware" },
+  pwa_short_name: { label: "Name under the icon", hint: "At most 12 characters — a phone cuts a longer name off. Blank uses the app name, shortened.", placeholder: "Technoware" },
+  pwa_icon_path: {
+    label: "App icon",
+    hint: "A square PNG, 512 × 512 or larger, with the mark well inside the edges — phones crop the corners into a circle or a rounded square. Blank draws one from the company's initials in the palette's colour.",
+  },
+  pwa_install_prompt: {
+    label: "Offer to install",
+    hint: "A small card inviting a visitor to install the site, shown from their second page, never over the cookie banner, and never again for a month once dismissed. Browsers' own install button works either way.",
+  },
   smtp_host: { label: "SMTP host", placeholder: "smtp.example.com" },
   smtp_port: { label: "Port", placeholder: "587" },
   smtp_username: { label: "Username" },
@@ -826,6 +840,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Analytics",
     blurb: "Each loads only when its ID is filled in, and only on the public site — never inside this console or the customer portal. Consent gating is on by default; see the section below.",
   },
+  pwa: {
+    title: "Installable app",
+    blurb: "The public site as an app a visitor can add to their home screen: its name, its icon, and whether it offers itself. Installed, it opens full screen without the browser's address bar, and pages already visited open without a connection.",
+  },
   consent: {
     title: "Cookie consent",
     blurb: "The banner shown before any analytics loads. It only appears when at least one analytics ID is set, because with none configured no cookie is ever placed and asking would be meaningless. The wording below is a starting point, not legal advice.",
@@ -964,6 +982,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
                "newsletter_address", "newsletter_footer_text",
                "newsletter_batch_size", "newsletter_batch_delay", "hunter_monthly_cap",
                "newsletter_webhook_secret"],
+  pwa: ["pwa_enabled", "pwa_install_prompt", "pwa_name", "pwa_short_name", "pwa_icon_path"],
   consent: ["cookie_consent_enabled", "cookie_consent_title", "cookie_consent_message",
             "cookie_consent_accept_label", "cookie_consent_reject_label", "cookie_consent_policy_url"],
   /*
@@ -1103,10 +1122,10 @@ export const SCREENS: SettingsScreen[] = [
     path: "/admin/site/settings",
     title: "Site settings",
     area: "Site",
-    lede: "How the public site looks and what it says on the front page: the homepage copy and figures, the palette, motion, the page banners, embedded code, and the analytics tags with the consent banner that gates them.",
+    lede: "How the public site looks and what it says on the front page: the homepage copy and figures, the palette, motion, the page banners, embedded code, the analytics tags with the consent banner that gates them, and the installable app.",
     saveLabel: "Save site settings",
     sections: [
-      { groups: ["homepage", "appearance", "motion", "banners", "embeds", "analytics", "consent"] },
+      { groups: ["homepage", "appearance", "motion", "banners", "embeds", "analytics", "consent", "pwa"] },
     ],
   },
   {

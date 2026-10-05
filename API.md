@@ -1993,7 +1993,7 @@ existence is what an integration is told. The subject is never sealed.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/dashboard` | Counts, high priority, status breakdown, and a `metrics` block: 30-day volume, trend, median first response and resolution, SLA rate, open by priority and category. `?volume=month\|quarter\|half\|year` picks what `metrics.volume_series` covers — `{period, bucket, points[{date, end, created, resolved}]}` in 30 days, 13 or 26 Monday weeks, or 12 months, every bucket present, an unknown period a month; `metrics.volume` stays the 30-day daily series. `?since=<iso>` adds `new_since` — tickets, enquiries and (for a sales role) leads created after that moment; null when not asked |
+| `GET` | `/admin/dashboard` | Counts, high priority, status breakdown, and a `metrics` block: 30-day volume, trend, median first response and resolution, SLA rate, open by priority and category, and `arrivals` — `{days: 90, cells[7][24], peak, total}`, tickets opened by weekday (0 = Monday) and hour in IST, every cell present. `metrics.volume_series.previous` is the same number of buckets immediately before `points`, aligned by position (2026-10-05). `leads` adds `series` (new leads a day, 30 days, spam out) and `funnel` `{days: 90, received, contacted, won}` — what happened to the leads that arrived, never a status snapshot. `?volume=month\|quarter\|half\|year` picks what `metrics.volume_series` covers — `{period, bucket, points[{date, end, created, resolved}]}` in 30 days, 13 or 26 Monday weeks, or 12 months, every bucket present, an unknown period a month; `metrics.volume` stays the 30-day daily series. `?since=<iso>` adds `new_since` — tickets, enquiries and (for a sales role) leads created after that moment; null when not asked |
 | `GET` | `/admin/new-since?since=<iso>` | The sidebar's poll: `{since, tickets, leads, enquiries}` created after that moment — each **null for a role that cannot open the screen**, never zero. Staff-wide; three counts and nothing else, where `/admin/dashboard` builds thirty days of metrics. 422 without `since` |
 | `GET` | `/admin/search?q=` | The console's command palette. Groups of five — tickets, customers, leads, products, posts, pages, orders, shop products — **each present only for a role that may open it**. Staff-wide, not role-gated; the controller filters. Two-character floor. `admin_path` is a console route |
 | `GET` | `/admin/users` | Active staff, for assignment pickers |
@@ -2309,6 +2309,7 @@ answers people who have already bought.
 | Method | Path | Notes |
 |---|---|---|
 | `GET` | `/admin/activity` | `?action=`, `?q=` (actor name, address, record label), `?per_page=` (max 100). Newest first. `meta.retention_days` and `meta.actions` |
+| `GET` | `/admin/onboarding` | The dashboard's "Getting started" checklist (2026-10-05, `App\Support\Onboarding`): `{steps: [{key, label, hint, href, done}], done, total}`. Every step is answered from real state — the seeded phone, address, figures and social URLs are recognised by their exact values — and `href` is a console path |
 
 **Read-only, and there is deliberately no write path.** No store, update or
 destroy. The only thing that removes rows is the scheduled
@@ -3620,7 +3621,7 @@ holding every theme's choices, `{ "<theme id>": { "menu_style": "big",
 **shape** by `App\Support\ThemeOptions` — a kind is `default`, `solid`,
 `gradient` or `image`; colours are `#rrggbb`, lower-cased on the way in; an
 angle is 0–360; an `image` needs a media-library `image_path` and carries an
-`overlay` of 0–90 — and the cleaned document is what is stored, never the
+`overlay` of 0–90; any kind but `default` may carry a `texture` of `grain`, `mesh`, `glow`, `grid` or `dots` (2026-10-05; `none` stores nothing, anything else is refused) — and the cleaned document is what is stored, never the
 request's bytes (a `default` section is dropped, a blank angle is dropped, a
 solid keeps no second colour). A section row may carry `enabled: false` —
 only an explicit false switches it off, and a `default` row is kept for
@@ -3732,6 +3733,13 @@ LinkedIn, X, Facebook, Instagram, YouTube, WhatsApp and, since 2026-09-24,
 `dock`, offered as `options`, refused outside them) and `social_flip_word`
 (letters and digits, at most 7 — one tile each — stored in capitals). A blank URL hides its
 icon.
+
+**The `pwa` group is public** (2026-10-05, `docs/pwa.md`): `pwa_enabled` and
+`pwa_install_prompt` (`0`/`1`, both on by default), `pwa_name` (≤ 45),
+`pwa_short_name` (≤ 12 — what a launcher prints under the icon; a 422 above
+it), and `pwa_icon_path` (a media path, published with `pwa_icon_url` and its
+size by the `_path` rule). The manifest, the icons and the service worker are
+built from them before anybody signs in.
 
 **The `consent` group is public too**, for the same reason — the banner is
 rendered client-side and needs every string in it.

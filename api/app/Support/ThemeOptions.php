@@ -25,6 +25,14 @@ final class ThemeOptions
 {
     public const KINDS = ['default', 'page', 'solid', 'gradient', 'image'];
 
+    /**
+     * A decorative layer over any ground but the theme's own (2026-10-05):
+     * film grain, a mesh of the palette's colours, a soft glow, a grid or a
+     * dot field. The frontend draws it on a sibling layer behind the words,
+     * so the ink is still graded against the ground; `none` stores nothing.
+     */
+    public const TEXTURES = ['none', 'grain', 'mesh', 'glow', 'grid', 'dots'];
+
     private const ID = '/^[a-z][a-z0-9_-]{0,31}$/';
 
     private const HEX = '/^#[0-9a-f]{6}$/i';
@@ -196,6 +204,14 @@ final class ThemeOptions
         $row = ['kind' => $kind];
         if (! $enabled) {
             $row['enabled'] = false;
+        }
+
+        $texture = $bg['texture'] ?? 'none';
+        if (! is_string($texture) || ! in_array($texture, self::TEXTURES, true)) {
+            throw new \InvalidArgumentException('A texture is grain, mesh, glow, grid, dots or none.');
+        }
+        if ($texture !== 'none') {
+            $row['texture'] = $texture;
         }
 
         // "None" — the page's own ground — carries no colour at all.

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { Sparkline } from "@/components/charts/sparkline";
+import type { ChartTone } from "@/components/charts/tones";
 import type { SVGProps } from "react";
 
 /**
@@ -37,8 +39,49 @@ export const TILE_TONES: Record<Tone, { skin: string; value: string; hover: stri
   neutral: { skin: "border-line-strong bg-card", value: "text-ink", hover: "hover:border-faint" },
 };
 
+/** The sparkline's colour for a tile tone: the same token, or muted for "unmeasured". */
+const SPARK_TONE: Record<Tone, ChartTone> = {
+  brand: "brand", info: "info", ok: "ok", warn: "warn", err: "err", neutral: "muted",
+};
+
+/**
+ * "▲ 12% vs the 30 days before".
+ *
+ * The arrow is an SVG in the delta's colour and the words stay `ink-2`: the
+ * tile's own skin is a tinted `*-soft`, and green text on a blue tint is a
+ * pairing nobody measured. A graphic is held to 3:1, which the status tokens
+ * clear on every soft surface; text would need 4.5:1 it does not reliably
+ * get. Whether up is good is the caller's to say — more tickets is not.
+ */
+function Delta({ change, caption, goodWhen = "up" }: NonNullable<TileDelta>) {
+  if (change === null) return caption ? <p className="mt-1 text-12 text-faint">{caption}</p> : null;
+  const up = change > 0;
+  const flat = change === 0;
+  const good = flat || goodWhen === "neither" ? null : (up === (goodWhen === "up"));
+  return (
+    <p className="mt-1 flex items-center gap-1 text-12 text-ink-2">
+      {!flat && (
+        <svg aria-hidden viewBox="0 0 10 10" className={cn("size-2.5 shrink-0", good === null ? "text-muted" : good ? "text-ok" : "text-err", !up && "rotate-180")}>
+          <path d="M5 1.5 9 8.5H1z" fill="currentColor" />
+        </svg>
+      )}
+      <span className="font-semibold tabular-nums">{up ? "+" : ""}{change}%</span>
+      {caption && <span className="truncate text-muted">{caption}</span>}
+    </p>
+  );
+}
+
+export type TileDelta = {
+  /** Percentage change; null when the earlier figure is too small to divide by. */
+  change: number | null;
+  /** "vs the 30 days before", or what to say instead when `change` is null. */
+  caption?: string;
+  /** Which way is good news; `neither` for a figure that is only a measure of load. */
+  goodWhen?: "up" | "down" | "neither";
+} | undefined;
+
 export function StatTile({
-  label, value, note, href, tone, icon: Icon, compact = false,
+  label, value, note, href, tone, icon: Icon, compact = false, spark, delta,
 }: {
   label: string;
   /** Pre-formatted, because a rate is "24%" and a count is "1,204". */
@@ -53,6 +96,10 @@ export function StatTile({
    * figure and the glyph step down a rung and the padding tightens.
    */
   compact?: boolean;
+  /** A trend under the figure — the series the figure was counted from. */
+  spark?: number[];
+  /** The figure against the period before. */
+  delta?: TileDelta;
 }) {
   const t = TILE_TONES[tone];
 
@@ -72,7 +119,9 @@ export function StatTile({
         <Icon aria-hidden className={cn("hidden size-5 shrink-0 opacity-30 sm:block", t.value)} />
       </div>
       <p title={label} className="mt-1.5 text-13 leading-snug text-ink-2 sm:truncate">{label}</p>
+      {delta && <Delta {...delta} />}
       {note && <p className="mt-1 text-12 text-faint">{note}</p>}
+      {spark && <Sparkline values={spark} tone={SPARK_TONE[tone]} className="-mx-1 mt-2 h-7 w-[calc(100%+.5rem)]" />}
     </>
   );
 
@@ -95,7 +144,9 @@ export function StatTile({
           what the number is.
         */}
         <p className="mt-1.5 text-13 text-ink-2">{label}</p>
+        {delta && <Delta {...delta} />}
         {note && <p className="mt-1 text-12 text-faint">{note}</p>}
+        {spark && <Sparkline values={spark} tone={SPARK_TONE[tone]} className="mt-2.5 h-8 w-full" />}
       </div>
 
       {/*

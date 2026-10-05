@@ -20,6 +20,8 @@ export const PUBLIC_ROUTES = [
   "/industries", "/industries/manufacturing", "/products", "/products/switches",
   "/resources", "/blog", "/case-studies", "/knowledge-base", "/about", "/contact",
   "/team", "/clients", "/certifications",
+  // The installed app's offline page (docs/pwa.md), which the service worker serves in place of any page not yet saved.
+  "/offline",
   // The engineer visit request form (docs/visits.md), and with a service preselected.
   "/book-a-visit", "/book-a-visit?service=web-hosting",
   // Online meetings (docs/meetings.md): the booking page, prerendered; the

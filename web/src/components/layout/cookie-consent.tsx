@@ -50,6 +50,8 @@ export function CookieConsent({ settings }: { settings: SiteSettings }) {
       role="region"
       aria-label={title}
       data-leaving={leaving || undefined}
+      // Read by the install card, which never rises over this banner.
+      data-cookie-banner
       className="rise-in fixed inset-x-0 bottom-0 z-50 border-t border-line-strong bg-card shadow-[0_-4px_24px_rgba(18,20,13,.10)]"
     >
       <Container className="flex flex-wrap items-center gap-x-8 gap-y-4 py-4">

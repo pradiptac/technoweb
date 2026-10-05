@@ -31,7 +31,7 @@ class PublicSettings
      * `payments`, `newsletter`, `chatbot`, `seo`, `media`, `security` — stays
      * server-side unless a key below names it deliberately.
      */
-    public const GROUPS = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'login', 'banners', 'announcement', 'themes', 'portal', 'auth', 'store', 'store_promo', 'store_tiles', 'blog', 'embeds', 'indexnow', 'push'];
+    public const GROUPS = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'login', 'banners', 'announcement', 'themes', 'portal', 'auth', 'store', 'store_promo', 'store_tiles', 'blog', 'embeds', 'indexnow', 'push', 'pwa'];
 
     /**
      * Rows in a public group that are nobody's business on this endpoint.

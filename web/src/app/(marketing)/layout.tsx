@@ -4,6 +4,10 @@ import { ChatLoader } from "@/components/chat/chat-loader";
 import { SitePopup } from "@/components/layout/site-popup";
 import { CookieConsent } from "@/components/layout/cookie-consent";
 import { CustomCode } from "@/components/layout/custom-code";
+import { PwaLoader } from "@/components/pwa/pwa-loader";
+import { pwaFor } from "@/lib/pwa";
+import { brandName } from "@/lib/brand";
+import { APP_VERSION } from "@/lib/version";
 import { loadChrome } from "@/lib/chrome";
 import { getSiteSettings } from "@/lib/settings";
 import { settingEnabled } from "@/lib/site-settings";
@@ -66,6 +70,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
   // rather than a round trip. The fetch list and its notes are `loadChrome`.
   const [{ chrome, popups }, theme] = await Promise.all([loadChrome(), activeTheme()]);
   const { settings, motion } = chrome;
+  const pwa = pwaFor(settings, brandName());
   const Chrome = theme.templates.Chrome;
 
   return (
@@ -147,6 +152,19 @@ export default async function MarketingLayout({ children }: { children: React.Re
       {settings.cookie_consent_enabled === "1"
         && (settings.google_analytics_id || settings.google_tag_manager_id || settings.meta_pixel_id)
         && <CookieConsent settings={settings} />}
+      {/*
+        The installable website (2026-10-05, docs/pwa.md): the service worker
+        and, when the setting allows, the install card. Public site only, for
+        the reason the assistant is — an install offer inside the console is
+        chrome in the way of work.
+      */}
+      <PwaLoader
+        enabled={pwa.enabled}
+        prompt={pwa.prompt}
+        register={process.env.NODE_ENV === "production" || process.env.PWA_IN_DEV === "1"}
+        version={APP_VERSION}
+        name={pwa.shortName}
+      />
       {/* The administrator's own "before </body>" snippet — see the component for what it is and is not. */}
       {settings.body_code && <CustomCode html={settings.body_code} />}
     </div>

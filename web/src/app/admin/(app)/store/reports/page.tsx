@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
-import { ErrorState } from "@/components/ui/empty";
+import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { getStoreReport } from "@/lib/admin";
 import { formatPaise } from "@/lib/money";
 import { buildMetadata } from "@/lib/seo";
@@ -175,7 +175,7 @@ export default async function StoreReportsPage({
           </h2>
 
           {totals.orders === 0 ? (
-            <p className="py-6 text-center text-13 text-muted">Nothing sold in this range.</p>
+            <EmptyState compact illustration="chart" title="Nothing sold in this range">Widen the dates, or check a range with paid orders in it.</EmptyState>
           ) : (
             <div className="overflow-x-auto">
               <table className="admin-table w-full min-w-[520px] text-left text-13">

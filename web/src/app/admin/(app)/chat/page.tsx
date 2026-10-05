@@ -6,38 +6,29 @@ import { ErrorState } from "@/components/ui/empty";
 import { getChatDashboard } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
-import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { requireScreen } from "@/lib/admin-screen";
+import { StatTile } from "@/components/admin/stat-tile";
+import { BarList } from "@/components/charts/bar-list";
+import { IconChat, IconAlert, IconPhone, IconThumbsUp } from "@/components/icons";
 
 export const metadata = buildMetadata({ title: "Website assistant", path: "/admin/chat", seo: noIndex });
 
 type SearchParams = { from?: string; to?: string };
 
 /**
- * A figure and what it is. Same shape as the sales and stock reports.
+ * A figure and what it is — the console's `StatTile` since 2026-10-05.
  *
  * `—` for a figure nobody measured, never a zero: a helpfulness rate over no
  * ratings is not 0%, and an assistant nobody has rated would otherwise read as
- * one everybody hated.
+ * one everybody hated. Untoned figures are neutral for the same reason.
  */
-function Total({ label, value, note, tone }: {
+function Total({ label, value, note, tone, icon }: {
   label: string; value: string; note?: string; tone?: "ok" | "warn" | "brand";
+  icon: (p: React.SVGProps<SVGSVGElement>) => React.ReactElement;
 }) {
-  return (
-    <Card interactive={false} padding="sm">
-      <p className="text-12 text-muted">{label}</p>
-      <p className={cn(
-        "mt-1 font-display text-24 leading-none font-semibold tracking-[-.02em] tabular-nums",
-        tone === "ok" && "text-ok",
-        tone === "warn" && "text-warn",
-        tone === "brand" && "text-brand-ink",
-      )}>
-        {value}
-      </p>
-      {note && <p className="mt-1.5 text-11-5 text-faint">{note}</p>}
-    </Card>
-  );
+  return <StatTile label={label} value={value} note={note} tone={tone ?? "neutral"} icon={icon} />;
 }
 
 const pct = (n: number | null) => (n === null ? "—" : `${n}%`);
@@ -74,13 +65,13 @@ export default async function ChatDashboardPage({ searchParams }: { searchParams
       </FilterBar>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Total label="Conversations" tone="brand" value={String(report.conversations)}
+        <Total label="Conversations" tone="brand" icon={IconChat} value={String(report.conversations)}
           note={`${report.questions} question${report.questions === 1 ? "" : "s"} asked`} />
-        <Total label="Could not answer" tone="warn" value={String(report.unanswered)}
+        <Total label="Could not answer" tone="warn" icon={IconAlert} value={String(report.unanswered)}
           note={report.unanswered_rate === null ? "Nothing asked yet" : `${pct(report.unanswered_rate)} of questions`} />
-        <Total label="Callbacks asked for" tone="ok" value={String(report.leads)}
+        <Total label="Callbacks asked for" tone="ok" icon={IconPhone} value={String(report.leads)}
           note={report.lead_rate === null ? "No conversations yet" : `${pct(report.lead_rate)} of conversations`} />
-        <Total label="Rated helpful" value={pct(report.helpful_rate)}
+        <Total label="Rated helpful" icon={IconThumbsUp} value={pct(report.helpful_rate)}
           note={report.rated === 0 ? "Nobody has rated an answer" : `Across ${report.rated} rating${report.rated === 1 ? "" : "s"}`} />
       </section>
 
@@ -91,14 +82,13 @@ export default async function ChatDashboardPage({ searchParams }: { searchParams
             Read off what was recorded at the time, so this and the buttons somebody was
             shown cannot disagree.
           </p>
-          <ul className="grid gap-2">
-            {report.by_intent.map((row) => (
-              <li key={row.intent} className="flex items-baseline justify-between gap-3 border-b border-line pb-2 text-13 last:border-0 last:pb-0">
-                <span className="capitalize">{row.intent}</span>
-                <span className="tabular-nums">{row.total}</span>
-              </li>
-            ))}
-          </ul>
+          <BarList
+            empty="Nothing asked in this range."
+            rows={report.by_intent.map((row) => ({
+              label: row.intent.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()),
+              value: row.total,
+            }))}
+          />
         </Card>
 
         <Card as="section" interactive={false} padding="sm">
@@ -106,20 +96,11 @@ export default async function ChatDashboardPage({ searchParams }: { searchParams
           <p className="mb-3 text-11-5 text-faint">
             A page generating conversations is a page not answering its own question.
           </p>
-          {report.busiest_pages.length === 0 ? (
-            <p className="py-4 text-center text-13 text-muted">Nothing yet.</p>
-          ) : (
-            <ul className="grid gap-2">
-              {report.busiest_pages.map((row) => (
-                <li key={row.path} className="flex items-baseline justify-between gap-3 border-b border-line pb-2 text-13 last:border-0 last:pb-0">
-                  <Link href={row.path} className="max-w-[36ch] truncate font-mono text-12-5 hover:text-brand-ink">
-                    {row.path}
-                  </Link>
-                  <span className="tabular-nums">{row.total}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+          <BarList
+            empty="No conversation has started yet."
+            labelWidth="10rem"
+            rows={report.busiest_pages.map((row) => ({ label: row.path, value: row.total, tone: "info", href: row.path }))}
+          />
         </Card>
       </div>
 
@@ -145,6 +126,23 @@ export default async function ChatDashboardPage({ searchParams }: { searchParams
       */}
       <section className="mt-4 rounded-lg border border-line-strong bg-card p-4">
         <h2 className="mb-1 text-13 font-semibold">Today</h2>
+        {report.today.cap > 0 && (
+          /* The ceiling as a gauge: how much of today's allowance is gone. */
+          <div
+            role="meter"
+            aria-label="Replies used today"
+            aria-valuemin={0}
+            aria-valuemax={report.today.cap}
+            aria-valuenow={Math.min(report.today.replies, report.today.cap)}
+            className="mb-2.5 h-2.5 overflow-hidden rounded-full bg-surface-2"
+          >
+            <span
+              data-chart-grow
+              className={cn("block h-full rounded-full", report.today.reached ? "bg-err" : report.today.replies / report.today.cap > 0.8 ? "bg-warn" : "bg-ok")}
+              style={{ width: `${Math.min(100, (report.today.replies / report.today.cap) * 100)}%` }}
+            />
+          </div>
+        )}
         <p className="text-12-5 text-muted">
           {report.today.cap === 0 ? (
             <>

@@ -765,6 +765,16 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'consent', 'key' => 'cookie_consent_reject_label', 'value' => 'Decline', 'type' => 'string'],
             ['group' => 'consent', 'key' => 'cookie_consent_policy_url', 'value' => '/privacy', 'type' => 'string'],
 
+            // The installable website (2026-10-05, docs/pwa.md). Public: the
+            // manifest, the icons and the service worker are built from these
+            // before anybody signs in. Blank name and icon fall back to the
+            // company's name and an icon drawn from its initials.
+            ['group' => 'pwa', 'key' => 'pwa_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'pwa', 'key' => 'pwa_name', 'value' => null, 'type' => 'string'],
+            ['group' => 'pwa', 'key' => 'pwa_short_name', 'value' => null, 'type' => 'string'],
+            ['group' => 'pwa', 'key' => 'pwa_icon_path', 'value' => null, 'type' => 'string'],
+            ['group' => 'pwa', 'key' => 'pwa_install_prompt', 'value' => '1', 'type' => 'boolean'],
+
             // Outgoing mail. NOT in the public whitelist, and the password is
             // encrypted at rest and never returned to the browser. Leave the
             // host blank to keep using whatever the .env file configures.

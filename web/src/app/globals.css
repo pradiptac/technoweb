@@ -3786,3 +3786,84 @@ nav:has([data-panel-host]:hover) [data-panel-host]:not(:hover) > .panel-drop { t
  * JavaScript the section is simply the whole selection.
  */
 [data-fill="rows"] > [data-row-cut] { display: none; }
+
+/*
+ * The chart kit's arrival (`components/charts/`, 2026-10-05): a line is drawn
+ * left to right, a bar grows from its baseline, a funnel stage from its
+ * centre, a donut sweeps, a heatmap's cells fade up in reading order. One
+ * pass on first paint, never again — a chart that re-animates on every
+ * filter change reads as a loading state.
+ *
+ * Every one is a `from`-only keyframe on `clip-path`, `transform` or
+ * `opacity`, so nothing here touches a computed colour the contrast audit
+ * reads, nothing widens the document, and the element's resting state is the
+ * stylesheet's own. Inside the guard with no start state outside it: under
+ * reduced motion every chart is simply there. `--duration-draw` is the
+ * existing token for a line being drawn; bars and cells take `slow`.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes chart-wipe { from { clip-path: inset(0 100% 0 0); } }
+  @keyframes chart-grow { from { transform: scaleX(0); } }
+  @keyframes chart-fade { from { opacity: 0; } }
+
+  [data-chart-draw] { animation: chart-wipe var(--duration-draw) var(--ease-brand) both; }
+  [data-chart-grow] {
+    animation: chart-grow calc(var(--duration-slow) * 2) var(--ease-brand) both;
+    transform-origin: left center;
+  }
+  [data-chart-grow-centre] {
+    animation: chart-grow calc(var(--duration-slow) * 2) var(--ease-brand) both;
+    transform-origin: center;
+  }
+  [data-chart-sweep] { animation: chart-fade var(--duration-draw) var(--ease-brand) both; }
+  [data-chart-cell] { animation: chart-fade var(--duration-slow) var(--ease-brand) both; }
+}
+
+/*
+ * Section textures (2026-10-05, `SECTION_TEXTURES` in themes/options.ts): a
+ * decorative layer `SectionBg` draws as a sibling of the content, inside the
+ * section's local palette, so every colour below resolves to that section's
+ * own tokens — a grid on a navy band is drawn in the band's ink, not the
+ * page's.
+ *
+ * Three rules each one keeps. **A whisper**: low alpha everywhere, because
+ * the ink was pushed to 4.5:1 against the ground and a texture sits between
+ * the two; the mesh pools sit in the corners, away from the words.
+ * **No text, no ancestor**: the layer holds nothing and wraps nothing, so the
+ * contrast audit reads the ground and never this. **Still**: nothing here
+ * moves — motion is the reveal's job — so there is nothing for the
+ * reduced-motion rule to stop.
+ */
+[data-texture] { z-index: 0; }
+[data-texture="grain"] {
+  /* Fractal noise as an SVG, tiled. `overlay` lifts the light and darkens the
+     dark of whatever ground it is on, in both schemes. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  opacity: .16;
+  mix-blend-mode: overlay;
+}
+[data-texture="mesh"] {
+  background-image:
+    radial-gradient(42% 60% at 0% 0%, color-mix(in oklab, var(--color-brand-500) 20%, transparent) 0, transparent 70%),
+    radial-gradient(38% 55% at 100% 8%, color-mix(in oklab, var(--color-accent-500) 16%, transparent) 0, transparent 70%),
+    radial-gradient(45% 60% at 85% 100%, color-mix(in oklab, var(--color-secondary-500) 16%, transparent) 0, transparent 70%),
+    radial-gradient(35% 50% at 8% 100%, color-mix(in oklab, var(--color-brand-400) 12%, transparent) 0, transparent 70%);
+}
+[data-texture="glow"] {
+  background-image: radial-gradient(60% 55% at 50% -10%, color-mix(in oklab, var(--color-brand-400) 26%, transparent) 0, transparent 72%);
+}
+[data-texture="grid"] {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--color-ink) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--color-ink) 7%, transparent) 1px, transparent 1px);
+  background-size: 36px 36px;
+  background-position: center;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 25%, transparent 78%);
+}
+[data-texture="dots"] {
+  background-image: radial-gradient(circle, color-mix(in oklab, var(--color-ink) 16%, transparent) 1.1px, transparent 1.6px);
+  background-size: 20px 20px;
+  background-position: center;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 25%, transparent 78%);
+}

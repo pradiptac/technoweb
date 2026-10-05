@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Admin\ActivityController;
 use App\Http\Controllers\Api\V1\Admin\ChatAdminController;
 use App\Http\Controllers\Api\V1\Admin\ClientErrorController as AdminClientErrorController;
+use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\EmailTemplateController;
 use App\Http\Controllers\Api\V1\Admin\InboundMailController;
 use App\Http\Controllers\Api\V1\Admin\IntegrationsController;
@@ -27,6 +28,9 @@ Route::middleware('role:admin')->group(function () {
      * nothing.
      */
     Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
+
+    // The dashboard's "Getting started" checklist (App\Support\Onboarding).
+    Route::get('onboarding', [DashboardController::class, 'onboarding'])->name('onboarding');
 
     /*
      * Importing a WordPress / WooCommerce site. `role:admin` because one

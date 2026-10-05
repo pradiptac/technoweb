@@ -2,7 +2,7 @@
 
 import { CoverField } from "@/components/admin/cover-field";
 import { Field, Input, Select } from "@/components/ui/input";
-import { SECTION_KINDS, type SectionBackground, type SectionKind } from "@/themes/options";
+import { SECTION_KINDS, SECTION_TEXTURES, type SectionBackground, type SectionKind, type SectionTexture } from "@/themes/options";
 
 /**
  * A section's ground — the Themes screen's section background, the same
@@ -62,6 +62,16 @@ export function BackgroundField({ value, onChange, error, idPrefix, media }: {
                 onChange={(e) => set({ angle: e.target.value === "" ? undefined : Number(e.target.value) })} />
             </Field>
           </>
+        )}
+
+        {kind !== "default" && (
+          <Field label="Texture" htmlFor={id("texture")} variant="float-static"
+            hint={SECTION_TEXTURES.find((t) => t.id === (bg.texture ?? "none"))?.blurb}>
+            <Select id={id("texture")} value={bg.texture ?? "none"}
+              onChange={(e) => set({ texture: e.target.value === "none" ? undefined : e.target.value as SectionTexture })}>
+              {SECTION_TEXTURES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+            </Select>
+          </Field>
         )}
 
         {kind === "image" && (

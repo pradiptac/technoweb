@@ -736,6 +736,16 @@ class SettingController extends Controller
                 }
                 $rows[$i]['value'] = strtoupper((string) $value);
             }
+            // The installed app's names (2026-10-05). The short name is what a
+            // phone prints under the icon, and a launcher cuts it off at about
+            // twelve characters — refused rather than truncated by somebody
+            // else's ellipsis. Plain text either way: both reach the manifest.
+            if ($key === 'pwa_short_name' && filled($value) && mb_strlen(trim((string) $value)) > 12) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'At most 12 characters — a phone cuts a longer name off under the icon.']);
+            }
+            if ($key === 'pwa_name' && filled($value) && mb_strlen(trim((string) $value)) > 45) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'At most 45 characters.']);
+            }
             if ($key === 'stats_size' && filled($value) && ! in_array($value, array_column(self::STAT_SIZES, 'value'), true)) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a size from the list.']);
             }

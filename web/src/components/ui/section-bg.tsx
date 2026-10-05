@@ -62,6 +62,10 @@ export function SectionBg({
           style={{ opacity: surface.imageOpacity, ...focalStyle(bg.image_focus) }}
         />
       )}
+      {/* The texture, on a layer of its own: a sibling of the words, never
+          their ancestor, so the contrast audit grades the ink against the
+          ground and the texture cannot be what fails it. */}
+      {bg.texture && <span aria-hidden data-texture={bg.texture} className="pointer-events-none absolute inset-0" />}
       <div className="relative">{children}</div>
     </div>
   );

@@ -86,44 +86,47 @@ class TicketMetrics
      * An unknown period falls back to `month`, the catalogue's `?sort=` rule:
      * it arrives from a link, and the chart is a better answer than a 422.
      *
-     * @return array{period:string,bucket:string,points:list<array{date:string,end:string,created:int,resolved:int}>}
+     * `previous` is the same number of buckets immediately before, aligned
+     * by position, so the console can draw "the period before" under this
+     * one (the compare toggle, 2026-10-05). Its buckets are the same shape:
+     * the previous quarter is thirteen Monday weeks, not ninety-one days.
+     *
+     * @return array{period:string,bucket:string,points:list<array{date:string,end:string,created:int,resolved:int}>,previous:list<array{date:string,end:string,created:int,resolved:int}>}
      */
     public static function volume(string $period): array
     {
         $period = array_key_exists($period, self::VOLUME_PERIODS) ? $period : 'month';
         ['bucket' => $bucket, 'count' => $count] = self::VOLUME_PERIODS[$period];
 
-        if ($bucket === 'day') {
-            $points = array_map(fn (array $d) => [
-                'date' => $d['date'], 'end' => $d['date'], 'created' => $d['created'], 'resolved' => $d['resolved'],
-            ], self::dailyVolume($count));
-
-            return ['period' => $period, 'bucket' => $bucket, 'points' => $points];
-        }
-
+        // Twice the buckets, oldest first: the first half is the period
+        // before, the second half is the one the chart is about.
         $today = CarbonImmutable::today();
         $starts = [];
-        if ($bucket === 'week') {
-            $first = $today->startOfWeek(CarbonImmutable::MONDAY)->subWeeks($count - 1);
-            for ($i = 0; $i < $count; $i++) {
-                $starts[] = $first->addWeeks($i);
-            }
-        } else {
-            $first = $today->startOfMonth()->subMonthsNoOverflow($count - 1);
-            for ($i = 0; $i < $count; $i++) {
-                $starts[] = $first->addMonthsNoOverflow($i);
-            }
+        $first = match ($bucket) {
+            'day' => $today->subDays(2 * $count - 1),
+            'week' => $today->startOfWeek(CarbonImmutable::MONDAY)->subWeeks(2 * $count - 1),
+            default => $today->startOfMonth()->subMonthsNoOverflow(2 * $count - 1),
+        };
+        for ($i = 0; $i < 2 * $count; $i++) {
+            $starts[] = match ($bucket) {
+                'day' => $first->addDays($i),
+                'week' => $first->addWeeks($i),
+                default => $first->addMonthsNoOverflow($i),
+            };
         }
 
-        $from = $starts[0];
-        $created = self::perDay('created_at', $from);
-        $resolved = self::perDay('resolved_at', $from);
+        $created = self::perDay('created_at', $starts[0]);
+        $resolved = self::perDay('resolved_at', $starts[0]);
 
-        $points = [];
+        $all = [];
         foreach ($starts as $i => $start) {
-            $next = $starts[$i + 1] ?? ($bucket === 'week' ? $start->addWeek() : $start->addMonthNoOverflow());
+            $next = $starts[$i + 1] ?? match ($bucket) {
+                'day' => $start->addDay(),
+                'week' => $start->addWeek(),
+                default => $start->addMonthNoOverflow(),
+            };
             $end = $next->subDay();
-            $points[] = [
+            $all[] = [
                 'date' => $start->toDateString(),
                 'end' => ($end->greaterThan($today) ? $today : $end)->toDateString(),
                 'created' => self::sumBetween($created, $start, $next),
@@ -131,7 +134,46 @@ class TicketMetrics
             ];
         }
 
-        return ['period' => $period, 'bucket' => $bucket, 'points' => $points];
+        return [
+            'period' => $period,
+            'bucket' => $bucket,
+            'points' => array_slice($all, $count),
+            'previous' => array_slice($all, 0, $count),
+        ];
+    }
+
+    /** Days of history the arrivals heatmap counts. */
+    public const ARRIVALS_DAYS = 90;
+
+    /**
+     * When tickets arrive: a weekday × hour grid of the last ninety days.
+     *
+     * `cells[d][h]` is the count opened on weekday `d` (0 = Monday) in hour
+     * `h`, in the application's timezone — the one `created_at` is stored in.
+     * Every cell is present, empty ones as zero, the `dailyVolume` rule: a
+     * grid with holes in it draws a quiet Tuesday morning as missing rather
+     * than as quiet. `peak` is the busiest cell, so the console can shade
+     * against it without walking the grid twice.
+     *
+     * @return array{days:int,cells:list<list<int>>,peak:int,total:int}
+     */
+    public static function arrivals(int $days = self::ARRIVALS_DAYS): array
+    {
+        // The query builder, not the model: these rows are aggregates, not tickets.
+        $rows = DB::table('tickets')
+            ->where('created_at', '>=', CarbonImmutable::today()->subDays($days - 1))
+            ->selectRaw('WEEKDAY(created_at) as d, HOUR(created_at) as h, COUNT(*) as total')
+            ->groupBy('d', 'h')
+            ->get();
+
+        $cells = array_fill(0, 7, array_fill(0, 24, 0));
+        foreach ($rows as $r) {
+            $cells[(int) $r->d][(int) $r->h] = (int) $r->total;
+        }
+
+        $flat = array_merge(...$cells);
+
+        return ['days' => $days, 'cells' => $cells, 'peak' => max($flat), 'total' => array_sum($flat)];
     }
 
     /** @return array<string,int> day => count, from a date onwards */

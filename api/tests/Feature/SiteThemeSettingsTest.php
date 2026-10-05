@@ -108,6 +108,9 @@ class SiteThemeSettingsTest extends TestCase
                     'solutions' => ['kind' => 'default', 'reveal' => 'fade-up'],
                     'industries' => ['kind' => 'solid', 'colour' => '#1e3a8a', 'reveal' => 'zoom-in'],
                     'clients' => ['kind' => 'default', 'reveal' => 'none'],
+                    // A texture over a ground: kept, and "none" stores nothing.
+                    'contact' => ['kind' => 'page', 'texture' => 'mesh'],
+                    'brands' => ['kind' => 'solid', 'colour' => '#1e3a8a', 'texture' => 'none'],
                 ],
             ],
         ]);
@@ -131,6 +134,8 @@ class SiteThemeSettingsTest extends TestCase
         $this->assertSame(['kind' => 'default', 'reveal' => 'fade-up'], $stored['classic']['sections']['solutions'], 'a reveal survives a default ground');
         $this->assertSame('zoom-in', $stored['classic']['sections']['industries']['reveal']);
         $this->assertArrayNotHasKey('clients', $stored['classic']['sections'], '"none" is the default and stores nothing');
+        $this->assertSame(['kind' => 'page', 'texture' => 'mesh'], $stored['classic']['sections']['contact']);
+        $this->assertArrayNotHasKey('texture', $stored['classic']['sections']['brands'], 'no texture stores nothing');
 
         // Published with the URL beside the path, on both responses.
         $public = json_decode($this->getJson('/api/v1/settings')->json('data.site_theme_options'), true);
@@ -156,6 +161,7 @@ class SiteThemeSettingsTest extends TestCase
             json_encode(['classic' => ['sections' => ['why' => ['kind' => 'default', 'reveal' => 'Slide In!']]]]),
             json_encode(['classic' => ['sections' => ['why' => ['kind' => 'default', 'reveal' => 3]]]]),
             json_encode(['classic' => ['section_order' => 'hero,cta']]),
+            json_encode(['classic' => ['sections' => ['why' => ['kind' => 'page', 'texture' => 'sparkles']]]]),
             json_encode(['classic' => ['section_order' => ['hero', '../x']]]),
         ] as $bad) {
             $this->save(['company_name' => 'Technoware', 'site_theme_options' => $bad])

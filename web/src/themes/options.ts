@@ -40,6 +40,7 @@ export type HeroStyle = "banner" | "cover" | "split" | "compact";
 /** Where a category card's name sits beside its icon: next to it, or at the card's far edge. */
 export type HeadingAlign = "left" | "right";
 export type SectionKind = "default" | "page" | "solid" | "gradient" | "image";
+export type SectionTexture = "none" | "grain" | "mesh" | "glow" | "grid" | "dots";
 
 export type SectionBackground = {
   kind: SectionKind;
@@ -57,6 +58,8 @@ export type SectionBackground = {
   image_focus?: string;
   /** 0–90: how much of the overlay colour sits over the picture. */
   overlay?: number;
+  /** A decorative layer over the ground (2026-10-05); absent is none. */
+  texture?: SectionTexture;
 };
 
 /** One homepage section's settings: drawn or not, what it sits on, and how it arrives. */
@@ -110,6 +113,22 @@ export const HERO_STYLES: readonly Choice<HeroStyle>[] = [
 export const HEADING_ALIGNS: readonly Choice<HeadingAlign>[] = [
   { id: "left", label: "Beside the icon", blurb: "The name follows the icon on the same line." },
   { id: "right", label: "At the right edge", blurb: "The icon on the left, the name pushed to the card's right edge, on one line." },
+];
+
+/**
+ * The textures a section ground can carry (2026-10-05), the API's
+ * `ThemeOptions::TEXTURES` with words. Drawn by `SectionBg` on a layer of
+ * its own behind the content, so the ink is graded against the ground and a
+ * texture can never be what fails the contrast audit; each is a whisper —
+ * the CSS is `[data-texture]` in `globals.css`.
+ */
+export const SECTION_TEXTURES: readonly Choice<SectionTexture>[] = [
+  { id: "none", label: "None", blurb: "The ground alone." },
+  { id: "grain", label: "Film grain", blurb: "A fine noise, like printed paper — it takes the flatness off a colour." },
+  { id: "mesh", label: "Colour mesh", blurb: "Soft pools of the palette's colours in the corners." },
+  { id: "glow", label: "Glow", blurb: "One soft light from the top, behind the heading." },
+  { id: "grid", label: "Grid", blurb: "A faint blueprint grid fading towards the edges." },
+  { id: "dots", label: "Dots", blurb: "A faint dot field fading towards the edges." },
 ];
 
 export const SECTION_KINDS: readonly Choice<SectionKind>[] = [
@@ -179,15 +198,18 @@ function sectionBackground(r: Record<string, unknown>): SectionBackground | unde
   const colour2 = typeof r.colour2 === "string" && HEX.test(r.colour2) ? r.colour2.toLowerCase() : undefined;
   const angle = typeof r.angle === "number" && r.angle >= 0 && r.angle <= 360 ? r.angle : undefined;
 
-  if (kind === "page") return { kind };
-  if (kind === "solid") return colour ? { kind, colour } : undefined;
-  if (kind === "gradient") return colour && colour2 ? { kind, colour, colour2, angle } : undefined;
+  const tx = choice(SECTION_TEXTURES, r.texture, "none");
+  const texture = tx === "none" ? undefined : tx;
+
+  if (kind === "page") return { kind, texture };
+  if (kind === "solid") return colour ? { kind, colour, texture } : undefined;
+  if (kind === "gradient") return colour && colour2 ? { kind, colour, colour2, angle, texture } : undefined;
 
   const image_path = typeof r.image_path === "string" && PATH.test(r.image_path) && !r.image_path.includes("..") ? r.image_path : undefined;
   const image_url = typeof r.image_url === "string" && /^https?:\/\//.test(r.image_url) ? r.image_url : undefined;
   const image_focus = typeof r.image_focus === "string" && /^\d{1,3}% \d{1,3}%$/.test(r.image_focus) ? r.image_focus : undefined;
   const overlay = typeof r.overlay === "number" && r.overlay >= 0 && r.overlay <= 90 ? r.overlay : 60;
-  return image_path && image_url ? { kind, colour, image_path, image_url, image_focus, overlay } : undefined;
+  return image_path && image_url ? { kind, colour, image_path, image_url, image_focus, overlay, texture } : undefined;
 }
 
 /**

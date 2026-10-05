@@ -21,6 +21,61 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.101.0 — 2026-10-05
+
+**Sections can carry a texture.** Any section with a background of its own —
+on the homepage (Site → Themes) or on a page built with the section builder —
+can now add film grain, soft pools of the palette's colours, a glow, a
+blueprint grid or a dot field. Each is subtle by design and never makes the
+words harder to read.
+
+**Empty screens are friendlier.** Every "nothing here yet" panel in the
+console now has a small illustration in the site's own colours, and the
+store reports, stock report, newsletter and dashboard say what to do next
+rather than leaving a blank line.
+
+**A "Getting started" checklist** on the dashboard, for administrators: ten
+steps — your logo, replacing the sample phone number, address, figures and
+social links, choosing a look, a test email, the scheduler, backups, your
+team, and the policy pages — each ticked automatically once it is really
+done. Fold it away when you like; it stays as one line until the last step.
+
+**Customers can see where their ticket is.** The portal's ticket page shows
+its progress — received, with an engineer, being worked on, resolved,
+closed — and says plainly when it is waiting for the customer's reply.
+
+---
+
+## 0.100.0 — 2026-10-05
+
+**The console's dashboards are charts you can read, not lists of numbers.**
+A small chart kit (`docs/charts.md`) now draws every figure on the main
+dashboard, the store, the website assistant and the leads screen:
+
+- Ticket volume is an interactive chart — point at a day (or use the arrow
+  keys) to read it, switch either line off, compare with the period before,
+  or see the same figures as a table and download them as a spreadsheet.
+- New: when tickets arrive, by weekday and hour, for staffing the busy
+  squares; every ticket by status as a ring; the sales pipeline as a funnel
+  (received → replied to → won); a trend line inside the New tickets and New
+  leads tiles, with the change against the previous 30 days.
+- The store's daily revenue, the assistant's topics and busiest pages, and
+  where leads come from are ranked bars and charts; every bar opens the list
+  behind it.
+- Screens show their own outline while they load rather than a generic table.
+
+**The website can be installed as an app** (`docs/pwa.md`). Visitors can add
+it to their phone's home screen or their desktop; it opens full screen in the
+site's colours, and pages they have opened still load without a connection.
+A small card offers it from a visitor's second page — never over the cookie
+banner, quiet for a month once dismissed, with Share instructions on iPhone.
+Its name and icon are under Site → Settings → Installable app; with no icon
+uploaded one is drawn from the company's initials.
+
+Run `php artisan db:seed --class=SettingsSeeder` on update (the updater does).
+
+---
+
 ## 0.99.1 — 2026-09-30
 
 **Fixed: a new install could keep showing its first, unstyled pages for hours.**
