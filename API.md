@@ -281,8 +281,8 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/popups` | Every live popup, as a **collection**. Ordered, and empty is the ordinary answer |
 | `GET` | `/galleries/{slug}` | One picture set, its tabs and its items. 404 when unpublished **or empty** |
 | `GET` | `/menus/{location}` | The navigation for `topbar`, `primary`, `footer` or `bottom`. **`data: null` when nothing is assigned**; 404 for an unknown location |
-| `GET` | `/forms/{slug}` | An editor-built form's definition. 404 when unpublished **or fieldless** |
-| `POST` | `/forms/{slug}` | A submission. Throttled 10/min, honeypot field `website` |
+| `GET` | `/forms/{slug}` | An editor-built form's definition: `redirect_url`, `has_files`, `steps`, and `fields[]` each with `settings` and `show_if`. 404 when unpublished **or fieldless** — a form of nothing but headings and step breaks is fieldless |
+| `POST` | `/forms/{slug}` | A submission, as JSON or `multipart/form-data` (required when the form has a file field). Throttled 10/min, honeypot field `website`. **201** `{message, redirect_url, data: {id}}` |
 | `GET` | `/careers` | Open vacancies. `?department=`, `?type=`. Plain collection |
 | `GET` | `/landing-pages` | Published programmatic pages. `?kind=`. Plain collection |
 | `GET` | `/landing-pages/lookup?path=/brands/cisco` | One page, or 404 |
@@ -586,7 +586,71 @@ A filled honeypot returns the normal success response and stores nothing:
 telling a bot it was caught is telling it what to change.
 
 **Submissions outlive their form.** `form_id` is `nullOnDelete` and the slug is
-stored alongside it, so deleting a form keeps what people sent through it.
+stored alongside it, so deleting a form keeps what people sent through it —
+and what they uploaded with it.
+
+**Sixteen field kinds since 0.117.0** (`FormField::KINDS`; `docs/forms.md`).
+The seven it shipped with — `text`, `email`, `tel`, `number`, `textarea`,
+`select`, `checkbox` — and `url`, `date`, `radio`, `checkboxes`, `rating`,
+`file`, `hidden`, `heading`, `step`. What a submission may send for each, and
+what is stored:
+
+| Kind | Answer | Stored as |
+|---|---|---|
+| `text`, `tel`, `select`, `radio` | a string ≤ 255; `tel` loosely a phone number; `select`/`radio` one of the field's option values | the string |
+| `email` | `email:rfc`, ≤ 255 | the string |
+| `textarea` | a string ≤ 5000 | the string |
+| `number` | numeric, within `settings.min`/`settings.max` when set | a number |
+| `url` | an `http`/`https` URL ≤ 2048 | the string |
+| `date` | `Y-m-d`, on or after `settings.min` and on or before `settings.max` — each null, a `Y-m-d`, or `"today"` (the server's day, in the app timezone) | the string |
+| `checkbox` | a boolean; `1/true/on/yes` and `0/false/off/no` are read as one. **Required means ticked** (`accepted`) — a posted `false` is a 422 | `true`/`false` |
+| `checkboxes` | an **array** of option values, none twice; a lone string is read as a list of one. Required means at least one. A bad choice is a 422 on the field's own key, never on `name.1` | the array |
+| `rating` | an integer 1–5 | an integer |
+| `file` | one uploaded file — see below | its original filename in `data`, the record in `files` |
+| `hidden` | **nothing is read from the request.** The answer is `settings.value` from the definition, whatever is posted | the string, or nothing when it is blank |
+| `heading`, `step` | layout rows: nothing is read, validated or stored | — |
+
+**The public read's `settings` and `show_if`.** `settings` is null for a kind
+that keeps none; `{min?, max?}` for `number` and `date`; `{accept, extensions,
+max_kb}` for `file` — `accept` the groups an editor ticked, `extensions` what
+those admit, `max_kb` the limit **in force** (the field's own, never above
+what php.ini accepts); and **null for `hidden`**: its value is never sent to a
+page, since the server fills it. `show_if` is `{field, op, value?}` or null.
+The form carries `redirect_url` (a path or an http(s) URL, or null — where to
+send the visitor instead of showing `message`), `has_files` (post as
+multipart) and `steps` (its step breaks plus one). A `heading`'s `label` is
+the heading and its `help` an optional paragraph; a `step`'s `label` is the
+title of the step it opens.
+
+**A condition is evaluated on the server, against the submitted answers.**
+`show_if.field` names an earlier field; `op` is `equals`, `not_equals`,
+`includes`, `filled` or `empty`. A field its condition hides is **skipped**:
+not required, and whatever was posted for it is dropped, never stored —
+hiding it in the browser is presentation, and this is the decision. A field
+whose source is itself hidden is hidden too, whatever its own operator says
+(`empty` included). The comparison is exact, case and all; two numbers are
+compared as numbers (`4`, `"4"` and `4.0` are one answer); a tick box as a
+source is "filled" when ticked and equals any of `1/true/on/yes` when ticked,
+`0/false/off/no` when not; on a `checkboxes` source `equals` and `includes`
+both mean "is among those ticked" and `not_equals` means "is not". A hidden
+`file` field's upload is not stored; a hidden `hidden` field's value is not
+either.
+
+**An upload is private, hashed and checked by content.** A `file` answer is
+held to the field's extensions **and** to the type its bytes sniff as
+(`extensions:` and `mimes:` together — a script renamed `brief.pdf` and a real
+PDF arriving as `brief.php` are both a 422), and to `max_kb`. It is stored on
+the private disk under `form-uploads/{form id}/` under a random name with the
+extension the bytes earn; nothing is written for a submission that is refused.
+`image` admits jpg, jpeg, png, webp, gif; `pdf` admits pdf; `document` admits
+doc, docx, xls, xlsx, csv, txt — no SVG and no archives. The file is never
+attached to an email and has no URL: it is read through
+`GET /admin/forms/{id}/submissions/{sid}/files/{field}` and deleted with its
+submission.
+
+**The submit's 201 is `{message, redirect_url, data: {id}}`.** `redirect_url`
+is the form's, or null. A filled honeypot gets the same `message` and
+`redirect_url` and stores nothing.
 
 **`?in_menu=1` is a navigation filter, not a publishing one.** The four
 endpoints that feed the mega menu accept it; without it they return everything,
@@ -2611,7 +2675,7 @@ mid-save.
 | Team members | `/admin/team-members` | `designation`, `department`, `photo_path`, `bio`, `email`, `linkedin_url`, `certifications[{name,issuer,credential_id,issued_on,expires_on}]` — **replaced wholesale**, `[]` clears. `meta.departments` on the index and the read. Titled `name`; no slug, no `seo`, **no phone** |
 | Sliders | `/admin/sliders` | `layout` (`full`, `split`, `cards`, `fan` — sent as `meta.layouts`; `cards` is the stacked-cards carousel and `fan` the fanned photo gallery, under both of which `transition` is ignored and two slides are the minimum), `transition`, `caption_animation` (how the words arrive: `none`/`fade`/`rise`/`slide`/`zoom`, refused outside the list, sent as `meta.caption_animations`), `autoplay`, `interval_ms`, `slides[]`. Titled `name`, and **no `seo`** — a slider is embedded in a page, it is not one. `meta.transitions` carries the options, defaulting to `slide` rather than `fade` as Galleries does — see below |
 | Galleries | `/admin/galleries` | `subtitle`, `transition`, `autoplay`, `interval_ms`, `groups[]`, `items[]`. Titled `name`, and **no `seo`** — same reason as a slider. `meta.transitions` carries the options |
-| Forms | `/admin/forms` | `submit_label`, `success_message`, `notify_email`, `embed_enabled`, `fields[]`. Plus `GET /admin/forms/{id}/submissions`. Titled `name`, and **no `seo`** |
+| Forms | `/admin/forms` | `submit_label`, `success_message`, `redirect_url`, `notify_email`, `embed_enabled`, `fields[]` (each with `settings` and `show_if`). Titled `name`, and **no `seo`**. Its submissions, uploads and export are under "Forms: the builder, submissions and uploads" below |
 | Popups | `/admin/popups` | `image_path`, `body` (rich text — a picture, a message, or both; neither is a 422 on `body`), `link_url`, `link_new_tab`, `sections[]`, `paths[]`, `size`, `frequency`, `trigger` (`delay`, the default, or `exit` — exit intent; refused outside the list), `delay_ms`, `starts_at`, `ends_at`, `sort_order`. Titled `name`, and **no `slug` and no `seo`** — a popup has no URL of its own and is not embedded by shortcode either. `meta` carries `sections`, `sizes`, `frequencies` and `triggers`; the admin resource adds `match_paths`, what the two lists resolve to |
 
 **A slider a page reads by name is deleted only on a confirmed request.**
@@ -2686,6 +2750,86 @@ An earlier cut had a second endpoint for industries, which forced the CRUD one
 to be named `/admin/industry-records` — a URL that exists only to dodge a
 collision is a sign the collision should not exist. `/admin/products` was the
 same shape until products gained full CRUD, and went the same way.
+
+### Forms: the builder, submissions and uploads
+
+`role:content_manager`, like the rest of the forms routes (0.117.0,
+`docs/forms.md`).
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET`/`POST` | `/admin/forms` | `?q=`, `?per_page=` (max 100). `meta` carries the builder's vocabulary beside the pagination (below) |
+| `GET`/`PATCH`/`DELETE` | `/admin/forms/{id}` | Bound by **id**. The read and both writes carry the same `meta`. Deleting keeps the submissions **and their files** |
+| `GET` | `/admin/forms/{id}/submissions` | Newest first, `?per_page=` (max 100). Each row: `id`, `form_id`, `form_slug`, `data`, `files`, `ip_address`, `read_at`, `created_at` |
+| `GET` | `/admin/forms/{id}/submissions/export` | Every submission as a streamed CSV, newest first. **Declared above `submissions/{submission}`** |
+| `GET` | `/admin/forms/{id}/submissions/{submission}/files/{field}` | Streams one upload as an attachment under its original name. 404 when the field has no file, the key is not a field key, or the submission belongs to another form |
+| `DELETE` | `/admin/forms/{id}/submissions/{submission}` | 204. Deletes the submission **and its files**; the lead made from it stays. 404 for another form's submission |
+
+**`meta` on the index, the read and both writes** is `{kinds, ops,
+file_accepts, max_upload_kb, max_file_fields}`, so the console lists nothing
+itself. `kinds` is `[{value, label, blurb, takes_options, is_layout, is_file,
+is_condition_source}]` in `FormField::KINDS` order; `ops` is `[{value, label,
+takes_value}]`; `file_accepts` is `[{value, label, extensions[]}]` for
+`image`, `pdf` and `document`; `max_upload_kb` is the largest file this server
+will take for a form upload — 20480, or php.ini's ceiling when that is lower;
+`max_file_fields` is 3.
+
+**`fields[]` on a write** is at most 50 rows of `{kind, name, label,
+placeholder?, help?, required?, width?, options?, settings?, show_if?}`,
+replaced wholesale. What is checked beyond the shape of each key, each a 422
+on the row it names:
+
+- `fields.N.name` — required for every kind but `heading` and `step`, which
+  the server names (`section_1`, `step_1`, …) when it is blank; two rows
+  sharing a key are refused.
+- `fields.N.label` — required for every kind but `step`, which is titled
+  "Step N" when blank.
+- `fields.N.options` — at least **one** option for `select`, at least **two**
+  for `radio` and `checkboxes`, no value twice. Options are kept only on those
+  three kinds.
+- `fields.N.kind` — a fourth `file` field.
+- `fields.N.settings.<key>` — `hidden`: `value`, a string ≤ 255. `number`:
+  `min`, `max`, numeric, `min` ≤ `max`. `date`: `min`, `max`, each `"today"`
+  or a `Y-m-d`, not backwards. `file`: `accept`, a non-empty subset of
+  `image`/`pdf`/`document` (default `["image","pdf"]`), and `max_kb`, an
+  integer 100–20480 (default 5120). Only the kind's own keys are stored — a
+  number turned into a date does not keep `min: 5` — and `settings` is null
+  for every other kind.
+- `fields.N.show_if.field` — must name a field **earlier in the list** that
+  has an answer to read: an unknown key, a later field, the field itself, and
+  a `file`, `hidden`, `heading` or `step` are each refused with their own
+  sentence. `fields.N.show_if.op` — one of the five, and `includes` only on a
+  `checkboxes` source. `fields.N.show_if.value` — required for `equals`,
+  `not_equals` and `includes`, ≤ 150 characters. An empty object, or one whose
+  `field` and `op` are both blank, means no condition and is stored as null.
+
+`required` is stored `false` on a `hidden`, a `heading` and a `step` whatever
+is sent. `redirect_url` is a path on this site or an http(s) URL — `//host`,
+`/\host`, `javascript:`, `mailto:` and `tel:` are a 422 — and null clears it.
+
+**The admin read carries `settings` as stored**, a hidden field's `value`
+included; the public read withholds it (see "Public endpoints"). A file
+field's `settings.max_kb` is the figure that was asked for; the limit in force
+is `min(max_kb, meta.max_upload_kb)`, which is what the public read sends.
+
+**`files` on a submission row** is an object keyed by field —
+`{field, name, size, mime, submission_id, download_path}` — and `{}` when
+nothing was uploaded, never `[]`. `download_path` is **this API's route,
+relative to `/api/v1`**: `/admin/forms/{form id}/submissions/{id}/files/{field}`;
+it is null once the form itself has been deleted, since the route is addressed
+through the form. `data[field]` for a file is its original filename. The
+stored path appears in no response — this resource is also the body of the
+`form.submitted` webhook, which therefore carries `form_id` and `files` too.
+
+**The export** is one row per submission: `Submitted at`, then one column per
+field that has an answer (headings and step breaks have none), headed by its
+label and in the form's order, then `Source page` (the page recorded on the
+lead made from that submission) and `IP`. A choice is written as the option's
+**label**, a `checkboxes` answer joined by `"; "`, a rating as `4 / 5`, a tick
+box as `Yes`/`No`, an upload as its filename. Written by the application's one
+CSV writer, so a cell beginning `=`, `+`, `-` or `@` is prefixed with `'`. The
+columns are today's fields: an answer to a field since removed stays on the
+submission and is not in the file. The file is `form-{slug}-{Y-m-d}.csv`.
 
 ### Media
 
@@ -4374,7 +4518,7 @@ failure to queue it never fails the request.
 | `POST /admin/tickets/{ref}/reply` | The customer, **unless `is_internal`** | `TicketReplied` — and `ticket.replied`, under the same condition |
 | `POST /enquiries` | `sales_email` setting | `EnquiryReceived` — and `lead.created` |
 | `POST /enquiries` | The enquirer | `EnquiryAcknowledged` |
-| `POST /forms/{slug}` | the form's `notify_email`, else `sales_email` | `FormSubmitted` — and `form.submitted`, then `lead.created` |
+| `POST /forms/{slug}` | the form's `notify_email`, else `sales_email` | `FormSubmitted` — and `form.submitted`, then `lead.created`. Answers in the form's own order; a choice by its label, several joined by ", ", a rating as "4 / 5", an upload **by filename only** with a line saying it is downloaded from the console — never attached |
 | `POST /forms/{slug}` | The sender, **when the form collected an address** | `FormAcknowledged` |
 | `POST /checkout` | The buyer — the itemised sales order, closing with how they chose to pay | `OrderPlaced` — and `order.placed` |
 | payment settles | The buyer — the receipt | `OrderPaid` — and `order.paid`, plus `order.status_changed` |

@@ -21,6 +21,41 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.117.0 — 2026-10-06
+
+**The form builder: nine new field types, fields that appear only when
+needed, forms in steps, file uploads and a CSV export.**
+
+- **New field types** (Site → Forms → a form → Fields): Web address, Date
+  (with an earliest and a latest day, "today" included), Single choice,
+  Multiple choice, Rating (five stars), File upload, Hidden value, and two
+  that lay the form out — a Heading with a paragraph under it, and a Step
+  break.
+- **Show a field only when…**: any field can depend on an earlier answer —
+  "How many racks?" only when the site is a data centre. A hidden field is not
+  required and is not stored, whatever was typed into it.
+- **Forms in steps**: add step breaks and the visitor fills in one step at a
+  time, with Back and Next and a "Step 2 of 3" bar. Without JavaScript the
+  whole form shows on one page and still sends.
+- **File uploads**: up to three per form, each limited to images, PDFs or
+  office documents and to a size you choose. Files are kept privately and
+  downloaded from the form's submissions; they are never attached to email.
+- **After sending**: show the message as before, or send the visitor to a
+  page of your choice (a thank-you page, a brochure).
+- **Submissions**: answers read as you wrote them (option labels, "4 / 5",
+  Yes/No), with **Export CSV**, a download link per uploaded file, and a
+  Delete for a single submission.
+- The form screen is now three tabs — Details, Fields, Put it on a page — and
+  field rows fold, so a long form is a list you can scan and reorder.
+- **Embedding**: the frame does everything. The copy-as-HTML snippet is
+  offered only for a form with no upload, step or condition.
+- **Changed**: a required tick box left unticked is now always refused (a
+  submission sent by a script could previously pass); a Single or Multiple
+  choice needs at least two options; a form may hold 50 rows, up from 30.
+- After updating, nothing needs doing: existing forms are unchanged.
+
+---
+
 ## 0.116.0 — 2026-10-06
 
 **Draft a page with AI, and every AI feature now runs through OpenRouter.**

@@ -4496,3 +4496,91 @@ html[data-builder-preview] [data-builder-id]:hover {
 html[data-builder-preview] [data-builder-id][data-builder-flash] {
   outline: 3px solid var(--color-brand-ink);
 }
+
+/* ------------------------------------------------- editor-built forms
+ *
+ * `components/forms/form-block.tsx` (0.117.0): conditions, steps and the
+ * star rating.
+ *
+ * ### First paint
+ *
+ * The server's HTML is the form a visitor without JavaScript needs: every
+ * step one under another, every conditional field showing, one submit
+ * button. Hydration then narrows it to the first step and the fields whose
+ * conditions hold — which, drawn naively, is a long form that collapses a
+ * moment after it appears. So until the first hydrated render the markup
+ * carries two attributes, and both are gone after it:
+ *
+ *   `data-form-wait`  what hydration is about to hide (a later step, a field
+ *                     whose condition is false on an untouched form)
+ *   `data-form-js`    what only means something once it has run (the step
+ *                     counter and its bar, the word "Next")
+ *
+ * **The base state is the no-JavaScript one**: `wait` shows, `js` does not.
+ * Where scripting is enabled a four-second animation holds the opposite, so
+ * the page opens as it will be after hydration and nothing moves when React
+ * arrives. An animation rather than a plain rule, on purpose: it *ends*. If
+ * the script never comes — a chunk that 404s after a deploy, a blocked
+ * bundle — the form falls back to whole and sendable instead of staying a
+ * first step with a button that does nothing. `display` in a keyframe is
+ * recent; a browser without it ignores the declaration and gets the base
+ * state and one reflow at hydration, which is the old behaviour and never a
+ * broken form. Inside `no-preference` like every other animation here: the
+ * global reduced-motion rule would switch it off regardless, and this says
+ * so. After hydration the `hidden` attribute does the hiding and none of
+ * this matches anything.
+ */
+[data-form-js] { display: none; }
+
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  @keyframes form-hold-off { from, to { display: none; } }
+  @keyframes form-hold-on { from, to { display: block; } }
+
+  [data-form-wait] { animation: form-hold-off 4s step-end; }
+  [data-form-js] { animation: form-hold-on 4s step-end; }
+}
+
+/*
+ * The rating's stars are lit by the radios themselves, so the value lives in
+ * the DOM and nowhere else (see `RatingControl`). A star is gold when its own
+ * input is checked or any star after it is; under a pointer the row lights
+ * to the star about to be chosen instead. `:has()` carries the specificity
+ * of its argument, which is why the hover reset is written
+ * `label:not(:hover)` — as a bare `label` it would lose to the checked rules
+ * and a row rated five could not preview a three. The row is `w-fit` for the
+ * same preview: full width, the empty space beside the stars would be "over
+ * the row and over no star" and would blank a rating already given. Both
+ * colours are the shop's review tokens, graphics held to 3:1 on a card by
+ * `npm run themes`.
+ */
+[data-form-rating] path {
+  fill: none;
+  stroke: var(--color-rating-empty);
+  transition: fill var(--duration-fast) var(--ease-brand), stroke var(--duration-fast) var(--ease-brand);
+}
+[data-form-rating] label:has(input:checked) path,
+[data-form-rating] label:has(~ label input:checked) path {
+  fill: var(--color-rating);
+  stroke: var(--color-rating);
+}
+@media (hover: hover) {
+  [data-form-rating]:hover label:not(:hover) path {
+    fill: none;
+    stroke: var(--color-rating-empty);
+  }
+  [data-form-rating]:hover label:hover path,
+  [data-form-rating]:hover label:has(~ label:hover) path {
+    fill: var(--color-rating);
+    stroke: var(--color-rating);
+  }
+}
+
+/*
+ * Pressing Next moves focus to the new step's title, and the browser scrolls
+ * a focused element only just into view — which on the public site is
+ * underneath the sticky header: measured at 7px from the top of a 390px
+ * screen, behind a 69px bar. The margin clears the header and the "Step N of
+ * M" line that sits above the title, so both are read on arrival. Harmless in
+ * the embed frame, which has no header.
+ */
+[data-form-step-title] { scroll-margin-top: calc(var(--h-site-header) + 4.5rem); }

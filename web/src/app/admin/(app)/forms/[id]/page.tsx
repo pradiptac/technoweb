@@ -4,13 +4,12 @@ import { PageHeader } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
-import { getForm } from "@/lib/admin";
+import { getFormWithMeta, type AdminForm, type FormMeta } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { siteUrl } from "@/lib/site-url";
 import { noIndex } from "@/lib/no-index";
 import { FormForm } from "../form-form";
 import { deleteFormAction } from "../actions";
-import type { SiteForm } from "@/types/api";
 import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Edit form", path: "/admin/forms", seo: noIndex });
@@ -25,9 +24,11 @@ export default async function EditFormPage({
   const { id } = await params;
   const { saved } = await searchParams;
 
-  let form: SiteForm;
+  let form: AdminForm;
+  // The builder's pickers — kinds, operators, upload families — ride on the same read.
+  let meta: FormMeta;
   try {
-    form = await getForm(Number(id));
+    ({ form, meta } = await getFormWithMeta(Number(id)));
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
     throw error;
@@ -46,7 +47,7 @@ export default async function EditFormPage({
         </Link>
       </PageHeader>
 
-      <FormForm form={form} saved={Boolean(saved)} site={siteUrl()} />
+      <FormForm form={form} meta={meta} saved={Boolean(saved)} site={siteUrl()} />
 
       {/* Outside the form: a nested form is invalid markup and browsers drop
           one of the two. */}

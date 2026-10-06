@@ -405,13 +405,71 @@ two named sliders above) by editing them directly.
 **Site → Forms** builds your own forms — a quote request, an event
 registration — without a developer.
 
-1. Press **New form** and give it a **Name**, a **Submit button label** and a
-   **Message after sending**.
-2. Add fields: Text, Email, Phone, Number, Long text, Dropdown, Checkbox.
-   Mark the ones that are required.
+The form screen has three tabs: **Details**, **Fields** and **Put it on a
+page**.
+
+1. Press **New form** and, on **Details**, give it a **Name**, a **Submit
+   button label** and a **Message after sending**.
+2. On **Fields**, press **Add a field** for each question and choose its
+   **Type**. Mark the ones that are required.
 3. Set **Notify** to the address that should receive each submission (blank
    uses the **Sales email** from **System → Settings → Contact**).
 4. Publish, save, and place it with `[form slug="…"]` or a builder section.
+
+### Field types
+
+| Type | What the visitor sees |
+|---|---|
+| Short text, Paragraph | One line, or several |
+| Email, Phone, Web address, Number | A box that checks what is typed. A Number can have a smallest and a largest value |
+| Date | A date picker. You can set an earliest and a latest day, or "Today" |
+| Dropdown, Single choice | One answer from your list — in a menu, or with every option visible |
+| Multiple choice | Any number of answers from your list |
+| Tick box | One box, such as a consent |
+| Rating | Five stars |
+| File upload | One file. You choose what is accepted — images, PDF, office documents — and the largest size |
+| Hidden value | Nothing. A fixed value you set (a campaign name, say) is saved with every submission |
+
+Two more rows lay the form out and collect nothing: **Add a heading** puts a
+title and an optional paragraph between fields, and **Add a step break**
+starts a new step.
+
+- Rows fold. Press a row's title to open it; use the arrows to reorder.
+- A field's **Key** is the name its answer is stored under. It is made from
+  the label when you add the field; changing it later separates the field
+  from answers already collected.
+- Once an option of a Dropdown, Single choice or Multiple choice has been
+  saved you can reword its label freely — earlier answers still match.
+
+### Showing a field only when it is needed
+
+Open a field and press **Show this field only when…**, then choose an earlier
+field, a comparison and an answer — for example *"What kind of site is it?"
+is "Data centre"*. The field then appears only for visitors who answer that
+way. A field that stays hidden is never required and nothing is saved for it.
+
+A condition can only read a field **above** it, and cannot read a File upload
+or a Hidden value. If you move or remove the field it reads, the row shows a
+warning until you choose another or press **Always show**.
+
+### Forms in steps
+
+Add a **step break** wherever a new step should start and give it a title.
+The visitor sees one step at a time with **Back** and **Next** and a
+"Step 2 of 3" bar; required fields are checked before moving on. Everything
+above the first break is the first step.
+
+### File uploads
+
+A form can have up to three File upload fields. Uploaded files are kept
+privately: they are not attached to the notification email and have no public
+address. Download them from the form's submissions.
+
+### After sending
+
+By default the visitor sees your **Message after sending**. Fill in **After
+sending** (on Details) to send them to a page instead — a path on your
+site such as `/thank-you`, or a full `https://` address.
 
 - Every submission also becomes a **lead** (chapter 10), with the page it was
   sent from.
@@ -419,6 +477,10 @@ registration — without a developer.
   acknowledgement. It does not repeat what they typed.
 - **Submissions** are opened from the form's row in the **Submissions**
   column of **Site → Forms**, and are kept even if the form is later deleted.
+  Each shows the answers, a download link for any uploaded file and a
+  **Delete** (which also deletes its files). **Export CSV** downloads every
+  submission of that form as a spreadsheet.
+- A required tick box must be ticked — a consent cannot be skipped.
 - A field cannot be called `website` — that name is reserved for the
   site's spam trap.
 
@@ -429,7 +491,9 @@ two snippets shown:
 
 - the **frame** snippet shows the live form and always stays up to date;
 - the **HTML** snippet is plain markup the other site can style — but it is a
-  copy, so if you add or remove a field later, paste it again.
+  copy, so if you add or remove a field later, paste it again. It is not
+  offered for a form with a file upload, steps or a conditional field; those
+  work only in the frame.
 
 ## Custom fields
 

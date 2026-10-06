@@ -2124,6 +2124,13 @@ Every contact form lands in one pipeline; the scoring rubric; the status machine
 - A copied snippet is a snapshot and will go stale.
 - A `noindex` page is not required to carry a canonical, and `audit.mjs` says so as a rule rather than as an exemption.
 - A form's validation comes from its stored definition, not its payload.
+- Sixteen field kinds since 0.117.0 (`FormField::KINDS`; `App\Support\Forms\FieldSpec` says what each means and is *sent* to the console as `meta.kinds/ops/file_accepts/max_upload_kb/max_file_fields` — never a list in TypeScript): `url`, `date`, `radio`, `checkboxes`, `rating`, `file`, `hidden`, and the layout rows `heading` and `step`, which store nothing.
+- `show_if` (`{field, op, value?}`) is evaluated twice and the two must agree: `FormValidator::shown()` and `hiddenNames()` in `components/forms/form-logic.ts`. A field its condition hides is **dropped on the server** (not required, not stored); a field whose source is hidden is hidden whatever its operator; a condition may read only an *earlier* field that is not a file, hidden or layout row, refused on save.
+- A hidden field's value is the definition's, never the request's, and is absent from the public read.
+- A form upload is the second unauthenticated upload after the CV: private disk (`form-uploads/{form}/`), hashed name, extension *and* content checked, at most three file fields, never attached to mail; downloaded only through `GET /admin/forms/{id}/submissions/{sid}/files/{field}`. A form with one is posted as multipart through `apiUpload`; the raw-HTML snippet refuses it.
+- The server's HTML is the no-JS form (every step, every conditional field, one submit); `data-form-wait`/`data-form-js` and a four-second `step-end` animation hold the hydrated look and then end. No step panel is unmounted. A step's title is focused with `preventScroll` and scrolled by `scroll-margin-top` — it landed under the sticky header at 390px.
+- The field builder re-mounts its list on the form's `reset` event: controlled, unnamed selects and tick boxes are reset by React after any action, a refused one included, and showed the first option while the posted JSON was right. Rows fold; a row with a 422 is always open.
+- `redirect_url` is a path or an http(s) URL (`LinkPattern::PAGE_RULE`), followed by the Server Action outside its `try`; the embed frame shows a `target="_top"` link instead of navigating.
 
 ### The newsletter — `docs/newsletter.md`
 

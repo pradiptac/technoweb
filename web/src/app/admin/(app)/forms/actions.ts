@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
-import { createForm, deleteForm, updateForm, type FormFieldPayload } from "@/lib/admin";
+import { createForm, deleteForm, deleteFormSubmission, updateForm, type FormFieldPayload } from "@/lib/admin";
 import { ApiError } from "@/lib/api";
 
 export type FormState = { error?: string; fieldErrors?: Record<string, string[]> };
@@ -32,6 +32,9 @@ function payload(formData: FormData) {
     status: String(formData.get("status") ?? "published"),
     submit_label: String(formData.get("submit_label") ?? "Send").trim() || "Send",
     success_message: String(formData.get("success_message") ?? "").trim() || null,
+    // Null rather than omitted when blank: clearing the box has to clear the
+    // redirect, and the API leaves a missing key alone.
+    redirect_url: String(formData.get("redirect_url") ?? "").trim() || null,
     notify_email: String(formData.get("notify_email") ?? "").trim() || null,
     /*
      * An unticked checkbox posts nothing at all, so absence is false.
@@ -84,4 +87,33 @@ export async function deleteFormAction(formData: FormData) {
   await deleteForm(id).catch(() => null);
   if (slug) updateTag(`form:${slug}`);
   redirect("/admin/forms?deleted=1");
+}
+
+/**
+ * Delete one submission, and the files that came with it.
+ *
+ * A one-press form on the submissions list, so the outcome goes into the URL
+ * (`?done=`) rather than back into a component: the row it was pressed on is
+ * gone by the time anything could render there. A refusal says so and changes
+ * nothing — never "deleted" over a row that is still in the list.
+ */
+export async function deleteSubmissionAction(formData: FormData) {
+  const formId = Number(formData.get("form_id"));
+  const submissionId = Number(formData.get("submission_id"));
+  const page = Number(formData.get("page"));
+  if (!formId || !submissionId) return;
+
+  let done = "submission-deleted";
+  try {
+    await deleteFormSubmission(formId, submissionId);
+  } catch {
+    done = "submission-not-deleted";
+  }
+
+  const query = new URLSearchParams({ done });
+  if (page > 1) query.set("page", String(page));
+  const perPage = Number(formData.get("per_page"));
+  if (perPage) query.set("per_page", String(perPage));
+
+  redirect(`/admin/forms/${formId}/submissions?${query}`);
 }

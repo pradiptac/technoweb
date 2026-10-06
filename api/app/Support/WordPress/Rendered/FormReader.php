@@ -13,10 +13,13 @@ use Illuminate\Support\Str;
  * fields people fill in.
  *
  * Each control becomes a field of one of `FormField::KINDS`: a radio group
- * and a group of checkboxes become a choice from a list, a lone checkbox a
- * tick box, a URL or a date a line of text. Hidden fields, honeypots,
- * captchas, passwords and buttons are left out; a file upload has no field
- * here and is named in `$dropped`. The label is what the page showed beside
+ * a single choice, a group of checkboxes a multiple choice, a lone checkbox a
+ * tick box, a URL a web address and a date a date (0.117.0 — until then the
+ * first two were dropdowns and the last two lines of text). Hidden fields,
+ * honeypots, captchas, passwords and buttons are left out; a file upload is
+ * still not brought across — what the old site accepted and how large is not
+ * in the markup, and an upload open to the internet is not something to
+ * switch on by guessing — and is named in `$dropped`. The label is what the page showed beside
  * the control (`<label for>`, a wrapping label, the field's group label,
  * `aria-label`, the placeholder). The key is the plugin's own field name
  * where it means something (`your-email` → `email`) and the label otherwise
@@ -121,6 +124,8 @@ final class FormReader
                 $type === 'email' => 'email',
                 $type === 'tel' => 'tel',
                 $type === 'number' || $type === 'range' => 'number',
+                $type === 'date' => 'date',
+                $type === 'url' => 'url',
                 default => 'text',
             };
 
@@ -220,7 +225,9 @@ final class FormReader
         }
 
         return [
-            'kind' => 'select',
+            // A group with one choice in it is not a choice between things;
+            // a dropdown is the kind that may hold a single option.
+            'kind' => count($options) < 2 ? 'select' : ($type === 'radio' ? 'radio' : 'checkboxes'),
             'raw' => $raw,
             'label' => $legend !== '' ? self::bare($legend) : (string) Str::of($raw)->afterLast('[')->before(']')->replace(['-', '_'], ' ')->ucfirst(),
             'required' => self::required($first, $legend),
@@ -399,6 +406,14 @@ final class FormReader
             }
         }
 
-        return 'fields:'.substr(sha1(implode('|', array_map(fn ($f) => $f['kind'].':'.$f['name'], $fields))), 0, 16);
+        /*
+         * Hashed over the kinds as they were named before 0.117.0. This key
+         * is how a second import finds the form the first one made, so the
+         * day a radio group stopped being read as a dropdown must not be the
+         * day every such form is imported again as a copy.
+         */
+        $legacy = ['radio' => 'select', 'checkboxes' => 'select', 'date' => 'text', 'url' => 'text'];
+
+        return 'fields:'.substr(sha1(implode('|', array_map(fn ($f) => ($legacy[$f['kind']] ?? $f['kind']).':'.$f['name'], $fields))), 0, 16);
     }
 }

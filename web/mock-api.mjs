@@ -711,16 +711,153 @@ const forms = [
     // default is false; this fixture is the embeddable case, because the
     // refusal is the easy half to exercise and the render is not.
     embed_enabled: true,
+    // Where a visitor is sent after sending, instead of the message; null shows the message.
+    redirect_url: null,
+    // Admin reads only — `publicForm()` below never sends it.
+    notify_email: null,
+    /*
+     * Every field carries `settings` and `show_if`, null when the kind keeps
+     * nothing and the field is always shown (0.117.0). This fixture stays the
+     * plain case on purpose — no upload, no step break, no condition — so the
+     * embed route and the raw-HTML snippet both still have a form to serve.
+     */
     fields: [
-      { id:1, kind:'text', name:'name', label:'Your name', placeholder:null, help:null, required:true, options:[], width:'half' },
-      { id:2, kind:'email', name:'email', label:'Work email', placeholder:null, help:null, required:true, options:[], width:'half' },
-      { id:3, kind:'tel', name:'phone', label:'Phone', placeholder:null, help:null, required:false, options:[], width:'half' },
-      { id:4, kind:'text', name:'company', label:'Company', placeholder:null, help:null, required:false, options:[], width:'half' },
-      { id:5, kind:'text', name:'subject', label:'Subject', placeholder:null, help:null, required:false, options:[], width:'full' },
-      { id:6, kind:'textarea', name:'message', label:'How can we help?', placeholder:null, help:null, required:true, options:[], width:'full' },
+      { id:1, kind:'text', name:'name', label:'Your name', placeholder:null, help:null, required:true, options:[], settings:null, show_if:null, width:'half' },
+      { id:2, kind:'email', name:'email', label:'Work email', placeholder:null, help:null, required:true, options:[], settings:null, show_if:null, width:'half' },
+      { id:3, kind:'tel', name:'phone', label:'Phone', placeholder:null, help:null, required:false, options:[], settings:null, show_if:null, width:'half' },
+      { id:4, kind:'text', name:'company', label:'Company', placeholder:null, help:null, required:false, options:[], settings:null, show_if:null, width:'half' },
+      { id:5, kind:'text', name:'subject', label:'Subject', placeholder:null, help:null, required:false, options:[], settings:null, show_if:null, width:'full' },
+      { id:6, kind:'textarea', name:'message', label:'How can we help?', placeholder:null, help:null, required:true, options:[], settings:null, show_if:null, width:'full' },
     ],
   },
 ];
+
+/*
+ * The form builder's vocabulary, as `App\Support\Forms\FieldSpec::meta()`
+ * sends it on the admin forms index and on every admin read of a form.
+ *
+ * The console draws its kind picker, its condition operators and an upload
+ * field's "files accepted" boxes from this and keeps no list of its own, so a
+ * mock without it renders a builder with seven kinds and no conditions — the
+ * fallback for an older API, which would hide the feature from every CI run.
+ * Sixteen kinds in `FormField::KINDS` order; an operator's flag is
+ * `takes_value`, not `needs_value`.
+ */
+const FORM_LAYOUT_KINDS = ['heading', 'step'];
+const FORM_OPTION_KINDS = ['select', 'radio', 'checkboxes'];
+const FORM_NOT_A_SOURCE = ['file', 'hidden', 'heading', 'step'];
+const FORM_META = {
+  kinds: [
+    ['text', 'Short text', 'One line: a name, a company, a subject.'],
+    ['email', 'Email', 'An address, checked for shape. The first one on a form is where its receipt goes.'],
+    ['tel', 'Phone', 'A telephone number, with spaces, brackets and a country code allowed.'],
+    ['number', 'Number', 'A figure, with an optional lowest and highest.'],
+    ['textarea', 'Paragraph', 'A longer answer over several lines.'],
+    ['select', 'Dropdown', 'One choice from a list that opens.'],
+    ['checkbox', 'Tick box', 'One box to tick, such as a consent.'],
+    ['url', 'Web address', 'A link beginning http:// or https://.'],
+    ['date', 'Date', 'A day, with an optional earliest and latest.'],
+    ['radio', 'Single choice', 'One choice from a short list, every option visible.'],
+    ['checkboxes', 'Multiple choice', 'Any number of choices from a list.'],
+    ['rating', 'Rating', 'One to five stars.'],
+    ['file', 'File upload', 'One file. Kept privately and downloaded from the console, never emailed.'],
+    ['hidden', 'Hidden value', 'A fixed value stored with every submission. The visitor never sees or sends it.'],
+    ['heading', 'Heading', 'A title and an optional paragraph between fields. Collects nothing.'],
+    ['step', 'Step break', 'Starts a new step. Its label is that step’s title.'],
+  ].map(([value, label, blurb]) => ({
+    value, label, blurb,
+    takes_options: FORM_OPTION_KINDS.includes(value),
+    is_layout: FORM_LAYOUT_KINDS.includes(value),
+    is_file: value === 'file',
+    is_condition_source: !FORM_NOT_A_SOURCE.includes(value),
+  })),
+  ops: [
+    { value: 'equals', label: 'is', takes_value: true },
+    { value: 'not_equals', label: 'is not', takes_value: true },
+    { value: 'includes', label: 'includes', takes_value: true },
+    { value: 'filled', label: 'is answered', takes_value: false },
+    { value: 'empty', label: 'is not answered', takes_value: false },
+  ],
+  file_accepts: [
+    { value: 'image', label: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp', 'gif'] },
+    { value: 'pdf', label: 'PDF', extensions: ['pdf'] },
+    { value: 'document', label: 'Office documents and text', extensions: ['doc', 'docx', 'xls', 'xlsx', 'csv', 'txt'] },
+  ],
+  max_upload_kb: 20480,
+  max_file_fields: 3,
+};
+
+/*
+ * What people sent. `files` is an object keyed by field name — `{}` when
+ * nothing was uploaded, never `[]` — and a file's `download_path` is this
+ * API's own route under /api/v1, never a path on the disk. The mock holds no
+ * bytes, so that route answers 404 below; the console's own handler turns
+ * that into "not available" rather than a broken download.
+ */
+const formSubmissions = [
+  {
+    id: 1, form_id: 1, form_slug: 'contact',
+    data: { name: 'Rahul Sen', email: 'rahul@meridianfoods.in', phone: '+91 98300 11223', company: 'Meridian Foods', subject: 'Warehouse Wi-Fi', message: 'We need coverage across two cold rooms and the loading bay.' },
+    files: {}, ip_address: '203.0.113.7', read_at: null, created_at: '2026-10-05T11:20:00+05:30',
+  },
+];
+
+/** A form as the public endpoint sends it: no notify address, and the two facts the page would otherwise work out. */
+const publicForm = (f) => {
+  const { notify_email, ...form } = f;
+  void notify_email;
+  return {
+    ...form,
+    has_files: f.fields.some((field) => field.kind === 'file'),
+    steps: f.fields.filter((field) => field.kind === 'step').length + 1,
+    // A hidden field's value is the server's own and never crosses to a page.
+    fields: f.fields.map((field) => (field.kind === 'hidden' ? { ...field, settings: null } : field)),
+  };
+};
+
+/** A form as the console reads it; the index row carries counts and no fields. */
+const adminForm = (f, detail = true) => {
+  const counts = { submissions_count: formSubmissions.filter((s) => s.form_id === f.id).length };
+  if (!detail) {
+    const { fields, ...row } = f;
+    return { ...row, fields_count: fields.length, ...counts };
+  }
+  return { ...f, has_files: f.fields.some((field) => field.kind === 'file'), steps: f.fields.filter((field) => field.kind === 'step').length + 1, ...counts };
+};
+
+/**
+ * Fields as `syncFields()` stores them: replaced wholesale with fresh ids, a
+ * heading or a step break named by the server, and each row cut down to what
+ * its kind keeps. The mock validates nothing — the API is the judge — but it
+ * does pass `settings` and `show_if` through, which is the contract the
+ * builder is written against.
+ */
+const storeFormFields = (rows) => {
+  const taken = new Set(rows.map((r) => r?.name).filter(Boolean));
+  const freeName = (base) => {
+    let n = 1;
+    while (taken.has(`${base}_${n}`)) n += 1;
+    taken.add(`${base}_${n}`);
+    return `${base}_${n}`;
+  };
+  let step = 1;
+  return rows.map((r, i) => {
+    const kind = r?.kind ?? 'text';
+    const layout = FORM_LAYOUT_KINDS.includes(kind);
+    if (kind === 'step') step += 1;
+    return {
+      id: 100 + i, kind,
+      name: r?.name || freeName(kind === 'step' ? 'step' : 'section'),
+      label: r?.label || `Step ${step}`,
+      placeholder: r?.placeholder ?? null, help: r?.help ?? null,
+      required: !layout && kind !== 'hidden' && Boolean(r?.required),
+      options: FORM_OPTION_KINDS.includes(kind) ? (r?.options ?? []) : [],
+      settings: r?.settings && Object.keys(r.settings).length ? r.settings : null,
+      show_if: r?.show_if?.field ? r.show_if : null,
+      width: r?.width ?? 'full',
+    };
+  });
+};
 
 /*
  * One live popup, targeting the shop. Enough for the renderer to be exercised
@@ -2520,6 +2657,97 @@ createServer(async (req, res) => {
       return json(res, 200, { data: { ...lead, meeting: fromMeeting ? { reference: fromMeeting.reference, admin_path: fromMeeting.admin_path } : null } });
     }
 
+    /* Editor-built forms (0.117.0). `meta` is on the index as well as on every
+       read of one form, because the console's *new* screen has no record to
+       read the builder's vocabulary from. The three submission routes are
+       matched before the form's own, the order the API declares them in:
+       `export` would otherwise be read as a submission id. */
+    if (p === '/admin/forms' && req.method === 'GET') {
+      const q = (url.searchParams.get('q') || '').toLowerCase();
+      const rows = forms.filter((f) => !q || f.name.toLowerCase().includes(q)).map((f) => adminForm(f, false));
+      return json(res, 200, {
+        data: rows,
+        links: { first: null, last: null, prev: null, next: null },
+        meta: { current_page: 1, last_page: 1, per_page: 25, total: rows.length, ...FORM_META },
+      });
+    }
+    if (p === '/admin/forms' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      if (!body.name) return json(res, 422, { message: 'The name field is required.', errors: { name: ['The name field is required.'] } });
+      const form = {
+        id: Math.max(0, ...forms.map((f) => f.id)) + 1,
+        name: body.name, slug: body.slug || String(body.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+        status: body.status ?? 'published', submit_label: body.submit_label ?? 'Send',
+        success_message: body.success_message ?? null, redirect_url: body.redirect_url ?? null,
+        notify_email: body.notify_email ?? null, embed_enabled: Boolean(body.embed_enabled),
+        fields: storeFormFields(Array.isArray(body.fields) ? body.fields : []),
+      };
+      forms.push(form);
+      return json(res, 201, { data: adminForm(form), meta: FORM_META });
+    }
+    {
+      const m = p.match(/^\/admin\/forms\/(\d+)(?:\/(.+))?$/);
+      if (m) {
+        const form = forms.find((f) => f.id === Number(m[1]));
+        if (!form) return json(res, 404, { message: 'Not found.' });
+        const rest = m[2] ?? '';
+        const mine = formSubmissions.filter((s) => s.form_id === form.id);
+
+        if (rest === 'submissions' && req.method === 'GET') {
+          return json(res, 200, {
+            data: mine,
+            links: { first: null, last: null, prev: null, next: null },
+            meta: { current_page: 1, last_page: 1, per_page: 25, total: mine.length },
+          });
+        }
+        // One column per field that has an answer — a hidden value included — between when it arrived and where from.
+        if (rest === 'submissions/export' && req.method === 'GET') {
+          const asked = form.fields.filter((f) => !FORM_LAYOUT_KINDS.includes(f.kind));
+          const cell = (v) => `"${String(Array.isArray(v) ? v.join('; ') : v ?? '').replace(/"/g, '""')}"`;
+          const lines = [
+            ['Submitted at', ...asked.map((f) => f.label), 'Source page', 'IP'].map(cell).join(','),
+            ...mine.map((s) => [s.created_at, ...asked.map((f) => s.data[f.name]), '', s.ip_address].map(cell).join(',')),
+          ];
+          res.writeHead(200, { 'Content-Type': 'text/csv; charset=UTF-8', 'Content-Disposition': `attachment; filename="form-${form.slug}-2026-10-06.csv"` });
+          return res.end(`${String.fromCharCode(0xFEFF)}${lines.join('\n')}\n`);
+        }
+        // The mock holds no uploads: every file is the 404 a missing one gets.
+        if (/^submissions\/\d+\/files\/[a-z][a-z0-9_]*$/.test(rest) && req.method === 'GET') {
+          return json(res, 404, { message: 'Not found.' });
+        }
+        {
+          const sm = rest.match(/^submissions\/(\d+)$/);
+          if (sm && req.method === 'DELETE') {
+            const at = formSubmissions.findIndex((s) => s.form_id === form.id && s.id === Number(sm[1]));
+            // A submission of another form is a 404: the id in the URL is a number anybody can change.
+            if (at === -1) return json(res, 404, { message: 'Not found.' });
+            formSubmissions.splice(at, 1);
+            res.writeHead(204);
+            return res.end();
+          }
+        }
+        if (rest === '' && req.method === 'GET') return json(res, 200, { data: adminForm(form), meta: FORM_META });
+        if (rest === '' && req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          for (const key of ['name', 'slug', 'status', 'submit_label', 'success_message', 'redirect_url', 'notify_email']) {
+            if (key in body && (body[key] !== undefined)) form[key] = body[key];
+          }
+          if ('embed_enabled' in body) form.embed_enabled = Boolean(body.embed_enabled);
+          // Replaced wholesale when sent; an absent key leaves the fields alone.
+          if (Array.isArray(body.fields)) form.fields = storeFormFields(body.fields);
+          return json(res, 200, { data: adminForm(form), meta: FORM_META });
+        }
+        if (rest === '' && req.method === 'DELETE') {
+          // Submissions outlive their form: `form_id` goes null and the slug stays.
+          for (const s of mine) s.form_id = null;
+          forms.splice(forms.indexOf(form), 1);
+          res.writeHead(204);
+          return res.end();
+        }
+        return json(res, 404, { message: 'Not found.' });
+      }
+    }
+
     /* Menus. `meta` is the contract that matters: the console builds its
        location picker and its kind dropdown from these rather than listing
        them in TypeScript, so a mock that omitted them would render a screen
@@ -3822,9 +4050,13 @@ createServer(async (req, res) => {
   // because the frontend's fallback depends on that being a miss.
   if (p.startsWith('/forms/')) {
     const f = forms.find(x => x.slug === p.split('/')[2]);
-    if (!f || !f.fields.length) return json(res, 404, { message: 'Not found.' });
-    if (req.method === 'POST') return json(res, 201, { message: f.success_message, data: { id: 1 } });
-    return json(res, 200, { data: f });
+    // A form of headings and step breaks alone asks nothing, so it is a miss too.
+    if (!f || f.status !== 'published' || !f.fields.some((field) => !FORM_LAYOUT_KINDS.includes(field.kind))) {
+      return json(res, 404, { message: 'Not found.' });
+    }
+    // `redirect_url` rides on the answer: where to send the visitor instead of showing `message`, or null.
+    if (req.method === 'POST') return json(res, 201, { message: f.success_message, redirect_url: f.redirect_url ?? null, data: { id: 1 } });
+    return json(res, 200, { data: publicForm(f) });
   }
   /*
    * Popups. A collection and a 200 even when empty, unlike a slider or a

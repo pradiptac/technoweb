@@ -3,7 +3,7 @@ import { apiFetch } from "@/lib/api";
 import { token } from "./_shared";
 import type {
   AdminContentBlock, BlockMeta, BlockType,
-  Paginated, Gallery, Slider, AdminPopup, SiteForm, FormSubmission, Menu, MenuLocationOption, MenuCatalogueOption,
+  Paginated, Gallery, Slider, AdminPopup, Menu, MenuLocationOption, MenuCatalogueOption,
   MenuSectionOption, MenuTypeOption, MenuTarget,
 } from "@/types/api";
 
@@ -237,65 +237,6 @@ export async function updateGallery(id: number, payload: GalleryPayload): Promis
 
 export async function deleteGallery(id: number): Promise<void> {
   await apiFetch<void>(`/admin/galleries/${id}`, { method: "DELETE", token: await token() });
-}
-
-export type FormFieldPayload = {
-  kind: "text" | "email" | "tel" | "number" | "textarea" | "select" | "checkbox";
-  name: string;
-  label: string;
-  placeholder?: string | null;
-  help?: string | null;
-  required?: boolean;
-  width?: "half" | "full";
-  options?: { value: string; label: string }[] | null;
-};
-
-export type FormPayload = {
-  name: string;
-  slug?: string;
-  status?: string;
-  submit_label?: string;
-  success_message?: string | null;
-  notify_email?: string | null;
-  embed_enabled?: boolean;
-  /** Replaced wholesale, like every other repeater here. */
-  fields?: FormFieldPayload[];
-};
-
-export async function getFormList(params: { q?: string; page?: number; per_page?: number } = {}) {
-  const query = new URLSearchParams();
-  if (params.q) query.set("q", params.q);
-  if (params.page) query.set("page", String(params.page));
-  if (params.per_page) query.set("per_page", String(params.per_page));
-  const qs = query.toString();
-  return apiFetch<Paginated<SiteForm>>(`/admin/forms${qs ? `?${qs}` : ""}`, { token: await token() });
-}
-
-export async function getForm(id: number): Promise<SiteForm> {
-  const res = await apiFetch<{ data: SiteForm }>(`/admin/forms/${id}`, { token: await token() });
-  return res.data;
-}
-
-export async function createForm(payload: FormPayload): Promise<SiteForm> {
-  const res = await apiFetch<{ data: SiteForm }>("/admin/forms", { method: "POST", body: payload, token: await token() });
-  return res.data;
-}
-
-export async function updateForm(id: number, payload: FormPayload): Promise<SiteForm> {
-  const res = await apiFetch<{ data: SiteForm }>(`/admin/forms/${id}`, { method: "PATCH", body: payload, token: await token() });
-  return res.data;
-}
-
-export async function deleteForm(id: number): Promise<void> {
-  await apiFetch<void>(`/admin/forms/${id}`, { method: "DELETE", token: await token() });
-}
-
-export async function getFormSubmissions(id: number, params: { page?: number; per_page?: number } = {}) {
-  const query = new URLSearchParams();
-  if (params.page) query.set("page", String(params.page));
-  if (params.per_page) query.set("per_page", String(params.per_page));
-  const qs = query.toString();
-  return apiFetch<Paginated<FormSubmission>>(`/admin/forms/${id}/submissions${qs ? `?${qs}` : ""}`, { token: await token() });
 }
 
 /**

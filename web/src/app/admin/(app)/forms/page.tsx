@@ -9,7 +9,6 @@ import { IconPen } from "@/components/icons";
 import { getFormList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
-import type { Paginated, SiteForm } from "@/types/api";
 import { requireScreen } from "@/lib/admin-screen";
 
 export const metadata = buildMetadata({ title: "Forms", path: "/admin/forms", seo: noIndex });
@@ -22,7 +21,7 @@ export default async function AdminFormsPage({
   await requireScreen();
   const params = await searchParams;
 
-  let result: Paginated<SiteForm>;
+  let result: Awaited<ReturnType<typeof getFormList>>;
   try {
     result = await getFormList({
       q: params.q,

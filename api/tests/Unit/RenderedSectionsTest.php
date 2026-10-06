@@ -246,8 +246,47 @@ class RenderedSectionsTest extends TestCase
         $this->assertSame('wpforms:45', $two['key']);
         $this->assertSame(['full_name', 'preferred_contact'], array_column($two['fields'], 'name'));
         $this->assertSame('Full name', $two['fields'][0]['label']);
-        $this->assertSame('select', $two['fields'][1]['kind']);
+        // A radio group is a single choice with every option on show, which
+        // is a field kind of its own since 0.117.0 — it was read as a
+        // dropdown while a dropdown was the only list there was.
+        $this->assertSame('radio', $two['fields'][1]['kind']);
         $this->assertSame(['Phone', 'Email'], array_column($two['fields'][1]['options'], 'value'));
+    }
+
+    /**
+     * The four controls the builder had no kind for until 0.117.0.
+     *
+     * A group of checkboxes is a multiple choice, a date is a date and a URL
+     * a web address — each used to be flattened into a dropdown or a line of
+     * text, which lost what the old form actually asked. A file input is
+     * still left out and named: what it accepted is not in the markup.
+     */
+    public function test_radio_groups_checkbox_groups_dates_and_urls_keep_their_kind(): void
+    {
+        $pieces = $this->pieces('<form>'
+            .'<fieldset class="fieldset"><legend>Interested in</legend>'
+            .'<label><input type="checkbox" name="interest[]" value="wifi"> Wi-Fi</label>'
+            .'<label><input type="checkbox" name="interest[]" value="cctv"> CCTV</label>'
+            .'<label><input type="checkbox" name="interest[]" value="amc"> AMC</label></fieldset>'
+            .'<fieldset class="fieldset"><legend>Urgency</legend>'
+            .'<label><input type="radio" name="urgency" value="now"> This week</label>'
+            .'<label><input type="radio" name="urgency" value="later"> Later</label></fieldset>'
+            .'<fieldset class="fieldset"><legend>Plan</legend>'
+            .'<label><input type="radio" name="plan" value="only"> The only plan</label></fieldset>'
+            .'<label>Visit date<input type="date" name="visit_date"></label>'
+            .'<label>Your site<input type="url" name="site_address"></label>'
+            .'<label>Floor plan<input type="file" name="plan_file"></label>'
+            .'<button>Send</button></form>');
+
+        $form = $pieces[0]->data;
+
+        $this->assertSame(
+            ['interested_in' => 'checkboxes', 'urgency' => 'radio', 'plan' => 'select', 'visit_date' => 'date', 'site_address' => 'url'],
+            array_column($form['fields'], 'kind', 'name'),
+            'a group with one option in it has nothing to choose between, so it stays a dropdown',
+        );
+        $this->assertSame(['wifi', 'cctv', 'amc'], array_column($form['fields'][0]['options'], 'value'));
+        $this->assertSame(['Floor plan'], $form['dropped']);
     }
 
     public function test_options_without_a_value_are_choices_named_by_their_text(): void

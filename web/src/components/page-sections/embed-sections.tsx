@@ -123,7 +123,8 @@ export async function FormSection({ data, reveal }: { data: EmbedSectionData; re
       <Container>
         <div className="mx-auto max-w-3xl">
           <SectionHead heading={data.heading} lede={data.lede} />
-          <FormBlock form={form} />
+          {/* A form's own headings (a `heading` field, a step's title) sit one level under the section's — or at its level when it has none. */}
+          <FormBlock form={form} headingLevel={data.heading ? 3 : 2} />
         </div>
       </Container>
     </SectionFrame>

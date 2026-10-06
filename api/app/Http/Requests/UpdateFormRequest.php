@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateFormRequest extends FormRequest
 {
@@ -21,6 +22,11 @@ class UpdateFormRequest extends FormRequest
                 Rule::unique('forms', 'slug')->ignore($this->route('form')),
             ],
         ]);
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(fn (Validator $v) => StoreFormRequest::checkFields($v, $this->input('fields')));
     }
 
     public function messages(): array

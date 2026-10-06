@@ -255,6 +255,18 @@ Route::middleware('role:content_manager')->group(function () {
     Route::patch('forms/{form:id}', [AdminFormController::class, 'update'])->name('forms.update');
     Route::delete('forms/{form:id}', [AdminFormController::class, 'destroy'])->name('forms.destroy');
     Route::get('forms/{form:id}/submissions', [AdminFormController::class, 'submissions'])->name('forms.submissions');
+    // Above `submissions/{submission}`, or `{submission}` binds the literal
+    // "export" and answers 404 from model binding — the `media/move` trap.
+    Route::get('forms/{form:id}/submissions/export', [AdminFormController::class, 'export'])->name('forms.submissions.export');
+    // An upload has no URL; this is the only way to read one. `{field}` is
+    // held to the shape of a field key so it can never be read as a path.
+    Route::get('forms/{form:id}/submissions/{submission}/files/{field}', [AdminFormController::class, 'file'])
+        ->whereNumber('submission')
+        ->where('field', '[a-z][a-z0-9_]*')
+        ->name('forms.submissions.file');
+    Route::delete('forms/{form:id}/submissions/{submission}', [AdminFormController::class, 'destroySubmission'])
+        ->whereNumber('submission')
+        ->name('forms.submissions.destroy');
 
     /*
      * Custom field groups (docs/custom-content.md). The console calls the

@@ -726,7 +726,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>ORD-2026-00117</strong> as the reference 
                 'variables' => [
                     'form_name' => ['about' => 'Which form it was.', 'sample' => 'Request a site survey'],
                     'answers' => self::details(
-                        'Every answer, labelled as the form labels them. A form’s questions are whatever an editor built, so this is one block rather than a fixed set.',
+                        'Every answer, labelled as the form labels them. A form’s questions are whatever an editor built, so this is one block rather than a fixed set. An uploaded file is listed by its name and never attached.',
                         '<p><strong>Name:</strong> Priya Sharma</p><p><strong>Sites:</strong> 2</p>',
                     ),
                     'lead' => self::details('The lead score and a link to the pipeline record.', '<p><strong>Score:</strong> 64 / 100 — warm</p>'),

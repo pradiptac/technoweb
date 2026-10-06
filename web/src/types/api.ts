@@ -2951,17 +2951,70 @@ export type MenuSectionOption = { value: string; label: string; path: string };
 export type MenuCatalogueOption = { value: string; label: string; path: string };
 export type MenuTarget = { id: number; label: string; url: string | null };
 
-/** A field in an editor-built form. `kind` decides which control renders. */
+/**
+ * What a field in an editor-built form is. `kind` decides which control
+ * renders (`components/forms/form-controls.tsx`).
+ *
+ * Fourteen take an answer. `hidden` is stored by the API from the form's own
+ * definition and is never drawn or posted; `heading` and `step` are layout —
+ * a heading with a paragraph, and a page break whose `label` titles the step
+ * that follows.
+ */
+export type FormFieldKind =
+  | "text" | "email" | "tel" | "number" | "url" | "date" | "textarea"
+  | "select" | "radio" | "checkboxes" | "checkbox" | "rating" | "file"
+  | "hidden" | "heading" | "step";
+
+/** The families of file an upload field may take; each is a fixed list of extensions. */
+export type FormFileAccept = "image" | "pdf" | "document";
+
+/**
+ * A field's own settings as the **public** read sends them, by kind. Every
+ * key is optional and unknown ones are ignored: `number` reads `min`/`max` as
+ * numbers, `date` reads them as null, `"today"` or a `Y-m-d` date, and `file`
+ * reads `accept`, `extensions` and `max_kb`. A `hidden` field's settings are
+ * null here — its value is the server's and never crosses the wire.
+ */
+export type FormFieldSettings = {
+  min?: string | number | null;
+  max?: string | number | null;
+  /** `file`: the families ticked by the editor. The words for the hint. */
+  accept?: FormFileAccept[] | null;
+  /** `file`: every extension those families admit, without dots — `["jpg", "pdf"]`. */
+  extensions?: string[] | null;
+  /** `file`: the limit in force, in KB — the field's own, never above the server's. */
+  max_kb?: number | null;
+};
+
+/**
+ * "Show this field only when…". `field` is the **name** of an earlier field;
+ * `filled` and `empty` take no value. `includes` is for a `checkboxes` source,
+ * and on one `equals`/`not_equals` mean includes / does not include. The API
+ * skips and drops a field its condition hides, so the browser's part is only
+ * to show and hide — by the same rules, which are `hiddenNames()` in
+ * `components/forms/form-logic.ts`.
+ */
+export type FormShowIf = {
+  field: string;
+  op: "equals" | "not_equals" | "includes" | "filled" | "empty";
+  value?: string | number | boolean | null;
+};
+
+/** A field in an editor-built form. */
 export type FormField = {
-  id: number;
-  kind: "text" | "email" | "tel" | "number" | "textarea" | "select" | "checkbox";
+  /** On admin responses. The public endpoint may leave it out — key on `name`. */
+  id?: number;
+  kind: FormFieldKind;
   name: string;
   label: string;
   placeholder: string | null;
   help: string | null;
   required: boolean;
-  options: { value: string; label: string }[];
+  /** For `select`, `radio` and `checkboxes`; null for every other kind. */
+  options: { value: string; label: string }[] | null;
   width: "half" | "full";
+  settings?: FormFieldSettings | null;
+  show_if?: FormShowIf | null;
 };
 
 export type SiteForm = {
@@ -2971,6 +3024,16 @@ export type SiteForm = {
   status?: string;
   submit_label: string;
   success_message: string | null;
+  /**
+   * Where the visitor goes after a successful submission, instead of seeing
+   * the message: a path on this site or an absolute http(s) URL, validated by
+   * the API on write. Inside the embed frame it is offered as a link instead.
+   */
+  redirect_url?: string | null;
+  /** Whether any field is an upload — such a form posts as multipart. */
+  has_files?: boolean;
+  /** How many pages the form is split into; 1 when it has no `step` field. */
+  steps?: number;
   /** Admin responses only — never on the public endpoint. */
   notify_email?: string | null;
   /** Whether this form may be framed by another site. See `/embed/forms/[slug]`. */

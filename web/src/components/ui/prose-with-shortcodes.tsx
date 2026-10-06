@@ -106,7 +106,11 @@ export async function ProseWithShortcodes({ html, className }: { html: string; c
         }
 
         const form = forms.get(segment.slug);
-        return form ? <FormBlock key={i} form={form} className="my-8" /> : null;
+        // `headingLevel={2}`: a body's own top level is `h2` (the sanitiser
+        // refuses an `h1`), and nothing says one comes before the shortcode —
+        // so a heading inside the form is a peer of the body's sections, which
+        // can never skip a level.
+        return form ? <FormBlock key={i} form={form} className="my-8" headingLevel={2} /> : null;
       })}
     </>
   );

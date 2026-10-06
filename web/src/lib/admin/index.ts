@@ -21,6 +21,7 @@ export * from "./chat";
 export * from "./company";
 export * from "./content-types";
 export * from "./custom-fields";
+export * from "./forms";
 export * from "./knowledge-base";
 export * from "./leads";
 export * from "./media";

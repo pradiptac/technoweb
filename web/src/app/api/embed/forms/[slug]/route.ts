@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { publicApi } from "@/lib/api";
 import { clientIpHeaders } from "@/lib/client-ip";
+import { safeRedirectTarget } from "@/components/forms/form-logic";
 
 /**
  * Where a form pasted as raw HTML onto another website posts.
@@ -72,23 +73,81 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   }
 
   /*
+   * A form that takes a file is not served here, and says so.
+   *
+   * This route forwards JSON. An upload needs the bytes carried through as
+   * multipart, a size the web server in front of Node will accept from any
+   * origin, and progress and refusal handling the pasted snippet does not
+   * have — so a file posted here would arrive as a submission with its
+   * upload silently missing, and a *required* one as a 422 about a field the
+   * visitor filled in. The frame at `/embed/forms/{slug}` is the real form
+   * and takes the file; the message names it. Answered before the body is
+   * read, so nothing is uploaded only to be thrown away.
+   */
+  const fields = form.fields ?? [];
+
+  if (form.has_files || fields.some((field) => field.kind === "file")) {
+    return NextResponse.json(
+      { message: "This form takes a file and can only be embedded as a frame." },
+      { status: 422, headers: CORS },
+    );
+  }
+
+  /*
    * Both shapes, because the snippet is markup somebody will edit.
    *
    * It ships posting `FormData`; the moment it is wired into a framework on
    * the far side it becomes JSON, and refusing that would be a contract that
    * breaks for the reason nobody would guess from the error.
+   *
+   * **A group of checkboxes has to reach the API as an array**, and there
+   * are three ways a third party's page will send one: `interests[]` repeated
+   * (what a browser's own `FormData` does with the markup we hand out),
+   * `interests` repeated without the brackets (hand-written markup), and a
+   * JSON array. All three end as `interests: [...]`. Which keys are groups is
+   * read from the stored definition, so a text field posted twice is still
+   * one value — the last — rather than an array the API would refuse.
    */
-  const payload: Record<string, string> = {};
+  const groups = new Set(fields.filter((field) => field.kind === "checkboxes").map((field) => field.name));
+  const payload: Record<string, string | string[]> = {};
   const type = request.headers.get("content-type") ?? "";
 
+  const put = (rawKey: string, value: string) => {
+    const bracketed = rawKey.endsWith("[]");
+    const key = bracketed ? rawKey.slice(0, -2) : rawKey;
+
+    if (bracketed || groups.has(key)) {
+      const list = payload[key];
+      payload[key] = Array.isArray(list) ? [...list, value] : [value];
+    } else {
+      payload[key] = value;
+    }
+  };
+
+  /** A JSON value as a form would have posted it; anything else is not an answer. */
+  const scalar = (value: unknown): string | null =>
+    typeof value === "string" ? value
+      : typeof value === "number" && Number.isFinite(value) ? String(value)
+      : value === true ? "1"
+      : null;
+
   if (type.includes("application/json")) {
-    const body = await request.json().catch(() => ({}));
-    for (const [key, value] of Object.entries(body ?? {})) {
-      if (typeof value === "string") payload[key] = value;
+    const body: unknown = await request.json().catch(() => null);
+
+    if (body && typeof body === "object" && !Array.isArray(body)) {
+      for (const [key, value] of Object.entries(body)) {
+        for (const item of Array.isArray(value) ? value : [value]) {
+          const text = scalar(item);
+          if (text !== null) put(key, text);
+        }
+        // A group sent as an empty array is still an answer: nothing ticked.
+        const name = key.endsWith("[]") ? key.slice(0, -2) : key;
+        if (Array.isArray(value) && value.length === 0 && (name !== key || groups.has(name))) payload[name] = [];
+      }
     }
   } else {
     const body = await request.formData().catch(() => null);
-    if (body) for (const [key, value] of body.entries()) if (typeof value === "string") payload[key] = value;
+    if (body) for (const [key, value] of body.entries()) if (typeof value === "string") put(key, value);
   }
 
   const base = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -129,8 +188,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
       return NextResponse.json({ message: "We could not send that. Try again." }, { status: 502, headers: CORS });
     }
 
+    /*
+     * `redirect_url` rides along, checked the way the form's own action
+     * checks it: a path on this site or an http(s) URL, else null. This
+     * route never follows it — what a third party's page does after a
+     * success is theirs to decide, and the snippet we hand out shows the
+     * message — but a page that wants to send its visitor on has the address
+     * the editor chose rather than a copy of it that will go stale.
+     */
     return NextResponse.json(
-      { message: body.message ?? form.success_message ?? "Thank you — we will be in touch shortly." },
+      {
+        message: body.message ?? form.success_message ?? "Thank you — we will be in touch shortly.",
+        redirect_url: safeRedirectTarget(body.redirect_url),
+      },
       { status: 201, headers: CORS },
     );
   } catch {

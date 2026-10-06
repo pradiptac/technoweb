@@ -118,6 +118,18 @@ const OUTCOMES: Record<string, Message> = {
     title: "Entry deleted",
     body: "Its address now answers 404; add a redirect if it was linked from anywhere.",
   },
+  "submission-deleted": {
+    tone: "ok",
+    title: "Submission deleted",
+    // What went with it: an upload is part of the submission, not a file
+    // in the media library, so it has nowhere else to live.
+    body: "Any files sent with it went too.",
+  },
+  "submission-not-deleted": {
+    tone: "err",
+    title: "Could not delete that submission",
+    body: "Nothing was changed and it is still in the list. Try again in a moment.",
+  },
   "vacancy-deleted": {
     tone: "ok",
     title: "Vacancy deleted",

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PublishStatus;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
@@ -17,7 +18,7 @@ use Illuminate\Support\Str;
  */
 class Form extends Model
 {
-    protected $fillable = ['name', 'slug', 'status', 'submit_label', 'success_message', 'notify_email', 'embed_enabled'];
+    protected $fillable = ['name', 'slug', 'status', 'submit_label', 'success_message', 'redirect_url', 'notify_email', 'embed_enabled'];
 
     /**
      * The column has a database default, so the model must declare it too.
@@ -74,6 +75,30 @@ class Form extends Model
     public function scopePublished(Builder $query): void
     {
         $query->where('status', PublishStatus::Published);
+    }
+
+    /**
+     * The fields that have an answer: everything but the headings and the
+     * step breaks. What a submission stores, an email lists and an export
+     * gives a column to.
+     *
+     * @return Collection<int, FormField>
+     */
+    public function valueFields(): Collection
+    {
+        return $this->fields->reject(fn (FormField $field) => $field->isLayout())->values();
+    }
+
+    /** Whether the page must post this form as `multipart/form-data`. */
+    public function hasFiles(): bool
+    {
+        return $this->fields->contains(fn (FormField $field) => $field->isFile());
+    }
+
+    /** How many steps the form is walked through: its step breaks, plus the one it opens on. */
+    public function stepCount(): int
+    {
+        return $this->fields->where('kind', 'step')->count() + 1;
     }
 
     /**
