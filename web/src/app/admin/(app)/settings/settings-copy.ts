@@ -572,6 +572,10 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   social_youtube: { label: "YouTube", placeholder: "https://www.youtube.com/@…" },
   social_whatsapp: { label: "WhatsApp", placeholder: "https://wa.me/919876543210" },
   social_reddit: { label: "Reddit", placeholder: "https://www.reddit.com/r/… or /user/…" },
+  homepage_page_id: {
+    label: "Homepage",
+    hint: "The theme’s own homepage, or a published builder page drawn at / in its place — with its own title, description and sections. To start one from what the theme draws today, press “New homepage from the theme” on Content → Pages.",
+  },
   home_stats_block: {
     label: "Stat bar section",
     hint: "A published stat bar to show on the homepage (Site → Stat bars). Where it sits, and whether it shows, is on the Themes screen.",
@@ -964,7 +968,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
             "chatbot_whatsapp_number", "chatbot_forward_unanswered",
             "chatbot_model", "chatbot_max_message_chars", "chatbot_max_messages",
             "chatbot_context_messages", "chatbot_daily_reply_cap"],
-  homepage: ["hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats", "stats_colour", "stats_size", "stats_animation", "home_stats_block", "home_stack_block", "home_pricing_block",
+  homepage: ["homepage_page_id", "hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats", "stats_colour", "stats_size", "stats_animation", "home_stats_block", "home_stack_block", "home_pricing_block",
              "why_kicker", "why_heading", "why_lede", "why_steps",
              "testimonial_enabled", "testimonial_quote", "testimonial_author", "testimonial_role",
              "amc_enabled", "amc_heading", "amc_inclusions", "amc_link_label", "amc_link_href"],

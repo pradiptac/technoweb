@@ -56,12 +56,16 @@ export function HeroSection({ data, first, crumbs, eager, revealId }: {
   // rise — what each did before the choice existed.
   const reveal = first ? null : sectionReveal(revealId, layout === "cover" && picture ? null : "fade-up");
 
+  // No trail on the homepage (0.113.0, a builder page chosen as `/`): it is
+  // passed no crumbs, and a trail of "Home" alone, on Home, says nothing.
+  const trail = first && crumbs.length > 0;
+
   if (layout === "cover" && picture) {
     return (
       <section data-page-section="hero" data-hero-layout="cover" data-aos={reveal ?? undefined} className="relative overflow-hidden bg-dark">
         {picture("100vw", "opacity-35")}
         <Container className="relative py-20 lg:py-28">
-          {first && <div className="mb-8"><Breadcrumbs crumbs={crumbs} onBanner /></div>}
+          {trail && <div className="mb-8"><Breadcrumbs crumbs={crumbs} onBanner /></div>}
           <div className="max-w-3xl">
             {data.kicker && <span className="text-11-5 font-semibold uppercase tracking-[.13em] text-dark-muted-brand">{data.kicker}</span>}
             <Heading className={cn("display-1 text-balance text-dark-ink", data.kicker && "mt-4")}>{data.heading}</Heading>
@@ -86,7 +90,7 @@ export function HeroSection({ data, first, crumbs, eager, revealId }: {
     return (
       <section data-page-section="hero" data-hero-layout="split" data-aos={reveal ?? undefined} className="section-y-lg">
         <Container>
-          {first && <div className="mb-8"><Breadcrumbs crumbs={crumbs} /></div>}
+          {trail && <div className="mb-8"><Breadcrumbs crumbs={crumbs} /></div>}
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
             <div className="min-w-0">{words(false)}</div>
             <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-line-strong bg-surface-2">
@@ -101,7 +105,7 @@ export function HeroSection({ data, first, crumbs, eager, revealId }: {
   return (
     <section data-page-section="hero" data-hero-layout="centered" data-aos={reveal ?? undefined} className="section-y-lg">
       <Container className="text-center">
-        {first && <div className="mb-8 flex justify-center"><Breadcrumbs crumbs={crumbs} /></div>}
+        {trail && <div className="mb-8 flex justify-center"><Breadcrumbs crumbs={crumbs} /></div>}
         {words(true)}
       </Container>
     </section>

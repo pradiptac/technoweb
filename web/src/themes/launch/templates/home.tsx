@@ -20,6 +20,7 @@ import { motionFor } from "@/lib/motion-choices";
 import { heroCopy, statPairs } from "@/lib/site-settings";
 import type { HomeData } from "@/themes/contract";
 import { orderSections, type ThemeOptions } from "@/themes/options";
+import { HeroTitle } from "@/lib/hero-heading";
 
 /**
  * Launch's front page: a bento grid.
@@ -64,7 +65,7 @@ export function Home({
               <i aria-hidden className="size-1.5 rounded-full bg-brand-500" />
               {kicker}
             </span>
-            <h1 className="display-1 mt-6 max-w-[18ch] text-balance [overflow-wrap:anywhere]">{heading}</h1>
+            <HeroTitle className="display-1 mt-6 max-w-[18ch] text-balance [overflow-wrap:anywhere]">{heading}</HeroTitle>
             <p className="lede mt-5">{lede}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <ButtonLink href="/contact" size="lg">Talk to an engineer <IconArrowRight /></ButtonLink>

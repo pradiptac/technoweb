@@ -62,6 +62,13 @@ enum PageSectionType: string
     case Columns = 'columns';
     case Map = 'map';
     /**
+     * One of the active theme's own homepage sections (2026-10-06, 0.113.0):
+     * the hero, the solutions, the partner strip… — stored as the section's
+     * id, drawn by the theme that is active when the page renders, so it
+     * changes with the theme. What lets the homepage be a builder page.
+     */
+    case ThemeSection = 'theme_section';
+    /**
      * A section from the library, placed linked (2026-10-05): it stores only
      * `saved_id`, and the presenter draws the library's section in its place,
      * so an edit to it reaches every page that places it.
@@ -99,6 +106,7 @@ enum PageSectionType: string
             self::Countdown => 'Countdown',
             self::Columns => 'Columns of text',
             self::Map => 'Map',
+            self::ThemeSection => 'From the theme',
             self::Saved => 'Saved section',
         };
     }
@@ -138,6 +146,7 @@ enum PageSectionType: string
             self::Countdown => 'Days, hours, minutes and seconds to a date — a launch, an offer ending, an event — with a line for when it has passed.',
             self::Columns => 'Two or three columns side by side, each with a heading and a body from the editor.',
             self::Map => 'A Google map, loaded only when somebody presses it, with the address beside it.',
+            self::ThemeSection => 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.',
             self::Saved => 'A section from the library, kept in step with it: edit it once and every page that places it changes.',
         };
     }

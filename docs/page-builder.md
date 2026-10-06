@@ -540,6 +540,57 @@ Five more types, in `page-sections/people-sections.tsx`:
   page's `MapEmbed`: a card until pressed, so nothing reaches Google before
   then.
 
+## The homepage as a builder page (0.113.0)
+
+**Settings → Homepage → Homepage** chooses what `/` draws: the theme's own
+homepage (the default, and what an install that never touches it keeps), or a
+published builder page. `homepage_page_id` holds the page's id; the API checks
+it names a published builder page on write, offers exactly those as the
+select's options, and publishes `homepage_page_slug` on `/settings` **only
+while the page is still a published builder page** — so unpublishing or
+deleting it puts the theme's homepage back rather than leaving `/` addressed
+at nothing. The id itself is not published.
+
+**The theme's own sections are a section type, `theme_section`** (`{section}`,
+an id from `HOME_SECTIONS`). It is drawn by `ThemeSectionSlot`, which renders
+the active theme's `Home` with `options.only` set — `orderSections()` then
+returns that one entry — and the theme's own background and reveal for it
+cleared, since the builder section carries its own. So the hero, the partner
+strip, the rack, the bento all stay the theme's, and change when the theme
+does; an id the active theme does not draw draws nothing. The API checks the
+id's shape only, the rule `site_theme` follows.
+
+**The theme's hero is the page's title**, so the API refuses it anywhere but
+first (`blocks.N.data.section`). Inside a context that does not own the
+page's `h1` — the console previews, `ownsH1={false}` — `PageSections` sets the
+per-request hero level to `h2` (`lib/hero-heading.tsx`, a `cache()` store read
+by `HeroTitle`, which every theme's homepage hero now renders its heading
+through). On `/` the page owns its `h1`: an opening builder hero or the theme
+hero is it, and otherwise an `sr-only` one carries the page's title. No
+breadcrumbs, and no automatic closing band — the theme's `cta` is a theme
+section like any other.
+
+**"New homepage from the theme"** on Content → Pages builds a draft builder
+page from what `/` draws today: the active theme's sections in the order and
+set the Themes screen gives, each with its stored background and reveal, the
+hero first; the block sections only when a block is chosen for them. Publish
+it, then choose it under Settings → Homepage.
+
+**The page lives at one address.** Its own `/{slug}` 301s to `/`, and the
+sitemap leaves it out (`/llms.txt` lists no CMS pages at all). Its canonical
+is `/`; its SEO title is used only when it is not merely the page's own name
+— a page called "Home" keeps the homepage's usual title.
+
+**`FullRows` never touches a preview or a streaming chunk.** It is mounted
+once in the root layout and stamps `data-fill-settled` on every
+`[data-fill="rows"]` grid; the saved preview streams in under the `[id]`
+route's `loading.tsx`, so a theme section's grids were stamped before React
+hydrated them — a hydration error on `/admin/pages/{id}/preview`, found by the
+audit. It skips anything under `[data-reveal-static]` (the reveal observer's
+marker) or still inside React's `<div hidden id="S:…">`, so a preview shows
+the whole selection. Each theme section is wrapped in
+`data-page-section="theme_section"` with `data-theme-section="<id>"`.
+
 ## Tests
 
 `tests/Feature/PageBuilderTest.php` — every type's rules valid and invalid, an

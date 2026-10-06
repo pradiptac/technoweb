@@ -11,6 +11,7 @@ use App\Enums\PaymentGateway;
 use App\Http\Controllers\Controller;
 use App\Models\ContentBlock;
 use App\Models\Coupon;
+use App\Models\Page;
 use App\Models\Setting;
 use App\Support\Announcement;
 use App\Support\Backups\BackupSettings;
@@ -292,6 +293,7 @@ class SettingController extends Controller
             'theme_density' => self::DENSITIES,
             'theme_surface' => self::SURFACES,
             'home_stats_block' => self::blockOptions(ContentBlockType::Stats),
+            'homepage_page_id' => self::homepageOptions(),
             'home_pricing_block' => self::blockOptions(ContentBlockType::Pricing),
             'home_stack_block' => self::blockOptions(ContentBlockType::Stack),
             'stats_animation' => self::STAT_ANIMATIONS,
@@ -306,6 +308,23 @@ class SettingController extends Controller
             // Online meetings' switches and the slot step (docs/meetings.md).
             default => InboundMail::options()[$key] ?? BackupSettings::OPTIONS[$key] ?? MeetingSettings::OPTIONS[$key] ?? null,
         };
+    }
+
+    /**
+     * The homepage's choices: the theme's own, then every published builder
+     * page by title. A picker for the reason the block pickers are one — an id
+     * typed by hand would save and draw the theme's homepage regardless.
+     *
+     * @return list<array{value: string, label: string, description: string}>
+     */
+    private static function homepageOptions(): array
+    {
+        return [
+            ['value' => '', 'label' => 'The theme’s homepage', 'description' => 'The active theme’s own sections, arranged on the Themes screen.'],
+            ...Page::query()->published()->where('template', 'builder')->orderBy('title')->get(['id', 'title', 'slug'])
+                ->map(fn (Page $p) => ['value' => (string) $p->id, 'label' => $p->title, 'description' => 'The builder page at /'.$p->slug.', drawn at / instead.'])
+                ->all(),
+        ];
     }
 
     /**
@@ -750,6 +769,10 @@ class SettingController extends Controller
                 $rows[$i]['value'] = strtolower((string) $value);
             }
 
+            if ($key === 'homepage_page_id' && filled($value)
+                && ! Page::query()->published()->where('template', 'builder')->whereKey((int) $value)->exists()) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a published builder page, or the theme’s homepage.']);
+            }
             if (isset(self::HOME_BLOCKS[$key]) && filled($value)
                 && ! ContentBlock::query()->published()->where('type', self::HOME_BLOCKS[$key])->where('slug', $value)->exists()) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a published block of this kind, or None.']);

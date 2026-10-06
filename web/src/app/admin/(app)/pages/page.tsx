@@ -12,6 +12,7 @@ import { noIndex } from "@/lib/no-index";
 import type { AdminPage, Paginated, PublishStatus } from "@/types/api";
 import type { ReactNode } from "react";
 import { requireScreen } from "@/lib/admin-screen";
+import { NewHomepageButton } from "./homepage-button";
 
 export const metadata = buildMetadata({ title: "Pages", path: "/admin/pages", seo: noIndex });
 
@@ -67,7 +68,8 @@ export default async function AdminPagesPage({
   return (
     <>
       <PageHeader title="Pages">
-        <div className="ml-auto">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <NewHomepageButton />
           <ButtonLink href="/admin/pages/new" size="sm">New page</ButtonLink>
         </div>
       </PageHeader>

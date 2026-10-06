@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import type { HomeData } from "@/themes/contract";
 import { orderSections, type ThemeOptions } from "@/themes/options";
 import { ServiceTabs } from "../service-tabs";
+import { HeroTitle } from "@/lib/hero-heading";
 
 /**
  * Enterprise's front page: a sequence of proof.
@@ -54,7 +55,7 @@ export function Home({
       <Container className="grid items-center gap-10 pt-12 pb-12 lg:grid-cols-[1.15fr_1fr] lg:gap-16 lg:pt-16 lg:pb-14 [&>*]:min-w-0">
         <div>
           <span className="text-12 font-semibold uppercase tracking-[.14em] text-brand-200">{kicker}</span>
-          <h1 className="display-1 mt-4 text-balance">{heading}</h1>
+          <HeroTitle className="display-1 mt-4 text-balance">{heading}</HeroTitle>
           <p className="lede mt-5 text-[rgba(255,255,255,.82)]">{lede}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <ButtonLink href="/contact" variant="onDark">Talk to an engineer <IconArrowRight /></ButtonLink>

@@ -21,6 +21,22 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.113.0 — 2026-10-06
+
+**The homepage can be a builder page.**
+
+- Settings → Homepage → Homepage chooses what the front page draws: the
+  theme's own homepage, as now, or any published builder page.
+- A new section, **From the theme**, places one of the theme's own homepage
+  sections — the hero, the solutions, the partners, the closing band — on a
+  builder page. It is drawn the way the active theme draws it, and changes
+  when the theme does.
+- **New homepage from the theme** on Content → Pages starts the page for you:
+  today's homepage, section by section, with its backgrounds, ready to mix
+  with any other section.
+- The chosen page is drawn at `/`; its own address redirects there, and it is
+  left out of the sitemap.
+
 ## 0.112.0 — 2026-10-06
 
 **The page builder shows the page beside its sections, live.**

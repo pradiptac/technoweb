@@ -8,6 +8,7 @@ import {
   Choice, FilePath, IconPick, ImagePath, NumberInput, Repeater, Row, Text, Toggle, getIn, useBlock, type Path,
 } from "../../blocks/editors/shared";
 import type { PageBuilderOptions, PageSectionType } from "@/types/api";
+import { HOME_SECTIONS } from "@/themes/options";
 
 /**
  * One section's fields, by type (`docs/page-builder.md`).
@@ -51,6 +52,7 @@ export function blankData(type: PageSectionType): Record<string, unknown> {
     case "countdown": return {};
     case "columns": return { columns: [{}, {}] };
     case "map": return {};
+    case "theme_section": return { section: "solutions" };
     default: return {};
   }
 }
@@ -60,6 +62,10 @@ export function summaryOf(data: Record<string, unknown>): string {
   for (const key of ["heading", "quote", "kicker"]) {
     const v = data[key];
     if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  // A section drawn from the theme names which of the homepage's it is.
+  if (typeof data.section === "string") {
+    return HOME_SECTIONS.find((s) => s.id === data.section)?.label ?? data.section;
   }
   return "";
 }
@@ -680,6 +686,13 @@ export function SectionEditor({ type, sectionId, options }: {
             hint={"In Google Maps: Share, then “Embed a map”, then copy the src=\"…\" from the code."} />
           <Text path={["address"]} label="Address" multiline hint="Shown on the map's card until somebody loads the map." />
         </>
+      );
+
+    case "theme_section":
+      return (
+        <Choice path={["section"]} label="Which homepage section" fallback="solutions"
+          options={HOME_SECTIONS.map((s) => ({ value: s.id, label: s.label }))}
+          hint="Drawn the way the active theme draws it on its homepage, and changing with the theme. A section the theme does not draw shows nothing; the hero opens the page." />
       );
 
     default:

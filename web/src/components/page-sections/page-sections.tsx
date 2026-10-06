@@ -19,6 +19,9 @@ import {
   TestimonialsSection, TimelineSection,
 } from "./visual-sections";
 import { ColumnsSection, CountdownSection, DownloadsSection, MapSection, TeamSection } from "./people-sections";
+import { ThemeSectionSlot } from "./theme-section";
+import { setHeroLevel } from "@/lib/hero-heading";
+import { LOCKED_SECTION } from "@/themes/options";
 
 /**
  * A builder page's sections, in order (`docs/page-builder.md`).
@@ -53,6 +56,13 @@ export async function PageSections({ sections, crumbs, ownsH1 = true, marked = f
   ownsH1?: boolean;
 }) {
   if (!sections.length) return null;
+
+  // A theme's homepage hero (`theme_section`) is that page's `h1` only when
+  // this page owns its `h1` and opens on it; anywhere else — the console's
+  // previews, or further down under a `PageHero` or a builder hero — it is an
+  // `h2`. Set here, before any section renders, because the hero is drawn by
+  // a theme's `Home` that knows nothing of where it is (`lib/hero-heading.tsx`).
+  if (!(ownsH1 && opensOnThemeHero(sections))) setHeroLevel("h2");
 
   const [settings, theme] = await Promise.all([getSiteSettings(), activeTheme()]);
   const seeds = homeSeeds(settings);
@@ -107,9 +117,19 @@ function StyledSection({ style, children }: { style?: SectionStyle | null; child
   );
 }
 
-/** Whether a builder page opens on its own hero — and so supplies its own `h1`. */
+/**
+ * Whether a builder page opens on its own hero — and so supplies its own `h1`.
+ * The theme's homepage hero counts (0.113.0): a page laid out as the homepage
+ * opens on it, and a `PageHero` above it would be a banner over a banner.
+ */
 export function startsWithHero(sections: PageSection[] | undefined): boolean {
-  return sections?.[0]?.type === "hero";
+  return sections?.[0]?.type === "hero" || opensOnThemeHero(sections);
+}
+
+/** Every theme draws the hero (`LOCKED_SECTION`), so naming it is enough. */
+function opensOnThemeHero(sections: PageSection[] | undefined): boolean {
+  const s = sections?.[0];
+  return s?.type === "theme_section" && s.data.section === "hero";
 }
 
 /** The types that do not reveal unless an editor asks them to. */
@@ -154,6 +174,17 @@ function renderSection(
     case "countdown": return <CountdownSection data={section.data} reveal={reveal} />;
     case "columns": return <ColumnsSection data={section.data} reveal={reveal} />;
     case "map": return <MapSection data={section.data} reveal={reveal} />;
+    // The active theme's own homepage section, arriving as `HomeSection` would
+    // have it arrive: still unless the editor chose a reveal, and never the
+    // hero, which opens a page (the homepage's rule, `section-bg.tsx`).
+    case "theme_section": {
+      const own = section.data.section === LOCKED_SECTION ? null : sectionReveal(section.reveal, null);
+      return (
+        <div data-page-section="theme_section" data-theme-section={section.data.section} data-aos={own ?? undefined}>
+          <ThemeSectionSlot id={section.data.section} />
+        </div>
+      );
+    }
     default: return null;
   }
 }

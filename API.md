@@ -1187,7 +1187,11 @@ file left out), `countdown` (`heading`, `ends_at` as `Y-m-d\TH:i` in the site's
 timezone, `done_text?`, buttons; read with `ends_at` as an instant with its
 offset and `ends_label`), `columns` (2–3 `{heading?, body}`, each body rich
 text — `blocks.*.data.columns.*.body` is cleaned on write) and `map` (`url`
-beginning `https://www.google.com/maps/embed`, `address?`) — and
+beginning `https://www.google.com/maps/embed`, `address?`), and since 0.113.0
+`theme_section` (`section`, an id of the shape `^[a-z][a-z0-9_-]{0,31}$` —
+one of the active theme's homepage sections, the list being the frontend's
+`HOME_SECTIONS`; the theme's `hero` is refused anywhere but first, a 422 on
+`blocks.N.data.section`; passed through unchanged on the public read) — and
 `data` is checked by that type's own rules (`SectionRules`), so a 422 names the
 field: `blocks.3.data.heading`. A picture or video must be in the media
 library and of the right kind; a content block, slider, gallery or form is
@@ -3667,6 +3671,13 @@ the lists live with the frontend that renders them. Both responses that
 publish it add an `image_url` beside every `image_path`, because a path
 buried in JSON cannot ride the `_path` → `_url` rule below. A blank value
 clears the row.
+
+**`homepage_page_id`** (`homepage` group, 0.113.0) chooses what `/` draws:
+blank for the theme's own homepage, or a published builder page's id —
+offered as `options` (the theme's homepage, then every published builder
+page by title) and a 422 on anything else. It is not on the public
+`/settings` map; **`homepage_page_slug`** is, derived on every read and
+present only while the id still names a published builder page.
 
 **The `banners` group is public**, and is nine media paths plus a switch: the
 picture behind each section's page heading. Public for the same reason

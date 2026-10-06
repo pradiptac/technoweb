@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import type { HomeData } from "@/themes/contract";
 import { orderSections, type ThemeOptions } from "@/themes/options";
 import { StatValue } from "@/components/ui/stat-value";
+import { HeroTitle } from "@/lib/hero-heading";
 
 /**
  * Datacenter's front page: the operations floor.
@@ -65,7 +66,7 @@ export function Home({
               <span className="font-mono text-12 font-semibold uppercase tracking-[.14em] text-brand-300">
                 <span aria-hidden className="text-dark-muted">{"// "}</span>{kicker}
               </span>
-              <h1 className="display-1 mt-5 max-w-[16ch] text-balance">{heading}</h1>
+              <HeroTitle className="display-1 mt-5 max-w-[16ch] text-balance">{heading}</HeroTitle>
               <p className="lede mt-5 text-dark-muted">{lede}</p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <ButtonLink href="/contact" variant="onDark">

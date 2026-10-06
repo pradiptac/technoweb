@@ -86,6 +86,14 @@ export type ThemeOptions = {
   sections: Partial<Record<string, SectionSetting>>;
   /** Section ids in the order chosen; empty means the theme's own order. */
   order: string[];
+  /**
+   * One section and nothing else (0.113.0): how a builder page's
+   * `theme_section` draws a single piece of the active theme's homepage. Never
+   * stored and never resolved from the row — `ThemeSectionSlot` sets it on the
+   * options it hands `Home`, so `orderSections()` is the one place every
+   * theme's homepage is narrowed and no template had to learn about it.
+   */
+  only?: string;
 };
 
 /** What a manifest may declare as its own starting point. */
@@ -258,8 +266,14 @@ export function resolveOptions(raw: string | undefined, themeId: string, default
  * order), so a section added to a theme later still renders. A section
  * switched off is left out. A theme that does not draw a section the order
  * names simply never lists it here.
+ *
+ * `only` narrows it to one entry before any of that: the order is beside the
+ * point for a single section, and the switch is the homepage's — a builder
+ * page that places a section has decided to show it, whether or not the
+ * homepage does. A theme that does not draw that section yields nothing.
  */
 export function orderSections<T extends { id: string }>(entries: readonly T[], options: ThemeOptions): T[] {
+  if (options.only !== undefined) return entries.filter((e) => e.id === options.only);
   const named = options.order
     .map((id) => entries.find((e) => e.id === id))
     .filter((e): e is T => e !== undefined);

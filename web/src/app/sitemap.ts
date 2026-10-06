@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { SITE } from "@/lib/seo";
 import { publicApi } from "@/lib/api";
+import { getSiteSettings } from "@/lib/settings";
 import type { Paginated } from "@/types/api";
 
 /**
@@ -105,7 +106,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const [
       solutions, services, industries, categories, products,
       posts, articles, caseStudies, pages, careers,
-      storeProducts, storeCategories, taxonomy, landing,
+      storeProducts, storeCategories, taxonomy, landing, settings,
     ] = await Promise.all([
       publicApi.solutions().then((r) => r.data),
       publicApi.services().then((r) => r.data),
@@ -137,7 +138,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // they were awaited on their own after it, one round trip more per
       // build and per hourly revalidation, for nothing that depended on it.
       publicApi.landingPages().then((r) => r.data).catch(() => []),
+      getSiteSettings(),
     ]);
+
+    /*
+     * A builder page chosen as the homepage (0.113.0, Settings → Homepage)
+     * is served at `/` and its own address redirects there, so it is left
+     * out of the pages below — the homepage is already listed — and its
+     * last change counts as the homepage's.
+     */
+    const homeSlug = settings.homepage_page_slug;
+    const homePage = homeSlug ? pages.find((p) => p.slug === homeSlug) : undefined;
+    const otherPages = homeSlug ? pages.filter((p) => p.slug !== homeSlug) : pages;
 
     /*
      * The landing-page endpoint returns published pages only, and a page is
@@ -150,7 +162,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     // An index page changes when anything it lists does.
     const indexDates: Record<string, Date | undefined> = {
-      "/": newest([...solutions, ...categories, ...caseStudies, ...posts]),
+      "/": newest([...solutions, ...categories, ...caseStudies, ...posts, ...(homePage ? [homePage] : [])]),
       "/solutions": newest(solutions),
       "/products": newest([...categories, ...products]),
       "/services": newest(services),
@@ -206,7 +218,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...taxonomy.categories.map((c) => entry(`/blog/category/${c.slug}`, 0.5, "weekly")),
       ...landing.map((l) => entry(l.path, 0.6, "monthly", when(l.updated_at))),
       // /privacy, /terms, /downloads and anything else an editor publishes.
-      ...included(pages).map((p) => entry(`/${p.slug}`, 0.4, "yearly", when(p.updated_at))),
+      ...included(otherPages).map((p) => entry(`/${p.slug}`, 0.4, "yearly", when(p.updated_at))),
       ...custom.flatMap(({ type, entries }) => [
         ...(type.archive_enabled ? [entry(type.path, 0.6, "weekly", when(type.updated_at))] : []),
         ...included(entries).map((e) => entry(e.path, 0.6, "monthly", when(e.updated_at ?? e.published_at))),

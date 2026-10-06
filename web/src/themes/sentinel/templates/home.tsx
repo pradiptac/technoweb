@@ -24,6 +24,7 @@ import { stripColumns } from "@/lib/strip-columns";
 import { cn } from "@/lib/utils";
 import type { HomeData } from "@/themes/contract";
 import { orderSections, type ThemeOptions } from "@/themes/options";
+import { HeroTitle } from "@/lib/hero-heading";
 
 /**
  * Sentinel's front page, after eset.com.
@@ -66,7 +67,7 @@ export function Home({
               <i aria-hidden className="sentinel-dot size-2 rounded-full bg-brand-300" />
               {kicker}
             </p>
-            <h1 className="display-1 mt-5 text-balance [overflow-wrap:anywhere]">{heading}</h1>
+            <HeroTitle className="display-1 mt-5 text-balance [overflow-wrap:anywhere]">{heading}</HeroTitle>
             <p className="lede mt-5 max-w-[56ch] text-dark-muted">{lede}</p>
             <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
               <ButtonLink href="/contact" size="lg">Request a site audit <IconArrowRight /></ButtonLink>

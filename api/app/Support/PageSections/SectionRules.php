@@ -381,6 +381,13 @@ final class SectionRules
                 'url' => ['required', 'string', 'max:2048', 'starts_with:https://www.google.com/maps/embed'],
                 'address' => ['nullable', 'string', 'max:300'],
             ],
+            // One of the active theme's homepage sections, by id. Checked for
+            // the shape of an id only, the rule `site_theme` and the section
+            // order follow: the list is the frontend's (`HOME_SECTIONS`), and
+            // an id the active theme does not draw renders nothing.
+            PageSectionType::ThemeSection => [
+                'section' => ['required', 'string', 'regex:/^[a-z][a-z0-9_-]{0,31}$/'],
+            ],
             // A linked library section: only which one. That it exists and is
             // a section (not a template) is checked in `checkData`.
             PageSectionType::Saved => [
@@ -462,6 +469,8 @@ final class SectionRules
             "{$d}.columns.min" => 'Two columns at least.',
             "{$d}.columns.*.body.required" => 'Write the text for this column.',
             "{$d}.url.required" => 'Paste the Google Maps embed address.',
+            "{$d}.section.required" => 'Choose one of the theme’s sections.',
+            "{$d}.section.regex" => 'Choose one of the theme’s sections.',
             "{$d}.url.starts_with" => 'Use a Google Maps embed address: Share, then "Embed a map", then the src from the iframe.',
         ];
     }
@@ -520,8 +529,19 @@ final class SectionRules
             }
 
             self::checkData($validator, $type, $data, "{$at}.data");
+
+            // The theme's hero carries the page's title (its h1), so it opens
+            // the page and appears once — anywhere else it is a second title.
+            if ($type === PageSectionType::ThemeSection && ($data['section'] ?? null) === self::THEME_HERO) {
+                if ($i !== array_key_first($blocks)) {
+                    $validator->errors()->add("{$at}.data.section", 'The theme’s hero opens the page: move it to the top.');
+                }
+            }
         }
     }
+
+    /** The theme section that is the page's title: its hero. */
+    public const THEME_HERO = 'hero';
 
     /** @param  array<string, mixed>  $data */
     private static function checkData(Validator $validator, PageSectionType $type, array $data, string $at): void

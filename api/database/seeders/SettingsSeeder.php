@@ -78,6 +78,9 @@ class SettingsSeeder extends Seeder
             ['group' => 'homepage', 'key' => 'stats_animation', 'value' => 'count', 'type' => 'string'],
             // The homepage's block sections (2026-09-24): a block's slug each,
             // blank for none. Placed and switched on the Themes screen.
+            // The homepage as a builder page (2026-10-06, 0.113.0): a published
+            // builder page's id, blank for the theme's own homepage.
+            ['group' => 'homepage', 'key' => 'homepage_page_id', 'value' => null, 'type' => 'string'],
             ['group' => 'homepage', 'key' => 'home_stats_block', 'value' => null, 'type' => 'string'],
             ['group' => 'homepage', 'key' => 'home_pricing_block', 'value' => null, 'type' => 'string'],
             ['group' => 'homepage', 'key' => 'home_stack_block', 'value' => null, 'type' => 'string'],

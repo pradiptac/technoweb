@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
@@ -10,6 +10,7 @@ import { PageSections, startsWithHero } from "@/components/page-sections/page-se
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, buildMetadata, listingMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
+import { getSiteSettings } from "@/lib/settings";
 import type { CmsPage } from "@/types/api";
 import { ContentArchive } from "@/components/content/content-archive";
 import { loadArchive } from "./archive";
@@ -54,6 +55,11 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
 
 export default async function CmsPageRoute({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: SearchParams }) {
   const { slug } = await params;
+
+  // The page chosen as the homepage (0.113.0, Settings → Homepage) is served
+  // at `/`, and must not exist at two addresses.
+  if ((await getSiteSettings()).homepage_page_slug === slug) permanentRedirect("/");
+
   const page = await load(slug);
 
   if (!page) {

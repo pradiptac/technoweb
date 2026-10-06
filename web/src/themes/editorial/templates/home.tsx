@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import type { HomeData } from "@/themes/contract";
 import { orderSections, type ThemeOptions } from "@/themes/options";
 import { CountUp } from "@/components/ui/count-up";
+import { HeroTitle } from "@/lib/hero-heading";
 
 /**
  * Editorial's front page.
@@ -270,7 +271,7 @@ function Words({ onDark, kicker, heading, lede }: { onDark: boolean; kicker: str
         <span aria-hidden className="h-px w-8 bg-current" />
         {kicker}
       </span>
-      <h1 className="display-1 mt-4 max-w-[18ch] font-normal tracking-[-.01em] text-balance lg:max-w-[22ch]">{heading}</h1>
+      <HeroTitle className="display-1 mt-4 max-w-[18ch] font-normal tracking-[-.01em] text-balance lg:max-w-[22ch]">{heading}</HeroTitle>
     </div>
     <div className="min-w-0 lg:pb-2">
     <p className={cn("mt-5 max-w-[60ch] text-[18px] leading-[1.55] lg:mt-0", onDark ? "text-dark-ink" : "text-ink-2")}>{lede}</p>

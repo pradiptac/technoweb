@@ -9,11 +9,13 @@ use App\Models\Form;
 use App\Models\Media;
 use App\Models\Page;
 use App\Models\Role;
+use App\Models\Setting;
 use App\Models\Slider;
 use App\Models\Solution;
 use App\Models\TeamMember;
 use App\Models\User;
 use App\Support\MediaMeta;
+use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -290,6 +292,58 @@ class PageBuilderTest extends TestCase
         // An instant with its offset, so every browser counts to the same moment.
         $this->assertSame('2030-01-01T10:00:00+05:30', $sections[2]['data']['ends_at']);
         $this->assertSame('Salt Lake, Kolkata', $sections[4]['data']['address']);
+    }
+
+    public function test_a_theme_section_is_stored_by_id_and_its_hero_must_open_the_page(): void
+    {
+        $this->create([
+            self::section('theme_section', ['section' => 'hero']),
+            self::section('theme_section', ['section' => 'solutions', 'stray' => 'dropped']),
+            self::section('rich_text', ['heading' => 'Ours', 'body' => '<p>Words.</p>']),
+        ])->assertCreated();
+
+        $sections = $this->getJson('/api/v1/pages/built-page')->json('data.sections');
+        $this->assertSame(['theme_section', 'theme_section', 'rich_text'], array_column($sections, 'type'));
+        $this->assertSame(['section' => 'solutions'], $sections[1]['data']);
+
+        // Anywhere but first, the theme's hero would be a second page title.
+        $this->create([
+            self::section('rich_text', ['heading' => 'First', 'body' => '<p>x</p>']),
+            self::section('theme_section', ['section' => 'hero']),
+        ], ['title' => 'Late hero'])->assertStatus(422)->assertJsonValidationErrors('blocks.1.data.section');
+
+        $this->create([self::section('theme_section', ['section' => 'Not An Id'])], ['title' => 'Bad id'])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.section');
+    }
+
+    public function test_the_homepage_is_a_published_builder_page_or_the_theme(): void
+    {
+        $this->seed(SettingsSeeder::class);
+        $admin = $this->user(RoleEnum::Admin);
+        $built = $this->create([self::section('theme_section', ['section' => 'hero'])], ['title' => 'Home page'])->json('data.id');
+        $draft = $this->create([self::section('divider', [])], ['title' => 'Draft one', 'status' => 'draft'])->json('data.id');
+        $plain = $this->create([], ['title' => 'Plain', 'template' => 'default', 'body' => '<p>x</p>'])->json('data.id');
+        $save = fn ($value) => $this->actingAs($admin, 'sanctum')->patchJson('/api/v1/admin/settings', ['settings' => [['key' => 'homepage_page_id', 'value' => $value]]]);
+
+        $save((string) $draft)->assertStatus(422)->assertJsonValidationErrors('settings.0.value');
+        $save((string) $plain)->assertStatus(422);
+
+        // The picker offers the theme's homepage and the published builder pages only.
+        $row = collect($this->actingAs($admin, 'sanctum')->getJson('/api/v1/admin/settings')->json('data.homepage'))->firstWhere('key', 'homepage_page_id');
+        $this->assertSame(['', (string) $built], array_column($row['options'], 'value'));
+
+        $save((string) $built)->assertOk();
+        Setting::flushCache();
+        $public = $this->getJson('/api/v1/settings')->json('data');
+        $this->assertSame('home-page', $public['homepage_page_slug']);
+        $this->assertArrayNotHasKey('homepage_page_id', $public);
+
+        // Unpublished, the slug goes and `/` falls back to the theme's homepage.
+        Page::query()->whereKey($built)->update(['status' => 'draft']);
+        Setting::flushCache();
+        $this->assertArrayNotHasKey('homepage_page_slug', $this->getJson('/api/v1/settings')->json('data'));
+
+        $save('')->assertOk();
     }
 
     public function test_an_empty_team_or_a_vanished_download_drops_the_section(): void

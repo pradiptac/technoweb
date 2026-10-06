@@ -12,6 +12,7 @@ import { statLookFor } from "@/lib/stat-look";
 import { heroCopy, statPairs, type SiteSettings } from "@/lib/site-settings";
 import { Backdrop } from "@/components/ui/backdrop";
 import { motionFor } from "@/lib/motion-choices";
+import { HeroTitle } from "@/lib/hero-heading";
 
 /**
  * Every string here is settings-driven, with the static values as a fallback.
@@ -106,12 +107,12 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
               `@layer components` — that is exactly what the layer is for.
             */}
             {/* Uncapped, filling its own column — see the note in `PageHero`. */}
-            <h1 className="display-1 mt-5.5 text-[clamp(34px,1.9vw+11px,43px)] text-balance">
+            <HeroTitle className="display-1 mt-5.5 text-[clamp(34px,1.9vw+11px,43px)] text-balance">
               {heading.slice(0, heading.trimEnd().lastIndexOf(" "))}{" "}
               <span className="text-brand-ink">
                 {heading.trimEnd().slice(heading.trimEnd().lastIndexOf(" ") + 1)}
               </span>
-            </h1>
+            </HeroTitle>
 
             <p className="lede mt-5">
               {lede}

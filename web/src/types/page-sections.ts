@@ -24,6 +24,8 @@ export type PageSectionType =
   | "comparison" | "timeline" | "before_after" | "testimonials"
   /** The five of 0.111.0. */
   | "team" | "downloads" | "countdown" | "columns" | "map"
+  /** One of the active theme's homepage sections, by its `HOME_SECTIONS` id (0.113.0). */
+  | "theme_section"
   /** A library section placed linked (0.106.0): stored as `{saved_id}`, drawn as the library's section. */
   | "saved";
 
@@ -114,6 +116,8 @@ export type CountdownSectionData = Head & {
   primary?: SectionButton; secondary?: SectionButton;
 };
 export type ColumnsSectionData = Head & { columns: { heading?: string; body: string }[] };
+/** `section` is an id from `HOME_SECTIONS` in `themes/options.ts`; the active theme draws it. */
+export type ThemeSectionData = { section: string };
 export type MapSectionData = { heading?: string; lede?: string; url: string; address?: string };
 
 /**
@@ -164,7 +168,8 @@ export type PageSection =
   | Of<"downloads", DownloadsSectionData>
   | Of<"countdown", CountdownSectionData>
   | Of<"columns", ColumnsSectionData>
-  | Of<"map", MapSectionData>;
+  | Of<"map", MapSectionData>
+  | Of<"theme_section", ThemeSectionData>;
 
 /** A section as stored and edited: paths and ids, and whatever the type's fields are. */
 export type StoredSection = {

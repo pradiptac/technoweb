@@ -6,6 +6,7 @@ use App\Enums\MessageChannel;
 use App\Enums\PaymentGateway;
 use App\Models\Location;
 use App\Models\Media;
+use App\Models\Page;
 use App\Models\Setting;
 use App\Models\Solution;
 use App\Support\Chat\ChatSettings;
@@ -161,6 +162,22 @@ class PublicSettings
          * them against a visitor's clock. One bit, like the one above.
          */
         $values['announcement_live'] = Announcement::isLive($values->all()) ? '1' : '0';
+
+        /*
+         * The homepage as a builder page (0.113.0): the slug of the page the
+         * id names, and only while it is a published builder page — so an
+         * unpublished or deleted page puts the theme's homepage back rather
+         * than leaving `/` addressed at nothing. The frontend fetches the
+         * page by this slug; the id itself is not what it needs.
+         */
+        unset($values['homepage_page_id']);
+        $homeId = Setting::get('homepage_page_id');
+        if (filled($homeId)) {
+            $slug = Page::query()->published()->where('template', 'builder')->whereKey((int) $homeId)->value('slug');
+            if (is_string($slug) && $slug !== '') {
+                $values['homepage_page_slug'] = $slug;
+            }
+        }
 
         /*
          * Which messaging channels the site may offer an opt-in for: the

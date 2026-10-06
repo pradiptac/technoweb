@@ -1633,6 +1633,7 @@ const SECTION_TYPES = [
   { value: 'countdown', label: 'Countdown', blurb: 'Days, hours, minutes and seconds to a date — a launch, an offer ending, an event — with a line for when it has passed.' },
   { value: 'columns', label: 'Columns of text', blurb: 'Two or three columns side by side, each with a heading and a body from the editor.' },
   { value: 'map', label: 'Map', blurb: 'A Google map, loaded only when somebody presses it, with the address beside it.' },
+  { value: 'theme_section', label: 'From the theme', blurb: 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.' },
 ];
 const SECTION_PRESETS = [
   { value: 'landing', label: 'Landing page', blurb: 'A hero, three reasons, a live list of solutions, questions and a close.', sections: [
@@ -2166,6 +2167,9 @@ createServer(async (req, res) => {
     // fallback for a missing key — so leaving it out would hide nothing and
     // prove nothing. It is here so the console's Themes screen has a row.
     site_theme: 'classic',
+    // `homepage_page_slug` (0.113.0) is left out on purpose: the API sends it
+    // only when Settings → Homepage names a published builder page, and absent
+    // is the theme's own homepage, which is what CI should build and audit.
     // The homepage figures and the assistant's look, as the seeder ships them.
     stats_size: 'medium', chatbot_animation: 'burst', chatbot_background: '',
     reviews_kicker: 'Reviews', reviews_heading: 'What our customers say',
