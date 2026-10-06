@@ -21,6 +21,27 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.121.0 — 2026-10-07
+
+**Look: a heading size, two new card finishes and a new look.**
+
+- **Headings** (Site → Settings → Colour palette): choose **Standard**,
+  **Compact** or **Large** for every heading on the site, in any theme.
+- **Cards** gains two finishes: **Soft** — no border, a wide gentle shadow —
+  and **Glow** — a halo in your brand colour under every card, stronger under
+  the pointer. Both follow light and dark by themselves.
+- A sixth ready-made look, **Statement**: emerald, big Sora headlines, round
+  corners and the glow. *Calm* now uses the Soft finish and *Editorial* the
+  Compact headings.
+- All of it is a choice: a site that does not touch these looks exactly as it
+  did.
+- **Dashboard**: every tile is now the same height. The trend line on "New
+  leads" sits beside the figure instead of under it, which had made that one
+  group taller than the others.
+- After updating, nothing needs doing.
+
+---
+
 ## 0.120.0 — 2026-10-07
 
 **Customise the dashboard: choose its panels and their order.**

@@ -767,9 +767,11 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
    * 3.3vw + 14px holds 36px to ~670, passes 44px at 900 and reaches the 62px
    * cap around 1470 — where the two-column layout has had room for a while.
    */
-  .display-1 { font-size: clamp(36px, 3.3vw + 14px, 62px); line-height:1.02; font-weight:700; letter-spacing:-.032em; }
-  .display-2 { font-size: clamp(27px,4.2vw,42px); line-height:1.08; font-weight:600; letter-spacing:-.028em; }
-  .display-3 { font-size: clamp(21px,2.8vw,27px); line-height:1.2;  font-weight:600; letter-spacing:-.022em; }
+  /* `--type-scale` is the Appearance tab's "Headings" (0.121.0): unset it is 1
+     and these compute to the pixels they always did. */
+  .display-1 { font-size: calc(clamp(36px, 3.3vw + 14px, 62px) * var(--type-scale, 1)); line-height:1.02; font-weight:700; letter-spacing:-.032em; }
+  .display-2 { font-size: calc(clamp(27px,4.2vw,42px) * var(--type-scale, 1)); line-height:1.08; font-weight:600; letter-spacing:-.028em; }
+  .display-3 { font-size: calc(clamp(21px,2.8vw,27px) * var(--type-scale, 1)); line-height:1.2;  font-weight:600; letter-spacing:-.022em; }
   .lede      { font-size: clamp(16px,2vw,18.5px); line-height:1.62; color: var(--color-muted); }
 
   /*
@@ -4211,6 +4213,18 @@ section[data-page-section="rich_text"] + section[data-page-section="rich_text"] 
 [data-density="airy"] { --density: 1.35; }
 
 /*
+ * Heading size (`theme_type_scale`, 0.121.0): one multiplier over the three
+ * display roles, read by `.display-1/2/3` above and by every rule that
+ * re-sizes one (the builder's heading sizes, Terminal's own scale).
+ * `standard` stamps no attribute. Large stops short of the phone: a 36px
+ * headline is already most of a 320px line, and a long word set bigger
+ * would run through the right edge.
+ */
+[data-type-scale="compact"] { --type-scale: .88; }
+[data-type-scale="large"] { --type-scale: 1.06; }
+@media (width >= 48rem) { [data-type-scale="large"] { --type-scale: 1.16; } }
+
+/*
  * How a card sits on the page (`theme_surface`, 0.103.0) and what it does
  * under the pointer (`motion_cards`). `flat` and `lift` are the site as it
  * was and stamp nothing / change nothing here.
@@ -4237,6 +4251,33 @@ section[data-page-section="rich_text"] + section[data-page-section="rich_text"] 
 .public-site[data-surface="outline"] :is([data-card], [data-tile]):hover {
   box-shadow: none;
   border-color: var(--color-brand-ink);
+}
+/*
+ * Two more finishes (0.121.0), under the same rule: shadow and border only.
+ * `soft` drops the hairline for a wide, low shadow mixed from the ink, so it
+ * darkens with the scheme instead of being a fixed black. `glow` is the same
+ * shape in the brand's own colour — `brand-600` is the fill step, bright in
+ * dark, which is where a halo reads best. The border goes transparent, never
+ * `none`: the box must not change size between finishes.
+ */
+.public-site[data-surface="soft"] :is([data-card], [data-tile]) {
+  border-color: transparent;
+  box-shadow: 0 1px 2px color-mix(in oklab, var(--color-ink) 6%, transparent),
+    0 14px 34px -12px color-mix(in oklab, var(--color-ink) 16%, transparent);
+}
+.public-site[data-surface="soft"] :is([data-card], [data-tile]):hover {
+  box-shadow: 0 2px 4px color-mix(in oklab, var(--color-ink) 7%, transparent),
+    0 24px 48px -14px color-mix(in oklab, var(--color-ink) 24%, transparent);
+}
+.public-site[data-surface="glow"] :is([data-card], [data-tile]) {
+  border-color: color-mix(in oklab, var(--color-brand-600) 22%, var(--color-line));
+  box-shadow: 0 1px 2px color-mix(in oklab, var(--color-ink) 5%, transparent),
+    0 16px 36px -16px color-mix(in oklab, var(--color-brand-600) 42%, transparent);
+}
+.public-site[data-surface="glow"] :is([data-card], [data-tile]):hover {
+  border-color: color-mix(in oklab, var(--color-brand-600) 55%, var(--color-line));
+  box-shadow: 0 2px 4px color-mix(in oklab, var(--color-ink) 6%, transparent),
+    0 22px 48px -14px color-mix(in oklab, var(--color-brand-600) 60%, transparent);
 }
 
 /* Cards under the pointer. Fine pointers only, motion allowed only: on a
@@ -4304,10 +4345,10 @@ section[data-page-section="rich_text"] + section[data-page-section="rich_text"] 
 [data-section-style][data-align="center"] [data-page-section="rich_text"] :is(ul, ol) { list-style-position: inside; padding-inline-start: 0; }
 
 /* Heading size: one rung down or up the display scale, never below it. */
-[data-section-style][data-heading="s"] [data-page-section] h2.display-2 { font-size: clamp(21px, 2.8vw, 27px); }
-[data-section-style][data-heading="s"] [data-page-section] .display-1 { font-size: clamp(27px, 4.2vw, 42px); }
-[data-section-style][data-heading="l"] [data-page-section] h2.display-2 { font-size: clamp(32px, 3.3vw + 12px, 56px); }
-[data-section-style][data-heading="l"] [data-page-section] .display-1 { font-size: clamp(40px, 4.4vw + 14px, 76px); }
+[data-section-style][data-heading="s"] [data-page-section] h2.display-2 { font-size: calc(clamp(21px, 2.8vw, 27px) * var(--type-scale, 1)); }
+[data-section-style][data-heading="s"] [data-page-section] .display-1 { font-size: calc(clamp(27px, 4.2vw, 42px) * var(--type-scale, 1)); }
+[data-section-style][data-heading="l"] [data-page-section] h2.display-2 { font-size: calc(clamp(32px, 3.3vw + 12px, 56px) * var(--type-scale, 1)); }
+[data-section-style][data-heading="l"] [data-page-section] .display-1 { font-size: calc(clamp(40px, 4.4vw + 14px, 76px) * var(--type-scale, 1)); }
 
 /*
  * A builder section's motion (0.114.0, the section style's "Heading arrives"

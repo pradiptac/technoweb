@@ -205,6 +205,18 @@ class SettingController extends Controller
         ['value' => 'flat', 'label' => 'Flat', 'description' => 'A hairline border and a soft ground — the site as it has always been.'],
         ['value' => 'elevated', 'label' => 'Elevated', 'description' => 'Cards float on a soft shadow that deepens under the pointer.'],
         ['value' => 'outline', 'label' => 'Outline', 'description' => 'A crisp, firmer border and no shadow. Precise and technical.'],
+        ['value' => 'soft', 'label' => 'Soft', 'description' => 'No visible border — cards rest on a wide, gentle shadow.'],
+        ['value' => 'glow', 'label' => 'Glow', 'description' => 'A halo in the brand colour under every card, stronger under the pointer.'],
+    ];
+
+    /**
+     * How large the site's headings are set (0.121.0). One multiplier over
+     * the display type roles; `standard` is the site as it was.
+     */
+    public const TYPE_SCALES = [
+        ['value' => 'standard', 'label' => 'Standard', 'description' => 'The heading sizes the site has always had.'],
+        ['value' => 'compact', 'label' => 'Compact', 'description' => 'Smaller headings — quieter, and more on each screen.'],
+        ['value' => 'large', 'label' => 'Large', 'description' => 'Bigger headings — a bolder, more editorial page.'],
     ];
 
     public const DENSITIES = [
@@ -293,6 +305,7 @@ class SettingController extends Controller
             'theme_radius' => self::RADII,
             'theme_density' => self::DENSITIES,
             'theme_surface' => self::SURFACES,
+            'theme_type_scale' => self::TYPE_SCALES,
             'home_stats_block' => self::blockOptions(ContentBlockType::Stats),
             'homepage_page_id' => self::homepageOptions(),
             'home_pricing_block' => self::blockOptions(ContentBlockType::Pricing),
@@ -778,7 +791,7 @@ class SettingController extends Controller
                 && ! ContentBlock::query()->published()->where('type', self::HOME_BLOCKS[$key])->where('slug', $value)->exists()) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a published block of this kind, or None.']);
             }
-            foreach (['theme_radius' => self::RADII, 'theme_density' => self::DENSITIES, 'theme_surface' => self::SURFACES] as $lookKey => $choices) {
+            foreach (['theme_radius' => self::RADII, 'theme_density' => self::DENSITIES, 'theme_surface' => self::SURFACES, 'theme_type_scale' => self::TYPE_SCALES] as $lookKey => $choices) {
                 if ($key === $lookKey && filled($value) && ! in_array($value, array_column($choices, 'value'), true)) {
                     throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose one from the list.']);
                 }

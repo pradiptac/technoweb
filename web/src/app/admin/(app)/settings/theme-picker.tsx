@@ -9,7 +9,7 @@ import { differs, nearestStep } from "@/lib/palette";
 import { ColourField } from "./settings-fields";
 import { DEFAULT_PRESET, PRESETS, generate, isHex, presetById, type Preset } from "@/lib/presets";
 import { expand, paletteFor, themeTokensCss, themeVars, topBarFor, type PaletteInputs, type Theme } from "@/lib/themes";
-import { DENSITIES, LOOK_PRESETS, RADII, SURFACES, type Density, type LookPreset, type Radius, type Surface } from "@/lib/look";
+import { DENSITIES, LOOK_PRESETS, RADII, SURFACES, TYPE_SCALES, type Density, type LookPreset, type Radius, type Surface, type TypeScale } from "@/lib/look";
 import type { SettingRow } from "@/lib/admin";
 
 /**
@@ -58,6 +58,7 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
   const [radius, setRadius] = useState<Radius>(RADII.includes(stored.theme_radius as Radius) ? stored.theme_radius as Radius : "soft");
   const [density, setDensity] = useState<Density>(DENSITIES.includes(stored.theme_density as Density) ? stored.theme_density as Density : "comfortable");
   const [surface, setSurface] = useState<Surface>(SURFACES.includes(stored.theme_surface as Surface) ? stored.theme_surface as Surface : "flat");
+  const [typeScale, setTypeScale] = useState<TypeScale>(TYPE_SCALES.includes(stored.theme_type_scale as TypeScale) ? stored.theme_type_scale as TypeScale : "standard");
 
   const preset = presetById(chosen);
 
@@ -111,9 +112,10 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
     setRadius(look.radius);
     setDensity(look.density);
     setSurface(look.surface);
+    setTypeScale(look.typeScale);
   };
   const lookMatches = (look: LookPreset) => chosen === look.palette && inputs.fontDisplay === look.fontDisplay
-    && inputs.fontBody === look.fontBody && radius === look.radius && density === look.density && surface === look.surface;
+    && inputs.fontBody === look.fontBody && radius === look.radius && density === look.density && surface === look.surface && typeScale === look.typeScale;
 
   /*
    * The live preview: the real site, framed, told what this form would save.
@@ -128,7 +130,7 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
   const tokens = useMemo(() => themeTokensCss(theme), [theme]);
   useEffect(() => {
     const post = () => frame.current?.contentWindow?.postMessage(
-      { type: "tw:look", css: tokens, radius, density, surface }, window.location.origin,
+      { type: "tw:look", css: tokens, radius, density, surface, typeScale }, window.location.origin,
     );
     post();
     const onReady = (e: MessageEvent) => {
@@ -136,7 +138,7 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
     };
     window.addEventListener("message", onReady);
     return () => window.removeEventListener("message", onReady);
-  }, [tokens, radius, density, surface]);
+  }, [tokens, radius, density, surface, typeScale]);
 
   return (
     <fieldset ref={ref} className="sm:col-span-2">
@@ -246,8 +248,8 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
         </Field>
       </div>
 
-      {/* ------------------------------------- corners, spacing, cards */}
-      <div className="mt-2 grid gap-x-4 sm:grid-cols-3">
+      {/* --------------------------- corners, spacing, cards, headings */}
+      <div className="mt-2 grid gap-x-4 sm:grid-cols-2 xl:grid-cols-4">
         <Field label="Corners" htmlFor="setting__theme_radius" variant="float-static"
           hint="Cards, buttons, pictures and fields together, on the site and in the portal. Soft is how the site has always looked.">
           <Select id="setting__theme_radius" name="setting__theme_radius" value={radius} onChange={(e) => setRadius(e.target.value as Radius)}>
@@ -270,6 +272,16 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
             <option value="flat">Flat</option>
             <option value="elevated">Elevated — a soft shadow</option>
             <option value="outline">Outline — a crisp border</option>
+            <option value="soft">Soft — no border, a wide shadow</option>
+            <option value="glow">Glow — a halo in the brand colour</option>
+          </Select>
+        </Field>
+        <Field label="Headings" htmlFor="setting__theme_type_scale" variant="float-static"
+          hint="How large every heading is set, in any theme. Standard is how the site has always looked.">
+          <Select id="setting__theme_type_scale" name="setting__theme_type_scale" value={typeScale} onChange={(e) => setTypeScale(e.target.value as TypeScale)}>
+            <option value="standard">Standard</option>
+            <option value="compact">Compact — quieter</option>
+            <option value="large">Large — bolder</option>
           </Select>
         </Field>
       </div>

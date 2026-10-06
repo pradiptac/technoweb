@@ -130,6 +130,27 @@ device" themselves (the control is in the footer). The console remembers its
 own choice separately. You do not need to design a dark version: it is
 derived from the same palette.
 
+### Looks, corners, spacing, cards and headings
+
+On the same screen:
+
+- **Looks** — six ready-made combinations (Corporate, Modern, Bold, Calm,
+  Editorial, Statement). Pressing one sets the palette, the two fonts and the
+  four choices below together; adjust anything afterwards before saving.
+- **Corners** — *Soft* (the default), *Sharp* or *Round*, for cards, buttons,
+  pictures and fields.
+- **Spacing** — *Comfortable* (the default), *Compact* or *Airy*: the room
+  between the site's sections.
+- **Cards** — how every card sits on the page: *Flat* (the default),
+  *Elevated* (a soft shadow), *Outline* (a firmer border), *Soft* (no border,
+  a wide shadow) or *Glow* (a halo in your brand colour).
+- **Headings** — *Standard* (the default), *Compact* or *Large*: the size of
+  every heading, in any theme.
+
+The preview beside the fields is your real site in the look you are
+choosing; nothing is saved until you press **Save site settings**. These
+apply to the public site and the customer portal, not to the console.
+
 ## Motion
 
 **Site → Settings → Motion** sets how the public site and customer portal

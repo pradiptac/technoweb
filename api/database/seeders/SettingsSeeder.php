@@ -646,6 +646,8 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'appearance', 'key' => 'theme_radius', 'value' => 'soft', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_density', 'value' => 'comfortable', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_surface', 'value' => 'flat', 'type' => 'string'],
+            // Heading size (0.121.0): `standard` is the scale the site has always set.
+            ['group' => 'appearance', 'key' => 'theme_type_scale', 'value' => 'standard', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_primary', 'value' => '#6f8641', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_secondary', 'value' => '#5b7a5e', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_accent', 'value' => '#c9993c', 'type' => 'string'],

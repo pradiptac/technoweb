@@ -60,6 +60,13 @@ class SocialStyleSettingsTest extends TestCase
         $this->assertSame('flat', $public['theme_surface'] ?? $this->getJson('/api/v1/settings')->json('data.theme_surface'));
         $this->save(['theme_surface' => 'elevated'])->assertOk();
         $this->save(['theme_surface' => 'glossy'])->assertStatus(422);
+        // 0.121.0: two more finishes, and the heading scale beside them.
+        $this->save(['theme_surface' => 'soft'])->assertOk();
+        $this->save(['theme_surface' => 'glow'])->assertOk();
+        $this->assertSame('glow', $this->getJson('/api/v1/settings')->json('data.theme_surface'));
+        $this->save(['theme_type_scale' => 'large'])->assertOk();
+        $this->assertSame('large', $this->getJson('/api/v1/settings')->json('data.theme_type_scale'));
+        $this->save(['theme_type_scale' => 'huge'])->assertStatus(422)->assertJsonValidationErrors('settings.0.value');
         $this->save(['motion_cards' => 'tilt'])->assertOk();
         $this->save(['motion_cards' => 'Tilt It!'])->assertStatus(422);
     }

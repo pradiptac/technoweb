@@ -333,12 +333,17 @@ async function DashboardBody({ volume }: { volume?: string }) {
       <div className="flex flex-wrap gap-3">
         {tileGroups.map(([key, title, list]) => (
           <Card
-            key={key} as="section" interactive={false} padding="none" className="min-w-0 p-3"
+            key={key} as="section" interactive={false} padding="none" className="flex min-w-0 flex-col p-3"
             style={{ flex: `${list.length} 1 calc(${list.length} * 9.5rem + ${list.length - 1} * 0.5rem + 1.5rem + 2px)` }}
           >
             <h2 className="mb-2 text-12-5 font-semibold text-muted">{title}</h2>
             <ul
-              className="grid grid-cols-2 gap-2 sm:grid-cols-[repeat(var(--tiles),minmax(0,1fr))]"
+              // `flex-1`: the panels in a row are one height, and only one
+              // tile on the dashboard carries a trend line. Without it that
+              // group's tiles were 150px and its neighbour's 96px, with the
+              // difference left as a blank strip under them (the client,
+              // 2026-10-07). The row stretches, and every tile is `h-full`.
+              className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-[repeat(var(--tiles),minmax(0,1fr))]"
               style={{ "--tiles": list.length } as CSSProperties}
             >
               {list.map((t) => (

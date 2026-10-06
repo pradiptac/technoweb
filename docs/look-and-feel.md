@@ -116,3 +116,62 @@ the sample is replaced and not before. The dashboard draws
 outstanding; folding it away is this browser's choice (`localStorage`, read
 through `useSyncExternalStore`, server snapshot "open"), and folded it is one
 line with the count. `OnboardingTest`.
+
+## Heading size and two more card finishes (0.121.0)
+
+The last of the roadmap's visual track. What was listed there as "elevation,
+glass and fluid-type tokens, and a classic refresh" turned out to be mostly
+built already, and one part of it should not be built:
+
+- **Fluid type was already there** — `.display-1/2/3` have been `clamp()`s
+  since the type roles were written. What was missing is a way to move the
+  whole scale, which is `theme_type_scale`.
+- **Glass is on every floating header already** (classic, Editorial, Launch,
+  Keystone, Vantage and Sentinel all blur what scrolls under them). Glass
+  *cards* were considered and refused: a translucent card is a card without a
+  ground — the client's rule of 2026-09-18, which the audit enforces — and
+  the contrast audit cannot grade ink through a translucent stop.
+- **Classic has no CSS of its own**; everything it paints is the shared
+  settings. So "refreshing classic" is these opt-in controls, and they reach
+  the other eleven themes too.
+
+**`theme_type_scale`** (`standard`, `compact`, `large`; `appearance`, public,
+offered as options, 422 outside). One custom property: `--type-scale` is .88,
+1 or 1.16, and the three display roles are
+`calc(clamp(…) * var(--type-scale, 1))`. Unset, `calc(x * 1)` computes to the
+pixels it always did, which the probe asserts (42px at 1440, 27px at 360).
+`lookAttrs()` stamps `data-type-scale` on the same wrappers as the radius and
+density, and nothing for `standard`.
+
+**Large is 1.16× from `md` and 1.06× below it.** A 36px headline is already
+most of a 320px line, and "Infrastructure" set 16% bigger is the long word
+that runs through the right edge.
+
+**Every rule that re-sizes a display role carries the multiplier.** The
+builder's per-section heading sizes (`[data-heading="s"|"l"]`) and Terminal's
+own scale each write `font-size` on a `.display-*` at higher specificity; a
+rule without `* var(--type-scale, 1)` would silently opt that heading out. A
+theme that sizes a hero by its own class, not a display role, keeps its size:
+the setting is about the roles.
+
+**`soft` and `glow`** joined `theme_surface`, under the rule the first three
+keep: `box-shadow` and `border-color` only, never the ground.
+
+- `soft` — the border goes transparent and the card rests on a wide, low
+  shadow mixed from `--color-ink`, so it darkens with the scheme rather than
+  being a fixed black.
+- `glow` — the same shape in `--color-brand-600`, the fill step, which is
+  bright in dark: a halo reads best exactly where a neutral shadow is
+  invisible. The border takes a fifth of the brand, more under the pointer.
+
+The border is `transparent`, never `none`: `none` drops the border's width
+and every card would change size between finishes.
+
+**Looks** carry `typeScale` now. *Statement* is new (emerald, Sora, round,
+airy, glow, large); *Calm* moved to `soft` and *Editorial* to `compact`,
+which is what those two were describing all along.
+
+Measured by `scripts/probes/look-finish.mjs`, through the real settings form.
+Under Glow + Large: `npm run audit` clean in light and dark and
+`audit:mobile` clean on eight public routes, and no sideways scroll or
+heading past the edge in any of the twelve themes at 360 or 1440.

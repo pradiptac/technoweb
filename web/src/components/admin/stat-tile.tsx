@@ -109,19 +109,24 @@ export function StatTile({
    * `sm` (the client, 2026-09-29: "Overdue follow-ups" and "Visits to confirm"
    * wrapped to two lines beside a glyph). Should a panel ever be narrower than
    * its longest label it ellipsises, and the full words are in `title`.
+   *
+   * The trend line rides on that same line, between the figure and the
+   * glyph, and adds no height (the client, 2026-10-07: "why are these cards
+   * not the same size?"). Under the label it made the one tile that has a
+   * trend 36px taller than every tile beside it, and its whole group with it.
    */
   const compactBox = (
     <>
       <div className="flex items-center justify-between gap-2">
-        <p className={cn("font-display text-19 leading-none font-semibold tracking-[-.02em] tabular-nums", t.value)}>
+        <p className={cn("shrink-0 font-display text-19 leading-none font-semibold tracking-[-.02em] tabular-nums", t.value)}>
           {value}
         </p>
+        {spark && <Sparkline values={spark} tone={SPARK_TONE[tone]} className="h-5 min-w-0 flex-1" />}
         <Icon aria-hidden className={cn("hidden size-5 shrink-0 opacity-30 sm:block", t.value)} />
       </div>
       <p title={label} className="mt-1.5 text-13 leading-snug text-ink-2 sm:truncate">{label}</p>
       {delta && <Delta {...delta} />}
       {note && <p className="mt-1 text-12 text-faint">{note}</p>}
-      {spark && <Sparkline values={spark} tone={SPARK_TONE[tone]} className="-mx-1 mt-2 h-7 w-[calc(100%+.5rem)]" />}
     </>
   );
 

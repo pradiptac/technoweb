@@ -874,3 +874,20 @@ await commits the close together with the new page; the button reads
 follow somebody to another computer; it needs a column and an endpoint),
 resizing a panel, and panels for the store or the newsletter, which have
 dashboards of their own.
+
+## Dashboard tiles are one height (0.121.0)
+
+The client asked why the tiles were not the same size. Only "New leads"
+carries a trend line, and `StatTile`'s compact layout drew it *under* the
+label: that tile was 102px, the grid row stretched its three neighbours to
+match, and every other group stayed at 66px. On a screen wide enough for two
+groups to share a row, the shorter group's panel was stretched to the taller
+one's height and left a blank strip under its tiles.
+
+Two changes. The trend line rides on the figure's own line, between the
+number and the glyph (`h-5 min-w-0 flex-1`), so it adds no height — every
+tile is 66px at 1920, 1440, 1280 and 768, and 65–66px two abreast at 390. And
+the tile list is `flex-1` inside a `flex-col` panel, so if a group ever is
+taller than its neighbour the tiles fill the panel rather than leaving a
+strip. The non-compact tile (the four ticket figures) keeps its line under
+the note, where all four are one row of one height.
