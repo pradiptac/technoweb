@@ -10,14 +10,19 @@ import { IconTicket, IconClock, IconUsers, IconBox, IconPen, IconMail, IconTools
 import { istDate } from "@/lib/visit-dates";
 import { StatTile, type Tone } from "@/components/admin/stat-tile";
 import { Card } from "@/components/ui/card";
-import { DashboardMetricsPanel } from "./metrics";
+import { TicketArrivals, TicketFigures, TicketVolume } from "./metrics";
+import { DashboardCustomise } from "./dashboard-customise";
+import { arrange, dashboardCookie, parseView, type DashboardView, type GroupKey, type WidgetKey } from "@/lib/dashboard-view";
+import { getCurrentStaff } from "@/lib/admin-auth";
+import { cookies } from "next/headers";
+import { cn } from "@/lib/utils";
 import { Donut } from "@/components/charts/donut";
 import { Funnel } from "@/components/charts/funnel";
 import type { ChartTone } from "@/components/charts/tones";
 import type { AdminDashboard, Ticket, TicketStatus } from "@/types/api";
-import type { CSSProperties, SVGProps } from "react";
+import type { CSSProperties, ReactNode, SVGProps } from "react";
 import { requireScreen } from "@/lib/admin-screen";
-import { Suspense } from "react";
+import { Fragment, Suspense, cache } from "react";
 import { DashboardSkeleton } from "@/components/admin/skeletons";
 
 export const metadata = buildMetadata({ title: "Dashboard", path: "/admin", seo: noIndex });
@@ -46,6 +51,53 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
   );
 }
 
+/**
+ * One API call, asked for twice: the body draws it and the header's
+ * "Customise" button needs to know which panels this role's answer holds.
+ * `cache()` makes that one request per render, and a failure is `null` to
+ * both — the body says so, the button is simply not drawn.
+ */
+const loadDashboard = cache(async (volume?: string): Promise<AdminDashboard | null> => {
+  try {
+    return await getDashboard(volume);
+  } catch {
+    return null;
+  }
+});
+
+/** This account's arrangement, from its cookie (`lib/dashboard-view.ts`). */
+const readView = cache(async (): Promise<DashboardView> => {
+  const staff = await getCurrentStaff();
+  if (!staff) return parseView(undefined);
+  return parseView((await cookies()).get(dashboardCookie(staff.id))?.value);
+});
+
+/**
+ * What this role's dashboard can draw at all. The dialog lists exactly this,
+ * and `arrange()` ignores a stored key that is not in it.
+ */
+function availableFor(dashboard: AdminDashboard): { widgets: WidgetKey[]; groups: GroupKey[] } {
+  const widgets: WidgetKey[] = ["glance", "kpis", "volume"];
+  if (dashboard.metrics.arrivals) widgets.push("arrivals");
+  widgets.push("status");
+  if (dashboard.leads?.funnel) widgets.push("pipeline");
+  widgets.push("urgent");
+
+  const groups: GroupKey[] = ["support", "sales"];
+  if (dashboard.visits || dashboard.meetings) groups.push("diary");
+  groups.push("content");
+
+  return { widgets, groups };
+}
+
+async function CustomiseButton({ volume }: { volume?: string }) {
+  const dashboard = await loadDashboard(volume);
+  if (!dashboard) return null;
+  const { widgets, groups } = availableFor(dashboard);
+
+  return <DashboardCustomise view={await readView()} available={widgets} groups={groups} />;
+}
+
 export default async function AdminDashboardPage({ searchParams }: {
   searchParams: Promise<{ volume?: string }>;
 }) {
@@ -61,24 +113,31 @@ export default async function AdminDashboardPage({ searchParams }: {
    * bars. Not keyed on the period, so switching 1M to 3M keeps the chart on
    * screen while the next one loads rather than flashing the skeleton.
    */
+  const period = typeof volume === "string" ? volume : undefined;
+
   return (
     <>
-      <PageHeader title="Dashboard" />
+      <PageHeader title="Dashboard">
+        {/* The button needs the dashboard's answer, so it streams in beside
+            the title; the placeholder is its height, so the row does not grow
+            when it arrives. */}
+        <Suspense fallback={<span aria-hidden className="ml-auto h-8" />}>
+          <CustomiseButton volume={period} />
+        </Suspense>
+      </PageHeader>
       <Suspense fallback={<DashboardSkeleton />}>
-        <DashboardBody volume={typeof volume === "string" ? volume : undefined} />
+        <DashboardBody volume={period} />
       </Suspense>
     </>
   );
 }
 
 async function DashboardBody({ volume }: { volume?: string }) {
-  let dashboard: AdminDashboard | null = null;
   // The checklist alongside, never in the way: null for a non-administrator
   // or an unreachable API, and the dashboard is drawn either way.
   const onboarding = getOnboarding();
-  try {
-    dashboard = await getDashboard(volume);
-  } catch {
+  const dashboard = await loadDashboard(volume);
+  if (!dashboard) {
     return (
       <ErrorState title="We could not load the dashboard">
         The admin API is not responding. Try again shortly.
@@ -245,28 +304,36 @@ async function DashboardBody({ volume }: { volume?: string }) {
   const funnel = dashboard.leads?.funnel;
 
   const checklist = await onboarding;
+  const view = await readView();
+  const shown = (key: string) => !view.hidden.includes(key);
 
-  return (
-    <>
-      {checklist && checklist.done < checklist.total && <OnboardingCard data={checklist} />}
+  /*
+   * Every panel this dashboard can draw, by key (0.120.0). The order they are
+   * written in is the default; `arrange()` puts them in the order this
+   * account chose and leaves out what it put away. A panel with nothing to
+   * draw for this role is simply absent from the map.
+   */
+  const tileGroups = ([
+    ["support", "Support", support],
+    ["sales", "Sales", sales],
+    ["diary", "Visits and meetings", diary],
+    ["content", "Content", content],
+  ] as const).filter(([key, , list]) => list.length > 0 && shown(`glance.${key}`));
 
-      {/*
-        Each group keeps its tiles on one row from `sm`, and asks for as much
-        width as that row needs — 9.5rem a tile, enough for "Overdue
-        follow-ups" on one line — growing in proportion to its tile count. The
-        panels then wrap by themselves: two or three abreast on a desktop, one
-        a row where the screen cannot hold that, never a group split over two
-        rows of its own (the client, 2026-09-29: one line per title).
-      */}
+  const panels: Partial<Record<WidgetKey, ReactNode>> = {
+    /*
+      Each group keeps its tiles on one row from `sm`, and asks for as much
+      width as that row needs — 9.5rem a tile, enough for "Overdue
+      follow-ups" on one line — growing in proportion to its tile count. The
+      panels then wrap by themselves: two or three abreast on a desktop, one
+      a row where the screen cannot hold that, never a group split over two
+      rows of its own (the client, 2026-09-29: one line per title).
+    */
+    glance: tileGroups.length > 0 && (
       <div className="flex flex-wrap gap-3">
-        {([
-          ["Support", support],
-          ["Sales", sales],
-          ["Visits and meetings", diary],
-          ["Content", content],
-        ] as const).filter(([, list]) => list.length > 0).map(([title, list]) => (
+        {tileGroups.map(([key, title, list]) => (
           <Card
-            key={title} as="section" interactive={false} padding="none" className="min-w-0 p-3"
+            key={key} as="section" interactive={false} padding="none" className="min-w-0 p-3"
             style={{ flex: `${list.length} 1 calc(${list.length} * 9.5rem + ${list.length - 1} * 0.5rem + 1.5rem + 2px)` }}
           >
             <h2 className="mb-2 text-12-5 font-semibold text-muted">{title}</h2>
@@ -281,52 +348,56 @@ async function DashboardBody({ volume }: { volume?: string }) {
           </Card>
         ))}
       </div>
+    ),
 
-      <DashboardMetricsPanel metrics={dashboard.metrics} />
+    kpis: <TicketFigures metrics={dashboard.metrics} />,
+    volume: <TicketVolume metrics={dashboard.metrics} />,
+    arrivals: dashboard.metrics.arrivals && <TicketArrivals metrics={dashboard.metrics} />,
 
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
-        <Card as="section" interactive={false} padding="sm">
-          <h2 className="mb-3 text-13 font-semibold">Every ticket, by status</h2>
-          {breakdownTotal === 0 ? (
-            <p className="text-13 text-muted">No tickets yet, so there is nothing to break down.</p>
-          ) : (
-            /* The API sends the status value; the wording is this side's
-               business, and `statusLabel` is the one place it is decided. */
-            <Donut
-              caption="tickets"
-              segments={breakdown.map(([status, total]) => ({
-                key: status,
-                label: statusLabel[status as TicketStatus] ?? status,
-                value: total,
-                tone: statusChart[statusTone[status as TicketStatus] ?? "closed"],
-                href: `/admin/tickets?status=${encodeURIComponent(status)}`,
-              }))}
-            />
-          )}
-        </Card>
-
-        {funnel && (
-          <Card as="section" interactive={false} padding="sm">
-            <h2 className="text-13 font-semibold">Sales pipeline</h2>
-            <p className="mb-3 text-12 text-muted">
-              What happened to the leads that arrived in the last {funnel.days} days. Spam is left out.
-            </p>
-            <Funnel
-              stages={[
-                { label: "Received", value: funnel.received, href: "/admin/leads" },
-                { label: "Replied to", value: funnel.contacted, href: "/admin/leads?status=contacted" },
-                { label: "Won", value: funnel.won, href: "/admin/leads?status=won" },
-              ]}
-            />
-          </Card>
+    status: (
+      <Card as="section" interactive={false} padding="sm">
+        <h2 className="mb-3 text-13 font-semibold">Every ticket, by status</h2>
+        {breakdownTotal === 0 ? (
+          <p className="text-13 text-muted">No tickets yet, so there is nothing to break down.</p>
+        ) : (
+          /* The API sends the status value; the wording is this side's
+             business, and `statusLabel` is the one place it is decided. */
+          <Donut
+            caption="tickets"
+            segments={breakdown.map(([status, total]) => ({
+              key: status,
+              label: statusLabel[status as TicketStatus] ?? status,
+              value: total,
+              tone: statusChart[statusTone[status as TicketStatus] ?? "closed"],
+              href: `/admin/tickets?status=${encodeURIComponent(status)}`,
+            }))}
+          />
         )}
-      </div>
+      </Card>
+    ),
 
-      {/* Recent tickets used to sit beside this. It was the queue with a
-          different heading — /admin/tickets already lists newest-first and is
-          one click away — so the dashboard was spending half its width
-          repeating a screen rather than telling you what needs attention. */}
-      <section className="mt-9">
+    pipeline: funnel && (
+      <Card as="section" interactive={false} padding="sm">
+        <h2 className="text-13 font-semibold">Sales pipeline</h2>
+        <p className="mb-3 text-12 text-muted">
+          What happened to the leads that arrived in the last {funnel.days} days. Spam is left out.
+        </p>
+        <Funnel
+          stages={[
+            { label: "Received", value: funnel.received, href: "/admin/leads" },
+            { label: "Replied to", value: funnel.contacted, href: "/admin/leads?status=contacted" },
+            { label: "Won", value: funnel.won, href: "/admin/leads?status=won" },
+          ]}
+        />
+      </Card>
+    ),
+
+    /* Recent tickets used to sit beside this. It was the queue with a
+       different heading — /admin/tickets already lists newest-first and is
+       one click away — so the dashboard was spending half its width
+       repeating a screen rather than telling you what needs attention. */
+    urgent: (
+      <section>
         <h2 className="mb-3.5 text-15 font-semibold">High priority</h2>
         {dashboard.high_priority.length === 0 ? (
           <EmptyState illustration="done" title="Nothing urgent">Nothing critical or high priority is open right now.</EmptyState>
@@ -336,7 +407,51 @@ async function DashboardBody({ volume }: { volume?: string }) {
           </ul>
         )}
       </section>
+    ),
+  };
 
+  const drawable = (Object.keys(panels) as WidgetKey[]).filter((key) => Boolean(panels[key]));
+  const rows = arrange(view, drawable);
+
+  /*
+   * The space above a row belongs to the pair of rows, not to either panel:
+   * a panel that opens on a bare heading ("Last 30 days", "High priority")
+   * wants air above it, and so does whatever follows the unboxed ticket
+   * list; two cards sit a card-gap apart. In the default order this is the
+   * dashboard's old spacing exactly — 8, 3, 3, 3, 9.
+   */
+  const gapAbove = (row: WidgetKey[], previous: WidgetKey[] | undefined) => {
+    if (!previous) return "";
+    if (row[0] === "kpis" || previous[previous.length - 1] === "urgent") return "mt-8";
+    if (row[0] === "urgent") return "mt-9";
+    return "mt-3";
+  };
+
+  return (
+    <>
+      {checklist && checklist.done < checklist.total && <OnboardingCard data={checklist} />}
+
+      {rows.length === 0 && (
+        <EmptyState title="Every panel is put away">
+          Press Customise, at the top of this screen, to bring one back.
+        </EmptyState>
+      )}
+
+      {rows.map((row, i) => {
+        const half = row.some((key) => key === "status" || key === "pipeline");
+
+        return (
+          <div
+            key={row.join("+")}
+            data-dashboard-row={row.join(" ")}
+            // Half-width panels keep their half even alone: a ring and its
+            // legend stretched across the whole screen is a wide empty card.
+            className={cn(gapAbove(row, rows[i - 1]), half && "grid gap-3 lg:grid-cols-2")}
+          >
+            {row.map((key) => <Fragment key={key}>{panels[key]}</Fragment>)}
+          </div>
+        );
+      })}
     </>
   );
 }

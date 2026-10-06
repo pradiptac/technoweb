@@ -21,6 +21,24 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.120.0 — 2026-10-07
+
+**Customise the dashboard: choose its panels and their order.**
+
+- **Customise** (top right of the console's Dashboard) lists every panel the
+  dashboard can show you. Untick one to put it away, use the arrows to move
+  it up or down, and press **Save**. **Reset** goes back to the dashboard as
+  it comes.
+- The tiles under **At a glance** can be put away one group at a time —
+  Support, Sales, Visits and meetings, Content.
+- It is each person's own arrangement, kept in their browser for their
+  account. Nothing changes for a colleague, and nobody is shown a panel their
+  role does not have.
+- An untouched dashboard looks exactly as it did.
+- After updating, nothing needs doing.
+
+---
+
 ## 0.119.0 — 2026-10-07
 
 **Table view: compact rows, a column chooser and a header that stays put.**

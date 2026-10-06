@@ -385,6 +385,8 @@ Built in, measured, and never allowed to guess.
   credential-free, pruned only by age.
 - **Client-side error reporting** grouped by fingerprint, re-opening itself
   if a fix does not hold.
+- **A dashboard each person arranges**: put a panel away, move one up, in
+  their own browser — and only the panels their role can see are offered.
 - **Table view** on every list: comfortable or compact rows, a column
   chooser per screen and a header row that stays in view — each person's own
   choice, kept in their browser.

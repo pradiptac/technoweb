@@ -798,3 +798,79 @@ where it fits; the activity log is sticky at all three.
 **Not built**: sorting on every list (each needs its own `ListSort`
 allowlist in the API), and saved views shared between staff — these
 preferences are one browser's.
+
+## Customising the dashboard (0.120.0)
+
+`web/src/lib/dashboard-view.ts`, `web/src/app/admin/(app)/dashboard-customise.tsx`,
+`dashboard-actions.ts`, and `page.tsx` / `metrics.tsx` beside them. Measured
+by `scripts/probes/dashboard-view.mjs`. No API change.
+
+**One list of panels.** `WIDGETS` names the seven — At a glance, Ticket
+figures, Ticket volume, When tickets arrive, Tickets by status, Sales
+pipeline, High priority — and the order it is written in *is* the default.
+The page builds a map of panels by key, the dialog draws its rows from the
+same list, and the Server Action cleans what it is sent against it. The four
+tile groups under At a glance can be hidden one at a time as
+`glance.<group>`.
+
+**The metrics section became three components.** `DashboardMetricsPanel` was
+one `<section>` holding the four figures, the volume chart with its two bar
+lists, and the heatmap, spaced by margins of its own. They are
+`TicketFigures`, `TicketVolume` and `TicketArrivals` now, and none carries a
+margin: the page spaces whatever order it draws.
+
+**A cookie, where the table view uses `localStorage`.** The table view only
+writes CSS over a table that is already on the page. The dashboard is
+different in three ways that all point the same way: it is rendered on the
+server from one API call, so a preference only the browser can read would
+draw the default and then rearrange it; a hidden panel should not be in the
+markup at all; and the order on screen has to be the order in the document,
+which a CSS `order` does not give a keyboard or a screen reader. So the
+arrangement is `tw_dashboard_<staff id>` — httpOnly, since only the server
+reads it; scoped to `/admin`; keyed by account so two people sharing a
+browser keep their own. It is a preference about one screen and never
+reaches the API.
+
+**The default is never stored.** Saving the default — or pressing Reset and
+Save — deletes the cookie. A stored copy of today's default would pin the
+order, and a panel added in a later release would land wherever an old cookie
+happened to leave room. For the same reason `cleanView()` is an allowlist
+both ways: an unknown key is dropped, and a panel the stored order does not
+mention is appended in its default place among the rest.
+
+**Only what this role can draw is offered.** The API sends `leads: null`,
+`visits: null` and `meetings: null` to a role without them, so
+`availableFor()` reads the dashboard's own answer and the dialog lists
+exactly those panels: a support engineer is offered six, with no Sales
+pipeline switch that could never show anything. A panel a role cannot see
+keeps its place at the end of the stored order.
+
+**The button needs the dashboard's answer, and the heading must not wait for
+it.** `PageHeader` renders at once and the body streams under a skeleton, so
+the button is its own `<Suspense>` in the header's row. Both ask
+`loadDashboard()`, which is `cache()`d — one request per render — and the
+fallback is a span of the button's height (32px, not the `sm` button's 44, so
+the dashboard's first row does not move down to make room for a control).
+
+**Spacing belongs to the pair of rows.** A panel that opens on a bare heading
+("Last 30 days", "High priority") wants air above it, and so does whatever
+follows the unboxed ticket list; two cards sit a card-gap apart. `gapAbove()`
+decides from the row and the one before it, and in the default order it
+yields 0, 32, 12, 12, 12, 36px — the dashboard's old margins exactly, which
+the probe asserts. Tickets by status and Sales pipeline are `half` panels:
+neighbours share a row from `lg`, and one alone keeps its half, because a
+ring and its legend stretched across the whole screen is a wide empty card.
+
+**The dialog closes with the page, not before it.** Save calls the Server
+Action inside a transition; the first cut then called `setOpen(false)`
+directly, which is an urgent update — the dialog closed at once and uncovered
+the *old* dashboard for as long as the re-rendered one took to stream
+(seconds on this machine), which reads as a Save that did nothing and failed
+the probe exactly that way. `startTransition(() => setOpen(false))` after the
+await commits the close together with the new page; the button reads
+"Saving…" until then.
+
+**Not built**: a per-account arrangement stored on the server (it would
+follow somebody to another computer; it needs a column and an endpoint),
+resizing a panel, and panels for the store or the newsletter, which have
+dashboards of their own.

@@ -23,6 +23,20 @@ figure opens the list of tickets behind it.
 A figure with nothing behind it shows as a dash, not zero — "no data" is
 different from "instant".
 
+### Arranging the dashboard
+
+**Customise**, at the top right of the Dashboard, lists every panel it can
+show you.
+
+- **Untick** a panel to put it away. Under *At a glance* you can also put
+  away one group of tiles — Support, Sales, Visits and meetings or Content.
+- Use the **arrows** to move a panel up or down.
+- Press **Save**. **Reset**, then Save, puts the dashboard back as it comes.
+
+The arrangement is your own: it is kept in your browser for your account, so
+your colleagues' dashboards do not change, and it does not follow you to
+another computer. You are only offered the panels your role can see.
+
 ## The ticket queue
 
 **Tickets → Tickets** lists every ticket. By default the most urgent are at
