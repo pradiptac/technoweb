@@ -81,7 +81,7 @@ use App\Models\Webhook;
 use App\Models\WebhookDelivery;
 use App\Models\WordPressImport;
 use App\Support\Chat\AiProvider;
-use App\Support\Chat\Providers\OpenAiProvider;
+use App\Support\Chat\Providers\OpenRouterProvider;
 use App\Support\InboundMail\ImapMailbox;
 use App\Support\InboundMail\InboundMail;
 use App\Support\InboundMail\Mailbox;
@@ -102,7 +102,9 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         /*
-         * The website assistant's model provider.
+         * The model provider every AI feature calls: OpenRouter (0.116.0),
+         * for the website assistant, the SEO assistant, alt text and the
+         * article and page drafts alike.
          *
          * One binding, so "swap the provider" is a line here rather than a
          * search for every place a class was named — the argument
@@ -110,7 +112,7 @@ class AppServiceProvider extends ServiceProvider
          * lets a test replace the model without faking HTTP to prove something
          * that is not about HTTP.
          */
-        $this->app->bind(AiProvider::class, OpenAiProvider::class);
+        $this->app->bind(AiProvider::class, OpenRouterProvider::class);
 
         /*
          * The calendar online meetings are organised on (docs/meetings.md):

@@ -182,6 +182,26 @@ export async function testSeoAiModel(model?: string) {
   return res.data;
 }
 
+/**
+ * The models the console may choose, and which two are saved — for the
+ * "Test a model" control beside the OpenRouter key. Calls no provider.
+ */
+export type AiModels = {
+  models: { value: string; label: string; description: string }[];
+  seoModel: string;
+  chatbotModel: string;
+  keyConfigured: boolean;
+};
+
+export async function getAiModels(): Promise<AiModels> {
+  const res = await apiFetch<{
+    data: AiModels["models"];
+    meta: { seo_model: string; chatbot_model: string; key_configured: boolean };
+  }>("/admin/seo/ai/models", { token: await token() });
+
+  return { models: res.data, seoModel: res.meta.seo_model, chatbotModel: res.meta.chatbot_model, keyConfigured: res.meta.key_configured };
+}
+
 export async function setSitemapInclude(type: string, id: number, include: boolean): Promise<void> {
   await apiFetch<void>("/admin/seo/sitemap", {
     method: "PATCH", body: { type, id, sitemap_include: include }, token: await token(),

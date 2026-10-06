@@ -680,7 +680,10 @@ probing a chatbot asks. `visibleMessages` is the boundary — structural, the wa
 **A provider failure never reaches the visitor in the provider's words**, which
 carry model names, quota messages and organisation ids. What comes back is the
 pages that were found: a worse answer than the model would have given, and a far
-better one than an apology.
+better one than an apology. The provider is OpenRouter (0.116.0; the key and
+the model list are under "Admin — the AI SEO assistant"), and the model is
+`chatbot_model`, an OpenRouter id — blank means `AI_MODEL`, then
+`google/gemini-2.5-flash`.
 
 **The assistant asks who it is talking to before it answers anything.** After
 the greeting it collects the visitor's details one question at a time — name,
@@ -1160,6 +1163,7 @@ A CMS page whose `template` is `builder` is a stack of typed sections
 | `DELETE` | `/admin/saved-sections/{id}` | 204, or **422** `{message, linked_from}` while a page or template places the section linked |
 | `POST` | `/admin/pages/sections-from-body` | `role:content_manager`, throttled 30/min. `{body}` (required). The body cleaned as a saved one is and split into `rich_text` sections at its `<h2>`s (its `<h3>`s when it has none) — `{data: {sections}}` in the stored shape, ids included; **nothing written**. 0.109.0 |
 | `POST` | `/admin/pages/preview` | `role:content_manager`, throttled 60/min. `{blocks, page_id?}` — validated exactly as a save is, presented, **nothing written**. 200 `{data: {sections}}`, or a 422 keyed `blocks.N.data.field` |
+| `POST` | `/admin/pages/ai-draft` | `role:content_manager`, throttled 6/min, declared above `pages/{page:id}`. `{brief (10–1500), length? (short/standard/long, default standard), pictures? (default true), icons? (≤ 400 ids)}`. The assistant lays out a **draft** builder page from the brief. **201** `{data: {id, title, slug, admin_path: "/admin/pages/{id}?tab=builder", sections (count), dropped: [{type, reason}]}}`; a refusal is **422** `{message, errors: {brief: [sentence]}}`. 0.116.0 — see below |
 
 **`blocks` on `POST`/`PATCH /admin/pages`** is a list of at most 40
 `{id (uuid), type, hidden, background, reveal, data}`; `type: saved` with `data: {saved_id}` places a library section linked — it must name a library *section* that exists, and the public read draws that section in its place (the page's `id` and `hidden` kept); `template` accepts `builder`
@@ -1234,7 +1238,39 @@ are stored as null, and both the admin and the public reads carry it.
 **The admin detail read** carries `blocks` as stored, `blocks_media` (a URL
 for every stored `*_path`) and `sections` — the public shape, hidden ones
 left out — for the saved preview. The index's `meta` carries
-`section_types` and `section_presets`.
+`section_types` and `section_presets`, and since 0.116.0 `ai_draft:
+{available, reason}` — whether `POST /admin/pages/ai-draft` can be asked now,
+and when not, the sentence it would refuse with (switched off, no key, the
+day's cap reached).
+
+**`POST /admin/pages/ai-draft` writes a draft and nothing else** (0.116.0,
+`App\Support\Seo\Ai\PageDraft`, modelled on the chat's article brief). It
+shares the AI SEO assistant's switch, key, model, daily cap and counter — one
+run counted per page made, nothing for a refusal or a failure — and refuses
+with the same sentences, plus "The AI service did not answer. Try again
+shortly.", "…answered in a form we could not read…" and "…answered, but
+nothing in it was usable…", all on `brief`. The model is told, outside a
+`---BRIEF---` fence (the marker stripped from the brief), to write
+`[CHECK: what to confirm]` wherever a fact, figure, price, model number, date,
+certification, client or guarantee would go — kept verbatim — and never to
+write testimonials, quotations, statistics or prices. It may use `hero`,
+`rich_text`, `media_text`, `features`, `steps`, `checklist`, `faq`, `flow`,
+`cards` and `cta`, and it names **nothing by address**: a button's link is a
+number into the assistant's list of real published pages plus `/contact`, a
+picture a number into up to 40 library images (raster, not SVG, with alt
+text, newest first; none when `pictures` is false), an icon one of the
+`icons` the console sent. A number outside its list is dropped (a button
+loses itself; a `split`/`cover` hero without a picture becomes `centered`; a
+`media_text` without one is left out), an icon not sent is stripped. Every
+field is read by name and bounded, rich text is built from escaped
+paragraphs and cleaned like a typed body, a hero that is not first is left
+out, and **each section is then validated by the rules a save runs**
+(`SectionRules::forPayload`, its messages and `after()`) and normalised as a
+save stores it — anything that fails is left out and listed in `dropped` with
+the first reason. The page is `template: builder`, `status: draft`, a free
+slug from its title (never a frontend route), the model's SEO title (≤ 60) and
+description (≤ 160) as the override, and a body holding an editor's note and
+the brief, escaped. Nothing is published.
 
 **The public read `GET /pages/{slug}`** carries `sections` **only for a
 builder page**: hidden sections omitted; `*_path` → a URL with `*_alt` and
@@ -2668,7 +2704,7 @@ same shape until products gained full CRUD, and went the same way.
 | `POST` | `/admin/media/{id}/crop` | `x`, `y`, `width`, `height`, optional `out_width`/`out_height`, `as_copy` |
 | `POST` | `/admin/media/{id}/transform` | `operation` of `rotate`/`flip`/`adjust`, plus `degrees`, `axis`, `brightness`, `contrast`, `greyscale`, `as_copy` |
 | `POST` | `/admin/media/{id}/replace` | multipart `file`, held to the upload's `mimes:` list by content; the stored `mime` is the detected type. **Same path** |
-| `POST` | `/admin/media/{id}/alt-suggest` | Alt text proposed by the AI SEO assistant (`App\Support\Seo\Ai\AltText`): the picture goes to a vision-capable model as a `data:` URL, one sentence under 125 characters comes back as `{data: {alt}}` — empty for a decorative picture. **Suggest-only**: the field is written through `PATCH`. 422 with the assistant's sentence when it is off, has no key, has hit the day's cap (the same counter), or the file is not a JPEG/PNG/WebP/GIF under 4MB. Throttled 10/min |
+| `POST` | `/admin/media/{id}/alt-suggest` | Alt text proposed by the AI SEO assistant (`App\Support\Seo\Ai\AltText`): the picture goes to a vision-capable model as a `data:` URL, one sentence under 125 characters comes back as `{data: {alt}}` — empty for a decorative picture. **Suggest-only**: the field is written through `PATCH`. 422 with the assistant's sentence when it is off, has no key, has hit the day's cap (the same counter), or the file is not a JPEG/PNG/WebP/GIF under 4MB. A GIF is sent as a PNG of its first frame, since the Gemini models read no GIF; the file itself is untouched. Throttled 10/min |
 | `GET` | `/admin/media/{id}/versions` | Superseded copies, newest first |
 | `POST` | `/admin/media/{id}/versions/{version}/restore` | Puts an archived copy back |
 | `GET` | `/admin/media/{id}/download` | Streams it under its human filename |
@@ -3772,7 +3808,9 @@ triple or, for Cashfree, nothing it trusts — it asks Cashfree's API;
 
 **The `mail` and `integrations` groups are not public.** They are absent from
 the `/settings` whitelist. Anything added to them stays server-side.
-`integrations` holds the OpenAI key, the Hunter key, and Search Console's
+`integrations` holds the OpenRouter key (`openrouter_api_key`, the one key
+every AI feature calls with — see "Admin — the AI SEO assistant"), the Hunter
+key, and Search Console's
 `gsc_service_account` (the whole JSON key file of a service account added to
 the property as a user, encrypted), `gsc_site_url` (the property as Search
 Console names it; derived from `FRONTEND_URL` as `sc-domain:` when blank) and
@@ -4080,12 +4118,77 @@ are telemetry it writes, and are read-only here.
 | `POST` | `/admin/seo/ai/suggestions/{id}/status` | `applied` or `rejected`. Reversible |
 | `GET` | `/admin/seo/ai/context?type=&id=` | Exactly what the model would be told, and its token count. `&action=` picks the action's own prompt, `&block_id=` names the block for `improve_answer` |
 | `POST` | `/admin/seo/ai/bulk` | `{action, type, ids[]}` (max 25). Queues one `RunSeoSuggestion` job per record; **202** with `queued`, `skipped_pending`, `skipped_cap`, `delivering`. The three refusals (off, no key, cap) are made before anything is queued; a record with a `pending` suggestion for that action is skipped; never queues past what is left of the day's cap. `improve_answer` is refused on `action` — it works on one block. Throttled 10/min |
-| `POST` | `/admin/seo/ai/test-model` | One real call, to prove a model id works. Throttled 6/min |
+| `POST` | `/admin/seo/ai/test-model` | `{model?}` (an OpenRouter id, max 64; blank tests the SEO assistant's own). One real call through OpenRouter, to prove this key can call that model. 200 `{data: {model, ok: true, tokens}}`; **422 in the provider's own words** on `message` and `errors.model`. Answered whether or not the assistant is switched on; refused only with no key. Spends none of the daily cap. Throttled 6/min |
+| `GET` | `/admin/seo/ai/models` | What "Test a model" offers. `data` is the model list — `[{value, label, description}]`, the rows `meta.models` carries, a stored value from outside the list appended as its own marked option — and `meta` is `{seo_model, chatbot_model, key_configured}`: the model each feature would call now (after its fall-through) and whether an OpenRouter key is saved. Reads settings only: no provider is called and the key's value is never returned. Answered with the assistant off. Throttled 60/min |
 
 **Declared above `seo/{type}/{id}`**, or `{type}` binds the literal `"ai"` and
 every one of these answers 404 from model binding — the `media/move` trap, which
 reads as a missing record rather than a routing mistake. `seo/ai/{action}` is
 last within the block for the same reason one level in.
+
+**Every AI feature calls OpenRouter** (0.116.0) — the SEO assistant, alt text,
+the article and page drafts, the website assistant and its intake judge — at
+`https://openrouter.ai/api/v1/chat/completions`, through the one provider
+`App\Support\Chat\Providers\OpenRouterProvider`. The key is the
+`openrouter_api_key` setting (`integrations`, secret), then
+`OPENROUTER_API_KEY` in `api/.env` (`AI_API_KEY` is still read as the older
+name; either must hold an OpenRouter key). Each request carries OpenRouter's
+attribution headers, `HTTP-Referer: FRONTEND_URL` and `X-Title: <company
+name>` (the `company_name` setting, else `APP_NAME`). The client's own Google
+AI Studio and OpenAI keys are saved **at OpenRouter** (bring your own key),
+never here, so a model answers only when its maker's key is configured there
+or the OpenRouter account has credit.
+
+**A model is an OpenRouter id, `maker/model`.** `App\Enums\AiModel` is the
+list both pickers offer (`seo_ai_model`, `chatbot_model` — both rows are in
+the `integrations` group since 0.116.0, drawn on Settings → API keys beside
+the key and the model test), Google's first:
+`google/gemini-2.5-flash` (**the default**), `google/gemini-2.5-flash-lite`,
+`google/gemini-2.5-pro`, then `openai/gpt-4o-mini`, `openai/gpt-4.1-mini`,
+`openai/gpt-4o`, `openai/gpt-4.1` — all of which read pictures, which alt
+text needs. The default is a Google model because a Google AI Studio key is
+free to create and, added at OpenRouter, is enough to call it; **an OpenAI
+model needs an OpenAI key, or credit, in the OpenRouter account**, and each
+OpenAI option's `description` says so. A blank `seo_ai_model` falls through
+to `chatbot_model`, a blank `chatbot_model` to `AI_MODEL`, and that to the
+default. A stored value outside the list is still kept, offered back and
+sent exactly as written.
+
+**The `MoveAiToOpenRouter` upgrade step** (0.116.0) renames a stored bare id
+— `gpt-4o-mini` → `openai/gpt-4o-mini`, the same model under OpenRouter's
+name, never the default — leaves a blank blank (so it now resolves to the
+Google default), and deletes the old `openai_api_key` row. An OpenAI key is
+not copied into `openrouter_api_key`, because OpenRouter refuses one.
+
+**`test-model` reports three kinds of refusal, each a 422.** A non-2xx from
+OpenRouter; a 200 carrying an `error` object, which is how it reports a maker
+failing after the request was accepted; and a 200 with no choices or an empty
+one. The message is OpenRouter's `error.message` and, when present, what the
+maker itself said — `error.metadata.raw`, with `metadata.provider_name` in
+front: `Provider returned error — Google AI Studio: API key not valid.`, or
+`No endpoints found for openai/gpt-9.` for an id nobody serves.
+
+**A rate limit is a 429 reported in the maker's words and never retried.** A
+free Google AI Studio key is limited per minute and per day; past the limit
+`test-model` answers 422 with the sentence whole — which limit, and how long
+to wait — and every other AI endpoint answers its ordinary "The AI service
+did not answer. Try again shortly." (the website assistant falls back to the
+pages it found). The refusal is logged at `warning` with the status, code,
+maker and raw message. No request is sent a second time on a refusal.
+
+**A model that thinks before it answers is given headroom.** For
+`google/gemini-2.5-flash` and `google/gemini-2.5-pro` the `max_tokens` sent
+is the caller's cap plus the same again, and never less than 1,024 more: the
+thinking is drawn from the same allowance as the answer, so a small cap (5 to
+prove a model, 120 for an alt text) could otherwise be spent before a word
+is written. An empty reply that ran out this way is the failure "The model
+used its whole allowance of tokens before writing an answer."
+
+**A reply asked for as JSON is read through its wrapping.** A Gemini model
+fences its object (```` ```json ````) or introduces it with a sentence where
+a GPT model does not; `App\Support\Chat\JsonReply` reads the object out of
+either and never repairs a truncated one. Page and article drafts are given
+90 seconds to answer, not the 30 a visitor's question gets.
 
 **Nothing here writes an SEO field.** A run stores a suggestion; the status
 endpoint records a decision. The values reach the record through its own form

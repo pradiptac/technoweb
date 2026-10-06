@@ -13,6 +13,7 @@ use App\Models\SeoSuggestion;
 use App\Models\Service;
 use App\Models\Solution;
 use App\Support\Chat\AiProvider;
+use App\Support\Chat\JsonReply;
 use App\Support\SchemaTypes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
@@ -64,7 +65,7 @@ class SeoAssistant
         }
 
         if (! filled(SeoAiSettings::apiKey())) {
-            return SeoAiResult::failed('No OpenAI key is configured. Add one in Settings → API keys.');
+            return SeoAiResult::failed('No OpenRouter key is configured. Add one in Settings → API keys.');
         }
 
         if (! self::underDailyCap()) {
@@ -325,22 +326,18 @@ class SeoAssistant
     /**
      * JSON, or null.
      *
-     * JSON mode makes a bare object overwhelmingly likely and not certain, and
-     * the one failure worth handling is a model wrapping it in a ```json fence
-     * out of habit — cheap to strip, and the alternative is telling an editor
-     * the service is broken when the answer is sitting right there.
+     * JSON mode makes a bare object overwhelmingly likely and not certain —
+     * and less certain since the model may be any maker's: a Gemini model
+     * wraps the object in a ```json fence, or introduces it with a sentence,
+     * where a GPT model does neither. `JsonReply` reads through the wrapping
+     * and never repairs the contents; it is one reader, shared with the
+     * intake judge, so the two cannot come to disagree about what a reply
+     * says. Every JSON caller in this module — this class, `AltText`,
+     * `ArticleBrief`, `PageDraft` — comes through here.
      */
     public static function decode(string $text): ?array
     {
-        $text = trim($text);
-
-        if (str_starts_with($text, '```')) {
-            $text = trim(preg_replace('/^```[a-z]*\n?|```$/i', '', $text) ?? $text);
-        }
-
-        $decoded = json_decode($text, true);
-
-        return is_array($decoded) ? $decoded : null;
+        return JsonReply::decode($text);
     }
 
     /**

@@ -82,6 +82,12 @@ Only the latest update can be rolled back.
   uploads and backups).
 - You can skip versions: an update carries everything since your version. If
   a version cannot be skipped, the screen tells you which one to apply first.
+- **Read "What is new" before you press Apply.** Now and then an update needs
+  something from you afterwards. Version 0.116.0 is one: it moves the AI
+  features to a service called OpenRouter and removes the saved OpenAI key,
+  so the website assistant and the AI SEO assistant stop writing answers
+  until you save an OpenRouter key. See
+  [18 — Settings](18-settings.md), "After updating to 0.116.0".
 - Take a normal backup to an off-server destination before a big update, as
   well as the automatic safety copy. See
   [22 — Backups and restore](22-backups-and-restore.md).

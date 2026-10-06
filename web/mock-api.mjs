@@ -1461,8 +1461,19 @@ const answerContent = (blocks, faqs, entity) => ({
    (`SeoAiAction::options()`), labels and blurbs included, because the
    console draws only what this list carries. */
 const SEO_AI_META = {
-  enabled: true, configured: true, model: 'gpt-4o-mini',
-  models: [{ value: 'gpt-4o-mini', label: 'GPT-4o mini', description: 'Cheapest and quickest.' }],
+  enabled: true, configured: true, model: 'google/gemini-2.5-flash',
+  /* OpenRouter ids — every AI feature goes through OpenRouter, so a model is
+     named `<provider>/<model>`. The same seven the API offers as `options`
+     on `chatbot_model` and `seo_ai_model`. */
+  models: [
+    { value: 'openai/gpt-4o-mini', label: 'GPT-4o mini (OpenAI)', description: 'Cheapest and quickest of the OpenAI models.' },
+    { value: 'openai/gpt-4.1-mini', label: 'GPT-4.1 mini (OpenAI)', description: 'A step up in quality for a little more.' },
+    { value: 'openai/gpt-4o', label: 'GPT-4o (OpenAI)', description: 'Better copy, at several times the price.' },
+    { value: 'openai/gpt-4.1', label: 'GPT-4.1 (OpenAI)', description: 'The strongest OpenAI model offered here.' },
+    { value: 'google/gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite (Google)', description: 'Google\'s cheapest and quickest.' },
+    { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash (Google)', description: 'Quick and capable. The default.' },
+    { value: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro (Google)', description: 'The strongest Google model offered here.' },
+  ],
   actions: [
     { value: 'generate', label: 'Generate SEO', description: 'A title, a description and keywords for this record.' },
     { value: 'analyze', label: 'Analyse SEO', description: 'Strengths, weaknesses and what the page does not cover.' },
@@ -1637,6 +1648,8 @@ const SECTION_TYPES = [
   { value: 'flow', label: 'Diagram', blurb: 'A row of connected steps — a network, a process, how data moves — whose connecting lines draw themselves as the page scrolls.' },
   { value: 'theme_section', label: 'From the theme', blurb: 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.' },
 ];
+/* The AI page builder's refusal while the AI SEO assistant is off (0.116.0) — the API's sentence. */
+const AI_DRAFT_OFF = 'The AI SEO assistant is switched off. Turn it on in Settings → SEO defaults.';
 const SECTION_PRESETS = [
   { value: 'landing', label: 'Landing page', blurb: 'A hero, three reasons, a live list of solutions, questions and a close.', sections: [
     { type: 'hero', hidden: false, background: null, data: { heading: 'The promise, in one line', layout: 'centered', primary: { label: 'Talk to us', href: '/contact' } } },
@@ -2643,6 +2656,11 @@ createServer(async (req, res) => {
       if (bad !== -1) return json(res, 422, { message: 'That is not a kind of section this site can draw.', errors: { [`blocks.${bad}.type`]: ['That is not a kind of section this site can draw.'] } });
       return json(res, 200, { data: { sections: presentSections(blocks) } });
     }
+    // The AI page builder (0.116.0): refused exactly as the API refuses while the assistant is off.
+    if (p === '/admin/pages/ai-draft' && req.method === 'POST') {
+      await readJsonBody(req);
+      return json(res, 422, { message: AI_DRAFT_OFF, errors: { brief: [AI_DRAFT_OFF] } });
+    }
     // A page body laid out as sections, split at its <h2>s (BodySections, 0.109.0). Writes nothing.
     if (p === '/admin/pages/sections-from-body' && req.method === 'POST') {
       const body = String((await readJsonBody(req)).body ?? '').replace(/<script[\s\S]*?<\/script>/gi, '');
@@ -2752,6 +2770,8 @@ createServer(async (req, res) => {
         if (entity.base === '/admin/pages') {
           page.meta.section_types = SECTION_TYPES;
           page.meta.section_presets = SECTION_PRESETS;
+          // The AI page builder (0.116.0): the mock has no model behind it, so it reports itself off.
+          page.meta.ai_draft = { available: false, reason: AI_DRAFT_OFF };
         }
         page.meta.custom_field_groups = entity.base === '/admin/pages' ? CUSTOM_FIELD_DEFINITIONS : [];
         if (entity.base === '/admin/services') page.meta.sorts = ['title', 'category', 'status', 'order', 'updated'];
@@ -2817,7 +2837,7 @@ createServer(async (req, res) => {
           /* Each average carries its own biggest wins, ranked the way `top_issues` is, opened through `?aeo_check=` / `?geo_check=`. */
           aeo: { value: 62, band: 'fair', top_issues: topIssues(AEO_SCORES), groups: { answer: 'Answers', structure: 'Structure', links: 'Links' } },
           geo: { value: 48, band: 'poor', top_issues: topIssues(GEO_SCORES), groups: { entity: 'Entity', authority: 'Authority', content: 'Content' } } },
-        ai: { enabled: false, configured: false, model: 'gpt-4o-mini', models: [], actions: [], today: { runs: 0, cap: 100, remaining: 100, reached: false } },
+        ai: { enabled: false, configured: false, model: 'google/gemini-2.5-flash', models: [], actions: [], today: { runs: 0, cap: 100, remaining: 100, reached: false } },
         search: { configured: false, days: 28, error: null },
         analytics: { configured: false, days: 28, error: null },
         types: [{ value: 'solution', label: 'Solutions' }],
@@ -2881,6 +2901,11 @@ createServer(async (req, res) => {
         series, recent: [], low_stock: [], codes_low: [],
         most_wished: [{ id: storeProducts[0].id, name: storeProducts[0].name, wishes: 3 }],
       } });
+    }
+
+    /* The models the "Test this model" control offers beside the OpenRouter key. */
+    if (p === '/admin/seo/ai/models' && req.method === 'GET') {
+      return json(res, 200, { data: SEO_AI_META.models, meta: { seo_model: SEO_AI_META.model, chatbot_model: SEO_AI_META.model, key_configured: false } });
     }
 
     if (p === '/admin/seo/ai/suggestions' && req.method === 'GET') {

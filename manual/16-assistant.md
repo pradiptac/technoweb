@@ -9,7 +9,8 @@ the answer came from. It can also collect the visitor's details first and
 pass them to your sales desk as a lead, and hand the conversation over to
 WhatsApp.
 
-It is **off** by default, because switched on it costs money on every
+It is **off** by default, because switched on it sends every question to an
+outside AI service — which costs money, or uses up a free allowance, on every
 message. It lives under **Assistant** in the sidebar: **Overview**,
 **Unanswered**, **Conversations** and **Settings**.
 
@@ -31,22 +32,57 @@ list.
 
 ## Switching it on
 
-It needs an account with an AI provider (currently OpenAI) and an API key.
-Do these in this order:
+The answers are written by an AI model, which the site reaches through a
+service called **OpenRouter**. You need an OpenRouter account and its API
+key, and — inside that OpenRouter account — a key from the company whose
+model you want to use (Google or OpenAI). Chapter 18, "API keys", walks
+through getting both. Do these in this order:
 
-1. Paste the key into **System → Settings → API keys** (*OpenAI API key*) and
-   save. It is one key for every AI feature — this assistant and the AI SEO
-   assistant (chapter 13). Saving it calls nothing: each is used only once it
-   is switched on, and each keeps to its own daily ceiling.
-2. In **Assistant → Settings**, choose the **AI model** (blank uses the
-   server's default).
-3. Set **Replies per day** deliberately — it is the ceiling on your bill.
-4. Write the **Greeting**, the **Suggestion chips** and **When it cannot
+1. Get the OpenRouter key and connect your Google or OpenAI key to it
+   (chapter 18).
+2. Paste the key into **System → Settings → API keys** (*OpenRouter API key*)
+   and save. It is one key for every AI feature — this assistant, the AI SEO
+   assistant (chapter 13), suggested alt text and page drafts. Saving it calls
+   nothing: each is used only once it is switched on, and each keeps to its
+   own daily ceiling.
+3. On the same tab, choose **Model for the website assistant** and save.
+   *Gemini 2.5 Flash (Google)* is the default and works with a free Google
+   key.
+4. Still on that tab, pick the same model under **Model to test** and press
+   **Test this model**. Go on only when it says **The model answered**. If
+   it says **OpenRouter refused the request**, the words under it are
+   OpenRouter's own and say what is missing — most often that the Google or
+   OpenAI key has not been added in your OpenRouter account.
+5. Set **Replies per day** deliberately — it is the ceiling on your bill.
+6. Write the **Greeting**, the **Suggestion chips** and **When it cannot
    answer**.
-5. Only then set **Website assistant** to 1 and save.
+7. Only then set **Website assistant** to 1 and save.
 
 Switched on before the key is saved, it answers every question with the same
-stock sentence listing the pages it found — not a good first impression.
+stock sentence listing the pages it found — not a good first impression. Once
+it is on, ask it one question your website answers: a properly written answer
+proves the whole chain works.
+
+### If you use a free Google key
+
+A Google AI Studio key costs nothing, and it is what *Gemini 2.5 Flash* runs
+on by default. Two things come with "free", and you should know both before
+you switch the assistant on:
+
+- **It has limits, set by Google**: so many requests a minute and so many a
+  day. When a limit is reached, the assistant does not stop or show an error.
+  It falls back to **listing the pages it found**, with links, instead of
+  writing an answer — until the limit resets. A busy hour on the site, or a
+  large batch of AI SEO suggestions run at the same time (chapter 13), is
+  when you will meet it. If visitors often get links instead of answers, that
+  is the sign you have outgrown the free key.
+- **Google may use what is sent on a free key to improve its products.**
+  Whatever a visitor types into the chat is sent, through OpenRouter, to
+  Google. The assistant never sends customers' accounts, orders, tickets or
+  licence codes — it cannot see them — but a visitor may type anything. A
+  **paid** key avoids this. If the assistant will handle anything sensitive,
+  use a paid key, and say in your privacy policy that chat messages are
+  processed by an outside AI service.
 
 To switch it off in a hurry, set **Website assistant** to 0 and save **in the
 console**; it disappears from the site straight away.
@@ -114,7 +150,7 @@ requirement|How can we help today?
 
 | Setting | Notes |
 |---|---|
-| Replies per day | The ceiling that bounds your bill. 0 removes it — not advised |
+| Replies per day | The ceiling that bounds your bill. 0 removes it — not advised. It is the site's own limit: a free Google key has Google's limits as well, which this number does not know about |
 | Longest message (characters) | How much a visitor may type |
 | Messages per conversation | The conversation closes at this |
 | Earlier messages sent with each request | Context for follow-up questions; more costs more |
@@ -166,7 +202,17 @@ type whatever they like into a chat box — treat transcripts as personal data.
 - It only knows what is published on your site. Better content, better
   answers.
 - It never invents an answer: nothing found means your fallback message.
-- Save the API key before switching it on.
+- Save the OpenRouter API key, and **test the model you chose**, before
+  switching it on. A model your OpenRouter account cannot use fails on every
+  message.
+- An OpenAI model (*GPT-4o mini* and the others) works only when an OpenAI
+  key, or paid credit, is on your OpenRouter account. The Google models work
+  with a free Google AI Studio key added there.
+- On a free key, a reached limit shows as links instead of written answers,
+  and visitors' messages may be used by Google to improve its products.
+- If the assistant suddenly answers everything with a list of pages, open
+  **System → Settings → API keys** and press **Test this model** — it says
+  why.
 - Keep **Replies per day** set; it is the only thing that caps the bill.
 - Switch it off from the console, not by any other means, or it may stay
   visible for a while.

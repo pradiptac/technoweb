@@ -320,7 +320,8 @@ Built in, measured, and never allowed to guess.
 - **Sitemap and robots** generated from the data, honouring per-record
   inclusion.
 - **Share images** for every page, generated when no photograph exists.
-- **AI SEO assistant** (OpenAI, off by default): generates titles,
+- **AI SEO assistant** (through OpenRouter — Google's Gemini models by
+  default, OpenAI's on the owner's own key; off by default): generates titles,
   descriptions, FAQs, internal links and schema suggestions — and can never
   write to a record; an editor applies each one through the same save as a
   typed value.

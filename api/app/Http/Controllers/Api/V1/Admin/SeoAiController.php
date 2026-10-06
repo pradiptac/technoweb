@@ -10,6 +10,7 @@ use App\Http\Resources\Admin\SeoSuggestionResource;
 use App\Jobs\RunSeoSuggestion;
 use App\Models\SeoSuggestion;
 use App\Support\Chat\AiProvider;
+use App\Support\Chat\ChatSettings;
 use App\Support\QueueHealth;
 use App\Support\Seo\Ai\SeoAiSettings;
 use App\Support\Seo\Ai\SeoAssistant;
@@ -136,7 +137,7 @@ class SeoAiController extends Controller
 
         $refusal = match (true) {
             ! SeoAiSettings::enabled() => 'The AI SEO assistant is switched off. Turn it on in Settings → SEO defaults.',
-            ! filled(SeoAiSettings::apiKey()) => 'No OpenAI key is configured. Add one in Settings → API keys.',
+            ! filled(SeoAiSettings::apiKey()) => 'No OpenRouter key is configured. Add one in Settings → API keys.',
             ! SeoAssistant::underDailyCap() => 'The daily limit of '.SeoAiSettings::dailyCap().' AI requests has been reached. It resets at midnight.',
             default => null,
         };
@@ -265,20 +266,57 @@ class SeoAiController extends Controller
     }
 
     /**
+     * What the "Test a model" control offers, and what it is testing against.
+     *
+     * The list is `AiModel::options()` for the saved SEO model — the same
+     * rows `meta()['models']` sends, a stored value from outside the list
+     * included as its own marked option — with, beside it, the model each of
+     * the two features would call right now and whether a key is saved at
+     * all. Settings only: no provider is called and the key's value is never
+     * read out, only whether there is one.
+     *
+     * Answered whether or not the assistant is switched on, like `testModel`
+     * below: proving a key and a model is what somebody does *before*
+     * switching anything on.
+     */
+    public function models(): JsonResponse
+    {
+        return response()->json([
+            'data' => AiModel::options(SeoAiSettings::model()),
+            'meta' => [
+                'seo_model' => SeoAiSettings::model(),
+                'chatbot_model' => ChatSettings::model(),
+                'key_configured' => filled(ChatSettings::apiKey()),
+            ],
+        ]);
+    }
+
+    /**
      * One real call, to prove a model id is one this account can use.
      *
      * The `/admin/settings/mail/test` pattern, and it exists for the same
      * reason: a wrong model name and an account without access to a model are
      * both invisible until something tries, and the list of models offered in
      * the console will go stale because providers ship faster than this
-     * application deploys.
+     * application deploys. Since OpenRouter there is a third thing only a
+     * try can show: whether the **maker's own key** — the client's OpenAI or
+     * Google AI Studio key — has been added at OpenRouter, which is a fact
+     * about their account that nothing on this side can read.
      *
      * **This is allowed to report the provider's own words**, and that is the
-     * whole value — "The model `gpt-5-turbo` does not exist" is what tells
-     * somebody what to fix, where "could not connect" tells them nothing. It is
-     * safe here in a way it is not on a visitor-facing path because the caller
-     * is an authenticated `seo_manager` and the only thing they influence is
-     * the model name.
+     * whole value — "No endpoints found for openai/gpt-5-turbo" is what tells
+     * somebody what to fix, where "could not connect" tells them nothing.
+     * `OpenRouterProvider` puts OpenRouter's `error.message` and, when there
+     * is one, what the maker itself said (`error.metadata.raw`) into the
+     * reply's error, and this passes it on whole. It is safe here in a way it
+     * is not on a visitor-facing path because the caller is an authenticated
+     * `seo_manager` and the only thing they influence is the model name.
+     *
+     * **Not gated on `seo_ai_enabled`.** It is a check of the key and the
+     * model, wanted before the assistant is switched on and equally by
+     * somebody who only runs the website assistant. No key is still a
+     * refusal, since there is nothing to test with. It spends none of the
+     * daily cap.
      */
     public function testModel(Request $request, AiProvider $provider): JsonResponse
     {
@@ -287,9 +325,9 @@ class SeoAiController extends Controller
         ]);
 
         if (! filled(SeoAiSettings::apiKey())) {
-            return response()->json([
-                'message' => 'No OpenAI key is configured. Add one in Settings → API keys.',
-            ], 422);
+            $message = 'No OpenRouter key is configured. Add one in Settings → API keys.';
+
+            return response()->json(['message' => $message, 'errors' => ['model' => [$message]]], 422);
         }
 
         $model = trim((string) ($data['model'] ?? '')) ?: SeoAiSettings::model();

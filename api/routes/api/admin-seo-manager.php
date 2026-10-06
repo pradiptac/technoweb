@@ -30,6 +30,10 @@ Route::middleware('role:seo_manager')->group(function () {
      */
     Route::post('seo/ai/test-model', [SeoAiController::class, 'testModel'])
         ->middleware('throttle:6,1')->name('seo.ai.test-model');
+    // What "Test a model" offers: the list, which model each feature is on,
+    // and whether a key is saved. Reads settings only — no provider, no secret.
+    Route::get('seo/ai/models', [SeoAiController::class, 'models'])
+        ->middleware('throttle:60,1')->name('seo.ai.models');
     Route::get('seo/ai/suggestions', [SeoAiController::class, 'suggestions'])->name('seo.ai.suggestions');
     Route::post('seo/ai/suggestions/{seoSuggestion}/status', [SeoAiController::class, 'decide'])
         ->name('seo.ai.decide');
@@ -41,7 +45,7 @@ Route::middleware('role:seo_manager')->group(function () {
     /*
      * Last of the `seo/ai/*` block, because `{action}` is a
      * parameter and would otherwise swallow "suggestions",
-     * "context" and "test-model" — the same shadowing, one level
+     * "context", "models" and "test-model" — the same shadowing, one level
      * further in.
      */
     Route::post('seo/ai/{action}', [SeoAiController::class, 'run'])

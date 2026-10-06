@@ -173,6 +173,36 @@ Things worth knowing about the builder:
 - The page's usual closing call-to-action band is left out if your last
   section is already a CTA banner.
 
+### Drafting a page with AI
+
+On **Content → Pages**, **Draft with AI** writes a first version of a builder
+page for you.
+
+1. Press **Draft with AI**.
+2. In **What is the page for?**, describe the page in a sentence or two — who
+   it is for, what it should cover, what you want the reader to do.
+3. Choose a **Length** (short, standard or long) and whether it may use
+   pictures from your media library. Only pictures that have alt text are
+   offered to it.
+4. Press **Draft the page**. It can take up to a minute. The new page opens in
+   the builder.
+
+What to expect:
+
+- The page is saved as a **draft**. Nothing is published until you publish it.
+- Anything the assistant cannot know — a figure, a price, a model number, a
+  date, a client's name — is written as **[CHECK: …]**. Search the page for
+  "CHECK" and replace each one before publishing.
+- It never writes testimonials, statistics or prices.
+- Its buttons link only to pages your site really has.
+- If a message says some sections "did not pass the page's rules and were
+  left out", the rest of the page is still complete — add what is missing by
+  hand.
+
+It needs the AI assistant switched on and an OpenRouter key saved (see
+*Settings*), and each draft counts towards the assistant's daily limit. If it
+cannot run, the button opens a note saying why.
+
 ## The blog
 
 **Blog → Blog** lists your articles. Each post has a title, a slug, an

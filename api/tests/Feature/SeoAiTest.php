@@ -76,7 +76,7 @@ class SeoAiTest extends TestCase
     private function enable(): void
     {
         $this->setting('seo_ai_enabled', '1', 'boolean');
-        $this->setting('openai_api_key', 'sk-test', 'string', 'integrations');
+        $this->setting('openrouter_api_key', 'sk-test', 'string', 'integrations');
     }
 
     /**
@@ -104,7 +104,7 @@ class SeoAiTest extends TestCase
 
                 return $this->ok
                     ? AiReply::of($this->says, 42)
-                    : AiReply::failed('quota exceeded for org-abc123 on model gpt-4o');
+                    : AiReply::failed('quota exceeded for org-abc123 on model openai/gpt-4o');
             }
 
             public function isConfigured(): bool
@@ -148,7 +148,7 @@ class SeoAiTest extends TestCase
     public function test_it_refuses_when_switched_off_without_calling_the_model(): void
     {
         $fake = $this->fakeProvider();
-        $this->setting('openai_api_key', 'sk-test', 'string', 'integrations');
+        $this->setting('openrouter_api_key', 'sk-test', 'string', 'integrations');
         // seo_ai_enabled left at its seeded default of off.
 
         $this->ask($this->seoManager(), 'generate', $this->solution())
@@ -163,8 +163,8 @@ class SeoAiTest extends TestCase
     {
         $fake = $this->fakeProvider();
         $this->setting('seo_ai_enabled', '1', 'boolean');
-        $this->setting('openai_api_key', null, 'string', 'integrations');
-        config(['services.openai.key' => null]);
+        $this->setting('openrouter_api_key', null, 'string', 'integrations');
+        config(['services.openrouter.key' => null]);
 
         $this->ask($this->seoManager(), 'generate', $this->solution())->assertStatus(422);
 
@@ -199,11 +199,11 @@ class SeoAiTest extends TestCase
 
         $response = $this->ask($this->seoManager(), 'generate', $this->solution())->assertStatus(422);
 
-        // The provider said "quota exceeded for org-abc123 on model gpt-4o".
+        // The provider said "quota exceeded for org-abc123 on model openai/gpt-4o".
         // None of that — the org id least of all — may be in the response.
         $body = $response->getContent();
         $this->assertStringNotContainsString('org-abc123', $body);
-        $this->assertStringNotContainsString('gpt-4o', $body);
+        $this->assertStringNotContainsString('openai/gpt-4o', $body);
         $this->assertStringNotContainsString('quota', $body);
     }
 
@@ -495,7 +495,7 @@ class SeoAiTest extends TestCase
 
         $data = $this->getJson('/api/v1/settings')->assertOk()->json('data');
 
-        foreach (['seo_ai_enabled', 'seo_ai_context', 'seo_ai_model', 'seo_ai_daily_cap', 'openai_api_key'] as $key) {
+        foreach (['seo_ai_enabled', 'seo_ai_context', 'seo_ai_model', 'seo_ai_daily_cap', 'openrouter_api_key'] as $key) {
             $this->assertArrayNotHasKey($key, $data);
         }
     }
@@ -526,10 +526,10 @@ class SeoAiTest extends TestCase
         $fake = $this->fakeProvider(json_encode(['title' => 'A perfectly serviceable page title']));
 
         $this->setting('seo_ai_model', null);
-        $this->setting('chatbot_model', 'gpt-4o', 'string', 'chatbot');
+        $this->setting('chatbot_model', 'openai/gpt-4o', 'string', 'chatbot');
 
         $this->ask($this->seoManager(), 'generate', $this->solution())->assertCreated();
-        $this->assertSame('gpt-4o', $fake->lastOptions['model']);
+        $this->assertSame('openai/gpt-4o', $fake->lastOptions['model']);
     }
 
     public function test_a_model_outside_the_list_is_sent_unchanged_never_substituted(): void
@@ -541,10 +541,10 @@ class SeoAiTest extends TestCase
         // would. Silently sending a different one would bill them for a model
         // they did not choose, which is the whole reason AiModel does not fall
         // back the way SchemaTypes does.
-        $this->setting('seo_ai_model', 'gpt-9-enormous');
+        $this->setting('seo_ai_model', 'openai/gpt-9-enormous');
 
         $this->ask($this->seoManager(), 'generate', $this->solution())->assertCreated();
-        $this->assertSame('gpt-9-enormous', $fake->lastOptions['model']);
+        $this->assertSame('openai/gpt-9-enormous', $fake->lastOptions['model']);
     }
 
     public function test_the_settings_endpoint_refuses_a_model_that_is_neither_offered_nor_stored(): void
@@ -554,7 +554,7 @@ class SeoAiTest extends TestCase
         $this->setting('seo_ai_model', null);
 
         $this->actingAs($admin)->patchJson('/api/v1/admin/settings', [
-            'settings' => [['key' => 'seo_ai_model', 'value' => 'gpt-typo-4o']],
+            'settings' => [['key' => 'seo_ai_model', 'value' => 'openai/gpt-typo-4o']],
         ])->assertStatus(422);
     }
 
@@ -562,12 +562,12 @@ class SeoAiTest extends TestCase
     {
         $admin = $this->admin();
 
-        $this->setting('seo_ai_model', 'gpt-9-enormous');
+        $this->setting('seo_ai_model', 'openai/gpt-9-enormous');
 
         $groups = $this->actingAs($admin)->getJson('/api/v1/admin/settings')->assertOk()->json('data');
         $row = collect($groups['seo'])->firstWhere('key', 'seo_ai_model');
 
-        $this->assertContains('gpt-9-enormous', array_column($row['options'], 'value'));
+        $this->assertContains('openai/gpt-9-enormous', array_column($row['options'], 'value'));
     }
 
     // ---- the context endpoint ------------------------------------------------
@@ -731,24 +731,24 @@ class SeoAiTest extends TestCase
             'seoable_type' => 'solution', 'seoable_id' => $record->id, 'action' => 'generate',
             'model' => $model, 'result' => ['title' => 'x'], 'tokens' => 10, 'user_id' => null, 'status' => $status,
         ]);
-        $row('gpt-4o-mini', 'applied');
-        $row('gpt-4o-mini', 'applied');
-        $row('gpt-4o-mini', 'rejected');
-        $row('gpt-4o-mini', 'pending');
-        $row('gpt-4o', 'pending');
+        $row('openai/gpt-4o-mini', 'applied');
+        $row('openai/gpt-4o-mini', 'applied');
+        $row('openai/gpt-4o-mini', 'rejected');
+        $row('openai/gpt-4o-mini', 'pending');
+        $row('openai/gpt-4o', 'pending');
 
         $usage = $this->actingAs($this->seoManager())
             ->getJson('/api/v1/admin/seo/ai/suggestions?type=solution&id='.$record->id)
             ->assertOk()
             ->json('meta.usage');
 
-        $mini = collect($usage)->firstWhere('model', 'gpt-4o-mini');
+        $mini = collect($usage)->firstWhere('model', 'openai/gpt-4o-mini');
         $this->assertSame(4, $mini['suggestions']);
         $this->assertSame(2, $mini['applied']);
         $this->assertSame(40, $mini['tokens']);
         $this->assertEqualsWithDelta(0.667, $mini['acceptance'], 0.001);
 
-        $big = collect($usage)->firstWhere('model', 'gpt-4o');
+        $big = collect($usage)->firstWhere('model', 'openai/gpt-4o');
         $this->assertNull($big['acceptance'], 'one pending suggestion is not a 0% acceptance rate');
     }
 }

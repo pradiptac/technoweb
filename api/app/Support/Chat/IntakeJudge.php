@@ -76,9 +76,12 @@ class IntakeJudge
             return null;
         }
 
-        $decoded = json_decode($reply->text, true);
+        // Through the one reader every JSON caller uses: a Gemini model fences
+        // its object where a GPT model does not, and a fenced verdict read
+        // as "no verdict" would quietly switch the judge off for that maker.
+        $decoded = JsonReply::decode($reply->text);
 
-        if (! is_array($decoded) || ! in_array($decoded['kind'] ?? null, self::KINDS, true)) {
+        if ($decoded === null || ! in_array($decoded['kind'] ?? null, self::KINDS, true)) {
             return null;
         }
 

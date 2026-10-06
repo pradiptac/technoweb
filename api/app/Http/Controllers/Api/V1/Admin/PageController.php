@@ -25,6 +25,7 @@ use App\Support\PageSections\BodySections;
 use App\Support\PageSections\SectionPresenter;
 use App\Support\PageSections\SectionPresets;
 use App\Support\PageSections\SectionRules;
+use App\Support\Seo\Ai\PageDraft;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -61,7 +62,57 @@ class PageController extends Controller
             'section_presets' => SectionPresets::all(),
             // The custom field groups that apply, for the console's Fields tab.
             'custom_field_groups' => CustomFields::definitions('page'),
+            // Whether "Draft with AI" can be pressed now, and the sentence
+            // that says why not — the refusal the endpoint itself would give.
+            'ai_draft' => ['available' => ($reason = PageDraft::refusal()) === null, 'reason' => $reason],
         ]]);
+    }
+
+    /**
+     * A draft builder page laid out by the assistant from a brief (0.116.0):
+     * `PageDraft` asks for sections, validates each as a save would and
+     * creates a **draft**; the console opens it on the Builder tab. 201 with
+     * the page and what was left out; 422 on `brief` with the assistant's own
+     * sentence when it refuses. Nothing is published.
+     */
+    public function aiDraft(Request $request, PageDraft $draft): JsonResponse
+    {
+        $data = $request->validate([
+            'brief' => ['required', 'string', 'min:10', 'max:1500'],
+            'length' => ['nullable', 'string', 'in:short,standard,long'],
+            'pictures' => ['sometimes', 'boolean'],
+            'icons' => ['nullable', 'array', 'max:400'],
+            'icons.*' => ['string', 'max:40'],
+        ], [
+            'brief.required' => 'Describe the page you want.',
+            'brief.min' => 'Say a little more about the page — a sentence at least.',
+            'brief.max' => 'Keep the brief to 1500 characters.',
+        ]);
+
+        $result = $draft->draft(
+            (string) $data['brief'],
+            (string) ($data['length'] ?? 'standard'),
+            $request->boolean('pictures', true),
+            (array) ($data['icons'] ?? []),
+            $request->user()?->id,
+        );
+
+        if (! $result['ok'] || ! isset($result['page'])) {
+            $error = $result['error'] ?? 'The AI service answered, but nothing in it was usable. Try again.';
+
+            return response()->json(['message' => $error, 'errors' => ['brief' => [$error]]], 422);
+        }
+
+        $page = $result['page'];
+
+        return response()->json(['data' => [
+            'id' => $page->id,
+            'title' => $page->title,
+            'slug' => $page->slug,
+            'admin_path' => '/admin/pages/'.$page->id.'?tab=builder',
+            'sections' => count($page->blocks ?? []),
+            'dropped' => $result['dropped'] ?? [],
+        ]], 201);
     }
 
     /**

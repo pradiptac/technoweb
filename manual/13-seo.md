@@ -124,22 +124,40 @@ reaches the site until you **Save**.
 
 ### Switching it on
 
-It needs an account with an AI provider (currently OpenAI) and its API key.
+Its suggestions are written by an AI model, which the site reaches through a
+service called **OpenRouter**. It needs an OpenRouter account and its API
+key, with your own Google or OpenAI key added inside that OpenRouter account.
+Chapter 18, "API keys", has the steps.
 
 1. An administrator pastes the key into **System → Settings → API keys**
-   (*OpenAI API key*). It is one key for every AI feature — the website
-   assistant uses it too — and nothing is called until an assistant is
-   switched on.
-2. In **SEO → Settings**, set **AI SEO assistant** to 1.
-3. Choose the **AI model** (blank uses the website assistant's). A model your
-   account cannot use fails on every request, so ask for one suggestion after
-   changing it to prove it works.
-4. Set **AI requests per day** — the ceiling that bounds your bill (100 by
+   (*OpenRouter API key*) and saves. It is one key for every AI feature — the
+   website assistant uses it too — and nothing is called until an assistant
+   is switched on.
+2. On the same tab, the administrator chooses **Model for SEO, alt text and
+   page drafts**, saves, then picks it under **Model to test** and presses
+   **Test this model**. **The model answered** means it is ready; a refusal
+   is shown in OpenRouter's own words and says what is missing.
+3. In **SEO → Settings**, set **AI SEO assistant** to 1.
+4. The model is *Gemini 2.5 Flash (Google)* unless you changed it in step 2.
+   The Google models work with a free Google AI Studio key added at
+   OpenRouter; the OpenAI models need an OpenAI key, or paid credit, there. A
+   model your account cannot use fails on every request, so test it again
+   whenever you change it.
+5. Set **AI requests per day** — the ceiling that bounds your bill (100 by
    default; 0 removes it).
-5. Describe **what the business does**, **who it sells to** and **where it
+6. Describe **what the business does**, **who it sells to** and **where it
    operates**, plus any **tone and positioning** notes. Do not list your
    services or places here — the assistant reads those from the catalogue
    every time.
+
+**On a free Google key**, Google limits how many requests it takes each
+minute and each day. When a limit is reached an action answers *The AI
+service did not answer. Try again shortly.* — wait a minute and press it
+again; a request that got no answer is not counted against your daily
+ceiling. A bulk run (below) is the quickest way to reach the limit, and it
+shares that allowance with the website assistant, which answers visitors
+with links instead of written answers while the limit lasts. Run large
+batches at a quiet time, or use a paid key.
 
 ### Using it
 
@@ -174,7 +192,9 @@ decided, so you can go back to one you rejected without paying for it again.
 assistant** bar offers one action for the records on screen (up to 25 of each
 type at a time): choose it and press **Draft for these …**. They run in the
 background; then set the **Assistant** filter to **With a suggestion waiting**
-to review them one by one.
+to review them one by one. If fewer suggestions arrive than you asked for, the
+AI service refused some of them — on a free key, usually its per-minute
+limit. Run the action again for the records still without one.
 
 **Alt text.** In the media library's edit dialog, **Suggest alt text** proposes
 a description of a picture (chapter 14).
@@ -227,6 +247,8 @@ simply left out until it is fixed.
 - The AI assistant only suggests. Check every suggestion — especially any
   `[MISSING: …]` marker — before you save.
 - The daily request limit is what protects your AI bill; keep it set.
+- The AI key is an **OpenRouter** key (chapter 18). After saving it, or
+  changing the AI model, press **Test this model** on the API keys tab.
 - Scores are guidance, not a ranking guarantee. A page that reads well for a
   person matters more than a perfect number.
 - Switch IndexNow on only once the site is live on its real address.

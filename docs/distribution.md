@@ -210,6 +210,84 @@ install, the full update and a rollback driven by the key alone, maintenance
 scope, and a downgrade. The update test builds a real
 signed zip with a key of its own. Also pinned by `SystemStatusTest`.
 
+## Upgrade steps
+
+A one-off "run this after deploying" is a class under
+`app/Support/Upgrade/Steps/`, never a line in a README the customer will not
+read. The rules:
+
+- **Listed by hand in `UpgradeSteps::STEPS`, in the order they must run.** A
+  class nobody names there never runs — the rule `routes/api.php` follows for
+  route files.
+- **Run by the updater's `steps` stage, one per request, after `migrate` and
+  `seed`.** So a step may rely on this release's tables and on the rows
+  `SettingsSeeder` and `RoleSeeder` have just made; those two seeders are not
+  steps, because they are safe on every update and run on every update.
+- **Recorded in `system_upgrade_steps` by id as each one ends**, and never
+  run again. A step must still be safe to run twice — a run that stops between
+  the work and the record repeats it on "Try this step again".
+- **The wizard marks every step done** (`UpgradeSteps::markAllDone()`), so a
+  fresh install does not replay history on its first update.
+- **Its `description()` is what the run's log shows the customer**, in their
+  words: "Point the AI features at OpenRouter.", not a class name.
+- **A step is not undone by a rollback that only swaps the code.** The
+  safety copy is restored only when the update ran migrations
+  (`$run['migrated']`); a release whose only database change is a step leaves
+  that change in place under the previous release's code.
+
+The steps so far:
+
+| Step | Release | What it does |
+|---|---|---|
+| `RebuildStoreSpecs` | 0.96.0 | Rebuilds the shop's specification-filter index (`docs/store.md`) |
+| `DeriveMeetingPrefix` | 0.98.0 | Numbers online meetings under the ticket prefix (`docs/meetings.md`) |
+| `MoveAiToOpenRouter` | 0.116.0 | Points the AI features at OpenRouter — below |
+
+### `MoveAiToOpenRouter`, and the one step that needs the customer afterwards
+
+From 0.116.0 every AI feature calls OpenRouter instead of OpenAI
+(`docs/chatbot-architecture.md`, "The provider is OpenRouter"). An existing
+install carries two things in the old arrangement's terms, and the step
+settles both:
+
+- **The chosen models are renamed, never swapped.** `chatbot_model` and
+  `seo_ai_model` holding a bare OpenAI id — `gpt-4o-mini` — get their maker in
+  front, `openai/gpt-4o-mini`, which is OpenRouter's name for the same model;
+  sent bare it is refused there as no model at all. A blank stays blank (it
+  means "the default", now `google/gemini-2.5-flash`), and a value already
+  naming a maker, or one that does not look like OpenAI's, is left exactly as
+  it is. `AI_MODEL` in `config/api.env` is a file no step may edit, so it is
+  read through the same rename (`AiModel::qualify()`) on every request.
+- **The `openai_api_key` row is deleted, and its value is not copied** into
+  `openrouter_api_key`, which the seeder has made by then. An OpenAI key is
+  not an OpenRouter key: sent there it is refused, and a refused key that
+  looks configured reports a provider failure on every call where a blank one
+  says what to do. It also takes an encrypted credential nothing reads any
+  more out of the database.
+
+**So this update leaves the AI features off until somebody acts**, which no
+step can do for them: the customer creates a key at openrouter.ai → Keys,
+adds their own provider key in that OpenRouter account (Settings →
+Integrations — a free Google AI Studio key for the Gemini models, an OpenAI
+key for the GPT ones) and pastes the OpenRouter key into Settings → API keys.
+Until then every AI action answers "No OpenRouter key is configured." and
+calls nothing, and the website assistant goes on answering with the pages it
+finds, as it always has without a model. Because the renamed models are
+OpenAI's, an account that holds only a Google AI Studio key must also change
+the model to a Gemini one — "Test this model" on the same tab says so in
+OpenRouter's words. The customer is told in two places: the manual's settings
+chapter (`manual/18-settings.md`, "After updating to 0.116.0", shipped as
+`MANUAL/`), and the release's changelog entry, which System → Updates shows
+under "What is new" before Apply is pressed. The 0.116.0 entry carries an
+"After updating" line for that reason: it is the only one of the two the
+customer sees before the AI features stop. **A step that leaves work for the
+customer needs that line in its release's entry**, in their words.
+
+`UpgradeOpenRouterTest` pins the registration and the record, the rename,
+the delete, the key that is not copied, a key already saved for OpenRouter
+that is kept, a second run that changes nothing, and an install holding none
+of the rows.
+
 ## Known limits
 
 - **Hosting.** cPanel needs "Setup Node.js App" (CloudLinux/Passenger) and

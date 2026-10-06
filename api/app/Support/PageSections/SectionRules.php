@@ -91,7 +91,10 @@ final class SectionRules
         'store_products' => 'Products (shop)',
     ];
 
-    private const ICON = 'regex:/^[a-z0-9-]{1,40}$/';
+    /** An icon's id, as the frontend's identity icons are keyed; `PageDraft` reads it too. */
+    public const ICON_PATTERN = '/^[a-z0-9-]{1,40}$/';
+
+    private const ICON = 'regex:'.self::ICON_PATTERN;
 
     /** How a `stats` section draws its figures; rings and bars need a percentage. */
     public const STAT_DISPLAYS = ['figures', 'rings', 'bars'];

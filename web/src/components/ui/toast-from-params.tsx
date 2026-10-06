@@ -61,6 +61,13 @@ const OUTCOMES: Record<string, Message> = {
     title: "Saved reply deleted",
     body: "It is off every ticket's picker. Replies already sent with it are unchanged.",
   },
+  "page-drafted": {
+    tone: "ok",
+    title: "Drafted by the assistant.",
+    // The one thing that must happen before it goes live, said where the
+    // editor lands: the draft is unpublished and its gaps are marked.
+    body: "Check every [CHECK: …] before publishing.",
+  },
   "block-saved": {
     tone: "ok",
     title: "Block saved",

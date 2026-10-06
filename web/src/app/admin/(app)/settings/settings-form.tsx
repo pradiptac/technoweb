@@ -20,6 +20,7 @@ import { EditorField } from "@/components/admin/editor-field";
 import { PaymentsPanel } from "./payments-panel";
 import { BannersPanel } from "./banners-panel";
 import { HunterTest } from "./hunter-test";
+import { OpenRouterTest } from "./openrouter-test";
 import { GscTest } from "./gsc-test";
 import { Ga4Test } from "./ga4-test";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
@@ -304,7 +305,7 @@ function GroupPanel({
           }
 
           if (row.options?.length) {
-            return (
+            const choice = (
               <ChoiceField
                 key={row.key}
                 id={id}
@@ -313,6 +314,12 @@ function GroupPanel({
                 options={row.options}
               />
             );
+
+            // "Test this model" stands directly under the second of the two
+            // model pickers, not at the foot of the tab under Search Console.
+            return row.key === "seo_ai_model"
+              ? [choice, <OpenRouterTest key="openrouter-test" configured={rows.some((r) => r.key === "openrouter_api_key" && Boolean(r.is_set))} />]
+              : choice;
           }
 
           // An on/off setting with no named choices: a switch, decided by

@@ -247,6 +247,27 @@ export type PageBuilderOptions = {
   };
 };
 
+/**
+ * Whether the AI page builder can draft a page (0.116.0): `meta.ai_draft` on
+ * the pages index. `reason` is the API's own sentence when it cannot —
+ * switched off, no key, the day's cap — and null when it can.
+ */
+export type AiDraftAvailability = { available: boolean; reason: string | null };
+
+/** `POST /admin/pages/ai-draft`'s 201: the draft page it saved, and what it left out. */
+export type AiDraftResult = {
+  id: number;
+  title: string;
+  slug: string;
+  admin_path: string;
+  /** How many sections the saved draft holds. */
+  sections: number;
+  /** Sections the assistant proposed that failed the page's rules, each with the rule's sentence. */
+  dropped: { type: string; reason: string }[];
+};
+
+export type AiDraftLength = "short" | "standard" | "long";
+
 /** A library item (`/admin/saved-sections`, 0.106.0). */
 export type SavedSection = {
   id: number;

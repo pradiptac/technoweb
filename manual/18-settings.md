@@ -188,13 +188,95 @@ Keys for outside services used by several modules:
 
 | Key | Used by |
 |---|---|
-| OpenAI API key | Every AI feature: the website assistant — its answers, and reading visitors' answers while it asks who they are (chapter 16) — and the AI SEO assistant — on a record's form, in bulk from the SEO overview, alt text in the media library, and article drafts from the assistant's unanswered questions (chapter 13). Nothing is called until **Assistant → Settings** or **SEO → Settings** switches one on, and each keeps its own daily ceiling |
+| OpenRouter API key | Every AI feature: the website assistant — its answers, and reading visitors' answers while it asks who they are (chapter 16) — and the AI SEO assistant — on a record's form, in bulk from the SEO overview, alt text in the media library, article drafts from the assistant's unanswered questions and page drafts (chapter 13). Nothing is called until **Assistant → Settings** or **SEO → Settings** switches one on, and each keeps its own daily ceiling. See "The OpenRouter key" below |
 | Hunter.io API key | Newsletter address checking (chapter 11) |
 | Search Console service account and property | The SEO overview (chapter 13) |
 | Google Analytics 4 property ID | The SEO overview and the shop's overview (chapter 13) |
 
-Each Google and Hunter key has a test button that proves it works and reports
-any refusal in the provider's own words.
+Each key has a test button that proves it works and reports any refusal in
+the provider's own words. They test the **saved** value, so save first.
+
+### The OpenRouter key
+
+The site does not talk to an AI company directly. It sends every AI request
+to one service, **OpenRouter** (openrouter.ai), which passes it on to the
+company that makes the model you chose — Google for the *Gemini* models,
+OpenAI for the *GPT* ones. So there are two kinds of key, kept in two places:
+
+- the **OpenRouter key** goes here, in the console. It is the only AI key the
+  site ever holds;
+- **your own Google or OpenAI key** goes into your OpenRouter account, not
+  here. OpenRouter calls this "bring your own key".
+
+To set it up:
+
+1. Create an account at openrouter.ai, open **Keys**, create a key and copy
+   it.
+2. Still at OpenRouter, open **Settings → Integrations** and add your own
+   provider key:
+   - a **Google AI Studio** key for the Gemini models. It is free to create,
+     and it is all you need to start;
+   - an **OpenAI** key for the GPT models. Without one — or paid credit in
+     your OpenRouter account — a GPT model is refused.
+3. In the console, paste the OpenRouter key into **System → Settings → API
+   keys → OpenRouter API key** and **Save**.
+4. On the same tab, choose the two models — **Model for the website
+   assistant** and **Model for SEO, alt text and page drafts** — and
+   **Save**. Then pick each under **Model to test** and press **Test this
+   model**. It sends one very short request through the saved key.
+   - **The model answered** — that model works with your keys.
+   - **OpenRouter refused the request** — the words under it are OpenRouter's
+     own, and say what to fix: usually that the Google or OpenAI key has not
+     been added at OpenRouter, that the key is wrong, or that a free
+     allowance is used up for now.
+5. **Test every model you chose** — a model your account cannot use fails
+   every time it is called, and nothing warns you until a visitor or an
+   editor meets it. The key, both models and the test are all on this one
+   tab; the switches that turn each assistant on are in **Assistant →
+   Settings** (chapter 16) and **SEO → Settings** (chapter 13).
+
+The models offered:
+
+| Model | Works with |
+|---|---|
+| Gemini 2.5 Flash (Google) — used when you choose nothing | A free Google AI Studio key added at OpenRouter |
+| Gemini 2.5 Flash-Lite (Google) — the quickest and lightest | The same |
+| Gemini 2.5 Pro (Google) — the strongest and slowest; for content work, not for the chat assistant | The same |
+| GPT-4o mini, GPT-4.1 mini, GPT-4o, GPT-4.1 (OpenAI) | An OpenAI key, or paid credit, in your OpenRouter account |
+
+**A free Google key has two costs.** Google limits how many requests it will
+take each minute and each day; when a limit is reached, the website assistant
+answers with links to the pages it found instead of a written answer, and the
+SEO assistant says the AI service did not answer — both recover by
+themselves when the limit resets. And Google may use requests made on a free
+key to improve its products, which includes whatever visitors type into the
+chat. A paid key has higher limits and avoids the second. Chapter 16 says
+more.
+
+### After updating to 0.116.0
+
+Before version 0.116.0 the site called OpenAI directly and this tab held an
+*OpenAI API key*. From 0.116.0 it uses OpenRouter, and the update makes two
+changes by itself:
+
+- **The saved OpenAI key is removed.** An OpenAI key does not work at
+  OpenRouter, so it is not carried over.
+- **A model you had chosen is kept**, under OpenRouter's name for it
+  (*GPT-4o mini* stays GPT-4o mini). If you had left the model blank, it
+  now means *Gemini 2.5 Flash (Google)*. Both model choices have moved to
+  **System → Settings → API keys**, beside the key.
+
+**Until you save an OpenRouter key, every AI feature is off**: the SEO
+assistant's buttons answer "No OpenRouter key is configured", and the website
+assistant answers every question with links to pages instead of a written
+answer. Nothing else on the site is affected. To put them back:
+
+1. Follow steps 1 to 4 of "The OpenRouter key" above.
+2. Look at the two models on **System → Settings → API keys**.
+   If it names an OpenAI model, either add your **OpenAI key at OpenRouter**
+   (Settings → Integrations), or — if you will use a free Google key instead
+   — change it to a Gemini model and save.
+3. Press **Test this model** for the model you ended up with.
 
 ## Data retention
 
@@ -270,6 +352,9 @@ order still goes through.
 ## Things to know
 
 - Save secrets once; they are never shown again.
+- The AI features need an **OpenRouter** key — an OpenAI key pasted here does
+  not work. Your Google or OpenAI key belongs in your OpenRouter account.
+  Test the model you chose after saving.
 - Replace the invented homepage statistics before launch.
 - Test outgoing mail to an outside address after any change.
 - Code pasted into **Code before `</body>`** runs on every public page

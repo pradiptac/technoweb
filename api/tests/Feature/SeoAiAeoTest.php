@@ -60,7 +60,7 @@ class SeoAiAeoTest extends TestCase
     private function enable(): void
     {
         $this->setting('seo_ai_enabled', '1', 'boolean');
-        $this->setting('openai_api_key', 'sk-test', 'string', 'integrations');
+        $this->setting('openrouter_api_key', 'sk-test', 'string', 'integrations');
     }
 
     /** The `SeoAiTest` fake: says what the test wants and keeps what it was asked. */

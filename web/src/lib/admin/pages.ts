@@ -2,7 +2,7 @@ import "server-only";
 import { apiFetch } from "@/lib/api";
 import { query, token } from "./_shared";
 import type {
-  AdminPage, AdminFaq, AnswerBlock, FaqOwnerGroup, PageBuilderOptions, PageSection, Paginated, PublishStatus,
+  AdminPage, AdminFaq, AiDraftAvailability, AiDraftLength, AiDraftResult, AnswerBlock, FaqOwnerGroup, PageBuilderOptions, PageSection, Paginated, PublishStatus,
   SavedSection, SeoOverride, StoredSection,
 } from "@/types/api";
 
@@ -63,7 +63,12 @@ export type CmsPagePayload = Partial<{
   seo: Partial<SeoOverride>;
 }>;
 
-export async function getPages(params: PageQueryParams = {}) {
+/** The pages index, whose `meta` also says whether the AI page builder can draft (0.116.0; absent from an older API). */
+export type PagesIndex = Paginated<AdminPage> & {
+  meta: Paginated<AdminPage>["meta"] & { ai_draft?: AiDraftAvailability };
+};
+
+export async function getPages(params: PageQueryParams = {}): Promise<PagesIndex> {
   const query = new URLSearchParams();
   if (params.status) query.set("status", params.status);
   if (params.q) query.set("q", params.q);
@@ -71,7 +76,33 @@ export async function getPages(params: PageQueryParams = {}) {
   if (params.per_page) query.set("per_page", String(params.per_page));
 
   const qs = query.toString();
-  return apiFetch<Paginated<AdminPage>>(`/admin/pages${qs ? `?${qs}` : ""}`, { token: await token() });
+  return apiFetch<PagesIndex>(`/admin/pages${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+const AI_DRAFT_TIMEOUT_MS = 150_000;
+
+export type AiDraftInput = {
+  brief: string;
+  length: AiDraftLength;
+  pictures: boolean;
+  /** The identity icon keys the assistant may choose from — `iconMap`'s, read on the server. */
+  icons: string[];
+};
+
+/**
+ * Has the AI page builder draft a page from a brief (0.116.0). The API saves
+ * it as a draft and answers where it is; a refusal is a 422 on `brief`.
+ *
+ * A model call routinely takes 20–60 seconds. `apiFetch` sets no timeout of
+ * its own (undici's defaults are five minutes), so this call carries a
+ * ceiling of its own: long enough for a slow answer, short enough that a hung
+ * one ends as a sentence on the form rather than a spinner nobody can stop.
+ */
+export async function draftPageWithAi(input: AiDraftInput): Promise<AiDraftResult> {
+  const res = await apiFetch<{ data: AiDraftResult }>("/admin/pages/ai-draft", {
+    method: "POST", body: input, token: await token(), signal: AbortSignal.timeout(AI_DRAFT_TIMEOUT_MS),
+  });
+  return res.data;
 }
 
 export async function getPage(id: number): Promise<AdminPage> {

@@ -73,9 +73,12 @@ patch cables" — not the page it is on. Leave it empty only for purely
 decorative images.
 
 If the AI SEO assistant is switched on (**SEO → Settings**, chapter 13) and
-an OpenAI key is saved, **Suggest alt text** in the same dialog proposes a
+an OpenRouter key is saved (**System → Settings → API keys**, chapter 18),
+**Suggest alt text** in the same dialog proposes a
 sentence for you to check and edit. It works on
-photographs (JPG, PNG, WebP, GIF) under 4 MB.
+photographs (JPG, PNG, WebP, GIF) under 4 MB. The picture itself is sent to
+the AI service to be described. On a free Google key a refusal usually means
+the minute's limit is used up: wait a moment and press it again.
 
 ### Description and tags
 

@@ -35,7 +35,7 @@ class AltTextTest extends TestCase
     private function enable(): void
     {
         $this->setting('seo_ai_enabled', '1', 'boolean');
-        $this->setting('openai_api_key', 'sk-test', 'string', 'integrations');
+        $this->setting('openrouter_api_key', 'sk-test', 'string', 'integrations');
     }
 
     private function fakeProvider(string $says): object
@@ -97,6 +97,59 @@ class AltTextTest extends TestCase
         $this->assertSame('image_url', $parts[1]['type']);
         $this->assertStringStartsWith('data:image/png;base64,', $parts[1]['image_url']['url']);
         $this->assertStringContainsString('cbs350-front.png', $parts[0]['text']);
+    }
+
+    /**
+     * The model is whichever one the console has chosen, and a Gemini model
+     * reads PNG, JPEG and WebP but not GIF. So a GIF travels as a PNG of its
+     * first frame, which every model offered can read.
+     */
+    public function test_a_gif_is_sent_as_a_png_of_its_first_frame(): void
+    {
+        if (! function_exists('imagegif')) {
+            $this->markTestSkipped('GD is not built with GIF support here.');
+        }
+
+        $this->enable();
+        $fake = $this->fakeProvider('{"alt": "A red square", "decorative": false}');
+
+        $image = imagecreatetruecolor(8, 6);
+        imagefill($image, 0, 0, (int) imagecolorallocate($image, 200, 30, 30));
+        ob_start();
+        imagegif($image);
+        $gif = (string) ob_get_clean();
+
+        $media = $this->picture('image/gif', 'media/2026/09/spinner.gif');
+        Storage::disk('public')->put($media->path, $gif);
+
+        $this->actingAs($this->staff(), 'sanctum')
+            ->postJson("/api/v1/admin/media/{$media->id}/alt-suggest")
+            ->assertOk()
+            ->assertJsonPath('data.alt', 'A red square');
+
+        $url = $fake->lastMessages[1]['content'][1]['image_url']['url'];
+        $this->assertStringStartsWith('data:image/png;base64,', $url);
+
+        $sent = imagecreatefromstring((string) base64_decode(substr($url, strlen('data:image/png;base64,'))));
+        $this->assertNotFalse($sent, 'what was sent is a picture a model can open');
+        $this->assertSame([8, 6], [imagesx($sent), imagesy($sent)]);
+
+        // The file in the library is untouched: only what is sent is re-encoded.
+        $this->assertSame($gif, Storage::disk('public')->get($media->path));
+    }
+
+    /** A GIF that GD cannot read goes as it is; the provider's refusal is a better answer than none. */
+    public function test_a_gif_that_cannot_be_decoded_is_sent_unchanged(): void
+    {
+        $this->enable();
+        $fake = $this->fakeProvider('{"alt": "Something", "decorative": false}');
+        $media = $this->picture('image/gif', 'media/2026/09/broken.gif');
+
+        $this->actingAs($this->staff(), 'sanctum')
+            ->postJson("/api/v1/admin/media/{$media->id}/alt-suggest")
+            ->assertOk();
+
+        $this->assertStringStartsWith('data:image/gif;base64,', $fake->lastMessages[1]['content'][1]['image_url']['url']);
     }
 
     public function test_a_decorative_verdict_is_an_empty_alt(): void

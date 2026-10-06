@@ -58,12 +58,31 @@ endpoint refuses before the provider is reached. Full account in
 `docs/seo-ai.md`.
 
 **It reuses the chatbot's provider rather than adding a second integration**,
-including the one `integrations.openai_api_key` — one credential for one
+including the one `integrations.openrouter_api_key` — one credential for one
 provider, so it cannot be half-rotated. The single change to the chat side is an
 optional `array $options` on `AiProvider::complete()` carrying `model` and
 `response_format`; empty, the request body is byte-identical. It exists because
 the SEO caller needs a **per-feature model** and **JSON mode**, neither of which
 anything in this codebase had asked for before.
+
+**That provider is OpenRouter since 0.116.0, and a model on the list is not a
+model the key can call.** `OpenRouterProvider` replaced `OpenAiProvider`
+behind the same interface (the key was `openai_api_key`; an upgrade step
+deletes it rather than copying it, because an OpenAI key is refused there).
+The ids in `AiModel` are OpenRouter's — `google/gemini-2.5-flash` is the
+default — and each is routed to its maker on the client's *own* key for that
+maker, saved in their OpenRouter account. Nothing here can read which keys
+that account holds, so "Test this model" on Settings → API keys
+(`POST /admin/seo/ai/test-model`) makes one real call and shows OpenRouter's
+words on refusal; it is not gated on `seo_ai_enabled`.
+
+**A reply's JSON is read through its wrapping and never repaired.** JSON mode
+makes a bare object likely, not certain, and a Gemini model routinely fences
+it in ```` ```json ````. `SeoAssistant::decode()` goes through
+`App\Support\Chat\JsonReply` — the text, then the inside of a fence, then the
+outermost braces — and every key is still validated by name afterwards. Read
+strictly, a complete answer from the default model is "a form we could not
+read". Full account in `docs/seo-ai.md`, "Reading the reply".
 
 **Two trust levels go into one prompt and the difference is load-bearing.** The
 four business-context settings are admin-authored and sit at instruction level.

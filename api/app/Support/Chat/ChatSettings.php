@@ -2,6 +2,7 @@
 
 namespace App\Support\Chat;
 
+use App\Enums\AiModel;
 use App\Models\Setting;
 
 /**
@@ -99,17 +100,35 @@ class ChatSettings
         return (bool) Setting::get('chatbot_enabled', false);
     }
 
+    /**
+     * The model the assistant calls, as an OpenRouter id (`maker/model`).
+     *
+     * The stored value is returned exactly as written — `AiModel` says why a
+     * model is never substituted. `.env` is the fallback, the arrangement
+     * `MailSettingsProvider` uses for the mail transport: a first deploy has
+     * no settings row yet. That fallback alone is passed through
+     * `AiModel::qualify()`: an `AI_MODEL=gpt-4o` written when OpenAI was
+     * called directly is the same model under OpenRouter's name for it, in a
+     * file no upgrade step can edit.
+     */
     public static function model(): string
     {
         $model = trim((string) Setting::get('chatbot_model', ''));
 
-        // `.env` is the fallback, the arrangement `MailSettingsProvider` uses
-        // for the mail transport: a first deploy has no settings row yet.
-        return $model !== '' ? $model : (string) config('services.openai.model', 'gpt-4o-mini');
+        if ($model !== '') {
+            return $model;
+        }
+
+        return AiModel::qualify((string) config('services.openrouter.model')) ?: AiModel::DEFAULT;
     }
 
     /**
-     * The key, from Settings first and `.env` second.
+     * The OpenRouter key, from Settings first and `.env` second.
+     *
+     * One key for every AI feature — the assistant, the SEO assistant, alt
+     * text, the drafts. The client's own OpenAI and Google AI Studio keys are
+     * not here at all: they are saved at OpenRouter, which uses them when it
+     * routes a call to that maker.
      *
      * The specification asks for an environment variable. This application
      * already keeps provider credentials in the settings table — encrypted at
@@ -120,9 +139,9 @@ class ChatSettings
      */
     public static function apiKey(): ?string
     {
-        $key = trim((string) Setting::get('openai_api_key', ''));
+        $key = trim((string) Setting::get('openrouter_api_key', ''));
 
-        return $key !== '' ? $key : (config('services.openai.key') ?: null);
+        return $key !== '' ? $key : (config('services.openrouter.key') ?: null);
     }
 
     /**

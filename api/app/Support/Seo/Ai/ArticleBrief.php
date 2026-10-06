@@ -44,6 +44,9 @@ class ArticleBrief
 {
     public const TAG = 'assistant-draft';
 
+    /** How long the provider is given to answer, in seconds. */
+    private const TIMEOUT_SECONDS = 90;
+
     public function __construct(private AiProvider $provider) {}
 
     /**
@@ -66,7 +69,7 @@ class ArticleBrief
         }
 
         if (! filled(SeoAiSettings::apiKey())) {
-            return ['ok' => false, 'error' => 'No OpenAI key is configured. Add one in Settings → API keys.'];
+            return ['ok' => false, 'error' => 'No OpenRouter key is configured. Add one in Settings → API keys.'];
         }
 
         if (! SeoAssistant::underDailyCap()) {
@@ -78,7 +81,13 @@ class ArticleBrief
         $reply = $this->provider->complete(
             $this->messages($questions, $candidates),
             1400,
-            ['model' => SeoAiSettings::model(), 'response_format' => ['type' => 'json_object']],
+            [
+                'model' => SeoAiSettings::model(),
+                'response_format' => ['type' => 'json_object'],
+                // An article is a long reply and the editor pressed a button
+                // to wait for it: more than a visitor's thirty seconds.
+                'timeout' => self::TIMEOUT_SECONDS,
+            ],
         );
 
         if (! $reply->ok) {

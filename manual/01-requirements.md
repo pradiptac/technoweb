@@ -51,7 +51,11 @@ None of these is needed to install. Each is connected later in the console:
 - a payment gateway (Razorpay or Cashfree) if you will sell online;
 - Google Analytics, Google Search Console and a Google Merchant Center
   account;
-- an OpenAI API key, for the AI features: the website assistant, and the SEO
-  assistant with its suggested alt text and article drafts;
+- an OpenRouter API key (openrouter.ai), for the AI features: the website
+  assistant, and the SEO assistant with its suggested alt text, article
+  drafts and page drafts. OpenRouter passes each request to the AI company
+  you choose, using your own key for that company, which you add in your
+  OpenRouter account — a free Google AI Studio key is enough to start; an
+  OpenAI key is needed only for OpenAI's models. See chapter 18;
 - a Hunter.io key to check newsletter addresses;
 - WhatsApp, RCS or browser-push providers for messaging.

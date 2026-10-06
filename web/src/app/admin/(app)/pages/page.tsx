@@ -6,13 +6,24 @@ import { Input, Select, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
 import { IconBook } from "@/components/icons";
-import { getPages, type PageQueryParams } from "@/lib/admin";
+import { getPages, type PageQueryParams, type PagesIndex } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
-import type { AdminPage, Paginated, PublishStatus } from "@/types/api";
+import type { PublishStatus } from "@/types/api";
 import type { ReactNode } from "react";
 import { requireScreen } from "@/lib/admin-screen";
+import { getCurrentStaff } from "@/lib/admin-auth";
 import { NewHomepageButton } from "./homepage-button";
+import { AiDraftButton } from "./ai-draft-button";
+import { screenFor } from "../settings/settings-copy";
+
+/**
+ * Where the AI SEO assistant is switched on — the screen that draws the `seo`
+ * group, opened on its tab at the switch. The AI page builder rides on that
+ * assistant's switch, key and daily cap, so its refusals all point there.
+ */
+const SEO_SETTINGS = screenFor("seo");
+const AI_SETTINGS_HREF = SEO_SETTINGS ? `${SEO_SETTINGS.path}?tab=seo#setting__seo_ai_enabled` : null;
 
 export const metadata = buildMetadata({ title: "Pages", path: "/admin/pages", seo: noIndex });
 
@@ -43,6 +54,9 @@ export default async function AdminPagesPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  // The SEO settings are `role:admin`: anybody else following the link would
+  // meet that screen's 404, so only an administrator is offered it.
+  const isAdmin = (await getCurrentStaff())?.roles.some((r) => r.slug === "admin") ?? false;
 
   const queryParams: PageQueryParams = {
     status: params.status as PublishStatus | undefined,
@@ -51,7 +65,7 @@ export default async function AdminPagesPage({
       per_page: Number(params.per_page) || undefined,
   };
 
-  let result: Paginated<AdminPage> | null = null;
+  let result: PagesIndex | null = null;
   try {
     result = await getPages(queryParams);
   } catch {
@@ -69,6 +83,7 @@ export default async function AdminPagesPage({
     <>
       <PageHeader title="Pages">
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          <AiDraftButton availability={result.meta.ai_draft ?? null} settingsHref={isAdmin ? AI_SETTINGS_HREF : null} />
           <NewHomepageButton />
           <ButtonLink href="/admin/pages/new" size="sm">New page</ButtonLink>
         </div>

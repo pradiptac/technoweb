@@ -77,6 +77,25 @@ restore's — but it is better to finish it.
 - **Forgot the password**: press **Forgot your password?**. It needs working
   mail. Otherwise ask your supplier.
 
+## The AI features stopped working
+
+The signs: the website assistant answers every question with a list of pages
+instead of a written answer; an AI SEO button says *The AI service did not
+answer* or *No OpenRouter key is configured*; **Suggest alt text** or **Draft
+with AI** refuses.
+
+Open **System → Settings → API keys**, choose the model you use under
+**Model to test** and press **Test this model**. What it says tells you which
+of these it is:
+
+| What you see | What to do |
+|---|---|
+| *Save an OpenRouter API key first* | No key is saved. This is the state straight after updating to 0.116.0, which removes the old OpenAI key — see chapter 18, "After updating to 0.116.0" |
+| A refusal about the key or sign-in | The OpenRouter key is wrong or was deleted at openrouter.ai. Create a new one and save it here. An OpenAI or Google key pasted here does not work — those go into your OpenRouter account |
+| A refusal naming Google or OpenAI, or a missing key | That company's key has not been added in your OpenRouter account (Settings → Integrations), or it is wrong there. Or choose a model from the company whose key you do have |
+| A refusal about a limit, a quota or "too many requests" | A free key's allowance is used up for now. It recovers by itself — within a minute for the per-minute limit, the next day for the daily one. If it happens often, use a paid key |
+| *The model answered*, but the assistant still lists pages | The model chosen in **Assistant → Settings** is not the one you tested — test that one. Or a free key's limit was reached for a moment while visitors were asking; it recovers by itself |
+
 ## Google or Microsoft "redirect URI mismatch"
 
 When you connect Gmail, Google Drive or Microsoft 365, the OAuth client you

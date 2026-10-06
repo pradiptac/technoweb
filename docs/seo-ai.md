@@ -192,9 +192,20 @@ through, rather than as a sentence with nothing to compare to.
 ## Reuse, not a second integration
 
 Everything about talking to a model already existed for the chatbot and is
-shared: `App\Support\Chat\AiProvider` (bound in the container), `OpenAiProvider`,
-`AiReply`, and the key in `integrations.openai_api_key` — encrypted, `is_secret`,
-one credential for one provider, so it cannot be half-rotated.
+shared: `App\Support\Chat\AiProvider` (bound in the container),
+`OpenRouterProvider`, `AiReply`, and the key in
+`integrations.openrouter_api_key` — encrypted, `is_secret`, one credential for
+one provider, so it cannot be half-rotated.
+
+**The provider is OpenRouter since 0.116.0**, where it had been OpenAI called
+directly (`OpenAiProvider`, `integrations.openai_api_key`). Because this
+module only ever knew the interface, the move changed three things here and
+no others: the ids in `AiModel` are OpenRouter's (`maker/model`), a model can
+now be one the key cannot call (see "Choosing a model"), and a reply's JSON
+may arrive wrapped (see "Reading the reply"). The provider itself — the
+attribution headers, the three ways OpenRouter refuses, the headroom a
+thinking model is given — is written up once, in
+`docs/chatbot-architecture.md`, "The provider is OpenRouter".
 
 **One additive change** was needed: `complete()` gained an optional
 `array $options` carrying `model` and `response_format`. With an empty array the
@@ -202,6 +213,34 @@ request body is byte-identical, so the chatbot cannot move. It exists because
 this caller needs a **per-feature model** — a meta description and a visitor's
 question are not worth the same money — and **JSON mode**, which nothing in the
 codebase had used before.
+
+---
+
+## Reading the reply
+
+Every action asks for JSON mode (`response_format: json_object`) and then
+refuses to believe the answer: the text is decoded, and every key is read by
+name, bounded and validated before anything becomes a suggestion.
+
+**JSON mode says nothing reliable about the wrapping, and which maker answers
+decides how unreliable.** A GPT model returns the object and nothing else. A
+Gemini model — the default since 0.116.0 — routinely returns the same object
+inside a ```` ```json ```` fence, and now and then puts a sentence in front of
+it, in JSON mode, with the object intact. Read strictly that is "The AI
+service answered in a form we could not read" for an answer sitting right
+there, complete — a failure of this side, and one the daily cap would not
+even have charged for, so it would have looked like a flaky provider.
+
+`SeoAssistant::decode()` therefore goes through `App\Support\Chat\JsonReply`:
+the text as it stands, then the inside of a code fence (with or without the
+language tag, with or without prose around it), then the run from each
+opening brace in turn to the last closing one. **Forgiving about the wrapping
+and never about the contents** — whatever is found must still be valid JSON,
+and nothing repairs a truncated or malformed object, because a repaired
+answer is one the model did not give. It is one reader, shared with the
+chatbot's intake judge, and every JSON caller in this module comes through
+it: `SeoAssistant`, `AltText`, `ArticleBrief`, `PageDraft`.
+`SeoAiTest::test_json_wrapped_in_a_code_fence_is_still_read` pins it.
 
 ---
 
@@ -290,12 +329,53 @@ exhausts the day without producing a suggestion. `remaining` is null rather than
 zero when uncapped, and the panel shows it *before* it bites, which is the whole
 reason the chat overview has a "Today" block.
 
+**That cap is ours; a free key has the maker's on top.** The client runs on a
+free Google AI Studio key saved at OpenRouter, and Google limits it per minute
+and per day. Past the limit OpenRouter answers 429 in Google's words, which
+is logged, never retried on the spot, and reaches the editor as "The AI
+service did not answer. Try again shortly." — uncharged against
+`seo_ai_daily_cap`, like any other refusal. **A bulk run is where it is met
+first**: twenty-five queued jobs drain as fast as the worker runs them, each
+one that hits the limit fails and leaves no suggestion, and the same
+allowance is the one the public assistant answers visitors from. Nothing here
+paces a bulk run against a maker's limit; the response's `queued` count is
+what was asked for, and `?ai=pending` is what arrived.
+
 ---
 
 ## Choosing a model
 
 `App\Enums\AiModel` owns the list; `SettingController::optionsFor()` turns it
 into a dropdown with no new UI, the way `image_quality` already works.
+
+The values are **OpenRouter model ids**, `maker/model`, in the order the
+dropdown shows them:
+
+| Id | |
+|---|---|
+| `google/gemini-2.5-flash` | `AiModel::DEFAULT` — what a blank `seo_ai_model`, a blank `chatbot_model` and an unset `AI_MODEL` all resolve to |
+| `google/gemini-2.5-flash-lite` | the lightest, and the gentlest on a free key's limits |
+| `google/gemini-2.5-pro` | thinks before it answers; for content work and page drafts |
+| `openai/gpt-4o-mini` | |
+| `openai/gpt-4.1-mini` | |
+| `openai/gpt-4o` | |
+| `openai/gpt-4.1` | |
+
+All seven accept images, which is a requirement and not a coincidence:
+`AltText` sends a picture to whichever model is chosen, so a text-only model
+on the list would break one feature and say so only when somebody pressed the
+button. `seo_ai_model` falls through to the chatbot's model and then `.env`
+when blank (`SeoAiSettings::model()`), so "one model everywhere" is the state
+of an install nobody has differentiated.
+
+**A model on the list is not a model the key can call.** The client's own
+provider keys are saved at OpenRouter (bring your own key), and OpenRouter
+routes each id to its maker on that key. So a Gemini model answers once a
+Google AI Studio key has been added there — free to create, which is why the
+Google models come first and one is the default — while an OpenAI model needs
+an OpenAI key, or OpenRouter credit, on the same account and is refused
+without one. Which is in place is a fact about somebody's OpenRouter account;
+each option's description says what it needs, and a test is the only proof.
 
 Two rules that differ from every other allowlist here:
 
@@ -310,6 +390,31 @@ Two rules that differ from every other allowlist here:
   reports **the provider's own words** on refusal — the
   `/admin/settings/mail/test` pattern. Press it for every model offered before
   trusting the list; a model id that does not exist fails silently otherwise.
+
+**The test has a control of its own since 0.116.0**: "Test this model" on
+Settings → API keys, beside the key it tests (`openrouter-test.tsx`). Its
+select is `GET /admin/seo/ai/models` — `AiModel::options()` for the saved SEO
+model, a stored value from outside the list as its own marked option, with
+`meta.seo_model`, `meta.chatbot_model` and `meta.key_configured` so each
+option can say which feature uses it — and the button posts the chosen id to
+`test-model`: "Reply with the single word: ready.", five tokens (plus a
+thinking model's headroom), through the **saved** key, so the hint says to
+save first. Three things about it that are decisions:
+
+- **It is not gated on `seo_ai_enabled`.** Proving a key and a model is what
+  somebody does before switching anything on, and equally what somebody does
+  who runs only the website assistant. No key is still a 422, in one sentence,
+  with nobody called. It spends none of the daily cap.
+- **It passes on OpenRouter's words whole**, and the maker's with them.
+  OpenRouter's own message for a routed failure is often "Provider returned
+  error"; what the maker said is in `error.metadata.raw`, which the provider
+  appends. That is what tells "no Google key on this account" from "the free
+  tier's minute is spent" from "no such model". Safe here as it is not on a
+  visitor's path: the caller is an authenticated `seo_manager` and all they
+  influence is the model name.
+- **A rate-limited key is asked once.** `SeoAiModelsTest` pins that a 429 is
+  reported verbatim and not retried — pressing Test five times against a
+  spent minute would otherwise be five more refusals.
 
 ---
 
@@ -338,10 +443,27 @@ php artisan db:seed --class=SettingsSeeder   # idempotent
 Then, **in the console** and not in the database — a settings row written
 directly does not clear the cache:
 
-1. Settings → API keys: the OpenAI key, if the chatbot has not already set one.
-2. SEO → Settings → SEO defaults: switch **AI SEO assistant** to `1`.
-3. Choose a model and press **Test**.
+1. Settings → API keys: the **OpenRouter API key**, if the chatbot has not
+   already set one. It is created at openrouter.ai → Keys; the maker's own key
+   (a Google AI Studio key for the Gemini models, an OpenAI key for the GPT
+   ones) is added in that OpenRouter account, under Settings → Integrations.
+2. On the same tab, choose the model under **Model to test** and press
+   **Test this model**. A refusal is in OpenRouter's words; fix it there.
+3. SEO → Settings → SEO defaults: switch **AI SEO assistant** to `1`, and
+   choose the **AI model** if it should differ from the website assistant's.
 4. Fill in what the business does, who it sells to and where it operates.
+
+**Updating an install that called OpenAI.** The updater runs
+`MoveAiToOpenRouter` once: a bare `seo_ai_model` or `chatbot_model`
+(`gpt-4.1`) becomes OpenRouter's name for the same model (`openai/gpt-4.1`),
+and the `openai_api_key` row is deleted without being copied — an OpenAI key
+is refused at OpenRouter. Until an OpenRouter key is saved every action
+refuses with "No OpenRouter key is configured. Add one in Settings → API
+keys." and the panel says the same before a button is pressed. The renamed
+model is still OpenAI's, so it needs an OpenAI key or credit at OpenRouter;
+an account holding only a Google AI Studio key should choose a Gemini model
+instead. `UpgradeOpenRouterTest` pins the rename, the delete, the key that is
+not copied, and that running it twice changes nothing.
 
 With `seo_ai_enabled` at `0` the panel renders nothing at all, every endpoint
 refuses before the provider is reached, and the public site is untouched.

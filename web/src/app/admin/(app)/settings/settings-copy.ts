@@ -53,7 +53,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   */
   chatbot_enabled: {
     label: "Website assistant",
-    hint: "Off by default, because switched on it spends money on every message.",
+    hint: "Off by default, because switched on it spends money on every message. Its key and its model are under Settings → API keys.",
   },
   chatbot_name: {
     label: "Assistant name",
@@ -127,7 +127,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   },
   chatbot_smart_intake: {
     label: "Read the answers with the model",
-    hint: "On by default. With an API key configured, the model reads each answer before the rules do: keyboard noise is refused where a shape check would let it through, a name is lifted out of the sentence around it, and a question asked instead of an answer is answered with the intake question put back. One small call per answer; never charged without a key, and never past the daily cap. The rules still have the last word.",
+    hint: "On by default. With an OpenRouter key configured, the model reads each answer before the rules do: keyboard noise is refused where a shape check would let it through, a name is lifted out of the sentence around it, and a question asked instead of an answer is answered with the intake question put back. One small call per answer; never charged without a key, and never past the daily cap. The rules still have the last word.",
   },
   chatbot_intake_questions: {
     label: "The questions it asks",
@@ -142,8 +142,8 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     hint: "Off by default. Sends the sales address the question and whoever asked it. The Unanswered screen already groups these; this is for catching somebody while they are still on the site, and switched on a busy afternoon is a lot of email.",
   },
   chatbot_model: {
-    label: "AI model",
-    hint: "Blank uses the model in the server's own configuration. A model this account cannot call fails on every message.",
+    label: "Model for the website assistant",
+    hint: "The model that answers visitors in the chat. Choose one whose maker's key is in your OpenRouter account, save, then press Test this model below.",
   },
   chatbot_max_message_chars: { label: "Longest message (characters)" },
   chatbot_max_messages: {
@@ -168,11 +168,11 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   */
   seo_ai_enabled: {
     label: "AI SEO assistant",
-    hint: "Off by default. It only ever runs when somebody presses a button on a record; it is never called while a page is being rendered.",
+    hint: "Off by default. It only ever runs when somebody presses a button on a record; it is never called while a page is being rendered. Its key and its model are under Settings → API keys.",
   },
   seo_ai_model: {
-    label: "AI model",
-    hint: "Leave blank to use whatever the chatbot uses. After changing it, ask for one suggestion on any record to confirm the model works — a model this account cannot call fails on every request.",
+    label: "Model for SEO, alt text and page drafts",
+    hint: "The model behind the SEO assistant's suggestions, alt text, article drafts and Draft with AI. Choose one whose maker's key is in your OpenRouter account, save, then press Test this model below.",
   },
   seo_ai_daily_cap: {
     label: "AI requests per day",
@@ -663,9 +663,9 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   smtp_encryption: { label: "Encryption", hint: "tls, ssl, or none." },
   mail_from_address: { label: "From address", placeholder: "support@example.com" },
   mail_from_name: { label: "From name", placeholder: "Your company Support" },
-  openai_api_key: {
-    label: "OpenAI API key",
-    hint: "One key for every AI feature: the website assistant (its answers, and reading visitors' answers while it asks who they are), and the AI SEO assistant — on a record's form, in bulk from the SEO overview, alt text suggested in the media library, and article drafts made from the questions the assistant could not answer. Nothing is called until the website assistant (Assistant → Settings) or the AI SEO assistant (SEO → Settings) is switched on, and each keeps to its own daily ceiling.",
+  openrouter_api_key: {
+    label: "OpenRouter API key",
+    hint: "One key for every AI feature on the site — the website assistant, the SEO assistant, alt text and page drafts. Create it at openrouter.ai → Keys. To use your own OpenAI or Google AI Studio account, add those keys in OpenRouter (Settings → Integrations, \"bring your own key\"); OpenRouter then routes each model to its provider.",
   },
   gsc_service_account: {
     label: "Search Console service account (JSON key file)",
@@ -965,7 +965,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
   motion: ["motion_reveal", "motion_buttons", "motion_cards", "motion_page", "motion_loader", "motion_progress",
            "motion_splash", "motion_hero"],
   seo: ["default_meta_description", "default_og_image", "landing_page_cap",
-        "seo_ai_enabled", "seo_ai_model", "seo_ai_daily_cap",
+        "seo_ai_enabled", "seo_ai_daily_cap",
         "seo_ai_business_type", "seo_ai_audience", "seo_ai_locations", "seo_ai_context"],
   banners: ["banner_enabled", "banner_default_path", "banner_solutions_path", "banner_products_path",
             "banner_services_path", "banner_industries_path", "banner_store_path", "banner_support_path",
@@ -982,7 +982,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
             "chatbot_quick_actions", "chatbot_auto_open", "chatbot_auto_open_delay",
             "chatbot_intake_enabled", "chatbot_smart_intake", "chatbot_intake_questions",
             "chatbot_whatsapp_number", "chatbot_forward_unanswered",
-            "chatbot_model", "chatbot_max_message_chars", "chatbot_max_messages",
+            "chatbot_max_message_chars", "chatbot_max_messages",
             "chatbot_context_messages", "chatbot_daily_reply_cap"],
   homepage: ["homepage_page_id", "hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats", "stats_colour", "stats_size", "stats_animation", "home_stats_block", "home_stack_block", "home_pricing_block",
              "why_kicker", "why_heading", "why_lede", "why_steps",
@@ -990,7 +990,8 @@ export const FIELD_ORDER: Record<string, string[]> = {
              "amc_enabled", "amc_heading", "amc_inclusions", "amc_link_label", "amc_link_href"],
   mail: ["smtp_host", "smtp_port", "smtp_username", "smtp_password", "smtp_encryption",
          "mail_from_address", "mail_from_name"],
-  integrations: ["openai_api_key", "hunter_api_key"],
+  // The key, then the two models it is used with (0.116.0): "Test this model" sits under them.
+  integrations: ["openrouter_api_key", "chatbot_model", "seo_ai_model", "hunter_api_key"],
   /*
     Read as the order somebody sets a newsletter up: the two switches, who it
     comes from, what the footer says, how it is delivered, then the Hunter
@@ -1129,7 +1130,7 @@ export const SCREENS: SettingsScreen[] = [
       */
       { label: "Sign-in", groups: ["login", "auth"] },
       /*
-        `integrations` holds the OpenAI, Hunter, Search Console and GA4
+        `integrations` holds the OpenRouter, Hunter, Search Console and GA4
         credentials, spent by four modules between them — one credential for
         one provider, so it cannot be half-rotated — which is why it is not
         filed under SEO or the assistant.

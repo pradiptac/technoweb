@@ -632,6 +632,42 @@ picture, its poster; the public read is `video`. The console clears it in the
 same write that changes the layout away from Cover, so it is one step in the
 undo history and never posted stale.
 
+## Draft with AI (0.116.0)
+
+`POST /admin/pages/ai-draft` (`App\Support\Seo\Ai\PageDraft`, the
+`ArticleBrief` shape) turns a brief into a **draft** builder page. It rides on
+the AI SEO assistant: its switch, its key, its model and its daily cap, with
+the same refusal sentences; `meta.ai_draft` on the pages index says whether it
+can run, and why not.
+
+- **The model lays out, it does not publish and it does not know.** It is told
+  it has not been given the facts: a figure, a price, a model number, a date, a
+  certification, a client's name or a guarantee is written `[CHECK: what to
+  confirm]`, kept verbatim for the editor. Testimonials, quotations,
+  statistics and prices are forbidden outright.
+- **Ten section types only** (`PageDraft::TYPES`: hero, rich_text, media_text,
+  features, steps, checklist, faq, flow, cards, cta), described to the model
+  by a `match` with no default, so a type cannot be offered without being
+  described. No stats, comparison, testimonials or pricing: every one of them
+  is a claim.
+- **Numbers, never addresses.** A link is an index into
+  `SeoAssistant::candidates()` plus `/contact`; a picture an index into up to
+  forty library images that have alt text; an icon a name from the list the
+  console sends (`Object.keys(iconMap)`, read in the Server Action, never in a
+  client bundle). Anything outside its list is dropped.
+- **The model never writes HTML.** Bodies are built from escaped paragraphs
+  and cleaned by `HtmlSanitiser`; the brief is fenced (`---BRIEF---`, the
+  marker stripped from it) and stored escaped in the page's body as a note to
+  the editor.
+- **Every section passes the save's own rules** — a one-block payload through
+  `SectionRules::forPayload()`, `messages()` and `after()` — or is dropped
+  and returned in `dropped` with its reason. The console shows the count on
+  the edit screen (`?dropped=N`, read as digits only).
+- The dialog shows its refusals inside itself, not as toasts: a `<dialog>`
+  makes the page behind it inert, and a toast there cannot be seen. The link
+  to the assistant's settings is offered to an administrator only — that
+  screen is `role:admin`.
+
 ## Tests
 
 `tests/Feature/PageBuilderTest.php` — every type's rules valid and invalid, an

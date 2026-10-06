@@ -487,8 +487,14 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * Blank means the model in `config/services.php`, the arrangement
              * mail already uses: settings first, `.env` second, so a fresh
              * install works before anybody opens the console.
+             *
+             * In `integrations` since 0.116.0, beside the OpenRouter key and
+             * `seo_ai_model`: one key reaches many models and each answers
+             * only when its maker's key is in the OpenRouter account, so the
+             * key, the two choices and "Test this model" are one screen.
+             * `updateOrCreate` moves an existing row's group on the next run.
              */
-            ['group' => 'chatbot', 'key' => 'chatbot_model', 'value' => null, 'type' => 'string'],
+            ['group' => 'integrations', 'key' => 'chatbot_model', 'value' => null, 'type' => 'string'],
 
             // The three that bound the cost. A rate limit bounds one visitor;
             // only the daily ceiling bounds the bill.
@@ -1066,7 +1072,8 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * unchanged, because silently substituting a cheaper model bills
              * somebody for one thing while they believe they bought another.
              */
-            ['group' => 'seo', 'key' => 'seo_ai_model', 'value' => null, 'type' => 'string'],
+            // Drawn on Settings → API keys with the key and `chatbot_model` (0.116.0).
+            ['group' => 'integrations', 'key' => 'seo_ai_model', 'value' => null, 'type' => 'string'],
             ['group' => 'seo', 'key' => 'seo_ai_daily_cap', 'value' => '100', 'type' => 'string'],
 
             /*
@@ -1172,7 +1179,14 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'ticket_survey', 'key' => 'ticket_survey_enabled', 'value' => '1', 'type' => 'boolean'],
 
             // Third-party keys. Same treatment as the SMTP password.
-            ['group' => 'integrations', 'key' => 'openai_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            /*
+             * OpenRouter, which every AI feature calls (0.116.0). It replaced
+             * `openai_api_key`: an OpenAI key is refused at OpenRouter, so the
+             * old value is not carried over — the `MoveAiToOpenRouter`
+             * upgrade step deletes that row, and the client's own OpenAI and
+             * Google AI Studio keys are saved at OpenRouter instead.
+             */
+            ['group' => 'integrations', 'key' => 'openrouter_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
             ['group' => 'integrations', 'key' => 'hunter_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
             /*
              * Google Search Console, read by the SEO overview and the AI

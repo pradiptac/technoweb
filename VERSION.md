@@ -21,6 +21,33 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.116.0 — 2026-10-06
+
+**Draft a page with AI, and every AI feature now runs through OpenRouter.**
+
+- **Draft with AI** (Content → Pages): describe the page in a sentence or
+  two, choose a length, and the assistant lays out a builder page — a hero,
+  features, steps, a diagram, questions and answers, a closing band — saved
+  as a **draft** and opened in the builder. Facts it cannot know are left as
+  `[CHECK: …]` to fill in; it never writes figures, prices, testimonials or
+  client names. Its links are the site's real pages and its pictures come
+  from the media library (those with alt text). Sections that do not pass the
+  page's own rules are left out and counted.
+- **OpenRouter replaces the OpenAI key.** Settings → API keys now asks for one
+  OpenRouter key, used by the website assistant, the SEO assistant, alt text,
+  article drafts and page drafts. Your own Google AI Studio or OpenAI keys go
+  into OpenRouter ("bring your own key"). The models offered are Gemini 2.5
+  Flash (the default), Flash-Lite and Pro, and GPT-4o mini, 4.1 mini, 4o and
+  4.1.
+- **Test this model** (Settings → API keys): pick a model and send one real
+  request through the saved key; a refusal is shown in OpenRouter's own words.
+- **After updating**: the old OpenAI key is removed — it does not work at
+  OpenRouter — so paste an OpenRouter key, or every AI feature says none is
+  configured. A model already chosen keeps its choice (`gpt-4o-mini` becomes
+  `openai/gpt-4o-mini`).
+
+---
+
 ## 0.115.0 — 2026-10-06
 
 **Motion graphics, part two: page transitions, a hero video and a diagram.**

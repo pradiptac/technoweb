@@ -2050,3 +2050,82 @@ is `docs/distribution.md`.
 **The repository is public.** That was fine for one client. For a product
 sold to several, make it private before sending the first zip, since the zip's
 contents are then also public.
+
+## AI features go through OpenRouter (0.116.0)
+
+The website assistant, the AI SEO assistant, alt-text suggestions, article
+drafts and page drafts used to call OpenAI directly. They call **OpenRouter**
+now (`https://openrouter.ai/api/v1/chat/completions`, OpenAI's wire format),
+which routes each request to whichever maker the model id names. One class
+changed places — `App\Support\Chat\Providers\OpenRouterProvider` for
+`OpenAiProvider`, behind the same `AiProvider` interface — and everything
+above it is as it was.
+
+### Setup
+
+- **One key, for every AI feature**: `openrouter_api_key`, pasted under
+  Settings → API keys (*OpenRouter API key*), encrypted and never returned.
+  It replaces `openai_api_key`. The `.env` fallback is `OPENROUTER_API_KEY`
+  (then `AI_API_KEY`), with `AI_MODEL` defaulting to
+  `google/gemini-2.5-flash`; the config key is `services.openrouter`.
+- **The key is created at openrouter.ai → Keys.** To run on your own provider
+  accounts, add those keys *inside OpenRouter* (Settings → Integrations,
+  "bring your own key"), not here. This client uses a **free Google AI Studio
+  key** there, which is why the default model is **Gemini 2.5 Flash**; an
+  OpenAI model works only when an OpenAI key, or OpenRouter credit, is on the
+  OpenRouter account.
+- **Models offered** (`App\Enums\AiModel`, OpenRouter ids):
+  `google/gemini-2.5-flash` (default), `google/gemini-2.5-flash-lite`,
+  `google/gemini-2.5-pro`, `openai/gpt-4o-mini`, `openai/gpt-4.1-mini`,
+  `openai/gpt-4o`, `openai/gpt-4.1`. A stored value outside the list is still
+  kept and sent as written.
+- **Test the model after saving the key.** "Test this model" on Settings →
+  API keys sends one short real request for the chosen model through the
+  saved key and shows OpenRouter's own words when it refuses
+  (`POST /admin/seo/ai/test-model`; the list is `GET /admin/seo/ai/models`).
+  Which makers a key can reach is a fact about somebody's OpenRouter account,
+  so this is the only proof there is.
+- The API's server needs outbound HTTPS to `openrouter.ai`. No new package,
+  no SDK.
+
+### What a free Google AI Studio key means
+
+It is rate-limited by Google, per minute and per day. When the limit is hit
+the website assistant falls back to naming and linking the pages it found
+rather than writing an answer, and the SEO assistant's actions report that
+the AI service did not answer; a 429 is logged and never retried on the spot.
+And Google may use free-tier requests to improve its products — visitors'
+chat messages pass through it. A paid key avoids that. Both are in the
+customer manual (`manual/16-assistant.md`, `manual/18-settings.md`).
+
+### Updating an existing install
+
+The updater runs the `MoveAiToOpenRouter` upgrade step once. It rewrites a
+stored bare model id (`gpt-4o-mini`) to OpenRouter's name for the same model
+(`openai/gpt-4o-mini`) and **deletes the old `openai_api_key` row without
+copying it** — an OpenAI key does not work at OpenRouter. So after updating,
+somebody must paste an OpenRouter key, or every AI feature refuses with "No
+OpenRouter key is configured." (the website assistant goes on answering with
+links to the pages it finds). A checkout deployed by hand runs no upgrade
+steps: run `php artisan db:seed --class=SettingsSeeder` for the new row and
+re-choose the models in the console.
+
+### Two things the move turned up
+
+**A Gemini model fences its JSON.** In JSON mode, with the object intact
+inside a ```` ```json ```` block, where a GPT model returns the object bare.
+`App\Support\Chat\JsonReply` reads through the wrapping — the text, then the
+inside of a fence, then the outermost braces — and never repairs the
+contents; `SeoAssistant::decode()` and the chatbot's intake judge share it.
+
+**A thinking model can spend a small cap before it writes.** Gemini 2.5 Flash
+and Pro draw their reasoning from the same `max_tokens` as the answer, so a
+five-token model test or a 120-token intake reading can come back empty from
+a model that is working. `OpenRouterProvider::allowance()` gives those models
+headroom above the caller's cap.
+
+`OpenRouterProviderTest`, `SeoAiModelsTest` and `UpgradeOpenRouterTest` pin
+the provider, the test control and the upgrade step. See
+`docs/chatbot-architecture.md` ("The provider is OpenRouter"),
+`docs/chatbot-deployment.md`, `docs/seo-ai.md` and `docs/distribution.md`
+("Upgrade steps").
