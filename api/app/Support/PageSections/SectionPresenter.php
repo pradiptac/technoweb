@@ -9,6 +9,7 @@ use App\Http\Resources\TeamMemberResource;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\ContentBlock;
+use App\Models\Event;
 use App\Models\Faq;
 use App\Models\Form;
 use App\Models\Gallery;
@@ -23,6 +24,7 @@ use App\Models\Slider;
 use App\Models\Solution;
 use App\Models\StoreProduct;
 use App\Models\TeamMember;
+use App\Support\Events\EventText;
 use App\Support\MediaMeta;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
@@ -396,6 +398,11 @@ final class SectionPresenter
                 ->when($category, fn ($q) => $q->whereHas('category', fn ($c) => $c->where('slug', $category)))
                 ->orderByDesc('is_featured')->orderBy('sort_order')->orderBy('id')->limit($limit)->get()
                 ->map(fn (StoreProduct $p) => self::tile($p->name, $p->short_description, "/store/products/{$p->slug}", $p->images[0] ?? null, null, $p->brand?->name, Money::format((int) $p->price_paise))),
+            // Upcoming only, soonest first: the kicker is the date and the
+            // meta the place, both the API's own labels. A page with nothing
+            // coming up loses the section, like any empty list.
+            'events' => Event::published()->upcoming()->orderBy('starts_at')->orderBy('id')->limit($limit)->get()
+                ->map(fn (Event $e) => self::tile($e->title, $e->summary, $e->publicPath(), $e->cover_image_path, null, EventText::dateLabel($e), EventText::place($e))),
             default => collect(),
         };
 
@@ -408,6 +415,7 @@ final class SectionPresenter
             'knowledge' => '/knowledge-base',
             'products' => $category ? "/products/{$category}" : '/products',
             'store_products' => $category ? "/store/categories/{$category}" : '/store',
+            'events' => '/events',
             default => null,
         };
         $data['items'] = $items->values()->all();

@@ -235,8 +235,18 @@ Every enquiry from every form lands in one place.
 
 Build a form in the console, put it on any page — or on somebody else's site.
 
-- **Any field type**, required flags, select options validated as a whitelist,
-  a success message and a notification address per form.
+- **Sixteen field types** — text, email, phone, number, web address, date,
+  dropdown, single and multiple choice, tick box, five-star rating, file
+  upload, hidden value, plus headings and step breaks — with required flags
+  and options validated as a whitelist.
+- **Conditional fields**: show a field only when an earlier answer matches;
+  what stays hidden is neither required nor stored.
+- **Multi-step forms** with Back, Next and a progress bar, and a whole,
+  sendable form without JavaScript.
+- **File uploads** kept privately and downloaded from the console, never
+  emailed.
+- **A success message or a redirect** after sending, a notification address
+  per form, and a **CSV export** of submissions.
 - **Drop it into any page** with a shortcode.
 - **Embed on an external website** three ways: an iframe, a copy-paste snippet,
   or raw HTML the partner styles themselves. Submissions still land in the
@@ -290,6 +300,22 @@ A chatbot that answers from your own pages and never invents.
 - **Google Jobs** structured data on every vacancy.
 - **Applications** with CV upload to private storage, streamed only to staff,
   with status tracking and automatic retention-based deletion.
+
+## 12a. Events
+
+- **A page per event** — seminar, webinar or trade show — with date and
+  place, agenda, speakers, FAQs, "Add to calendar" and `Event` structured
+  data, and an `/events` listing of what is coming up and what has passed.
+- **Free registration**, on the site or linked to an outside sign-up, with an
+  optional capacity, a **waiting list** promoted automatically when somebody
+  cancels, a closing time and a seats-per-booking limit.
+- **The join link of an online event is never public**: it goes only to
+  registrants, in the confirmation email and calendar file.
+- **Emails**: confirmation, waiting list, place opened, cancellation,
+  reminder, and an optional change notice — plus a private page where a
+  registrant can cancel.
+- **Registrations in the console**: status, add by hand, CSV export; every
+  registration files a lead.
 
 ## 13. Company profile
 

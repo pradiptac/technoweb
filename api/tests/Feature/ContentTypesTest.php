@@ -41,7 +41,7 @@ class ContentTypesTest extends TestCase
     private function createType(array $overrides = [])
     {
         return $this->actingAs($this->staff(), 'sanctum')->postJson('/api/v1/admin/content-types', array_replace([
-            'name' => 'Event', 'plural' => 'Events', 'slug' => 'events', 'schema_type' => 'Article',
+            'name' => 'Event', 'plural' => 'Events', 'slug' => 'gatherings', 'schema_type' => 'Article',
         ], $overrides));
     }
 
@@ -59,11 +59,13 @@ class ContentTypesTest extends TestCase
     {
         Page::create(['title' => 'Downloads', 'slug' => 'downloads', 'status' => 'published']);
 
-        foreach (['blog', 'admin', 'solutions', 'types', 'downloads', 'Bad Slug', '9lives'] as $slug) {
+        // `events` is the events module's own segment since 0.118.0 — until
+        // then it was this file's example slug.
+        foreach (['blog', 'admin', 'solutions', 'types', 'events', 'downloads', 'Bad Slug', '9lives'] as $slug) {
             $this->createType(['slug' => $slug])->assertUnprocessable()->assertJsonValidationErrors('slug');
         }
 
-        $this->createType()->assertCreated()->assertJsonPath('data.path', '/events')->assertJsonPath('data.target', 'entry:events');
+        $this->createType()->assertCreated()->assertJsonPath('data.path', '/gatherings')->assertJsonPath('data.target', 'entry:gatherings');
         $this->createType(['name' => 'Other'])->assertUnprocessable()->assertJsonValidationErrors('slug');
     }
 
@@ -77,13 +79,13 @@ class ContentTypesTest extends TestCase
         $this->actingAs($this->staff(RoleEnum::SupportEngineer), 'sanctum')
             ->getJson('/api/v1/admin/content-types')->assertForbidden();
         $this->actingAs($this->staff(RoleEnum::SupportEngineer), 'sanctum')
-            ->getJson('/api/v1/admin/content-types/events/entries')->assertForbidden();
+            ->getJson('/api/v1/admin/content-types/gatherings/entries')->assertForbidden();
     }
 
     public function test_a_type_with_entries_cannot_be_deleted(): void
     {
         $id = $this->createType()->json('data.id');
-        $this->createEntry('events')->assertCreated();
+        $this->createEntry('gatherings')->assertCreated();
 
         $this->actingAs($this->staff(), 'sanctum')->deleteJson("/api/v1/admin/content-types/{$id}")
             ->assertUnprocessable();
@@ -100,14 +102,14 @@ class ContentTypesTest extends TestCase
         $this->createType()->assertCreated();
         $this->createType(['name' => 'Download', 'plural' => 'Downloads', 'slug' => 'downloads'])->assertCreated();
 
-        $this->createEntry('events')->assertCreated()->assertJsonPath('data.slug', 'launch-day');
+        $this->createEntry('gatherings')->assertCreated()->assertJsonPath('data.slug', 'launch-day');
         $this->createEntry('downloads')->assertCreated()->assertJsonPath('data.slug', 'launch-day');
 
         // A generated one steps aside within the type.
-        $this->createEntry('events')->assertCreated()->assertJsonPath('data.slug', 'launch-day-2');
+        $this->createEntry('gatherings')->assertCreated()->assertJsonPath('data.slug', 'launch-day-2');
 
         // A chosen one is refused.
-        $this->createEntry('events', ['slug' => 'launch-day'])
+        $this->createEntry('gatherings', ['slug' => 'launch-day'])
             ->assertUnprocessable()->assertJsonValidationErrors('slug');
     }
 
@@ -117,30 +119,30 @@ class ContentTypesTest extends TestCase
         $this->createType(['name' => 'Download', 'plural' => 'Downloads', 'slug' => 'downloads'])->assertCreated();
         $id = $this->createEntry('downloads')->json('data.id');
 
-        $this->actingAs($this->staff(), 'sanctum')->getJson("/api/v1/admin/content-types/events/entries/{$id}")->assertNotFound();
+        $this->actingAs($this->staff(), 'sanctum')->getJson("/api/v1/admin/content-types/gatherings/entries/{$id}")->assertNotFound();
         $this->actingAs($this->staff(), 'sanctum')->getJson("/api/v1/admin/content-types/downloads/entries/{$id}")->assertOk();
     }
 
     public function test_renaming_an_entry_leaves_a_301_under_its_type(): void
     {
         $this->createType()->assertCreated();
-        $id = $this->createEntry('events')->json('data.id');
+        $id = $this->createEntry('gatherings')->json('data.id');
 
         $this->actingAs($this->staff(), 'sanctum')
-            ->patchJson("/api/v1/admin/content-types/events/entries/{$id}", ['slug' => 'opening-day'])
-            ->assertOk()->assertJsonPath('data.path', '/events/opening-day');
+            ->patchJson("/api/v1/admin/content-types/gatherings/entries/{$id}", ['slug' => 'opening-day'])
+            ->assertOk()->assertJsonPath('data.path', '/gatherings/opening-day');
 
-        $this->assertSame('/events/opening-day', Redirect::where('from_path', '/events/launch-day')->value('to_path'));
+        $this->assertSame('/gatherings/opening-day', Redirect::where('from_path', '/gatherings/launch-day')->value('to_path'));
     }
 
     public function test_renaming_a_type_moves_its_archive_its_entries_and_its_field_groups(): void
     {
         $typeId = $this->createType()->json('data.id');
-        $this->createEntry('events')->assertCreated();
-        $this->createEntry('events', ['title' => 'Open house'])->assertCreated();
+        $this->createEntry('gatherings')->assertCreated();
+        $this->createEntry('gatherings', ['title' => 'Open house'])->assertCreated();
 
         $this->actingAs($this->staff(), 'sanctum')->postJson('/api/v1/admin/custom-field-groups', [
-            'name' => 'Event facts', 'targets' => ['entry:events'],
+            'name' => 'Event facts', 'targets' => ['entry:gatherings'],
             'fields' => [['key' => 'venue', 'label' => 'Venue', 'kind' => 'text']],
         ])->assertCreated();
 
@@ -148,9 +150,9 @@ class ContentTypesTest extends TestCase
             ->patchJson("/api/v1/admin/content-types/{$typeId}", ['slug' => 'happenings'])
             ->assertOk()->assertJsonPath('data.path', '/happenings');
 
-        $this->assertSame('/happenings', Redirect::where('from_path', '/events')->value('to_path'));
-        $this->assertSame('/happenings/launch-day', Redirect::where('from_path', '/events/launch-day')->value('to_path'));
-        $this->assertSame('/happenings/open-house', Redirect::where('from_path', '/events/open-house')->value('to_path'));
+        $this->assertSame('/happenings', Redirect::where('from_path', '/gatherings')->value('to_path'));
+        $this->assertSame('/happenings/launch-day', Redirect::where('from_path', '/gatherings/launch-day')->value('to_path'));
+        $this->assertSame('/happenings/open-house', Redirect::where('from_path', '/gatherings/open-house')->value('to_path'));
         $this->assertSame(['entry:happenings'], CustomFieldGroup::value('targets'));
     }
 
@@ -158,17 +160,17 @@ class ContentTypesTest extends TestCase
     {
         $this->createType()->assertCreated();
         $this->actingAs($this->staff(), 'sanctum')->postJson('/api/v1/admin/custom-field-groups', [
-            'name' => 'Event facts', 'targets' => ['entry:events'],
+            'name' => 'Event facts', 'targets' => ['entry:gatherings'],
             'fields' => [['key' => 'venue', 'label' => 'Venue', 'kind' => 'text', 'required' => true]],
         ])->assertCreated();
 
-        $this->createEntry('events', ['custom_fields' => ['venue' => '']])
+        $this->createEntry('gatherings', ['custom_fields' => ['venue' => '']])
             ->assertUnprocessable()->assertJsonValidationErrors('custom_fields.venue');
 
-        $this->createEntry('events', ['custom_fields' => ['venue' => 'Salt Lake']])->assertCreated()
+        $this->createEntry('gatherings', ['custom_fields' => ['venue' => 'Salt Lake']])->assertCreated()
             ->assertJsonPath('data.custom_fields.venue', 'Salt Lake');
 
-        $this->getJson('/api/v1/types/events/launch-day')->assertOk()
+        $this->getJson('/api/v1/types/gatherings/launch-day')->assertOk()
             ->assertJsonPath('data.custom_fields.0.display', 'Salt Lake');
     }
 
@@ -177,29 +179,29 @@ class ContentTypesTest extends TestCase
     public function test_the_archive_and_the_entry_show_only_what_is_published(): void
     {
         $typeId = $this->createType()->json('data.id');
-        $this->createEntry('events')->assertCreated();
-        $this->createEntry('events', ['title' => 'Draft thing', 'status' => 'draft'])->assertCreated();
-        $this->createEntry('events', ['title' => 'Next year', 'published_at' => now()->addYear()->toIso8601String()])->assertCreated();
+        $this->createEntry('gatherings')->assertCreated();
+        $this->createEntry('gatherings', ['title' => 'Draft thing', 'status' => 'draft'])->assertCreated();
+        $this->createEntry('gatherings', ['title' => 'Next year', 'published_at' => now()->addYear()->toIso8601String()])->assertCreated();
 
-        $this->getJson('/api/v1/types/events')->assertOk()
+        $this->getJson('/api/v1/types/gatherings')->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.path', '/events/launch-day')
+            ->assertJsonPath('data.0.path', '/gatherings/launch-day')
             ->assertJsonPath('meta.type.plural', 'Events')
             ->assertJsonMissingPath('data.0.body');
 
-        $this->getJson('/api/v1/types/events/launch-day')->assertOk()
+        $this->getJson('/api/v1/types/gatherings/launch-day')->assertOk()
             ->assertJsonPath('data.body', '<p>Doors at nine.</p>')
             ->assertJsonPath('data.schema.@type', 'Article')
-            ->assertJsonPath('data.type.slug', 'events');
+            ->assertJsonPath('data.type.slug', 'gatherings');
 
-        $this->getJson('/api/v1/types/events/draft-thing')->assertNotFound();
-        $this->getJson('/api/v1/types/events/next-year')->assertNotFound();
+        $this->getJson('/api/v1/types/gatherings/draft-thing')->assertNotFound();
+        $this->getJson('/api/v1/types/gatherings/next-year')->assertNotFound();
 
-        $this->getJson('/api/v1/content-types')->assertOk()->assertJsonPath('data.0.slug', 'events');
+        $this->getJson('/api/v1/content-types')->assertOk()->assertJsonPath('data.0.slug', 'gatherings');
 
         ContentType::whereKey($typeId)->update(['is_active' => false]);
-        $this->getJson('/api/v1/types/events')->assertNotFound();
-        $this->getJson('/api/v1/types/events/launch-day')->assertNotFound();
+        $this->getJson('/api/v1/types/gatherings')->assertNotFound();
+        $this->getJson('/api/v1/types/gatherings/launch-day')->assertNotFound();
         $this->getJson('/api/v1/content-types')->assertOk()->assertJsonCount(0, 'data');
     }
 
@@ -218,16 +220,16 @@ class ContentTypesTest extends TestCase
     public function test_entries_reach_the_seo_overview_search_menus_and_faq_owners(): void
     {
         $typeId = $this->createType()->json('data.id');
-        $id = $this->createEntry('events')->json('data.id');
+        $id = $this->createEntry('gatherings')->json('data.id');
 
         $admin = $this->staff(RoleEnum::Admin);
 
         $rows = collect($this->actingAs($admin, 'sanctum')->getJson('/api/v1/admin/seo?type=entry')->assertOk()->json('data'));
-        $this->assertSame("/admin/content/events/{$id}", $rows->firstWhere('id', $id)['admin_path']);
-        $this->assertSame('/events/launch-day', $rows->firstWhere('id', $id)['public_path']);
+        $this->assertSame("/admin/content/gatherings/{$id}", $rows->firstWhere('id', $id)['admin_path']);
+        $this->assertSame('/gatherings/launch-day', $rows->firstWhere('id', $id)['public_path']);
 
         $groups = collect($this->getJson('/api/v1/search?q=launch')->assertOk()->json('data.groups'));
-        $this->assertSame('/events/launch-day', $groups->firstWhere('type', 'entry')['results'][0]['path']);
+        $this->assertSame('/gatherings/launch-day', $groups->firstWhere('type', 'entry')['results'][0]['path']);
 
         $this->actingAs($admin, 'sanctum')->getJson('/api/v1/admin/faq-owners')->assertOk()
             ->assertJsonFragment(['type' => 'entry']);
@@ -237,6 +239,6 @@ class ContentTypesTest extends TestCase
         $menu->items()->create(['type' => MenuItemType::ContentType->value, 'target_type' => 'content_type', 'target_id' => $typeId, 'label' => 'Events', 'sort_order' => 1, 'is_active' => true]);
 
         $tree = MenuTree::forLocation('footer');
-        $this->assertSame(['/events/launch-day', '/events'], array_column($tree ?? [], 'href'));
+        $this->assertSame(['/gatherings/launch-day', '/gatherings'], array_column($tree ?? [], 'href'));
     }
 }

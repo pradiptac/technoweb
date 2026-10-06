@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\Admin\ContentBlockController as AdminContentBloc
 use App\Http\Controllers\Api\V1\Admin\ContentTypeController;
 use App\Http\Controllers\Api\V1\Admin\CustomFieldGroupController;
 use App\Http\Controllers\Api\V1\Admin\EntryController;
+use App\Http\Controllers\Api\V1\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Api\V1\Admin\FaqController as AdminFaqController;
 use App\Http\Controllers\Api\V1\Admin\FormController as AdminFormController;
 use App\Http\Controllers\Api\V1\Admin\GalleryController as AdminGalleryController;
@@ -39,6 +40,22 @@ use Illuminate\Support\Facades\Route;
  * admin group by routes/api.php.
  */
 Route::middleware('role:content_manager')->group(function () {
+
+    /*
+     * Events (0.118.0, docs/events.md). An event is a page with a date, so
+     * it is content; the people who register for one are not, and their
+     * routes are in `admin-events.php` under a wider role.
+     *
+     * Bound by **id**, not slug — the edit form changes the slug it is
+     * addressed by. `duplicate` makes a draft copy, which is how a series
+     * is made: nothing recurs.
+     */
+    Route::get('events', [AdminEventController::class, 'index'])->name('events.index');
+    Route::post('events', [AdminEventController::class, 'store'])->name('events.store');
+    Route::get('events/{event:id}', [AdminEventController::class, 'show'])->name('events.show');
+    Route::patch('events/{event:id}', [AdminEventController::class, 'update'])->name('events.update');
+    Route::delete('events/{event:id}', [AdminEventController::class, 'destroy'])->name('events.destroy');
+    Route::post('events/{event:id}/duplicate', [AdminEventController::class, 'duplicate'])->name('events.duplicate');
 
     /*
      * Vacancies are content: a careers page is a page. The people

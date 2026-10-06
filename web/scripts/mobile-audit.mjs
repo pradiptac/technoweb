@@ -49,6 +49,8 @@ const PUBLIC_ROUTES = [
   "/offline",
   // Online meetings (docs/meetings.md) -- the day picker at 320px.
   "/book-a-meeting", "/book-a-meeting?type=product-demo",
+  // Events (docs/events.md): the list of cards, upcoming and past.
+  "/events", "/events?when=past",
   "/search", "/search?q=switch",
   "/this-page-does-not-exist",   // the 404
   "/careers",
@@ -140,6 +142,12 @@ const ADMIN_ROUTES = [
   "/admin/meetings", "/admin/meetings?view=agenda", "/admin/meetings/new",
   "/admin/meetings/types", "/admin/meetings/types/new", "/admin/meetings/hosts",
   "/admin/meetings/settings", "/admin/my-meetings",
+  // Events (docs/events.md): the list (cards on a phone), the seven-panel
+  // form with its two repeaters, and the settings. This script has no
+  // discovery step, so an event's edit form and its registrations are named
+  // on the command line: `node scripts/mobile-audit.mjs /admin/events/1
+  // /admin/events/1/registrations`.
+  "/admin/events", "/admin/events/new", "/admin/events/settings",
   "/admin/settings/tickets/callback",
   // The store: its own catalogue, its own role, and the table with the most
   // columns in the console -- which is where the phone layout bites.

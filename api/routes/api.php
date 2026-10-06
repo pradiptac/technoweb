@@ -39,6 +39,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             require __DIR__.'/api/admin-campaign-manager.php';
             require __DIR__.'/api/admin-messaging.php';
             require __DIR__.'/api/admin-visits.php';
+            require __DIR__.'/api/admin-events.php';
             require __DIR__.'/api/admin-meetings.php';
             require __DIR__.'/api/admin-meeting-setup.php';
             require __DIR__.'/api/admin-meeting-hosts.php';

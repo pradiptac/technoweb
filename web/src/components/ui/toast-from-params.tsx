@@ -242,6 +242,51 @@ const OUTCOMES: Record<string, Message> = {
   "meeting-moved": { tone: "ok", title: "Meeting moved", body: "The customer and the host are being told, and the calendar event moves with the same Meet link." },
   "meeting-cancelled": { tone: "ok", title: "Meeting cancelled", body: "The customer has been told and the calendar event is being removed." },
   "meeting-type-deleted": { tone: "ok", title: "Meeting type deleted", body: "It is gone from the booking page too." },
+  // Events (docs/events.md).
+  "event-created": {
+    tone: "ok",
+    title: "Event created",
+    body: "A draft stays off the site until its status is Published.",
+  },
+  "event-saved": { tone: "ok", title: "Event saved", body: "A published event's page shows the change on its next load." },
+  "event-saved-notified": {
+    tone: "ok",
+    title: "Event saved",
+    // Conditional on purpose: the API emails only when the time, the place
+    // or the join link actually moved, and this toast cannot know which.
+    body: "If the time, the place or the join link changed, everyone with a confirmed place is being emailed about it.",
+  },
+  "event-duplicated": {
+    tone: "ok",
+    title: "Copy made",
+    body: "The copy is a draft with no registrations. Give it its own date, then publish it.",
+  },
+  "event-not-duplicated": { tone: "err", title: "Could not make a copy", body: "Nothing was changed. Try again in a moment." },
+  "event-deleted": { tone: "ok", title: "Event deleted", body: "Its page now answers 404; add a redirect if it was linked from anywhere." },
+  "event-has-registrations": {
+    tone: "warn",
+    title: "That event has registrations",
+    // The alternative, named — the `coupon-in-use` rule. People registered
+    // for it, and their record of having done so hangs off the event.
+    body: "It cannot be deleted while people are registered for it. Archive it instead: set its status to Archived and it leaves the site with its registrations kept.",
+  },
+  "event-not-deleted": {
+    tone: "err",
+    title: "Could not delete the event",
+    body: "Nothing was changed and it is still there. Try again in a moment.",
+  },
+  "event-registration-deleted": {
+    tone: "ok",
+    title: "Registration deleted",
+    // What did not go with it, and what did not happen: the lead is the
+    // sales desk's record, and nobody was emailed.
+    body: "The lead it filed was kept, and the person was not emailed. To tell them, cancel a registration instead.",
+  },
+  "event-registration-not-deleted": {
+    tone: "err",
+    title: "Could not delete that registration",
+    body: "Nothing was changed and it is still in the list. Try again in a moment.",
+  },
   "webhook-deleted": {
     tone: "ok",
     title: "Webhook deleted",

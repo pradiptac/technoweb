@@ -22,6 +22,8 @@ use App\Models\CustomFieldGroup;
 use App\Models\DigitalCode;
 use App\Models\Enquiry;
 use App\Models\Entry;
+use App\Models\Event;
+use App\Models\EventRegistration;
 use App\Models\Faq;
 use App\Models\Form;
 use App\Models\FormSubmission;
@@ -295,6 +297,11 @@ class AppServiceProvider extends ServiceProvider
             'meeting' => Meeting::class,
             'meeting_type' => MeetingType::class,
             'meeting_time_off' => MeetingTimeOff::class,
+            // Events (docs/events.md): an event carries SEO and FAQs, both
+            // polymorphic, and a menu item may point at one; a registration
+            // is bound in an admin route and is the source of a lead.
+            'event' => Event::class,
+            'event_registration' => EventRegistration::class,
 
             /*
              * The store's own catalogue. `store_product` rather than

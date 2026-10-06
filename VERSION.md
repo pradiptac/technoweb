@@ -21,6 +21,45 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.118.0 — 2026-10-06
+
+**Events: seminars, webinars and trade shows, with free registration.**
+
+- **Events** (a new section in the sidebar): each event has its own page at
+  `/events/…` with the date and place, a cover picture, an agenda, speakers,
+  questions and answers, "Add to calendar" and sharing. `/events` lists what
+  is coming up and what has taken place.
+- **Registration is optional and free.** An event can take no registration,
+  take it on your site, or link to somebody else's sign-up page. On your site
+  you can set a **capacity**, a **waiting list** (people are confirmed and
+  emailed, oldest first, as places open), a **closing time** and how many
+  seats one person may book.
+- **Online events**: the join link is never shown on the page. It is sent
+  only to people who registered, in their confirmation email and calendar
+  file.
+- **Emails**: confirmation, waiting list, a place has opened, cancellation, a
+  reminder before the start (24 hours by default), and — when you tick "Tell
+  everyone registered" on saving — a notice that the time or place changed.
+  All editable under Settings → Email templates.
+- **The registrant's own page**: the confirmation email links to a page
+  showing the registration, with a Cancel button.
+- **In the console**: an event form in seven tabs, a registrations list per
+  event (change a status, add somebody by hand, export a CSV), and Events →
+  Settings for where notices go, the reminder time and the default seats.
+- Every registration files a **lead**. Events also appear in menus, site
+  search, the sitemap, the SEO overview and as a list a builder page can show
+  ("Upcoming events" in a Cards section).
+- **Not included**: paid tickets, and repeating events — each date is its own
+  event, and **Duplicate** copies one.
+- **Also changed**: a page can no longer be given an address the site already
+  uses for something else (`/events`, `/blog`, `/store` …); it is refused with
+  a message. A custom content type at `/events` must be renamed.
+- After updating, nothing needs doing: the Events section is empty until you
+  add an event, and no "Events" link appears on the site until one is
+  published.
+
+---
+
 ## 0.117.0 — 2026-10-06
 
 **The form builder: nine new field types, fields that appear only when

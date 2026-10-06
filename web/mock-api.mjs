@@ -1165,6 +1165,313 @@ const cancelMeeting = (m, reason = null) => Object.assign(m, {
   cancelled_at: new Date().toISOString(), allowed_next: [{ value: 'cancelled', label: 'Cancelled' }], meet_url: null,
 });
 
+/* Events (0.118.0, docs/events-contract.md). The mock's copy of the public
+   list, an event's page, its availability, its `.ics`, a registration and
+   the registrant's own link, and the console's events and registrations.
+
+   Stored in the **admin** shape — wall-clock `Y-m-d\TH:i` in the site's
+   zone, paths beside their URLs, the join link — and presented two ways,
+   the way the API's two resources do: `publicEvent()` never carries
+   `online_url`, a path, a count or a staff field. Dates are offsets from
+   today so the list always holds something upcoming and something past;
+   times are labelled IST, the way the API writes them in APP_TIMEZONE. The
+   build prerenders /events against this.
+
+   The registration token is fixed so a browser check can open
+   `/events/registration/<EVENT_TOKEN>`. */
+const EVENT_TOKEN = 'c'.repeat(64);
+const EVENT_WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const EVENT_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const EVENT_FORMATS = [
+  { value: 'in_person', label: 'In person' }, { value: 'online', label: 'Online' }, { value: 'hybrid', label: 'In person and online' },
+];
+const EVENT_STATUSES = [
+  { value: 'draft', label: 'Draft' }, { value: 'published', label: 'Published' }, { value: 'archived', label: 'Archived' },
+];
+const EVENT_MODES = [
+  { value: 'none', label: 'No registration', blurb: 'An announcement. The page gives the date and the place and nobody signs up.' },
+  { value: 'open', label: 'Register on this site', blurb: 'People register here, free. You may set a capacity, a waiting list and a closing date.' },
+  { value: 'external', label: 'Register somewhere else', blurb: 'A button to somebody else’s sign-up page — the organiser’s, or a ticketing site.' },
+];
+const EVENT_REGISTRATION_STATUSES = [
+  { value: 'confirmed', label: 'Confirmed' }, { value: 'waitlisted', label: 'On the waiting list' }, { value: 'cancelled', label: 'Cancelled' },
+  { value: 'attended', label: 'Attended' }, { value: 'no_show', label: 'No-show' },
+];
+const eventLabelOf = (list, value) => list.find((o) => o.value === value)?.label ?? value;
+const EVENT_META = {
+  formats: EVENT_FORMATS, statuses: EVENT_STATUSES, registration_modes: EVENT_MODES,
+  registration_statuses: EVENT_REGISTRATION_STATUSES, max_speakers: 12, max_agenda: 30, timezone: 'IST',
+};
+/** "15:00" → "3:00 pm". */
+const eventClock = (hm) => {
+  const [h, m] = hm.split(':').map(Number);
+  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
+};
+/** "2026-11-12" → "Thursday 12 November 2026", or without the year. */
+const eventDate = (ymd, year = true) => {
+  const d = new Date(`${ymd}T00:00:00Z`);
+  return `${EVENT_WEEKDAYS[d.getUTCDay()]} ${d.getUTCDate()} ${EVENT_MONTHS[d.getUTCMonth()]}${year ? ` ${d.getUTCFullYear()}` : ''}`;
+};
+/** A stored wall clock as the instant it names, with the site's offset. */
+const eventIso = (wall) => (wall ? `${wall}:00+05:30` : null);
+const eventLabels = (e) => {
+  const ymd = e.starts_at.slice(0, 10);
+  const d = new Date(`${ymd}T00:00:00Z`);
+  const start = eventClock(e.starts_at.slice(11, 16));
+  return {
+    date_label: eventDate(ymd),
+    time_label: e.ends_at ? `${start} – ${eventClock(e.ends_at.slice(11, 16))} IST` : `${start} IST`,
+    day: String(d.getUTCDate()), month: EVENT_MONTHS[d.getUTCMonth()].slice(0, 3), year: String(d.getUTCFullYear()),
+  };
+};
+/* Upcoming until it **ends** — or until the end of its start day when it has no end. */
+const eventIsPast = (e) => Date.parse(eventIso(e.ends_at ?? `${e.starts_at.slice(0, 10)}T23:59`)) < Date.now();
+const eventHasStarted = (e) => Date.parse(eventIso(e.starts_at)) <= Date.now();
+const events = [
+  {
+    id: 1, title: 'Wi-Fi 7 for the office: a working session', slug: 'wifi-7-working-session',
+    summary: 'Ninety minutes on what Wi-Fi 7 changes for a 200-seat office.',
+    body: '<p>Wi-Fi 7 is not a faster Wi-Fi 6. It changes how a client uses the spectrum it is given, and that changes how an office is surveyed.</p><h2>Who it is for</h2><p>IT managers planning a refresh in the next eighteen months.</p><ul><li>What multi-link operation means for a roaming laptop</li><li>Which of your clients can use 6 GHz today</li></ul>',
+    status: 'published', is_featured: true, format: 'hybrid',
+    starts_at: `${isoDay(21)}T15:00`, ends_at: `${isoDay(21)}T16:30`,
+    venue_name: 'Technoware Experience Centre', venue_city: 'Mumbai',
+    venue_address: 'Unit 4, Lakeview Industrial Estate\nAndheri East, Mumbai 400093',
+    map_url: 'https://maps.google.com/?q=Andheri+East+Mumbai', online_url: 'https://meet.example/wifi-7',
+    cover_image_path: null, cover_image: null,
+    speakers: [
+      { name: 'Asha Rao', role: 'Principal network engineer', photo_path: null, photo: null },
+      { name: 'Vikram Shah', role: 'Wireless survey lead', photo_path: null, photo: null },
+    ],
+    agenda: [
+      { time: '3:00 pm', title: 'What changes in Wi-Fi 7', note: 'Channels, MLO and what a client needs.' },
+      { time: '3:40 pm', title: 'Surveying for 6 GHz', note: null },
+      { time: '4:10 pm', title: 'Questions', note: 'Bring a floor plan.' },
+    ],
+    registration_mode: 'open', external_url: null, capacity: 40, waitlist_enabled: true, max_seats: 5,
+    registration_closes_at: `${isoDay(20)}T18:00`,
+    faqs: [
+      { id: 9001, question: 'Is there a charge?', answer: '<p>No. The session is free; a seat is yours once it is confirmed.</p>' },
+      { id: 9002, question: 'Will it be recorded?', answer: '<p>Yes. Everyone who registered is sent the recording the next working day.</p>' },
+    ],
+    seo: null, created_at: '2026-10-01T10:00:00+05:30', updated_at: '2026-10-06T18:00:00+05:30',
+  },
+  {
+    id: 2, title: 'Firewall hardening: a live webinar', slug: 'firewall-hardening-webinar',
+    summary: 'An hour on the five rules that quietly stop working, with a config you can take away.',
+    body: '<p>A firewall policy describes a network that keeps changing underneath it. This hour is the review we run for our own AMC customers.</p>',
+    status: 'published', is_featured: false, format: 'online',
+    starts_at: `${isoDay(40)}T11:00`, ends_at: `${isoDay(40)}T12:00`,
+    venue_name: null, venue_city: null, venue_address: null, map_url: null, online_url: null,
+    cover_image_path: null, cover_image: null,
+    speakers: [{ name: 'S. Rao', role: 'Security practice', photo_path: null, photo: null }],
+    agenda: [],
+    registration_mode: 'external', external_url: 'https://example.com/webinars/firewall-hardening',
+    capacity: null, waitlist_enabled: false, max_seats: 5, registration_closes_at: null,
+    faqs: [], seo: null, created_at: '2026-10-02T10:00:00+05:30', updated_at: '2026-10-05T12:00:00+05:30',
+  },
+  {
+    id: 3, title: 'Technoware at the Mumbai IT Expo', slug: 'mumbai-it-expo',
+    summary: 'Three days on stand B14: live switching, storage and surveillance demonstrations.',
+    body: '<p>We ran the same three demonstrations every hour. Thank you to everyone who stopped at the stand.</p>',
+    status: 'published', is_featured: false, format: 'in_person',
+    starts_at: `${isoDay(-30)}T10:00`, ends_at: `${isoDay(-28)}T18:00`,
+    venue_name: 'Bombay Exhibition Centre', venue_city: 'Mumbai', venue_address: 'Hall 2, Stand B14\nGoregaon East, Mumbai 400063',
+    map_url: null, online_url: null, cover_image_path: null, cover_image: null,
+    speakers: [], agenda: [],
+    registration_mode: 'none', external_url: null, capacity: null, waitlist_enabled: false, max_seats: 5, registration_closes_at: null,
+    faqs: [], seo: null, created_at: '2026-08-20T10:00:00+05:30', updated_at: '2026-09-08T10:00:00+05:30',
+  },
+  {
+    id: 4, title: 'Storage refresh clinic', slug: 'storage-refresh-clinic',
+    summary: 'A morning with our storage engineers. Not announced yet.',
+    body: null, status: 'draft', is_featured: false, format: 'in_person',
+    starts_at: `${isoDay(60)}T10:30`, ends_at: null,
+    venue_name: 'Technoware Experience Centre', venue_city: 'Mumbai', venue_address: null,
+    map_url: null, online_url: null, cover_image_path: null, cover_image: null,
+    speakers: [], agenda: [],
+    registration_mode: 'open', external_url: null, capacity: 12, waitlist_enabled: false, max_seats: 2, registration_closes_at: null,
+    faqs: [], seo: null, created_at: '2026-10-06T09:00:00+05:30', updated_at: '2026-10-06T09:00:00+05:30',
+  },
+];
+const eventRegistrations = [
+  { id: 31, event_id: 1, name: 'Priya Das', email: 'priya@acme.test', phone: '+91 98765 43210', company: 'Acme Foods',
+    seats: 2, note: 'One of us needs step-free access.', staff_note: null, status: 'confirmed',
+    customer_id: null, lead_id: 1, source: 'public', reminded_at: null, cancelled_at: null, created_at: '2026-10-06T18:10:00+05:30' },
+  { id: 32, event_id: 1, name: 'Rahul Sen', email: 'rahul@meridianfoods.test', phone: null, company: 'Meridian Foods',
+    seats: 1, note: null, staff_note: 'Rang the desk; coming with the plant IT head.', status: 'confirmed',
+    customer_id: 1, lead_id: null, source: 'staff', reminded_at: null, cancelled_at: null, created_at: '2026-10-06T19:02:00+05:30' },
+  { id: 33, event_id: 1, name: 'Neha Kulkarni', email: 'neha@northwind.test', phone: '+91 99200 11223', company: null,
+    seats: 3, note: null, staff_note: null, status: 'cancelled',
+    customer_id: null, lead_id: 1, source: 'public', reminded_at: null, cancelled_at: '2026-10-07T09:30:00+05:30', created_at: '2026-10-06T20:15:00+05:30' },
+];
+const eventOf = (id) => events.find((e) => e.id === Number(id));
+const eventCounts = (e) => {
+  const rows = eventRegistrations.filter((r) => r.event_id === e.id);
+  const of = (status) => rows.filter((r) => r.status === status);
+  const seats = of('confirmed').reduce((n, r) => n + r.seats, 0);
+  return {
+    confirmed: of('confirmed').length, confirmed_seats: seats, waitlisted: of('waitlisted').length,
+    cancelled: of('cancelled').length, attended: of('attended').length,
+    seats_left: e.capacity === null ? null : Math.max(0, e.capacity - seats),
+  };
+};
+/* The console's resource. `faqs`, `seo` and `seo_defaults` on the detail read only. */
+const adminEvent = (e, detail = false) => {
+  const { faqs, seo, ...row } = e;
+  const { date_label, time_label } = eventLabels(e);
+  return {
+    ...row,
+    status_label: eventLabelOf(EVENT_STATUSES, e.status), format_label: eventLabelOf(EVENT_FORMATS, e.format),
+    starts_at_iso: eventIso(e.starts_at), date_label, time_label, is_past: eventIsPast(e),
+    counts: eventCounts(e), public_path: `/events/${e.slug}`, admin_path: `/admin/events/${e.id}`,
+    ...(detail ? { faqs: faqs.map(({ question, answer }) => ({ question, answer })), seo, seo_defaults: null } : {}),
+  };
+};
+/* The public row: no `online_url`, no path, no count, no staff field. */
+const publicEvent = (e) => ({
+  id: e.id, title: e.title, slug: e.slug, summary: e.summary,
+  format: e.format, format_label: eventLabelOf(EVENT_FORMATS, e.format),
+  starts_at: eventIso(e.starts_at), ends_at: eventIso(e.ends_at), ...eventLabels(e),
+  venue_name: e.format === 'online' ? null : e.venue_name, venue_city: e.format === 'online' ? null : e.venue_city,
+  cover_image: e.cover_image, cover_image_alt: null, cover_image_focus: null,
+  is_featured: e.is_featured, is_past: eventIsPast(e),
+  registration_mode: e.registration_mode, updated_at: e.updated_at, seo: null,
+});
+const eventSchema = (e) => prune({
+  '@context': SCHEMA_ORG, '@type': 'Event', name: e.title, description: e.summary,
+  startDate: eventIso(e.starts_at), endDate: eventIso(e.ends_at),
+  eventStatus: `${SCHEMA_ORG}/EventScheduled`,
+  eventAttendanceMode: `${SCHEMA_ORG}/${{ in_person: 'OfflineEventAttendanceMode', online: 'OnlineEventAttendanceMode', hybrid: 'MixedEventAttendanceMode' }[e.format]}`,
+  // A place and/or a virtual location whose `url` is the *page*, never the join link.
+  location: [
+    ...(e.format !== 'online' ? [{ '@type': 'Place', name: e.venue_name, address: e.venue_address }] : []),
+    ...(e.format !== 'in_person' ? [{ '@type': 'VirtualLocation', url: `https://www.technoware.in/events/${e.slug}` }] : []),
+  ],
+  organizer: publisher(), url: `https://www.technoware.in/events/${e.slug}`,
+});
+const publicEventDetail = (e) => ({
+  ...publicEvent(e),
+  body: e.body, venue_address: e.format === 'online' ? null : e.venue_address, map_url: e.format === 'online' ? null : e.map_url,
+  speakers: e.speakers.map((s) => ({ name: s.name, role: s.role, photo: s.photo, photo_alt: null, photo_focus: null })),
+  agenda: e.agenda,
+  registration: {
+    mode: e.registration_mode, external_url: e.registration_mode === 'external' ? e.external_url : null,
+    // The closing time, the capacity and the waiting list mean something only while registration is open here.
+    closes_at: e.registration_mode === 'open' ? eventIso(e.registration_closes_at) : null,
+    closes_label: e.registration_mode === 'open' && e.registration_closes_at
+      ? `${eventDate(e.registration_closes_at.slice(0, 10), false)}, ${eventClock(e.registration_closes_at.slice(11, 16))}` : null,
+    max_seats: e.max_seats,
+    has_capacity: e.registration_mode === 'open' && e.capacity !== null,
+    waitlist: e.registration_mode === 'open' && e.capacity !== null && e.waitlist_enabled,
+  },
+  calendar_path: `/events/${e.slug}/calendar`,
+  faqs: e.faqs, ...faqSchemaOf(e.faqs, []),
+  schema: eventSchema(e),
+});
+/* What the registration panel asks after mount. No count is ever published. */
+const eventAvailability = (e) => {
+  const refuse = (state, message) => ({ state, few_left: false, message });
+  if (e.registration_mode === 'none') return { state: 'none', few_left: false, message: null };
+  if (e.registration_mode === 'external') return { state: 'external', few_left: false, message: null };
+  if (eventHasStarted(e)) return refuse('ended', 'This event has started, so registration is closed.');
+  if (e.registration_closes_at && Date.parse(eventIso(e.registration_closes_at)) < Date.now()) {
+    return refuse('closed', 'Registration for this event has closed.');
+  }
+  const left = eventCounts(e).seats_left;
+  if (left === 0) {
+    return e.waitlist_enabled
+      ? { state: 'waitlist', few_left: false, message: null }
+      : refuse('full', 'This event is full.');
+  }
+  return { state: 'open', few_left: left !== null && left >= 1 && left <= e.capacity * 0.2, message: null };
+};
+const adminRegistration = (r) => ({
+  ...r, status_label: eventLabelOf(EVENT_REGISTRATION_STATUSES, r.status),
+  lead_path: r.lead_id ? `/admin/leads/${r.lead_id}` : null,
+});
+/* The registrant's own page: no email, phone, note or staff field — it is addressed by a link. */
+const registrantView = (r, e) => ({
+  status: r.status, status_label: eventLabelOf(EVENT_REGISTRATION_STATUSES, r.status), seats: r.seats, name: r.name,
+  can_cancel: !eventHasStarted(e) && (r.status === 'confirmed' || r.status === 'waitlisted'),
+  event: {
+    title: e.title, slug: e.slug, ...(({ date_label, time_label }) => ({ date_label, time_label }))(eventLabels(e)),
+    format: e.format, format_label: eventLabelOf(EVENT_FORMATS, e.format),
+    venue_name: e.format === 'online' ? null : e.venue_name, venue_address: e.format === 'online' ? null : e.venue_address,
+    is_past: eventIsPast(e), calendar_path: `/events/${e.slug}/calendar`,
+  },
+});
+/* The event a registrations list belongs to, as `meta.event`: the contract's
+   five keys and no more. It is all a sales manager — who cannot read the
+   event itself — is told about it, so the console draws its header from
+   exactly this and treats anything further as optional. */
+const registrationsEvent = (e) => ({
+  id: e.id, title: e.title, date_label: eventLabels(e).date_label, counts: eventCounts(e), capacity: e.capacity,
+});
+const registrationsMeta = (e) => ({ event: registrationsEvent(e), statuses: EVENT_REGISTRATION_STATUSES });
+/* The moves the desk may make — `EventRegistrationStatus::canTransitionTo()`. */
+const REGISTRATION_MOVES = {
+  confirmed: ['cancelled', 'attended', 'no_show'], waitlisted: ['confirmed', 'cancelled'],
+  cancelled: ['confirmed', 'waitlisted'], attended: ['no_show', 'confirmed'], no_show: ['attended', 'confirmed'],
+};
+const eventSlug = (text) => String(text).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const freeEventSlug = (base, exceptId = null) => {
+  let slug = base || 'event';
+  for (let n = 2; events.some((e) => e.slug === slug && e.id !== exceptId); n += 1) slug = `${base}-${n}`;
+  return slug;
+};
+const invalid = (res, field, message) => json(res, 422, { message, errors: { [field]: [message] } });
+/* The write rules a console form can trip over, in the contract's own keys. */
+const eventRefusal = (body, current = null) => {
+  const merged = { ...(current ?? {}), ...body };
+  const url = /^https?:\/\//;
+  if ('title' in body || !current) {
+    if (!merged.title) return ['title', 'The title field is required.'];
+  }
+  if (!merged.starts_at) return ['starts_at', 'Say when the event starts.'];
+  if (merged.ends_at && merged.ends_at <= merged.starts_at) return ['ends_at', 'The end has to be after the start.'];
+  if (merged.format !== 'online' && !merged.venue_name) return ['venue_name', 'An event people attend in person needs a venue.'];
+  if (merged.map_url && !url.test(merged.map_url)) return ['map_url', 'The map link has to be a full http(s) address.'];
+  if (merged.online_url && !url.test(merged.online_url)) return ['online_url', 'The join link has to be a full http(s) address.'];
+  if (merged.registration_mode === 'external' && !url.test(merged.external_url ?? '')) {
+    return ['external_url', 'Say where people register — a full http(s) address.'];
+  }
+  if (merged.status === 'published' && merged.format !== 'in_person' && merged.registration_mode === 'open' && !merged.online_url) {
+    return ['online_url', 'An online or hybrid event that takes registrations here needs a join link before it is published.'];
+  }
+  if (merged.registration_closes_at && merged.registration_closes_at > merged.starts_at) {
+    return ['registration_closes_at', 'Registration cannot close after the event starts.'];
+  }
+  if (current && merged.capacity !== null && merged.capacity !== undefined) {
+    const seats = eventCounts(current).confirmed_seats;
+    if (merged.capacity < seats) return ['capacity', `${seats} seats are already confirmed, so the capacity cannot be lower than that.`];
+  }
+  const speaker = (merged.speakers ?? []).findIndex((s) => !s.name);
+  if (speaker !== -1) return [`speakers.${speaker}.name`, 'A speaker needs a name.'];
+  const item = (merged.agenda ?? []).findIndex((a) => !a.title);
+  if (item !== -1) return [`agenda.${item}.title`, 'An agenda item needs a title.'];
+  return null;
+};
+const EVENT_WRITABLE = [
+  'title', 'summary', 'body', 'status', 'is_featured', 'format', 'starts_at', 'ends_at', 'venue_name', 'venue_city',
+  'venue_address', 'map_url', 'online_url', 'cover_image_path', 'speakers', 'agenda', 'registration_mode', 'external_url',
+  'capacity', 'waitlist_enabled', 'max_seats', 'registration_closes_at', 'faqs', 'seo',
+];
+/* Speakers, agenda and FAQs are replaced wholesale; a key that is absent is left alone. */
+const applyEventBody = (event, body) => {
+  for (const key of EVENT_WRITABLE) {
+    if (!(key in body)) continue;
+    if (key === 'speakers') {
+      event.speakers = (body.speakers ?? []).map((s) => ({ name: s.name, role: s.role ?? null, photo_path: s.photo_path ?? null, photo: null }));
+    } else if (key === 'faqs') {
+      event.faqs = (body.faqs ?? []).map((f, i) => ({ id: 9100 + i, question: f.question, answer: f.answer }));
+    } else {
+      event[key] = body[key];
+    }
+  }
+};
+/* Which registration the fixed token opens: the newest made through the public form. */
+let eventTokenRegistration = 31;
+
 const leadMeta = {
   statuses: [
     { value: 'new', label: 'New', open: true },
@@ -1815,6 +2122,8 @@ const BUILDER_OPTIONS = {
     { value: 'solutions', label: 'Solutions' }, { value: 'services', label: 'Services' }, { value: 'industries', label: 'Industries' },
     { value: 'case_studies', label: 'Case studies' }, { value: 'blog', label: 'Blog posts' }, { value: 'knowledge', label: 'Knowledge base articles' },
     { value: 'products', label: 'Products (catalogue)' }, { value: 'store_products', label: 'Products (shop)' },
+    // Upcoming events, soonest first (docs/events-contract.md).
+    { value: 'events', label: 'Events' },
   ],
   content_blocks: [], sliders: [], galleries: [], forms: [],
   product_categories: productCategories.map(({ id, name, slug }) => ({ id, name, slug })),
@@ -1918,26 +2227,33 @@ const ADMIN_CMS = [
 
 /* ---------------- Custom fields and content types (docs/custom-content.md) ----------------
  *
- * One field group on pages and on the sample type, and one type ("events")
- * with two entries — enough for every new console screen, the Fields tab,
- * the archive and an entry page to render against the mock. The kinds, the
- * targets and the placements are the API's own `meta`, never retyped. */
+ * One field group on pages and on the sample type, and one type
+ * ("open-days") with two entries — enough for every new console screen, the
+ * Fields tab, the archive and an entry page to render against the mock. The
+ * kinds, the targets and the placements are the API's own `meta`, never
+ * retyped.
+ *
+ * The sample type was called "events" until 0.118.0, when `/events` became
+ * the Events module's own route: a content type's slug is a top-level
+ * address, the real API now refuses that one (`ReservedSlugs`), and here the
+ * static route would have shadowed the archive and sent each entry's address
+ * to an event that does not exist. */
 const CUSTOM_FIELD_KINDS = [
   ['text', 'Text'], ['textarea', 'Long text'], ['rich_text', 'Rich text'], ['number', 'Number'], ['date', 'Date'],
   ['url', 'Link'], ['email', 'Email address'], ['select', 'Dropdown'], ['multi_select', 'Checkboxes'], ['boolean', 'Yes / no'],
   ['image', 'Image'], ['file', 'File'], ['relation', 'Linked record'], ['list', 'List of short items'],
 ].map(([value, label]) => ({ value, label, blurb: `${label}.`, has_options: value === 'select' || value === 'multi_select' }));
 const CONTENT_TYPES = [{
-  id: 1, name: 'Event', plural: 'Events', slug: 'events', path: '/events', icon: null,
+  id: 1, name: 'Open day', plural: 'Open days', slug: 'open-days', path: '/open-days', icon: null,
   description: 'Open days, workshops and launches.', has_body: true, has_image: true, archive_enabled: true,
   per_page: 12, sort: 'newest', schema_type: 'Article', sort_order: 0, is_active: true,
-  entries_count: 2, published_count: 2, target: 'entry:events', field_groups: [{ id: 1, name: 'Event details', fields_count: 2 }],
+  entries_count: 2, published_count: 2, target: 'entry:open-days', field_groups: [{ id: 1, name: 'Event details', fields_count: 2 }],
   created_at: '2026-09-26T00:00:00Z', updated_at: '2026-09-26T00:00:00Z',
 }];
 const CUSTOM_FIELD_TARGETS = [
   ['page', 'Pages'], ['blog_post', 'Blog posts'], ['knowledge_article', 'Knowledge base'], ['case_study', 'Case studies'],
   ['solution', 'Solutions'], ['service', 'Services'], ['industry', 'Industries'], ['product', 'Products'],
-  ['store_product', 'Store products'], ['entry:events', 'Events'],
+  ['store_product', 'Store products'], ['entry:open-days', 'Open days'],
 ].map(([value, label]) => ({ value, label }));
 const CUSTOM_FIELD_META = {
   kinds: CUSTOM_FIELD_KINDS,
@@ -1948,7 +2264,7 @@ const CUSTOM_FIELD_META = {
   ],
 };
 const CUSTOM_FIELD_GROUP = {
-  id: 1, name: 'Event details', slug: 'event-details', targets: ['entry:events', 'page'], target_labels: ['Events', 'Pages'],
+  id: 1, name: 'Event details', slug: 'event-details', targets: ['entry:open-days', 'page'], target_labels: ['Open days', 'Pages'],
   placement: 'details', sort_order: 0, is_active: true, fields_count: 2,
   fields: [
     { id: 1, key: 'venue', label: 'Venue', kind: 'text', help: null, required: false, show_on_page: true, options: [], settings: {}, sort_order: 0, values_count: 2 },
@@ -1982,7 +2298,7 @@ const publicEntry = (e, t = CONTENT_TYPES[0]) => ({
   type: { name: t.name, plural: t.plural, slug: t.slug, path: t.path, icon: t.icon, archive_enabled: t.archive_enabled },
 });
 const adminEntry = (e) => ({
-  id: e.id, content_type_id: 1, title: e.title, slug: e.slug, path: `/events/${e.slug}`, summary: e.summary, body: e.body,
+  id: e.id, content_type_id: 1, title: e.title, slug: e.slug, path: `/open-days/${e.slug}`, summary: e.summary, body: e.body,
   image_path: null, image: null, status: 'published', status_label: 'Published', published_at: e.published_at, sort_order: 0,
   faqs: [], answer_blocks: [], seo: null, seo_defaults: null,
   custom_fields: e.custom_data, custom_field_media: {}, custom_field_groups: CUSTOM_FIELD_DEFINITIONS,
@@ -2572,6 +2888,191 @@ createServer(async (req, res) => {
       }
       return json(res, 200, { data: h });
     }
+    /* Events (docs/events-contract.md): the list, the form's reads and
+       writes, a duplicate, and one event's registrations. `meta` rides on the
+       index, the read and both writes, because the console draws its format,
+       status and registration-mode pickers from it and never from a list of
+       its own. The export is matched above `{registration}`, the order the
+       route file declares them in. */
+    if (p === '/admin/events' && req.method === 'GET') {
+      const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+      const status = url.searchParams.get('status');
+      const when = url.searchParams.get('when');
+      const format = url.searchParams.get('format');
+      const matched = events.filter((e) =>
+        (!q || `${e.title} ${e.venue_name ?? ''} ${e.venue_city ?? ''}`.toLowerCase().includes(q))
+        && (!status || e.status === status) && (!format || e.format === format)
+        && (!when || (when === 'past') === eventIsPast(e)));
+      // A header's sort, ending on the id; otherwise upcoming soonest first, then past newest first.
+      const dir = url.searchParams.get('dir') === 'desc' ? -1 : 1;
+      const by = { starts: (e) => e.starts_at, title: (e) => e.title.toLowerCase(), status: (e) => e.status }[url.searchParams.get('sort')];
+      const rows = by
+        ? [...matched].sort((a, b) => (by(a) < by(b) ? -dir : by(a) > by(b) ? dir : a.id - b.id))
+        : [
+            ...matched.filter((e) => !eventIsPast(e)).sort((a, b) => a.starts_at.localeCompare(b.starts_at)),
+            ...matched.filter(eventIsPast).sort((a, b) => b.starts_at.localeCompare(a.starts_at)),
+          ];
+      return json(res, 200, {
+        data: rows.map((e) => adminEvent(e)),
+        links: { first: null, last: null, prev: null, next: null },
+        meta: { current_page: 1, last_page: 1, per_page: 25, total: rows.length, ...EVENT_META },
+      });
+    }
+    if (p === '/admin/events' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const blank = {
+        title: '', summary: null, body: null, status: 'draft', is_featured: false, format: 'in_person',
+        starts_at: null, ends_at: null, venue_name: null, venue_city: null, venue_address: null, map_url: null, online_url: null,
+        cover_image_path: null, cover_image: null, speakers: [], agenda: [], registration_mode: 'none', external_url: null,
+        capacity: null, waitlist_enabled: false, max_seats: 5, registration_closes_at: null, faqs: [], seo: null,
+      };
+      const refused = eventRefusal({ ...blank, ...body });
+      if (refused) return invalid(res, ...refused);
+      const now = new Date().toISOString();
+      const event = { ...blank, id: Math.max(0, ...events.map((e) => e.id)) + 1, created_at: now, updated_at: now };
+      applyEventBody(event, body);
+      event.slug = freeEventSlug(eventSlug(body.slug || event.title));
+      events.push(event);
+      return json(res, 201, { data: adminEvent(event, true), meta: EVENT_META });
+    }
+    {
+      const m = p.match(/^\/admin\/events\/(\d+)(\/duplicate)?$/);
+      if (m) {
+        const e = eventOf(m[1]);
+        if (!e) return json(res, 404, { message: 'Not found.' });
+        if (m[2]) {
+          if (req.method !== 'POST') return json(res, 405, { message: 'Method not allowed.' });
+          // A draft copy: "(copy)", a free slug, and none of the registrations.
+          const now = new Date().toISOString();
+          const copy = {
+            ...structuredClone(e), id: Math.max(0, ...events.map((x) => x.id)) + 1, title: `${e.title} (copy)`,
+            slug: freeEventSlug(`${e.slug}-copy`), status: 'draft', is_featured: false, created_at: now, updated_at: now,
+          };
+          events.push(copy);
+          return json(res, 201, { data: adminEvent(copy, true), meta: EVENT_META });
+        }
+        if (req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          const refused = eventRefusal(body, e);
+          if (refused) return invalid(res, ...refused);
+          applyEventBody(e, body);
+          if ('slug' in body && body.slug) e.slug = freeEventSlug(eventSlug(body.slug), e.id);
+          e.updated_at = new Date().toISOString();
+        } else if (req.method === 'DELETE') {
+          // Refused while anybody has registered — cancelled registrations included.
+          if (eventRegistrations.some((r) => r.event_id === e.id)) {
+            return invalid(res, 'event', 'People have registered for this event, so it cannot be deleted. Archive it instead.');
+          }
+          events.splice(events.indexOf(e), 1);
+          return json(res, 200, { message: 'Event deleted.' });
+        }
+        return json(res, 200, { data: adminEvent(e, true), meta: EVENT_META });
+      }
+    }
+    {
+      const m = p.match(/^\/admin\/events\/(\d+)\/registrations(?:\/(export|\d+))?$/);
+      if (m) {
+        const e = eventOf(m[1]);
+        if (!e) return json(res, 404, { message: 'Not found.' });
+        const mine = () => eventRegistrations.filter((r) => r.event_id === e.id);
+
+        if (m[2] === 'export') {
+          // Every cell quoted; a leading =, +, - or @ is prefixed so a spreadsheet reads it as text.
+          const cell = (value) => {
+            const text = value === null || value === undefined ? '' : String(value);
+            return `"${(/^[=+\-@]/.test(text) ? `'${text}` : text).replace(/"/g, '""')}"`;
+          };
+          const lines = [
+            ['Name', 'Email', 'Phone', 'Company', 'Seats', 'Status', 'Note', 'Desk note', 'Source', 'Registered'],
+            ...mine().map((r) => [r.name, r.email, r.phone, r.company, r.seats, eventLabelOf(EVENT_REGISTRATION_STATUSES, r.status), r.note, r.staff_note, r.source, r.created_at]),
+          ];
+          res.writeHead(200, { 'Content-Type': 'text/csv; charset=UTF-8', 'Content-Disposition': `attachment; filename="${e.slug}-registrations.csv"` });
+          return res.end(`﻿${lines.map((line) => line.map(cell).join(',')).join('\n')}\n`);
+        }
+
+        if (!m[2] && req.method === 'GET') {
+          const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+          const status = url.searchParams.get('status');
+          // Confirmed first, then waiting (oldest first), then the rest newest first.
+          const rank = (r) => (r.status === 'confirmed' ? 0 : r.status === 'waitlisted' ? 1 : 2);
+          const rows = mine()
+            .filter((r) => (!status || r.status === status)
+              && (!q || `${r.name} ${r.email} ${r.company ?? ''} ${r.phone ?? ''}`.toLowerCase().includes(q)))
+            .sort((a, b) => rank(a) - rank(b)
+              || (rank(a) === 2 ? b.created_at.localeCompare(a.created_at) : a.created_at.localeCompare(b.created_at)));
+          return json(res, 200, {
+            data: rows.map(adminRegistration),
+            links: { first: null, last: null, prev: null, next: null },
+            meta: { current_page: 1, last_page: 1, per_page: 50, total: rows.length, ...registrationsMeta(e) },
+          });
+        }
+
+        if (!m[2] && req.method === 'POST') {
+          const body = await readJsonBody(req);
+          if (!body.name) return invalid(res, 'name', 'The name field is required.');
+          if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email ?? '')) return invalid(res, 'email', 'Enter a valid email address.');
+          const seats = Number(body.seats) || 1;
+          const left = eventCounts(e).seats_left;
+          let status = 'confirmed';
+          if (!body.force && left !== null && seats > left) {
+            // Staff are refused exactly as the public are, unless they ask to go past the limit.
+            if (e.waitlist_enabled) status = 'waitlisted';
+            else return left === 0
+              ? invalid(res, 'registration', 'This event is full. Tick “Go past the limit” to add them anyway.')
+              : invalid(res, 'seats', `Only ${left} ${left === 1 ? 'seat is' : 'seats are'} left.`);
+          }
+          const r = {
+            id: Math.max(30, ...eventRegistrations.map((x) => x.id)) + 1, event_id: e.id, name: body.name, email: body.email,
+            phone: body.phone ?? null, company: body.company ?? null, seats, note: body.note ?? null, staff_note: null, status,
+            customer_id: null, lead_id: 1, source: 'staff', reminded_at: null, cancelled_at: null, created_at: new Date().toISOString(),
+          };
+          eventRegistrations.push(r);
+          return json(res, 201, { data: adminRegistration(r), meta: registrationsMeta(e) });
+        }
+
+        const r = eventRegistrations.find((x) => x.id === Number(m[2]) && x.event_id === e.id);
+        // A registration addressed through another event's id is a 404.
+        if (!r) return json(res, 404, { message: 'Not found.' });
+
+        if (req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          const label = (value) => eventLabelOf(EVENT_REGISTRATION_STATUSES, value);
+          const only = (n) => `Only ${n} ${n === 1 ? 'seat is' : 'seats are'} left.`;
+          if ('staff_note' in body) r.staff_note = body.staff_note;
+          if ('seats' in body && body.seats !== r.seats) {
+            if (!Number.isInteger(body.seats) || body.seats < 1) return invalid(res, 'seats', 'The seats field must be at least 1.');
+            // A confirmed party growing is held to the room unless `force`.
+            const left = eventCounts(e).seats_left;
+            const room = left === null ? null : left + r.seats;
+            if (r.status === 'confirmed' && !body.force && room !== null && body.seats > room) return invalid(res, 'seats', only(room));
+            r.seats = body.seats;
+          }
+          if ('status' in body && body.status !== r.status) {
+            if (!EVENT_REGISTRATION_STATUSES.some((s) => s.value === body.status)) return invalid(res, 'status', 'The selected status is invalid.');
+            if (!REGISTRATION_MOVES[r.status].includes(body.status)) {
+              return invalid(res, 'status', `A registration cannot go from ${label(r.status)} to ${label(body.status)}.`);
+            }
+            if ((body.status === 'attended' || body.status === 'no_show') && !eventHasStarted(e)) {
+              return invalid(res, 'status', `A registration can be marked ${label(body.status)} only once the event has started.`);
+            }
+            // Taking seats that were not held: is there room? The desk may overbook, but only by saying so.
+            const left = eventCounts(e).seats_left;
+            const takes = body.status === 'confirmed' && (r.status === 'waitlisted' || r.status === 'cancelled');
+            if (takes && !body.force && left !== null && r.seats > left) {
+              return invalid(res, 'status', `${only(left)} This registration is for ${r.seats} ${r.seats === 1 ? 'seat' : 'seats'} — raise the capacity or reduce the seats first.`);
+            }
+            r.status = body.status;
+            r.cancelled_at = body.status === 'cancelled' ? new Date().toISOString() : r.cancelled_at;
+          }
+          return json(res, 200, { data: adminRegistration(r), meta: registrationsMeta(e) });
+        }
+        if (req.method === 'DELETE') {
+          eventRegistrations.splice(eventRegistrations.indexOf(r), 1);
+          return json(res, 204, {});
+        }
+        return json(res, 405, { message: 'Method not allowed.' });
+      }
+    }
     if (p === '/admin/visits' && req.method === 'GET') {
       return json(res, 200, {
         data: visitRequests,
@@ -2950,7 +3451,7 @@ createServer(async (req, res) => {
     {
       const m = p.match(/^\/admin\/content-types\/([a-z0-9-]+)\/entries(?:\/(\d+))?$/);
       if (m) {
-        if (m[1] !== 'events') return json(res, 404, { message: 'Not found.' });
+        if (m[1] !== CONTENT_TYPES[0].slug) return json(res, 404, { message: 'Not found.' });
         if (!m[2] && req.method === 'GET') {
           const page = paginate(ENTRIES.map(adminEntry));
           Object.assign(page.meta, {
@@ -3224,6 +3725,11 @@ createServer(async (req, res) => {
           s('announcement_starts_at', null, { group: 'announcement' }), s('announcement_ends_at', null, { group: 'announcement' }),
         ],
         portal: [s('portal_enabled', '1'), s('registration_enabled', '1'), s('customer_approval_required', '0')],
+        /* Events → Settings (docs/events-contract.md): three private rows. */
+        events: [
+          s('events_email', null, { group: 'events' }), s('event_reminder_hours', '24', { group: 'events' }),
+          s('event_max_seats', '5', { group: 'events' }),
+        ],
         auth: [s('otp_login_enabled', '1'), s('otp_admin_login_enabled', '1'), s('password_login_enabled', '1')],
         mail: [
           s('mail_transport'), s('smtp_host'), s('smtp_port', '587'), s('smtp_username'),
@@ -4594,6 +5100,8 @@ createServer(async (req, res) => {
       group('article', 'Knowledge base', '/knowledge-base', kbArticles, 'title', 'excerpt'),
       group('post', 'Blog', '/blog', posts, 'title', 'excerpt'),
       group('case_study', 'Case studies', '/case-studies', caseStudies, 'title', 'summary'),
+      // Published events, past or upcoming (docs/events-contract.md).
+      group('event', 'Events', '/events', events.filter((e) => e.status === 'published'), 'title', 'summary'),
       group('page', 'Pages', '', cmsPages, 'title', 'body', (r) => `/${r.slug}`),
     ].filter(Boolean);
     return json(res, 200, {
@@ -4720,6 +5228,120 @@ createServer(async (req, res) => {
     }
     if (req.method === 'POST' && gm[2] === '/reschedule' && body.start) moveMeeting(m, body.start);
     return json(res, 200, { data: customerMeeting(m), ...(req.method === 'POST' ? { message: 'Done.' } : {}) });
+  }
+  /* Events (docs/events-contract.md): the list, an event's page, what its
+     registration panel asks after mount, its calendar file, a registration,
+     and the registrant's own link. Published events only — a draft or an
+     archived one is a 404 everywhere here — and `online_url` is on none of
+     them. The registrant's routes are matched first: `registrations` would
+     otherwise be read as an event's slug. */
+  {
+    const m = p.match(/^\/events\/registrations\/([^/]+)(\/cancel)?$/);
+    if (m) {
+      const r = eventRegistrations.find((x) => x.id === eventTokenRegistration);
+      const e = r ? eventOf(r.event_id) : null;
+      // A token that is not 64 hex, or nobody's, is a 404.
+      if (!/^[0-9a-f]{64}$/.test(m[1]) || m[1] !== EVENT_TOKEN || !r || !e) return json(res, 404, { message: 'Not found.' });
+      if (m[2]) {
+        if (req.method !== 'POST') return json(res, 405, { message: 'Method not allowed.' });
+        if (eventHasStarted(e) || r.status === 'attended' || r.status === 'no_show') {
+          return invalid(res, 'registration', 'This event has started, so the registration can no longer be cancelled.');
+        }
+        // Idempotent for one already cancelled.
+        if (r.status !== 'cancelled') Object.assign(r, { status: 'cancelled', cancelled_at: new Date().toISOString() });
+      }
+      return json(res, 200, { data: registrantView(r, e) });
+    }
+  }
+  if (p === '/events' && req.method === 'GET') {
+    const past = url.searchParams.get('when') === 'past';
+    const format = url.searchParams.get('format');
+    const featured = url.searchParams.get('featured') === '1';
+    // Upcoming soonest first; past newest first.
+    const rows = events
+      .filter((e) => e.status === 'published' && eventIsPast(e) === past
+        && (!format || e.format === format) && (!featured || e.is_featured))
+      .sort((a, b) => (past ? b.starts_at.localeCompare(a.starts_at) : a.starts_at.localeCompare(b.starts_at)));
+    const page = paginate(rows.map(publicEvent));
+    page.meta.per_page = 12;
+    return json(res, 200, page);
+  }
+  {
+    const m = p.match(/^\/events\/([a-z0-9-]+)(\/availability|\/calendar|\/register)?$/);
+    if (m) {
+      const e = events.find((x) => x.slug === m[1] && x.status === 'published');
+      if (!e) return json(res, 404, { message: 'Not found.' });
+
+      if (m[2] === '/availability') {
+        // Never cached: the page around it is, and this is the part that moves.
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        return res.end(JSON.stringify({ data: eventAvailability(e) }));
+      }
+
+      if (m[2] === '/calendar') {
+        // The event as an .ics, with no join link in it.
+        const stamp = (wall) => `${wall.replace(/[-:]/g, '')}00`;
+        const ics = [
+          'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Technoware//Events//EN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
+          `UID:event-${e.id}@technoware.test`, `DTSTART;TZID=Asia/Kolkata:${stamp(e.starts_at)}`,
+          ...(e.ends_at ? [`DTEND;TZID=Asia/Kolkata:${stamp(e.ends_at)}`] : []),
+          `SUMMARY:${e.title.replace(/([,;])/g, '\\$1')}`,
+          ...(e.format !== 'online' && e.venue_name ? [`LOCATION:${e.venue_name.replace(/([,;])/g, '\\$1')}`] : []),
+          'END:VEVENT', 'END:VCALENDAR',
+        ].join('\r\n');
+        res.writeHead(200, { 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': `attachment; filename=${e.slug}.ics` });
+        return res.end(`${ics}\r\n`);
+      }
+
+      if (m[2] === '/register') {
+        if (req.method !== 'POST') return json(res, 405, { message: 'Method not allowed.' });
+        const body = await readJsonBody(req);
+        const seats = body.seats === undefined || body.seats === null || body.seats === '' ? 1 : Number(body.seats);
+        const done = (status) => ({
+          message: status === 'waitlisted'
+            ? `This event is full, so you are on the waiting list. We have emailed ${body.email} and will write again if a place opens.`
+            : `You are registered. We have emailed your confirmation to ${body.email}.`,
+          // No manage link here: it is in the confirmation email only (docs/events.md).
+          data: { status, seats },
+        });
+        // A filled honeypot: the ordinary success answer, and nothing stored.
+        if (body.website) return json(res, 201, done('confirmed'));
+        if (!body.name) return invalid(res, 'name', 'Please tell us your name.');
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email ?? '')) return invalid(res, 'email', 'Enter a valid email address.');
+        if (!Number.isInteger(seats) || seats < 1 || seats > e.max_seats) {
+          return invalid(res, 'seats', `You can register between 1 and ${e.max_seats} seats.`);
+        }
+        const state = eventAvailability(e);
+        if (state.state === 'none' || state.state === 'external') return invalid(res, 'registration', 'This event does not take registrations here.');
+        if (state.message) return invalid(res, 'registration', state.message);
+
+        // The typed address proves nothing, so a repeat is answered exactly as a
+        // stranger would be and a live registration is left as it is; only a
+        // cancelled one is revived, like a newcomer (docs/events.md).
+        const found = eventRegistrations.find((r) => r.event_id === e.id && r.email.toLowerCase() === String(body.email).toLowerCase());
+        const left = eventCounts(e).seats_left;
+        let status = 'confirmed';
+        if (left !== null && seats > left) {
+          if (e.waitlist_enabled) status = 'waitlisted';
+          else return invalid(res, 'seats', `Only ${left} ${left === 1 ? 'seat is' : 'seats are'} left.`);
+        }
+        if (found && found.status !== 'cancelled') return json(res, 201, done(status));
+        const again = found;
+        const fields = {
+          name: body.name, email: body.email, phone: body.phone ?? null, company: body.company ?? null,
+          seats, note: body.note ?? null, status, cancelled_at: null,
+        };
+        const r = again
+          ? Object.assign(again, fields)
+          : { id: Math.max(30, ...eventRegistrations.map((x) => x.id)) + 1, event_id: e.id, ...fields, staff_note: null,
+              customer_id: null, lead_id: 1, source: 'public', reminded_at: null, created_at: new Date().toISOString() };
+        if (!again) eventRegistrations.push(r);
+        eventTokenRegistration = r.id;
+        return json(res, 201, done(status));
+      }
+
+      return json(res, 200, { data: publicEventDetail(e) });
+    }
   }
   // Engineer visits (docs/visits.md): what the form offers, a request, and the
   // guest link — scoped by its token, a wrong one the same 404 as Laravel's.

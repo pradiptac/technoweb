@@ -7,7 +7,9 @@ use App\Http\Requests\Concerns\AcceptsCustomFields;
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
 use App\Http\Requests\Concerns\ValidatesPageSections;
+use App\Models\Page;
 use App\Support\PageSections\SectionRules;
+use App\Support\ReservedSlugs;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -42,7 +44,10 @@ class UpdatePageRequest extends FormRequest
         return [
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'slug' => ['sometimes', 'required', 'string', 'max:255', 'alpha_dash',
-                Rule::unique('pages', 'slug')->ignore($this->route('page'))],
+                Rule::unique('pages', 'slug')->ignore($this->route('page')),
+                // Not one of the site's own routes — a page there could never
+                // be opened. Only when the slug is changing: see the rule.
+                ReservedSlugs::pageSlugRule($this->route('page') instanceof Page ? $this->route('page')->slug : null)],
             'body' => ['sometimes', 'nullable', 'string'],
             // An allowlist rather than a free string: the frontend can only
             // render the templates it has, and a value it does not know

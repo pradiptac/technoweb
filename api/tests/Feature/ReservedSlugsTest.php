@@ -69,6 +69,8 @@ class ReservedSlugsTest extends TestCase
     public function test_the_check_is_case_insensitive(): void
     {
         $this->assertTrue(ReservedSlugs::reserved('Blog'));
-        $this->assertFalse(ReservedSlugs::reserved('events'));
+        // Taken by the events module (0.118.0), in either case.
+        $this->assertTrue(ReservedSlugs::reserved('Events'));
+        $this->assertFalse(ReservedSlugs::reserved('gatherings'));
     }
 }

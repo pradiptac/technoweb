@@ -5,6 +5,8 @@ namespace App\Support\Crm;
 use App\Models\ChatConversation;
 use App\Models\ContentBlock;
 use App\Models\Enquiry;
+use App\Models\Event;
+use App\Models\EventRegistration;
 use App\Models\Form;
 use App\Models\FormSubmission;
 use App\Models\Lead;
@@ -191,6 +193,42 @@ class LeadIntake
             'utm_source' => $meeting->utm_source,
             'utm_medium' => $meeting->utm_medium,
             'utm_campaign' => $meeting->utm_campaign,
+        ]);
+    }
+
+    /**
+     * A registration for an event (0.118.0, `docs/events.md`) — channel
+     * `event`. The registration is the record whoever runs the event works;
+     * the lead is the sales side of the same arrival, and each links to the
+     * other. Somebody who signs up for a seminar on Wi-Fi 7 has told the
+     * sales desk what they are thinking about buying.
+     *
+     * Filed once per registration: a repeat from the same address is the
+     * same row and files nothing, the one place this class's "every
+     * submission is its own lead" does not apply — a second press of
+     * Register is not a second message.
+     *
+     * The page comes from the registration, which stored the envelope the
+     * form posted; a registration the desk added by hand has none, and says
+     * so by carrying nulls rather than the console's own address.
+     */
+    public static function fromEvent(EventRegistration $registration, Event $event, Request $request): ?Lead
+    {
+        return self::create($registration, 'event', 'Event registration', [
+            'name' => $registration->name,
+            'email' => $registration->email,
+            'phone' => $registration->phone,
+            'company' => $registration->company,
+            'subject' => 'Registered for: '.$event->title,
+            'message' => $registration->note,
+        ], $request, [
+            'source_url' => $registration->source_url,
+            'source_path' => $registration->source_path,
+            'source_title' => $registration->source_title,
+            'referrer' => $registration->referrer,
+            'utm_source' => $registration->utm_source,
+            'utm_medium' => $registration->utm_medium,
+            'utm_campaign' => $registration->utm_campaign,
         ]);
     }
 

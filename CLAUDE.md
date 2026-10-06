@@ -159,6 +159,7 @@ Contents:
   - The chart kit — `docs/charts.md`
   - The installable website (PWA) — `docs/pwa.md`
   - Look and feel: textures, illustrations, progress, onboarding — `docs/look-and-feel.md`
+  - Events — `docs/events.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -2908,6 +2909,24 @@ Section textures, spot illustrations, the ticket stepper and the "Getting starte
 - `theme_surface` (flat/elevated/outline) sets only `box-shadow` and `border-color` on cards — never the ground the audit requires; `motion_cards` (lift/tilt/float/still) is a motion id, and `tilt` ships `CardTilt` only when chosen, as a `transform` inside the fine-pointer, motion-allowed guard. Do not add a pointer effect on a tile's `::before`/`::after`: four themes draw with them. `scripts/probes/cards.mjs`.
 - The appearance tab's live preview frames `/theme-preview/current` and posts `themeTokensCss()` — the root layout's own function — to `PreviewBridge`; same-origin, framed, shape-checked messages only. `scripts/probes/look.mjs`.
 
+### Events — `docs/events.md`
+
+Seminars, webinars and trade shows with a page each and optional free registration (0.118.0). Wire shapes: `docs/events-contract.md`.
+
+- An event is `HasSeo` + `Sluggable` at `/events/{slug}`; registration is `none`, `open` or `external`, free, with an optional capacity, waiting list, closing time and seats-per-booking. No payment and no recurrence — each date is its own event, and Duplicate makes a draft copy.
+- **`online_url` is structurally absent from every public read**, the `.ics` at `/events/{slug}/calendar` and the schema graph (whose `VirtualLocation` is the page). It is sent only to registrants, and gated on format wherever it is sent: an in-person event with a stale link stored emails none.
+- **The typed address proves nothing.** The public register door never changes or exposes an existing registration: a repeat from an address holding a live one writes nothing, re-sends that registration's own email (once per ten minutes per address per event) and answers **exactly what a stranger would be answered** — so a double press on the last seat reads "This event is full." A cancelled registration is revived like a newcomer under a **rotated token**. `manage_path` is in no response; the manage link exists only in the emails.
+- `App\Support\Events\Availability` is the one definition of `none/external/open/waitlist/full/closed/ended`; no seat count is ever published (`few_left` is one bit). Capacity is counted in **seats** over confirmed, inside a transaction that opens by locking the event row.
+- The waiting list is a strict queue: promotion (on a cancel, a smaller party, a delete, a raised capacity) stops at the first party that does not fit, and a newcomer joins behind anybody already waiting even when seats are free.
+- The event page is ISR-cached (empty `generateStaticParams`, tags `events` + `event:<slug>`); the registration panel asks `/api/events/[slug]/availability` (`no-store`) **after mount** and never in the render. Every label on the wire (`date_label`, `time_label`, `day`, `month`) is the API's.
+- `/events/registration/{token}` is a page a secret addresses: dynamic, `noindex`, outside Analytics, `no-referrer`, out of the service worker's cache and `robots.txt`. The API route is plural (`/events/registrations/{token}`), the token 64 lower-case hex or a 404 before any controller runs.
+- Events CRUD is `role:content_manager`; registrations are `role:content_manager,sales_manager` (`routes/api/admin-events.php`). A sales manager cannot read the events list, so `meta.event` on the registrations list is everything that screen knows (`has_started` included), and `SCREEN_GATES` in `nav-items.tsx` gates `/admin/events/{id}/registrations` — no sidebar row can, since the id is mid-path.
+- A registration's status select is drawn from the API's `allowed_next`; `attended`/`no_show` only once the event has started, by the API's clock. Confirming past capacity is a 422 the console may retry with `force`.
+- Admin datetimes are wall-clock `Y-m-d\TH:i` in `APP_TIMEZONE` both ways. `notify_registrants` emails `event_changed` only when the time, place, format or links actually moved.
+- The index tiles are a `Collection` (`data-collection="events"`), so every theme's idiom draws them; `event-tiles.tsx` stamps `data-event-row`/`data-event-end` so a count that is not a multiple of three leads with one or two wide tiles rather than ending on an orphan. A cover is cropped to the tile's well — keep its subject central.
+- `technoware:remind-events` every fifteen minutes, claimed by a conditional UPDATE; `event_reminder_hours` 0 sends none. Seven emails in the catalogue; `event.registered` webhook; every registration (staff-added too) files a lead, channel `event`.
+- `events`, and every other frontend top-level route, is refused as a **CMS page's** slug since 0.118.0 (`ReservedSlugs::pageSlugRule()`, only when the slug is changing) — it used to be checked for content types alone.
+
 ## Conventions
 
 - Never hard-code a hex. If a colour is not in `globals.css`, it does not ship.
@@ -3052,6 +3071,12 @@ Meet link — because a call needs only two diaries, where a site visit needs
 a person to decide. It is still intake: every booking files a lead. Engineer
 visits stay a request, and nothing here takes a payment.
 
+**Amended 2026-10-06: events.** The client's roadmap asked for events
+(`docs/events.md`): a page per seminar, webinar or trade show and free
+registration with a capacity and a waiting list. Still intake — every
+registration files a lead. Not to be built: paid tickets, recurring events,
+badge printing or check-in apps.
+
 ---
 
 ## Known risks and placeholders
@@ -3075,6 +3100,10 @@ visits stay a request, and nothing here takes a payment.
     certificate numbers, and the partner tiers on Cisco and Fortinet — the
     last being a claim about a third party. All create-only, so replacing
     them in the console is permanent.
+  - The three sample events from `SampleEventSeeder` (0.118.0, demo only):
+    published, titled "Sample …", dated from the day they were seeded, with
+    generated covers and an `example.com` join link. They make `/events`
+    non-empty on a demo install; delete them before launch.
   - The sample builder page from `SampleBuilderPageSeeder` (2026-09-26) at
     `/sample-builder-page` — a draft, every word a placeholder, and a
     Big Buck Bunny YouTube id standing in for a real video.

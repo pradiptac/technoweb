@@ -129,6 +129,9 @@ const ADMIN_ROUTES = [
   "/admin/meetings", "/admin/meetings?view=agenda", "/admin/meetings/new",
   "/admin/meetings/types", "/admin/meetings/types/new", "/admin/meetings/hosts",
   "/admin/meetings/settings", "/admin/my-meetings",
+  // Events (docs/events.md): the list, the seven-panel form and the settings.
+  // An event's edit form and its registrations are DISCOVER entries below.
+  "/admin/events", "/admin/events/new", "/admin/events/settings",
   // Custom fields and content types (docs/custom-content.md).
   "/admin/custom-fields", "/admin/custom-fields/new",
   "/admin/content-types", "/admin/content-types/new", "/admin/content",
@@ -153,6 +156,10 @@ const DISCOVER = [
   // canonical, and it was covered by neither this list nor the route list.
   { from: "/blog", match: /^\/blog\/category\/[^/]+$/ },
   { from: "/careers", match: /^\/careers\/[^/]+$/ },
+  // An event's page: its registration panel, agenda, speakers and FAQs
+  // (docs/events.md) — the first card on the list, whichever event that is.
+  // Not `/events/registration/…`, which is a registrant's own link.
+  { from: "/events", match: /^\/events\/(?!registration(?:\/|$))[^/]+$/ },
   // A store product page: the reviews section, its popovers and the dialog's trigger (docs/store.md, "Reviews").
   { from: "/store", match: /^\/store\/products\/[^/]+$/ },
   { from: "/case-studies", match: /^\/case-studies\/[^/]+$/ },
@@ -175,6 +182,13 @@ const DISCOVER = [
   { from: "/admin/meetings", match: /^\/admin\/meetings\/[A-Z][A-Z0-9]{1,5}-\d{4}-\d{5}$/, admin: true },
   { from: "/admin/my-meetings", match: /^\/admin\/my-meetings\/[A-Z][A-Z0-9]{1,5}-\d{4}-\d{5}$/, admin: true },
   { from: "/admin/meetings/types", match: /^\/admin\/meetings\/types\/\d+$/, admin: true },
+  // An event's edit form, and the registrations that hang off it — a table
+  // with an inline status select per row, the screen of the three most
+  // likely to overflow. The second by `suffix`, the code inventory's way:
+  // the list links to an event's registrations only once it takes any, and
+  // the screen (its empty state included) exists for every event.
+  { from: "/admin/events", match: /^\/admin\/events\/\d+$/, admin: true },
+  { from: "/admin/events", match: /^\/admin\/events\/\d+$/, admin: true, suffix: "/registrations" },
   { from: "/admin/blog", match: /^\/admin\/blog\/\d+$/, admin: true },
   { from: "/admin/jobs", match: /^\/admin\/jobs\/\d+$/, admin: true },
   { from: "/admin/applications", match: /^\/admin\/applications\/\d+$/, admin: true },
@@ -264,6 +278,10 @@ const haveAdminCredentials = Boolean(
 
 const DEFAULT_ROUTES = [
   ...PUBLIC_ROUTES,
+  // Events (docs/events.md): the list, upcoming and past. Named here rather
+  // than in `shared.mjs` so `perf.mjs`'s route set is unchanged; an event's
+  // own page is a DISCOVER entry above.
+  "/events", "/events?when=past",
   ...(haveAdminCredentials ? ADMIN_ROUTES : []),
 ];
 

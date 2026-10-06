@@ -16,6 +16,8 @@ use App\Http\Controllers\Api\V1\ContentBlockController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\ContentTypeController as PublicContentTypeController;
 use App\Http\Controllers\Api\V1\EnquiryController;
+use App\Http\Controllers\Api\V1\EventController;
+use App\Http\Controllers\Api\V1\EventRegistrationController;
 use App\Http\Controllers\Api\V1\FormController;
 use App\Http\Controllers\Api\V1\GalleryController;
 use App\Http\Controllers\Api\V1\LandingPageController;
@@ -515,6 +517,36 @@ Route::post('visits/{reference}/cancel', [VisitController::class, 'cancel'])
     ->middleware('throttle:10,1')->name('visits.cancel');
 Route::post('visits/{reference}/reschedule', [VisitController::class, 'reschedule'])
     ->middleware('throttle:10,1')->name('visits.reschedule');
+
+/*
+ * Events (0.118.0, docs/events.md): the list, one event's page, whether it
+ * can be registered for, its calendar file, and the free registration.
+ *
+ * **Order matters, and the token's shape is what makes it safe.** The
+ * registrant's own routes live at `events/registrations/{token}` and are
+ * declared above `events/{slug}`; the token is held to 64 lower-case hex
+ * characters by the route, so anything else under `registrations/` falls
+ * through and is a 404 rather than reaching a controller with a guess.
+ * `registration` and `registrations` are refused as event slugs for the same
+ * reason (`Event::RESERVED_SLUGS`).
+ *
+ * `availability` sends `no-store` — it is what the panel asks after mount
+ * because the page is ISR-cached. Registering is throttled like every
+ * public form, and answers an address that has registered before exactly as
+ * it answers one that has not — and writes nothing for it.
+ */
+Route::get('events', [EventController::class, 'index'])->name('events.index');
+Route::get('events/registrations/{token}', [EventRegistrationController::class, 'show'])
+    ->where('token', '[0-9a-f]{64}')
+    ->middleware('throttle:30,1')->name('events.registrations.show');
+Route::post('events/registrations/{token}/cancel', [EventRegistrationController::class, 'cancel'])
+    ->where('token', '[0-9a-f]{64}')
+    ->middleware('throttle:10,1')->name('events.registrations.cancel');
+Route::get('events/{slug}', [EventController::class, 'show'])->name('events.show');
+Route::get('events/{slug}/availability', [EventController::class, 'availability'])->name('events.availability');
+Route::get('events/{slug}/calendar', [EventController::class, 'calendar'])->name('events.calendar');
+Route::post('events/{slug}/register', [EventRegistrationController::class, 'store'])
+    ->middleware('throttle:10,1')->name('events.register');
 
 /*
  * Online meetings (2026-09-29, docs/meetings.md). A booking, unlike a visit:

@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Setting;
+use App\Support\Events\EventSettings;
 use App\Support\Meetings\MeetingSettings;
 use App\Support\Visits\VisitSettings;
 use Illuminate\Database\Seeder;
@@ -334,6 +335,21 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'visits', 'key' => 'visit_holidays', 'value' => null, 'type' => 'text'],
             ['group' => 'visits', 'key' => 'visits_email', 'value' => null, 'type' => 'string'],
             ['group' => 'visits', 'key' => 'visit_default_minutes', 'value' => '90', 'type' => 'string'],
+
+            /*
+             * Events (0.118.0, docs/events.md): where the desk's notice of a
+             * registration goes (blank is the sales inbox), how many hours
+             * before an event confirmed registrants are reminded — **0 sends
+             * no reminder** — and how many seats one registration may ask
+             * for on a new event.
+             *
+             * The group is private and nothing in it is published: the
+             * public site learns an event's own `max_seats` from the event,
+             * and has no use for the other two.
+             */
+            ['group' => 'events', 'key' => 'events_email', 'value' => null, 'type' => 'string'],
+            ['group' => 'events', 'key' => 'event_reminder_hours', 'value' => (string) EventSettings::DEFAULT_REMINDER_HOURS, 'type' => 'string'],
+            ['group' => 'events', 'key' => 'event_max_seats', 'value' => (string) EventSettings::DEFAULT_MAX_SEATS, 'type' => 'string'],
 
             /*
              * Online meetings (2026-09-29, docs/meetings.md): the switch, the

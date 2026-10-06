@@ -5,6 +5,8 @@ import { getSiteSettings } from "@/lib/settings";
 import type {
   BlogPost, CaseStudy, ContentEntry, ContentTypeSummary, Faq, KnowledgeArticle, PublicAnswerBlock, Service, Solution,
 } from "@/types/api";
+import type { EventAgendaItem, EventSummary } from "@/types/events";
+import { UPCOMING_EVENTS } from "@/components/events/data";
 
 /**
  * `/llms.txt` and `/llms-full.txt` — the site, as an assistant reads it.
@@ -76,13 +78,15 @@ type Site = {
   articles: KnowledgeArticle[];
   caseStudies: CaseStudy[];
   posts: BlogPost[];
+  /** What is coming up (docs/events-contract.md). Past events are left out: an assistant asked "what is on" should not be handed last year. */
+  events: EventSummary[];
   /** Custom content types (docs/custom-content.md) and their first hundred published entries each. */
   custom: { type: ContentTypeSummary; entries: ContentEntry[] }[];
 };
 
 async function load(): Promise<Site> {
   const quiet = <T,>(p: Promise<{ data: T[] }>) => p.then((r) => r.data).catch(() => [] as T[]);
-  const [settings, solutions, services, industries, categories, articles, caseStudies, posts] = await Promise.all([
+  const [settings, solutions, services, industries, categories, articles, caseStudies, posts, events] = await Promise.all([
     getSiteSettings(),
     quiet(publicApi.solutions()),
     quiet(publicApi.services()),
@@ -91,13 +95,14 @@ async function load(): Promise<Site> {
     quiet(publicApi.knowledgeArticles("?per_page=100")),
     quiet(publicApi.caseStudies()),
     quiet(publicApi.posts("?per_page=20")),
+    quiet(publicApi.events(UPCOMING_EVENTS)),
   ]);
   const types = await quiet(publicApi.contentTypes());
   const custom = await Promise.all(types.map(async (type) => ({
     type,
     entries: await publicApi.contentArchive(type.slug, "?per_page=100").then((r) => r.data).catch(() => [] as ContentEntry[]),
   })));
-  return { settings, solutions, services, industries, categories, articles, caseStudies, posts, custom };
+  return { settings, solutions, services, industries, categories, articles, caseStudies, posts, events, custom };
 }
 
 function head(site: Site): string {
@@ -145,6 +150,14 @@ function index(site: Site): string {
   ]);
   section("Case studies", site.caseStudies.map((x) => line(x.title, `/case-studies/${x.slug}`, [x.summary, ...(x.results ?? []).map((r) => `${r.value} ${r.label}`)].filter(Boolean).join(" — "))));
   section("Blog", site.posts.map((x) => line(x.title, `/blog/${x.slug}`, x.excerpt)));
+  // Upcoming events, each with when and where said in the API's own words —
+  // the date is the fact an assistant is asked for, so it leads the line.
+  if (site.events.length > 0) {
+    section("Events", [
+      line("All events", "/events", "Seminars, webinars and product demonstrations, with registration."),
+      ...site.events.map((x) => line(x.title, `/events/${x.slug}`, eventLine(x))),
+    ]);
+  }
   for (const { type, entries } of site.custom) {
     section(type.plural, [
       ...(type.archive_enabled ? [line(`All ${type.plural.toLowerCase()}`, type.path, type.description)] : []),
@@ -159,6 +172,20 @@ function index(site: Site): string {
     line("Careers", "/careers"),
   ]);
   return out.join("\n");
+}
+
+/** "Thursday 12 November 2026, 3:00 pm – 4:30 pm IST — In person and online, Experience Centre, Mumbai. …" */
+function eventLine(event: EventSummary): string {
+  const place = [event.venue_name, event.venue_city].filter(Boolean).join(", ");
+  const where = [event.format_label, place].filter(Boolean).join(", ");
+  return [`${event.date_label}, ${event.time_label} — ${where}.`, event.summary].filter(Boolean).join(" ");
+}
+
+/** An event's agenda as a list under its own heading, or nothing. */
+function agendaLines(agenda: EventAgendaItem[]): string {
+  if (agenda.length === 0) return "";
+  const rows = agenda.map((a) => `- ${[a.time, a.title].filter(Boolean).join(" — ")}${a.note ? `: ${oneLine(a.note)}` : ""}`);
+  return ["## Agenda", "", ...rows].join("\n");
 }
 
 /** `/llms.txt`: the index. */
@@ -203,6 +230,19 @@ export async function llmsFull(): Promise<string> {
   for (const a of articles) if (a) doc(a.title, `/knowledge-base/${a.slug}`, [a.excerpt, definition(a), a.body, questions(a)]);
   for (const c of caseStudies) if (c) doc(c.title, `/case-studies/${c.slug}`, [c.summary, (c.results ?? []).map((r) => `- ${r.value} — ${r.label}`).join("\n"), c.body]);
   for (const p of posts) if (p) doc(p.title, `/blog/${p.slug}`, [p.excerpt, definition(p), p.body, questions(p)]);
+
+  // Upcoming events: when and where, then the description, the agenda and
+  // the questions. Each is the event page's own cached read.
+  const events = await Promise.all(site.events.map((x) => quiet(publicApi.event(x.slug))));
+  for (const e of events) {
+    if (!e) continue;
+    doc(e.title, `/events/${e.slug}`, [
+      eventLine(e),
+      e.body,
+      agendaLines(e.agenda),
+      questions(e),
+    ]);
+  }
 
   // Custom content: each entry's own read, ISR-cached like its page.
   for (const { type, entries } of site.custom) {

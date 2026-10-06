@@ -9,6 +9,7 @@ use App\Http\Resources\Admin\FaqResource;
 use App\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\Entry;
+use App\Models\Event;
 use App\Models\Faq;
 use App\Models\Industry;
 use App\Models\KnowledgeArticle;
@@ -61,6 +62,8 @@ class FaqController extends Controller
         'industry' => [Industry::class, 'name', 'Industries'],
         // Entries of the custom content types (docs/custom-content.md).
         'entry' => [Entry::class, 'title', 'Custom content'],
+        // Events (docs/events.md): "is there parking?", "will it be recorded?".
+        'event' => [Event::class, 'title', 'Events'],
     ];
 
     public function index(Request $request): AnonymousResourceCollection

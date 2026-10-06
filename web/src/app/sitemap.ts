@@ -3,6 +3,7 @@ import { SITE } from "@/lib/seo";
 import { publicApi } from "@/lib/api";
 import { getSiteSettings } from "@/lib/settings";
 import type { Paginated } from "@/types/api";
+import type { EventSummary } from "@/types/events";
 
 /**
  * Built from the API, not from a hard-coded list — otherwise the sitemap
@@ -89,6 +90,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/certifications", 0.5, "yearly"),
     entry("/contact", 0.6, "yearly"),
     entry("/careers", 0.6, "weekly"),
+    // The events index. Its own pages follow further down, one per published
+    // event, past ones included — a past event stays readable and stays linked.
+    entry("/events", 0.6, "weekly"),
     entry("/brands", 0.6, "monthly"),
     entry("/locations", 0.6, "monthly"),
     // The shop. Absent from this list until now, along with every product and
@@ -106,7 +110,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const [
       solutions, services, industries, categories, products,
       posts, articles, caseStudies, pages, careers,
-      storeProducts, storeCategories, taxonomy, landing, settings,
+      storeProducts, storeCategories, taxonomy, landing, settings, events,
     ] = await Promise.all([
       publicApi.solutions().then((r) => r.data),
       publicApi.services().then((r) => r.data),
@@ -139,6 +143,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // build and per hourly revalidation, for nothing that depended on it.
       publicApi.landingPages().then((r) => r.data).catch(() => []),
       getSiteSettings(),
+      /*
+       * Every published event, upcoming and past, walked page by page at
+       * fifty a page — the API's ceiling for this endpoint, where the
+       * default hundred would be refused or quietly cut short. On its own
+       * `catch`, like the landing pages: a failure here leaves events out
+       * and never costs the rest of the sitemap.
+       */
+      Promise.all([
+        all((q) => publicApi.events(`${q}&when=upcoming`), 50),
+        all((q) => publicApi.events(`${q}&when=past`), 50),
+      ]).then((lists) => lists.flat()).catch(() => [] as EventSummary[]),
     ]);
 
     /*
@@ -172,6 +187,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       "/blog": newest(posts),
       "/case-studies": newest(caseStudies),
       "/careers": newest(careers),
+      "/events": newest(events),
       "/store": newest([...storeProducts, ...storeCategories]),
     };
 
@@ -202,6 +218,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...included(articles).map((a) => entry(`/knowledge-base/${a.slug}`, 0.6, "monthly", when(a.updated_at ?? a.published_at))),
       ...included(caseStudies).map((c) => entry(`/case-studies/${c.slug}`, 0.6, "yearly", when(c.updated_at))),
       ...included(careers).map((j) => entry(`/careers/${j.slug}`, 0.6, "weekly", when(j.updated_at ?? j.published_at))),
+      // An event that is over changes rarely; one still to come may move.
+      ...included(events).map((e) => entry(`/events/${e.slug}`, e.is_past ? 0.4 : 0.6, e.is_past ? "yearly" : "weekly", when(e.updated_at))),
       /*
        * The store. `store_products` and `store_categories` both carry a
        * real SEO override now -- `StoreProduct` has since gained `HasSeo`,

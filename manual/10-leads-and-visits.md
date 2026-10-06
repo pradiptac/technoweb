@@ -11,7 +11,8 @@ list, whichever form it came through:
 - every form you built yourself under Site → Forms;
 - gated-download and webinar banners;
 - the chat assistant, when a visitor asks to be called back;
-- engineer visit requests (below).
+- engineer visit requests (below);
+- event registrations (chapter 24).
 
 The email the sales desk receives is just the announcement. The lead is the
 record you work from: it has a status, an owner, a follow-up date and a

@@ -9,6 +9,7 @@ use App\Models\BlogComment;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\Entry;
+use App\Models\Event;
 use App\Models\Faq;
 use App\Models\KnowledgeArticle;
 use App\Models\LandingPage;
@@ -20,6 +21,7 @@ use App\Models\Setting;
 use App\Models\Solution;
 use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
+use App\Support\Events\EventText;
 use App\Support\Mail\MailBrand;
 use App\Support\Store\Fulfilment;
 
@@ -544,6 +546,73 @@ class StructuredData
                 ? (BlogComment::approved()->where('blog_post_id', $record->id)->count() ?: null)
                 : null,
         ] + self::relationships(EntityLinks::for($record)));
+    }
+
+    /* -------------------------------------------------------------- event */
+
+    /**
+     * An event (docs/events.md): when it is, how it is attended, and where.
+     *
+     * `location` follows the format — a `Place` for somewhere to go, a
+     * `VirtualLocation` for something to join, both for a hybrid. **The
+     * `VirtualLocation`'s `url` is the page, never the join link.** The join
+     * link is sent to people who registered; markup is read by everybody,
+     * and a crawler that indexed a Meet address would have published the
+     * door to the room. This method does not read `online_url` at all.
+     *
+     * The address is the editor's own text, as one string — schema.org takes
+     * `Text` for an address, and splitting a free-text block into street,
+     * locality and postcode would be guessing at which line is which.
+     * Nothing is guessed: no country, no `offers` (nothing is sold, and an
+     * `Offer` without a price is the error `product()` documents), and no
+     * `eventStatus` other than scheduled — an event taken off the site is a
+     * 404, not a page that says it was cancelled.
+     *
+     * `endDate` is the stored end and is absent when there is none; the
+     * hour a calendar file assumes is for calendars, not a claim to make
+     * here.
+     */
+    public static function event(Event $event): array
+    {
+        $url = self::url($event->publicPath());
+
+        $place = $event->format->hasVenue() && filled($event->venue_name) ? [
+            '@type' => 'Place',
+            'name' => $event->venue_name,
+            'address' => filled($event->venue_address)
+                ? trim((string) preg_replace('/\s*\R\s*/', ', ', (string) $event->venue_address))
+                : $event->venue_city,
+        ] : null;
+
+        $virtual = $event->format->isOnline() ? ['@type' => 'VirtualLocation', 'url' => $url] : null;
+
+        $speakers = array_values(array_filter(array_map(
+            fn (array $s) => filled($s['name'] ?? null) ? [
+                '@type' => 'Person',
+                'name' => (string) $s['name'],
+                'jobTitle' => $s['role'] ?? null,
+            ] : null,
+            $event->speakers ?? [],
+        )));
+
+        return self::graph([
+            // The editor's refinement when they picked one — `BusinessEvent`
+            // rather than `Event` — and the derived type otherwise.
+            '@type' => SchemaTypes::resolve('Event', $event->seo?->schema_type),
+            'name' => $event->title,
+            'description' => $event->summary ? HtmlSanitiser::toText($event->summary) : null,
+            'image' => $event->cover_image_path ? asset('storage/'.$event->cover_image_path) : null,
+            'startDate' => EventText::iso($event->starts_at),
+            'endDate' => EventText::iso($event->ends_at),
+            'eventAttendanceMode' => $event->format->attendanceMode(),
+            'eventStatus' => 'https://schema.org/EventScheduled',
+            // One node for one kind of place, a list of the two for a hybrid.
+            'location' => $place !== null && $virtual !== null ? [$place, $virtual] : ($place ?? $virtual),
+            'organizer' => self::publisher(),
+            'performer' => $speakers,
+            'url' => $url,
+            'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => $url],
+        ]);
     }
 
     /* ---------------------------------------------------- custom content */

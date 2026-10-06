@@ -262,6 +262,18 @@ Schedule::command('technoware:remind-visits')
     ->withoutOverlapping();
 
 /*
+ * Events (0.118.0, docs/events.md): one reminder to each confirmed
+ * registrant, `event_reminder_hours` before the start (0 sends none). Every
+ * fifteen minutes for the visits' reason — the window is "the next N hours",
+ * so each registrant is reminded about that long ahead whatever time the
+ * event is at. Each one is claimed by a conditional UPDATE on `reminded_at`
+ * before anything is sent. Transactional, so no quiet-hours gate.
+ */
+Schedule::command('technoware:remind-events')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping();
+
+/*
  * Online meetings (2026-09-29, docs/meetings.md): the reminders before each
  * meeting, one per offset in Settings. Every five minutes, so an hour-before
  * reminder lands within five minutes of the hour; each is claimed by

@@ -89,6 +89,8 @@ final class SectionRules
         'knowledge' => 'Knowledge base articles',
         'products' => 'Products (catalogue)',
         'store_products' => 'Products (shop)',
+        // What is coming up, soonest first (docs/events.md).
+        'events' => 'Upcoming events',
     ];
 
     /** An icon's id, as the frontend's identity icons are keyed; `PageDraft` reads it too. */

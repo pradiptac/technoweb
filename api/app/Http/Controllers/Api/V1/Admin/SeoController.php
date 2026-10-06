@@ -10,6 +10,7 @@ use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\Certification;
 use App\Models\Entry;
+use App\Models\Event;
 use App\Models\Industry;
 use App\Models\JobOpening;
 use App\Models\KnowledgeArticle;
@@ -116,6 +117,13 @@ class SeoController extends Controller
          * itself rather than taking the segment here.
          */
         'entry' => [Entry::class, 'title', 'content', 'Custom content', ['contentType', 'faqs', 'answerBlocks'], ['body'], 250],
+        /*
+         * Events (docs/events.md): a page per event at `/events/{slug}`, in
+         * the sitemap, emitting an `Event` graph. A hundred and fifty words
+         * is a complete one — the date, the place and the agenda carry the
+         * rest, and none of those is body copy.
+         */
+        'event' => [Event::class, 'title', 'events', 'Events', ['faqs'], ['body'], 150],
     ];
 
     /** The bands `?aeo=` and `?geo=` may ask for. */

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\Entry;
+use App\Models\Event;
 use App\Models\Industry;
 use App\Models\KnowledgeArticle;
 use App\Models\Page;
@@ -14,6 +15,7 @@ use App\Models\ProductCategory;
 use App\Models\Service;
 use App\Models\Solution;
 use App\Models\StoreProduct;
+use App\Support\Events\EventText;
 use App\Support\HtmlSanitiser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -110,6 +112,7 @@ class SearchController extends Controller
                 ->where(fn ($q) => $q->where('title', 'like', $like)
                     ->orWhere('body', 'like', $like)),
                 'title', 'body'),
+            $this->events($term),
             $this->entries($like),
         ])->filter(fn (?array $g) => $g !== null)->values();
 
@@ -186,6 +189,30 @@ class SearchController extends Controller
                 'path' => '/store/products/'.$p->slug,
             ];
         });
+    }
+
+    /**
+     * Events (docs/events.md): published ones, what is still to come ahead
+     * of what has been — somebody searching "wifi seminar" wants the one
+     * they can go to. Each result carries its date as the kicker, because
+     * two seminars with one title a year apart are told apart by nothing
+     * else.
+     */
+    private function events(string $term): ?array
+    {
+        $today = now()->startOfDay();
+
+        $query = Event::query()->published()->search($term)
+            ->orderByRaw('CASE WHEN starts_at >= ? THEN 0 ELSE 1 END', [$today])
+            ->orderByRaw('CASE WHEN starts_at >= ? THEN starts_at END ASC', [$today])
+            ->orderByDesc('starts_at');
+
+        return $this->build('event', 'Events', '/events', $query, fn (Event $e) => [
+            'title' => (string) $e->title,
+            'excerpt' => $this->trim($e->summary ?: $e->body),
+            'path' => $e->publicPath(),
+            'kicker' => EventText::dateLabel($e),
+        ]);
     }
 
     /**

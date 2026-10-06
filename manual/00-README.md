@@ -29,10 +29,11 @@ update. `config/` and `storage/` are yours: an update never touches them.
 | Installing on Plesk | [02 — Installing on Plesk](02-install-plesk.md) |
 | Installing on cPanel | [03 — Installing on cPanel](03-install-cpanel.md) |
 | Just installed it | [04 — First steps](04-first-steps.md) |
-| Looking after it day to day | chapters 05–20, one per area of the console |
+| Looking after it day to day | chapters 05–20 and 24, one per area of the console |
 | Applying an update | [21 — Updating](21-updating.md) |
 | Protecting your data | [22 — Backups and restore](22-backups-and-restore.md) |
 | Stuck | [23 — Troubleshooting](23-troubleshooting.md) |
+| Running seminars and webinars | [24 — Events](24-events.md) |
 
 ## The two addresses
 

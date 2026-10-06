@@ -6,6 +6,7 @@ use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\Certification;
 use App\Models\Client;
+use App\Models\Event;
 use App\Models\JobOpening;
 use App\Models\TeamMember;
 
@@ -74,6 +75,8 @@ class SiteSection
         'blog' => ['label' => 'Blog', 'path' => '/blog'],
         'case_studies' => ['label' => 'Case studies', 'path' => '/case-studies'],
         'knowledge_base' => ['label' => 'Knowledge base', 'path' => '/knowledge-base'],
+        // Seminars, webinars and shows (0.118.0, docs/events.md).
+        'events' => ['label' => 'Events', 'path' => '/events'],
 
         'support' => ['label' => 'Support', 'path' => '/support'],
         'contact' => ['label' => 'Contact', 'path' => '/contact'],
@@ -161,6 +164,8 @@ class SiteSection
             'careers' => JobOpening::published()->exists(),
             'case_studies' => CaseStudy::published()->exists(),
             'blog' => BlogPost::published()->exists(),
+            // Past or upcoming: a page of what has been on is still a page.
+            'events' => Event::published()->exists(),
             default => true,
         };
     }

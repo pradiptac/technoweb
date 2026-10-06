@@ -40,6 +40,9 @@ class DemoSeeder extends Seeder
             // One draft builder page with a section of every type, after the
             // blocks, sliders and forms it points at. Create-only.
             SampleBuilderPageSeeder::class,
+            // Three placeholder events — a seminar, a webinar and a trade
+            // show — dated from today. Created only while there are none.
+            SampleEventSeeder::class,
             // A worked support desk: a portal login, tickets across every
             // status and a couple of enquiries.
             DemoSupportSeeder::class,

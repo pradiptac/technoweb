@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\Customer;
 use App\Models\Entry;
+use App\Models\Event;
 use App\Models\Lead;
 use App\Models\Order;
 use App\Models\Page;
@@ -14,6 +15,7 @@ use App\Models\Product;
 use App\Models\StoreProduct;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Support\Events\EventText;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -140,6 +142,20 @@ class SearchController extends Controller
                         'label' => $p->title,
                         'sub' => '/'.$p->slug,
                         'admin_path' => "/admin/pages/{$p->id}",
+                    ]),
+            ];
+
+            // Events (docs/events.md), by title or place, the nearest date first.
+            $groups[] = [
+                'type' => 'event', 'label' => 'Events',
+                'items' => Event::where(fn ($w) => $w->where('title', 'like', $like)
+                    ->orWhere('venue_name', 'like', $like)
+                    ->orWhere('venue_city', 'like', $like))
+                    ->orderByDesc('starts_at')->limit(self::PER_GROUP)->get()
+                    ->map(fn (Event $e) => [
+                        'label' => $e->title,
+                        'sub' => implode(' · ', array_filter([EventText::dateLabel($e), self::label($e->getAttribute('status'))])),
+                        'admin_path' => $e->adminPath(),
                     ]),
             ];
 

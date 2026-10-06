@@ -72,6 +72,10 @@ class AdminNavRolesTest extends TestCase
         'meetings/settings' => 'settings',
         'meetings/types' => 'meeting-types',
         'meetings/hosts' => 'meeting-hosts',
+        // Events (docs/events.md): `/admin/events` is the same segment on
+        // both sides (`role:content_manager`); its settings screen is the
+        // one settings endpoint, so it compares against `role:admin`.
+        'events/settings' => 'settings',
     ];
 
     /** @return array<int, array{path: string, role: ?string}> */

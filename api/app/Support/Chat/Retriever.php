@@ -6,6 +6,7 @@ use App\Enums\PublishStatus;
 use App\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\Entry;
+use App\Models\Event;
 use App\Models\Faq;
 use App\Models\Industry;
 use App\Models\KnowledgeArticle;
@@ -13,6 +14,7 @@ use App\Models\Page;
 use App\Models\Service;
 use App\Models\Solution;
 use App\Models\StoreProduct;
+use App\Support\Events\EventText;
 use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -112,6 +114,7 @@ class Retriever
             self::knowledge($question, $terms),
             self::blog($terms),
             self::pages($terms),
+            self::events($terms),
             self::entries($terms),
         ]);
 
@@ -562,6 +565,43 @@ class Retriever
                 'label' => (string) $e->contentType->name,
                 'title' => (string) $e->title,
                 'excerpt' => self::excerpt(filled($e->summary) ? $e->summary : $e->body),
+                'url' => $e->publicPath(),
+                'meta' => [],
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Published events that have not finished (docs/events.md).
+     *
+     * Upcoming only: "is there a seminar on Wi-Fi?" is a question about
+     * what somebody can go to, and an assistant offering last year's is
+     * worse than one that says it knows of none. The excerpt opens with the
+     * date and the place, because those are the answer — and it is built
+     * from the same labels the page shows. **The join link is not read
+     * here**: it goes to people who registered, never into a prompt.
+     */
+    private static function events(array $terms): array
+    {
+        $rows = self::match(Event::query()->published()->upcoming(), $terms, ['title', 'summary', 'venue_city'])
+            ->orderBy('starts_at')
+            ->limit(self::PER_GROUP)
+            ->get();
+
+        $out = [];
+        foreach ($rows as $e) {
+            if (! $e instanceof Event) {
+                continue;
+            }
+
+            $out[] = [
+                'type' => 'event',
+                'label' => 'Event',
+                'title' => (string) $e->title,
+                'excerpt' => trim(EventText::when($e).' — '.EventText::place($e).'. '
+                    .self::excerpt(filled($e->summary) ? $e->summary : $e->body)),
                 'url' => $e->publicPath(),
                 'meta' => [],
             ];

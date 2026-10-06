@@ -16,6 +16,7 @@ use App\Models\Setting;
 use App\Support\Announcement;
 use App\Support\Backups\BackupSettings;
 use App\Support\Chat\ChatSettings;
+use App\Support\Events\EventSettings;
 use App\Support\HtmlSanitiser;
 use App\Support\InboundMail\InboundMail;
 use App\Support\Meetings\MeetingSettings;
@@ -1096,8 +1097,11 @@ class SettingController extends Controller
             $key = (string) ($row['key'] ?? '');
             // The `meetings` group is read the same way, by `MeetingSettings`
             // (2026-09-29, docs/meetings.md).
+            // And the `events` group's two numbers and its address, by
+            // `EventSettings` (0.118.0, docs/events.md).
             $refusal = VisitSettings::refusalFor($key, $row['value'] ?? null)
-                ?? MeetingSettings::refusalFor($key, $row['value'] ?? null);
+                ?? MeetingSettings::refusalFor($key, $row['value'] ?? null)
+                ?? EventSettings::refusalFor($key, $row['value'] ?? null);
 
             if ($refusal !== null) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => $refusal]);

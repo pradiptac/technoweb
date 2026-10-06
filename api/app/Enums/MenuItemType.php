@@ -6,6 +6,7 @@ use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\ContentType;
 use App\Models\Entry;
+use App\Models\Event;
 use App\Models\Industry;
 use App\Models\KnowledgeArticle;
 use App\Models\LandingPage;
@@ -78,6 +79,14 @@ enum MenuItemType: string
     case Entry = 'entry';
     case ContentType = 'content_type';
 
+    /**
+     * One event (docs/events.md) — "Register for the launch" in the header
+     * for a month. A record reference like the rest, and dropped from the
+     * menu the day the event is unpublished rather than left pointing at a
+     * 404.
+     */
+    case Event = 'event';
+
     public function label(): string
     {
         return match ($this) {
@@ -97,6 +106,7 @@ enum MenuItemType: string
             self::LandingPage => 'Landing page',
             self::Entry => 'Custom content entry',
             self::ContentType => 'Custom content archive',
+            self::Event => 'Event',
         };
     }
 
@@ -118,6 +128,7 @@ enum MenuItemType: string
             self::LandingPage => LandingPage::class,
             self::Entry => Entry::class,
             self::ContentType => ContentType::class,
+            self::Event => Event::class,
         };
     }
 
@@ -159,6 +170,7 @@ enum MenuItemType: string
             self::BlogPost => '/blog',
             self::CaseStudy => '/case-studies',
             self::KnowledgeArticle => '/knowledge-base',
+            self::Event => '/events',
         };
     }
 
@@ -187,6 +199,12 @@ enum MenuItemType: string
 
         if ($record instanceof Entry) {
             return $record->isPublic() && $record->contentType?->is_active ? $record->publicPath() : null;
+        }
+
+        // An event is linkable while it is published; a draft or an
+        // archived one is a 404, and a 404 in the header is on every page.
+        if ($record instanceof Event) {
+            return $record->isPublished() && filled($record->slug) ? $record->publicPath() : null;
         }
 
         // A record with no slug cannot be addressed. Returning null lets the

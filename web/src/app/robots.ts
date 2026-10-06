@@ -44,6 +44,9 @@ const PRIVATE = [
   // A guest's own online meeting, the same arrangement (docs/meetings.md).
   // `/book-a-meeting` is public and stays allowed.
   "/meeting/",
+  // One person's event registration, addressed by the token in its path
+  // (docs/events-contract.md). `/events` and every event page stay allowed.
+  "/events/registration/",
 ];
 
 const AI_CRAWLERS = [

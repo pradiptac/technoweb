@@ -4584,3 +4584,139 @@ html[data-builder-preview] [data-builder-id][data-builder-flash] {
  * the embed frame, which has no header.
  */
 [data-form-step-title] { scroll-margin-top: calc(var(--h-site-header) + 4.5rem); }
+
+/*
+ * Events (0.118.0, docs/events-contract.md) — the one block for the module.
+ *
+ * `/events` draws its lists as a `Collection` of `Tile`s, so each theme's
+ * idiom draws them; what is here is only the arithmetic that keeps a list
+ * from ending on a half-empty row, which a three-column grid does for every
+ * count that is not a multiple of three. `EventTiles` says which tile is
+ * which and nothing about how it looks:
+ *
+ *   li[data-event-row="lead"]   one event with a row to itself (1, 4, 7 …)
+ *   li[data-event-row="pair"]   the first two, sharing a row (2, 5, 8 …)
+ *   li[data-event-row="tail"]   the last tile when the rows of three hold an
+ *                               odd number — alone on its row while those
+ *                               rows are two across, 640px to 1024px
+ *   ul[data-event-grid="six"]   a list with a lead or a pair above rows of
+ *                               three: six tracks, so 3+3, 2+2+2 and one
+ *                               across are all whole rows of one grid
+ *
+ * **Which themes**, each measured in a browser with one to five events.
+ * Datacenter and Terminal are listings — one tile to a row whatever the
+ * count — so none of this reaches them. Editorial keeps its columns under
+ * the rules, so it takes the spans and keeps its own ruled row. Vantage
+ * takes the spans too: its mosaic tile is a picture at any width.
+ *
+ * **Launch is the exception, and has two marks of its own.** Its bento
+ * makes the first pictured tile a lead (eight of twelve tracks, two rows)
+ * with the next two stacked beside it, so its whole shapes are multiples of
+ * three counted from the *start* and what is left over is at the *end* —
+ * the opposite end from every other theme. Four events drew a lead, two
+ * beside it, and one tile alone under them. So:
+ *
+ *   li[data-event-end="one"]    the last tile, when one is left over
+ *   li[data-event-end="two"]    the last two, when two are
+ *   li[data-event-odd]          the last tile when Launch's tablet grid — a
+ *                               full-width lead, then two across — would
+ *                               leave it alone
+ *
+ * **A wide tile puts its picture beside its words**, and "wide" is measured,
+ * not assumed: each marked item is a size container, and its tile turns
+ * side by side when *the item itself* is 40rem across. So the same rule is a
+ * lead on a tablet, a pair on a 1440px screen and a tail between 712px and
+ * 1024px, with no breakpoint per case — and it cannot fire on an ordinary
+ * tile, which is at most 629px in the widest container the site has. Not in
+ * Vantage (the words sit on the picture there) or Editorial (the picture is
+ * a thumbnail in the rule). While still stacked, a tile with a row to itself
+ * takes a 16:9 picture: at 4:3 a full-width cover was 430px tall on a tablet.
+ *
+ * Specificity: the theme idioms are `[data-theme] [data-collection]
+ * [data-tile-…]`, three or four attributes; every selector below carries
+ * `.public-site:not(…)` or `.public-site[data-theme]`, an attribute on the
+ * list and one on the item, so it wins on its own terms and needs no
+ * `!important`. Unlayered, like the rest of this file's overrides, which is
+ * what beats the `sm:grid-cols-2` on the list.
+ */
+@media (40rem <= width < 64rem) {
+  .public-site[data-theme="launch"] [data-collection="events"] > li[data-event-odd] { grid-column: span 12; }
+  .public-site[data-theme="launch"] [data-collection="events"] > li[data-event-odd] [data-tile-media] { aspect-ratio: 16 / 9; }
+}
+@media (width >= 64rem) {
+  .public-site[data-theme="launch"] [data-collection="events"] > li[data-event-end="one"] { grid-column: span 12; }
+  .public-site[data-theme="launch"] [data-collection="events"] > li[data-event-end="two"] { grid-column: span 6; }
+  /*
+    Two events are a pair, not a lead and a follower. The bento's two-row
+    lead beside a single tile ended 14px lower than its neighbour (the row
+    gap it spans) and set one of two equal tiles in larger type; here the
+    first tile goes back to being a tile.
+  */
+  .public-site[data-theme="launch"] [data-collection="events"][data-cols="2"] > li:first-child { grid-row: auto; }
+  .public-site[data-theme="launch"] [data-collection="events"][data-cols="2"] > li:first-child [data-tile-body] { padding: 22px; }
+  .public-site[data-theme="launch"] [data-collection="events"][data-cols="2"] > li:first-child [data-tile-title] { font-size: 15.5px; }
+  .public-site[data-theme="launch"] [data-collection="events"][data-cols="2"] > li:first-child [data-tile-summary] { font-size: 13.5px; }
+  .public-site[data-theme="launch"] [data-collection="events"][data-cols="2"] > li:first-child [data-tile-media] { aspect-ratio: 4 / 3; flex: 0 1 auto; min-height: 0; }
+}
+@media (40rem <= width < 64rem) {
+  .public-site:not([data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"]) [data-collection="events"] > li:is([data-event-row="lead"], [data-event-row="tail"]) { grid-column: 1 / -1; }
+  .public-site:not([data-theme="editorial"], [data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"], [data-theme="vantage"]) [data-collection="events"] > li[data-event-row="tail"] [data-tile-media] { aspect-ratio: 16 / 9; }
+}
+@media (width >= 64rem) {
+  .public-site:not([data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"]) [data-collection="events"][data-event-grid="six"] { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .public-site:not([data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"]) [data-collection="events"][data-event-grid="six"] > li { grid-column: span 2; }
+  .public-site:not([data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"]) [data-collection="events"][data-event-grid="six"] > li[data-event-row="pair"] { grid-column: span 3; }
+  .public-site:not([data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"]) [data-collection="events"][data-event-grid="six"] > li[data-event-row="lead"] { grid-column: 1 / -1; }
+}
+@media (width >= 40rem) {
+  .public-site:not([data-theme="editorial"], [data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"], [data-theme="vantage"]) [data-collection="events"] > li:is([data-event-row="lead"], [data-event-row="pair"]) [data-tile-media] { aspect-ratio: 16 / 9; }
+}
+:is(
+  .public-site:not([data-theme="editorial"], [data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"], [data-theme="vantage"]) [data-collection="events"] > li[data-event-row],
+  .public-site[data-theme="launch"] [data-collection="events"] > li:is([data-event-row="lead"]:only-child, [data-event-end="one"], [data-event-odd])
+) { container: event-tile / inline-size; }
+@container event-tile (width >= 40rem) {
+  :is(
+    .public-site:not([data-theme="editorial"], [data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"], [data-theme="vantage"]) [data-collection="events"] > li[data-event-row],
+    .public-site[data-theme="launch"] [data-collection="events"] > li:is([data-event-row="lead"]:only-child, [data-event-end="one"], [data-event-odd])
+  ) > [data-tile]:has(> [data-tile-media]) { flex-direction: row; }
+  :is(
+    .public-site:not([data-theme="editorial"], [data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"], [data-theme="vantage"]) [data-collection="events"] > li[data-event-row],
+    .public-site[data-theme="launch"] [data-collection="events"] > li:is([data-event-row="lead"]:only-child, [data-event-end="one"], [data-event-odd])
+  ) > [data-tile]:has(> [data-tile-media]) > [data-tile-media] {
+    flex: 0 0 42%;
+    aspect-ratio: auto;
+    min-height: 15rem;
+    border-radius: 0;
+  }
+  /* Not Summit: its body has no padding of its own — each part is a band to the tile's edge — and a padded, centred body left the dark title band floating inside the card. */
+  :is(
+    .public-site:not([data-theme="editorial"], [data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"], [data-theme="vantage"], [data-theme="summit"]) [data-collection="events"] > li[data-event-row],
+    .public-site[data-theme="launch"] [data-collection="events"] > li:is([data-event-row="lead"]:only-child, [data-event-end="one"], [data-event-odd])
+  ) > [data-tile]:has(> [data-tile-media]) > [data-tile-body] {
+    justify-content: center;
+    padding: clamp(1.5rem, 4cqi, 2.75rem);
+  }
+  :is(
+    .public-site:not([data-theme="editorial"], [data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"], [data-theme="vantage"]) [data-collection="events"] > li[data-event-row],
+    .public-site[data-theme="launch"] [data-collection="events"] > li:is([data-event-row="lead"]:only-child, [data-event-end="one"], [data-event-odd])
+  ) > [data-tile]:has(> [data-tile-media]) [data-tile-title] { font-size: clamp(19px, 2.6cqi, 27px); line-height: 1.2; }
+  /* The summary is a sentence beside a picture here, not the tile's filler: it keeps its own height and a readable line. */
+  :is(
+    .public-site:not([data-theme="editorial"], [data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"], [data-theme="vantage"]) [data-collection="events"] > li[data-event-row],
+    .public-site[data-theme="launch"] [data-collection="events"] > li:is([data-event-row="lead"]:only-child, [data-event-end="one"], [data-event-odd])
+  ) > [data-tile]:has(> [data-tile-media]) [data-tile-summary] { flex: 0 0 auto; max-width: 62ch; }
+  /* The closing link sits under the words it closes; pushed to the foot it would leave a gap in a body that is centred. */
+  :is(
+    .public-site:not([data-theme="editorial"], [data-theme="datacenter"], [data-theme="terminal"], [data-theme="launch"], [data-theme="vantage"]) [data-collection="events"] > li[data-event-row],
+    .public-site[data-theme="launch"] [data-collection="events"] > li:is([data-event-row="lead"]:only-child, [data-event-end="one"], [data-event-odd])
+  ) > [data-tile]:has(> [data-tile-media]) [data-tile-cta] { margin-top: 0; }
+}
+
+/*
+ * An event's speakers are row cards in one or two columns. With an odd
+ * number in two columns the last would sit beside a hole, so it takes the
+ * row — which a row card can do without looking stretched. In one column
+ * the span is the column, and nothing changes.
+ */
+.public-site [data-event-speakers] > li:last-child:nth-child(odd) { grid-column: 1 / -1; }

@@ -7,6 +7,7 @@ import {
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
   IconClock, IconHeadset, IconMegaphone, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
   IconWrench, IconNewspaper, IconBriefcase, IconShield, IconPlug, IconChat, IconBackup, IconCloud, IconMeeting,
+  IconProjector,
 } from "@/components/icons";
 
 /**
@@ -269,6 +270,28 @@ export const NAV: NavItem[] = [
       */
       { role: "content_manager", href: "/admin/blog-comments", label: "Comments", icon: IconHeadset },
       { role: "admin", href: "/admin/blog/settings", label: "Settings", icon: IconSliders },
+    ],
+  },
+  {
+    /*
+      Events (0.118.0, docs/events.md), beside Blog: something with a date
+      that people attend — a seminar, a webinar, a stand at a trade show —
+      written by the same person who writes the blog, so its row is a
+      `content_manager`'s. The settings (where registrations are emailed, the
+      reminder, the default seats) are an administrator's, the rule every
+      module's own settings follow. Never `exact` on Events: the edit form
+      resolves to it by the longest match.
+
+      An event's registrations (`/admin/events/{id}/registrations`) are worked
+      by the sales desk as well, and need no row — they are reached from the
+      event, the notification email and the lead. Their gate is
+      `SCREEN_GATES` below, since no row's path can name a screen that sits
+      under an id.
+    */
+    kind: "group", id: "events", label: "Events", icon: IconProjector,
+    links: [
+      { role: "content_manager", href: "/admin/events", label: "Events", icon: IconClock },
+      { role: "admin", href: "/admin/events/settings", label: "Settings", icon: IconSliders },
     ],
   },
   {
@@ -586,8 +609,34 @@ export function permits(roles: string[], role?: RoleGate): boolean {
  * has the last word on every one.
  */
 export function screenRole(pathname: string): RoleGate | undefined {
+  const gate = SCREEN_GATES.find((g) => g.match.test(pathname));
+  if (gate) return gate.role;
+
   return bestRow(NAV.flatMap((item) => (item.kind === "link" ? [item] : item.links)), pathname)?.role;
 }
+
+/**
+ * Screens whose role is not the role of the row they sit under.
+ *
+ * `bestRow` gates a path on the longest sidebar row above it, which is right
+ * for every record screen but one kind: a screen under a record's **id** that
+ * a second desk works. An event's registrations are `/admin/events/{id}/
+ * registrations`; the longest row above that is Events, a `content_manager`
+ * screen, and the API gives the registrations to
+ * `role:content_manager,sales_manager` — so by the row alone a sales manager
+ * following the link in a "new registration" email met a 404 for a list the
+ * API would have handed them. No row can fix it, because a row's path is a
+ * prefix and the id is in the middle.
+ *
+ * So the exception is stated here, once, as a path shape and the route's own
+ * `role:` spelling. Checked before the rows; anything not listed is gated by
+ * its row exactly as before. Keep each entry to one line with no `h`+`ref`
+ * key in it — `AdminNavRolesTest` reads rows out of this file by that key,
+ * and this is not a row.
+ */
+const SCREEN_GATES: { match: RegExp; role: RoleGate }[] = [
+  { match: /^\/admin\/events\/\d+\/registrations$/, role: "content_manager,sales_manager" },
+];
 
 export function navFor(roles: string[]): NavItem[] {
   /*

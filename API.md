@@ -288,6 +288,13 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/landing-pages/lookup?path=/brands/cisco` | One page, or 404 |
 | `GET` | `/careers/{slug}` | 404 when unpublished **or past its closing date** |
 | `POST` | `/careers/{slug}/apply` | multipart. Throttled 5/min, honeypot `website`, CV required |
+| `GET` | `/events` | Published events. `?when=upcoming` (default, soonest first) or `past` (newest first), `?format=`, `?featured=1`, `?page=`, `?per_page=` (max 50, default 12). Paginated. See "Events" |
+| `GET` | `/events/{slug}` | One event's page. 404 for a draft or archived one; a past one stays readable. **Never carries `online_url`** |
+| `GET` | `/events/{slug}/availability` | `{state, few_left, message}`. `Cache-Control: no-store`. No count |
+| `GET` | `/events/{slug}/calendar` | `text/calendar`, an attachment named `{slug}.ics`. No join link |
+| `POST` | `/events/{slug}/register` | Free registration. Throttled 10/min, honeypot `website`. **201** `{message, data: {status, seats}}` — no manage link. An address that has registered before is answered exactly as a new one would be, and nothing is written |
+| `GET` | `/events/registrations/{token}` | A registrant's own registration. Throttled 30/min. 404 unless the token is 64 hex and somebody's. **Declared above `/events/{slug}`** |
+| `POST` | `/events/registrations/{token}/cancel` | Throttled 10/min. Idempotent; promotes the waiting list |
 | `GET` | `/solutions` | Plain collection. `?in_menu=1` narrows it to the mega menu's items |
 | `GET` | `/solutions/{slug}` | Includes benefits, technologies, related products, industries, FAQs |
 | `GET` | `/services` | Plain collection. `?in_menu=1` as above. Each carries `category {id, name, slug}` (null when in none), `image`, `image_alt`, `image_focus`, and `highlights` — the chips on its card, a list of strings, `[]` when none |
@@ -1453,6 +1460,221 @@ and `trail`. Emails: `meeting_scheduled`, `meeting_booked_internal`,
 private `meetings_google` group holds the OAuth client, the token and
 `meetings_google_calendar_id` (blank = `primary`). `meeting_reference_prefix`
 is in `references`.
+
+## Events
+
+Something with a date that people attend, with a page and — optionally — a
+free registration with a capacity and a waiting list (0.118.0). The rules
+are `docs/events.md`; **every body and answer shape is
+`docs/events-contract.md`**, kept with `web/src/types/events.ts` and the
+mock — this section is the route list and what is not obvious from it.
+
+Every time on the wire is ISO 8601 **with the offset** of `APP_TIMEZONE`,
+and every label (`date_label`, `time_label`, `format_label`, `status_label`,
+`closes_label`, `day`/`month`/`year`) is the API's. `format` is `in_person`,
+`online` or `hybrid`; `registration_mode` is `none`, `open` or `external`; a
+registration's `status` is `confirmed`, `waitlisted`, `cancelled`, `attended`
+or `no_show`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/events` | Published only. `?when=upcoming` (default; soonest first) or `past` (newest first), `?format=` (an unknown one is ignored), `?featured=1`, `?page=`, `?per_page=` (max 50, default 12). Each row carries `seo` |
+| `GET` | `/events/{slug}` | The row plus `body`, `venue_address`, `map_url`, `speakers[]`, `agenda[]`, `registration {mode, external_url, closes_at, closes_label, max_seats, has_capacity, waitlist}`, `calendar_path`, `faqs[]`, `faq_schema` (absent under two FAQs) and `schema` (a schema.org `Event`) |
+| `GET` | `/events/{slug}/availability` | `{data: {state, few_left, message}}`, `Cache-Control: no-store`. `state` is `none`, `external`, `open`, `waitlist`, `full`, `closed` or `ended` |
+| `GET` | `/events/{slug}/calendar` | The event as a `.ics`: `Content-Type: text/calendar`, `Content-Disposition: attachment; filename={slug}.ics` |
+| `POST` | `/events/{slug}/register` | `name` (required, 120), `email` (required, `email:rfc`), `phone?` (30, loosely a number), `company?` (160), `seats?` (integer ≥ 1, default 1, at most the event's `max_seats`), `note?` (plain text, 1000), honeypot `website`, the `_source_*` envelope. Throttled 10/min. **201** `{message, data: {status, seats}}` |
+| `GET` | `/events/registrations/{token}` | `{status, status_label, seats, name, can_cancel, event {…}}`. Throttled 30/min |
+| `POST` | `/events/registrations/{token}/cancel` | The same shape with `status: cancelled`. Throttled 10/min |
+| `GET` | `/admin/events` | `role:content_manager`. `?status=`, `?when=upcoming\|past`, `?format=`, `?q=` (title, summary, body, venue), `?sort=starts\|title\|status` with `?dir=`, `?per_page=` (max 100, default 20). Default: what is coming, soonest first, then what has been, newest first. Every row carries `counts` |
+| `POST` | `/admin/events` | **201** |
+| `GET`/`PATCH`/`DELETE` | `/admin/events/{id}` | Bound by **id**. `PATCH` takes `notify_registrants`. `DELETE` answers 200 `{"message": "Event deleted."}`, or a 422 on `event` while the event has registrations |
+| `POST` | `/admin/events/{id}/duplicate` | **201**: a draft copy, "(copy)", a free slug, the FAQs, no registrations and no SEO override |
+| `GET` | `/admin/events/{id}/registrations` | `role:content_manager,sales_manager`. `?status=`, `?q=` (name, email, company, phone), `?per_page=` (max 100, default 50). Confirmed first, then the waiting list oldest first, then the rest newest first. `meta.event {id, title, status, date_label, time_label, has_started, counts, capacity, max_seats, waitlist_enabled}`, `meta.statuses` |
+| `GET` | `/admin/events/{id}/registrations/export` | The same rows and filters as a CSV, every cell escaped. **Declared above `{registration}`** |
+| `POST` | `/admin/events/{id}/registrations` | The public fields plus `force` and `notify` (default true). **201**, with `meta` beside `data` |
+| `PATCH` | `/admin/events/{id}/registrations/{registration}` | `status`, `seats` (1–20), `staff_note`, `force`. `meta` beside `data` |
+| `DELETE` | `/admin/events/{id}/registrations/{registration}` | For good. **204**. No email |
+
+**`online_url` is never on a public read.** The join link is sent to people
+who registered — in the confirmation, the reminder, the "details changed"
+message and the calendar file attached to them — and is on the admin
+resource only. The public resources do not name the column; the `schema`
+graph's `VirtualLocation` carries the page's URL; the public `.ics`, the
+webhook and the chatbot's retrieval do not read it.
+
+**The venue is null for an `online` event** on every public read, whatever
+the row still holds from an earlier draft.
+
+**An event is upcoming until it ends**, or until the end of the day it
+starts on when it has no `ends_at`; `is_past` is the same rule.
+
+**`availability` publishes a state and never a count.** `few_left` is true
+when a capacity is set and a fifth of it or less — but at least one seat —
+remains. `message` is a sentence for `full` ("This event is full."),
+`closed` ("Registration for this event has closed.") and `ended` ("This
+event has already started, so registration has closed." / "This event has
+taken place."), and null otherwise. `ended` means the event has **started**.
+`waitlist` is a full event with its waiting list on — and also one with
+seats free while somebody is already waiting, because the list is a queue.
+
+**Registering: who is confirmed, who waits, who is refused.** Decided inside
+a transaction that opens by locking the event row, and counted in **seats**
+over the registrations that hold one:
+
+- `status` is `confirmed` ("You are registered. We have emailed your
+  confirmation to {email}.") or `waitlisted` ("This event is full, so you
+  are on the waiting list. We have emailed {email} and will write again if a
+  place opens."). A party larger than what is left waits whole when there is
+  a waiting list.
+- **422 on `registration`**, one sentence, when the mode is not `open`
+  ("This event does not take registrations here."), registration has closed,
+  the event has started, or it is full with no waiting list.
+- **422 on `seats`** when more are asked for than the event's `max_seats`
+  ("You can register up to 5 seats at once…"), or than are left with no
+  waiting list ("Only 1 seat is left.").
+- **The same address again writes nothing.** A typed address is not proof
+  of whose it is, so when it already holds a live registration (`confirmed`,
+  `waitlisted`, `attended`, `no_show`) no column changes and no lead, webhook
+  or desk notice follows. That registration's own confirmation (or
+  waiting-list message) is sent again to the address on file — at most once
+  every 10 minutes per address per event (`EventActions::RESEND_MINUTES`, an
+  atomic `Cache::add`); `attended`/`no_show` are sent nothing.
+- **A repeat is answered exactly as a brand-new address sending the same
+  body would be at that moment**: the same 201 `status` and message from the
+  current count, or the same 422 on `registration` or `seats`. The response
+  therefore cannot say whether an address is registered. So a double press
+  on the last seat reads "This event is full." the second time, with the
+  confirmation in the inbox both times; that is the price of a response
+  that tells a stranger nothing.
+- **A cancelled registration is no registration**: the row is revived with
+  the details sent, subject to room like a newcomer, **under a new token**,
+  and it is an arrival like any other (a lead, the desk's notice, the
+  webhook).
+- **There is no update path here**, a signed-in customer included. Changing
+  a party's size is cancelling from the manage link and registering again,
+  or the desk editing the row.
+- **A filled `website`** is answered 201 in the same shape — `status:
+  confirmed` and the seats sent; nothing is stored or sent.
+- A portal `Authorization: Bearer` stamps `customer_id` on a first
+  registration or a revival, read with the `sanctum` guard named and
+  narrowed to a `Customer`; an impersonated token does not.
+
+**The manage link is in the emails and nowhere else.** It is
+`/events/registration/{token}` on the site, the token 64 lower-case hex
+characters — in the confirmation, the waiting-list message, the reminder and
+the "details changed" message, sent to the address that registered, and in
+**no response**: not the register 201, not the admin resource, not the
+webhook. The two registrant routes hold the token to that shape in the route,
+so anything else is a 404 before a controller runs; a well-formed token that
+is nobody's is the same 404, and so is one rotated away by a revival. The
+manage read has no email, phone, note or staff field. `registration` and
+`registrations` are refused as an event's slug.
+
+**Cancelling** is a 422 on `registration` once the event has started or the
+registration is `attended`/`no_show`; cancelling one already cancelled
+answers the same shape and sends nothing. A confirmed registration cancelled
+promotes the waiting list, oldest first, **stopping at the first party that
+does not fit**. So does a party shrinking, a registration deleted and a
+capacity raised or removed.
+
+**Admin datetimes are wall-clock `Y-m-d\TH:i`** in `APP_TIMEZONE`, written
+and read back (`starts_at`, `ends_at`, `registration_closes_at`), with
+`starts_at_iso` as the instant. Seconds are accepted and dropped.
+
+**Admin `meta`** — on the index, the read, both writes and the duplicate:
+`formats[{value,label}]`, `statuses[{value,label}]`,
+`registration_modes[{value,label,blurb}]`,
+`registration_statuses[{value,label}]`, `max_speakers` (12), `max_agenda`
+(30), `timezone` (`"IST"`). No `custom_field_groups`.
+
+**Write rules** are the contract's. The ones that span two fields are
+checked against what the event *will be* — a `PATCH` naming one half is
+compared with the stored other: `ends_at` after `starts_at`;
+`registration_closes_at` not after the start; `venue_name` unless the format
+is `online`; `external_url` when the mode is `external`; `online_url` before
+an `online` or `hybrid` event whose mode is `open` can be **published**;
+`capacity` not below the seats already held ("7 seats are already taken, so
+the capacity cannot be lower than 7."). `cover_image_path` and a speaker's
+`photo_path` must be library **images**. `status`, `registration_mode`,
+`is_featured` and `waitlist_enabled` default to `draft`, `none`, false and
+false on create; `max_seats` to the `event_max_seats` setting. `speakers`,
+`agenda` and `faqs` are replaced wholesale; absent leaves them alone, `[]`
+clears.
+
+**`notify_registrants: true`** sends `event_changed` to each confirmed
+registrant — only when the save changed `starts_at`, `ends_at`, `format`,
+the venue, `map_url` or `online_url`. A new start resets every confirmed
+registration's `reminded_at`.
+
+**The registrations desk goes through the public door's implementation.**
+`POST` for an address that already holds a live registration is a **422 on
+`email`** naming its status ("This address already has a registration for
+this event (Confirmed). Edit that one instead."); a cancelled one is revived
+under a new token. `force`
+goes past the capacity, a closing date and the start (never past a mode that
+is not `open`), and `notify: false` skips the registrant's confirmation —
+the desk's own notice and the lead are still made. `PATCH status` follows
+`EventRegistrationStatus::canTransitionTo()` (422 on `status` naming both
+states otherwise): `cancelled` emails the registrant and promotes the
+waiting list; `confirmed` from `waitlisted` or `cancelled` is held to the
+room unless `force` and emails `event_waitlist_promoted` or the
+confirmation; `waitlisted` from `cancelled` emails the waiting-list message;
+`attended` and `no_show` are a 422 on `status` before the event has started,
+and correct to each other and back to `confirmed`. `seats` growing on a
+registration that holds seats is a 422 on `seats` past the room unless
+`force`. A registration addressed through another event's id is a 404. The
+admin resource carries `lead_id` with `lead_path`, `source` (`public` or
+`staff`) and **no token**.
+
+**`allowed_next` on every admin registration** is what the status select may
+offer now, itself first, as `[{value, label}]`:
+`EventRegistrationStatus::canTransitionTo()` plus the clock — `attended` and
+`no_show` appear only once the event has started. A dropdown offers only
+what a `PATCH` accepts; what it cannot promise is room, and that refusal
+names the seats. It is not in the webhook payload.
+
+**`meta.event` rides on the list and beside every registration write**
+(`POST`, `PATCH`), because a sales manager cannot read `/admin/events/{id}`:
+the event's `status`, `date_label`, `time_label`, `counts`, `capacity`,
+`max_seats`, `waitlist_enabled`, and `has_started` — the same clock the
+status rule and `allowed_next` use, so it is the one place that screen
+learns whether Attended and No-show may be offered.
+
+**The join link and the venue follow the format wherever they are sent.**
+The console keeps what was typed when the format changes: an `in_person`
+event that still holds an `online_url` never emails it or puts it in a
+registrant's `.ics`, and an `online` event that still holds a hall reads
+"Online" in every message and calendar file and null on every public read.
+
+**The admin event's `body`, `faqs`, `seo` and `seo_defaults` are on the
+detail shape only** — the read, both writes and the duplicate; an index row
+carries none of them. The waiting-list status is labelled "On the waiting
+list".
+
+**Where else**: `GET /search` gains a group of type `event` (label
+"Events", each result with its date as `kicker`); `GET /admin/search` gains
+one for a content manager; `GET /admin/menus` offers the item type `event`
+and the section `events` (dropped at render until an event is published);
+`GET /admin/menu-targets?type=event`; `GET /admin/faq-owners` and
+`/admin/seo` list events (`type: event`, `admin_path: /admin/events/{id}`);
+`seo.schema_type` accepts `Event`, `BusinessEvent` and `EducationEvent`; the
+page builder's `cards` section takes `source: events` (upcoming, soonest
+first; `kicker` the date, `meta` the place or "Online", `index_path`
+`/events`), listed in `meta.card_sources`; a lead from a registration has
+`channel: event`. `events` is a reserved slug for a custom content type —
+and **a CMS page can no longer be created at, or moved to, one of the site's
+own top-level routes** (`events`, `blog`, `store`…): `POST`/`PATCH
+/admin/pages` answer a 422 on `slug`, or on `title` when the slug is blank
+and would be derived as one (`ReservedSlugs::pageSlugRule()`). A page already
+sitting on such a slug can still be saved under it.
+
+**Settings**: the private `events` group (`role:admin`) — `events_email`
+(blank = `sales_email`; an address or a 422), `event_reminder_hours` (0–168,
+default 24; 0 sends no reminder) and `event_max_seats` (1–20, default 5).
+Nothing in it reaches the public `/settings` map.
+`technoware:remind-events`, every fifteen minutes, sends `event_reminder`
+once to each confirmed registrant of a published event starting within that
+many hours; somebody confirmed inside the window is not reminded.
 
 ## The store
 
@@ -4443,8 +4665,11 @@ decision as the SMTP settings beside it.
 side — never an internal note), `ticket.status_changed` (adds `from`/`to`),
 `order.placed`, `order.paid` (`paid_at` going from null to set, whoever set
 it), `order.status_changed` (adds `from`/`to`), `customer.registered` (the
-address confirmed), `form.submitted`, `subscriber.joined` and `visit.requested`
-(an engineer visit request, never its token). `ping` is sent
+address confirmed), `form.submitted`, `subscriber.joined`, `visit.requested`
+(an engineer visit request, never its token) and `event.registered` (a new
+registration for an event: the admin registration resource less `staff_note`,
+plus `event: {id, title, slug, starts_at, ends_at, format, public_path}` —
+never the manage token or the join link). `ping` is sent
 by the ping endpoint only and cannot be subscribed to — a 422 on `events.*`.
 
 **The envelope** is `{id, event, created_at, data}`, where `id` and
@@ -4535,6 +4760,13 @@ failure to queue it never fails the request.
 | A visit is cancelled, by either side | The customer | `VisitCancelled` |
 | `POST /admin/visits/{reference}/confirm` | The customer, with a `.ics` | `VisitConfirmed` (`visit_confirmed` or `visit_rescheduled`) |
 | `technoware:remind-visits` | The customer | `VisitReminder` |
+| `POST /events/{slug}/register`, or the desk adding one | `events_email`, else `sales_email` — for a **new** registration only | `EventRegistrationReceived` — and `event.registered`, then `lead.created` |
+| a registration is confirmed — and again, at most once in 10 minutes, when its address registers a second time | The registrant, with a `.ics`, the join link and their manage link | `EventRegistrationConfirmed` (`event_registration_confirmed`) |
+| a registration joins the waiting list (re-sent the same way on a repeat) | The registrant | `EventRegistrationWaitlisted` |
+| a place opens for a waiting registration | The registrant, with a `.ics` | `EventRegistrationConfirmed` (`event_waitlist_promoted`) |
+| a registration is cancelled, by either side | The registrant | `EventRegistrationCancelled` |
+| `PATCH /admin/events/{id}` with `notify_registrants` and a new time, place or join link | Each confirmed registrant, with a `.ics` | `EventChanged` |
+| `technoware:remind-events` | Each confirmed registrant, once | `EventReminder` |
 | a stock movement fills a saved shelf | The wishlist holder, once, inside the quiet hours | `WishlistBackInStock` |
 | a saved product's price falls far enough | The wishlist holder, once per drop, inside the quiet hours | `WishlistPriceDrop` |
 

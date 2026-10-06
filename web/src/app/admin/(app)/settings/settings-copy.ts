@@ -228,6 +228,26 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     hint: "What the confirm form suggests, and how long the calendar entry is when nobody says otherwise.",
   },
   /*
+    Events (0.118.0, docs/events.md). Three rows, none public: where a new
+    registration is announced, when the reminder goes, and how many seats one
+    registration may take unless the event says otherwise.
+  */
+  events_email: {
+    label: "Registrations go to",
+    hint: "Where each new event registration is announced. Blank sends them to the sales inbox.",
+    placeholder: "events@example.com",
+  },
+  event_reminder_hours: {
+    label: "Reminder (hours before the start)",
+    hint: "Everyone with a confirmed place is emailed once, this long before the event starts. 0 to 168; 0 sends no reminder.",
+    placeholder: "24",
+  },
+  event_max_seats: {
+    label: "Seats per registration",
+    hint: "The most one person may register for at once, 1 to 20 — what a new event starts with. Each event can set its own on its Registration tab.",
+    placeholder: "5",
+  },
+  /*
     Online meetings (2026-09-29, docs/meetings.md). The defaults every host
     works unless Meetings → Hosts gives them hours of their own, the booking
     window, the reminders and the limits that keep the public form honest.
@@ -841,6 +861,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Satisfaction survey",
     blurb: "A few seconds' rating asked of the customer when their ticket is closed. The wording of the email is under System → Settings → Email templates (Satisfaction survey — to the customer).",
   },
+  events: {
+    title: "Events",
+    blurb: "What every event shares: where a new registration is announced, when the reminder goes out, and how many seats one registration may take unless the event says otherwise. The wording of each email is under System → Email templates.",
+  },
   visits: {
     title: "Engineer visits",
     blurb: "The Book a site visit form: which days and parts of the day it offers, how much notice it needs and how far ahead it reaches, the dates you are closed, and where requests are sent. A request is a wish list — the desk confirms the actual time.",
@@ -1028,6 +1052,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
   meetings_google: ["meetings_google_oauth_client_id", "meetings_google_oauth_client_secret", "meetings_google_calendar_id"],
   visits: ["visits_enabled", "visit_windows", "visit_days", "visit_min_notice_days", "visit_max_days", "visit_holidays",
            "visits_email", "visit_default_minutes"],
+  events: ["events_email", "event_reminder_hours", "event_max_seats"],
   push: ["push_api_key", "push_project_id", "push_messaging_sender_id", "push_app_id", "push_vapid_key"],
   embeds: ["reviews_embed", "reviews_kicker", "reviews_heading", "reviews_lede", "body_code"],
   portal: ["portal_enabled", "registration_enabled", "customer_approval_required"],
@@ -1222,6 +1247,14 @@ export const SCREENS: SettingsScreen[] = [
     lede: "What the Book a site visit form offers — days, parts of the day, notice and closed dates — and where requests go.",
     saveLabel: "Save visit settings",
     sections: [{ groups: ["visits"] }],
+  },
+  {
+    path: "/admin/events/settings",
+    title: "Event settings",
+    area: "Events",
+    lede: "Where event registrations are announced, when the reminder goes out, and how many seats one registration may take by default.",
+    saveLabel: "Save event settings",
+    sections: [{ groups: ["events"] }],
   },
   {
     path: "/admin/tickets/settings",

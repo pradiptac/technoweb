@@ -14,6 +14,9 @@ import type {
   NavNode,
   StoreProduct, StoreCategory, StoreFeedPage,
 } from "@/types/api";
+import type {
+  EventAvailability, EventDetail, EventRegistration, EventRegistrationPayload, EventRegistrationResult, EventSummary,
+} from "@/types/events";
 
 /**
  * Typed fetch wrapper for the Laravel REST API.
@@ -408,6 +411,26 @@ export const publicApi = {
   career: (slug: string) =>
     apiFetch<Single<JobOpening>>(`/careers/${slug}`, { revalidate: 120, tags: [`career:${slug}`] }),
 
+  /*
+   * Events (docs/events-contract.md).
+   *
+   * `query` is only ever written by this codebase — `?when=past&per_page=6`,
+   * the sitemap's page walk — never by a visitor, so the key space is a
+   * handful of entries and safe to keep. The window is the vacancies' two
+   * minutes, for the vacancies' reason: an event stops being "upcoming"
+   * because the clock moved, not because an editor saved anything, and a
+   * page that goes on advertising yesterday's seminar for ten minutes is ten
+   * minutes of people being invited to something that is over. A console
+   * save purges `events` (and `event:<slug>`) and is seen at once.
+   */
+  events: (query = "") =>
+    apiFetch<Paginated<EventSummary>>(`/events${query}`, { revalidate: 120, tags: ["events"] }),
+  event: (slug: string) =>
+    apiFetch<Single<EventDetail>>(`/events/${encodeURIComponent(slug)}`, {
+      revalidate: 120,
+      tags: ["events", `event:${slug}`],
+    }),
+
   caseStudies: () =>
     apiFetch<Collection<CaseStudy>>("/case-studies", { revalidate: 600, tags: ["case-studies"] }),
   caseStudy: (slug: string) =>
@@ -510,4 +533,41 @@ export const publicApi = {
 
   ticketCategories: () =>
     apiFetch<{ data: { id: number; name: string }[] }>("/ticket-categories", { revalidate: 3600, tags: ["ticket-categories"] }),
+};
+
+/**
+ * The half of events that is about one visitor, and so is never cached:
+ * whether there is room right now, registering, and a registration read or
+ * cancelled through the token in its link (docs/events-contract.md).
+ *
+ * Apart from `publicApi` because nothing here may enter an ISR render — each
+ * call is `no-store`, which inside a page that exports `generateStaticParams`
+ * is a 500 rather than a fallback. They are called from route handlers,
+ * Server Actions and the one dynamic page (`/events/registration/[token]`),
+ * and being uncached they carry the visitor's address, which is what the
+ * API's per-visitor throttles count.
+ */
+export const eventApi = {
+  availability: (slug: string) =>
+    apiFetch<{ data: EventAvailability }>(`/events/${encodeURIComponent(slug)}/availability`),
+
+  /**
+   * `token` is the portal session when there is one, so the registration is
+   * filed under the customer's account — the route is public, and without the
+   * header the API sees nobody at all.
+   */
+  register: (slug: string, payload: EventRegistrationPayload, token?: string) =>
+    apiFetch<EventRegistrationResult>(`/events/${encodeURIComponent(slug)}/register`, {
+      method: "POST",
+      body: payload,
+      token,
+    }),
+
+  registration: (token: string) =>
+    apiFetch<{ data: EventRegistration }>(`/events/registrations/${encodeURIComponent(token)}`),
+
+  cancelRegistration: (token: string) =>
+    apiFetch<{ data: EventRegistration }>(`/events/registrations/${encodeURIComponent(token)}/cancel`, {
+      method: "POST",
+    }),
 };

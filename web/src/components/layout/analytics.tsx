@@ -7,7 +7,7 @@ import type { SiteSettings } from "@/lib/site-settings";
 
 /** Paths whose URL is, or once was, a key. The one list; `next.config.ts`
  *  sends `Referrer-Policy: no-referrer` on the same four. */
-const SECRET_PATHS = ["/order/", "/newsletter/unsubscribe/", "/newsletter/rejoin/", "/store/notify/cancel/", "/meeting/", "/ticket-survey/"];
+const SECRET_PATHS = ["/order/", "/newsletter/unsubscribe/", "/newsletter/rejoin/", "/store/notify/cancel/", "/meeting/", "/ticket-survey/", "/events/registration/"];
 
 /**
  * The URL GA4 is told, built in the page: origin, path, and only the

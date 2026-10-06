@@ -2,6 +2,7 @@
 
 namespace App\Support\Webhooks;
 
+use App\Http\Resources\Admin\EventRegistrationResource;
 use App\Http\Resources\Admin\LeadResource;
 use App\Http\Resources\Admin\MeetingResource;
 use App\Http\Resources\Admin\NewsletterSubscriberResource;
@@ -12,6 +13,7 @@ use App\Http\Resources\FormSubmissionResource;
 use App\Http\Resources\TicketMessageResource;
 use App\Http\Resources\TicketResource;
 use App\Models\Customer;
+use App\Models\EventRegistration;
 use App\Models\FormSubmission;
 use App\Models\Lead;
 use App\Models\Meeting;
@@ -20,6 +22,7 @@ use App\Models\Order;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
 use App\Models\VisitRequest;
+use App\Support\Events\EventText;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -151,6 +154,38 @@ class WebhookPayload
         unset($data['staff_note'], $data['trail']);
 
         return $data;
+    }
+
+    /**
+     * A registration for an event, as the console reads it, less the staff
+     * note — and with the event it is for beside it, because the resource
+     * carries only the id and a receiver wants the name and the date.
+     *
+     * The manage token is on no resource at all. The join link is not in
+     * the `event` block either: it goes to the registrant, not to whoever
+     * holds a webhook URL.
+     *
+     * @return array<string, mixed>
+     */
+    public static function eventRegistration(EventRegistration $registration): array
+    {
+        self::settled($registration, 'status');
+        $registration->loadMissing('event');
+        $event = $registration->event;
+
+        $data = self::resolve(new EventRegistrationResource($registration));
+        // The desk's note, and the console's dropdown: neither is news.
+        unset($data['staff_note'], $data['allowed_next']);
+
+        return $data + ['event' => [
+            'id' => $event->id,
+            'title' => $event->title,
+            'slug' => $event->slug,
+            'starts_at' => EventText::iso($event->starts_at),
+            'ends_at' => EventText::iso($event->ends_at),
+            'format' => $event->format->value,
+            'public_path' => $event->publicPath(),
+        ]];
     }
 
     /**

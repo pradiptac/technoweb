@@ -63,4 +63,6 @@ export const PWA_ICON_SIZES = [180, 192, 512] as const;
 export const PWA_NEVER_CACHE = [
   "/admin", "/portal", "/api", "/checkout", "/order", "/store/basket", "/store/notify",
   "/newsletter/unsubscribe", "/visit", "/meeting", "/ticket-survey", "/embed", "/theme-preview", "/push",
+  // One person's event registration: the token is in the path.
+  "/events/registration",
 ] as const;
