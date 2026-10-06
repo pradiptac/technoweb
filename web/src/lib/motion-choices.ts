@@ -1,5 +1,5 @@
 /**
- * How the public site and the portal move — six settings, one list each.
+ * How the public site and the portal move — seven settings, one list each.
  *
  * Plain data, no client imports, so the settings picker and the area
  * layouts can both read it. Every id here is a value the `motion` settings
@@ -67,6 +67,19 @@ export const LOADERS: MotionChoice[] = [
   { id: "none", label: "None", note: "No indicator while the next page loads. The current behaviour." },
   { id: "bar", label: "Bar", note: "A thin brand-coloured bar creeps across the top of the page and completes on arrival." },
   { id: "pulse", label: "Pulse", note: "A full-width line at the top pulses until the page arrives." },
+];
+
+/**
+ * The reading-progress line (`motion_progress`, 0.114.0): a thin bar along the
+ * top of the viewport that fills as the page is scrolled. Pure CSS — a
+ * `scroll(root)` timeline on one fixed element the marketing layout renders —
+ * so it costs no JavaScript, and a browser without scroll-driven animations or
+ * a reduced-motion visitor simply never sees it (`[data-scroll-progress]` in
+ * globals.css).
+ */
+export const PROGRESS: MotionChoice[] = [
+  { id: "none", label: "None", note: "No reading indicator. The current behaviour." },
+  { id: "bar", label: "Bar", note: "A thin line along the top of the page fills as the reader scrolls down it." },
 ];
 
 export type HeroVariant = "grid" | "aurora" | "dots" | "none";
@@ -143,12 +156,13 @@ export type Motion = {
   splash: boolean;
   hero: HeroVariant;
   cards: string;
+  progress: string;
 };
 
 const pick = (list: MotionChoice[], id: string | undefined): string =>
   list.some((c) => c.id === id) ? (id as string) : list[0].id;
 
-/** The six choices, each resolved with its default for an unknown or absent id. */
+/** The choices, each resolved with its default for an unknown or absent id. */
 export function motionFor(settings: Record<string, string | undefined>): Motion {
   return {
     reveal: pick(REVEALS, settings.motion_reveal),
@@ -158,6 +172,7 @@ export function motionFor(settings: Record<string, string | undefined>): Motion 
     splash: settings.motion_splash === "1",
     hero: pick(HEROS, settings.motion_hero) as HeroVariant,
     cards: pick(CARDS, settings.motion_cards),
+    progress: pick(PROGRESS, settings.motion_progress),
   };
 }
 
@@ -172,5 +187,6 @@ export function motionAttrs(m: Motion): Record<string, string> {
     "data-motion-page": m.page,
     "data-motion-hero": m.hero,
     "data-motion-cards": m.cards,
+    "data-motion-progress": m.progress,
   };
 }

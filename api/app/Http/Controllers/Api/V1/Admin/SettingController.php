@@ -675,7 +675,7 @@ class SettingController extends Controller
     {
         // The sign-in screen's three ids ride on the same rule: same shape,
         // same list-on-the-frontend reasoning (login-backdrop-choices.ts).
-        $ids = ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_hero', 'motion_cards', 'login_backdrop', 'login_intensity', 'login_speed'];
+        $ids = ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_hero', 'motion_cards', 'motion_progress', 'login_backdrop', 'login_intensity', 'login_speed'];
 
         foreach ($request->input('settings', []) as $i => $row) {
             $key = $row['key'] ?? '';

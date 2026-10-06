@@ -428,10 +428,22 @@ const AUDIT = `(function () {
       the ground is walked from the parent, which is what the reader sees the
       words on. No backticks in this comment: the whole probe is a template
       literal.
+
+      The clip reaches descendant text too: a kinetic heading (0.114.0)
+      wraps each word in a span, and the words are painted with the
+      heading's gradient while the spans hold none of their own -- graded
+      on their own they were read as ink on the heading's gradient as a
+      ground, 1:1. So the gradient is the nearest ancestor (a few levels at
+      most) that clips its background to text.
     */
-    const clipText = (cs.webkitBackgroundClip === "text" || cs.backgroundClip === "text") && gradientStops(el);
-    const inks = clipText ? gradientStops(el) : [parse(cs.color)];
-    const grounds = bgOf(clipText ? el.parentElement : el);
+    let clipHost = null;
+    for (let n = el, depth = 0; n && depth < 4; n = n.parentElement, depth++) {
+      const c = n === el ? cs : getComputedStyle(n);
+      if ((c.webkitBackgroundClip === "text" || c.backgroundClip === "text") && gradientStops(n)) { clipHost = n; break; }
+    }
+    const clipText = Boolean(clipHost);
+    const inks = clipText ? gradientStops(clipHost) : [parse(cs.color)];
+    const grounds = bgOf(clipText ? clipHost.parentElement : el);
     // The worst ground this text sits on. One entry for a flat colour, one per
     // stop for a gradient -- and the worst ink, for gradient text.
     const ratio = inks.reduce((worstInk, ink) => {

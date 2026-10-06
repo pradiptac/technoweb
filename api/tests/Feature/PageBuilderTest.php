@@ -530,6 +530,97 @@ class PageBuilderTest extends TestCase
             ->assertJsonPath('data.sections.1.style', null);
     }
 
+    public function test_the_headline_and_scroll_motions_are_choices_stored_only_where_chosen(): void
+    {
+        $this->create([self::section('divider', [], ['style' => ['headline' => 'bounce']])])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.style.headline');
+        $this->create([self::section('divider', [], ['style' => ['scroll' => 'spin']])])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.style.scroll');
+
+        $this->create([
+            self::section('divider', [], ['style' => ['headline' => 'wipe', 'scroll' => 'parallax']]),
+            self::section('divider', [], ['style' => ['headline' => 'default', 'scroll' => 'default']]),
+            self::section('divider', [], ['style' => ['headline' => 'shimmer', 'scroll' => 'default']]),
+        ])->assertCreated()
+            ->assertJsonPath('data.blocks.0.style', ['headline' => 'wipe', 'scroll' => 'parallax'])
+            ->assertJsonPath('data.blocks.1.style', null)
+            ->assertJsonPath('data.blocks.2.style', ['headline' => 'shimmer']);
+
+        $this->getJson('/api/v1/pages/built-page')->assertOk()
+            ->assertJsonPath('data.sections.0.style.headline', 'wipe')
+            ->assertJsonPath('data.sections.0.style.scroll', 'parallax')
+            ->assertJsonPath('data.sections.1.style', null)
+            ->assertJsonPath('data.sections.2.style', ['headline' => 'shimmer']);
+    }
+
+    public function test_a_story_is_stored_as_declared_and_its_pictures_presented(): void
+    {
+        $this->media('media/step-1.jpg', 'image/jpeg', 'The rack before');
+        $this->media('media/step-2.jpg', 'image/jpeg', 'The rack after');
+
+        $created = $this->create([self::section('story', [
+            'kicker' => 'How it went', 'heading' => 'A data centre in three weekends', 'lede' => 'Told in stages.',
+            'items' => [
+                ['title' => 'Survey', 'body' => 'We measured everything.', 'image_path' => 'media/step-1.jpg', 'junk' => 'never stored'],
+                ['title' => 'Cut-over', 'body' => 'One night, no downtime.', 'image_path' => 'media/step-2.jpg'],
+            ],
+        ])])->assertCreated()
+            ->assertJsonPath('data.blocks.0.type', 'story')
+            ->assertJsonPath('data.blocks.0.data.items.0.image_path', 'media/step-1.jpg')
+            ->assertJsonMissingPath('data.blocks.0.data.items.0.junk');
+        $this->assertSame(asset('storage/media/step-2.jpg'), $created->json('data.blocks_media')['media/step-2.jpg'] ?? null);
+
+        $stored = Page::query()->where('slug', 'built-page')->first()->blocks[0]['data'];
+        $this->assertEquals(['title' => 'Cut-over', 'body' => 'One night, no downtime.', 'image_path' => 'media/step-2.jpg'], $stored['items'][1]);
+
+        $section = $this->getJson('/api/v1/pages/built-page')->assertOk()->json('data.sections.0');
+        $this->assertSame('story', $section['type']);
+        $this->assertSame('A data centre in three weekends', $section['data']['heading']);
+        $this->assertSame(asset('storage/media/step-1.jpg'), $section['data']['items'][0]['image']);
+        $this->assertSame('The rack before', $section['data']['items'][0]['image_alt']);
+        $this->assertArrayHasKey('image_focus', $section['data']['items'][0]);
+        $this->assertArrayNotHasKey('image_path', $section['data']['items'][1]);
+
+        $this->actingAs($this->user(), 'sanctum')->getJson('/api/v1/admin/pages/builder')->assertOk()
+            ->assertJsonFragment(['value' => 'story', 'label' => 'Scroll story']);
+    }
+
+    public function test_a_story_needs_two_steps_each_titled_with_a_library_picture(): void
+    {
+        $this->media('media/step.jpg');
+        $this->media('media/brochure.pdf', 'application/pdf');
+        $step = fn (array $over = []) => ['title' => 'A step', 'body' => 'What happened.', 'image_path' => 'media/step.jpg', ...$over];
+
+        $this->create([self::section('story', ['items' => [$step()]])])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.0.data.items' => 'A story needs at least two steps.']);
+
+        $this->create([self::section('story', ['items' => [$step(), $step(['title' => ''])]])])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.0.data.items.1.title' => 'Give the step a title.']);
+
+        $this->create([self::section('story', ['items' => [$step(), $step(['body' => null])]])])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.0.data.items.1.body' => 'Write the words for this step.']);
+
+        $this->create([self::section('story', ['items' => [$step(), $step(['image_path' => null])]])])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.0.data.items.1.image_path' => 'Choose a picture for this step.']);
+
+        $this->create([self::section('story', ['items' => [$step(['image_path' => 'media/nowhere.jpg']), $step()]])])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.items.0.image_path');
+
+        $this->create([self::section('story', ['items' => [$step(), $step(['image_path' => 'media/brochure.pdf'])]])])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.items.1.image_path');
+
+        // A tab's words keep their own message beside a story on the same page.
+        $this->create([
+            self::section('story', ['items' => [$step(), $step()]]),
+            self::section('tabs', ['items' => [['label' => 'A', 'body' => 'a'], ['label' => 'B']]]),
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.1.data.items.1.body' => 'Every tab needs its words.']);
+    }
+
     public function test_a_cards_section_is_resolved_to_the_live_list(): void
     {
         Solution::create(['title' => 'Networking', 'slug' => 'networking', 'summary' => 'Switching and routing.', 'icon' => 'network', 'status' => PublishStatus::Published, 'sort_order' => 1]);

@@ -53,6 +53,7 @@ export function blankData(type: PageSectionType): Record<string, unknown> {
     case "columns": return { columns: [{}, {}] };
     case "map": return {};
     case "theme_section": return { section: "solutions" };
+    case "story": return { heading: "", items: [{}, {}] };
     default: return {};
   }
 }
@@ -67,6 +68,9 @@ export function summaryOf(data: Record<string, unknown>): string {
   if (typeof data.section === "string") {
     return HOME_SECTIONS.find((s) => s.id === data.section)?.label ?? data.section;
   }
+  // A list with no heading yet — a scroll story, steps, features — is named by its first item.
+  const first = Array.isArray(data.items) ? (data.items[0] as { title?: unknown } | undefined) : undefined;
+  if (typeof first?.title === "string" && first.title.trim()) return first.title.trim();
   return "";
 }
 
@@ -544,6 +548,21 @@ export function SectionEditor({ type, sectionId, options }: {
               </Row>
               <Text path={[...p, "body"]} label="Words" multiline required hint="Plain text; a blank line starts a new paragraph." />
               <ImagePath path={[...p, "image_path"]} label="Picture" hint="Optional. Shown beside the words from laptop width, in 4:3." />
+            </>
+          )} />
+        </>
+      );
+
+    case "story":
+      return (
+        <>
+          <Head />
+          <Repeater path={["items"]} label="Steps" subject="Step" min={2} max={6} blank={() => ({})}
+            hint="Two to six. Each step's words scroll past while its picture is held in place, changing as the next step arrives." row={(p) => (
+            <>
+              <Text path={[...p, "title"]} label="Title" required />
+              <Text path={[...p, "body"]} label="Words" multiline required hint="Plain text; a blank line starts a new paragraph." />
+              <ImagePath path={[...p, "image_path"]} label="Picture" hint="Required. Shown while this step is in view; pictures of one shape change most smoothly." />
             </>
           )} />
         </>

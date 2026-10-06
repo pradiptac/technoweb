@@ -1633,6 +1633,7 @@ const SECTION_TYPES = [
   { value: 'countdown', label: 'Countdown', blurb: 'Days, hours, minutes and seconds to a date — a launch, an offer ending, an event — with a line for when it has passed.' },
   { value: 'columns', label: 'Columns of text', blurb: 'Two or three columns side by side, each with a heading and a body from the editor.' },
   { value: 'map', label: 'Map', blurb: 'A Google map, loaded only when somebody presses it, with the address beside it.' },
+  { value: 'story', label: 'Scroll story', blurb: 'Steps that scroll past a picture held in place, the picture changing with each step — a product tour, a process, a project told in stages.' },
   { value: 'theme_section', label: 'From the theme', blurb: 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.' },
 ];
 const SECTION_PRESETS = [
@@ -1697,6 +1698,13 @@ const SAMPLE_BUILDER_BLOCKS = [
 /** The presenter's shape, for this mock's few types: hidden ones gone, a live list resolved. */
 function presentSections(blocks) {
   return blocks.filter((b) => !b.hidden).map((b) => {
+    // A scroll story's pictures are paths as stored and URLs as presented, the tabs' rule.
+    if (b.type === 'story') {
+      const items = (Array.isArray(b.data?.items) ? b.data.items : []).map(({ image_path, ...it }) => ({
+        ...it, image: image_path ? `http://127.0.0.1:8899/storage/${image_path}` : null, image_alt: it.title ?? '', image_focus: null,
+      }));
+      return { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, style: b.style ?? null, data: { ...b.data, items } };
+    }
     if (b.type !== 'cards') return { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, data: b.data };
     const items = solutions.slice(0, b.data.limit || 6).map((s) => ({
       title: s.title, summary: s.summary ?? null, path: `/solutions/${s.slug}`,
@@ -2161,7 +2169,7 @@ createServer(async (req, res) => {
     meetings_enabled: '1', meeting_slot_step: '30', meeting_min_notice_hours: '4', meeting_max_days: '30',
     push_api_key: 'AIzaMockKey000000000000000000000000000', push_project_id: 'technoware-push',
     push_messaging_sender_id: '123456789012', push_app_id: '1:123456789012:web:0a1b2c3d4e5f', push_vapid_key: 'BMockVapidKey',
-    motion_reveal: 'lift', motion_buttons: 'lift', motion_page: 'none', motion_loader: 'none', motion_splash: '0', motion_hero: 'grid',
+    motion_reveal: 'lift', motion_buttons: 'lift', motion_page: 'none', motion_loader: 'none', motion_splash: '0', motion_hero: 'grid', motion_progress: 'none',
     login_backdrop: 'image', login_intensity: 'medium', login_speed: 'normal', stats_animation: 'count',
     // The site theme. CI builds against this mock, and `classic` is also the
     // fallback for a missing key — so leaving it out would hide nothing and
@@ -2941,6 +2949,7 @@ createServer(async (req, res) => {
         motion: [
           s('motion_reveal', 'lift', { group: 'motion' }), s('motion_buttons', 'lift', { group: 'motion' }), s('motion_page', 'none', { group: 'motion' }),
           s('motion_loader', 'none', { group: 'motion' }), s('motion_splash', '0', { group: 'motion', type: 'boolean' }), s('motion_hero', 'grid', { group: 'motion' }),
+          s('motion_progress', 'none', { group: 'motion' }),
         ],
         themes: [s('site_theme', 'classic', { group: 'themes' }), s('site_theme_options', null, { group: 'themes', type: 'text' })],
         announcement: [

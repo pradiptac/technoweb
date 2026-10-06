@@ -487,6 +487,19 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   login_backdrop: { label: "Behind the form" },
   login_intensity: { label: "Animation intensity" },
   login_speed: { label: "Animation speed" },
+  // The Motion tab is one picker (`motion-picker.tsx`), which draws its own
+  // legends; these labels name the fields in the command palette.
+  motion_reveal: { label: "Sections arriving" },
+  motion_buttons: { label: "Buttons" },
+  motion_cards: { label: "Cards" },
+  motion_page: { label: "Page transitions" },
+  motion_loader: { label: "While the next page loads" },
+  motion_progress: {
+    label: "Reading progress",
+    hint: "A thin line along the top of every public page that fills as the visitor scrolls down it. Still for visitors who ask for less motion.",
+  },
+  motion_splash: { label: "First-visit splash" },
+  motion_hero: { label: "Behind a heading" },
   newsletter_company: { label: "Sender name in the footer", hint: "Falls back to the company name above." },
   newsletter_from_name: { label: "From name", hint: "What a recipient sees in place of the address." },
   newsletter_from_email: { label: "From address", hint: "Must be on a domain whose SPF and DKIM records name your mail provider, or messages land in spam." },
@@ -948,6 +961,9 @@ export const FIELD_ORDER: Record<string, string[]> = {
   general: ["company_name", "tagline", "logo_path", "favicon_path", "console_notice_seconds"],
   references: ["ticket_reference_prefix", "visit_reference_prefix", "meeting_reference_prefix", "order_number_prefix"],
   login: ["login_backdrop", "login_intensity", "login_speed", "login_image_path", "login_message"],
+  // `motion_reveal` first: it is the row the form draws the whole picker on.
+  motion: ["motion_reveal", "motion_buttons", "motion_cards", "motion_page", "motion_loader", "motion_progress",
+           "motion_splash", "motion_hero"],
   seo: ["default_meta_description", "default_og_image", "landing_page_cap",
         "seo_ai_enabled", "seo_ai_model", "seo_ai_daily_cap",
         "seo_ai_business_type", "seo_ai_audience", "seo_ai_locations", "seo_ai_context"],

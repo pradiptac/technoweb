@@ -105,6 +105,15 @@ export default async function MarketingLayout({ children }: { children: React.Re
           <RouteProgress style={motion.loader as "bar" | "pulse"} />
         </Suspense>
       )}
+      {/*
+        The reading-progress line (Motion → Reading progress, 0.114.0): one
+        empty element, `display: none` unless the wrapper above carries
+        `data-motion-progress="bar"` and the browser has scroll-driven
+        animations — then a fixed hairline scaled along a `scroll(root)`
+        timeline. Always rendered, so the attribute alone decides; never
+        JavaScript, so nothing is written onto this markup after it arrives.
+      */}
+      <div data-scroll-progress aria-hidden="true" />
       {/* The strip, the header, `<main>` around the page, the footer — the
           theme's, from the same data whichever theme it is. */}
       <Chrome {...chrome} options={theme.options} themeId={theme.manifest.id}>{children}</Chrome>

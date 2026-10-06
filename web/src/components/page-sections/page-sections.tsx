@@ -20,6 +20,7 @@ import {
 } from "./visual-sections";
 import { ColumnsSection, CountdownSection, DownloadsSection, MapSection, TeamSection } from "./people-sections";
 import { ThemeSectionSlot } from "./theme-section";
+import { StorySection } from "./story-section";
 import { setHeroLevel } from "@/lib/hero-heading";
 import { LOCKED_SECTION } from "@/themes/options";
 
@@ -91,6 +92,13 @@ export async function PageSections({ sections, crumbs, ownsH1 = true, marked = f
  * learn about spacing, width, alignment or heading size. No style, no
  * wrapper: an unstyled section's markup is what it always was.
  *
+ * `headline` and `scroll` (0.114.0) are the motion half: how the section's
+ * heading arrives and what the section does as the page scrolls. Both are
+ * CSS scroll-driven animations keyed on these attributes, inside the
+ * reduced-motion guard and `@supports (animation-timeline: view())`, so a
+ * browser without them or a visitor who asked for less motion simply gets
+ * the section at rest.
+ *
  * Devices it is not shown on are the `hidden` **class** at those widths
  * (Tailwind v4's preflight makes the attribute `!important`, which no
  * breakpoint could win back).
@@ -110,6 +118,8 @@ function StyledSection({ style, children }: { style?: SectionStyle | null; child
       data-width={style.width}
       data-align={style.align}
       data-heading={style.heading}
+      data-headline={style.headline}
+      data-scroll={style.scroll}
       className={hide || undefined}
     >
       {children}
@@ -174,6 +184,7 @@ function renderSection(
     case "countdown": return <CountdownSection data={section.data} reveal={reveal} />;
     case "columns": return <ColumnsSection data={section.data} reveal={reveal} />;
     case "map": return <MapSection data={section.data} reveal={reveal} />;
+    case "story": return <StorySection data={section.data} eager={eager} reveal={reveal} id={`story-${section.id.slice(0, 8)}`} />;
     // The active theme's own homepage section, arriving as `HomeSection` would
     // have it arrive: still unless the editor chose a reveal, and never the
     // hero, which opens a page (the homepage's rule, `section-bg.tsx`).

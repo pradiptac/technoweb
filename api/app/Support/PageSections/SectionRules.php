@@ -64,6 +64,11 @@ final class SectionRules
         'width' => ['default', 'medium', 'narrow'],
         'align' => ['default', 'center'],
         'heading' => ['default', 's', 'l'],
+        // Motion (0.114.0): how the heading moves as the section scrolls into
+        // view, and an effect tied to the scroll itself. The frontend draws
+        // both inside the reduced-motion guard.
+        'headline' => ['default', 'rise', 'wipe', 'shimmer'],
+        'scroll' => ['default', 'parallax', 'zoom', 'fade'],
     ];
 
     /** Where a section may be shown; all three is the default. */
@@ -115,6 +120,8 @@ final class SectionRules
             "{$prefix}.*.style.width" => ['nullable', Rule::in(self::STYLE['width'])],
             "{$prefix}.*.style.align" => ['nullable', Rule::in(self::STYLE['align'])],
             "{$prefix}.*.style.heading" => ['nullable', Rule::in(self::STYLE['heading'])],
+            "{$prefix}.*.style.headline" => ['nullable', Rule::in(self::STYLE['headline'])],
+            "{$prefix}.*.style.scroll" => ['nullable', Rule::in(self::STYLE['scroll'])],
             "{$prefix}.*.style.anchor" => ['nullable', 'string', 'regex:'.self::ANCHOR],
             "{$prefix}.*.style.show_on" => ['nullable', 'array', 'min:1'],
             "{$prefix}.*.style.show_on.*" => ['string', Rule::in(self::DEVICES)],
@@ -381,6 +388,17 @@ final class SectionRules
                 'url' => ['required', 'string', 'max:2048', 'starts_with:https://www.google.com/maps/embed'],
                 'address' => ['nullable', 'string', 'max:300'],
             ],
+            // Steps that scroll past a picture held in place; each step's
+            // picture replaces the held one as it passes. Plain text only.
+            PageSectionType::Story => [
+                'kicker' => ['nullable', 'string', 'max:60'],
+                'heading' => ['nullable', 'string', 'max:120'],
+                'lede' => ['nullable', 'string', 'max:300'],
+                'items' => ['required', 'array', 'min:2', 'max:6'],
+                'items.*.title' => ['required', 'string', 'max:100'],
+                'items.*.body' => ['required', 'string', 'max:600'],
+                'items.*.image_path' => ['required', 'string', 'max:255'],
+            ],
             // One of the active theme's homepage sections, by id. Checked for
             // the shape of an id only, the rule `site_theme` and the section
             // order follow: the list is the frontend's (`HOME_SECTIONS`), and
@@ -407,15 +425,48 @@ final class SectionRules
     }
 
     /**
+     * Messages for one type, where the shared wording would be wrong for it —
+     * a story's step is not a tab. Keyed relative to the row's `data`.
+     *
+     * @var array<string, array<string, string>>
+     */
+    private const TYPE_MESSAGES = [
+        'story' => [
+            'items.required' => 'A story needs at least two steps.',
+            'items.min' => 'A story needs at least two steps.',
+            'items.max' => 'A story holds at most six steps.',
+            'items.*.title.required' => 'Give the step a title.',
+            'items.*.title.max' => 'Keep a step’s title to 100 characters.',
+            'items.*.body.required' => 'Write the words for this step.',
+            'items.*.body.max' => 'Keep a step’s words to 600 characters.',
+            'items.*.image_path.required' => 'Choose a picture for this step.',
+        ],
+    ];
+
+    /**
      * Messages a person can act on, for the keys every section shares.
      *
      * @return array<string, string>
      */
-    public static function messages(string $prefix = 'blocks'): array
+    public static function messages(string $prefix = 'blocks', mixed $blocks = null): array
     {
         $d = "{$prefix}.*.data";
 
+        // A type whose words differ from the shared ones gets them for its own
+        // rows, keyed by position and listed first: the validator takes the
+        // first message whose key matches, so these win over the wildcards.
+        $own = [];
+        if (is_array($blocks)) {
+            foreach ($blocks as $i => $block) {
+                $type = is_array($block) ? PageSectionType::tryFrom((string) ($block['type'] ?? '')) : null;
+                foreach ($type ? (self::TYPE_MESSAGES[$type->value] ?? []) : [] as $key => $message) {
+                    $own["{$prefix}.{$i}.data.{$key}"] = $message;
+                }
+            }
+        }
+
         return [
+            ...$own,
             "{$prefix}.max" => 'A page holds at most '.self::MAX_SECTIONS.' sections.',
             "{$prefix}.*.type.required" => 'Every section needs a type.',
             "{$prefix}.*.type.enum" => 'That is not a kind of section this site can draw.',
@@ -614,6 +665,7 @@ final class SectionRules
                 $media('photo_path', 'image/');
                 break;
             case PageSectionType::Tabs:
+            case PageSectionType::Story:
                 $itemPictures('image_path');
                 break;
             case PageSectionType::Testimonials:

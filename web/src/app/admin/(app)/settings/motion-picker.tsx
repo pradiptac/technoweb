@@ -5,13 +5,15 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Backdrop } from "@/components/ui/backdrop";
 import {
-  BUTTONS, CARDS, HEROS, LOADERS, PAGES, REVEALS, SPLASH_NOTE,
+  BUTTONS, CARDS, HEROS, LOADERS, PAGES, PROGRESS, REVEALS, SPLASH_NOTE,
   type HeroVariant, type MotionChoice,
 } from "@/lib/motion-choices";
+import { MOTION_PRESETS, type MotionPreset } from "@/lib/motion-presets";
 import type { SettingRow } from "@/lib/admin";
 
 /**
- * The Motion tab: six choices, each a row of tiles.
+ * The Motion tab: eight choices, each a row of tiles, under a row of
+ * presets (`lib/motion-presets.ts`) that set seven of them at once.
  *
  * Every tile is a label around an `sr-only` radio — the theme cards'
  * markup, so the audit's tap-target and focus rules are already met — and
@@ -39,6 +41,7 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
   const [splash, setSplash] = useState(stored.motion_splash === "1" ? "1" : "0");
   const [hero, setHero] = useState(stored.motion_hero || HEROS[0].id);
   const [cards, setCards] = useState(stored.motion_cards || CARDS[0].id);
+  const [progress, setProgress] = useState(stored.motion_progress || PROGRESS[0].id);
 
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -47,7 +50,7 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
     const chosen: Record<string, string> = {
       setting__motion_reveal: reveal, setting__motion_buttons: buttons, setting__motion_page: page,
       setting__motion_loader: loader, setting__motion_splash: splash, setting__motion_hero: hero,
-      setting__motion_cards: cards,
+      setting__motion_cards: cards, setting__motion_progress: progress,
     };
     for (const input of el.querySelectorAll<HTMLInputElement>('input[type="radio"]')) {
       const should = input.value === chosen[input.name];
@@ -55,10 +58,57 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
     }
   });
 
+  /*
+   * A preset writes the tiles, never the settings: the state changes, the
+   * effect above re-asserts the radios, and nothing is saved until Save is
+   * pressed — the "Start from a look" rule. A programmatic state change fires
+   * no input event, so one is announced on the wrapper; it bubbles to the
+   * form, where `FormActions` hears it and the leave-guard knows the screen
+   * holds unsaved changes.
+   */
+  const current: Record<string, string> = {
+    motion_reveal: reveal, motion_buttons: buttons, motion_page: page, motion_loader: loader,
+    motion_hero: hero, motion_cards: cards, motion_progress: progress,
+  };
+  const setters: Record<string, (v: string) => void> = {
+    motion_reveal: setReveal, motion_buttons: setButtons, motion_page: setPage, motion_loader: setLoader,
+    motion_hero: setHero, motion_cards: setCards, motion_progress: setProgress,
+  };
+  const applies = (preset: MotionPreset) => Object.entries(preset.values).every(([k, v]) => current[k] === v);
+  const apply = (preset: MotionPreset) => {
+    for (const [key, value] of Object.entries(preset.values)) setters[key]?.(value);
+    ref.current?.dispatchEvent(new Event("change", { bubbles: true }));
+  };
+
   return (
     // Both columns of the settings grid: a picker is one control, and in one
     // column its tiles stopped at half the screen (the ThemePicker rule).
     <div ref={ref} className="space-y-8 sm:col-span-2">
+      <div>
+        <p className="mb-2 text-11-5 font-semibold uppercase tracking-[.1em] text-muted">Start from a preset</p>
+        <div className="grid grid-cols-1 gap-2.5 min-[420px]:grid-cols-2 lg:grid-cols-5">
+          {MOTION_PRESETS.map((preset) => {
+            const on = applies(preset);
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => apply(preset)}
+                className={cn(
+                  "flex flex-col items-start gap-1 rounded-lg border p-3 text-left transition-colors duration-(--duration-fast)",
+                  on ? "border-brand-500 bg-brand-50 ring-2 ring-brand-500/30" : "border-line-strong bg-card hover:border-faint",
+                )}
+              >
+                <span className="text-13-5 font-semibold text-ink">{preset.label}</span>
+                <span className="text-12 leading-snug text-muted">{preset.note}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-12 text-faint">A preset sets the choices below; nothing changes on the site until you save. Change any one afterwards.</p>
+      </div>
+
       <Choices
         name="setting__motion_reveal" legend="Sections arriving" value={reveal} onChange={setReveal} choices={REVEALS}
         intro="How a section comes into view as the page is scrolled. Hover a tile to see it."
@@ -114,6 +164,20 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
       />
 
       <Choices
+        name="setting__motion_progress" legend="Reading progress" value={progress} onChange={setProgress} choices={PROGRESS}
+        intro="A thin line along the top of every public page that fills as the visitor scrolls down it. Still for visitors who ask for less motion."
+        preview={(c) => (
+          <span className="flex h-14 flex-col rounded border border-line-strong bg-card" aria-hidden>
+            <span className="block h-0.5 w-full overflow-hidden rounded-t bg-surface-2">
+              {c.id !== "none" && <span className="block h-full w-2/5 bg-brand-600" />}
+            </span>
+            <span className="mt-2 ml-2 block h-1.5 w-1/2 rounded-sm bg-muted/50" />
+            <span className="mt-1 ml-2 block h-1.5 w-2/3 rounded-sm bg-muted/50" />
+          </span>
+        )}
+      />
+
+      <Choices
         name="setting__motion_splash" legend="First-visit splash" value={splash} onChange={setSplash}
         choices={[
           { id: "0", label: "Off", note: "The page paints at once. The current behaviour." },
@@ -154,7 +218,8 @@ function Choices({
   preview: (c: MotionChoice) => ReactNode;
 }) {
   return (
-    <fieldset>
+    // The id is the setting's, so the command palette's `#setting__<key>` lands here.
+    <fieldset id={name}>
       <legend className="mb-1 text-13-5 font-semibold">{legend}</legend>
       <p className="measure mb-3 text-13 text-muted">{intro}</p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">

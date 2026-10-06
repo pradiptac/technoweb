@@ -62,7 +62,7 @@ export function HeroSection({ data, first, crumbs, eager, revealId }: {
 
   if (layout === "cover" && picture) {
     return (
-      <section data-page-section="hero" data-hero-layout="cover" data-aos={reveal ?? undefined} className="relative overflow-hidden bg-dark">
+      <section data-page-section="hero" data-hero-layout="cover" data-frame data-aos={reveal ?? undefined} className="relative overflow-hidden bg-dark">
         {picture("100vw", "opacity-35")}
         <Container className="relative py-20 lg:py-28">
           {trail && <div className="mb-8"><Breadcrumbs crumbs={crumbs} onBanner /></div>}
@@ -93,7 +93,7 @@ export function HeroSection({ data, first, crumbs, eager, revealId }: {
           {trail && <div className="mb-8"><Breadcrumbs crumbs={crumbs} /></div>}
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
             <div className="min-w-0">{words(false)}</div>
-            <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-line-strong bg-surface-2">
+            <div data-frame className="relative aspect-[4/3] overflow-hidden rounded-xl border border-line-strong bg-surface-2">
               {picture("(min-width: 1024px) 45vw, 90vw")}
             </div>
           </div>

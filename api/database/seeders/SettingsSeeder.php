@@ -682,6 +682,9 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'motion', 'key' => 'motion_hero', 'value' => 'grid', 'type' => 'string'],
             // What a card does under the pointer (2026-10-05): lift is the site as it was.
             ['group' => 'motion', 'key' => 'motion_cards', 'value' => 'lift', 'type' => 'string'],
+            // A reading-progress bar along the top of public pages (0.114.0):
+            // `none` or `bar`, off unless somebody chooses it.
+            ['group' => 'motion', 'key' => 'motion_progress', 'value' => 'none', 'type' => 'string'],
 
             /*
              * The site theme: which folder under `web/src/themes/` builds the

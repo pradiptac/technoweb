@@ -11,7 +11,7 @@ import type {
   DividerSectionData, FeaturesSectionData, MediaTextSectionData, RichTextSectionData,
   TestimonialSectionData, VideoSectionData,
 } from "@/types/api";
-import { SectionButtons, SectionFrame, SectionHead } from "./section-parts";
+import { HeadlineWords, SectionButtons, SectionFrame, SectionHead } from "./section-parts";
 
 /**
  * The self-contained section types — everything whose words and pictures
@@ -44,7 +44,7 @@ export function MediaTextSection({ data, eager, reveal }: { data: MediaTextSecti
       ? <video src={data.video} controls preload="metadata" playsInline className="aspect-video w-full rounded-lg bg-dark" aria-label={data.heading} />
       : data.image
         ? (
-            <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-line-strong bg-surface-2">
+            <div data-frame className="relative aspect-[4/3] overflow-hidden rounded-xl border border-line-strong bg-surface-2">
               <Image
                 src={data.image}
                 alt={data.image_alt ?? ""}
@@ -64,7 +64,7 @@ export function MediaTextSection({ data, eager, reveal }: { data: MediaTextSecti
         <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
           <div className={cn("min-w-0", data.side === "left" && "lg:order-2")}>
             {data.kicker && <span className="text-11-5 font-semibold uppercase tracking-[.13em] text-secondary-ink">{data.kicker}</span>}
-            <h2 className={cn("display-2 text-balance", data.kicker && "mt-3.5")}>{data.heading}</h2>
+            <h2 data-section-heading className={cn("display-2 text-balance", data.kicker && "mt-3.5")}><HeadlineWords text={data.heading} /></h2>
             {data.body && <ProseWithShortcodes html={data.body} className="mt-5" />}
             <SectionButtons primary={data.primary} secondary={data.secondary} />
           </div>

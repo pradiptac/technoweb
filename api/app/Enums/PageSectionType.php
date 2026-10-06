@@ -62,6 +62,12 @@ enum PageSectionType: string
     case Columns = 'columns';
     case Map = 'map';
     /**
+     * Steps that scroll past a picture held in place (2026-10-06, 0.114.0):
+     * each step carries its own picture, and the held one changes as the
+     * steps pass.
+     */
+    case Story = 'story';
+    /**
      * One of the active theme's own homepage sections (2026-10-06, 0.113.0):
      * the hero, the solutions, the partner strip… — stored as the section's
      * id, drawn by the theme that is active when the page renders, so it
@@ -106,6 +112,7 @@ enum PageSectionType: string
             self::Countdown => 'Countdown',
             self::Columns => 'Columns of text',
             self::Map => 'Map',
+            self::Story => 'Scroll story',
             self::ThemeSection => 'From the theme',
             self::Saved => 'Saved section',
         };
@@ -146,6 +153,7 @@ enum PageSectionType: string
             self::Countdown => 'Days, hours, minutes and seconds to a date — a launch, an offer ending, an event — with a line for when it has passed.',
             self::Columns => 'Two or three columns side by side, each with a heading and a body from the editor.',
             self::Map => 'A Google map, loaded only when somebody presses it, with the address beside it.',
+            self::Story => 'Two to six steps that scroll past a picture held in place, the picture changing with each step — a product tour, a process, a project told in stages.',
             self::ThemeSection => 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.',
             self::Saved => 'A section from the library, kept in step with it: edit it once and every page that places it changes.',
         };

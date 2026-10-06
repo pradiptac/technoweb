@@ -406,6 +406,56 @@ styles through the Motion tab); `audit.mjs` light and dark and
 `audit:mobile` clean on a page carrying all four, and 0px of overflow at
 320px sampled every 30ms through each reveal.
 
+## Scroll-driven motion (0.114.0, 2026-10-06)
+
+Everything in this release is a CSS scroll-driven animation
+(`animation-timeline: view()`, `scroll()` and named view timelines), so no
+script runs, nothing is written onto the server's markup, and a browser
+without support simply shows the finished page. Every rule that hides or
+moves anything sits inside `prefers-reduced-motion: no-preference` **and**
+`@supports (animation-timeline: view())`; outside them the content is static
+and whole. A heading already on screen when the page loads is past its range,
+so it is drawn in its final state.
+
+**Heading arrives** (a section's `style.headline`, stamped as
+`data-headline` by `StyledSection`). `SectionHead` and the media-and-text
+heading render every word as `<span data-word style="--w:i">` with the
+spaces kept as text — always, so the markup does not depend on the choice.
+`rise` makes each word `inline-block` (inside the guard only) and staggers it
+by *range*, not by delay — a delay means time, and a scroll timeline has none
+— each word over `cover calc(min(var(--w),8)*1.5vh)` to `+22vh`, so even a
+long heading has finished a third of the way up the screen. `wipe` is a
+`clip-path` from `inset(-.25em 100% -.25em -.25em)` (the negative inset
+keeps descenders). `shimmer` sweeps a gradient of `currentColor`, `brand-ink`
+and `accent-ink` with `-webkit-text-fill-color: transparent`, never
+`color: transparent`, so the words keep their real ink for the contrast
+audit. A theme section's heading (no word spans) rises whole. With an
+Assemble or Cascade reveal, their more specific rule animates the same `h2`,
+so wipe and shimmer do not show — the heading is never left hidden.
+
+**While scrolling** (`style.scroll`, `data-scroll`). `parallax` drifts a
+picture between `translate: 0 -6%` and `0 6%` at `scale: 1.14`, only inside a
+frame marked `data-frame` (media-and-text, hero, tabs, the story's inline
+pictures), which the rule clips with `overflow: clip` — a scale-up outside a
+clipping box would widen the document. A section's background picture drifts
+the same way. `zoom` scales the wrapper from .94 (down only) and fades it from
+.4; `fade` fades in on entry and to .25 on exit. Both act on the
+`[data-section-style]` wrapper, never on the `<section>`, whose transform
+belongs to its reveal.
+
+**Reading progress** (`motion_progress`, `none`|`bar`, stamped as
+`data-motion-progress` by `motionAttrs()`): one `<div data-scroll-progress>`
+in the marketing layout and the theme preview, `display: none` unless the
+attribute says `bar`, then a fixed 3px brand line whose `scale` runs `0 1` to
+`1 1` on `scroll(root block)` — `scale`, so it never adds to `scrollWidth`;
+`z-index` 50, above the header (40) and below the route loader (60).
+
+**Presets** (`lib/motion-presets.ts`, drawn by `motion-picker.tsx`): Standard,
+Calm, Lively, Cinematic, Still — each sets the seven motion choices (never
+the splash) in the picker's own state and fires a bubbling `change`, so the
+leave guard knows; nothing is saved until Save. A preset reads as pressed
+when every value it sets is the current one.
+
 ## A frozen loop is a repeat (0.108.0, 2026-10-05)
 
 Under `prefers-reduced-motion: reduce` every moving `LogoMarquee` mode —

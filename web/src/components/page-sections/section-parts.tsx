@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { ButtonLink } from "@/components/ui/button";
 import type { SectionRevealAttr } from "@/lib/motion-choices";
 import { cn } from "@/lib/utils";
@@ -54,9 +54,31 @@ export function SectionHead({
       {kicker && (
         <span className="text-11-5 font-semibold uppercase tracking-[.13em] text-secondary-ink">{kicker}</span>
       )}
-      {heading && <h2 className={cn("display-2 text-balance", kicker && "mt-3.5")}>{heading}</h2>}
+      {heading && <h2 data-section-heading className={cn("display-2 text-balance", kicker && "mt-3.5")}><HeadlineWords text={heading} /></h2>}
       {lede && <p className={cn("lede measure mt-4", center && "mx-auto")}>{lede}</p>}
     </div>
+  );
+}
+
+/**
+ * A section heading's words, each in its own `<span data-word>` carrying its
+ * position as `--w` (0.114.0, the section style's "Heading arrives"). The
+ * spaces between them stay real text outside the spans, so the heading reads,
+ * wraps and balances exactly as the plain string did; the spans are inline and
+ * inert until `[data-headline="rise"]` in globals.css makes them
+ * `inline-block` and staggers them on the heading's own scroll timeline —
+ * inside the reduced-motion guard, so nobody else sees anything but the words.
+ */
+export function HeadlineWords({ text }: { text: string }) {
+  let w = 0;
+  return (
+    <>
+      {text.split(/(\s+)/).map((part, i) => {
+        if (!part) return null;
+        if (/^\s+$/.test(part)) return part;
+        return <span key={i} data-word style={{ "--w": w++ } as CSSProperties}>{part}</span>;
+      })}
+    </>
   );
 }
 

@@ -1276,6 +1276,42 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
   .route-progress[data-style="pulse"][data-state="done"]   { animation: page-fade .25s var(--ease-brand) reverse both; }
 }
 
+/* ------------------------------------------------------- reading progress */
+/*
+ * The reading-progress line (`motion_progress`, 0.114.0): one empty
+ * `[data-scroll-progress]` the marketing layout always renders, drawn only
+ * under `[data-motion-progress="bar"]`, with motion allowed and in a browser
+ * that has scroll-driven animations. Its length is the page's own scroll
+ * position — `scroll(root block)` — so there is no listener and nothing to
+ * hydrate. Fixed and inset on both sides, so it is never wider than the
+ * viewport and can never add to the document's width; `scale`, never
+ * `width`, for the route loader's reason; above the sticky header (`z-40`)
+ * and below the route loader (60), which means more while it runs; and
+ * `pointer-events: none`, so it never takes a press meant for the header.
+ * Everywhere else it is `display: none`, which the audit skips.
+ */
+[data-scroll-progress] { display: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    @keyframes scroll-progress { from { scale: 0 1; } to { scale: 1 1; } }
+
+    [data-motion-progress="bar"] [data-scroll-progress] {
+      display: block;
+      position: fixed;
+      inset: 0 0 auto 0;
+      z-index: 50;
+      height: 3px;
+      pointer-events: none;
+      background: var(--color-brand-600);
+      transform-origin: left center;
+      scale: 0 1;
+      animation: scroll-progress linear both;
+      animation-timeline: scroll(root block);
+    }
+  }
+}
+
 /* ---------------------------------------------------------------- splash */
 /*
  * The first-visit splash (components/layout/splash.tsx). Rendered on the
@@ -4080,6 +4116,224 @@ section[data-page-section="rich_text"] + section[data-page-section="rich_text"] 
 [data-section-style][data-heading="s"] [data-page-section] .display-1 { font-size: clamp(27px, 4.2vw, 42px); }
 [data-section-style][data-heading="l"] [data-page-section] h2.display-2 { font-size: clamp(32px, 3.3vw + 12px, 56px); }
 [data-section-style][data-heading="l"] [data-page-section] .display-1 { font-size: clamp(40px, 4.4vw + 14px, 76px); }
+
+/*
+ * A builder section's motion (0.114.0, the section style's "Heading arrives"
+ * and "As the page scrolls"; docs/motion.md). Every effect here is a CSS
+ * scroll-driven animation — progress is the section's or the heading's place
+ * on the screen, not time — so there is no observer, no listener and nothing
+ * written onto the server's markup. All of it sits inside
+ * `prefers-reduced-motion: no-preference` *and* `@supports
+ * (animation-timeline: view())`: a reduced-motion visitor, or a browser
+ * without scroll timelines, gets every section at rest and fully visible,
+ * because the hidden start states exist only in keyframes declared in here.
+ *
+ * The three rules every motion rule keeps hold here too. Nothing moves
+ * sideways: words rise, pictures drift vertically, and a section only ever
+ * scales *down* — a picture scaled up does so inside a frame that clips it.
+ * Nothing changes a computed `color` or `background-color` the contrast audit
+ * reads: opacity, `translate`, `scale` and `clip-path` are paint. And the
+ * shimmer's gradient text is graded inks only (`currentColor` — the heading's
+ * own ink — `brand-ink`, `accent-ink`), which is how the audit grades gradient
+ * text, by its stops.
+ *
+ * Ranges are offsets into `cover` in `vh` rather than percentages: `cover` is
+ * as long as the screen *plus* the element, so a percentage would finish a
+ * tall section's effect a different distance up the screen from a short one's.
+ * `cover 33vh` is "once the element's top is a third of the way up" whatever
+ * its height, and an element already that far up when the page loads simply
+ * paints its final state.
+ *
+ * The heading the headline effects reach is a builder section's own
+ * (`[data-section-heading]`, `SectionHead` and the media-and-text heading) or,
+ * in a theme section, the theme's `SectionHeader` (`h2.display-2`). An
+ * Assemble or Cascade reveal animates that same `h2` as one of its pieces,
+ * and its much more specific rule wins: the heading then arrives with the
+ * reveal and a wipe or shimmer is simply not seen — never stuck hidden, since
+ * the hidden state lives only in these keyframes. Rise animates the words,
+ * not the `h2`, and composes with either.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    @keyframes headline-rise { from { opacity: 0; translate: 0 .55em; } to { opacity: 1; translate: none; } }
+    @keyframes headline-wipe {
+      from { clip-path: inset(-.25em 100% -.25em -.25em); }
+      to { clip-path: inset(-.25em); }
+    }
+    @keyframes headline-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+
+    /*
+     * Rise: each word on the heading's own timeline, staggered by its place
+     * (`--w`, written by `HeadlineWords`). A scroll timeline has no clock, so
+     * a delay staggers nothing — the stagger is each word's range starting
+     * 1.5vh later than the last, capped at the ninth word so a long heading
+     * is whole by 34vh. `inline-block` only here, because `translate` does
+     * not move an inline box; outside the guard the words are plain inline
+     * text. A theme's heading has no word spans and rises whole.
+     */
+    [data-section-style][data-headline="rise"] [data-section-heading] { view-timeline-name: --section-headline; }
+    [data-section-style][data-headline="rise"] [data-section-heading] [data-word] {
+      display: inline-block;
+      animation: headline-rise var(--ease-brand) both;
+      animation-timeline: --section-headline;
+      animation-range: cover calc(min(var(--w, 0), 8) * 1.5vh) cover calc(22vh + min(var(--w, 0), 8) * 1.5vh);
+    }
+    [data-section-style][data-headline="rise"] [data-page-section="theme_section"] h2.display-2 {
+      animation: headline-rise var(--ease-brand) both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 30vh;
+    }
+
+    /*
+     * Wipe: uncovered left to right. The insets reach a quarter of an em
+     * past the box at the end, so a descender or an accent that overhangs a
+     * tight display line-height is never shaved off once it has arrived.
+     */
+    [data-section-style][data-headline="wipe"] :is([data-section-heading], [data-page-section="theme_section"] h2.display-2) {
+      animation: headline-wipe var(--ease-brand) both;
+      animation-timeline: view();
+      animation-range: cover 2vh cover 32vh;
+    }
+
+    /*
+     * Shimmer: a band of brand and accent ink crosses the words once. The
+     * fill is `currentColor` on both sides of the band, so at rest — before,
+     * after, and should an Assemble reveal's rule take the animation over —
+     * the heading reads in its own ink. `-webkit-text-fill-color`, not
+     * `color: transparent`, so `currentColor` is still the heading's ink and
+     * the words inside keep a real `color` for the audit to grade.
+     */
+    [data-section-style][data-headline="shimmer"] :is([data-section-heading], [data-page-section="theme_section"] h2.display-2) {
+      background-image: linear-gradient(100deg, currentColor 0 38%, var(--color-brand-ink) 45%, var(--color-accent-ink) 50%, var(--color-brand-ink) 55%, currentColor 62% 100%);
+      background-size: 300% 100%;
+      background-repeat: no-repeat;
+      background-position: 0 0;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: headline-shimmer linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 40vh;
+    }
+
+    /*
+     * Parallax: the pictures drift a little slower than the page. Only
+     * pictures that already sit in a frame that clips — `[data-frame]`: the
+     * media-and-text and split-hero frames, the cover hero, a tab's picture,
+     * a story step's — plus the section's own background picture, which
+     * `SectionBg`'s shell clips. Scaled to 114% so a 6% drift either way
+     * never shows the frame's edge. Sliders, galleries and the before/after
+     * pair carry no `[data-frame]`: they move by themselves already.
+     */
+    @keyframes scroll-drift { from { translate: 0 -6%; scale: 1.14; } to { translate: 0 6%; scale: 1.14; } }
+
+    [data-section-style][data-scroll="parallax"] [data-frame] { overflow: clip; }
+    [data-section-style][data-scroll="parallax"] [data-frame] > img,
+    [data-section]:has(> div > [data-section-style][data-scroll="parallax"]) > img {
+      animation: scroll-drift linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+
+    /*
+     * Zoom: the section settles in from 94% and 40% opacity, done once its
+     * top is 45vh up the screen. Scaled down only, so its box never grows
+     * past the page; `scale` and `opacity` on the style wrapper, never on the
+     * `<section>`, whose `transform` and `opacity` belong to its reveal.
+     */
+    @keyframes scroll-zoom { from { opacity: .4; scale: .94; } to { opacity: 1; scale: 1; } }
+    [data-section-style][data-scroll="zoom"] {
+      animation: scroll-zoom var(--ease-brand) both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 45vh;
+    }
+
+    /*
+     * Fade: in as the section enters, and gently out over the last stretch
+     * of its leaving — never below a quarter, so a section scrolled past
+     * still reads as there.
+     */
+    @keyframes scroll-fade {
+      entry 0% { opacity: .25; }
+      entry 100% { opacity: 1; }
+      exit 40% { opacity: 1; }
+      exit 100% { opacity: .25; }
+    }
+    [data-section-style][data-scroll="fade"] {
+      animation: scroll-fade linear both;
+      animation-timeline: view();
+      animation-range: entry 0% exit 100%;
+    }
+  }
+}
+
+/*
+ * The scroll story (0.114.0, `story-section.tsx`). By default, and always
+ * below `lg`, it is a list: each step's own picture (`[data-story-inline]`)
+ * above its words, the stage `display: none` — so its pictures are never
+ * fetched and never announced twice.
+ *
+ * From `lg`, with motion allowed and both `animation-timeline` and
+ * `timeline-scope` supported, it becomes the staged layout: steps on the left,
+ * each about two-thirds of a screen tall so it can be scrolled past, and the
+ * stage sticky on the right holding every picture stacked. Each step is a
+ * named view timeline (`--story-tl`, set per step by the component) and the
+ * story hoists all of them with `timeline-scope`, so picture *n* can fade in
+ * on step *n*'s timeline as that step nears the middle of the screen. Later
+ * pictures sit on top of earlier ones, so a picture only ever has to fade
+ * *in*: the first is simply there, and scrolling back up reverses the fades
+ * by itself. Steps not in the middle dim to half, never less.
+ *
+ * `overflow: clip` on a section background's shell in that mode: the shell
+ * is `overflow-hidden`, which makes it a scroll container and would pin the
+ * sticky stage to nothing. `clip` clips the same and creates no container.
+ */
+[data-story-stage] { display: none; }
+[data-story-steps] { display: grid; gap: 3.5rem; }
+[data-story-inline] { max-width: 42rem; }
+
+@media (prefers-reduced-motion: no-preference) and (width >= 64rem) {
+  @supports (animation-timeline: view()) and (timeline-scope: none) {
+    @keyframes story-pic { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes story-step { 0% { opacity: .5; } 35%, 65% { opacity: 1; } 100% { opacity: .5; } }
+
+    [data-section]:has([data-story]) { overflow: clip; }
+
+    [data-story] {
+      display: grid;
+      grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+      column-gap: clamp(3rem, 5vw, 6rem);
+      timeline-scope: var(--story-scope);
+    }
+    [data-story-steps] { grid-column: 1; grid-row: 1; gap: 0; }
+    [data-story-inline] { display: none; }
+    [data-story-step] {
+      display: flex;
+      min-height: 70vh;
+      flex-direction: column;
+      justify-content: center;
+      view-timeline-name: var(--story-tl);
+      animation: story-step linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+    [data-story-stage] {
+      display: block;
+      position: sticky;
+      top: calc(var(--h-site-header) + 2rem);
+      grid-column: 2;
+      grid-row: 1;
+      align-self: start;
+      height: min(70vh, 46rem);
+    }
+    [data-story-pic] {
+      animation: story-pic linear both;
+      animation-timeline: var(--story-tl);
+      animation-range: cover 28% cover 44%;
+    }
+    [data-story-pic]:first-child { animation: none; }
+  }
+}
 
 /*
  * The builder's live preview (0.112.0, docs/page-builder.md "Live preview"):

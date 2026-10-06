@@ -67,6 +67,7 @@ class MotionSettingsTest extends TestCase
             'motion_splash' => '0',
             'motion_hero' => 'grid',
             'motion_cards' => 'lift',
+            'motion_progress' => 'none',
         ];
 
         foreach ($defaults as $key => $value) {
@@ -94,6 +95,18 @@ class MotionSettingsTest extends TestCase
         $this->assertSame('lift', Setting::get('motion_reveal'));
     }
 
+    public function test_the_reading_progress_bar_is_an_id_like_the_rest(): void
+    {
+        $this->save(['motion_progress' => 'bar'])->assertOk();
+        $this->assertSame('bar', Setting::get('motion_progress'));
+        $this->assertSame('bar', $this->getJson('/api/v1/settings')->json('data.motion_progress'));
+
+        $this->save(['motion_progress' => 'A Bar!'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('settings.0.value');
+        $this->assertSame('bar', Setting::get('motion_progress'));
+    }
+
     public function test_the_splash_is_zero_or_one(): void
     {
         $this->save(['motion_splash' => '2'])
@@ -109,7 +122,7 @@ class MotionSettingsTest extends TestCase
 
         $this->assertArrayHasKey('motion', $groups);
         $this->assertEqualsCanonicalizing(
-            ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_splash', 'motion_hero', 'motion_cards'],
+            ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_splash', 'motion_hero', 'motion_cards', 'motion_progress'],
             collect($groups['motion'])->pluck('key')->all(),
         );
     }

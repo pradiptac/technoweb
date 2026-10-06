@@ -38,6 +38,6 @@ class PreviewPageSectionsRequest extends FormRequest
 
     public function messages(): array
     {
-        return SectionRules::messages();
+        return SectionRules::messages('blocks', $this->input('blocks'));
     }
 }

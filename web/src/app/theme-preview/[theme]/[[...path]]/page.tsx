@@ -79,6 +79,8 @@ export default async function ThemePreviewPage({
         {/* The appearance screen's live preview talks to this page (same origin only). */}
         <PreviewBridge />
         {chrome.motion.cards === "tilt" && <CardTilt />}
+        {/* The reading-progress line (Motion → Reading progress), CSS only. */}
+        <div data-scroll-progress aria-hidden="true" />
         <div className="bg-warn-soft px-4 py-2 text-center text-12-5 text-warn">
           Previewing the <b>{theme.manifest.name}</b> theme. Links open the live site in its
           current theme.{" "}

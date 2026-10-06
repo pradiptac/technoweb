@@ -21,6 +21,30 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.114.0 — 2026-10-06
+
+**Motion graphics, part one: headings, scrolling, a scroll story and presets.**
+
+- A section's Style panel has two new choices. **Heading arrives**: the words
+  rise one after another, the heading is wiped in from the left, or a shimmer
+  of the palette's inks sweeps across it. **While scrolling**: the section's
+  pictures drift slower than the page (parallax), the section zooms in as it
+  arrives, or it fades in and out as it passes.
+- A new section, **Scroll story**: two to six steps scroll past a picture held
+  in place, the picture changing with each step. On a phone, and for visitors
+  who ask for less motion, it is a plain list with a picture above each step.
+- **Reading progress** (Site → Settings → Motion): a thin line along the top of
+  every public page that fills as the visitor scrolls.
+- **Motion presets**: Standard, Calm, Lively, Cinematic and Still set every
+  motion choice at once; nothing changes until Save.
+- All of it is CSS scroll-driven animation — no script, nothing downloaded —
+  and still for visitors who ask their device for less motion, or whose
+  browser cannot tie an animation to scrolling.
+- The audit grades a gradient heading's words correctly when each word is its
+  own element.
+
+---
+
 ## 0.113.0 — 2026-10-06
 
 **The homepage can be a builder page.**

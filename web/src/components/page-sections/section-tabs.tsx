@@ -81,7 +81,7 @@ export function SectionTabs({ id, items, titled }: { id: string; items: TabItem[
               ))}
             </div>
             {t.image && (
-              <div className="relative aspect-[4/3] w-full max-w-2xl min-w-0 overflow-hidden rounded-xl border border-line-strong bg-surface-2 lg:max-w-none xl:aspect-[16/10]">
+              <div data-frame className="relative aspect-[4/3] w-full max-w-2xl min-w-0 overflow-hidden rounded-xl border border-line-strong bg-surface-2 lg:max-w-none xl:aspect-[16/10]">
                 <Image
                   src={t.image}
                   alt={t.image_alt ?? ""}

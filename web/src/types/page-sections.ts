@@ -26,6 +26,8 @@ export type PageSectionType =
   | "team" | "downloads" | "countdown" | "columns" | "map"
   /** One of the active theme's homepage sections, by its `HOME_SECTIONS` id (0.113.0). */
   | "theme_section"
+  /** A scroll story (0.114.0): steps that scroll past a picture held beside them. */
+  | "story"
   /** A library section placed linked (0.106.0): stored as `{saved_id}`, drawn as the library's section. */
   | "saved";
 
@@ -121,6 +123,21 @@ export type ThemeSectionData = { section: string };
 export type MapSectionData = { heading?: string; lede?: string; url: string; address?: string };
 
 /**
+ * One step of a scroll story as the public read carries it: the picture
+ * resolved to its URL with alt text and focal point. Stored, the step holds
+ * `image_path` instead (the console edits `StoredSection.data`).
+ */
+export type StoryItem = {
+  title: string; body: string;
+  image: string; image_alt: string | null; image_focus: string | null;
+};
+/** A scroll story (0.114.0): two to six steps, each with its own picture. */
+export type StorySectionData = {
+  kicker?: string | null; heading?: string | null; lede?: string | null;
+  items: StoryItem[];
+};
+
+/**
  * How a section sits on the page (2026-10-05, `SectionRules::STYLE`): only
  * the keys that differ from the section's own behaviour are ever sent.
  */
@@ -134,6 +151,10 @@ export type SectionStyle = {
   anchor?: string;
   /** The devices it shows on; absent is all three. */
   show_on?: ("phone" | "tablet" | "desktop")[];
+  /** How the section's heading arrives as it scrolls into view (0.114.0). */
+  headline?: "rise" | "wipe" | "shimmer";
+  /** A scroll-linked effect on the whole section (0.114.0). */
+  scroll?: "parallax" | "zoom" | "fade";
 };
 
 /** `reveal` is an id from `SECTION_REVEALS` (lib/motion-choices.ts), or null for the section's own default. */
@@ -169,7 +190,8 @@ export type PageSection =
   | Of<"countdown", CountdownSectionData>
   | Of<"columns", ColumnsSectionData>
   | Of<"map", MapSectionData>
-  | Of<"theme_section", ThemeSectionData>;
+  | Of<"theme_section", ThemeSectionData>
+  | Of<"story", StorySectionData>;
 
 /** A section as stored and edited: paths and ids, and whatever the type's fields are. */
 export type StoredSection = {

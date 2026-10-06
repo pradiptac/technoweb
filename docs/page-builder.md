@@ -591,6 +591,32 @@ marker) or still inside React's `<div hidden id="S:…">`, so a preview shows
 the whole selection. Each theme section is wrapped in
 `data-page-section="theme_section"` with `data-theme-section="<id>"`.
 
+## Scroll story and section motion (0.114.0)
+
+**`story`** is two to six steps — `{title, body, image_path}`, the body plain
+text, the picture an image in the library — under an optional kicker,
+heading and lede. The public read resolves each picture to `image`,
+`image_alt`, `image_focus`, the way tabs are. `SectionRules::messages()` now
+takes the blocks so a type can word its own messages (`TYPE_MESSAGES`):
+the wildcards were shared, and a story step missing its words would have been
+told "Every tab needs its words".
+
+The markup holds both layouts and CSS chooses: by default (below `lg`, under
+reduced motion, or without scroll timelines) each step shows its own 4:3
+picture above its text and the picture column is `display: none`, so its
+copies are neither fetched nor announced. From `lg` with motion allowed and
+`timeline-scope` supported, the pictures sit stacked in a sticky column and
+each step is a named view timeline (`--story-<id>-<n>`, listed in the
+section's `timeline-scope`); picture *n* fades in on step *n*'s timeline over
+`cover 28%`–`44%`, later pictures above earlier ones, so scrolling back
+reverses it. A section background switches its wrapper from
+`overflow: hidden` to `clip`, or the column would not stick. Steps are `h3`
+under a section heading, a `<p>` otherwise.
+
+`style` gains `headline` (`rise`, `wipe`, `shimmer`) and `scroll`
+(`parallax`, `zoom`, `fade`), stored only when chosen like the other style
+keys; how they move is `docs/motion.md` "Scroll-driven motion".
+
 ## Tests
 
 `tests/Feature/PageBuilderTest.php` — every type's rules valid and invalid, an

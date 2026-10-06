@@ -11,11 +11,16 @@ import type { SectionStyle } from "@/types/page-sections";
  * heading size are decisions somebody makes by looking, so the options are
  * on the screen. The first of each is the section's own behaviour and is
  * never stored (`SectionRules::style()` drops it); "Default" says so.
+ * Since 0.114.0 two of them are motion — how the heading arrives and what
+ * scrolling past does — and both say they are still under reduced motion.
  *
  * `aria-pressed` buttons in a labelled group, each 32px tall — the console's
  * dense scale, still clear of the 24px tap-target floor.
  */
-type Key = "pad_top" | "pad_bottom" | "width" | "align" | "heading";
+type Key = "pad_top" | "pad_bottom" | "width" | "align" | "heading" | "headline" | "scroll";
+
+/** Said under both motion controls (0.114.0): reduced motion turns each of them off. */
+const STILL = "Still for visitors who ask for less motion.";
 
 const CHOICES: Record<Key, { label: string; options: [string, string][]; hint?: string }> = {
   pad_top: { label: "Space above", options: [["default", "Default"], ["none", "None"], ["s", "S"], ["l", "L"], ["xl", "XL"]] },
@@ -23,6 +28,16 @@ const CHOICES: Record<Key, { label: string; options: [string, string][]; hint?: 
   width: { label: "Content width", options: [["default", "Full"], ["medium", "Medium"], ["narrow", "Narrow"]], hint: "Narrow suits a block of text; the screen's edge is never passed." },
   align: { label: "Heading and text", options: [["default", "Left"], ["center", "Centred"]] },
   heading: { label: "Heading size", options: [["default", "Default"], ["s", "Smaller"], ["l", "Larger"]] },
+  headline: {
+    label: "Heading arrives",
+    options: [["default", "Default"], ["rise", "Words rise"], ["wipe", "Wipe in"], ["shimmer", "Shimmer"]],
+    hint: `How the heading arrives as the section scrolls into view. ${STILL}`,
+  },
+  scroll: {
+    label: "While scrolling",
+    options: [["default", "None"], ["parallax", "Parallax pictures"], ["zoom", "Zoom in"], ["fade", "Fade through"]],
+    hint: `An effect tied to scrolling: pictures drifting, the section zooming in, or fading in and out as it passes. ${STILL}`,
+  },
 };
 
 const DEVICES: [NonNullable<SectionStyle["show_on"]>[number], string][] = [["phone", "Phones"], ["tablet", "Tablets"], ["desktop", "Computers"]];
