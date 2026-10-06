@@ -720,3 +720,81 @@ screen scrolled sideways by 8px — found by the phone audit on the ticket
 screens, and on every other route once looked for. The palette is still
 opened by Ctrl/⌘ K and the sidebar's own filter box is the way to find a
 screen on a phone; from 360px the row fits with room.
+
+## Table view: density, columns and the sticky header (0.119.0)
+
+`web/src/app/admin/(app)/table-view.tsx`, `web/src/lib/table-view.ts`, two
+blocks in `globals.css`. Measured by `scripts/probes/table-view.mjs`.
+
+**One control, and no list screen knows it exists.** There are about seventy
+hand-written `.admin-table`s. A chooser built into each would be seventy
+edits, and the seventy-first screen would forget — which is this project's
+most repeated bug in a new place. So the control lives in the console's
+header and works on whatever table the page happens to hold.
+
+**It reads the page and writes only CSS.** The headings come from the one
+`main table.admin-table` on the screen, read through a `MutationObserver`
+behind `useSyncExternalStore` — a DOM read is what that hook is for, and an
+effect that set state from one is what `react-hooks/set-state-in-effect`
+refuses. What goes back is a `<style>` of `nth-child` rules and nothing else.
+No attribute is stamped on any table and no node is inserted beside one, so
+there is nothing for React to disagree with when the list re-renders or
+streams in: `reveal.tsx` and `FullRows` both paid for stamping markup they did
+not own.
+
+**Hidden columns are remembered by heading, not by position.** A column
+inserted in a later release must not silently hide its neighbour. The stored
+value is a list of heading texts under `tw_table_cols:<screen>`, resolved to
+indexes against the live table on every render; a heading that is no longer
+there matches nothing. The screen key folds ids (`/admin/forms/7/submissions`
+→ `/admin/forms/:id/submissions`), because that is one table with different
+rows. A sort arrow is stripped from the heading before it is compared, or
+sorting a column would un-hide it.
+
+**Three columns are never offered**: the first (the row's identity, and the
+card's heading on a phone), one with no heading, and the actions column.
+**A screen with two tables gets density only** — they would share one set of
+`nth-child` rules and not one set of columns.
+
+**All of it starts at `md`.** Below that a row is a card of labelled lines
+with no header row, where a hidden column would be a detail missing with
+nothing to show that anything is. The rule's media query and the button's
+`hidden md:grid` say the same thing.
+
+**Compact is on `<html>` before first paint.** The root layout's blocking
+script already reads `localStorage` for the scheme; it sets
+`data-console-density="compact"` for console paths in the same pass, so a
+list never draws roomy and then tightens. The CSS is scoped to
+`[data-console]`, stamped by the admin layout alone, because the portal draws
+`.admin-table`s under a different header. It changes cell padding and half a
+pixel of type: measured on the SEO overview, 95px rows became 84px, and a row
+holding a 32px select is still as tall as its select.
+
+**The sticky header is measured, and the first cut was a breakpoint.** A
+sticky cell sticks to its nearest *scroll container*, and every list sits in
+an `overflow-x-auto` wrapper — which makes the wrapper that container, so the
+head scrolled away with the rows. `overflow-x: clip` clips without creating
+one, and the head then sticks to the viewport, under the bar (`h-13` plus its
+hairline). The price: a clipped wrapper cannot be scrolled sideways.
+
+The first cut paid that price by starting at 90rem, on the reasoning that the
+widest floor was 1040px and the content area at 1440 is 1142px. It was wrong:
+the SEO overview's floor is 1240px, and 1380px or 1500px with Search Console
+or Analytics connected. A sweep of all 95 sidebar screens at 1440 found that
+one table 98px wider than its wrapper — its last column cut off with no
+scrollbar to reach it, while `documentElement.scrollWidth` reported nothing,
+because clipped is contained. The probe had been run on that very screen and
+passed. So no breakpoint can make the promise. `TableView` already reads the
+table; it now also compares each table's `offsetWidth` with its wrapper's
+`clientWidth` (on mutations and on `resize`) and renders a hidden
+`<span data-table-fits>` while every table fits. The CSS is
+`[data-console]:has([data-table-fits])`, from `xl`. Without the marker —
+no JavaScript, a table too wide, the moment before the first read — the
+wrapper keeps its scrollbar and the head scrolls away as it always did.
+Neither measured width changes when the rule switches, so it cannot flicker.
+Measured after: SEO at 1280 and 1440 scrolls sideways, and is sticky at 1920
+where it fits; the activity log is sticky at all three.
+
+**Not built**: sorting on every list (each needs its own `ListSort`
+allowlist in the API), and saved views shared between staff — these
+preferences are one browser's.

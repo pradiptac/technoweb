@@ -1992,6 +1992,58 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
 }
 
 /*
+ * The console's own table view (0.119.0, `admin/(app)/table-view.tsx`).
+ *
+ * Scoped to `[data-console]`, which only the admin layout stamps: the portal
+ * draws `.admin-table`s too, under a different header. Both blocks start at a
+ * width where a table is a table — below `md` a row is a card and neither
+ * rule means anything.
+ *
+ * **Compact** is a preference kept in the browser and put on `<html>` before
+ * first paint by the root layout's script, so a list never draws roomy and
+ * then tightens. Unlayered, which is how it beats the `py-2`/`py-1.5`
+ * utilities on the cells without `!important`. It changes padding and half a
+ * pixel of type and nothing else: a row holding a 32px select is still as
+ * tall as its select.
+ */
+@media (width >= 48rem) {
+  html[data-console-density="compact"] [data-console] .admin-table { font-size: 12.5px; }
+  html[data-console-density="compact"] [data-console] .admin-table :is(th, td) { padding-top: 0.1875rem; padding-bottom: 0.1875rem; }
+}
+
+/*
+ * The header row stays under the console's bar while a long list scrolls.
+ *
+ * A sticky cell sticks to its nearest *scroll container*, and every list sits
+ * in an `overflow-x-auto` wrapper — which makes the wrapper that container,
+ * so the head scrolled away with the rows. `overflow-x: clip` clips without
+ * creating one, and the head then sticks to the viewport. The price is that
+ * a table wider than its wrapper can no longer be scrolled sideways — and no
+ * breakpoint can promise one is not: the SEO overview's floor is 1240px, and
+ * 1500px with Search Console and Analytics connected, which a sweep of every
+ * list at 1440px found clipped by 98px under a first cut that began at
+ * 90rem. So the rule is **measured, not assumed**: `TableView` renders a
+ * `[data-table-fits]` marker only while every table on the screen is no
+ * wider than its wrapper, and without the marker the wrapper keeps its
+ * scrollbar and the head scrolls away as it always did. From `xl`, where the
+ * floors are honoured. `top` is the bar: `h-13` and its hairline. The cell
+ * paints its own ground and its own rule, because a `border-b` on the `<tr>`
+ * does not travel with a sticky cell.
+ */
+@media (width >= 80rem) {
+  [data-console]:has([data-table-fits]) :is(div, section):has(> table.admin-table) { overflow-x: clip; overflow-y: visible; }
+  [data-console]:has([data-table-fits]) .admin-table thead th {
+    position: sticky;
+    top: calc(3.25rem + 1px);
+    z-index: 2;
+    background: var(--color-card);
+    box-shadow: inset 0 -1px 0 var(--color-line-strong);
+  }
+  [data-console]:has([data-table-fits]) .admin-table thead th:first-child { border-start-start-radius: calc(var(--radius-lg) - 1px); }
+  [data-console]:has([data-table-fits]) .admin-table thead th:last-child { border-start-end-radius: calc(var(--radius-lg) - 1px); }
+}
+
+/*
  * A filter form that is applying itself (`AutoApplyForm` sets `aria-busy`
  * while the pushed navigation is in flight): the submit button dims and the
  * cursor says so. The list itself stays until the new one is ready — the

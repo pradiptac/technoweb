@@ -138,6 +138,23 @@ function preservable(el: Element): el is Control {
   return true;
 }
 
+/**
+ * A control an editor component holds in React state and gives no `name`: a
+ * select or a tick box inside a repeater that posts one hidden JSON input.
+ *
+ * These are the controls React's reset gets wrong and `preservable()` cannot
+ * see. A controlled text input survives a reset, because React keeps its
+ * `value` *attribute* in step with its state and the reset restores exactly
+ * that; a select and a box do not — `selected` and `checked` are set as
+ * properties, so the reset lands on the first option and on unticked while
+ * the state, and what is posted, still hold the real value. Measured on the
+ * form builder (0.117.0): a "Tick box" row read "Short text" after a 422.
+ */
+function loose(el: Element): el is HTMLSelectElement | HTMLInputElement {
+  if (el instanceof HTMLSelectElement) return !el.name;
+  return el instanceof HTMLInputElement && !el.name && (el.type === "checkbox" || el.type === "radio");
+}
+
 export function Form({
   state,
   onSubmitCapture,
@@ -163,12 +180,22 @@ export function Form({
    * this the effect would fire on mount and on any unrelated state change.
    */
   const submitted = useRef(false);
+  /**
+   * What every unnamed select and box showed at the submit, by element. Put
+   * back after React's reset whatever the action answered: the component's
+   * state never changed, so this is still the truth about it. Kept current
+   * while the action is pending (see `onChangeCapture`), and an element that
+   * has since been re-mounted is simply not in the map.
+   */
+  const shown = useRef(new Map<HTMLSelectElement | HTMLInputElement, string | boolean>());
 
   const handleSubmit = useCallback(
     (event: React.SubmitEvent<HTMLFormElement>) => {
       sent.current.clear();
+      shown.current.clear();
       for (const el of Array.from(event.currentTarget.elements)) {
         if (el instanceof HTMLInputElement) clearLiveCheck(el);
+        if (loose(el)) shown.current.set(el, el instanceof HTMLSelectElement ? el.value : el.checked);
         if (!preservable(el)) continue;
         sent.current.set(
           keyOf(el),
@@ -211,10 +238,44 @@ export function Form({
     }
   }, [state]);
 
+  /*
+    React resets the form by calling `form.reset()`, which announces itself
+    with a `reset` event *before* the controls change. So the unnamed ones are
+    put back a microtask later, once the reset has landed — on a success as
+    much as a refusal, and with or without a `state`, since none of that
+    alters what a controlled select is showing.
+  */
+  useEffect(() => {
+    const form = ref.current;
+    if (!form) return;
+    const onReset = () => {
+      queueMicrotask(() => {
+        for (const [el, was] of shown.current) {
+          if (!el.isConnected) continue;
+          if (el instanceof HTMLSelectElement) {
+            if (typeof was === "string" && el.value !== was) el.value = was;
+          } else if (typeof was === "boolean" && el.checked !== was) {
+            el.checked = was;
+          }
+        }
+        shown.current.clear();
+      });
+    };
+    form.addEventListener("reset", onReset);
+    return () => form.removeEventListener("reset", onReset);
+  }, []);
+
   return (
     <form
       ref={ref}
       onSubmitCapture={handleSubmit}
+      onChangeCapture={(e) => {
+        // Changed while the action was still running: that is the value to keep.
+        const el = e.target;
+        if (el instanceof Element && loose(el) && shown.current.has(el)) {
+          shown.current.set(el, el instanceof HTMLSelectElement ? el.value : el.checked);
+        }
+      }}
       onBlurCapture={(e) => checkOnBlur(e.target)}
       onInputCapture={(e) => { if (e.target instanceof HTMLInputElement) clearLiveCheck(e.target); }}
       {...props}

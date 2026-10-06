@@ -369,14 +369,24 @@ inside a folded card is the hidden-tab failure one level down. The 422 map is
 pinned to row keys when it arrives, so reordering after a refused save does
 not move a message to the wrong row.
 
-**The list is re-mounted on the form's `reset` event.** React resets a form's
-controls when its action completes, a refused one included, and `<Form>` puts
-back only *named* controls. The builder's selects and tick boxes are
-controlled and unnamed — they feed one hidden JSON input — so React believes
-they already hold the right value and leaves the DOM's reset standing:
-measured, a "Tick box" row showed "Short text" after a 422 while the posted
-JSON still said `checkbox`. Any editor of controlled, unnamed controls inside
-a `<Form>` has this shape.
+**The builder's selects are the case React's form reset gets wrong, and
+`<Form>` is what puts them back.** React resets a form's controls when its
+action completes, a refused one included. The builder's selects and tick
+boxes are controlled and unnamed — they feed one hidden JSON input — and a
+controlled `<select>` is not spared: `selected` is a property, not an
+attribute, so the DOM's reset lands on the first option while the state still
+holds the real value. Measured: on a form created in the console and then
+refused once on its edit page, every "Type" read "Short text" and every
+"Width" "Full width", while the posted JSON still said `checkbox` and `half`.
+It did not show on a freshly loaded form, where something else happened to
+re-render the list after the reset — which is how it hid.
+
+The first fix (0.117.0) re-mounted the list on the form's `reset` event. It
+was replaced in 0.118.1 by a general one in `components/ui/form.tsx`, which
+snapshots every unnamed select and box by element on submit and restores them
+a microtask after `reset`, so no editor has to know. The control run is in
+`scripts/probes/form-reset-controls.mjs`: with that listener removed, the
+probe's last check fails on every select.
 
 **A condition is held by its source row's key, not its name.** The name is
 written out when the form is posted, so renaming a source — and a new field's

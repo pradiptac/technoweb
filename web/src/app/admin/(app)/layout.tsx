@@ -20,6 +20,7 @@ import { AdminNav } from "./admin-nav";
 import { palettePages, renderNav } from "./nav-items";
 import { CommandPalette } from "./command-palette";
 import { NewSincePoller } from "./new-since";
+import { TableView } from "./table-view";
 import { brandName } from "@/lib/brand";
 
 /**
@@ -86,7 +87,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <ToastProvider okDuration={noticeMs}>
       <AlertsAsToastsProvider>
       <NewSincePoller />
-      <div className="flex min-h-screen flex-col bg-surface">
+      {/* `data-console` scopes the table rules in globals.css (density, the
+          sticky header) to this area: the portal draws `.admin-table`s too. */}
+      <div data-console className="flex min-h-screen flex-col bg-surface">
         <div className="sticky top-0 z-30 border-b border-line bg-card/95 backdrop-blur-[10px]">
           <Container className={`${CONSOLE_WIDTH} flex h-13 items-center gap-3`}>
             <Link href="/admin" className="group/logo flex shrink-0 items-center gap-2.5">
@@ -135,6 +138,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                   320 is exactly what the toggle's margin below `sm` was:
                   the row measured 6px over with both. */}
               <CommandPalette pages={palettePages(staff.roles.map((r) => r.slug))} />
+              {/* Renders nothing on a screen with no table, and from `md` only. */}
+              <TableView />
               <SchemeToggle area="console" className="sm:mr-1.5" />
 
               {/* Always a new tab (the client, 2026-09-28): the console is

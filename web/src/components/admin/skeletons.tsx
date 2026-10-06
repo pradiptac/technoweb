@@ -15,7 +15,10 @@ import { cn } from "@/lib/utils";
  * simply sit still.
  */
 export function Bone({ className }: { className?: string }) {
-  return <span aria-hidden className={cn("block rounded bg-surface-2", className)} />;
+  // `max-w-full`: a bone's width is a guess at the content's, and three tile
+  // groups share one row of a phone — a 96px bone in a 21px tile ran the
+  // dashboard 41px past a 414px screen for as long as it was loading.
+  return <span aria-hidden className={cn("block max-w-full rounded bg-surface-2", className)} />;
 }
 
 function Panel({ className, children }: { className?: string; children?: React.ReactNode }) {

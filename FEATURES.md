@@ -385,6 +385,9 @@ Built in, measured, and never allowed to guess.
   credential-free, pruned only by age.
 - **Client-side error reporting** grouped by fingerprint, re-opening itself
   if a fix does not hold.
+- **Table view** on every list: comfortable or compact rows, a column
+  chooser per screen and a header row that stays in view — each person's own
+  choice, kept in their browser.
 - **Staff management** with lockout guards: the last administrator cannot be
   removed.
 - **Settings** grouped into six sections, with secrets encrypted at rest and

@@ -184,7 +184,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var p=location.pathname;var a=(p==="/admin"||p.indexOf("/admin/")===0);var k=a?"tw_scheme_console":"tw_scheme_site";var v=localStorage.getItem(k);var s=(v==="light"||v==="dark")?v:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");var r=document.documentElement;r.dataset.scheme=s;r.style.colorScheme=s;if(${splash ? 1 : 0}&&!a&&!(p==="/portal"||p.indexOf("/portal/")===0)&&!sessionStorage.getItem("tw_splash")&&!matchMedia("(prefers-reduced-motion: reduce)").matches){r.dataset.splash="1"}if(${JSON.stringify(announcementId)}&&sessionStorage.getItem("tw_announcement_closed")===${JSON.stringify(announcementId)}){r.dataset.announcementClosed="1"}}catch(e){}})()`,
+            __html: `(function(){try{var p=location.pathname;var a=(p==="/admin"||p.indexOf("/admin/")===0);var k=a?"tw_scheme_console":"tw_scheme_site";var v=localStorage.getItem(k);var s=(v==="light"||v==="dark")?v:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");var r=document.documentElement;r.dataset.scheme=s;r.style.colorScheme=s;if(a&&localStorage.getItem("tw_console_density")==="compact"){r.dataset.consoleDensity="compact"}if(${splash ? 1 : 0}&&!a&&!(p==="/portal"||p.indexOf("/portal/")===0)&&!sessionStorage.getItem("tw_splash")&&!matchMedia("(prefers-reduced-motion: reduce)").matches){r.dataset.splash="1"}if(${JSON.stringify(announcementId)}&&sessionStorage.getItem("tw_announcement_closed")===${JSON.stringify(announcementId)}){r.dataset.announcementClosed="1"}}catch(e){}})()`,
           }}
         />
       </head>

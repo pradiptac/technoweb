@@ -50,6 +50,27 @@ All the content forms behave the same way, so it is worth knowing once.
   directly in the database, or by a script) can take up to ten minutes to
   appear.
 
+## How every list works
+
+Every list in the console — pages, tickets, orders, leads and the rest —
+shares the same controls.
+
+- **Filters** sit above the list; press **Apply** after changing them.
+- **Per page** (bottom right) sets how many rows a page of the list shows.
+- On some lists a **column heading** is a link that sorts by that column.
+- **Table view** — the sliders button in the top bar — changes how lists are
+  drawn *for you*:
+  - **Row spacing**: *Comfortable* or *Compact*, for every list in the
+    console. Compact fits more rows on the screen.
+  - **Columns on this screen**: untick a column to put it away. The first
+    column and the row's actions always stay.
+
+  Both choices are kept in your browser. They do not affect your colleagues,
+  and they do not follow you to another computer. On a phone a list is shown
+  as cards, with every detail, whatever you chose.
+- On a desktop screen the list's header row stays in view as you scroll,
+  when the whole table fits across the screen.
+
 ## The editor
 
 Body text on pages, posts, articles and similar records is written in a

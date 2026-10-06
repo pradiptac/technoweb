@@ -121,7 +121,6 @@ export function FieldBuilder({
 
   const [rows, setRows] = useState<Row[]>(() => toRows(fields, "f"));
   const input = useRef<HTMLInputElement>(null);
-  const [epoch, setEpoch] = useState(0);
 
   /*
     A 422 names rows by position, and positions move: reorder after a refused
@@ -160,21 +159,13 @@ export function FieldBuilder({
       } catch { /* not ours to fix */ }
     };
     /*
-      React resets the form's controls when its action completes, a refused
-      one included, and a control with no `name` is not one `<Form>` puts
-      back. Every select and tick box here is controlled, so React believes
-      they already hold the right value and leaves the DOM's reset standing:
-      measured, a "Tick box" row showed "Short text" after a 422 while the
-      posted JSON still said `checkbox`. Re-mounting the list redraws each
-      control from the state that never changed.
+      Nothing here redraws the list after a refused save. The selects and
+      tick boxes below are controlled and unnamed, which is the case React's
+      form reset gets wrong, and `<Form>` puts those back itself
+      (`components/ui/form.tsx`, `scripts/probes/form-reset-controls.mjs`).
     */
-    const redraw = () => setEpoch((n) => n + 1);
     form.addEventListener("tw:draft-restored", restored);
-    form.addEventListener("reset", redraw);
-    return () => {
-      form.removeEventListener("tw:draft-restored", restored);
-      form.removeEventListener("reset", redraw);
-    };
+    return () => form.removeEventListener("tw:draft-restored", restored);
   }, []);
 
   /*
@@ -261,7 +252,7 @@ export function FieldBuilder({
         </p>
       )}
 
-      <ol key={epoch} className="grid gap-4">
+      <ol className="grid gap-4">
         {rows.map((row, i) => {
           const e = pinned.byRow[row.key] ?? {};
           const other = Object.entries(e).filter(([sub]) => !PLACED.has(sub) && !sub.startsWith("options."));

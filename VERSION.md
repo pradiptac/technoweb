@@ -21,6 +21,36 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.119.0 — 2026-10-07
+
+**Table view: compact rows, a column chooser and a header that stays put.**
+
+- **Table view** (the sliders button in the console's top bar, on any screen
+  with a list): choose **Comfortable** or **Compact** row spacing for every
+  list in the console, and tick which **columns** the list in front of you
+  shows. Both are remembered in your browser — each member of staff has their
+  own, and nothing changes for anybody else.
+- Columns are remembered per screen. The first column and a row's actions
+  always stay, and on a phone every detail is still shown.
+- **The header row stays in view** while a long list scrolls, on a desktop
+  screen, wherever the whole table fits across it. A table too wide for the
+  screen scrolls sideways as before.
+- Fixed: the dashboard's loading outline no longer runs past the edge of a
+  phone screen while the figures load.
+- After updating, nothing needs doing.
+
+---
+
+## 0.118.1 — 2026-10-06
+
+- **Fixed**: after a save the console refused, a dropdown inside a list
+  editor could show its first option instead of the value it held — seen on
+  the form builder, where every field's Type read "Short text". What was
+  saved was always right; only the display was wrong. The fix is in the
+  shared form component, so every editor of this kind is covered.
+
+---
+
 ## 0.118.0 — 2026-10-06
 
 **Events: seminars, webinars and trade shows, with free registration.**
