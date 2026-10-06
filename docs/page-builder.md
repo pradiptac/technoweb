@@ -617,6 +617,21 @@ under a section heading, a `<p>` otherwise.
 (`parallax`, `zoom`, `fade`), stored only when chosen like the other style
 keys; how they move is `docs/motion.md` "Scroll-driven motion".
 
+## Diagram and the hero's video (0.115.0)
+
+**`flow`** ("Diagram") is two to six `{icon?, title, note?}` steps, an icon
+a key of the identity map, under an optional kicker, heading and lede, with
+an optional caption — plain text throughout, passed through unchanged on the
+public read. Fewer than two drawable steps render nothing. Step titles are
+`h3` under a heading, a `<p>` otherwise. Per-type messages in
+`TYPE_MESSAGES['flow']`.
+
+**A Cover hero's `video_path`** is a library video (the `video/` MIME check
+`media_text` uses), refused on any other layout and needing the cover's
+picture, its poster; the public read is `video`. The console clears it in the
+same write that changes the layout away from Cover, so it is one step in the
+undo history and never posted stale.
+
 ## Tests
 
 `tests/Feature/PageBuilderTest.php` — every type's rules valid and invalid, an

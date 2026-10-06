@@ -54,6 +54,7 @@ export function blankData(type: PageSectionType): Record<string, unknown> {
     case "map": return {};
     case "theme_section": return { section: "solutions" };
     case "story": return { heading: "", items: [{}, {}] };
+    case "flow": return { heading: "", items: [{}, {}] };
     default: return {};
   }
 }
@@ -133,8 +134,10 @@ function Buttons() {
   );
 }
 
+const VIDEO_HINT = "An MP4 from the media library. Keep it short and small — it loads when somebody presses play.";
+
 /** A video from the library — the slide repeater's picker, widened to MP4. */
-function VideoPath({ path, label }: { path: Path; label: string }) {
+function VideoPath({ path, label, hint = VIDEO_HINT }: { path: Path; label: string; hint?: string }) {
   const { content, set, err, media, idPrefix } = useBlock();
   const value = getIn(content, path);
   const stored = typeof value === "string" ? value : null;
@@ -146,7 +149,7 @@ function VideoPath({ path, label }: { path: Path; label: string }) {
         name={`_media_${idPrefix ?? "b"}-${path.join("-")}`}
         label={label}
         accept=".mp4,.webm"
-        hint="An MP4 from the media library. Keep it short and small — it loads when somebody presses play."
+        hint={hint}
         defaultPath={stored}
         defaultUrl={stored ? media[stored] ?? null : null}
         onPathChange={(p) => set(path, p ?? undefined)}
@@ -273,6 +276,33 @@ function ColumnsEditor({ sectionId }: { sectionId: string }) {
   );
 }
 
+/**
+ * The hero's layout select. Leaving the cover layout drops its background
+ * video in the same write — the video is the cover's alone (the API refuses
+ * it on any other layout), and a path left behind under a hidden field is a
+ * 422 nobody could see the field for. One `set` at the root, the comparison
+ * editor's rule, so the change is one step in the builder's history.
+ */
+function HeroLayout({ options }: { options: PageBuilderOptions["hero_layouts"] }) {
+  const { content, set, err, idPrefix } = useBlock();
+  const layout = typeof content.layout === "string" ? content.layout : "centered";
+  const id = `${idPrefix ?? "b"}-layout`;
+
+  const choose = (value: string) => {
+    const next: Record<string, unknown> = { ...content, layout: value };
+    if (value !== "cover") delete next.video_path;
+    set([], next as never);
+  };
+
+  return (
+    <Field label="Layout" htmlFor={id} hint={options.find((l) => l.value === layout)?.blurb} error={err(["layout"])} variant="float-static">
+      <Select id={id} value={layout} onChange={(e) => choose(e.target.value)}>
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </Select>
+    </Field>
+  );
+}
+
 function Picker({ path, label, options, empty, emptyHref }: {
   path: Path;
   label: string;
@@ -302,12 +332,15 @@ export function SectionEditor({ type, sectionId, options }: {
       const layout = typeof content.layout === "string" ? content.layout : "centered";
       return (
         <>
-          <Choice path={["layout"]} label="Layout" options={options.hero_layouts} fallback="centered"
-            hint={options.hero_layouts.find((l) => l.value === layout)?.blurb} />
+          <HeroLayout options={options.hero_layouts} />
           <Text path={["kicker"]} label="Kicker" hint="A few words over the heading. Optional." />
           <Text path={["heading"]} label="Heading" required hint="First on the page, this is the page’s own title (its h1)." />
           <Text path={["lede"]} label="Lede" multiline />
           <ImagePath path={["image_path"]} label="Picture" hint={layout === "centered" ? "Not drawn in the centred layout." : "Needed for the split and cover layouts."} />
+          {layout === "cover" && (
+            <VideoPath path={["video_path"]} label="Background video"
+              hint="Optional. An MP4 or WebM that loops silently behind the words; the picture above is shown until it plays, and instead of it for visitors who ask for less motion. Keep it short and small — under 10 MB." />
+          )}
           <Buttons />
         </>
       );
@@ -565,6 +598,22 @@ export function SectionEditor({ type, sectionId, options }: {
               <ImagePath path={[...p, "image_path"]} label="Picture" hint="Required. Shown while this step is in view; pictures of one shape change most smoothly." />
             </>
           )} />
+        </>
+      );
+
+    case "flow":
+      return (
+        <>
+          <Head />
+          <Repeater path={["items"]} label="Steps" subject="Step" min={2} max={6} blank={() => ({})}
+            hint="Two to six, left to right — each a box with an icon, joined to the next by a line that draws itself as the page scrolls. Down the page on a phone." row={(p) => (
+            <>
+              <IconPick path={[...p, "icon"]} />
+              <Text path={[...p, "title"]} label="Title" required placeholder="Core switch" />
+              <Text path={[...p, "note"]} label="One line under it" hint="Optional, up to 160 characters." />
+            </>
+          )} />
+          <Text path={["caption"]} label="Caption" hint="Optional. A line under the diagram." />
         </>
       );
 

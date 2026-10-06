@@ -34,8 +34,10 @@ import { SectionTabs } from "./section-tabs";
  * Motion arrives with the section: the bars grow, the rings sweep and the
  * steps' line draws when the reveal observer stamps `data-aos-animate`
  * (`[data-meter-*]`/`[data-step-line]` in globals.css, `from`-only
- * keyframes inside the reduced-motion guard). A section set to appear with
- * "None" has no `data-aos` and simply shows its final state.
+ * keyframes inside the reduced-motion guard). Where the browser has scroll
+ * timelines the steps' and the timeline's line is drawn by the scroll
+ * instead (0.115.0), keeping pace with the step being read. A section set
+ * to appear with "None" has no `data-aos` and simply shows its final state.
  */
 
 type Reveal = { reveal?: SectionRevealAttr | null };

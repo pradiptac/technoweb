@@ -1237,6 +1237,85 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
   [data-motion-page="zoom"] .page-enter.page-enter-active { animation: page-zoom 380ms var(--ease-brand) both; }
 }
 
+/*
+ * Crossfade and Slide (0.115.0) are View Transitions: `PageEnter` wraps the
+ * page in React's `<ViewTransition update="tw-page-…">` for these two ids
+ * only, and names it after the pathname, so a navigation is an old page with
+ * no partner and a new page with no partner (`page-enter.tsx` says why).
+ * Those are the `:only-child` images below, and the only ones that move: a
+ * pair — the same pathname re-rendered by an action, a search param or a
+ * Suspense reveal — is drawn with no animation and no old image, so it is
+ * over in a frame.
+ *
+ * Leaving is shorter than arriving and accelerates, the motion tokens' rule.
+ * The slide is the one horizontal movement on the site, and it is safe where
+ * a reveal's would not be: the pseudo-elements live in the view transition's
+ * own fixed overlay above the page, never in the document, so nothing they
+ * do can reach `scrollWidth` — and the overlay is gone 300ms later.
+ *
+ * The header and footer are part of the root snapshot, which the theme
+ * toggler's rule further down already draws with no animation — they simply
+ * stay. The sticky header is lifted out as well, but only while the page is
+ * being named (the `:has()` on React's inline name), because the page's
+ * snapshot is painted above the root's and a visitor scrolled down a long
+ * page would otherwise see the old page slide across the header. Never
+ * named for the theme toggler's wipe, which must take the header with it.
+ *
+ * `pointer-events: none` on the overlay keeps a click during the animation
+ * from being swallowed, the guide's own recommendation.
+ */
+::view-transition { pointer-events: none; }
+
+::view-transition-group(.tw-page-crossfade),
+::view-transition-group(.tw-page-slide),
+::view-transition-old(.tw-page-crossfade),
+::view-transition-new(.tw-page-crossfade),
+::view-transition-old(.tw-page-slide),
+::view-transition-new(.tw-page-slide) {
+  animation: none;
+}
+::view-transition-old(.tw-page-crossfade):not(:only-child),
+::view-transition-old(.tw-page-slide):not(:only-child) {
+  display: none;
+}
+
+.public-site:is([data-motion-page="crossfade"], [data-motion-page="slide"]):has(.page-enter[style*="tw-page-"])
+  :is(header.sticky, .sticky:has(> header)):not(#main *) {
+  view-transition-name: tw-site-header;
+}
+::view-transition-group(tw-site-header) { animation: none; z-index: 2; }
+::view-transition-old(tw-site-header) { display: none; }
+::view-transition-new(tw-site-header) { animation: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes tw-page-fade-out { to { opacity: 0; } }
+  @keyframes tw-page-fade-in { from { opacity: 0; } }
+  @keyframes tw-page-slide-out { to { opacity: 0; translate: -8% 0; } }
+  @keyframes tw-page-slide-in { from { opacity: 0; translate: 8% 0; } }
+
+  ::view-transition-old(.tw-page-crossfade):only-child {
+    animation: tw-page-fade-out var(--duration-exit) var(--ease-exit) both;
+  }
+  ::view-transition-new(.tw-page-crossfade):only-child {
+    animation: tw-page-fade-in var(--duration-slow) var(--ease-brand) both;
+  }
+  ::view-transition-old(.tw-page-slide):only-child {
+    animation: tw-page-slide-out var(--duration-base) var(--ease-exit) both;
+  }
+  ::view-transition-new(.tw-page-slide):only-child {
+    animation: tw-page-slide-in var(--duration-slow) var(--ease-brand) both;
+  }
+}
+
+/* Reduced motion: every view transition on the site is an instant swap. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 /* ----------------------------------------------------------- route loader */
 /*
  * Fixed and two pixels tall, so it can never contribute to the document's
@@ -3940,9 +4019,70 @@ section[data-page-section="rich_text"] + section[data-page-section="rich_text"] 
     animation: meter-sweep calc(var(--duration-slow) * 4) var(--ease-brand) both;
     animation-delay: calc(var(--i, 0) * 110ms + 150ms);
   }
-  html[data-aos-ready] [data-aos-animate] [data-step-line] {
-    animation: step-line calc(var(--duration-slow) * 4) var(--ease-brand) both;
-    animation-delay: 200ms;
+  /* Without scroll timelines the line draws once, on arrival. */
+  @supports not (animation-timeline: view()) {
+    html[data-aos-ready] [data-aos-animate] [data-step-line] {
+      animation: step-line calc(var(--duration-slow) * 4) var(--ease-brand) both;
+      animation-delay: 200ms;
+    }
+  }
+
+  /*
+   * With them (0.115.0) the steps' and the timeline's line is drawn by the
+   * reading: it starts once its top is 30vh up the screen and is whole when
+   * its bottom reaches the middle, so the tip keeps pace with the step being
+   * read rather than racing to the end on a clock. Keyed on `[data-aos]`, not
+   * on the observer's stamp, so it is the same from the first paint — and a
+   * section set to appear with "None" still shows a plain, finished line.
+   * The timeline is the list's (the line's parent), never the line's own
+   * `view()`: the line is what is being scaled, and a subject should not be
+   * the thing its own animation squashes to nothing.
+   */
+  @supports (animation-timeline: view()) {
+    [data-aos] :has(> [data-step-line]) { view-timeline-name: --step-line; }
+    [data-aos] [data-step-line] {
+      animation: step-line linear both;
+      animation-timeline: --step-line;
+      animation-range: cover 30vh cover calc(100% - 50vh);
+    }
+  }
+}
+
+/*
+ * The diagram's arrows (0.115.0, `page-sections/flow-section.tsx`): each
+ * stroke scales out from where it starts — down below `md`, rightwards from
+ * it — on its connector's own view timeline (the connector box is never
+ * transformed, the stroke inside it is), and the chevron fades in as the
+ * stroke reaches it. In the row the connectors share one height, so each
+ * one's range starts 6vh after the last's (`--i` is the node's place):
+ * they draw left to right as the section rises, the last done by its top
+ * being about half way up the screen. `scale` and `opacity` only — paint,
+ * nothing the overflow or contrast checks read — and `from`-only keyframes,
+ * so a reduced-motion visitor or a browser without scroll timelines sees
+ * every arrow drawn.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    @keyframes flow-draw-y { from { scale: 1 0; } }
+    @keyframes flow-draw-x { from { scale: 0 1; } }
+    @keyframes flow-head { 0%, 75% { opacity: 0; } 100% { opacity: 1; } }
+
+    [data-flow-link] { view-timeline-name: --flow-link; }
+    [data-flow-line],
+    [data-flow-head] {
+      animation: flow-draw-y linear both;
+      animation-timeline: --flow-link;
+      animation-range: cover 15vh cover 40vh;
+    }
+    [data-flow-head] { animation-name: flow-head; }
+
+    @media (width >= 48rem) {
+      [data-flow-line] { animation-name: flow-draw-x; }
+      [data-flow-line],
+      [data-flow-head] {
+        animation-range: cover calc(12vh + (var(--i, 1) - 1) * 6vh) cover calc(28vh + (var(--i, 1) - 1) * 6vh);
+      }
+    }
   }
 }
 
@@ -4223,12 +4363,14 @@ section[data-page-section="rich_text"] + section[data-page-section="rich_text"] 
      * a story step's — plus the section's own background picture, which
      * `SectionBg`'s shell clips. Scaled to 114% so a 6% drift either way
      * never shows the frame's edge. Sliders, galleries and the before/after
-     * pair carry no `[data-frame]`: they move by themselves already.
+     * pair carry no `[data-frame]`: they move by themselves already. A cover
+     * hero's background video (0.115.0) drifts with its picture, so the two
+     * stay registered while the video fades in over it.
      */
     @keyframes scroll-drift { from { translate: 0 -6%; scale: 1.14; } to { translate: 0 6%; scale: 1.14; } }
 
     [data-section-style][data-scroll="parallax"] [data-frame] { overflow: clip; }
-    [data-section-style][data-scroll="parallax"] [data-frame] > img,
+    [data-section-style][data-scroll="parallax"] [data-frame] > :is(img, video),
     [data-section]:has(> div > [data-section-style][data-scroll="parallax"]) > img {
       animation: scroll-drift linear both;
       animation-timeline: view();

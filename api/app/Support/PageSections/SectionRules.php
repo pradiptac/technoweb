@@ -163,6 +163,10 @@ final class SectionRules
                 'lede' => $lede,
                 'layout' => ['required', Rule::in(self::HERO_LAYOUTS)],
                 'image_path' => ['nullable', "required_if:{$at}.layout,split,cover", 'string', 'max:255'],
+                // A video playing behind a cover hero (0.115.0). The picture
+                // stays required: it is the poster, and what a visitor who
+                // asked for less motion sees. Cover only — `checkData` says so.
+                'video_path' => ['nullable', 'string', 'max:255'],
                 ...self::button('primary', $at),
                 ...self::button('secondary', $at),
             ],
@@ -399,6 +403,18 @@ final class SectionRules
                 'items.*.body' => ['required', 'string', 'max:600'],
                 'items.*.image_path' => ['required', 'string', 'max:255'],
             ],
+            // A row of connected steps whose joining lines draw themselves as
+            // the page scrolls (0.115.0). Plain text; an icon by id.
+            PageSectionType::Flow => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => ['nullable', 'string', 'max:120'],
+                'lede' => ['nullable', 'string', 'max:300'],
+                'items' => ['required', 'array', 'min:2', 'max:6'],
+                'items.*.icon' => ['nullable', 'string', self::ICON],
+                'items.*.title' => ['required', 'string', 'max:60'],
+                'items.*.note' => ['nullable', 'string', 'max:160'],
+                'caption' => ['nullable', 'string', 'max:200'],
+            ],
             // One of the active theme's homepage sections, by id. Checked for
             // the shape of an id only, the rule `site_theme` and the section
             // order follow: the list is the frontend's (`HOME_SECTIONS`), and
@@ -440,6 +456,16 @@ final class SectionRules
             'items.*.body.required' => 'Write the words for this step.',
             'items.*.body.max' => 'Keep a step’s words to 600 characters.',
             'items.*.image_path.required' => 'Choose a picture for this step.',
+        ],
+        'flow' => [
+            'items.required' => 'A diagram needs at least two steps.',
+            'items.min' => 'A diagram needs at least two steps.',
+            'items.max' => 'A diagram holds at most six steps.',
+            'items.*.title.required' => 'Name this step.',
+            'items.*.title.max' => 'Keep a step’s name to 60 characters.',
+            'items.*.note.max' => 'Keep a step’s note to 160 characters.',
+            'items.*.icon.regex' => 'That is not an icon this site has.',
+            'caption.max' => 'Keep the caption to 200 characters.',
         ],
     ];
 
@@ -651,6 +677,14 @@ final class SectionRules
         switch ($type) {
             case PageSectionType::Hero:
                 $media('image_path', 'image/');
+                $video = $data['video_path'] ?? null;
+                if (is_string($video) && $video !== '') {
+                    if (($data['layout'] ?? null) !== 'cover') {
+                        $validator->errors()->add("{$at}.video_path", 'A background video plays behind a cover hero only — choose the Cover layout.');
+                    } else {
+                        $media('video_path', 'video/');
+                    }
+                }
                 break;
             case PageSectionType::MediaText:
                 if ($mediaKind === 'image') {

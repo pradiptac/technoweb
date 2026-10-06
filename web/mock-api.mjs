@@ -1634,6 +1634,7 @@ const SECTION_TYPES = [
   { value: 'columns', label: 'Columns of text', blurb: 'Two or three columns side by side, each with a heading and a body from the editor.' },
   { value: 'map', label: 'Map', blurb: 'A Google map, loaded only when somebody presses it, with the address beside it.' },
   { value: 'story', label: 'Scroll story', blurb: 'Steps that scroll past a picture held in place, the picture changing with each step — a product tour, a process, a project told in stages.' },
+  { value: 'flow', label: 'Diagram', blurb: 'A row of connected steps — a network, a process, how data moves — whose connecting lines draw themselves as the page scrolls.' },
   { value: 'theme_section', label: 'From the theme', blurb: 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.' },
 ];
 const SECTION_PRESETS = [
@@ -1704,6 +1705,15 @@ function presentSections(blocks) {
         ...it, image: image_path ? `http://127.0.0.1:8899/storage/${image_path}` : null, image_alt: it.title ?? '', image_focus: null,
       }));
       return { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, style: b.style ?? null, data: { ...b.data, items } };
+    }
+    // A hero's picture and its cover video (0.115.0) are paths as stored and URLs as presented.
+    if (b.type === 'hero') {
+      const { image_path, video_path, ...rest } = b.data ?? {};
+      const url = (p) => (p ? `http://127.0.0.1:8899/storage/${p}` : null);
+      return { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, style: b.style ?? null, data: {
+        ...rest, image: url(image_path), image_alt: image_path ? (rest.heading ?? '') : null, image_focus: null,
+        video: rest.layout === 'cover' ? url(video_path) : null,
+      } };
     }
     if (b.type !== 'cards') return { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, data: b.data };
     const items = solutions.slice(0, b.data.limit || 6).map((s) => ({

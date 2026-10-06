@@ -41,18 +41,18 @@ export const MOTION_PRESETS: MotionPreset[] = [
   {
     id: "lively",
     label: "Lively",
-    note: "Pieces cascade in, pages rise, buttons grow, an aurora behind headings and a reading line along the top.",
+    note: "Pieces cascade in, pages slide across, buttons grow, an aurora behind headings and a reading line along the top.",
     values: {
-      motion_reveal: "cascade", motion_buttons: "scale", motion_page: "rise", motion_loader: "bar",
+      motion_reveal: "cascade", motion_buttons: "scale", motion_page: "slide", motion_loader: "bar",
       motion_hero: "aurora", motion_cards: "float", motion_progress: "bar",
     },
   },
   {
     id: "cinematic",
     label: "Cinematic",
-    note: "Sections sharpen into focus, pages settle in, buttons shine and cards lean towards the pointer.",
+    note: "Sections sharpen into focus, pages crossfade, buttons shine and cards lean towards the pointer.",
     values: {
-      motion_reveal: "blur", motion_buttons: "shine", motion_page: "zoom", motion_loader: "bar",
+      motion_reveal: "blur", motion_buttons: "shine", motion_page: "crossfade", motion_loader: "bar",
       motion_hero: "aurora", motion_cards: "tilt", motion_progress: "bar",
     },
   },

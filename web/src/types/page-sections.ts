@@ -28,6 +28,8 @@ export type PageSectionType =
   | "theme_section"
   /** A scroll story (0.114.0): steps that scroll past a picture held beside them. */
   | "story"
+  /** A diagram (0.115.0): two to six steps joined by arrows that draw as the page scrolls. */
+  | "flow"
   /** A library section placed linked (0.106.0): stored as `{saved_id}`, drawn as the library's section. */
   | "saved";
 
@@ -40,6 +42,12 @@ export type HeroSectionData = Picture<"image"> & {
   kicker?: string; heading: string; lede?: string;
   layout: "split" | "centered" | "cover";
   primary?: SectionButton; secondary?: SectionButton;
+  /**
+   * A background video's public URL (0.115.0) — `cover` only, and only over a
+   * picture, which stays the first paint and the poster: the video fades in
+   * over it once it plays, and never plays for reduced motion or Save-Data.
+   */
+  video?: string | null;
 };
 
 export type RichTextSectionData = { heading?: string; body: string };
@@ -138,6 +146,18 @@ export type StorySectionData = {
 };
 
 /**
+ * A diagram (0.115.0, "Diagram" in the builder): two to six nodes in order,
+ * each an identity icon (an `iconMap` key) over a title and a note, joined by
+ * arrows. Every word is HTML; the arrows are decoration.
+ */
+export type FlowItem = { icon?: string | null; title: string; note?: string | null };
+export type FlowSectionData = {
+  kicker?: string | null; heading?: string | null; lede?: string | null;
+  caption?: string | null;
+  items: FlowItem[];
+};
+
+/**
  * How a section sits on the page (2026-10-05, `SectionRules::STYLE`): only
  * the keys that differ from the section's own behaviour are ever sent.
  */
@@ -191,7 +211,8 @@ export type PageSection =
   | Of<"columns", ColumnsSectionData>
   | Of<"map", MapSectionData>
   | Of<"theme_section", ThemeSectionData>
-  | Of<"story", StorySectionData>;
+  | Of<"story", StorySectionData>
+  | Of<"flow", FlowSectionData>;
 
 /** A section as stored and edited: paths and ids, and whatever the type's fields are. */
 export type StoredSection = {

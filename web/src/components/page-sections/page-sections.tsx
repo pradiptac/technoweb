@@ -21,6 +21,7 @@ import {
 import { ColumnsSection, CountdownSection, DownloadsSection, MapSection, TeamSection } from "./people-sections";
 import { ThemeSectionSlot } from "./theme-section";
 import { StorySection } from "./story-section";
+import { FlowSection } from "./flow-section";
 import { setHeroLevel } from "@/lib/hero-heading";
 import { LOCKED_SECTION } from "@/themes/options";
 
@@ -185,6 +186,7 @@ function renderSection(
     case "columns": return <ColumnsSection data={section.data} reveal={reveal} />;
     case "map": return <MapSection data={section.data} reveal={reveal} />;
     case "story": return <StorySection data={section.data} eager={eager} reveal={reveal} id={`story-${section.id.slice(0, 8)}`} />;
+    case "flow": return <FlowSection data={section.data} reveal={reveal} />;
     // The active theme's own homepage section, arriving as `HomeSection` would
     // have it arrive: still unless the editor chose a reveal, and never the
     // hero, which opens a page (the homepage's rule, `section-bg.tsx`).

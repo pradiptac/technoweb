@@ -61,7 +61,21 @@ export const PAGES: MotionChoice[] = [
   { id: "fade", label: "Fade", note: "Each page fades in over 320ms." },
   { id: "rise", label: "Rise", note: "Each page fades in while rising 12px." },
   { id: "zoom", label: "Zoom", note: "Each page settles in from 98.5%." },
+  { id: "crossfade", label: "Crossfade", note: "The old page fades out as the new one fades in; the header and footer stay where they are." },
+  { id: "slide", label: "Slide", note: "The new page slides in from the side as the old one slides away; the header and footer stay put." },
 ];
+
+/**
+ * The two page transitions drawn by the browser's View Transitions API
+ * (0.115.0) rather than by `.page-enter`'s own animation: `PageEnter` wraps
+ * the page in React's `<ViewTransition>` for these ids only, so every other
+ * choice renders exactly the markup it always did.
+ */
+export type PageViewTransition = "crossfade" | "slide";
+
+export function pageViewTransition(page: string | null | undefined): PageViewTransition | null {
+  return page === "crossfade" || page === "slide" ? page : null;
+}
 
 export const LOADERS: MotionChoice[] = [
   { id: "none", label: "None", note: "No indicator while the next page loads. The current behaviour." },

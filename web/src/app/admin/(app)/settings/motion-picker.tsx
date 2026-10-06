@@ -29,7 +29,8 @@ import type { SettingRow } from "@/lib/admin";
  * Reveals and page transitions cannot be replayed on demand from the live
  * rules — those fire once, on arrival — so their tiles carry `data-demo` and
  * a matching set of hover-triggered keyframes in globals.css, written to the
- * same numbers. The hero tiles render `<Backdrop>` itself.
+ * same numbers — except the two page swaps, drawn by `PageSwap` below. The
+ * hero tiles render `<Backdrop>` itself.
  */
 export function MotionPicker({ rows }: { rows: SettingRow[] }) {
   const stored = Object.fromEntries(rows.map((r) => [r.key, r.value ?? ""]));
@@ -144,11 +145,11 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
       <Choices
         name="setting__motion_page" legend="Page transitions" value={page} onChange={setPage} choices={PAGES}
         intro="How the next page arrives after a link is pressed. Hover a tile to replay it."
-        preview={(c) => (
+        preview={(c) => (c.id === "crossfade" || c.id === "slide" ? <PageSwap kind={c.id} /> : (
           <span className="flex h-14 items-center justify-center" data-demo={`page-${c.id}`} aria-hidden>
             <span className="block h-10 w-16 rounded border border-line-strong bg-card shadow-1" />
           </span>
-        )}
+        ))}
       />
 
       <Choices
@@ -206,6 +207,36 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
   );
 }
 
+/**
+ * The preview for the two page transitions that swap one page for the next
+ * (0.115.0): `crossfade` and `slide`. A swap needs an old page and a new one,
+ * which the single-card replays in globals.css do not have, so these two are
+ * drawn here instead (no view transition involved), as two pages stacked in one
+ * card, swapped by a transition on the tile's hover (`group` on the label) —
+ * so hovering shows the next page and leaving puts the first one back. The
+ * card clips, so the slide's off-stage page never widens anything, and
+ * `motion-reduce` holds both still.
+ */
+function PageSwap({ kind }: { kind: "crossfade" | "slide" }) {
+  const page = "absolute inset-0 flex flex-col gap-1 p-1.5 transition-[opacity,translate] duration-(--duration-slow) ease-brand motion-reduce:transition-none";
+  return (
+    <span className="flex h-14 items-center justify-center" aria-hidden>
+      <span className="relative block h-10 w-16 overflow-hidden rounded border border-line-strong bg-card shadow-1">
+        <span className={cn(page, kind === "crossfade" ? "opacity-100 group-hover:opacity-0" : "group-hover:-translate-x-full")}>
+          <span className="block h-1.5 w-3/4 rounded-sm bg-muted/50" />
+          <span className="block h-1.5 w-1/2 rounded-sm bg-muted/50" />
+          <span className="block h-1.5 w-2/3 rounded-sm bg-muted/50" />
+        </span>
+        <span className={cn(page, "bg-card", kind === "crossfade" ? "opacity-0 group-hover:opacity-100" : "translate-x-full group-hover:translate-x-0")}>
+          <span className="block h-1.5 w-2/3 rounded-sm bg-brand-600/80" />
+          <span className="block h-1.5 w-3/4 rounded-sm bg-muted/50" />
+          <span className="block h-1.5 w-1/2 rounded-sm bg-muted/50" />
+        </span>
+      </span>
+    </span>
+  );
+}
+
 function Choices({
   name, legend, intro, value, onChange, choices, preview,
 }: {
@@ -227,7 +258,7 @@ function Choices({
           <label
             key={c.id}
             className={cn(
-              "motion-tile block cursor-pointer rounded-lg border p-3 transition-colors",
+              "motion-tile group block cursor-pointer rounded-lg border p-3 transition-colors",
               value === c.id ? "border-brand-500 bg-brand-50 ring-2 ring-brand-500/30" : "border-line-strong bg-card hover:border-faint",
             )}
           >

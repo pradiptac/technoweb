@@ -100,7 +100,7 @@ export default async function PortalLayout({ children }: { children: React.React
           <PortalNav links={portalLinks()} knowledgeBaseIcon={knowledgeBaseIcon} />
           {/* The <main> landmark lives here, not around the nav: the root
               layout no longer supplies one, and the skip link targets it. */}
-          <main id="main" className="min-w-0"><PageEnter>{children}</PageEnter></main>
+          <main id="main" className="min-w-0"><PageEnter transition={motion.page}>{children}</PageEnter></main>
         </Container>
 
         {/* The same one line the public site and the console carry. The portal

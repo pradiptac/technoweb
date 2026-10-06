@@ -21,6 +21,27 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.115.0 — 2026-10-06
+
+**Motion graphics, part two: page transitions, a hero video and a diagram.**
+
+- **Page transitions** (Site → Settings → Motion → Changing pages): two new
+  choices, **Crossfade** and **Slide**, move between pages with the browser's
+  view transitions — the old page leaves as the new one arrives, while the
+  header and footer stay where they are. The Cinematic preset now crossfades
+  and Lively slides.
+- A builder **hero** in the Cover layout can loop a silent **background
+  video** behind its words, with a pause button. The picture is shown first
+  and stays for visitors who ask for less motion or whose phone is saving
+  data.
+- A new section, **Diagram**: two to six connected steps, each with an icon,
+  a title and a note, whose connecting arrows draw themselves as the page
+  scrolls — across from tablet width, down the page on a phone.
+- The timeline's and the steps' connecting lines now draw as the page
+  scrolls, where the browser can.
+
+---
+
 ## 0.114.0 — 2026-10-06
 
 **Motion graphics, part one: headings, scrolling, a scroll story and presets.**

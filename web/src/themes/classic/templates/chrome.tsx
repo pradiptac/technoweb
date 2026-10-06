@@ -15,7 +15,7 @@ import type { ThemeOptions } from "@/themes/options";
  * the assistant, the popup and the consent banner — around this.
  */
 export function Chrome({
-  settings, menu, primary, footerMenu, topBar, bottomBar, announcement, options, themeId, children,
+  settings, menu, primary, footerMenu, topBar, bottomBar, announcement, motion, options, themeId, children,
 }: ChromeData & { options: ThemeOptions; themeId: string; children: ReactNode }) {
   return (
     <>
@@ -30,7 +30,7 @@ export function Chrome({
         topBar={topBar ?? defaultTopBar()}
         menuStyle={options.menu_style}
       />
-      <main id="main"><PageEnter>{children}</PageEnter></main>
+      <main id="main"><PageEnter transition={motion.page}>{children}</PageEnter></main>
       {/* The footer is the one part of this chrome that changes per theme:
           Enterprise, Horizon and Canvas inherit the header and pick their
           own footer through `footerLayoutFor`. */}

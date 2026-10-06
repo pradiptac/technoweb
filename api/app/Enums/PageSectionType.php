@@ -68,6 +68,12 @@ enum PageSectionType: string
      */
     case Story = 'story';
     /**
+     * A row of connected steps whose joining lines draw themselves as the
+     * page scrolls (2026-10-06, 0.115.0): a network, a process, how data
+     * moves. Plain text and an icon per step; nothing to resolve.
+     */
+    case Flow = 'flow';
+    /**
      * One of the active theme's own homepage sections (2026-10-06, 0.113.0):
      * the hero, the solutions, the partner strip… — stored as the section's
      * id, drawn by the theme that is active when the page renders, so it
@@ -113,6 +119,7 @@ enum PageSectionType: string
             self::Columns => 'Columns of text',
             self::Map => 'Map',
             self::Story => 'Scroll story',
+            self::Flow => 'Diagram',
             self::ThemeSection => 'From the theme',
             self::Saved => 'Saved section',
         };
@@ -154,6 +161,7 @@ enum PageSectionType: string
             self::Columns => 'Two or three columns side by side, each with a heading and a body from the editor.',
             self::Map => 'A Google map, loaded only when somebody presses it, with the address beside it.',
             self::Story => 'Two to six steps that scroll past a picture held in place, the picture changing with each step — a product tour, a process, a project told in stages.',
+            self::Flow => 'A row of connected steps — a network, a process, how data moves — whose connecting lines draw themselves as the page scrolls.',
             self::ThemeSection => 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.',
             self::Saved => 'A section from the library, kept in step with it: edit it once and every page that places it changes.',
         };

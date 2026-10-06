@@ -38,7 +38,7 @@ export function themeChrome({
   between?: (settings: SiteSettings) => ReactNode;
 }): ThemeTemplates["Chrome"] {
   return function Chrome({
-    settings, menu, primary, footerMenu, topBar, bottomBar, announcement, options, children,
+    settings, menu, primary, footerMenu, topBar, bottomBar, announcement, motion, options, children,
   }: ChromeData & { options: ThemeOptions; children: ReactNode }) {
     return (
       <>
@@ -51,7 +51,7 @@ export function themeChrome({
           menuStyle={options.menu_style}
         />
         {between?.(settings)}
-        <main id="main"><PageEnter>{children}</PageEnter></main>
+        <main id="main"><PageEnter transition={motion.page}>{children}</PageEnter></main>
         <SiteFooter layout={footer} settings={settings} columns={footerMenu ?? undefined} bottomBar={bottomBar ?? undefined} />
       </>
     );

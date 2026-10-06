@@ -621,6 +621,103 @@ class PageBuilderTest extends TestCase
             ->assertJsonValidationErrors(['blocks.1.data.items.1.body' => 'Every tab needs its words.']);
     }
 
+    public function test_a_cover_hero_plays_a_library_video_over_its_poster(): void
+    {
+        $this->media('media/poster.jpg', 'image/jpeg', 'The control room');
+        $this->media('media/loop.mp4', 'video/mp4');
+
+        $created = $this->create([self::section('hero', [
+            'heading' => 'Networks that stay up', 'layout' => 'cover',
+            'image_path' => 'media/poster.jpg', 'video_path' => 'media/loop.mp4',
+        ])])->assertCreated()
+            ->assertJsonPath('data.blocks.0.data.video_path', 'media/loop.mp4');
+        $this->assertSame(asset('storage/media/loop.mp4'), $created->json('data.blocks_media')['media/loop.mp4'] ?? null);
+
+        $stored = Page::query()->where('slug', 'built-page')->first()->blocks[0]['data'];
+        $this->assertSame('media/loop.mp4', $stored['video_path']);
+
+        $data = $this->getJson('/api/v1/pages/built-page')->assertOk()->json('data.sections.0.data');
+        $this->assertSame(asset('storage/media/loop.mp4'), $data['video']);
+        $this->assertSame(asset('storage/media/poster.jpg'), $data['image']);
+        $this->assertArrayNotHasKey('video_path', $data);
+        $this->assertArrayNotHasKey('image_path', $data);
+    }
+
+    public function test_a_hero_video_is_refused_off_the_cover_layout_and_unless_it_is_a_library_video(): void
+    {
+        $this->media('media/poster.jpg');
+        $this->media('media/loop.webm', 'video/webm');
+        $hero = fn (array $over) => self::section('hero', ['heading' => 'H', 'layout' => 'cover', 'image_path' => 'media/poster.jpg', ...$over]);
+
+        $this->create([$hero(['layout' => 'split', 'video_path' => 'media/loop.webm'])])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.0.data.video_path' => 'A background video plays behind a cover hero only — choose the Cover layout.']);
+
+        $this->create([$hero(['video_path' => 'media/poster.jpg'])])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.0.data.video_path' => 'That file is not a video.']);
+
+        $this->create([$hero(['video_path' => 'media/nowhere.mp4'])])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.video_path');
+
+        // The poster is still required: it is what reduced motion shows.
+        $this->create([$hero(['image_path' => null, 'video_path' => 'media/loop.webm'])])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.image_path');
+
+        $this->create([$hero(['video_path' => 'media/loop.webm'])])->assertCreated();
+    }
+
+    public function test_a_diagram_is_stored_as_declared_and_read_back_whole(): void
+    {
+        $created = $this->create([self::section('flow', [
+            'kicker' => 'How it connects', 'heading' => 'From the branch to the cloud', 'lede' => 'Four hops.',
+            'items' => [
+                ['icon' => 'network', 'title' => 'Branch', 'note' => 'Switches and Wi-Fi.', 'junk' => 'never stored'],
+                ['icon' => 'shield', 'title' => 'Firewall'],
+                ['title' => 'Cloud', 'note' => 'Where the data lands.'],
+            ],
+            'caption' => 'Every link monitored.',
+        ])])->assertCreated()
+            ->assertJsonPath('data.blocks.0.type', 'flow')
+            ->assertJsonMissingPath('data.blocks.0.data.items.0.junk');
+
+        $stored = Page::query()->where('slug', 'built-page')->first()->blocks[0]['data'];
+        $this->assertEquals(['icon' => 'shield', 'title' => 'Firewall'], $stored['items'][1]);
+        $this->assertSame('Every link monitored.', $stored['caption']);
+
+        $this->getJson('/api/v1/pages/built-page')->assertOk()
+            ->assertJsonPath('data.sections.0.type', 'flow')
+            ->assertJsonPath('data.sections.0.data.heading', 'From the branch to the cloud')
+            ->assertJsonPath('data.sections.0.data.items.0.icon', 'network')
+            ->assertJsonPath('data.sections.0.data.items.2.note', 'Where the data lands.')
+            ->assertJsonPath('data.sections.0.data.caption', 'Every link monitored.');
+
+        $this->actingAs($this->user(), 'sanctum')->getJson('/api/v1/admin/pages/builder')->assertOk()
+            ->assertJsonFragment(['value' => 'flow', 'label' => 'Diagram']);
+    }
+
+    public function test_a_diagram_needs_two_to_six_named_steps(): void
+    {
+        $step = fn (array $over = []) => ['title' => 'A hop', ...$over];
+
+        $this->create([self::section('flow', ['items' => [$step()]])])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.0.data.items' => 'A diagram needs at least two steps.']);
+
+        $this->create([self::section('flow', ['items' => array_fill(0, 7, $step())])])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.0.data.items' => 'A diagram holds at most six steps.']);
+
+        $this->create([self::section('flow', ['items' => [$step(), $step(['title' => ''])]])])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['blocks.0.data.items.1.title' => 'Name this step.']);
+
+        $this->create([self::section('flow', ['items' => [$step(['icon' => 'Not An Icon!']), $step()]])])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.items.0.icon');
+
+        $this->create([self::section('flow', ['items' => array_fill(0, 6, $step())])])->assertCreated();
+    }
+
     public function test_a_cards_section_is_resolved_to_the_live_list(): void
     {
         Solution::create(['title' => 'Networking', 'slug' => 'networking', 'summary' => 'Switching and routing.', 'icon' => 'network', 'status' => PublishStatus::Published, 'sort_order' => 1]);

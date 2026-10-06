@@ -1197,7 +1197,18 @@ in place (`kicker?` ≤ 60, `heading?` ≤ 120, `lede?` ≤ 300, and 2–6 `item
 `{title (≤ 100), body (plain text, ≤ 600), image_path}`, every step's picture
 required and a library picture, a 422 on `blocks.N.data.items.M.image_path`
 otherwise; read with each step's picture as `image`/`image_alt`/`image_focus`,
-the tabs' rule) — and
+the tabs' rule), and since 0.115.0 `flow` — "Diagram", a row of connected
+steps whose joining lines draw themselves as the page scrolls (`kicker?` ≤ 80,
+`heading?` ≤ 120, `lede?` ≤ 300, 2–6 `items` `{icon?, title (≤ 60), note?
+(plain text, ≤ 160)}` — `icon` an id of the features' shape — and `caption?`
+≤ 200; passed through unchanged on the public read). Also since 0.115.0 a
+`hero` may carry `video_path`, a library video (`video/*`, in practice mp4 or
+webm), on the **`cover`** layout only — on `split` or `centered` it is a 422 on
+`blocks.N.data.video_path` ("A background video plays behind a cover hero
+only — choose the Cover layout."), a file that is not a video is "That file is
+not a video.", and `image_path` stays required, as the poster and what a
+visitor who asked for less motion sees; the public read carries it as `video`
+(a URL) with `video_path` removed — and
 `data` is checked by that type's own rules (`SectionRules`), so a 422 names the
 field: `blocks.3.data.heading`. A picture or video must be in the media
 library and of the right kind; a content block, slider, gallery or form is
@@ -3622,7 +3633,8 @@ WCAG AA.
 **The `motion` group is eight keys and all of them are public**, for the same
 reason. `motion_reveal` (`lift`, `float`, `fade`, `zoom`, `blur`, `none`),
 `motion_buttons` (`lift`, `glow`, `scale`, `shine`, `ripple`, `flat`),
-`motion_page` (`none`, `fade`, `rise`, `zoom`), `motion_loader` (`none`,
+`motion_page` (`none`, `fade`, `rise`, `zoom`, and since 0.115.0 `crossfade`
+and `slide` — React view transitions on client navigations), `motion_loader` (`none`,
 `bar`, `pulse`), `motion_hero` (`grid`, `aurora`, `dots`, `none`),
 `motion_cards` (below) and, since 0.114.0, `motion_progress` (`none`, the
 default, or `bar` — a reading-progress bar along the top of public pages) are ids

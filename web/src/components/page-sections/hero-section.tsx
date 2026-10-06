@@ -5,6 +5,7 @@ import { focalStyle } from "@/lib/focal";
 import { sectionReveal } from "@/lib/motion-choices";
 import { cn } from "@/lib/utils";
 import type { HeroSectionData } from "@/types/api";
+import { HeroVideo } from "./hero-video";
 import { SectionButtons } from "./section-parts";
 
 /**
@@ -22,7 +23,11 @@ import { SectionButtons } from "./section-parts";
  * - `cover` — the picture fills the band under `bg-dark` at reduced
  *   opacity, the `PageHero` banner's rule: the words are graded against
  *   the dark ground and the real composite can only be darker, so the
- *   contrast is arithmetic rather than a hope about the photograph.
+ *   contrast is arithmetic rather than a hope about the photograph. A cover
+ *   may also carry a background `video` (0.115.0): `HeroVideo`, a client
+ *   island over the picture at the same 35%. The picture stays the first
+ *   paint and the largest one; the video fades in only once it plays, and
+ *   never plays for reduced motion or Save-Data.
  *
  * The picture is eager on the first two sections, where it is the largest
  * paint, and lazy below — `SectionBg`'s rule.
@@ -64,6 +69,7 @@ export function HeroSection({ data, first, crumbs, eager, revealId }: {
     return (
       <section data-page-section="hero" data-hero-layout="cover" data-frame data-aos={reveal ?? undefined} className="relative overflow-hidden bg-dark">
         {picture("100vw", "opacity-35")}
+        {data.video && <HeroVideo src={data.video} focus={data.image_focus} />}
         <Container className="relative py-20 lg:py-28">
           {trail && <div className="mb-8"><Breadcrumbs crumbs={crumbs} onBanner /></div>}
           <div className="max-w-3xl">

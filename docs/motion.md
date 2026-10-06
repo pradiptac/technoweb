@@ -406,6 +406,64 @@ styles through the Motion tab); `audit.mjs` light and dark and
 `audit:mobile` clean on a page carrying all four, and 0px of overflow at
 320px sampled every 30ms through each reveal.
 
+## Page transitions, hero video, diagrams (0.115.0, 2026-10-06)
+
+**Crossfade and Slide are React `<ViewTransition>`s**, which the App Router
+runs on every navigation with no configuration (`import { ViewTransition }
+from "react"`, typed in `@types/react` 19.3). `PageEnter` wraps its
+`.page-enter` div in one **only** when `motion_page` is `crossfade` or
+`slide` (`pageViewTransition()` in `lib/motion-choices.ts`), so every other
+choice renders the same markup as before; the wrapper adds no element.
+
+- It animates on `update`, not `enter`/`exit`: `PageEnter` lives in a layout
+  that persists across navigations, so nothing mounts or unmounts.
+- **The name changes with the pathname** (`tw-page-<hash>`). React names the
+  old snapshot with the old props and the new one with the new, so a
+  navigation is an unpaired old page and an unpaired new one. With one name
+  they would be a morphing pair, and because Next scrolls to the top in the
+  same commit the whole page would glide down by the old scroll offset. Only
+  `:only-child` images animate; a same-path update (a Server Action refresh,
+  a search parameter) keeps one name, gets `animation: none` and is over in
+  a frame — a cost every such update pays while either choice is on.
+- The header and footer are in the root snapshot, which has no animation.
+  The sticky header is lifted out as `tw-site-header` (no animation,
+  `z-index: 2`) so a sliding page cannot paint over it, and only while a
+  `tw-page-*` name is on the page, so the scheme toggle's circle wipe still
+  takes the header with it.
+- Leaving is shorter than arriving: the old page goes over
+  `--duration-exit`/`--duration-base`, the new arrives over `--duration-slow`.
+  The slide is ±8% and horizontal — acceptable only because
+  `::view-transition` is a fixed overlay in the top layer and adds nothing to
+  `scrollWidth`. One direction only: Next tags no navigation with a type.
+- `::view-transition { pointer-events: none }`, and under reduced motion
+  every group and image has `animation: none !important`.
+
+**Hero video** (`components/page-sections/hero-video.tsx`, a client island
+on the Cover hero when `data.video` is set): `muted loop playsInline
+preload="none"`, `aria-hidden`, absolutely over the `next/image` picture
+with the picture's focal point. It starts only after mount, with motion
+allowed (`useMotionOk`) and no Save-Data; pauses while the tab is hidden
+(`useDocumentHidden`) and resumes unless the visitor paused it; fades to the
+picture's own opacity once `playing` fires. **No `poster` attribute** — the
+picture beneath already is the poster and the LCP element, and a poster
+would download it again outside its srcset. The Pause/Play button copies
+the carousels' and is rendered only once the video may play (the server
+assumes Save-Data, so no button is in the HTML) — WCAG 2.2.2 for anything
+moving longer than five seconds.
+
+**The Diagram's arrows** are HTML — a stroke span and a border-drawn
+chevron, never SVG `<text>` — living in the node they point at: a 40px
+column above the tile below `md`, absolutely between the tiles from `md`.
+Each draws (`scale: 1 0` → `1`, or `0 1` across) on its own view timeline
+`--flow-link`, across the row staggered by `(--i − 1) × 6vh`, inside both
+guards, from-only keyframes so they are fully drawn otherwise.
+
+**The timeline's and steps' rail** (`[data-step-line]`) draws on its list's
+view timeline `--step-line` (the parent's, so the box measured is never the
+one scaled) from `cover 30vh` to `cover calc(100% − 50vh)`; the older
+time-based draw on `data-aos-animate` stays for browsers without scroll
+timelines (`@supports not`).
+
 ## Scroll-driven motion (0.114.0, 2026-10-06)
 
 Everything in this release is a CSS scroll-driven animation
