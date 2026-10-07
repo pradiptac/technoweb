@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Admin\EmailTemplateController;
 use App\Http\Controllers\Api\V1\Admin\InboundMailController;
 use App\Http\Controllers\Api\V1\Admin\IntegrationsController;
 use App\Http\Controllers\Api\V1\Admin\MailController;
+use App\Http\Controllers\Api\V1\Admin\MediaCdnController;
 use App\Http\Controllers\Api\V1\Admin\MessagingSettingsController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\V1\Admin\UserAdminController;
@@ -130,6 +131,10 @@ Route::middleware('role:admin')->group(function () {
         ->middleware('throttle:6,1')->name('settings.tickets.inbound.test');
 
     // Proving a third-party key from the screen it was typed into.
+    // The media CDN (0.124.0): one library file fetched through the saved
+    // address and compared with this server's copy.
+    Route::post('settings/media-cdn/test', [MediaCdnController::class, 'test'])
+        ->middleware('throttle:6,1')->name('settings.media-cdn.test');
     // Same shape as the mail test: one real call, the provider's
     // own words on a refusal, a success clears the last failure.
     Route::post('settings/integrations/hunter/test', [IntegrationsController::class, 'hunter'])

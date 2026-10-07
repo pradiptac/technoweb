@@ -42,6 +42,9 @@ class MediaMeta
     /** @var array<string, string>|null */
     private static ?array $blurs = null;
 
+    /** @var array<string, int>|null */
+    private static ?array $revisions = null;
+
     public static function alt(?string $path): ?string
     {
         return self::row($path)['alt'] ?? null;
@@ -147,6 +150,27 @@ class MediaMeta
     }
 
     /**
+     * How many times this file's bytes have been changed in place, or null
+     * for a file nobody has edited (0.124.0). `MediaUrl` versions the public
+     * URL by it. Only edited files are loaded — nearly always a handful —
+     * and binned ones too, since a binned file still serves at its path.
+     */
+    public static function revision(?string $path): ?int
+    {
+        if ($path === null || $path === '') {
+            return null;
+        }
+
+        self::$revisions ??= Media::withTrashed()->toBase()
+            ->where('revision', '>', 0)
+            ->pluck('revision', 'path')
+            ->map(fn ($v) => (int) $v)
+            ->all();
+
+        return self::$revisions[$path] ?? null;
+    }
+
+    /**
      * A map of its own, loaded the first time a preview is asked for.
      *
      * Nearly every picture has one, where few have an alt text or a point —
@@ -175,5 +199,6 @@ class MediaMeta
     {
         self::$map = null;
         self::$blurs = null;
+        self::$revisions = null;
     }
 }

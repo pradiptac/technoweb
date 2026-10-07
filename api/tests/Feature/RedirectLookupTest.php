@@ -41,7 +41,7 @@ class RedirectLookupTest extends TestCase
     {
         // `meta.coming_soon` rides on this read since 0.122.0 — false with no row seeded.
         $this->getJson('/api/v1/redirects')->assertOk()
-            ->assertExactJson(['data' => [], 'meta' => ['coming_soon' => false]]);
+            ->assertExactJson(['data' => [], 'meta' => ['coming_soon' => false, 'media_cdn' => null]]);
     }
 
     public function test_lookup_answers_404_for_an_unknown_path(): void

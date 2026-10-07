@@ -7,6 +7,7 @@ use App\Models\Concerns\HasCustomFields;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
 use App\Support\HtmlSanitiser;
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -51,7 +52,7 @@ class CaseStudy extends Model
             'title' => $this->title.' — case study',
             'description' => str(HtmlSanitiser::toText($this->summary ?? ''))->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').'/case-studies/'.$this->slug,
-            'og_image' => $this->cover_image_path ? asset('storage/'.$this->cover_image_path) : null,
+            'og_image' => $this->cover_image_path ? MediaUrl::for($this->cover_image_path) : null,
             'schema_type' => 'Article',
         ];
     }

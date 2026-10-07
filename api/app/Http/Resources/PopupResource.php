@@ -6,6 +6,7 @@ use App\Enums\PopupTrigger;
 use App\Models\Media;
 use App\Models\Popup;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Collection;
@@ -34,7 +35,7 @@ class PopupResource extends JsonResource
 
         return [
             'id' => $this->id,
-            'image' => filled($this->image_path) ? asset('storage/'.$this->image_path) : null,
+            'image' => filled($this->image_path) ? MediaUrl::for($this->image_path) : null,
             /*
              * Alt text lives with the file, resolved by path — the rule every
              * CMS image here follows. A popup is a picture carrying the whole

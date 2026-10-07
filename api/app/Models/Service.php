@@ -11,6 +11,7 @@ use App\Models\Concerns\Sluggable;
 use App\Models\Contracts\Answerable;
 use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
@@ -120,7 +121,7 @@ class Service extends Model implements Answerable, Faqable
             'description' => str(HtmlSanitiser::toText($this->summary ?? $this->body ?? ''))->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').'/services/'.$this->slug,
             // The service's own picture, the rule a solution's hero follows.
-            'og_image' => $this->image_path ? asset('storage/'.$this->image_path) : null,
+            'og_image' => $this->image_path ? MediaUrl::for($this->image_path) : null,
             'schema_type' => 'Service',
         ];
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Redirect;
 use App\Models\Setting;
+use App\Support\MediaUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -51,7 +52,12 @@ class RedirectController extends Controller
                     'to' => $r->to_path,
                     'status' => $r->status_code,
                 ])->all(),
-                'meta' => ['coming_soon' => (bool) Setting::get('coming_soon_enabled', false)],
+                'meta' => [
+                    'coming_soon' => (bool) Setting::get('coming_soon_enabled', false),
+                    // The media CDN's origin while it is on (0.124.0), so the
+                    // website's content-security policy can name it.
+                    'media_cdn' => MediaUrl::cdn(),
+                ],
             ])
             ->header('Cache-Control', 'public, max-age=60');
     }

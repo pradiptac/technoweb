@@ -154,7 +154,7 @@ class StructuredData
             'url' => self::url('/products/'.$product->slug),
             'sku' => $product->sku ?: null,
             'image' => collect($product->images ?? [])
-                ->map(fn ($p) => asset('storage/'.$p))->take(6)->values()->all(),
+                ->map(fn ($p) => MediaUrl::for($p))->take(6)->values()->all(),
             'brand' => $product->brand
                 ? ['@type' => 'Brand', 'name' => $product->brand->name]
                 : null,
@@ -217,7 +217,7 @@ class StructuredData
             'gtin' => $identifiers['gtin'],
             'mpn' => $identifiers['mpn'],
             'image' => collect($product->images ?? [])
-                ->map(fn ($p) => asset('storage/'.$p))->take(6)->values()->all(),
+                ->map(fn ($p) => MediaUrl::for($p))->take(6)->values()->all(),
             'brand' => $product->brand
                 ? ['@type' => 'Brand', 'name' => $product->brand->name]
                 : null,
@@ -354,7 +354,7 @@ class StructuredData
                 '@type' => 'VideoObject',
                 'name' => filled($v['title'] ?? null) ? $v['title'] : $product->name,
                 'description' => filled($v['title'] ?? null) ? $v['title'].' — '.$product->name : $product->name,
-                'thumbnailUrl' => asset('storage/'.$v['poster_path']),
+                'thumbnailUrl' => MediaUrl::for($v['poster_path']),
                 'uploadDate' => $product->updated_at?->toIso8601String(),
                 'embedUrl' => 'https://www.youtube-nocookie.com/embed/'.$v['youtube_id'],
             ])
@@ -523,7 +523,7 @@ class StructuredData
             '@type' => SchemaTypes::resolve($type, $record->seo?->schema_type),
             'headline' => $record->title,
             'description' => $record->excerpt ? HtmlSanitiser::toText($record->excerpt) : null,
-            'image' => $record->cover_image_path ? asset('storage/'.$record->cover_image_path) : null,
+            'image' => $record->cover_image_path ? MediaUrl::for($record->cover_image_path) : null,
             'datePublished' => $published?->toIso8601String(),
             // The one that was wrong everywhere.
             'dateModified' => $record->updated_at?->toIso8601String(),
@@ -601,7 +601,7 @@ class StructuredData
             '@type' => SchemaTypes::resolve('Event', $event->seo?->schema_type),
             'name' => $event->title,
             'description' => $event->summary ? HtmlSanitiser::toText($event->summary) : null,
-            'image' => $event->cover_image_path ? asset('storage/'.$event->cover_image_path) : null,
+            'image' => $event->cover_image_path ? MediaUrl::for($event->cover_image_path) : null,
             'startDate' => EventText::iso($event->starts_at),
             'endDate' => EventText::iso($event->ends_at),
             'eventAttendanceMode' => $event->format->attendanceMode(),
@@ -636,7 +636,7 @@ class StructuredData
 
         $url = self::url($entry->publicPath());
         $description = $entry->summary ? HtmlSanitiser::toText($entry->summary) : null;
-        $image = $entry->image_path ? asset('storage/'.$entry->image_path) : null;
+        $image = $entry->image_path ? MediaUrl::for($entry->image_path) : null;
         $type = SchemaTypes::resolve($base, $entry->seo?->schema_type);
 
         if ($base === 'WebPage') {

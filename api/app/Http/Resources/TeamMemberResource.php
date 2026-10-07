@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\TeamMember;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -27,7 +28,7 @@ class TeamMemberResource extends JsonResource
             'designation' => $this->designation,
             'department' => $this->department,
             'bio' => $this->bio,
-            'photo' => filled($this->photo_path) ? asset('storage/'.$this->photo_path) : null,
+            'photo' => filled($this->photo_path) ? MediaUrl::for($this->photo_path) : null,
             'photo_alt' => MediaMeta::alt($this->photo_path) ?: $this->name,
             'photo_focus' => MediaMeta::focus($this->photo_path),
             'photo_blur' => MediaMeta::blur($this->photo_path),

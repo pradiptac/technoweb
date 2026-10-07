@@ -11,6 +11,7 @@ use App\Models\Contracts\Answerable;
 use App\Models\Contracts\Faqable;
 use App\Support\CustomFields\EntryTargets;
 use App\Support\HtmlSanitiser;
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -143,7 +144,7 @@ class Entry extends Model implements Answerable, Faqable
             'title' => $this->title,
             'description' => str(HtmlSanitiser::toText($this->summary ?: ($this->body ?? '')))->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').$this->publicPath(),
-            'og_image' => $this->image_path ? asset('storage/'.$this->image_path) : null,
+            'og_image' => $this->image_path ? MediaUrl::for($this->image_path) : null,
             'schema_type' => in_array($schema, ContentType::SCHEMA_TYPES, true) ? $schema : 'Article',
         ];
     }

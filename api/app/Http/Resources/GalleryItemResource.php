@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\GalleryItem;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -14,7 +15,7 @@ class GalleryItemResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'url' => $this->media_path ? asset('storage/'.$this->media_path) : null,
+            'url' => $this->media_path ? MediaUrl::for($this->media_path) : null,
             // The item's own alt wins; the media library's description is the
             // fallback, so a picture already described in the library needs
             // nothing typed twice.

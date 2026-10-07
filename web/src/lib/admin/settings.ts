@@ -272,6 +272,14 @@ export async function testSearchConsole(): Promise<{ site: string; days: number;
   return res.data;
 }
 
+/** Prove the media CDN: one library file fetched through the saved address and compared with the server's copy. */
+export async function testMediaCdn(): Promise<{ message: string; url: string }> {
+  const res = await apiFetch<{ data: { message: string; url: string } }>("/admin/settings/media-cdn/test", {
+    method: "POST", body: {}, token: await token(),
+  });
+  return res.data;
+}
+
 /** Prove the GA4 property with the same account: one real report for yesterday, the page count, Google's words on refusal. */
 export async function testGoogleAnalytics(): Promise<{ property: string; days: number; pages: number }> {
   const res = await apiFetch<{ data: { property: string; days: number; pages: number } }>("/admin/settings/integrations/ga4/test", {

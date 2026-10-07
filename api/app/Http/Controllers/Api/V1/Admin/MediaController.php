@@ -482,7 +482,7 @@ class MediaController extends Controller
         }
 
         $target->update(['width' => $w, 'height' => $h, 'size' => $bytes]);
-        $target->refreshBlur();
+        $target->markEdited();
 
         $created = [];
 
@@ -579,7 +579,7 @@ class MediaController extends Controller
         }
 
         $target->update(['width' => $w, 'height' => $h, 'size' => $bytes]);
-        $target->refreshBlur();
+        $target->markEdited();
 
         return response()->json(['data' => new MediaResource($target->fresh('uploader'))]);
     }
@@ -648,7 +648,7 @@ class MediaController extends Controller
         }
 
         $target->update(['width' => $w, 'height' => $h, 'size' => $bytes]);
-        $target->refreshBlur();
+        $target->markEdited();
 
         return response()->json(['data' => new MediaResource($target->fresh('uploader'))]);
     }
@@ -761,7 +761,7 @@ class MediaController extends Controller
             'width' => $width,
             'height' => $height,
         ]);
-        $medium->refreshBlur();
+        $medium->markEdited();
 
         return response()->json(['data' => new MediaResource($medium->fresh('uploader'))]);
     }

@@ -12,6 +12,7 @@ use App\Models\Concerns\Sluggable;
 use App\Models\Contracts\Answerable;
 use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -98,7 +99,7 @@ class Product extends Model implements Answerable, Faqable
             'description' => str(HtmlSanitiser::toText($this->short_description ?? $this->description ?? ''))
                 ->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').'/products/'.$this->slug,
-            'og_image' => is_array($this->images) && $this->images ? asset('storage/'.$this->images[0]) : null,
+            'og_image' => is_array($this->images) && $this->images ? MediaUrl::for($this->images[0]) : null,
             'schema_type' => 'Product',
         ];
     }

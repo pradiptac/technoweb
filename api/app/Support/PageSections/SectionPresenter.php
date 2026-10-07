@@ -26,6 +26,7 @@ use App\Models\StoreProduct;
 use App\Models\TeamMember;
 use App\Support\Events\EventText;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -172,7 +173,7 @@ final class SectionPresenter
             return null;
         }
         if (is_string($bg['image_path'] ?? null) && $bg['image_path'] !== '') {
-            $bg['image_url'] = asset('storage/'.$bg['image_path']);
+            $bg['image_url'] = MediaUrl::for($bg['image_path']);
             if (($focus = MediaMeta::focus($bg['image_path'])) !== null) {
                 $bg['image_focus'] = $focus;
             }
@@ -215,7 +216,7 @@ final class SectionPresenter
 
     private static function url(?string $path): ?string
     {
-        return filled($path) ? asset('storage/'.$path) : null;
+        return filled($path) ? MediaUrl::for($path) : null;
     }
 
     /**

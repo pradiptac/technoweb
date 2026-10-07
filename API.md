@@ -319,7 +319,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/settings` | Site settings. **Whitelisted by group**, see below |
 | `GET` | `/search?q=` | Site-wide search, grouped by type. Min 2 characters, **max 100** (422 above), 5 per group. `%` and `_` match themselves. Throttled 240/min under the `search` key — every visitor reaches it through the one Next server |
 | `GET` | `/companies/suggest?q=` | Company names already on file. Prefix, min 3 chars, max 5. Throttled 20/min |
-| `GET` | `/redirects` | Every active redirect as `{from,to,status}` rows, plus `meta.coming_soon` (boolean — the `coming_soon_enabled` setting, which the proxy acts on). `Cache-Control: max-age=60`. What the frontend proxy holds in memory |
+| `GET` | `/redirects` | Every active redirect as `{from,to,status}` rows, plus `meta.coming_soon` (boolean — the `coming_soon_enabled` setting, which the proxy acts on) and `meta.media_cdn` (the media CDN's origin while it is switched on, else null). `Cache-Control: max-age=60`. What the frontend proxy holds in memory |
 | `GET` | `/redirects/lookup?path=/blog/old-slug` | 200 with `{data:{to,status}}`, or 404. **Records the hit** — the proxy calls it only on a match |
 | `POST` | `/enquiries` | Contact form. Throttled 10/min, honeypot field |
 | `POST` | `/chat/conversations` | Starts a conversation. Throttled 6/min. Returns the token **once** |
@@ -3250,6 +3250,31 @@ theme options' `image_focus` rides beside `image_url`. A focal point only ever
 moves the crop — nothing is resized, padded or letterboxed by it — and it
 applies to a vector as much as to a photograph, since it is a rule about
 cropping rather than pixels.
+
+**A public media URL is versioned once the file has been edited** (0.124.0,
+`App\Support\MediaUrl`). Every picture, video and document URL in a public
+response is built in one place. For a file nobody has edited it is what it
+always was, `<api>/storage/<path>`; once its bytes have been changed in place
+— a resize, crop, rotate, flip or adjust, a replacement, a version restore —
+`media.revision` is bumped and the URL carries `?v=<revision>`, so the address
+moves exactly when the bytes do. A brand's logo is versioned by the brand's
+`updated_at` instead, as before. The admin media resource is unchanged
+(`?v=<updated_at>`).
+
+**With the media CDN switched on**, the URL of a file a browser fetches
+itself — anything but `jpg`, `jpeg`, `png`, `webp`, `gif` and `avif` — is
+`<media_cdn_url>/storage/<path>`; a raster stays on this server, because the
+website's image optimiser is what fetches it. The private `media_cdn` group
+holds `media_cdn_enabled` (`0`/`1`, off by default) and `media_cdn_url`: an
+https origin with nothing after the host, on a public host name and not this
+server's own, a 422 on the row otherwise, stored lower-cased without a
+trailing slash. Neither is on the public `/settings` map; `GET /redirects`
+carries the origin as `meta.media_cdn` while the switch is on, and null
+otherwise.
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/admin/settings/media-cdn/test` | `role:admin`, throttled 6/min. Fetches the newest library file a browser would fetch from the CDN (else any) through the **saved** address — switch on or off — and compares it byte for byte with this server's copy. 200 `{data: {message, url}}`; **422 on `cdn`** with a sentence: no address saved, an empty library, the CDN's status, or that what came back is not the file |
 
 **The blurred loading preview lives with the file too** (0.123.0).
 `media.blur` is a twelve-pixel-wide WebP of the picture as a `data:` URL, a

@@ -211,13 +211,18 @@ const cache = new Map<string, string>();
  * `frameAncestors` is `'self'` everywhere except `/embed/*`, which may be
  * framed by anybody (see `next.config.ts`).
  */
-export function reportOnlyCsp(frameAncestors = "'self'"): string {
+export function reportOnlyCsp(frameAncestors = "'self'", mediaCdn: string | null = null): string {
   const dev = process.env.NODE_ENV !== "production";
-  const key = `${dev}|${frameAncestors}`;
+  // The media CDN (0.124.0) is a setting, not part of the environment: the
+  // proxy learns its origin from the API once a minute and names it here, so
+  // a video or a vector logo served from it is inside the policy. Checked
+  // for the shape of an https origin before it is written into a header.
+  const cdn = mediaCdn && /^https:\/\/[a-z0-9.-]+(:\d+)?$/.test(mediaCdn) ? mediaCdn : null;
+  const key = `${dev}|${frameAncestors}|${cdn ?? ""}`;
   let policy = cache.get(key);
 
   if (policy === undefined) {
-    policy = buildReportOnlyCsp(dev, frameAncestors, assetOriginList().join(" "));
+    policy = buildReportOnlyCsp(dev, frameAncestors, [...assetOriginList(), ...(cdn ? [cdn] : [])].join(" "));
     cache.set(key, policy);
   }
 

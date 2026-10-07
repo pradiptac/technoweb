@@ -394,3 +394,10 @@ grounds, not `next/image`), and theme artwork under `public/`.
 `scripts/probes/blur-up.mjs` holds the real pictures back and checks that
 each waiting picture shows its preview, that none is left behind once they
 arrive, and prints what the previews weigh per page.
+
+## A file's public address (0.124.0)
+
+Every public response builds a media URL through `App\Support\MediaUrl`,
+which versions the address of a file edited in place (`?v=<revision>`) and
+sends browser-fetched files to the media CDN when one is switched on. The
+full account is `docs/cdn.md`.

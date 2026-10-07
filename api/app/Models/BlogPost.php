@@ -10,6 +10,7 @@ use App\Models\Concerns\Sluggable;
 use App\Models\Contracts\Answerable;
 use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -135,7 +136,7 @@ class BlogPost extends Model implements Answerable, Faqable
             'title' => $this->title,
             'description' => str(HtmlSanitiser::toText($this->excerpt ?? $this->body ?? ''))->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').'/blog/'.$this->slug,
-            'og_image' => $this->cover_image_path ? asset('storage/'.$this->cover_image_path) : null,
+            'og_image' => $this->cover_image_path ? MediaUrl::for($this->cover_image_path) : null,
             'schema_type' => 'Article',
         ];
     }

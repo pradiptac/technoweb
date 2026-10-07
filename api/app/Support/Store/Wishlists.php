@@ -9,6 +9,7 @@ use App\Models\StoreProductVariation;
 use App\Models\Wishlist;
 use App\Models\WishlistItem;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -248,7 +249,7 @@ final class Wishlists
             'name' => $product->name,
             'variation_name' => $variation?->name,
             'slug' => $product->slug,
-            'image_url' => $image !== null ? asset('storage/'.$image) : null,
+            'image_url' => $image !== null ? MediaUrl::for($image) : null,
             'image_alt' => $image !== null ? MediaMeta::alt($image) : null,
             'price_paise' => $now,
             'price_at_save_paise' => $item->price_at_save,

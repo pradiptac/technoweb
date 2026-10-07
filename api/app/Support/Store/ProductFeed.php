@@ -6,6 +6,7 @@ use App\Enums\ProductCondition;
 use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
 use App\Support\HtmlSanitiser;
+use App\Support\MediaUrl;
 use App\Support\Money;
 use Illuminate\Support\Collection;
 
@@ -151,7 +152,7 @@ class ProductFeed
     {
         return collect($product->images ?? [])
             ->filter(fn ($path) => self::isSupportedImage((string) $path))
-            ->map(fn ($path) => asset('storage/'.$path))
+            ->map(fn ($path) => MediaUrl::for($path))
             ->values()
             ->all();
     }
@@ -176,7 +177,7 @@ class ProductFeed
          * product's gallery follows it as the additional images.
          */
         if ($variation?->image_path && self::isSupportedImage($variation->image_path)) {
-            array_unshift($images, asset('storage/'.$variation->image_path));
+            array_unshift($images, MediaUrl::for($variation->image_path));
         }
 
         $identifiers = $product->identifiers($variation);

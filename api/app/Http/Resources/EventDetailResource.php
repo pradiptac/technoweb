@@ -7,6 +7,7 @@ use App\Http\Resources\Concerns\IncludesSchema;
 use App\Models\Event;
 use App\Support\Events\EventText;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 
@@ -47,7 +48,7 @@ class EventDetailResource extends EventResource
             'speakers' => array_values(array_map(fn (array $s) => [
                 'name' => (string) ($s['name'] ?? ''),
                 'role' => $s['role'] ?? null,
-                'photo' => filled($s['photo_path'] ?? null) ? asset('storage/'.$s['photo_path']) : null,
+                'photo' => filled($s['photo_path'] ?? null) ? MediaUrl::for($s['photo_path']) : null,
                 'photo_alt' => MediaMeta::alt($s['photo_path'] ?? null) ?: (string) ($s['name'] ?? ''),
                 'photo_focus' => MediaMeta::focus($s['photo_path'] ?? null),
                 'photo_blur' => MediaMeta::blur($s['photo_path'] ?? null),

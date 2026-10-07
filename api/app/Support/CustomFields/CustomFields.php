@@ -9,6 +9,7 @@ use App\Models\CustomFieldValue;
 use App\Models\Media;
 use App\Support\HtmlSanitiser;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -359,7 +360,7 @@ final class CustomFields
         $out = [];
         foreach ($values as $v) {
             if (in_array($v->field->kind, [CustomFieldKind::Image, CustomFieldKind::File], true) && is_string($v->value)) {
-                $out[$v->field->key] = asset('storage/'.$v->value);
+                $out[$v->field->key] = MediaUrl::for($v->value);
             }
         }
 
@@ -517,7 +518,7 @@ final class CustomFields
                         return null;
                     }
                     $value = [
-                        'url' => asset('storage/'.$raw),
+                        'url' => MediaUrl::for($raw),
                         'alt' => MediaMeta::alt((string) $raw) ?? $field->label,
                         'focus' => MediaMeta::focus((string) $raw),
                         'blur' => MediaMeta::blur((string) $raw),
@@ -531,7 +532,7 @@ final class CustomFields
                     if ($row === null) {
                         return null;
                     }
-                    $value = ['url' => asset('storage/'.$raw), 'name' => $row->filename, 'mime' => $row->mime];
+                    $value = ['url' => MediaUrl::for($raw), 'name' => $row->filename, 'mime' => $row->mime];
                     $display = $row->filename;
                     break;
                 case CustomFieldKind::Relation:

@@ -21,6 +21,29 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.124.0 — 2026-10-07
+
+**Ready for a CDN, and an edited picture now shows at once.**
+
+- **Media CDN** (Content → Media settings → CDN): optional and off. Give it
+  the address of a CDN that pulls from your server — Bunny, CloudFront,
+  KeyCDN — and videos, documents and vector (SVG) logos are served from it.
+  **Test the CDN** checks the address before you switch it on, and switching
+  it off puts every file back on your own server immediately. Your files stay
+  where they are; nothing is uploaded anywhere.
+- **Behind Cloudflare**: photographs are resized by the website itself, so
+  they are sped up by putting the whole website behind a CDN such as
+  Cloudflare. The site is ready for that, the manual has a new chapter —
+  *25 — Using a CDN* — and **System → Status** now says whether a CDN is in
+  front of the site and warns if one setting it needs is missing.
+- **Edited pictures show at once.** Cropping, resizing, rotating or
+  replacing a picture now changes its web address, so visitors get the new
+  version immediately. Until now a returning visitor could go on seeing the
+  old picture for a long time.
+- After updating, nothing needs doing.
+
+---
+
 ## 0.123.0 — 2026-10-07
 
 **Pictures load from a blurred preview.**

@@ -5,6 +5,7 @@ namespace App\Support\Store;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Coupon;
+use App\Support\MediaUrl;
 use App\Support\Money;
 
 /**
@@ -190,7 +191,7 @@ class Basket
             'slug' => $product->slug,
             'sku' => $variation?->sku ?? $product->sku,
             'type' => $product->type?->value,
-            'image_url' => filled($product->images) ? asset('storage/'.$product->images[0]) : null,
+            'image_url' => filled($product->images) ? MediaUrl::for($product->images[0]) : null,
             'quantity' => $item->quantity,
             'unit_price_paise' => $unit,
             'line_total_paise' => $unit * $item->quantity,

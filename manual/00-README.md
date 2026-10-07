@@ -34,6 +34,7 @@ update. `config/` and `storage/` are yours: an update never touches them.
 | Protecting your data | [22 — Backups and restore](22-backups-and-restore.md) |
 | Stuck | [23 — Troubleshooting](23-troubleshooting.md) |
 | Running seminars and webinars | [24 — Events](24-events.md) |
+| Making the site faster with a CDN | [25 — Using a CDN](25-using-a-cdn.md) |
 
 ## The two addresses
 

@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesSchema;
 use App\Models\Brand;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -47,6 +48,6 @@ class BrandResource extends JsonResource
             return null;
         }
 
-        return asset('storage/'.$this->logo_path).'?v='.($this->updated_at?->timestamp ?? 0);
+        return MediaUrl::for($this->logo_path, $this->updated_at?->timestamp);
     }
 }

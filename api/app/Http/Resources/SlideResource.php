@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\Slide;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -15,8 +16,8 @@ class SlideResource extends JsonResource
         return [
             'id' => $this->id,
             'kind' => $this->kind,
-            'url' => $this->media_path ? asset('storage/'.$this->media_path) : null,
-            'poster_url' => $this->poster_path ? asset('storage/'.$this->poster_path) : null,
+            'url' => $this->media_path ? MediaUrl::for($this->media_path) : null,
+            'poster_url' => $this->poster_path ? MediaUrl::for($this->poster_path) : null,
             // The id, never a URL. The frontend builds the embed src from it,
             // so there is no arbitrary string on the path to an iframe.
             'youtube_id' => $this->youtube_id,

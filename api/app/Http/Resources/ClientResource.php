@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\Client;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -19,7 +20,7 @@ class ClientResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'logo' => filled($this->logo_path) ? asset('storage/'.$this->logo_path) : null,
+            'logo' => filled($this->logo_path) ? MediaUrl::for($this->logo_path) : null,
             'logo_alt' => MediaMeta::alt($this->logo_path) ?: $this->name,
             'logo_focus' => MediaMeta::focus($this->logo_path),
             'logo_blur' => MediaMeta::blur($this->logo_path),

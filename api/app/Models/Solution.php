@@ -11,6 +11,7 @@ use App\Models\Concerns\Sluggable;
 use App\Models\Contracts\Answerable;
 use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -89,7 +90,7 @@ class Solution extends Model implements Answerable, Faqable
             'description' => str(HtmlSanitiser::toText($this->summary ?? $this->overview ?? ''))
                 ->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').'/solutions/'.$this->slug,
-            'og_image' => $this->hero_image_path ? asset('storage/'.$this->hero_image_path) : null,
+            'og_image' => $this->hero_image_path ? MediaUrl::for($this->hero_image_path) : null,
             'schema_type' => 'Service',
         ];
     }

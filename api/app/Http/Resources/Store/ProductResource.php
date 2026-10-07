@@ -9,6 +9,7 @@ use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\SeoResource;
 use App\Models\StoreProduct;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use App\Support\Store\Fulfilment;
 use App\Support\Store\ProductVideos;
 use App\Support\Store\ReviewSummary;
@@ -75,7 +76,7 @@ class ProductResource extends JsonResource
                 'id' => $s->id, 'title' => $s->title, 'slug' => $s->slug,
             ])->values()),
 
-            'images' => collect($this->images ?? [])->map(fn ($p) => asset('storage/'.$p))->all(),
+            'images' => collect($this->images ?? [])->map(fn ($p) => MediaUrl::for($p))->all(),
             // Parallel to `images`, index for index: a gallery needs the
             // description that belongs to the picture it is showing.
             'image_alts' => MediaMeta::alts($this->images),

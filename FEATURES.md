@@ -385,6 +385,9 @@ Built in, measured, and never allowed to guess.
   credential-free, pruned only by age.
 - **Client-side error reporting** grouped by fingerprint, re-opening itself
   if a fix does not hold.
+- **Ready for a CDN**: an optional media CDN address for videos and
+  documents, a site that behaves behind Cloudflare, and a status check that
+  says when one is in front.
 - **Pictures that load from a blurred preview**, made automatically by the
   media library for every photograph.
 - **A phone action bar**: Call, WhatsApp and a button of your own, pinned to

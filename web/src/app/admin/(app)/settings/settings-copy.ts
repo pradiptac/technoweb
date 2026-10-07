@@ -676,6 +676,15 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Offer to install",
     hint: "A small card inviting a visitor to install the site, shown from their second page, never over the cookie banner, and never again for a month once dismissed. Browsers' own install button works either way.",
   },
+  media_cdn_enabled: {
+    label: "Serve files from the CDN",
+    hint: "On, videos, documents and vector logos are linked at the address below. Off, every file is served from this server again at once — the address is kept.",
+  },
+  media_cdn_url: {
+    label: "CDN address",
+    hint: "The address your CDN gave you for a pull zone whose origin is this server — https, and nothing after the name. Test it before switching it on.",
+    placeholder: "https://cdn.example.com",
+  },
   action_bar_enabled: {
     label: "Show the action bar",
     hint: "On, a bar with up to three buttons stays at the bottom of the screen on phones. Nothing changes on a tablet or a computer.",
@@ -914,6 +923,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Installable app",
     blurb: "The public site as an app a visitor can add to their home screen: its name, its icon, and whether it offers itself. Installed, it opens full screen without the browser's address bar, and pages already visited open without a connection.",
   },
+  media_cdn: {
+    title: "CDN",
+    blurb: "Optional. A content delivery network keeps copies of your files close to each visitor. This setting covers the files a browser downloads directly — videos, documents and vector (SVG) logos — through a CDN that pulls from this server, such as Bunny, CloudFront or KeyCDN. Photographs are resized by the website itself, so they are sped up differently: by putting the whole website behind a CDN such as Cloudflare, which needs no setting here — the manual's chapter on using a CDN covers both. Nothing is uploaded anywhere; your files stay on this server.",
+  },
   action_bar: {
     title: "Phone action bar",
     blurb: "Call, WhatsApp and one button of your own, pinned to the bottom of the screen on phones — the three things a visitor on a phone most often wants. Each button appears only when it has what it needs, and the bar is off until you switch it on.",
@@ -1080,6 +1093,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
   blog: ["blog_video_url", "comments_enabled", "comments_closed_after_days"],
   indexnow: ["indexnow_enabled", "indexnow_key"],
   media: ["image_quality", "media_max_kb", "media_max_video_kb", "media_max_megapixels"],
+  media_cdn: ["media_cdn_enabled", "media_cdn_url"],
   store: ["store_enabled", "digital_auto_fulfil", "activation_procedure", "activation_pdf_path", "store_shipping_paise",
           "store_handling_days", "store_shipping_service", "store_transit_days_min", "store_transit_days_max", "store_return_days",
           "store_price_drop_min_percent", "store_review_requests_enabled", "store_review_request_days", "meta_catalogue_enabled"],
@@ -1226,9 +1240,9 @@ export const SCREENS: SettingsScreen[] = [
     path: "/admin/media/settings",
     title: "Media settings",
     area: "Content",
-    lede: "How hard the library compresses the images it makes, and how large an upload may be — read against what this server's PHP will actually accept.",
+    lede: "How hard the library compresses the images it makes, how large an upload may be — read against what this server's PHP will actually accept — and, optionally, a CDN for the files visitors download.",
     saveLabel: "Save media settings",
-    sections: [{ groups: ["media"] }],
+    sections: [{ groups: ["media", "media_cdn"] }],
   },
   {
     path: "/admin/seo/settings",

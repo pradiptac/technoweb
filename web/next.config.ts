@@ -205,8 +205,10 @@ const nextConfig: NextConfig = {
     /*
      * A year, because every upload is immutable at its address. Files are
      * stored under a hashed name and an in-place edit versions the URL with
-     * `?v=<updated_at>` (the `remotePatterns` above omit `search`, so the
-     * query is allowed through), so a resized copy can never go stale — and
+     * `?v=<revision>` (the `remotePatterns` above omit `search`, so the
+     * query is allowed through), so a resized copy can never go stale. That
+     * sentence was only true of the console's own URLs until 0.124.0, when
+     * every public media URL moved to `MediaUrl` (docs/cdn.md) — and
      * the default of 60s would have the optimiser re-fetch a 3MB original
      * from the API every minute per width to produce the same bytes.
      *

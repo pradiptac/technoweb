@@ -7,6 +7,7 @@ use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\ProductCategory;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -25,7 +26,7 @@ class ProductCategoryResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
             'description' => $this->description,
             'icon' => $this->icon,
-            'image' => $this->image_path ? asset('storage/'.$this->image_path) : null,
+            'image' => $this->image_path ? MediaUrl::for($this->image_path) : null,
             'image_alt' => MediaMeta::alt($this->image_path),
             'image_focus' => MediaMeta::focus($this->image_path),
             'image_blur' => MediaMeta::blur($this->image_path),

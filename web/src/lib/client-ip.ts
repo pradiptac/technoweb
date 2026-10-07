@@ -26,10 +26,26 @@ import { unstable_rethrow } from "next/navigation";
  * `CLIENT_IP_HEADER=x-real-ip` reads that header instead, for an edge that
  * *sets* it (nginx `proxy_set_header X-Real-IP $remote_addr`). Only then: a
  * header the edge does not overwrite is one the visitor writes.
+ *
+ * **Behind a CDN that proxies the whole site** (0.124.0, docs/cdn.md) the
+ * address that connects to this server is the CDN's, so the rightmost entry
+ * is one of a few hundred edge machines and every visitor behind one shares
+ * a rate-limit bucket — five wrong passwords from anybody lock everybody
+ * out. The CDN names the visitor in a header of its own, which it sets on
+ * every request and overwrites if the visitor sent one:
+ * `CLIENT_IP_HEADER=cf-connecting-ip` for Cloudflare, `true-client-ip` for
+ * Akamai and Cloudflare Enterprise. The same condition holds, more sharply:
+ * it is only safe while this server accepts connections from the CDN alone,
+ * because anybody who can reach the origin directly writes that header
+ * themselves.
  */
+const EDGE_HEADERS = ["x-real-ip", "cf-connecting-ip", "true-client-ip"];
+
 export function clientIpFrom(get: (name: string) => string | null): string | null {
-  if (process.env.CLIENT_IP_HEADER?.trim().toLowerCase() === "x-real-ip") {
-    return normalise(get("x-real-ip"));
+  const named = process.env.CLIENT_IP_HEADER?.trim().toLowerCase() ?? "";
+
+  if (EDGE_HEADERS.includes(named)) {
+    return normalise(get(named));
   }
 
   const chain = (get("x-forwarded-for") ?? "")

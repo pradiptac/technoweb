@@ -824,6 +824,14 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'action_bar', 'key' => 'action_bar_enquire_label', 'value' => 'Enquire', 'type' => 'string'],
             ['group' => 'action_bar', 'key' => 'action_bar_enquire_href', 'value' => '/contact', 'type' => 'string'],
 
+            // The media CDN (0.124.0, docs/cdn.md). Optional and off: a pull
+            // zone in front of this server's `/storage`, for the files a
+            // browser fetches itself — videos, documents, vector logos.
+            // Private: the website learns the address from `GET /redirects`,
+            // and only while the switch is on.
+            ['group' => 'media_cdn', 'key' => 'media_cdn_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'media_cdn', 'key' => 'media_cdn_url', 'value' => null, 'type' => 'string'],
+
             // The coming-soon page (0.122.0): one switch that puts a holding
             // page in front of the public site until launch. Public, because
             // the page is drawn for visitors; the frontend's proxy learns the

@@ -104,8 +104,9 @@ uploaded and re-made when you edit it. Logos and other SVG files have none.
 ## Editing changes the file everywhere
 
 Crop, resize, edit and overwrite change the file **in place**, at the same
-address, so every page using it shows the new version straight away. That is
-usually what you want — fix a logo once and it is fixed everywhere.
+address, so every page using it shows the new version straight away —
+visitors who have seen the old one included. That is usually what you want —
+fix a logo once and it is fixed everywhere.
 
 If you want the edited version **as well as** the original, tick **Save as a
 new file, keeping the original** in the crop or resize dialog. In **Edit

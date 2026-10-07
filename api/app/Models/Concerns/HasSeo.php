@@ -4,6 +4,7 @@ namespace App\Models\Concerns;
 
 use App\Models\SeoMetadata;
 use App\Support\IndexNow;
+use App\Support\MediaUrl;
 use App\Support\SchemaTypes;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
@@ -55,7 +56,7 @@ trait HasSeo
             'secondary_keywords' => $override?->secondary_keywords ?? [],
             'og_title' => $override?->og_title ?: ($override?->title ?: $defaults['title']),
             'og_description' => $override?->og_description ?: ($override?->description ?: $defaults['description']),
-            'og_image' => $override?->og_image_path ? asset('storage/'.$override->og_image_path) : $defaults['og_image'],
+            'og_image' => $override?->og_image_path ? MediaUrl::for($override->og_image_path) : $defaults['og_image'],
             /*
              * Through the allowlist rather than straight from the override.
              *

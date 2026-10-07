@@ -160,6 +160,7 @@ Contents:
   - The installable website (PWA) — `docs/pwa.md`
   - Look and feel: textures, illustrations, progress, onboarding — `docs/look-and-feel.md`
   - Events — `docs/events.md`
+  - CDNs and versioned media URLs — `docs/cdn.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -2470,6 +2471,7 @@ Upload paths, limits, the SVG sanitiser, in-place edits, the bin, alt text.
 - Both attachment route handlers call `lib/stream-attachment.ts`; the two *endpoints* they ask stay two, because the portal's checks ownership and refuses internal notes and the console's must not.
 - A media URL carries `?v=<updated_at>`; a path never does.
 - An in-place edit archives the previous bytes *before* it runs.
+- An in-place edit also moves the file's public address (`?v=<revision>`, `MediaUrl`, 0.124.0) — see `docs/cdn.md`.
 - Deleting a media file fills a bin and keeps the bytes.
 - A bulk route must be declared above `media/{id}`.
 - GD sets two traps and both are invisible in a screenshot.
@@ -2938,6 +2940,19 @@ Seminars, webinars and trade shows with a page each and optional free registrati
 - The index tiles are a `Collection` (`data-collection="events"`), so every theme's idiom draws them; `event-tiles.tsx` stamps `data-event-row`/`data-event-end` so a count that is not a multiple of three leads with one or two wide tiles rather than ending on an orphan. A cover is cropped to the tile's well — keep its subject central.
 - `technoware:remind-events` every fifteen minutes, claimed by a conditional UPDATE; `event_reminder_hours` 0 sends none. Seven emails in the catalogue; `event.registered` webhook; every registration (staff-added too) files a lead, channel `event`.
 - `events`, and every other frontend top-level route, is refused as a **CMS page's** slug since 0.118.0 (`ReservedSlugs::pageSlugRule()`, only when the slug is changing) — it used to be checked for content types alone.
+
+### CDNs and versioned media URLs — `docs/cdn.md`
+
+A media CDN setting for files a browser fetches itself, a site that is safe behind a proxying CDN, and an address that changes when a file's bytes do (0.124.0).
+
+- **Every public media URL is `MediaUrl::for($path)`, never `asset('storage/'.$path)`** (61 call sites moved). With nothing configured and a file nobody has edited it returns exactly what `asset()` did. The console's own resources keep `asset()` (they version by `updated_at` and have no business on a CDN), and so do the newsletter and the WordPress importer, which *store* the URL they build.
+- **An in-place edit moves the public address.** `media.revision` is bumped by `Media::markEdited()` — the three editing endpoints, a replacement, a version restore — and rides on the URL as `?v=N`; zero adds nothing, so an unedited file's URL is unchanged. Until this, `next.config.ts` claimed an edit versioned the URL and only the console's resources and brand logos did: a public picture edited in place was served stale for up to a year (`minimumCacheTTL`, and Apache's year on uploads). The media edit actions and the replace route handler also `revalidatePath("/", "layout")`, or the new address reached each page only as its own cache ran out.
+- **Photographs never go to the media CDN.** Every public raster is fetched by the website's optimiser, server to server, and what a visitor downloads is `/_next/image` on the website's own domain — so `MediaUrl::direct()` sends only what a browser fetches itself (svg, video, documents) to `media_cdn_url`. Rasters are sped up by putting the whole website behind a proxying CDN, which needs no setting. This also keeps the CDN's host out of `images.remotePatterns`, which a non-portable build bakes at build time.
+- The `media_cdn` group is private; the website learns the origin as `meta.media_cdn` on `GET /redirects` (only while switched on) and `proxy.ts` names it in the Report-Only policy. Saving the group purges every cached page, so switching it **off** is immediate.
+- The address is an https origin and nothing else, on a public host, never this server's own (`MediaUrl::refusalFor`), and re-checked on the way out (`MediaUrl::cdn`). `POST /admin/settings/media-cdn/test` fetches one library file through the saved address and compares its bytes — a pull zone on the wrong origin answers 200 too.
+- **No purge API, on purpose**: the versioned address is what makes an edit visible, for any provider. The pull zone must vary its cache by query string, which the manual says.
+- Behind a proxying CDN the connecting address is the CDN's: `CLIENT_IP_HEADER` accepts `cf-connecting-ip` and `true-client-ip` beside `x-real-ip` (`lib/client-ip.ts`), safe only while the origin accepts the CDN alone. System → Status reads the request's own headers (`lib/cdn.ts`) and says when a CDN is in front and the setting is not.
+- `scripts/probes/media-cdn.mjs` stands a CDN in with a routed origin; `MediaCdnTest`.
 
 ## Conventions
 

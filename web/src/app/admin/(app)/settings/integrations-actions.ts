@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { revalidateSettingsScreens } from "./revalidate";
 import { ApiError } from "@/lib/api";
-import { getAiModels, testGoogleAnalytics, testHunterKey, testSearchConsole, testSeoAiModel, type AiModels } from "@/lib/admin";
+import { getAiModels, testGoogleAnalytics, testHunterKey, testMediaCdn, testSearchConsole, testSeoAiModel, type AiModels } from "@/lib/admin";
 
 export type IntegrationActionState = { error?: string; ok?: string };
 
@@ -66,6 +66,15 @@ export async function testOpenRouterAction(model: string): Promise<IntegrationAc
     return { ok: `${r.model} answered${r.tokens ? ` (${r.tokens} tokens)` : ""}.` };
   } catch (error) {
     return { error: reason(error, "The model could not be tested.") };
+  }
+}
+
+/** One library file through the saved CDN address; the API's own sentence either way. */
+export async function testMediaCdnAction(): Promise<IntegrationActionState> {
+  try {
+    return { ok: (await testMediaCdn()).message };
+  } catch (error) {
+    return { error: reason(error, "The CDN could not be tested.") };
   }
 }
 

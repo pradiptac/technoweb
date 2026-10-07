@@ -97,7 +97,7 @@ class MediaHistory
             'width' => $version->width,
             'height' => $version->height,
         ]);
-        $medium->refreshBlur();
+        $medium->markEdited();
 
         $version->delete();
 

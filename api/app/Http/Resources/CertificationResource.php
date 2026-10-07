@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\Certification;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -25,12 +26,12 @@ class CertificationResource extends JsonResource
             'issued_on' => $this->issued_on?->toDateString(),
             'valid_until' => $this->valid_until?->toDateString(),
             'description' => $this->description,
-            'image' => filled($this->image_path) ? asset('storage/'.$this->image_path) : null,
+            'image' => filled($this->image_path) ? MediaUrl::for($this->image_path) : null,
             // Falls back to the name: a badge is the certificate, not decoration.
             'image_alt' => MediaMeta::alt($this->image_path) ?: $this->name,
             'image_focus' => MediaMeta::focus($this->image_path),
             'image_blur' => MediaMeta::blur($this->image_path),
-            'file' => filled($this->file_path) ? asset('storage/'.$this->file_path) : null,
+            'file' => filled($this->file_path) ? MediaUrl::for($this->file_path) : null,
         ];
     }
 }

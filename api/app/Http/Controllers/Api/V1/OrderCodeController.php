@@ -5,10 +5,10 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\DigitalCode;
 use App\Models\Order;
+use App\Support\MediaUrl;
 use App\Support\Store\ActivationProcedure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * Revealing an activation code to the person who bought it.
@@ -92,7 +92,7 @@ class OrderCodeController extends Controller
                 'html' => $procedure['html'],
                 'pdf_url' => $procedure['pdf_path'] === null
                     ? null
-                    : Storage::disk('public')->url($procedure['pdf_path']),
+                    : MediaUrl::for($procedure['pdf_path']),
                 'pdf_name' => $procedure['pdf_name'],
             ],
         ]);

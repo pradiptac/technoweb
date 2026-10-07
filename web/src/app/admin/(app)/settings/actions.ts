@@ -1,6 +1,6 @@
 "use server";
 
-import { updateTag } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { revalidateSettingsScreens } from "./revalidate";
 import { redirect } from "next/navigation";
 import { ApiError } from "@/lib/api";
@@ -43,6 +43,11 @@ export async function saveSettingsAction(
   // The public booking page caches its options under `meetings`, and the
   // window, the step and the switch are settings.
   if (settings.some((s) => s.key.startsWith("meeting"))) updateTag("meetings");
+  // The media CDN changes the address of every video, document and vector
+  // logo in every cached response, not a setting any page reads — so
+  // switching it on, and above all *off*, rebuilds everything at once
+  // rather than page by page as each cache runs out.
+  if (settings.some((s) => s.key.startsWith("media_cdn"))) revalidatePath("/", "layout");
 
   return { ok: true };
 }

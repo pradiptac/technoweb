@@ -44,6 +44,7 @@ class Media extends Model
             'uploaded_by' => 'integer',
             'size' => 'integer',
             'width' => 'integer',
+            'revision' => 'integer',
             'height' => 'integer',
             // The focal point, 0–100 of the width and of the height; null is
             // the centre. Integers so the resource does not answer "30" for a
@@ -109,6 +110,19 @@ class Media extends Model
                 $medium->refreshBlur();
             }
         });
+    }
+
+    /**
+     * The bytes at this path have changed (0.124.0): an edit, a replacement,
+     * a version restore. The path is kept on purpose and is cached for a year
+     * wherever it has been fetched, so `revision` is what moves instead —
+     * `MediaUrl` puts it on the public URL as `?v=N` — and the preview is
+     * re-made from the new bytes.
+     */
+    public function markEdited(): void
+    {
+        $this->forceFill(['revision' => (int) $this->revision + 1])->saveQuietly();
+        $this->refreshBlur();
     }
 
     /** Re-make the blurred preview from the bytes now on disk. Never throws. */

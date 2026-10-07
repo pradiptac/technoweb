@@ -4,6 +4,7 @@ namespace App\Http\Resources\Store;
 
 use App\Models\StoreProductVariation;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -33,7 +34,7 @@ class VariationResource extends JsonResource
             'price_paise' => $this->pricePaise(),
             'in_stock' => $this->inStock(),
             'availability' => $this->product->availability($this->resource),
-            'image_url' => $this->image_path ? asset('storage/'.$this->image_path) : null,
+            'image_url' => $this->image_path ? MediaUrl::for($this->image_path) : null,
             'image_alt' => $this->image_path ? MediaMeta::alt($this->image_path) : null,
             'image_focus' => MediaMeta::focus($this->image_path),
             'image_blur' => MediaMeta::blur($this->image_path),

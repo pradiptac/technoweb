@@ -31,6 +31,7 @@ import { ChoiceField, ServerLimits, SettingColourField, SettingSwitchField } fro
 import type { PaymentsMeta, SettingGroups, UploadLimits } from "@/lib/admin";
 import type { BackupDriveStatus, InboundMailStatus, MailStatus, MessagingStatus } from "@/types/api";
 import { MessagingPanel } from "./messaging-panel";
+import { MediaCdnTest } from "./media-cdn-test";
 import { BackupDestinationPanel } from "./backup-destination-panel";
 import { MeetingsGooglePanel } from "./meetings-google-panel";
 import type { MeetingsGoogleStatus } from "@/types/meetings";
@@ -496,6 +497,9 @@ function GroupPanel({
           own: the generic rows draw a key correctly, and what was
           missing was a way to prove it works.
         */}
+        {/* The media CDN: prove the saved address before switching it on. */}
+        {group === "media_cdn" && <MediaCdnTest configured={Boolean(rows.find((r) => r.key === "media_cdn_url")?.value)} />}
+
         {/* A backup destination's test, last refusal and its own extras (Drive's consent, SFTP's key). */}
         {group.startsWith("backups_") && <BackupDestinationPanel group={group} rows={rows} drive={drive} />}
 

@@ -260,7 +260,7 @@ class PublicSettings
                 continue;
             }
 
-            $values[$prefix.'_url'] = asset('storage/'.$values[$path]);
+            $values[$prefix.'_url'] = MediaUrl::for($values[$path]);
 
             $file = $dimensions->get($values[$path]);
 

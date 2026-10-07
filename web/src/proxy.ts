@@ -57,9 +57,11 @@ type Target = { to: string; status: number };
  * takes a minute longer to appear, an absent one is every old URL 404ing
  * until the API is back.
  */
-const table: { map: Map<string, Target>; comingSoon: boolean; fetchedAt: number; refreshing: Promise<void> | null } = {
+const table: { map: Map<string, Target>; comingSoon: boolean; mediaCdn: string | null; fetchedAt: number; refreshing: Promise<void> | null } = {
   map: new Map(),
   comingSoon: false,
+  // The media CDN's origin while it is switched on (0.124.0), for the policy below.
+  mediaCdn: null,
   fetchedAt: 0,
   refreshing: null,
 };
@@ -182,7 +184,7 @@ function withPolicy(response: NextResponse, pathname: string): NextResponse {
   // `/embed/*` may be framed by anybody — the one path whose policy differs.
   response.headers.set(
     "Content-Security-Policy-Report-Only",
-    reportOnlyCsp(pathname.startsWith("/embed/") ? "*" : "'self'"),
+    reportOnlyCsp(pathname.startsWith("/embed/") ? "*" : "'self'", table.mediaCdn),
   );
 
   return response;
@@ -401,7 +403,7 @@ async function loadTable(base: string): Promise<void> {
 
       const payload = (await res.json()) as {
         data: { from: string; to: string; status: number }[];
-        meta?: { coming_soon?: boolean };
+        meta?: { coming_soon?: boolean; media_cdn?: string | null };
       };
       const next = new Map<string, Target>();
 
@@ -411,6 +413,7 @@ async function loadTable(base: string): Promise<void> {
 
       table.map = next;
       table.comingSoon = payload.meta?.coming_soon === true;
+      table.mediaCdn = typeof payload.meta?.media_cdn === "string" ? payload.meta.media_cdn : null;
       table.fetchedAt = Date.now();
     } finally {
       table.refreshing = null;

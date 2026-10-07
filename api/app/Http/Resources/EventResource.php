@@ -6,6 +6,7 @@ use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\Event;
 use App\Support\Events\EventText;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -63,7 +64,7 @@ class EventResource extends JsonResource
             'year' => $start->format('Y'),
             'venue_name' => $venue ? $event->venue_name : null,
             'venue_city' => $venue ? $event->venue_city : null,
-            'cover_image' => $event->cover_image_path ? asset('storage/'.$event->cover_image_path) : null,
+            'cover_image' => $event->cover_image_path ? MediaUrl::for($event->cover_image_path) : null,
             'cover_image_alt' => MediaMeta::alt($event->cover_image_path),
             'cover_image_focus' => MediaMeta::focus($event->cover_image_path),
             'cover_image_blur' => MediaMeta::blur($event->cover_image_path),

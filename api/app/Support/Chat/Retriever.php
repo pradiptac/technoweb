@@ -16,6 +16,7 @@ use App\Models\Solution;
 use App\Models\StoreProduct;
 use App\Support\Events\EventText;
 use App\Support\HtmlSanitiser;
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -405,7 +406,7 @@ class Retriever
                  * `store_products.images` is a JSON array of storage paths
                  * (`media/store/….jpg`), which is what a record stores and what
                  * every editor screen writes. Both public resources map one
-                 * through `asset('storage/'.$p)` before it crosses the wire;
+                 * through `MediaUrl::for($p)` before it crosses the wire;
                  * this retriever was written against the model rather than
                  * against a resource, so it handed the raw path over and the
                  * browser resolved it relative to whatever page the panel
@@ -416,7 +417,7 @@ class Retriever
                  * a second way of turning a path into a URL is a second thing to
                  * get wrong the day this application moves to a CDN.
                  */
-                'image' => filled($p->images[0] ?? null) ? asset('storage/'.$p->images[0]) : null,
+                'image' => filled($p->images[0] ?? null) ? MediaUrl::for($p->images[0]) : null,
                 'price_paise' => (int) $p->price_paise,
                 'compare_at_paise' => $p->compare_at_paise !== null && $p->compare_at_paise > $p->price_paise
                     ? (int) $p->compare_at_paise

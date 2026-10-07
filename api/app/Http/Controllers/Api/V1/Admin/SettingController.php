@@ -20,6 +20,7 @@ use App\Support\Events\EventSettings;
 use App\Support\HtmlSanitiser;
 use App\Support\InboundMail\InboundMail;
 use App\Support\LinkPattern;
+use App\Support\MediaUrl;
 use App\Support\Meetings\MeetingSettings;
 use App\Support\Messaging\ProviderOption;
 use App\Support\Messaging\Providers\Fcm;
@@ -839,6 +840,15 @@ class SettingController extends Controller
             }
             if ($key === 'action_bar_enquire_label' && filled($value) && mb_strlen(trim((string) $value)) > 16) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'At most 16 characters — it shares a phone screen with two other buttons.']);
+            }
+            // The media CDN's address (0.124.0): an https origin on a public
+            // host, stored as the origin alone — it goes in front of every
+            // video and download the site links to.
+            if ($key === 'media_cdn_url' && filled($value)) {
+                if (($refusal = MediaUrl::refusalFor((string) $value)) !== null) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => $refusal]);
+                }
+                $rows[$i]['value'] = MediaUrl::clean((string) $value);
             }
             if ($key === 'coming_soon_heading' && filled($value) && mb_strlen(trim((string) $value)) > 120) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'At most 120 characters.']);

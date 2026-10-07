@@ -7,6 +7,7 @@ use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\SeoResource;
 use App\Models\StoreCategory;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -26,8 +27,8 @@ class CategoryResource extends JsonResource
             'description' => $this->description,
             // The mark the rail renders; the photograph below it is what a
             // share preview uses. Two different jobs, two fields.
-            'icon_url' => $this->icon_path ? asset('storage/'.$this->icon_path) : null,
-            'image_url' => $this->image_path ? asset('storage/'.$this->image_path) : null,
+            'icon_url' => $this->icon_path ? MediaUrl::for($this->icon_path) : null,
+            'image_url' => $this->image_path ? MediaUrl::for($this->image_path) : null,
             // The photograph's focal point from the library, or null: the
             // rail crops it to a disc and the share preview to 1200x630.
             'image_focus' => MediaMeta::focus($this->image_path),

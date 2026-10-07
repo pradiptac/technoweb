@@ -14,6 +14,7 @@ use App\Models\Concerns\Sluggable;
 use App\Models\Contracts\Answerable;
 use App\Models\Contracts\Faqable;
 use App\Support\HtmlSanitiser;
+use App\Support\MediaUrl;
 use App\Support\Store\SpecIndex;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -449,7 +450,7 @@ class StoreProduct extends Model implements Answerable, Faqable
             'description' => $this->short_description
                 ?: mb_substr(HtmlSanitiser::toText($this->description ?? ''), 0, 160),
             'canonical_url' => rtrim((string) config('app.frontend_url'), '/').'/store/products/'.$this->slug,
-            'og_image' => filled($this->images) ? asset('storage/'.$this->images[0]) : null,
+            'og_image' => filled($this->images) ? MediaUrl::for($this->images[0]) : null,
         ];
     }
 

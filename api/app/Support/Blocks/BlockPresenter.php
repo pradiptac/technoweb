@@ -6,6 +6,7 @@ use App\Enums\ContentBlockType;
 use App\Models\Brand;
 use App\Models\ContentBlock;
 use App\Support\MediaMeta;
+use App\Support\MediaUrl;
 
 /**
  * A content block's `data` as the public site reads it.
@@ -41,7 +42,7 @@ final class BlockPresenter
 
     private static function url(?string $path): ?string
     {
-        return filled($path) ? asset('storage/'.$path) : null;
+        return filled($path) ? MediaUrl::for($path) : null;
     }
 
     /** @param  array<string, mixed>  $data @return array<string, mixed> */
@@ -91,7 +92,7 @@ final class BlockPresenter
                     }
                     $item['label'] = filled($item['label'] ?? null) ? $item['label'] : $brand->name;
                     $item['image'] = $brand->logo_path
-                        ? asset('storage/'.$brand->logo_path).'?v='.($brand->updated_at->timestamp ?? 0)
+                        ? MediaUrl::for($brand->logo_path, $brand->updated_at?->timestamp)
                         : null;
                     $item['brand'] = true;
                 } elseif ($path) {
