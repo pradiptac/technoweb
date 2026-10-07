@@ -1,6 +1,7 @@
 "use client";
 
 import { useId } from "react";
+import { BACKDROPS } from "@/lib/login-backdrop-choices";
 import { CoverField } from "@/components/admin/cover-field";
 import { ReorderButtons } from "@/components/admin/reorder-buttons";
 import { Field, Input, Select } from "@/components/ui/input";
@@ -306,14 +307,24 @@ function SectionRow({
               // change of kind carries them across rather than dropping them.
               onChange(next === "default"
                 ? (enabled && !value?.reveal ? null : { kind: "default", enabled: value?.enabled, reveal: value?.reveal })
-                : { kind: next, colour: value?.colour ?? (next === "image" ? "#0b0b12" : "#1e3a8a"), colour2: value?.colour2 ?? "#0b1020", overlay: value?.overlay ?? 60, image_path: value?.image_path, image_url: value?.image_url, enabled: value?.enabled, reveal: value?.reveal, texture: value?.texture });
+                : next === "scene"
+                  // An animation names a scene and nothing else — no colour, no texture.
+                  ? { kind: next, scene: value?.scene ?? "aurora", enabled: value?.enabled, reveal: value?.reveal }
+                  : { kind: next, colour: value?.colour ?? (next === "image" ? "#0b0b12" : "#1e3a8a"), colour2: value?.colour2 ?? "#0b1020", overlay: value?.overlay ?? 60, image_path: value?.image_path, image_url: value?.image_url, enabled: value?.enabled, reveal: value?.reveal, texture: value?.texture });
             }}
           >
             {SECTION_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
           </Select>
         </Field>
         {/* A decorative layer over the ground — any ground but the theme's own. */}
-        {kind !== "default" && (
+        {kind === "scene" && (
+          <Field label="Animation" htmlFor={`${id}-scene`} variant="float-static" className="mb-0">
+            <Select id={`${id}-scene`} value={value?.scene ?? "aurora"} onChange={(e) => patch({ scene: e.target.value })}>
+              {BACKDROPS.filter((b) => b.id !== "image").map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+            </Select>
+          </Field>
+        )}
+        {kind !== "default" && kind !== "scene" && (
           <Field label="Texture" htmlFor={`${id}-texture`} variant="float-static" className="mb-0">
             <Select id={`${id}-texture`} value={value?.texture ?? "none"} onChange={(e) => patch({ texture: e.target.value === "none" ? undefined : e.target.value as SectionTexture })}>
               {SECTION_TEXTURES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
@@ -332,7 +343,7 @@ function SectionRow({
           </Field>
         )}
       </div>
-      {kind !== "default" && kind !== "page" && (
+      {kind !== "default" && kind !== "page" && kind !== "scene" && (
         <div className="grid gap-3 sm:grid-cols-2">
           <ColourInput id={`${id}-c1`} label={kind === "image" ? "Overlay colour" : kind === "gradient" ? "First colour" : "Colour"} value={value?.colour ?? ""} onChange={(v) => patch({ colour: v })} />
           {kind === "gradient" && (

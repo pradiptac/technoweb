@@ -143,7 +143,7 @@ class PageController extends Controller
                 ['value' => 'split', 'label' => 'Split', 'blurb' => 'The words on one side, the picture framed on the other.'],
                 ['value' => 'cover', 'label' => 'Cover', 'blurb' => 'The picture fills the band under a dark overlay, the words on top.'],
             ],
-            'card_sources' => collect(SectionRules::CARD_SOURCES)->map(fn ($label, $value) => ['value' => $value, 'label' => $label])->values(),
+            'card_sources' => collect(SectionRules::cardSources())->map(fn ($label, $value) => ['value' => $value, 'label' => $label])->values(),
             'content_blocks' => ContentBlock::query()->where('status', PublishStatus::Published)->orderBy('type')->orderBy('name')
                 ->get(['id', 'type', 'name', 'slug'])
                 ->map(fn (ContentBlock $b) => ['id' => $b->id, 'name' => $b->name, 'slug' => $b->slug, 'type' => $b->type->value, 'type_label' => $b->type->label()]),

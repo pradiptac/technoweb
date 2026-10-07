@@ -5,6 +5,7 @@ namespace App\Support\PageSections;
 use App\Enums\PageSectionType;
 use App\Enums\PublishStatus;
 use App\Models\ContentBlock;
+use App\Models\ContentType;
 use App\Models\Form;
 use App\Models\Gallery;
 use App\Models\Media;
@@ -69,6 +70,12 @@ final class SectionRules
         // both inside the reduced-motion guard.
         'headline' => ['default', 'rise', 'wipe', 'shimmer'],
         'scroll' => ['default', 'parallax', 'zoom', 'fade'],
+        // A shaped edge (0.126.0): the section's own ground cut to a wave, a
+        // slant, a curve or a peak where it meets its neighbour. Drawn only
+        // on a section that has a background of its own; the frontend
+        // ignores it otherwise, and a top edge on the page's first section.
+        'edge_top' => ['default', 'wave', 'slant', 'curve', 'peak'],
+        'edge_bottom' => ['default', 'wave', 'slant', 'curve', 'peak'],
     ];
 
     /** Where a section may be shown; all three is the default. */
@@ -91,7 +98,28 @@ final class SectionRules
         'store_products' => 'Products (shop)',
         // What is coming up, soonest first (docs/events.md).
         'events' => 'Upcoming events',
+        // 0.126.0: three more lists the site already keeps.
+        'product_categories' => 'Product categories (catalogue)',
+        'store_categories' => 'Shop categories',
+        'vacancies' => 'Open vacancies',
     ];
+
+    /**
+     * Every list a `cards` section may draw: the fixed ones, and one per
+     * active custom content type as `entry:<type-slug>` (0.126.0) — the
+     * target key the custom-fields module already uses for a type. This is
+     * what the save is validated against and what the console's picker is
+     * sent; `CARD_SOURCES` alone stays the list the AI page draft may use.
+     *
+     * @return array<string, string>
+     */
+    public static function cardSources(): array
+    {
+        return once(fn () => self::CARD_SOURCES + ContentType::query()->active()
+            ->orderBy('sort_order')->orderBy('name')->get(['slug', 'name', 'plural'])
+            ->mapWithKeys(fn (ContentType $t) => ["entry:{$t->slug}" => (filled($t->plural) ? $t->plural : $t->name).' (your content)'])
+            ->all());
+    }
 
     /** An icon's id, as the frontend's identity icons are keyed; `PageDraft` reads it too. */
     public const ICON_PATTERN = '/^[a-z0-9-]{1,40}$/';
@@ -127,6 +155,8 @@ final class SectionRules
             "{$prefix}.*.style.heading" => ['nullable', Rule::in(self::STYLE['heading'])],
             "{$prefix}.*.style.headline" => ['nullable', Rule::in(self::STYLE['headline'])],
             "{$prefix}.*.style.scroll" => ['nullable', Rule::in(self::STYLE['scroll'])],
+            "{$prefix}.*.style.edge_top" => ['nullable', Rule::in(self::STYLE['edge_top'])],
+            "{$prefix}.*.style.edge_bottom" => ['nullable', Rule::in(self::STYLE['edge_bottom'])],
             "{$prefix}.*.style.anchor" => ['nullable', 'string', 'regex:'.self::ANCHOR],
             "{$prefix}.*.style.show_on" => ['nullable', 'array', 'min:1'],
             "{$prefix}.*.style.show_on.*" => ['string', Rule::in(self::DEVICES)],
@@ -207,7 +237,7 @@ final class SectionRules
                 'kicker' => ['nullable', 'string', 'max:80'],
                 'heading' => $heading,
                 'lede' => $lede,
-                'source' => ['required', Rule::in(array_keys(self::CARD_SOURCES))],
+                'source' => ['required', Rule::in(array_keys(self::cardSources()))],
                 'category' => ['nullable', 'string', 'max:160'],
                 'limit' => ['nullable', 'integer', 'min:1', 'max:12'],
                 'columns' => ['nullable', 'integer', Rule::in([2, 3, 4])],
@@ -419,6 +449,12 @@ final class SectionRules
                 'items.*.title' => ['required', 'string', 'max:60'],
                 'items.*.note' => ['nullable', 'string', 'max:160'],
                 'caption' => ['nullable', 'string', 'max:200'],
+            ],
+            // A menu of the page's own anchored sections (0.126.0). It
+            // stores a label and nothing else: the links are derived when
+            // the page is presented.
+            PageSectionType::Subnav => [
+                'label' => ['nullable', 'string', 'max:40'],
             ],
             // One of the active theme's homepage sections, by id. Checked for
             // the shape of an id only, the rule `site_theme` and the section

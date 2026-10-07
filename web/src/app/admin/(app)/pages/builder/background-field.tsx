@@ -2,6 +2,7 @@
 
 import { CoverField } from "@/components/admin/cover-field";
 import { Field, Input, Select } from "@/components/ui/input";
+import { BACKDROPS } from "@/lib/login-backdrop-choices";
 import { SECTION_KINDS, SECTION_TEXTURES, type SectionBackground, type SectionKind, type SectionTexture } from "@/themes/options";
 
 /**
@@ -40,6 +41,8 @@ export function BackgroundField({ value, onChange, error, idPrefix, media }: {
               kind: next,
               ...(next === "solid" || next === "gradient" || next === "image" ? { colour: bg.colour ?? "#0b1020" } : {}),
               ...(next === "gradient" ? { colour2: bg.colour2 ?? "#1e293b", angle: bg.angle ?? 135 } : {}),
+              // An animation names a scene and carries no texture: the scene is the texture.
+              ...(next === "scene" ? { scene: bg.scene ?? "aurora", texture: undefined } : {}),
             });
           }}>
             {SECTION_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
@@ -64,7 +67,16 @@ export function BackgroundField({ value, onChange, error, idPrefix, media }: {
           </>
         )}
 
-        {kind !== "default" && (
+        {kind === "scene" && (
+          <Field label="Animation" htmlFor={id("scene")} variant="float-static"
+            hint={BACKDROPS.find((b) => b.id === bg.scene)?.note}>
+            <Select id={id("scene")} value={bg.scene ?? "aurora"} onChange={(e) => set({ scene: e.target.value })}>
+              {BACKDROPS.filter((b) => b.id !== "image").map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+            </Select>
+          </Field>
+        )}
+
+        {kind !== "default" && kind !== "scene" && (
           <Field label="Texture" htmlFor={id("texture")} variant="float-static"
             hint={SECTION_TEXTURES.find((t) => t.id === (bg.texture ?? "none"))?.blurb}>
             <Select id={id("texture")} value={bg.texture ?? "none"}

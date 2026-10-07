@@ -153,7 +153,7 @@ The section types are:
 | Text | A heading and a body from the editor |
 | Picture or video with text | Media on one side, words and buttons on the other |
 | Features | Up to twelve short points with icons, in two to four columns |
-| Cards from the catalogue | A live list — solutions, services, industries, case studies, posts, articles or products — that updates itself as you publish |
+| Cards from the catalogue | A live list — solutions, services, industries, case studies, posts, articles, products, product or shop categories, open vacancies, events, or one of your own content types — that updates itself as you publish |
 | Content block | A published CTA banner, stat bar, pricing table or technology stack |
 | Slider / Gallery / Form | A published one, by name |
 | Questions | Questions that open when pressed, written here or taken from the page's own FAQs |
@@ -161,6 +161,7 @@ The section types are:
 | Testimonial | One quotation, who said it, and a photo |
 | Video | A YouTube video (loaded only when pressed) or a video from the media library |
 | Divider | Space between sections, with or without a line |
+| In-page menu | A strip of links to the sections of this page, which stays at the top of the screen as the visitor scrolls |
 
 To build a page:
 
@@ -193,6 +194,27 @@ Things worth knowing about the builder:
   just not shown until you switch back.
 - The page's usual closing call-to-action band is left out if your last
   section is already a CTA banner.
+
+#### Shaped edges, moving backgrounds and the in-page menu
+
+- **Shaped edges.** In a section's **Style**, **Top edge** and **Bottom
+  edge** change the straight line where the section meets its neighbour into
+  a wave, a slant, a curve or a peak. The section needs a **Background** of
+  its own — a colour, a gradient or a picture — because the shape is cut
+  out of that background; on a section with the default background nothing
+  changes. The first section of a page has no top edge.
+- **A moving background.** Under **Background**, choose **Animation** and
+  pick one. It is drawn slowly in your palette's colours over a dark band,
+  with light text on it. Visitors get a small pause button, and it stays
+  still for anyone whose device asks for less motion. One or two on a page
+  is plenty.
+- **An in-page menu.** Add the **In-page menu** section — usually straight
+  after the hero — and it lists the sections of the page as links, staying
+  at the top of the screen as the page scrolls. It lists only sections you
+  have named: open a section, go to **Style** and type an **Anchor** (a
+  short word such as `pricing`). The link's wording is that section's
+  heading. The menu appears once at least two sections have an anchor, and
+  a hidden section is left out of it.
 
 ### Drafting a page with AI
 

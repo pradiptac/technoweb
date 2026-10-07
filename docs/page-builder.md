@@ -668,6 +668,111 @@ can run, and why not.
   to the assistant's settings is offered to an administrator only — that
   screen is `role:admin`.
 
+## Visual extras: shaped edges, animated backgrounds, more lists, an in-page menu (0.126.0)
+
+Four additions, none of which taught a section component anything.
+
+### Shaped edges
+
+`style.edge_top` and `style.edge_bottom` — `wave`, `slant`, `curve`, `peak`,
+choices in `SectionRules::STYLE` like the rest of the style, `default`
+(straight) never stored. `PageSections` hands them to `SectionBg` as `edges`,
+which stamps `data-edge-top` / `data-edge-bottom` on the background shell;
+the rules in `globals.css` (`[data-section][data-edge-*]`) do the rest.
+
+- **The edge is a mask on the section's own shell, not a drawn shape.** The
+  first cut in the plan was an SVG sibling filled with the *neighbouring*
+  ground's colour. That needs to know the neighbour's ground — a gradient, a
+  picture, a theme's own band — and is wrong whenever it guesses. A mask
+  cuts the section's own background to the shape and lets whatever is
+  really behind show through, so it is right over any neighbour.
+- **It overlaps by exactly the room it gives back.** `--edge` is
+  `clamp(1.25rem, 4.5vw, 4rem)`; the shell takes `margin-top: -edge` and
+  `padding-top: +edge` (the same at the foot), so the shape sits over the
+  neighbour's own padding and the section's content has not moved. The mask
+  is three layers — the top shape, the bottom shape, and a solid block
+  between them — sized from the same variable.
+- **It needs a ground to cut.** A section whose background is "default"
+  renders no shell (`SectionBg`'s rule), so an edge set on it draws nothing;
+  the Style panel says so under both rows.
+- **No top edge on the first section, nor on the one straight after an
+  in-page menu.** There is nothing above the first to cut into, and the
+  sticky menu covers the second's top edge the moment the page scrolls.
+- Nothing is animated and no text is a descendant of anything new, so the
+  contrast audit reads the same ground it read before.
+
+### Animated backgrounds
+
+A background of `kind: scene` with `scene: <id>` — the sign-in screens'
+canvas animations (`components/layout/backdrop-scenes/`, the list
+`lib/login-backdrop-choices.ts` minus `image`), offered on a builder section
+and on a homepage section alike because both go through
+`ThemeOptions::background()`. The API checks the id for shape only and
+stores `{kind, scene}` and nothing else: no colour, no texture.
+
+- **The ground is the theme's dark, always.** `sectionBackground()` treats a
+  scene as a solid surface in the palette's `dark` and derives the local
+  palette from it, so the words are graded against an opaque colour the
+  audit can read and the canvas is decoration over it — the texture rule.
+  The canvas is an `aria-hidden` sibling, never an ancestor of text.
+- **Mounted only near the screen.** `components/ui/section-scene.tsx` loads
+  `AuthBackdrop` through `next/dynamic` (no SSR) when an
+  `IntersectionObserver` with a 60% margin says the section is close, and
+  drops it again when it is far: a page with three scenes runs one loop.
+  It always draws at low intensity and slow speed — it sits behind a
+  paragraph, not beside a sign-in form.
+- **A Pause button, always** (`aria-pressed`, "Pause the background
+  animation"), and still under reduced motion: the rule every self-running
+  thing on this site follows.
+
+### More lists for Cards
+
+`SectionRules::cardSources()` is the constant plus one
+`entry:<type-slug>` per **active** custom content type, labelled
+"<plural> (your content)"; the `source` rule and `meta.card_sources` both
+read it. The constant gained `product_categories`, `store_categories`
+(active ones) and `vacancies` (open ones: kicker the department, meta the
+location or "Remote"). `SectionPresenter` resolves each to the same
+`{title, summary, path, image, icon, kicker, meta}` item and an
+`index_path` — `/{type-slug}` for a content type — so `Collection` and
+every theme's idiom draw them with nothing new. A type switched off, or
+with nothing published, yields an empty list and the section is dropped,
+as for every other source. `cardSources()` is `once()`d: it is asked once
+per section on a save.
+
+### The in-page menu
+
+`subnav` ("In-page menu") stores only `label`. Its links are **derived on
+the public read**: `SectionPresenter::withSubnav()` runs after every other
+section has been presented and fills `items` with `{anchor, label}` for
+each *drawn* section that has a `style.anchor`, in page order — the label
+its heading, else its title or kicker, else the anchor in words, cut to
+forty characters. So the menu cannot name a section that was hidden,
+dropped for a dead reference, or has no anchor; and with fewer than two
+links the menu itself is dropped.
+
+- **It is drawn bare.** `position: sticky` is held by the element's own
+  parent, so the `<nav>` has to be a direct child of `[data-page-sections]`,
+  the element that spans the page: `PageSections` renders this type with no
+  background shell and no style wrapper, and a background or style set on
+  it is not applied. (In the builder's `marked` preview it keeps the
+  wrapper the bridge needs, and does not stick.)
+- **It sticks under the header** at `top: var(--h-site-header)`, which
+  every theme's chrome sets, so it follows each theme's header height —
+  measured in all twelve.
+- **A page with one gets a larger `scroll-margin-top`** on its anchored
+  sections (`:has(> [data-page-section="subnav"])`), or a heading arrives
+  under two bars instead of one.
+- On a phone the row scrolls sideways inside itself and the label is
+  hidden; the links are the tab stops.
+
+Probe: `PAGE=/slug node scripts/probes/builder-extras.mjs` (the docblock
+says what the page needs) — the menu's parent, its stuck position and where
+a press lands; each edged section masked and balanced; the canvas mounted
+only near the screen and stopped by its button; no sideways scroll, at 1280
+and 390. `tests/Feature/BuilderExtrasTest.php` pins the four on the API
+side.
+
 ## Tests
 
 `tests/Feature/PageBuilderTest.php` — every type's rules valid and invalid, an

@@ -23,7 +23,10 @@ namespace App\Support;
  */
 final class ThemeOptions
 {
-    public const KINDS = ['default', 'page', 'solid', 'gradient', 'image'];
+    public const KINDS = ['default', 'page', 'solid', 'gradient', 'image', 'scene'];
+
+    /** An animation's id, as the frontend lists them (`lib/login-backdrop-choices.ts`). Shape only, the motion rule. */
+    private const SCENE = '/^[a-z][a-z0-9-]{1,31}$/';
 
     /**
      * A decorative layer over any ground but the theme's own (2026-10-05):
@@ -186,7 +189,7 @@ final class ThemeOptions
         $kind = $bg['kind'] ?? 'default';
 
         if (! in_array($kind, self::KINDS, true)) {
-            throw new \InvalidArgumentException("A section background is solid, gradient, image, page or default — not \"{$kind}\".");
+            throw new \InvalidArgumentException("A section background is solid, gradient, image, animation, page or default — not \"{$kind}\".");
         }
 
         // Whether the section renders at all. Anything but an explicit
@@ -204,6 +207,20 @@ final class ThemeOptions
         $row = ['kind' => $kind];
         if (! $enabled) {
             $row['enabled'] = false;
+        }
+
+        // An animation (0.126.0): one of the sign-in screen's canvas scenes
+        // over the theme's dark band. It names a scene and carries nothing
+        // else — no colour, since the ground is the theme's own, and no
+        // texture, since the scene is the texture.
+        if ($kind === 'scene') {
+            $scene = $bg['scene'] ?? null;
+            if (! is_string($scene) || ! preg_match(self::SCENE, $scene)) {
+                throw new \InvalidArgumentException("Choose an animation for \"{$section}\".");
+            }
+            $row['scene'] = $scene;
+
+            return $row;
         }
 
         $texture = $bg['texture'] ?? 'none';

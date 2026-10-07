@@ -30,6 +30,8 @@ export type PageSectionType =
   | "story"
   /** A diagram (0.115.0): two to six steps joined by arrows that draw as the page scrolls. */
   | "flow"
+  /** An in-page menu (0.126.0): links to the page's own anchored sections, worked out by the API. */
+  | "subnav"
   /** A library section placed linked (0.106.0): stored as `{saved_id}`, drawn as the library's section. */
   | "saved";
 
@@ -150,6 +152,9 @@ export type StorySectionData = {
  * each an identity icon (an `iconMap` key) over a title and a note, joined by
  * arrows. Every word is HTML; the arrows are decoration.
  */
+/** An in-page menu (0.126.0). `items` is derived on the public read; a stored section holds only `label`. */
+export type SubnavSectionData = { label?: string | null; items?: { anchor: string; label: string }[] };
+
 export type FlowItem = { icon?: string | null; title: string; note?: string | null };
 export type FlowSectionData = {
   kicker?: string | null; heading?: string | null; lede?: string | null;
@@ -175,7 +180,12 @@ export type SectionStyle = {
   headline?: "rise" | "wipe" | "shimmer";
   /** A scroll-linked effect on the whole section (0.114.0). */
   scroll?: "parallax" | "zoom" | "fade";
+  /** A shaped edge where the section's ground meets its neighbour (0.126.0). Only with a background of its own. */
+  edge_top?: SectionEdge;
+  edge_bottom?: SectionEdge;
 };
+
+export type SectionEdge = "wave" | "slant" | "curve" | "peak";
 
 /** `reveal` is an id from `SECTION_REVEALS` (lib/motion-choices.ts), or null for the section's own default. */
 type Of<T extends PageSectionType, D> = { id: string; type: T; background: SectionBackground | null; reveal?: string | null; style?: SectionStyle | null; data: D };
@@ -212,7 +222,8 @@ export type PageSection =
   | Of<"map", MapSectionData>
   | Of<"theme_section", ThemeSectionData>
   | Of<"story", StorySectionData>
-  | Of<"flow", FlowSectionData>;
+  | Of<"flow", FlowSectionData>
+  | Of<"subnav", SubnavSectionData>;
 
 /** A section as stored and edited: paths and ids, and whatever the type's fields are. */
 export type StoredSection = {

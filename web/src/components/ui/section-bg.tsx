@@ -7,6 +7,13 @@ import { sectionSurface, type Seeds } from "@/lib/section-background";
 import type { SiteSettings } from "@/lib/site-settings";
 import { expand } from "@/lib/themes";
 import { cn } from "@/lib/utils";
+import { BACKDROPS, type LoginBackdropId } from "@/lib/login-backdrop-choices";
+import { SectionScene } from "./section-scene";
+
+/** A scene id the site can draw — the sign-in screen's list, less its "Picture". An unknown id draws the dark band alone. */
+function isScene(id: string): id is Exclude<LoginBackdropId, "image"> {
+  return id !== "image" && BACKDROPS.some((b) => b.id === id);
+}
 import { LOCKED_SECTION, type SectionBackground, type ThemeOptions } from "@/themes/options";
 
 /**
@@ -34,7 +41,7 @@ import { LOCKED_SECTION, type SectionBackground, type ThemeOptions } from "@/the
  * coloured-text inks that read on the new ground.
  */
 export function SectionBg({
-  id, bg, seeds, className, eager = false, children,
+  id, bg, seeds, className, eager = false, edges, children,
 }: {
   id: string;
   bg: SectionBackground | undefined;
@@ -42,6 +49,15 @@ export function SectionBg({
   className?: string;
   /** Load the picture eagerly — the first sections of a page, where it is the largest paint. */
   eager?: boolean;
+  /**
+   * Shaped edges (0.126.0, a builder section's `style.edge_*`): the ground
+   * cut to a wave, a slant, a curve or a peak. Two attributes on the shell
+   * and nothing else — the mask, the overlap with the neighbouring section
+   * and the room it takes are `[data-edge-top]`/`[data-edge-bottom]` in
+   * globals.css. Meaningless without a ground, so a `default` background
+   * (no shell at all) draws none.
+   */
+  edges?: { top?: string; bottom?: string };
   children: ReactNode;
 }) {
   if (!bg) return <>{children}</>;
@@ -49,7 +65,14 @@ export function SectionBg({
   const surface = sectionSurface(bg, seeds);
 
   return (
-    <div data-section={id} data-ground={surface.ground} style={surface.style} className={cn("relative overflow-hidden", className)}>
+    <div
+      data-section={id}
+      data-ground={surface.ground}
+      data-edge-top={edges?.top}
+      data-edge-bottom={edges?.bottom}
+      style={surface.style}
+      className={cn("relative overflow-hidden", className)}
+    >
       {bg.kind === "image" && bg.image_url && (
         <Image
           src={bg.image_url}
@@ -62,6 +85,9 @@ export function SectionBg({
           style={{ opacity: surface.imageOpacity, ...focalStyle(bg.image_focus) }}
         />
       )}
+      {/* An animated ground: a canvas under the words, mounted only while
+          the section is near the screen, with a pause button of its own. */}
+      {bg.kind === "scene" && bg.scene && isScene(bg.scene) && <SectionScene scene={bg.scene} />}
       {/* The texture, on a layer of its own: a sibling of the words, never
           their ancestor, so the contrast audit grades the ink against the
           ground and the texture cannot be what fails it. */}
@@ -75,7 +101,7 @@ export function SectionBg({
 export function homeSeeds(settings: SiteSettings): Seeds {
   const palette = themeFor(settings);
   const companions = expand(palette, "light");
-  return { brand: palette.colors.brand600, secondary: companions.secondary[600], accent: companions.accent[600] };
+  return { brand: palette.colors.brand600, secondary: companions.secondary[600], accent: companions.accent[600], dark: palette.colors.dark };
 }
 
 /**

@@ -1306,6 +1306,27 @@ shape only (`^[a-z][a-z0-9-]{0,15}$`, the list is the frontend's
 `SECTION_REVEALS`), 422 on `blocks.N.reveal` otherwise; `default` and a blank
 are stored as null, and both the admin and the public reads carry it.
 
+**Since 0.126.0.** `style` takes `edge_top` and `edge_bottom`, each one of
+`wave`, `slant`, `curve`, `peak` (422 on `blocks.N.style.edge_top` otherwise;
+`default`, the straight edge, is not stored). A `background` — on a section
+here and in `site_theme_options` alike — may be `{kind: "scene", scene}`, a
+moving background: `scene` is an id checked for shape only (the list is the
+frontend's), required for that kind, and nothing else is kept beside it — a
+colour or a texture sent with it is dropped. A `cards` section's `source`
+may also be `product_categories`, `store_categories` (active ones),
+`vacancies` (open ones; `kicker` the department, `meta` the location or
+"Remote") or `entry:<type-slug>` for an **active** custom content type
+(its published entries, `index_path` `/<type-slug>`); the list a save
+accepts is `card_sources` on `GET /admin/pages/builder`, which now names
+each content type as "<plural> (your content)", and a type that does not
+exist or is switched off is a 422 on `blocks.N.data.source`. And the type
+`subnav` ("In-page menu") stores `{label?}` (≤ 40); on the public read it
+carries `items: [{anchor, label}]` — one per *drawn* section that has a
+`style.anchor`, in page order, the label that section's heading (else its
+title or kicker, else the anchor in words) — and is **left out of
+`sections` when fewer than two sections qualify**. A background or style
+sent on a `subnav` is stored and not drawn.
+
 **The admin detail read** carries `blocks` as stored, `blocks_media` (a URL
 for every stored `*_path`) and `sections` — the public shape, hidden ones
 left out — for the saved preview. The index's `meta` carries

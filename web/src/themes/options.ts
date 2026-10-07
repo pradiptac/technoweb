@@ -39,7 +39,7 @@ export type MenuStyle = "simple" | "semi" | "mega" | "big";
 export type HeroStyle = "banner" | "cover" | "split" | "compact";
 /** Where a category card's name sits beside its icon: next to it, or at the card's far edge. */
 export type HeadingAlign = "left" | "right";
-export type SectionKind = "default" | "page" | "solid" | "gradient" | "image";
+export type SectionKind = "default" | "page" | "solid" | "gradient" | "image" | "scene";
 export type SectionTexture = "none" | "grain" | "mesh" | "glow" | "grid" | "dots";
 
 export type SectionBackground = {
@@ -58,6 +58,8 @@ export type SectionBackground = {
   image_focus?: string;
   /** 0–90: how much of the overlay colour sits over the picture. */
   overlay?: number;
+  /** For `scene` (0.126.0): the animation's id, one of the sign-in screen's (`lib/login-backdrop-choices.ts`). */
+  scene?: string;
   /** A decorative layer over the ground (2026-10-05); absent is none. */
   texture?: SectionTexture;
 };
@@ -145,6 +147,7 @@ export const SECTION_KINDS: readonly Choice<SectionKind>[] = [
   { id: "solid", label: "Solid colour", blurb: "One colour; the text is derived to read on it." },
   { id: "gradient", label: "Gradient", blurb: "Two colours at an angle; the text reads on both." },
   { id: "image", label: "Picture", blurb: "A photograph under a colour overlay." },
+  { id: "scene", label: "Animation", blurb: "A slow animation in your palette's colours over the theme's dark band. Visitors can pause it, and it is still for anyone who asks for less motion." },
 ];
 
 /**
@@ -210,6 +213,10 @@ function sectionBackground(r: Record<string, unknown>): SectionBackground | unde
   const texture = tx === "none" ? undefined : tx;
 
   if (kind === "page") return { kind, texture };
+  if (kind === "scene") {
+    const scene = typeof r.scene === "string" && /^[a-z][a-z0-9-]{1,31}$/.test(r.scene) ? r.scene : undefined;
+    return scene ? { kind, scene } : undefined;
+  }
   if (kind === "solid") return colour ? { kind, colour, texture } : undefined;
   if (kind === "gradient") return colour && colour2 ? { kind, colour, colour2, angle, texture } : undefined;
 

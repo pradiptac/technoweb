@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import type { ReactNode } from "react";
 import type { Crumb } from "@/components/ui/breadcrumbs";
 import { SectionBg, homeSeeds } from "@/components/ui/section-bg";
@@ -22,6 +23,7 @@ import { ColumnsSection, CountdownSection, DownloadsSection, MapSection, TeamSec
 import { ThemeSectionSlot } from "./theme-section";
 import { StorySection } from "./story-section";
 import { FlowSection } from "./flow-section";
+import { SubnavSection } from "./subnav-section";
 import { setHeroLevel } from "@/lib/hero-heading";
 import { LOCKED_SECTION } from "@/themes/options";
 
@@ -75,8 +77,25 @@ export async function PageSections({ sections, crumbs, ownsH1 = true, marked = f
         const node = renderSection(section, { first: ownsH1 && i === 0, eager: i <= 1, crumbs, themeId: theme.manifest.id });
         if (!node) return null;
 
+        // An in-page menu is drawn bare: its `<nav>` is `position: sticky`,
+        // and a sticky element is held by its own parent's box — so it has
+        // to be a direct child of this wrapper, the one that spans the page.
+        // Inside a background shell or a style wrapper it would stick for
+        // the height of that wrapper, which is its own height: not at all.
+        if (section.type === "subnav" && !marked) return <Fragment key={section.id}>{node}</Fragment>;
+
         const drawn = (
-          <SectionBg key={section.id} id={`page-${section.type}`} bg={section.background ?? undefined} seeds={seeds} eager={i <= 1}>
+          <SectionBg
+            key={section.id}
+            id={`page-${section.type}`}
+            bg={section.background ?? undefined}
+            seeds={seeds}
+            eager={i <= 1}
+            // A top edge is cut out of the section above it. The page's first
+            // section has none, and an in-page menu is an opaque bar pinned
+            // over whatever follows it — the cut would be hidden under it.
+            edges={{ top: i > 0 && sections[i - 1]?.type !== "subnav" ? section.style?.edge_top : undefined, bottom: section.style?.edge_bottom }}
+          >
             <StyledSection style={section.style}>{node}</StyledSection>
           </SectionBg>
         );
@@ -187,6 +206,7 @@ function renderSection(
     case "map": return <MapSection data={section.data} reveal={reveal} />;
     case "story": return <StorySection data={section.data} eager={eager} reveal={reveal} id={`story-${section.id.slice(0, 8)}`} />;
     case "flow": return <FlowSection data={section.data} reveal={reveal} />;
+    case "subnav": return <SubnavSection data={section.data} />;
     // The active theme's own homepage section, arriving as `HomeSection` would
     // have it arrive: still unless the editor chose a reveal, and never the
     // hero, which opens a page (the homepage's rule, `section-bg.tsx`).

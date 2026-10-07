@@ -9,19 +9,24 @@ use App\Http\Resources\TeamMemberResource;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\ContentBlock;
+use App\Models\ContentType;
+use App\Models\Entry;
 use App\Models\Event;
 use App\Models\Faq;
 use App\Models\Form;
 use App\Models\Gallery;
 use App\Models\Industry;
+use App\Models\JobOpening;
 use App\Models\KnowledgeArticle;
 use App\Models\Media;
 use App\Models\Page;
 use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Models\SavedSection;
 use App\Models\Service;
 use App\Models\Slider;
 use App\Models\Solution;
+use App\Models\StoreCategory;
 use App\Models\StoreProduct;
 use App\Models\TeamMember;
 use App\Support\Events\EventText;
@@ -30,6 +35,7 @@ use App\Support\MediaUrl;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * A builder page's sections as the public site reads them (2026-09-26).
@@ -90,6 +96,47 @@ final class SectionPresenter
                 'style' => SectionRules::style($block['style'] ?? null),
                 'data' => (object) $data,
             ];
+        }
+
+        return self::withSubnav($out);
+    }
+
+    /**
+     * An in-page menu's links (0.126.0): every *other* section that will be
+     * drawn and has an anchor, in page order, labelled by its own heading.
+     * Worked out here, after the hidden and the empty sections have gone, so
+     * the menu can never point at one that is not on the page. A menu with
+     * fewer than two places to go is not a menu, and is dropped.
+     *
+     * @param  list<array<string, mixed>>  $sections
+     * @return list<array<string, mixed>>
+     */
+    private static function withSubnav(array $sections): array
+    {
+        if (! collect($sections)->contains(fn ($s) => $s['type'] === PageSectionType::Subnav->value)) {
+            return $sections;
+        }
+
+        $links = [];
+        foreach ($sections as $s) {
+            $anchor = $s['style']['anchor'] ?? null;
+            if (! is_string($anchor) || $s['type'] === PageSectionType::Subnav->value) {
+                continue;
+            }
+            $data = (array) $s['data'];
+            $heading = collect(['heading', 'title', 'kicker'])->map(fn ($k) => $data[$k] ?? null)->first(fn ($v) => is_string($v) && trim($v) !== '');
+            $links[] = ['anchor' => $anchor, 'label' => Str::limit(trim((string) ($heading ?? Str::headline($anchor))), 40)];
+        }
+
+        $out = [];
+        foreach ($sections as $s) {
+            if ($s['type'] === PageSectionType::Subnav->value) {
+                if (count($links) < 2) {
+                    continue;
+                }
+                $s['data'] = (object) [...(array) $s['data'], 'items' => $links];
+            }
+            $out[] = $s;
         }
 
         return $out;
@@ -377,6 +424,12 @@ final class SectionPresenter
         $limit = max(1, min(12, (int) ($data['limit'] ?? 6)));
         $category = is_string($data['category'] ?? null) && $data['category'] !== '' ? $data['category'] : null;
         $source = (string) ($data['source'] ?? '');
+        // A custom content type's entries: `entry:<type-slug>`. A type that
+        // has been switched off or deleted since yields nothing, and the
+        // section is dropped like any empty list.
+        $type = str_starts_with($source, 'entry:')
+            ? ContentType::query()->active()->where('slug', substr($source, 6))->first()
+            : null;
 
         /** @var Collection<int, array<string, mixed>> $items */
         $items = match ($source) {
@@ -405,7 +458,19 @@ final class SectionPresenter
             // coming up loses the section, like any empty list.
             'events' => Event::published()->upcoming()->orderBy('starts_at')->orderBy('id')->limit($limit)->get()
                 ->map(fn (Event $e) => self::tile($e->title, $e->summary, $e->publicPath(), $e->cover_image_path, null, EventText::dateLabel($e), EventText::place($e))),
-            default => collect(),
+            'product_categories' => ProductCategory::query()->orderBy('sort_order')->orderBy('name')->limit($limit)->get()
+                ->map(fn (ProductCategory $c) => self::tile($c->name, $c->description, "/products/{$c->slug}", $c->image_path, $c->icon)),
+            'store_categories' => StoreCategory::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->limit($limit)->get()
+                ->map(fn (StoreCategory $c) => self::tile($c->name, $c->description, "/store/categories/{$c->slug}", $c->image_path, null)),
+            // Open ones only — `published()` already drops a vacancy past its
+            // closing date. The kicker is the department and the meta the
+            // place, "Remote" for a blank one, as the careers page says it.
+            'vacancies' => JobOpening::published()->orderBy('sort_order')->orderByDesc('published_at')->limit($limit)->get()
+                ->map(fn (JobOpening $j) => self::tile($j->title, $j->summary, "/careers/{$j->slug}", null, null, $j->department, filled($j->location) ? $j->location : 'Remote')),
+            default => $type ? Entry::published()->where('content_type_id', $type->id)
+                ->orderBy('sort_order')->orderByDesc('published_at')->orderByDesc('id')->limit($limit)->get()
+                ->map(fn (Entry $e) => self::tile($e->title, $e->summary, "/{$type->slug}/{$e->slug}", $e->image_path, null))
+                : collect(),
         };
 
         $data['index_path'] = match ($source) {
@@ -418,7 +483,10 @@ final class SectionPresenter
             'products' => $category ? "/products/{$category}" : '/products',
             'store_products' => $category ? "/store/categories/{$category}" : '/store',
             'events' => '/events',
-            default => null,
+            'product_categories' => '/products',
+            'store_categories' => '/store',
+            'vacancies' => '/careers',
+            default => $type && $type->archive_enabled ? "/{$type->slug}" : null,
         };
         $data['items'] = $items->values()->all();
 

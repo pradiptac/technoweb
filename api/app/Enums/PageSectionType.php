@@ -74,6 +74,13 @@ enum PageSectionType: string
      */
     case Flow = 'flow';
     /**
+     * A menu of the page's own sections (0.126.0): a sticky strip of links
+     * to every section on the page that has been given an anchor. It stores
+     * only its label; the links are worked out when the page is read, so the
+     * menu cannot name a section that has since been removed.
+     */
+    case Subnav = 'subnav';
+    /**
      * One of the active theme's own homepage sections (2026-10-06, 0.113.0):
      * the hero, the solutions, the partner strip… — stored as the section's
      * id, drawn by the theme that is active when the page renders, so it
@@ -120,6 +127,7 @@ enum PageSectionType: string
             self::Map => 'Map',
             self::Story => 'Scroll story',
             self::Flow => 'Diagram',
+            self::Subnav => 'In-page menu',
             self::ThemeSection => 'From the theme',
             self::Saved => 'Saved section',
         };
@@ -134,8 +142,9 @@ enum PageSectionType: string
                 .'shortcodes, exactly as a page body.',
             self::MediaText => 'A picture or a video on one side and words on the other, with buttons.',
             self::Features => 'Up to twelve short points in two, three or four columns, each with an icon.',
-            self::Cards => 'A live list — solutions, services, industries, case studies, posts, articles or '
-                .'products — drawn as the theme draws its grids. It follows the catalogue as it changes.',
+            self::Cards => 'A live list — solutions, services, industries, case studies, posts, articles, products, '
+                .'categories, vacancies, events or your own content types — drawn as the theme draws its grids. '
+                .'It follows the catalogue as it changes.',
             self::ContentBlock => 'A published CTA banner, stat bar, pricing table or technology stack.',
             self::Slider => 'A published slider, in whatever layout it was built with.',
             self::Gallery => 'A published gallery with its tabs and lightbox.',
@@ -163,6 +172,8 @@ enum PageSectionType: string
             self::Story => 'Two to six steps that scroll past a picture held in place, the picture changing with each step — a product tour, a process, a project told in stages.',
             self::Flow => 'A row of connected steps — a network, a process, how data moves — whose connecting lines draw themselves as the page scrolls.',
             self::ThemeSection => 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.',
+            self::Subnav => 'A strip of links to the sections of this page, which stays at the top of the screen as it scrolls. '
+                .'It lists every section you have given an anchor to (Style → Anchor), in page order.',
             self::Saved => 'A section from the library, kept in step with it: edit it once and every page that places it changes.',
         };
     }

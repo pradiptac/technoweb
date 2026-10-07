@@ -56,7 +56,11 @@ export type SectionSurface = {
 const DEFAULT_OVERLAY = "#0b0b12";
 
 /** The three ramps' `600`s, which `ramp()` re-derives the inks and washes from. */
-export type Seeds = { brand: string; secondary: string; accent: string };
+export type Seeds = {
+  brand: string; secondary: string; accent: string;
+  /** The palette's dark band, the ground an animated background (`kind: scene`) is drawn over. */
+  dark?: string;
+};
 
 export function sectionSurface(bg: SectionBackground, seeds: Seeds): SectionSurface {
   // "None": no band at all. Every dark-band token becomes the page's own
@@ -64,6 +68,14 @@ export function sectionSurface(bg: SectionBackground, seeds: Seeds): SectionSurf
   // in — so a section a theme paints near-black sits on the page instead,
   // and follows the scheme, which no chosen colour can (2026-09-19). The
   // page's tokens are already graded, so nothing here is derived.
+  // An animation is drawn over the theme's own dark band, so its surface is
+  // a solid one in that colour — the inks, the card and the lines are then
+  // derived to read on it exactly as for a colour somebody typed. Without
+  // the colour in hand (a caller that predates it) it is the page's ground.
+  if (bg.kind === "scene") {
+    return sectionSurface(seeds.dark ? { kind: "solid", colour: seeds.dark } : { kind: "page" }, seeds);
+  }
+
   if (bg.kind === "page") {
     return {
       style: {

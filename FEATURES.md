@@ -85,7 +85,10 @@ A full CMS for the people who write, without a developer in the loop.
   from a Landing, Service or About preset, then reordered, duplicated, hidden
   and given a background. Every section's fields are checked before it saves,
   a live preview shows the unsaved page under the active theme, and every
-  theme draws the sections in its own style.
+  theme draws the sections in its own style. A section can meet its
+  neighbour in a wave, slant, curve or peak, sit on a slow animated
+  background, list categories, vacancies or your own content types, and a
+  page can carry a menu of its own sections that follows the visitor down.
 - **FAQs** managed in one place and attached to any solution, service, product
   or page — rendered on the page and as `FAQPage` structured data.
 - **Rich-text editor** with the full toolbar — headings, colour, tables,

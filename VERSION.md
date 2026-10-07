@@ -21,6 +21,30 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.126.0 — 2026-10-07
+
+**The page builder: shaped edges, moving backgrounds, more lists, a menu for the page.**
+
+- **Shaped edges.** In a section's **Style**, the new **Top edge** and
+  **Bottom edge** turn the straight line between two sections into a wave, a
+  slant, a curve or a peak. The section needs a background of its own, since
+  the shape is cut from it.
+- **Moving backgrounds.** A section's **Background** — in the builder and
+  for the homepage sections on the Themes screen — can now be an
+  **Animation**: one of the slow canvas animations from the sign-in screen,
+  in your palette's colours on a dark band. Every one has a pause button
+  and stays still for visitors who ask for less motion.
+- **More lists for the Cards section**: product categories, shop
+  categories, open vacancies, and any of your own content types.
+- **In-page menu**: a new section that lists the page's sections as links
+  and stays at the top of the screen as the visitor scrolls. It lists the
+  sections you have given an **Anchor** (Style → Anchor), worded from each
+  section's heading.
+- Works in all twelve themes and on phones. After updating, nothing needs
+  doing.
+
+---
+
 ## 0.125.0 — 2026-10-07
 
 **Your own fonts.**

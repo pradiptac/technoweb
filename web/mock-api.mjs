@@ -2090,6 +2090,7 @@ const SECTION_TYPES = [
   { value: 'map', label: 'Map', blurb: 'A Google map, loaded only when somebody presses it, with the address beside it.' },
   { value: 'story', label: 'Scroll story', blurb: 'Steps that scroll past a picture held in place, the picture changing with each step — a product tour, a process, a project told in stages.' },
   { value: 'flow', label: 'Diagram', blurb: 'A row of connected steps — a network, a process, how data moves — whose connecting lines draw themselves as the page scrolls.' },
+  { value: 'subnav', label: 'In-page menu', blurb: 'A strip of links to the sections of this page, which stays at the top of the screen as it scrolls. It lists every section you have given an anchor to (Style → Anchor), in page order.' },
   { value: 'theme_section', label: 'From the theme', blurb: 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.' },
 ];
 /* The AI page builder's refusal while the AI SEO assistant is off (0.116.0) — the API's sentence. */
@@ -2124,6 +2125,9 @@ const BUILDER_OPTIONS = {
     { value: 'products', label: 'Products (catalogue)' }, { value: 'store_products', label: 'Products (shop)' },
     // Upcoming events, soonest first (docs/events-contract.md).
     { value: 'events', label: 'Events' },
+    // 0.126.0: categories, vacancies, and one `entry:<type-slug>` per active content type (none in the mock).
+    { value: 'product_categories', label: 'Product categories (catalogue)' }, { value: 'store_categories', label: 'Shop categories' },
+    { value: 'vacancies', label: 'Open vacancies' },
   ],
   content_blocks: [], sliders: [], galleries: [], forms: [],
   product_categories: productCategories.map(({ id, name, slug }) => ({ id, name, slug })),

@@ -55,6 +55,7 @@ export function blankData(type: PageSectionType): Record<string, unknown> {
     case "theme_section": return { section: "solutions" };
     case "story": return { heading: "", items: [{}, {}] };
     case "flow": return { heading: "", items: [{}, {}] };
+    case "subnav": return { label: "On this page" };
     default: return {};
   }
 }
@@ -753,6 +754,19 @@ export function SectionEditor({ type, sectionId, options }: {
           <Text path={["url"]} label="Google Maps embed address" required placeholder="https://www.google.com/maps/embed?pb=…"
             hint={"In Google Maps: Share, then “Embed a map”, then copy the src=\"…\" from the code."} />
           <Text path={["address"]} label="Address" multiline hint="Shown on the map's card until somebody loads the map." />
+        </>
+      );
+
+    case "subnav":
+      return (
+        <>
+          <Text path={["label"]} label="Label" placeholder="On this page" hint="Shown before the links on a computer; read out as the menu's name." />
+          <p className="measure text-12-5 text-muted">
+            The links are made for you: one for every section on this page that has an anchor, in page order, labelled
+            with that section&rsquo;s heading. To add a section to the menu, open it, go to Style and give it an Anchor.
+            The menu needs at least two, stays at the top of the screen as the page scrolls, and takes no background or
+            style of its own.
+          </p>
         </>
       );
 

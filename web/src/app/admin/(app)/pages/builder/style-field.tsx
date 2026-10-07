@@ -17,7 +17,10 @@ import type { SectionStyle } from "@/types/page-sections";
  * `aria-pressed` buttons in a labelled group, each 32px tall — the console's
  * dense scale, still clear of the 24px tap-target floor.
  */
-type Key = "pad_top" | "pad_bottom" | "width" | "align" | "heading" | "headline" | "scroll";
+type Key = "pad_top" | "pad_bottom" | "width" | "align" | "heading" | "headline" | "scroll" | "edge_top" | "edge_bottom";
+
+/** The four shapes an edge can take (0.126.0). */
+const EDGES: [string, string][] = [["default", "Straight"], ["wave", "Wave"], ["slant", "Slant"], ["curve", "Curve"], ["peak", "Peak"]];
 
 /** Said under both motion controls (0.114.0): reduced motion turns each of them off. */
 const STILL = "Still for visitors who ask for less motion.";
@@ -37,6 +40,16 @@ const CHOICES: Record<Key, { label: string; options: [string, string][]; hint?: 
     label: "While scrolling",
     options: [["default", "None"], ["parallax", "Parallax pictures"], ["zoom", "Zoom in"], ["fade", "Fade through"]],
     hint: `An effect tied to scrolling: pictures drifting, the section zooming in, or fading in and out as it passes. ${STILL}`,
+  },
+  edge_top: {
+    label: "Top edge",
+    options: EDGES,
+    hint: "The shape of the section's top where it meets the one above. Needs a background on this section; not drawn on the first section of a page.",
+  },
+  edge_bottom: {
+    label: "Bottom edge",
+    options: EDGES,
+    hint: "The shape of the section's foot where it meets the one below. Needs a background on this section.",
   },
 };
 

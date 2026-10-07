@@ -4308,6 +4308,57 @@ section[data-page-section="rich_text"] + section[data-page-section="rich_text"] 
 }
 
 /*
+ * A section's shaped edges (0.126.0, `style.edge_top` / `style.edge_bottom`,
+ * docs/page-builder.md "Shaped edges").
+ *
+ * The section's own ground is **masked** to a wave, a slant, a curve or a
+ * peak, and the section is pulled over its neighbour by the edge's height,
+ * so what shows through the cut is whatever the neighbour really is — the
+ * page, a colour, a gradient, a photograph. An edge drawn as a strip in "the
+ * neighbour's colour" would have to know that colour, and a neighbour with a
+ * picture has none.
+ *
+ * Three mask layers: the shape across the top, a solid middle, the shape
+ * across the bottom. The middle overlaps each by a pixel, or a sub-pixel
+ * seam shows as a hairline of the neighbour. The shapes are four SVGs
+ * stretched to the edge's box (`preserveAspectRatio='none'`), black for what
+ * is kept — an alpha, not a colour of the design.
+ *
+ * The room an edge takes is added back as padding, so the words never sit
+ * in the cut; the height is a `clamp()` on the viewport, so a wave on a
+ * phone is a ripple rather than a third of the screen. Nothing here reads or
+ * changes a colour the contrast audit grades, and a mask cannot widen the
+ * document.
+ */
+[data-section][data-edge-top],
+[data-section][data-edge-bottom] {
+  --edge: clamp(1.25rem, 4.5vw, 4rem);
+  --et: 0px;
+  --eb: 0px;
+  --mt: linear-gradient(black 0 0);
+  --mb: linear-gradient(black 0 0);
+  z-index: 1;
+  -webkit-mask:
+    var(--mt) top / 100% var(--et) no-repeat,
+    linear-gradient(black 0 0) 0 calc(var(--et) - 1px) / 100% calc(100% - var(--et) - var(--eb) + 2px) no-repeat,
+    var(--mb) bottom / 100% var(--eb) no-repeat;
+  mask:
+    var(--mt) top / 100% var(--et) no-repeat,
+    linear-gradient(black 0 0) 0 calc(var(--et) - 1px) / 100% calc(100% - var(--et) - var(--eb) + 2px) no-repeat,
+    var(--mb) bottom / 100% var(--eb) no-repeat;
+}
+[data-section][data-edge-top] { --et: var(--edge); margin-top: calc(-1 * var(--edge)); padding-top: var(--edge); }
+[data-section][data-edge-bottom] { --eb: var(--edge); margin-bottom: calc(-1 * var(--edge)); padding-bottom: var(--edge); }
+[data-section][data-edge-top="wave"] { --mt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath d='M0 10V5C20 0 30 0 50 5S80 10 100 5V10Z'/%3E%3C/svg%3E"); }
+[data-section][data-edge-bottom="wave"] { --mb: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath transform='matrix(1 0 0 -1 0 10)' d='M0 10V5C20 0 30 0 50 5S80 10 100 5V10Z'/%3E%3C/svg%3E"); }
+[data-section][data-edge-top="slant"] { --mt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath d='M0 10L100 0V10Z'/%3E%3C/svg%3E"); }
+[data-section][data-edge-bottom="slant"] { --mb: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath transform='matrix(1 0 0 -1 0 10)' d='M0 10L100 0V10Z'/%3E%3C/svg%3E"); }
+[data-section][data-edge-top="curve"] { --mt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath d='M0 10Q50 -10 100 10Z'/%3E%3C/svg%3E"); }
+[data-section][data-edge-bottom="curve"] { --mb: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath transform='matrix(1 0 0 -1 0 10)' d='M0 10Q50 -10 100 10Z'/%3E%3C/svg%3E"); }
+[data-section][data-edge-top="peak"] { --mt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath d='M0 10L50 0L100 10Z'/%3E%3C/svg%3E"); }
+[data-section][data-edge-bottom="peak"] { --mb: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath transform='matrix(1 0 0 -1 0 10)' d='M0 10L50 0L100 10Z'/%3E%3C/svg%3E"); }
+
+/*
  * A builder section's style (2026-10-05, `SectionStyle`, docs/page-builder.md
  * "Style"): `PageSections` wraps a styled section in `[data-section-style]`
  * and these read its attributes. Every value is a step on a fixed scale, so
@@ -4317,6 +4368,14 @@ section[data-page-section="rich_text"] + section[data-page-section="rich_text"] 
  * compose. Unlayered: they beat `.section-y` and any `py-*` utility.
  */
 [data-section-style] { scroll-margin-top: 6rem; }
+
+/*
+ * A page with an in-page menu (0.126.0, `subnav-section.tsx`): two bars are
+ * pinned to the top of the screen — the site header and the menu under it —
+ * so a section reached by one of the menu's links needs room for both, or
+ * its heading arrives underneath them.
+ */
+[data-page-sections]:has(> [data-page-section="subnav"]) [data-section-style] { scroll-margin-top: calc(var(--h-site-header) + 4.5rem); }
 
 [data-section-style][data-pad-top="none"] > [data-page-section] { padding-top: 0; }
 [data-section-style][data-pad-top="s"] > [data-page-section] { padding-top: calc(1.5rem * var(--density, 1)); }
