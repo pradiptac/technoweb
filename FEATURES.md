@@ -385,6 +385,10 @@ Built in, measured, and never allowed to guess.
   credential-free, pruned only by age.
 - **Client-side error reporting** grouped by fingerprint, re-opening itself
   if a fix does not hold.
+- **A phone action bar**: Call, WhatsApp and a button of your own, pinned to
+  the bottom of the screen on phones.
+- **A coming-soon switch**: a holding page in front of the site until launch,
+  while staff go on seeing the real thing.
 - **A look in six presses**: ready-made looks, corners, spacing, five card
   finishes and three heading sizes, previewed on the real site before saving.
 - **A dashboard each person arranges**: put a panel away, move one up, in

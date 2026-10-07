@@ -319,7 +319,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/settings` | Site settings. **Whitelisted by group**, see below |
 | `GET` | `/search?q=` | Site-wide search, grouped by type. Min 2 characters, **max 100** (422 above), 5 per group. `%` and `_` match themselves. Throttled 240/min under the `search` key — every visitor reaches it through the one Next server |
 | `GET` | `/companies/suggest?q=` | Company names already on file. Prefix, min 3 chars, max 5. Throttled 20/min |
-| `GET` | `/redirects` | Every active redirect as `{from,to,status}` rows. `Cache-Control: max-age=60`. What the frontend proxy holds in memory |
+| `GET` | `/redirects` | Every active redirect as `{from,to,status}` rows, plus `meta.coming_soon` (boolean — the `coming_soon_enabled` setting, which the proxy acts on). `Cache-Control: max-age=60`. What the frontend proxy holds in memory |
 | `GET` | `/redirects/lookup?path=/blog/old-slug` | 200 with `{data:{to,status}}`, or 404. **Records the hit** — the proxy calls it only on a match |
 | `POST` | `/enquiries` | Contact form. Throttled 10/min, honeypot field |
 | `POST` | `/chat/conversations` | Starts a conversation. Throttled 6/min. Returns the token **once** |
@@ -4216,6 +4216,19 @@ the same rules, seeded `standard`) in 0.121.0: how large the site's headings
 are set. **`motion_cards`**
 (`lift`, `tilt`, `float`, `still`; seeded `lift`) the `motion` group, checked
 for the shape of an id like the other motion keys.
+
+**The `action_bar` and `coming_soon` groups are public** (0.122.0,
+`docs/site-chrome.md`). `action_bar_enabled` (`0`/`1`, off by default),
+`action_bar_call` (`0`/`1`, on — the Call button, which rings the `phone`
+setting), `action_bar_whatsapp_number` (stored as digits; 8–15 of them or a
+422; blank falls back to `chatbot_whatsapp_number` on the frontend),
+`action_bar_enquire_label` (≤ 16 characters) and `action_bar_enquire_href`
+(a path, an http(s) URL, a `mailto:` or a `tel:` — `LinkPattern`; a 422
+otherwise). `coming_soon_enabled` (`0`/`1`, off), `coming_soon_heading`
+(≤ 120), `coming_soon_message` (rich text, cleaned on write through the
+`cms` profile) and `coming_soon_image_path` (a media path, published with
+`coming_soon_image_url` and its size by the `_path` rule). The switch is
+also published as `meta.coming_soon` on `GET /redirects`.
 
 **The `pwa` group is public** (2026-10-05, `docs/pwa.md`): `pwa_enabled` and
 `pwa_install_prompt` (`0`/`1`, both on by default), `pwa_name` (≤ 45),

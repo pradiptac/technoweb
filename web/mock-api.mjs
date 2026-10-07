@@ -5376,7 +5376,8 @@ createServer(async (req, res) => {
     { from: '/solutions/old-networking', to: '/solutions/networking', status: 301 },
     { from: '/old-privacy', to: '/privacy', status: 301 },
   ];
-  if (p === '/redirects') return json(res, 200, { data: REDIRECTS });
+  // `meta.coming_soon` is what the proxy reads for the coming-soon page (0.122.0).
+  if (p === '/redirects') return json(res, 200, { data: REDIRECTS, meta: { coming_soon: false } });
   if (p === '/redirects/lookup') {
     const hit = REDIRECTS.find((r) => r.from === url.searchParams.get('path'));
     return hit ? json(res, 200, { data: { to: hit.to, status: hit.status } }) : json(res, 404, { data: null });

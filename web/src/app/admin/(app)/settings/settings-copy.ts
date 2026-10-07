@@ -676,6 +676,35 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Offer to install",
     hint: "A small card inviting a visitor to install the site, shown from their second page, never over the cookie banner, and never again for a month once dismissed. Browsers' own install button works either way.",
   },
+  action_bar_enabled: {
+    label: "Show the action bar",
+    hint: "On, a bar with up to three buttons stays at the bottom of the screen on phones. Nothing changes on a tablet or a computer.",
+  },
+  action_bar_call: {
+    label: "Call button",
+    hint: "Rings the phone number on System → Settings → Contact. Hidden while that number is blank.",
+  },
+  action_bar_whatsapp_number: {
+    label: "WhatsApp number",
+    hint: "With the country code, digits only. Blank uses the website assistant's WhatsApp number; with neither, the button is hidden.",
+    placeholder: "919876543210",
+  },
+  action_bar_enquire_label: { label: "Third button", hint: "At most 16 characters.", placeholder: "Enquire" },
+  action_bar_enquire_href: {
+    label: "Third button link",
+    hint: "A path on this site, or a full address. Blank hides the button.",
+    placeholder: "/contact",
+  },
+  coming_soon_enabled: {
+    label: "Show the coming-soon page",
+    hint: "On, every visitor sees the page below instead of the website. You still see the real site in any browser where you are signed in to this console. Allow up to a minute for the change to reach visitors.",
+  },
+  coming_soon_heading: { label: "Heading", placeholder: "We are getting ready" },
+  coming_soon_message: { label: "Message" },
+  coming_soon_image_path: {
+    label: "Picture",
+    hint: "Optional. Shown beside the message on a computer and above it on a phone.",
+  },
   smtp_host: { label: "SMTP host", placeholder: "smtp.example.com" },
   smtp_port: { label: "Port", placeholder: "587" },
   smtp_username: { label: "Username" },
@@ -885,6 +914,14 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Installable app",
     blurb: "The public site as an app a visitor can add to their home screen: its name, its icon, and whether it offers itself. Installed, it opens full screen without the browser's address bar, and pages already visited open without a connection.",
   },
+  action_bar: {
+    title: "Phone action bar",
+    blurb: "Call, WhatsApp and one button of your own, pinned to the bottom of the screen on phones — the three things a visitor on a phone most often wants. Each button appears only when it has what it needs, and the bar is off until you switch it on.",
+  },
+  coming_soon: {
+    title: "Coming soon",
+    blurb: "A holding page in front of the whole public site, for the days before launch or while the site is being reworked. This console, the customer portal and links already emailed to customers (orders, visits, meetings) keep working. It is a curtain rather than a lock: it keeps visitors and search engines away, and is not a way to protect confidential pages. To check the wording first, open /coming-soon in this browser: while you are signed in here it shows the page whether or not the switch is on.",
+  },
   consent: {
     title: "Cookie consent",
     blurb: "The banner shown before any analytics loads. It only appears when at least one analytics ID is set, because with none configured no cookie is ever placed and asking would be meaningless. The wording below is a starting point, not legal advice.",
@@ -1028,6 +1065,9 @@ export const FIELD_ORDER: Record<string, string[]> = {
                "newsletter_batch_size", "newsletter_batch_delay", "hunter_monthly_cap",
                "newsletter_webhook_secret"],
   pwa: ["pwa_enabled", "pwa_install_prompt", "pwa_name", "pwa_short_name", "pwa_icon_path"],
+  action_bar: ["action_bar_enabled", "action_bar_call", "action_bar_whatsapp_number",
+               "action_bar_enquire_label", "action_bar_enquire_href"],
+  coming_soon: ["coming_soon_enabled", "coming_soon_heading", "coming_soon_message", "coming_soon_image_path"],
   consent: ["cookie_consent_enabled", "cookie_consent_title", "cookie_consent_message",
             "cookie_consent_accept_label", "cookie_consent_reject_label", "cookie_consent_policy_url"],
   /*
@@ -1168,10 +1208,10 @@ export const SCREENS: SettingsScreen[] = [
     path: "/admin/site/settings",
     title: "Site settings",
     area: "Site",
-    lede: "How the public site looks and what it says on the front page: the homepage copy and figures, the palette, motion, the page banners, embedded code, the analytics tags with the consent banner that gates them, and the installable app.",
+    lede: "How the public site looks and what it says on the front page: the homepage copy and figures, the palette, motion, the page banners, embedded code, the analytics tags with the consent banner that gates them, the installable app, the phone action bar and the coming-soon page.",
     saveLabel: "Save site settings",
     sections: [
-      { groups: ["homepage", "appearance", "motion", "banners", "embeds", "analytics", "consent", "pwa"] },
+      { groups: ["homepage", "appearance", "motion", "banners", "embeds", "analytics", "consent", "pwa", "action_bar", "coming_soon"] },
     ],
   },
   {

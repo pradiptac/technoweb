@@ -3,6 +3,10 @@
 Do these in order before you tell anybody the address. Each one is a few
 minutes in the console (`https://www.example.com/admin`).
 
+If the address is already public, switch on **Site → Settings → Coming
+soon** first: visitors see a holding page while you work, and you still see
+the real site while signed in (chapter 15).
+
 ## 1. Test the mail
 
 **System → Settings → Outgoing mail**. If you did not set mail up during the

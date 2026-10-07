@@ -467,3 +467,94 @@ name the hover selector too, or the hover rule outranks it.
 Reddit (`social_reddit`) is the seventh profile: `IconReddit` is drawn here
 from filled shapes; `#FF4500` is 5.39:1 on the footer's `#12140d`, but white
 on it is 3.44:1, so the blog sidebar's filled button is `#D93A00` (4.61:1).
+
+## The phone action bar, the coming-soon page and the 404 (0.122.0)
+
+### The action bar
+
+Call, WhatsApp and one button of the site's own, pinned to the foot of the
+screen below `sm`. `lib/action-bar.ts` turns the public `action_bar` settings
+into a list of buttons and `components/layout/action-bar.tsx` draws it, on
+the server, from the marketing layout — so the page stays cached and nothing
+is decided in the browser.
+
+**A button is drawn only when it has what it needs.** Call needs the Contact
+tab's phone number; WhatsApp needs a number of its own or the assistant's;
+the third needs a link. A bar switched on with none of them draws nothing.
+The last button is the filled one: three equal buttons read as a menu, one
+filled button reads as the thing to press.
+
+**It is a direct child of `.public-site`, and one rule depends on that.**
+The bar is `position: fixed`, so alone it would cover the last 52px of every
+page and sit under everything else pinned to the foot of a phone. The rule
+at the end of `globals.css` is `.public-site:has(> [data-action-bar])`,
+below `sm` only:
+
+- the page's foot is padded by `--action-bar-h` (the bar, its hairline and
+  the safe-area inset), so the footer's policy links end above it;
+- the assistant's launcher and panel, the compare tray and the install card
+  rise by the same height — by `bottom`, never `translate`, which the
+  launcher's hop and every `.rise-in` already animate.
+
+Anything new that is pinned to the foot of a phone screen joins that rule.
+The cookie banner is `z-50` and simply covers the bar until it is answered.
+
+Measured: 53px tall with 52px buttons in all twelve themes (the theme
+preview draws the bar too, so a preview on a phone is what a visitor's phone
+shows), the launcher's foot 16px above it, no sideways scroll at 320–414.
+
+### The coming-soon page
+
+One switch (`coming_soon_enabled`) puts `/coming-soon` in front of the whole
+public site.
+
+**It is a rewrite in `proxy.ts`, and it could not be anything else.** The
+obvious place — the marketing layout rendering a holding page instead of its
+children — needs either the setting per request or a cookie to let staff
+through, and either one makes every ISR-cached page dynamic (the "static to
+dynamic at runtime" 500 on every `[slug]` route). The proxy already runs
+before the cache and already holds one thing it fetched from the API: the
+redirect table. The switch rides on that read as `meta.coming_soon`, costs a
+request one boolean, and takes up to sixty seconds to reach visitors — the
+delay a renamed slug has, and the console says so beside the switch.
+
+**What stays open** (`NEVER_CURTAINED`): the console and the portal, every
+route handler, any path ending in an extension (the manifest, the service
+worker, a feed), and the pages a link in an email already sent addresses —
+an order, a visit, a meeting, an event registration, a survey, an
+unsubscribe. Only GET and HEAD are rewritten.
+
+**A curtain, not a lock.** A browser holding the staff session cookie sees
+the real site, and only the cookie's *presence* is checked — verifying it is
+an API call per request. A prefetch also skips the proxy by its matcher. It
+keeps visitors and crawlers away from an unfinished site and protects
+nothing confidential; the settings tab says that in words.
+
+**The redirect loop it had.** The page's answer to a direct visit with the
+switch off is to send the visitor home. For the minute after the switch is
+turned off the proxy still rewrites to it while the page — whose settings
+were purged at once — already sees "off": home, rewritten back, home again.
+The probe hit `ERR_TOO_MANY_REDIRECTS` on exactly that. The rewrite now
+stamps `x-coming-soon: 1` on the request and the page draws the holding page
+for that stale minute instead of redirecting.
+
+The page itself sits outside `(marketing)`: no header, footer, assistant or
+analytics. `noindex`, and `robots.ts` disallows everything while the switch
+is on, since every address answers with the same page. A signed-in member of
+staff can open `/coming-soon` with the switch off, with a line saying nobody
+else can see it. The console's layout carries a standing strip while it is
+on — staff see the real site, so the console is the one place that can say
+what everybody else sees.
+
+### The 404
+
+The not-found body searched the knowledge base only; most missing addresses
+are a product or a page. It is a plain GET form to `/search` now, and
+`NotFoundSuggestions` — a client island, because a not-found boundary is
+given no params and only the browser knows the address — asks `/api/search`
+for the address's last segment (`/products/cisco-cbs350-24t` is a search for
+"cisco cbs350 24t") and lists up to five matches. Nothing is drawn until
+something comes back.
+
+`scripts/probes/action-bar.mjs` measures all three through the real settings
+form and always switches both features off again.

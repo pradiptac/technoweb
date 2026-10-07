@@ -226,6 +226,38 @@ registration and password forms — for staff and customers alike:
 
 The panel is hidden on phones, where the form takes the whole screen.
 
+## The phone action bar
+
+**Site → Settings → Phone action bar**. Switch it on and a bar stays at the
+bottom of the screen on phones, with up to three buttons:
+
+- **Call** — rings the phone number under System → Settings → Contact.
+- **WhatsApp** — opens a chat with the number you enter here (with the
+  country code, digits only). Left blank, it uses the chat assistant's
+  WhatsApp number.
+- **A third button** of your own — "Enquire" and `/contact` to start with.
+  Change the wording and where it goes; clear the link to hide it.
+
+A button with nothing to use is left out. Nothing changes on a tablet or a
+computer.
+
+## The coming-soon page
+
+**Site → Settings → Coming soon**. Switch it on and every visitor sees a
+holding page — your heading, message and an optional picture, with your phone
+number and email — instead of the website. Use it before launch, or while
+you rework the site.
+
+- You still see the real website in any browser where you are signed in to
+  the console, and the console shows a reminder that visitors do not.
+- The console, the customer portal and the links in emails customers already
+  have (orders, visits, meetings) keep working.
+- To check the wording before switching it on, open `/coming-soon` on your
+  site while signed in.
+- Allow up to a minute for the switch to take effect, on and off.
+- It keeps visitors and search engines away; it is not a way to protect
+  confidential pages.
+
 ## The chat assistant's look
 
 The assistant's name, colour, background, icon, text size, launcher animation

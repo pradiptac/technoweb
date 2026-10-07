@@ -19,6 +19,7 @@ use App\Support\Chat\ChatSettings;
 use App\Support\Events\EventSettings;
 use App\Support\HtmlSanitiser;
 use App\Support\InboundMail\InboundMail;
+use App\Support\LinkPattern;
 use App\Support\Meetings\MeetingSettings;
 use App\Support\Messaging\ProviderOption;
 use App\Support\Messaging\Providers\Fcm;
@@ -384,6 +385,9 @@ class SettingController extends Controller
         // The sign-in panel's message: headings and lists are the point of
         // it, so the full `cms` profile rather than `inline`.
         'login_message' => HtmlSanitiser::PROFILE,
+        // The coming-soon page's message: a paragraph or two and perhaps a
+        // list of what is on its way, so the `cms` profile.
+        'coming_soon_message' => HtmlSanitiser::PROFILE,
     ];
 
     public function update(Request $request): JsonResponse
@@ -816,6 +820,28 @@ class SettingController extends Controller
             }
             if ($key === 'pwa_name' && filled($value) && mb_strlen(trim((string) $value)) > 45) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'At most 45 characters.']);
+            }
+            // The phone's action bar and the coming-soon page (0.122.0). The
+            // WhatsApp number becomes a `wa.me` address, which takes digits
+            // and nothing else; the enquiry link becomes an `href` on every
+            // public page, so it is held to the shape every editor-typed link
+            // is (`LinkPattern`).
+            if ($key === 'action_bar_whatsapp_number' && filled($value)) {
+                $digits = preg_replace('/\D+/', '', (string) $value) ?? '';
+
+                if (strlen($digits) < 8 || strlen($digits) > 15) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'Enter the number with its country code, for example 919876543210.']);
+                }
+                $rows[$i]['value'] = $digits;
+            }
+            if ($key === 'action_bar_enquire_href' && filled($value) && ! LinkPattern::allows(trim((string) $value))) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'Enter a path on this site (/contact), a full address, a mailto: or a tel: link.']);
+            }
+            if ($key === 'action_bar_enquire_label' && filled($value) && mb_strlen(trim((string) $value)) > 16) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'At most 16 characters — it shares a phone screen with two other buttons.']);
+            }
+            if ($key === 'coming_soon_heading' && filled($value) && mb_strlen(trim((string) $value)) > 120) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'At most 120 characters.']);
             }
             if ($key === 'stats_size' && filled($value) && ! in_array($value, array_column(self::STAT_SIZES, 'value'), true)) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a size from the list.']);

@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 import { SITE } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/settings";
+import { settingEnabled } from "@/lib/site-settings";
 
 /**
  * What a crawler may fetch.
@@ -65,7 +67,19 @@ const AI_CRAWLERS = [
   "meta-externalagent",
 ];
 
-export default function robots(): MetadataRoute.Robots {
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  /*
+    While the coming-soon page stands in front of the site (0.122.0), every
+    address answers with the same holding page — nothing a crawler should
+    file under forty URLs. Disallow the lot until the switch is off; the
+    settings read is the cached one, purged the moment the console saves it.
+  */
+  const settings = await getSiteSettings();
+
+  if (settingEnabled(settings, "coming_soon_enabled", false)) {
+    return { rules: [{ userAgent: "*", disallow: "/" }] };
+  }
+
   return {
     rules: [
       { userAgent: "*", allow: "/", disallow: PRIVATE },

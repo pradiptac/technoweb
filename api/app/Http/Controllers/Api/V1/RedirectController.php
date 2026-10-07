@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Redirect;
+use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -28,6 +29,12 @@ class RedirectController extends Controller
      * paginated, because the proxy wants the whole table in one read and the
      * table is renamed slugs — hundreds at the outside. The bound is there so
      * a runaway import cannot turn this into a megabyte on every refresh.
+     *
+     * `meta.coming_soon` rides along (0.122.0): the proxy is what puts the
+     * holding page in front of the site, it cannot afford a settings read
+     * per request, and this is the one read it already makes once a minute.
+     * A switch thrown in the console therefore takes up to a minute to
+     * reach visitors, the same delay a renamed slug has.
      */
     public function index(): JsonResponse
     {
@@ -38,11 +45,14 @@ class RedirectController extends Controller
             ->get(['from_path', 'to_path', 'status_code']);
 
         return response()
-            ->json(['data' => $rows->map(fn (Redirect $r) => [
-                'from' => $r->from_path,
-                'to' => $r->to_path,
-                'status' => $r->status_code,
-            ])->all()])
+            ->json([
+                'data' => $rows->map(fn (Redirect $r) => [
+                    'from' => $r->from_path,
+                    'to' => $r->to_path,
+                    'status' => $r->status_code,
+                ])->all(),
+                'meta' => ['coming_soon' => (bool) Setting::get('coming_soon_enabled', false)],
+            ])
             ->header('Cache-Control', 'public, max-age=60');
     }
 

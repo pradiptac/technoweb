@@ -4,6 +4,8 @@ import { ChatLoader } from "@/components/chat/chat-loader";
 import { SitePopup } from "@/components/layout/site-popup";
 import { CookieConsent } from "@/components/layout/cookie-consent";
 import { CustomCode } from "@/components/layout/custom-code";
+import { ActionBar } from "@/components/layout/action-bar";
+import { actionBarFor } from "@/lib/action-bar";
 import { PwaLoader } from "@/components/pwa/pwa-loader";
 import { pwaFor } from "@/lib/pwa";
 import { lookAttrs, lookFor } from "@/lib/look";
@@ -178,6 +180,14 @@ export default async function MarketingLayout({ children }: { children: React.Re
         version={APP_VERSION}
         name={pwa.shortName}
       />
+      {/*
+        The phone's action bar (0.122.0): Call, WhatsApp and one button of the
+        site's own. A direct child of this wrapper on purpose — the rule in
+        globals.css is `.public-site:has(> [data-action-bar])`, which pads the
+        page's foot and lifts the assistant, the compare tray and the install
+        card clear of it. Renders nothing while switched off or buttonless.
+      */}
+      <ActionBar buttons={actionBarFor(settings)} />
       {/* The administrator's own "before </body>" snippet — see the component for what it is and is not. */}
       {settings.body_code && <CustomCode html={settings.body_code} />}
     </div>

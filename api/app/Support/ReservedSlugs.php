@@ -33,7 +33,7 @@ final class ReservedSlugs
         'about', 'blog', 'brands', 'careers', 'cart', 'case-studies', 'certifications',
         'checkout', 'clients', 'contact', 'industries', 'knowledge-base', 'locations',
         'newsletter', 'order', 'products', 'resources', 'search', 'services', 'solutions',
-        'store', 'support', 'team', 'book-a-visit', 'visit', 'book-a-meeting', 'meeting', 'ticket-survey', 'offline', 'pwa-icon', 'sw.js', 'manifest.webmanifest',
+        'store', 'support', 'team', 'book-a-visit', 'visit', 'book-a-meeting', 'meeting', 'ticket-survey', 'offline', 'pwa-icon', 'sw.js', 'manifest.webmanifest', 'coming-soon',
         // The events module's own pages (0.118.0, docs/events.md). Until
         // then `events` was the example a custom content type was given.
         'events',

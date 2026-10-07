@@ -21,6 +21,26 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.122.0 — 2026-10-07
+
+**A phone action bar, a coming-soon page and a more useful 404.**
+
+- **Phone action bar** (Site → Settings → Phone action bar): Call, WhatsApp
+  and one button of your own, pinned to the bottom of the screen on phones.
+  Off until you switch it on; each button shows only when it has a number or
+  a link to use.
+- **Coming soon** (Site → Settings → Coming soon): one switch puts a holding
+  page — your heading, message and picture — in front of the whole public
+  site. The console, the customer portal and links already emailed to
+  customers keep working, and you still see the real site while signed in.
+  Open `/coming-soon` while signed in to check the wording first. Allow up
+  to a minute for the switch to reach visitors.
+- **Page not found** now searches the whole site and suggests pages from the
+  address that was typed.
+- After updating, nothing needs doing: both new features start switched off.
+
+---
+
 ## 0.121.0 — 2026-10-07
 
 **Look: a heading size, two new card finishes and a new look.**

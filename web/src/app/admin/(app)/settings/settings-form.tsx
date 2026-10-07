@@ -338,7 +338,7 @@ function GroupPanel({
             numbered list with a link in it, which is exactly what a
             plain textarea cannot express.
           */
-          if (row.key === "activation_procedure" || row.key === "login_message") {
+          if (row.key === "activation_procedure" || row.key === "login_message" || row.key === "coming_soon_message") {
             return (
               <div key={row.key} className="sm:col-span-2">
                 <EditorField

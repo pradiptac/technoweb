@@ -1,3 +1,4 @@
+import { ADMIN_COOKIE } from "@/lib/admin-cookie";
 import { requestHost } from "@/lib/request-host";
 import { assetOriginList, reportOnlyCsp } from "@/lib/security-headers";
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
@@ -56,11 +57,51 @@ type Target = { to: string; status: number };
  * takes a minute longer to appear, an absent one is every old URL 404ing
  * until the API is back.
  */
-const table: { map: Map<string, Target>; fetchedAt: number; refreshing: Promise<void> | null } = {
+const table: { map: Map<string, Target>; comingSoon: boolean; fetchedAt: number; refreshing: Promise<void> | null } = {
   map: new Map(),
+  comingSoon: false,
   fetchedAt: 0,
   refreshing: null,
 };
+
+/**
+ * Paths the coming-soon page never stands in front of (0.122.0).
+ *
+ * The switch (`coming_soon_enabled`, Site → Settings → Coming soon) arrives
+ * as `meta.coming_soon` on the redirect table — the one read this file
+ * already makes — so it costs a request nothing and takes up to
+ * `TABLE_TTL_MS` to reach visitors. While it is on, a public page is
+ * *rewritten* to `/coming-soon`: the address stays, the cached page behind it
+ * is untouched, and switching it off is immediate for the next request.
+ *
+ * Left open: the console and the portal (people with accounts), every route
+ * handler, and the pages a link in an email already sent addresses — an
+ * order, a visit, a meeting, an event registration, a survey, an unsubscribe
+ * — because the site being unfinished is no reason for a customer's own
+ * link to stop working. A path ending in an extension is a file (the
+ * manifest, the service worker, a feed), never a page.
+ *
+ * **A curtain, not a lock.** A browser carrying a staff session cookie sees
+ * the real site, and only the cookie's presence is checked: verifying it
+ * would be an API call per request, which is what this file exists to avoid.
+ * So it keeps visitors and crawlers out and protects nothing confidential —
+ * the console says so beside the switch.
+ */
+const NEVER_CURTAINED = [
+  "/admin", "/portal", "/api", "/coming-soon", "/order", "/visit", "/meeting",
+  "/events/registration", "/ticket-survey", "/newsletter", "/store/notify",
+  "/store/basket/restore", "/embed", "/theme-preview", "/pwa-icon", "/offline", "/indexnow",
+];
+
+function curtained(request: NextRequest): boolean {
+  if (request.method !== "GET" && request.method !== "HEAD") return false;
+
+  const { pathname } = request.nextUrl;
+  if (/\.[a-z0-9]+$/i.test(pathname)) return false;
+  if (NEVER_CURTAINED.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) return false;
+
+  return !request.cookies.has(ADMIN_COOKIE);
+}
 
 /**
  * The one hostname this site answers on, or nothing.
@@ -279,7 +320,29 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
     }
   }
 
-  if (!hit) return pass();
+  if (!hit) {
+    // The coming-soon page, in front of everything public — see `curtained`.
+    if (table.comingSoon && curtained(request)) {
+      /*
+        The page is told it was reached by this rewrite. This copy of the
+        switch is up to a minute old, so for that minute after it is switched
+        off the page sees "off" — and its answer to a *direct* visit with the
+        switch off is to send the visitor home, which this would rewrite
+        straight back: a redirect loop, measured by the probe before the
+        header existed. Rewritten, it draws the holding page for the stale
+        minute instead.
+      */
+      const forwarded = new Headers(request.headers);
+      forwarded.set("x-coming-soon", "1");
+
+      return withPolicy(
+        NextResponse.rewrite(new URL("/coming-soon", request.url), { request: { headers: forwarded } }),
+        pathname,
+      );
+    }
+
+    return pass();
+  }
 
   // The hit is counted by the API, after the response — the one call that
   // still goes to `lookup`, and only ever on a redirect.
@@ -336,7 +399,10 @@ async function loadTable(base: string): Promise<void> {
 
       if (!res.ok) throw new Error(`redirect table: ${res.status}`);
 
-      const payload = (await res.json()) as { data: { from: string; to: string; status: number }[] };
+      const payload = (await res.json()) as {
+        data: { from: string; to: string; status: number }[];
+        meta?: { coming_soon?: boolean };
+      };
       const next = new Map<string, Target>();
 
       for (const row of payload.data ?? []) {
@@ -344,6 +410,7 @@ async function loadTable(base: string): Promise<void> {
       }
 
       table.map = next;
+      table.comingSoon = payload.meta?.coming_soon === true;
       table.fetchedAt = Date.now();
     } finally {
       table.refreshing = null;

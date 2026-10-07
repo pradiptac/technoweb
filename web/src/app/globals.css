@@ -4813,3 +4813,30 @@ html[data-builder-preview] [data-builder-id][data-builder-flash] {
  * the span is the column, and nothing changes.
  */
 .public-site [data-event-speakers] > li:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+/*
+ * The phone's action bar (0.122.0, `components/layout/action-bar.tsx`).
+ *
+ * The bar is `position: fixed`, so by itself it would sit over the last 52px
+ * of every page — the footer's policy links — and under the three things
+ * already pinned to the foot of a phone screen. Keyed on the bar being a
+ * direct child of `.public-site`, so a page without one is untouched:
+ *
+ * - the page's foot is padded by the bar's height, so nothing is covered;
+ * - the assistant's launcher and its panel, the compare tray and the install
+ *   card each rise by the same height. `bottom`, never `translate`: the
+ *   launcher's hop and every `.rise-in` already animate `translate`.
+ *
+ * Unlayered, so it beats the `bottom-*` utilities on those elements without
+ * `!important`. Below `sm` only — the bar is `sm:hidden`.
+ */
+@media (width < 40rem) {
+  .public-site:has(> [data-action-bar]) {
+    --action-bar-h: calc(3.25rem + 1px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: var(--action-bar-h);
+  }
+  .public-site:has(> [data-action-bar]) .assistant-launcher { bottom: calc(1rem + var(--action-bar-h)); }
+  .public-site:has(> [data-action-bar]) #chat-panel { bottom: calc(6rem + var(--action-bar-h)); }
+  .public-site:has(> [data-action-bar]) [data-compare-tray] { bottom: calc(1rem + var(--action-bar-h)); }
+  .public-site:has(> [data-action-bar]) [data-install-prompt] { bottom: calc(.75rem + var(--action-bar-h)); }
+}

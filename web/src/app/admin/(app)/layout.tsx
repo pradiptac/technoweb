@@ -12,6 +12,7 @@ import { IconSignOut } from "@/components/icons-ui";
 import { getCurrentStaff } from "@/lib/admin-auth";
 import { requireScreen } from "@/lib/admin-screen";
 import { getSiteSettings } from "@/lib/settings";
+import { settingEnabled } from "@/lib/site-settings";
 import { APP_VERSION, VERSION_LABEL } from "@/lib/version";
 import { ScrollTop } from "@/components/ui/scroll-top";
 import { cn } from "@/lib/utils";
@@ -209,6 +210,24 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </div>
           </Container>
         </div>
+
+        {/*
+          The coming-soon page is on (0.122.0). Staff see the real site in
+          this browser — the proxy lets a staff session through — so the
+          console is the one place that can say what everybody else sees.
+          Standing information about the site, so a strip here rather than a
+          toast, on every screen until the switch is off.
+        */}
+        {settingEnabled(settings, "coming_soon_enabled", false) && (
+          <div className="border-b border-warn/25 bg-warn-soft" data-coming-soon-notice>
+            <Container className={`${CONSOLE_WIDTH} py-2 text-13 text-warn`}>
+              Visitors are seeing the coming-soon page instead of the website.{" "}
+              <Link href="/admin/site/settings?tab=coming_soon" className="font-semibold underline">
+                Change this
+              </Link>
+            </Container>
+          </div>
+        )}
 
         {/*
           The sidebar column is 20px wider than the tree needs, and the extra is

@@ -812,6 +812,27 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'pwa', 'key' => 'pwa_icon_path', 'value' => null, 'type' => 'string'],
             ['group' => 'pwa', 'key' => 'pwa_install_prompt', 'value' => '1', 'type' => 'boolean'],
 
+            // The phone's action bar (0.122.0, docs/site-chrome.md): Call,
+            // WhatsApp and Enquire pinned to the foot of a phone screen. Public
+            // — the bar is drawn before anybody signs in — and off until
+            // somebody asks for it, so an untouched install is unchanged. The
+            // Call button rings the Contact tab's phone number; a blank
+            // WhatsApp number falls back to the assistant's.
+            ['group' => 'action_bar', 'key' => 'action_bar_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'action_bar', 'key' => 'action_bar_call', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'action_bar', 'key' => 'action_bar_whatsapp_number', 'value' => null, 'type' => 'string'],
+            ['group' => 'action_bar', 'key' => 'action_bar_enquire_label', 'value' => 'Enquire', 'type' => 'string'],
+            ['group' => 'action_bar', 'key' => 'action_bar_enquire_href', 'value' => '/contact', 'type' => 'string'],
+
+            // The coming-soon page (0.122.0): one switch that puts a holding
+            // page in front of the public site until launch. Public, because
+            // the page is drawn for visitors; the frontend's proxy learns the
+            // switch from `GET /redirects`, the one read it already makes.
+            ['group' => 'coming_soon', 'key' => 'coming_soon_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'coming_soon', 'key' => 'coming_soon_heading', 'value' => 'We are getting ready', 'type' => 'string'],
+            ['group' => 'coming_soon', 'key' => 'coming_soon_message', 'value' => '<p>Our new website is on its way. Please check back soon.</p>', 'type' => 'text'],
+            ['group' => 'coming_soon', 'key' => 'coming_soon_image_path', 'value' => null, 'type' => 'string'],
+
             // Outgoing mail. NOT in the public whitelist, and the password is
             // encrypted at rest and never returned to the browser. Leave the
             // host blank to keep using whatever the .env file configures.

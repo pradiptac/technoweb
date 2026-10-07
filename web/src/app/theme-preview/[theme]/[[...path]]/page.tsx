@@ -13,6 +13,8 @@ import { loadHome } from "@/lib/home-data";
 import { motionAttrs } from "@/lib/motion-choices";
 import { lookAttrs, lookFor } from "@/lib/look";
 import { PreviewBridge } from "@/components/layout/preview-bridge";
+import { ActionBar } from "@/components/layout/action-bar";
+import { actionBarFor } from "@/lib/action-bar";
 import { CardTilt } from "@/components/ui/card-tilt";
 import { noIndex } from "@/lib/no-index";
 import { buildMetadata } from "@/lib/seo";
@@ -93,6 +95,8 @@ export default async function ThemePreviewPage({
         <Chrome {...chrome} options={theme.options} themeId={theme.manifest.id}>
           {pageSlug ? <BuilderView slug={pageSlug} /> : view === "" ? <HomeView /> : view === "team" ? <TeamView /> : <Specimen />}
         </Chrome>
+        {/* The phone's action bar, so a preview on a phone is what a visitor's phone shows. */}
+        <ActionBar buttons={actionBarFor(chrome.settings)} />
       </div>
     </ToastProvider>
   );

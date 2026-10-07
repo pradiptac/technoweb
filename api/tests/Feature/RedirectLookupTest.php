@@ -39,7 +39,9 @@ class RedirectLookupTest extends TestCase
 
     public function test_the_index_is_empty_rather_than_absent_when_there_are_none(): void
     {
-        $this->getJson('/api/v1/redirects')->assertOk()->assertExactJson(['data' => []]);
+        // `meta.coming_soon` rides on this read since 0.122.0 — false with no row seeded.
+        $this->getJson('/api/v1/redirects')->assertOk()
+            ->assertExactJson(['data' => [], 'meta' => ['coming_soon' => false]]);
     }
 
     public function test_lookup_answers_404_for_an_unknown_path(): void
