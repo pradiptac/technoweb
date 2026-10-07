@@ -5,6 +5,7 @@ import { IconMapPin } from "@/components/icons-ui";
 import { GlyphCalendar, GlyphClock, GlyphPeople, GlyphScreen } from "@/components/events/glyphs";
 import { hueFor } from "@/lib/hues";
 import type { EventSummary } from "@/types/events";
+import { blurProps } from "@/lib/blur";
 
 /**
  * Events as a `Collection` of `Tile`s, so each of the twelve themes draws
@@ -156,7 +157,7 @@ export function EventTiles({
             focus={event.cover_image_focus}
             media={pictured ? (
               event.cover_image ? (
-                <Image
+                <Image {...blurProps(event.cover_image_blur)}
                   src={event.cover_image}
                   alt={event.cover_image_alt ?? ""}
                   fill

@@ -3,6 +3,7 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import { cn } from "@/lib/utils";
 import { IconBox, IconZoomIn } from "@/components/icons-ui";
 import { Lightbox } from "@/components/ui/gallery";
@@ -36,13 +37,15 @@ import type { ProductVideo } from "@/types/store-merch";
  * than the first five, and a hover magnifier in the well.
  */
 export function ProductGallery({
-  images, alts, focuses, name, priority = false, videos = [], store = false,
+  images, alts, focuses, blurs, name, priority = false, videos = [], store = false,
 }: {
   images: string[];
   /** From the media library, resolved by path — a description of the picture. */
   alts?: (string | null)[];
   /** Parallel to `images` too: each file's focal point, or null for the centre. */
   focuses?: (string | null)[];
+  /** Parallel to `images`: each file's blurred preview, shown until the picture loads. */
+  blurs?: (string | null)[];
   /** The fallback alt, and only ever the product's name. */
   name: string;
   priority?: boolean;
@@ -149,6 +152,7 @@ export function ProductGallery({
               store && "transition-[scale] duration-(--duration-slow) ease-brand",
             )}
             style={focalStyle(focuses?.[index])}
+            {...blurProps(blurs?.[index])}
             priority={priority}
           />
         ) : (

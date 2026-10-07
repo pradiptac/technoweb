@@ -2,7 +2,8 @@ import Image from "next/image";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Container } from "@/components/ui/container";
 import { focalStyle } from "@/lib/focal";
-import { bannerFocusFor, bannerFor } from "@/lib/site-settings";
+import { blurProps } from "@/lib/blur";
+import { bannerBlurFor, bannerFocusFor, bannerFor } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import type { PageHeroProps } from "@/themes/contract";
 
@@ -22,7 +23,7 @@ export function PageHero({ kicker, title, lede, crumbs, children, section, setti
   const focus = section && bannerFor(settings, section) ? focalStyle(bannerFocusFor(settings, section)) : undefined;
   return (
     <section data-vantage-dark className="page-hero relative overflow-hidden bg-dark text-white">
-      <Image src={picture} alt="" aria-hidden fill sizes="100vw" priority className="object-cover opacity-35" style={focus} />
+      <Image src={picture} alt="" aria-hidden fill sizes="100vw" priority className="object-cover opacity-35" style={focus} {...blurProps(bannerBlurFor(settings, section))} />
       <div aria-hidden className="absolute inset-0 bg-linear-to-t from-dark via-dark/80 to-dark/40" />
       <Container className="relative pt-[calc(var(--h-site-header)+var(--h-info-bar,0px)+44px)] pb-12 lg:pt-[calc(var(--h-site-header)+var(--h-info-bar,0px)+64px)] lg:pb-16">
         {crumbs && <div className="mb-5 text-12-5"><Breadcrumbs crumbs={crumbs} onDark /></div>}

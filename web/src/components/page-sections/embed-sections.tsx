@@ -15,6 +15,7 @@ import type {
   CardsSectionData, ContentBlockSectionData, EmbedSectionData, FaqSectionData, LogosSectionData,
 } from "@/types/api";
 import { SectionFrame, SectionHead } from "./section-parts";
+import { blurProps } from "@/lib/blur";
 
 /**
  * The sections that draw something that lives elsewhere: a live list, a
@@ -60,7 +61,7 @@ export function CardsSection({ data, eager, reveal }: { data: CardsSectionData; 
               hue={item.icon ? hueForIcon(item.icon) : undefined}
               focus={item.image_focus}
               media={item.image ? (
-                <Image
+                <Image {...blurProps(item.image_blur)}
                   src={item.image}
                   alt={item.image_alt ?? ""}
                   fill

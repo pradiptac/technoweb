@@ -21,6 +21,22 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.123.0 — 2026-10-07
+
+**Pictures load from a blurred preview.**
+
+- Photographs on the public site — blog and case-study covers, product and
+  shop pictures, slides, galleries, page banners, team photos — now fill in
+  from a soft blurred version of themselves instead of appearing out of an
+  empty box.
+- The preview is made by the media library when a picture is uploaded or
+  edited. Pictures already in the library get theirs in the background, 250
+  an hour; nothing needs doing.
+- Logos and other vector (SVG) files have no preview and load as before.
+- After updating, nothing needs doing.
+
+---
+
 ## 0.122.0 — 2026-10-07
 
 **A phone action bar, a coming-soon page and a more useful 404.**

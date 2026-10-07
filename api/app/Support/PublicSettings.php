@@ -46,6 +46,9 @@ class PublicSettings
      */
     public const PRIVATE_KEYS = ['activation_procedure', 'activation_pdf_path', 'digital_auto_fulfil'];
 
+    /** The settings pictures that publish a blurred preview: the ones drawn large. */
+    private const BLUR_PREFIXES = ['banner_', 'login_image', 'coming_soon_image', 'store_promo_image', 'store_tile_'];
+
     /** @return array<string, string> */
     public static function build(): array
     {
@@ -246,7 +249,7 @@ class PublicSettings
                 ->filter(fn ($k) => $values->has($k))
                 ->map(fn ($k) => $values[$k])
                 ->all())
-            ->get(['path', 'width', 'height', 'focal_x', 'focal_y'])
+            ->get(['path', 'width', 'height', 'focal_x', 'focal_y', 'blur'])
             ->keyBy('path');
 
         // Stored as paths, served as URLs — the same split the media library
@@ -281,6 +284,19 @@ class PublicSettings
 
             if ($focus !== null) {
                 $values[$prefix.'_focus'] = $focus;
+            }
+
+            /*
+             * The blurred preview (0.123.0), absent when the file has none —
+             * and only for the pictures a page draws large. This map rides in
+             * every public page's payload, so a preview for the logo, the
+             * favicon or the app icon would be a few hundred bytes on every
+             * page for a picture nobody watches load.
+             */
+            $blur = $file?->blur;
+
+            if (is_string($blur) && $blur !== '' && Str::startsWith($prefix, self::BLUR_PREFIXES)) {
+                $values[$prefix.'_blur'] = $blur;
             }
         }
 

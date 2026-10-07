@@ -1,6 +1,7 @@
 import { homeBlockSections } from "@/components/blocks/home-block-sections";
 import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import Link from "next/link";
 import {
   CaseStudies, Credentials, Industries, Partners, ProductCategories, Resources, SupportBand, TrustedBy, Services,
@@ -124,6 +125,7 @@ export function Home({
                     sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                     className="object-cover transition-[scale] duration-(--duration-slow) ease-brand motion-safe:group-hover:scale-[1.04]"
                     style={s.hero_image ? focalStyle(s.hero_image_focus) : undefined}
+                    {...(s.hero_image ? blurProps(s.hero_image_blur) : {})}
                   />
                 </span>
                 <span className="flex items-start gap-3 p-5">

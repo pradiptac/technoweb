@@ -47,6 +47,7 @@ class EntryResource extends JsonResource
             'image' => $this->image_path ? asset('storage/'.$this->image_path) : null,
             'image_alt' => MediaMeta::alt($this->image_path),
             'image_focus' => MediaMeta::focus($this->image_path),
+            'image_blur' => MediaMeta::blur($this->image_path),
             'published_at' => $this->published_at?->toIso8601String(),
             // The sitemap's `lastmod`: the record's own last change.
             'updated_at' => $this->updated_at?->toIso8601String(),

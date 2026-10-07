@@ -31,6 +31,7 @@ class CategoryResource extends JsonResource
             // The photograph's focal point from the library, or null: the
             // rail crops it to a disc and the share preview to 1200x630.
             'image_focus' => MediaMeta::focus($this->image_path),
+            'image_blur' => MediaMeta::blur($this->image_path),
             // Present only when the controller counted them: a listing needs
             // the figure and a detail page does not, and `withCount` on a
             // resource that might not have it is a lazy load waiting to throw.

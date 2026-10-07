@@ -129,7 +129,7 @@ class EventTest extends TestCase
         $row = $response->json('data.1');
         $this->assertSame([
             'id', 'title', 'slug', 'summary', 'format', 'format_label', 'starts_at', 'ends_at', 'date_label', 'time_label',
-            'day', 'month', 'year', 'venue_name', 'venue_city', 'cover_image', 'cover_image_alt', 'cover_image_focus',
+            'day', 'month', 'year', 'venue_name', 'venue_city', 'cover_image', 'cover_image_alt', 'cover_image_focus', 'cover_image_blur',
             'is_featured', 'is_past', 'registration_mode', 'updated_at', 'seo',
         ], array_keys($row));
 

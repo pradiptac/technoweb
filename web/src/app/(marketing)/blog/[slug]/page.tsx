@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
@@ -176,7 +177,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                     sizes="(min-width: 1024px) 60vw, 100vw"
                     priority
                     className="object-cover"
-                    style={focalStyle(post.cover_image_focus)}
+                    style={focalStyle(post.cover_image_focus)} {...blurProps(post.cover_image_blur)}
                   />
                 </div>
               </div>

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 
 /**
  * Two pictures of one place, the divider between them dragged across
@@ -18,19 +19,19 @@ import { focalStyle } from "@/lib/focal";
  * because no colour is safe on an arbitrary photograph.
  */
 export function BeforeAfter({
-  before, beforeAlt, beforeFocus, after, afterAlt, afterFocus, beforeLabel, afterLabel, start = 50,
+  before, beforeAlt, beforeFocus, beforeBlur, after, afterAlt, afterFocus, afterBlur, beforeLabel, afterLabel, start = 50,
 }: {
-  before: string; beforeAlt: string; beforeFocus?: string | null;
-  after: string; afterAlt: string; afterFocus?: string | null;
+  before: string; beforeAlt: string; beforeFocus?: string | null; beforeBlur?: string | null;
+  after: string; afterAlt: string; afterFocus?: string | null; afterBlur?: string | null;
   beforeLabel: string; afterLabel: string; start?: number;
 }) {
   const [pos, setPos] = useState(Math.min(90, Math.max(10, start)));
 
   return (
     <div data-before-after className="relative aspect-[16/10] select-none overflow-hidden rounded-xl border border-line-strong bg-surface-2">
-      <Image src={after} alt={afterAlt} fill sizes="(min-width: 1100px) 1024px, 94vw" className="object-cover" style={focalStyle(afterFocus)} />
+      <Image src={after} alt={afterAlt} fill sizes="(min-width: 1100px) 1024px, 94vw" className="object-cover" style={focalStyle(afterFocus)} {...blurProps(afterBlur)} />
       <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
-        <Image src={before} alt={beforeAlt} fill sizes="(min-width: 1100px) 1024px, 94vw" className="object-cover" style={focalStyle(beforeFocus)} />
+        <Image src={before} alt={beforeAlt} fill sizes="(min-width: 1100px) 1024px, 94vw" className="object-cover" style={focalStyle(beforeFocus)} {...blurProps(beforeBlur)} />
       </div>
 
       <span className="absolute left-3 top-3 rounded-full bg-card px-3 py-1 text-12-5 font-semibold text-ink shadow-1" aria-hidden>{beforeLabel}</span>

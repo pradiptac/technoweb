@@ -56,6 +56,7 @@ final class BlockPresenter
             $data['image'] = self::url($image);
             $data['image_alt'] = MediaMeta::alt($image) ?? '';
             $data['image_focus'] = MediaMeta::focus($image);
+            $data['image_blur'] = MediaMeta::blur($image);
         }
         if ($qr) {
             $data['qr'] = self::url($qr);

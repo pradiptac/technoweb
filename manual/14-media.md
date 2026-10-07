@@ -94,6 +94,13 @@ In **Edit details**, under **Focal point**, click the preview on the
 important part (a crosshair marks it; arrow keys nudge it). **Reset to centre** clears it. Without one,
 crops are centred.
 
+### Loading preview
+
+Every photograph gets a small blurred preview of itself automatically. On the
+website, the preview shows in the picture's place for the moment before the
+picture itself arrives. You do not set anything: it is made when a picture is
+uploaded and re-made when you edit it. Logos and other SVG files have none.
+
 ## Editing changes the file everywhere
 
 Crop, resize, edit and overwrite change the file **in place**, at the same

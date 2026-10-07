@@ -15,6 +15,7 @@ import { RegistrationPanel } from "@/components/events/registration-panel";
 import { UPCOMING_EVENTS, isEventSlug } from "@/components/events/data";
 import { ApiError, publicApi } from "@/lib/api";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import { noIndex } from "@/lib/no-index";
 import { buildMetadata, JsonLd } from "@/lib/seo";
 import { siteUrl } from "@/lib/site-url";
@@ -142,7 +143,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                   sizes="(min-width: 1024px) 60vw, 90vw"
                   loading="eager"
                   className="object-cover"
-                  style={focalStyle(event.cover_image_focus)}
+                  style={focalStyle(event.cover_image_focus)} {...blurProps(event.cover_image_blur)}
                 />
               </div>
             )}

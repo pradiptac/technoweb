@@ -16,7 +16,8 @@ import { heroStats } from "@/content/site";
 import { formatDate } from "@/lib/dates";
 import { motionFor } from "@/lib/motion-choices";
 import { focalStyle } from "@/lib/focal";
-import { bannerFocusFor, bannerFor, heroCopy, statPairs } from "@/lib/site-settings";
+import { blurProps } from "@/lib/blur";
+import { bannerBlurFor, bannerFocusFor, bannerFor, heroCopy, statPairs } from "@/lib/site-settings";
 import { stripColumns } from "@/lib/strip-columns";
 import { cn } from "@/lib/utils";
 import type { HomeData } from "@/themes/contract";
@@ -85,7 +86,7 @@ export function Home({
           <section className="relative grid min-h-[520px] items-end overflow-hidden border-b border-line-strong bg-dark text-dark-ink lg:min-h-[600px]">
             {banner ? (
               <>
-                <Image src={banner} alt="" aria-hidden fill sizes="100vw" priority className="object-cover brightness-[.35]" style={bannerFocus} />
+                <Image src={banner} alt="" aria-hidden fill sizes="100vw" priority className="object-cover brightness-[.35]" style={bannerFocus} {...blurProps(bannerBlurFor(settings, "company"))} />
                 <div aria-hidden className="pointer-events-none absolute inset-0 bg-linear-to-t from-dark/85 via-dark/40 to-transparent" />
               </>
             ) : (

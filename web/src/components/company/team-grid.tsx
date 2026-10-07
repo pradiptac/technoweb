@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import type { TeamMember } from "@/types/api";
 import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import type { CSSProperties } from "react";
 
 /**
@@ -116,7 +117,7 @@ export function TeamGrid({
                       sizes="(min-width: 640px) 320px, 100vw"
                       loading={gi === 0 && i < 5 ? "eager" : undefined}
                       className="object-cover transition-[scale] duration-(--duration-slow) ease-brand motion-safe:group-hover/member:scale-[1.03]"
-                      style={focalStyle(m.photo_focus)}
+                      style={focalStyle(m.photo_focus)} {...blurProps(m.photo_blur)}
                     />
                   ) : (
                     <span

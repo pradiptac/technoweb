@@ -53,6 +53,7 @@ export type EventSummary = {
   cover_image: string | null;
   cover_image_alt: string | null;
   cover_image_focus: string | null;
+  cover_image_blur?: string | null;
   is_featured: boolean;
   is_past: boolean;
   registration_mode: EventRegistrationMode;
@@ -66,6 +67,7 @@ export type EventSpeaker = {
   photo: string | null;
   photo_alt: string | null;
   photo_focus: string | null;
+  photo_blur?: string | null;
 };
 
 export type EventAgendaItem = {

@@ -317,3 +317,80 @@ was an image as far as the library knew. It now carries the upload's own
 stores the type the server detected (`image/svg+xml` for a sanitised SVG).
 The same-extension and image-for-image rules are unchanged.
 
+## The blurred loading preview (0.123.0)
+
+A photograph used to arrive in an empty box. Every library picture now
+carries a tiny preview of itself, and the public site paints it — stretched
+and blurred — behind the `<img>` until the real bytes land.
+
+**What is stored.** `media.blur`: a twelve-pixel-wide WebP at quality 40, as
+a `data:` URL (`App\Support\Media\Placeholder`). About 150 characters on
+this library, 379 at most. Three states, and the backfill depends on the
+difference: null is "not made yet", an empty string is "tried, nothing to
+make" (a vector, a document, a file GD cannot open or one past the megapixel
+limit), anything else is the preview. A JPEG is turned by its EXIF
+orientation first — a browser, and the optimiser, draw a phone's portrait
+photograph upright from sideways pixels, and a preview made from the pixels
+as stored would be a sideways blur behind an upright picture. Alpha is kept,
+so a logo on no background does not load out of a black box.
+
+**When it is made.** On `Media::created`, for every creator — an upload, a
+duplicate, a thumbnail cut by a resize, the WordPress importer — so a creator
+added later cannot forget it. An *edit* calls `refreshBlur()` itself: the
+three editing endpoints, a replacement and a version restore. Explicit calls
+rather than an `updated` hook, because an edit that happens to leave the
+row's columns unchanged (a flip that re-encodes to the same byte count) saves
+nothing and fires no event. It never fails its caller: every failure is an
+empty string and a `warning` in the log.
+
+**The library that already existed** is worked by
+`technoware:backfill-media-blur` from the scheduler, 250 an hour, and is one
+cheap query once nothing is waiting. Scheduled rather than an upgrade step:
+decoding a few thousand photographs is minutes, and nothing waits on it — a
+picture without a preview loads the way every picture did before. `--all`
+starts every picture again, for after the size or quality changes.
+
+**How it reaches a page.** The route the alt text and the focal point take:
+`MediaMeta::blur($path)`, and every resource that publishes `*_focus`
+publishes `*_blur` beside it. It reads a map of its own, loaded on first use
+through the query builder: nearly every picture has a preview where few have
+an alt text, so folded into the alt/focus map it would load the whole library
+on every request that reads an alt — the console's included.
+`MediaBlurTest` reads the resources' source and fails one that publishes a
+focal point without the preview.
+
+On the frontend `blurProps(x_blur)` (`lib/blur.ts`) is spread onto the
+`next/image` beside `style={focalStyle(x_focus)}`: `placeholder="blur"` and
+the `data:` URL, or `{}` when there is none — so a response without the key
+renders exactly as before, which is what lets the mock say nothing about it.
+`next/image` removes the placeholder once the picture has loaded, so a
+transparent PNG does not keep a blur underneath it. Where a `Tile` is handed
+the focal point (`focus={…}`), the preview goes on the `<Image>` passed as
+its `media`.
+
+**Three other designs, and why not.** A server-side lookup keyed on the
+picture's URL (one wrapper, no per-resource key) works only in server
+components, and the sliders, the galleries and the shop's cards are client
+components. Asking the optimiser for a 16px version (`/_next/image?…&w=16`)
+needs no data at all and costs a second request per picture, eagerly, for
+pictures far below the fold. And a hash (BlurHash, ThumbHash) is thirty
+characters in the response but decodes to a 4KB PNG in the page.
+
+**What it costs.** `next/image` wraps the preview in an inline SVG, about
+0.9KB per picture in the HTML before compression — measured at 34KB on the
+homepage (37 pictures), 15KB on the blog, 30KB on the shop front, on pages
+whose development HTML is 0.6–1.2MB. The wrapper is identical for every
+picture, so it compresses well. Kept down by two rules: no preview on a
+picture drawn smaller than about 120px (avatars, thumbnails, icons), and
+settings pictures publish one only when they are drawn large
+(`PublicSettings::BLUR_PREFIXES`) — the settings map rides in every public
+page's payload.
+
+**Not covered**: the popup's picture (it is fetched before the dialog
+opens), a recently-viewed product (a row in the visitor's own browser
+storage, written before previews existed), section background pictures (CSS
+grounds, not `next/image`), and theme artwork under `public/`.
+
+`scripts/probes/blur-up.mjs` holds the real pictures back and checks that
+each waiting picture shows its preview, that none is left behind once they
+arrive, and prints what the previews weigh per page.

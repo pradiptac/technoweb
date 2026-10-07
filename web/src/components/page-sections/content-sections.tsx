@@ -5,6 +5,7 @@ import { IconTile } from "@/components/ui/icon-tile";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { YouTubeEmbed } from "@/components/blog/youtube-embed";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import type { SectionRevealAttr } from "@/lib/motion-choices";
 import { cn } from "@/lib/utils";
 import type {
@@ -52,7 +53,7 @@ export function MediaTextSection({ data, eager, reveal }: { data: MediaTextSecti
                 sizes="(min-width: 1024px) 45vw, 90vw"
                 loading={eager ? "eager" : undefined}
                 className="object-cover"
-                style={focalStyle(data.image_focus)}
+                style={focalStyle(data.image_focus)} {...blurProps(data.image_blur)}
               />
             </div>
           )

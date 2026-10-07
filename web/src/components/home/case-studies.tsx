@@ -5,6 +5,7 @@ import { Container } from "@/components/ui/container";
 import { IconCert } from "@/components/icons";
 import type { CaseStudy } from "@/types/api";
 import { CountUp } from "@/components/ui/count-up";
+import { blurProps } from "@/lib/blur";
 
 /**
  * A `Collection` of `case-studies`, drawn in each theme's idiom — see
@@ -33,7 +34,7 @@ export function CaseStudies({ items }: { items: CaseStudy[] }) {
               padding="sm"
               focus={c.cover_image_focus}
               media={c.cover_image
-                ? <Image src={c.cover_image} alt={c.cover_image_alt ?? ""} fill sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
+                ? <Image {...blurProps(c.cover_image_blur)} src={c.cover_image} alt={c.cover_image_alt ?? ""} fill sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
                     className="object-cover transition-[scale] duration-(--duration-slow) ease-brand motion-safe:group-hover:scale-[1.04]" />
                 : <span data-tile-well className="grid size-full place-items-center bg-linear-135 from-brand-800 to-brand-600"><IconCert className="size-11 text-white/35" /></span>}
               meta={(c.results ?? []).length > 0 && (

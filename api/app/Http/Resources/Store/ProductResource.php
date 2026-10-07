@@ -81,6 +81,7 @@ class ProductResource extends JsonResource
             'image_alts' => MediaMeta::alts($this->images),
             // Parallel to `image_alts`, same order and length: the focal point of each, or null.
             'image_focuses' => MediaMeta::focuses($this->images),
+            'image_blurs' => MediaMeta::blurs($this->images),
             /*
              * The product's videos, after the pictures in its gallery
              * (2026-09-26). A YouTube video is its id and never a thumbnail

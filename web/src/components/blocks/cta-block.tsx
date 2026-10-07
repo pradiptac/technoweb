@@ -9,6 +9,7 @@ import { publicApi } from "@/lib/api";
 import { getSiteSettings } from "@/lib/settings";
 import { settingEnabled, telHref } from "@/lib/site-settings";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import { formatDate } from "@/lib/dates";
 import { contact } from "@/content/site";
 import { cn } from "@/lib/utils";
@@ -130,7 +131,7 @@ async function layoutBody(block: CtaBlockData, c: CtaContent, phone: string) {
           </div>
           {c.image && (
             <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-dark">
-              <Image src={c.image} alt={c.image_alt ?? ""} fill sizes="(min-width: 1024px) 40vw, 100vw" className="object-cover" style={focalStyle(c.image_focus)} />
+              <Image src={c.image} alt={c.image_alt ?? ""} fill sizes="(min-width: 1024px) 40vw, 100vw" className="object-cover" style={focalStyle(c.image_focus)} {...blurProps(c.image_blur)} />
             </div>
           )}
         </div>

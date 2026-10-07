@@ -73,6 +73,7 @@ export type Certification = {
   image_alt: string;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   image_focus?: string | null;
+  image_blur?: string | null;
   /** The certificate itself, as a PDF URL. */
   file: string | null;
 };
@@ -84,6 +85,7 @@ export type Client = {
   logo_alt: string;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   logo_focus?: string | null;
+  logo_blur?: string | null;
   website_url: string | null;
   note: string | null;
   is_featured: boolean;
@@ -108,6 +110,7 @@ export type TeamMember = {
   photo_alt: string;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   photo_focus?: string | null;
+  photo_blur?: string | null;
   email: string | null;
   linkedin_url: string | null;
   certifications: TeamMemberCertification[];
@@ -127,6 +130,7 @@ export type ProductCategory = AnswerContent & {
   image_alt?: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   image_focus?: string | null;
+  image_blur?: string | null;
   parent_id: number | null;
   children?: ProductCategory[];
   /** Published products in this category. Present on the catalogue endpoints. */
@@ -156,6 +160,7 @@ export type Product = PublicCustomFields & AnswerContent & {
   image_alts?: (string | null)[];
   /** Parallel to `images` too: each file's focal point as `object-position` wants it, or null. */
   image_focuses?: (string | null)[];
+  image_blurs?: (string | null)[];
   datasheet_url: string | null;
   status: "draft" | "published" | "archived";
   brand: Brand | null;
@@ -180,6 +185,7 @@ export type Solution = PublicCustomFields & AnswerContent & {
   hero_image_alt?: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   hero_image_focus?: string | null;
+  hero_image_blur?: string | null;
   status: "draft" | "published";
   /* Detail-only — the index endpoint omits these to keep payloads small. */
   problem_statement?: string | null;
@@ -211,6 +217,7 @@ export type Service = PublicCustomFields & AnswerContent & {
   image_alt?: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   image_focus?: string | null;
+  image_blur?: string | null;
   body?: string | null;
   faqs?: Faq[];
   seo?: Seo | null;
@@ -313,6 +320,7 @@ export type CaseStudy = PublicCustomFields & Pick<AnswerContent, "entity" | "faq
   cover_image_alt?: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   cover_image_focus?: string | null;
+  cover_image_blur?: string | null;
   industry?: Industry | null;
   seo?: Seo | null;
 };
@@ -352,6 +360,7 @@ export type BlogPost = PublicCustomFields & AnswerContent & {
   cover_image_alt?: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   cover_image_focus?: string | null;
+  cover_image_blur?: string | null;
   published_at: string | null;
   reading_minutes: number | null;
   author?: { name: string } | null;
@@ -600,6 +609,7 @@ export type StoreSuggestion = {
   image_alt: string | null;
   /** The file's focal point as `object-position` wants it, or null for the centre. */
   image_focus?: string | null;
+  image_blur?: string | null;
 };
 
 export type SearchGroup = {
@@ -809,6 +819,7 @@ export type ContentEntry = PublicCustomFields & AnswerContent & {
   image: string | null;
   image_alt?: string | null;
   image_focus?: string | null;
+  image_blur?: string | null;
   published_at: string | null;
   updated_at?: string | null;
   faqs?: Faq[];
@@ -1865,6 +1876,7 @@ export type StoreProduct = PublicCustomFields & AnswerContent & {
   image_alts: (string | null)[];
   /** Parallel to `images` too: each file's focal point as `object-position` wants it, or null. */
   image_focuses?: (string | null)[];
+  image_blurs?: (string | null)[];
   /** Detail only (2026-09-26): YouTube ids and media-library files, after the pictures. */
   videos?: import("./store-merch").ProductVideo[];
   price_paise: number;
@@ -1966,6 +1978,7 @@ export type StoreVariation = {
   image_alt?: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   image_focus?: string | null;
+  image_blur?: string | null;
 };
 
 /**
@@ -2494,6 +2507,7 @@ export type StoreCategory = AnswerContent & {
   image_url?: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   image_focus?: string | null;
+  image_blur?: string | null;
   product_count?: number;
   /** The specification labels offered as filters, in order (2026-09-26). */
   filter_specs?: string[];
@@ -2687,6 +2701,7 @@ export type Slide = {
   alt: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   focus?: string | null;
+  blur?: string | null;
   heading: string | null;
   caption: string | null;
   link_url: string | null;
@@ -2716,6 +2731,7 @@ export type Popup = {
   image_alt: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   image_focus?: string | null;
+  image_blur?: string | null;
   /**
    * The file's natural size, so the box can be reserved before the bytes land.
    * Absent — not zero — when the media library has no row for the path, in
@@ -2836,6 +2852,7 @@ export type GalleryItem = {
   alt: string | null;
   /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
   focus?: string | null;
+  blur?: string | null;
   title: string | null;
   subtitle: string | null;
   link_url: string | null;

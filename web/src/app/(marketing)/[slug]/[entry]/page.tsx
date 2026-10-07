@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { blurProps } from "@/lib/blur";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
@@ -98,6 +99,7 @@ export default async function EntryPage({ params }: { params: Promise<{ slug: st
               sizes="(min-width: 1280px) 1200px, 100vw"
               className="object-cover"
               style={record.image_focus ? { objectPosition: record.image_focus } : undefined}
+              {...blurProps(record.image_blur)}
             />
           </div>
         )}

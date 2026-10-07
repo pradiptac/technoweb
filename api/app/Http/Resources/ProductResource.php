@@ -38,6 +38,7 @@ class ProductResource extends JsonResource
             'image_alts' => MediaMeta::alts($this->images),
             // Parallel to `image_alts`, same order and length: the focal point of each, or null.
             'image_focuses' => MediaMeta::focuses($this->images),
+            'image_blurs' => MediaMeta::blurs($this->images),
             'datasheet_url' => $this->datasheet_path ? asset('storage/'.$this->datasheet_path) : null,
             'status' => $this->status?->value,
             'brand' => new BrandResource($this->whenLoaded('brand')),

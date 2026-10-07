@@ -36,7 +36,7 @@ export type PageSectionType =
 export type SectionButton = { label?: string | null; href?: string | null };
 
 /** A picture as the public read carries it: the URL, its alt text and its focal point. */
-type Picture<N extends string> = { [K in N]?: string | null } & { [K in `${N}_alt`]?: string } & { [K in `${N}_focus`]?: string | null };
+type Picture<N extends string> = { [K in N]?: string | null } & { [K in `${N}_alt`]?: string } & { [K in `${N}_focus`]?: string | null } & { [K in `${N}_blur`]?: string | null };
 
 export type HeroSectionData = Picture<"image"> & {
   kicker?: string; heading: string; lede?: string;
@@ -67,7 +67,7 @@ export type FeaturesSectionData = { kicker?: string; heading?: string; lede?: st
 
 export type CardItem = {
   title: string; summary: string | null; path: string;
-  image: string | null; image_alt: string | null; image_focus: string | null;
+  image: string | null; image_alt: string | null; image_focus: string | null; image_blur?: string | null;
   icon: string | null; kicker: string | null; meta: string | null;
 };
 export type CardsSectionData = {
@@ -137,7 +137,7 @@ export type MapSectionData = { heading?: string; lede?: string; url: string; add
  */
 export type StoryItem = {
   title: string; body: string;
-  image: string; image_alt: string | null; image_focus: string | null;
+  image: string; image_alt: string | null; image_focus: string | null; image_blur?: string | null;
 };
 /** A scroll story (0.114.0): two to six steps, each with its own picture. */
 export type StorySectionData = {

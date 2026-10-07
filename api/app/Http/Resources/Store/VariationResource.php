@@ -36,6 +36,7 @@ class VariationResource extends JsonResource
             'image_url' => $this->image_path ? asset('storage/'.$this->image_path) : null,
             'image_alt' => $this->image_path ? MediaMeta::alt($this->image_path) : null,
             'image_focus' => MediaMeta::focus($this->image_path),
+            'image_blur' => MediaMeta::blur($this->image_path),
         ];
     }
 }

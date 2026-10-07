@@ -180,6 +180,7 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
               images={product.images ?? []}
               alts={product.image_alts}
               focuses={product.image_focuses}
+              blurs={product.image_blurs}
               name={product.name}
               priority
               // The shop's additions: videos, every thumbnail, the magnifier.

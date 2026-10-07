@@ -26,6 +26,7 @@ class SlideResource extends JsonResource
             'alt' => $this->alt_text ?: MediaMeta::alt($this->media_path),
             // The file's focal point; a slide is the most cropped picture on the site.
             'focus' => MediaMeta::focus($this->media_path),
+            'blur' => MediaMeta::blur($this->media_path),
             'heading' => $this->heading,
             'caption' => $this->caption,
             'link_url' => $this->link_url,

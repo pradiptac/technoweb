@@ -6,6 +6,7 @@ import { Container } from "@/components/ui/container";
 import { IconArrowRight } from "@/components/icons";
 import { IconTile, hueForIcon } from "@/components/ui/icon-tile";
 import type { ProductCategory } from "@/types/api";
+import { blurProps } from "@/lib/blur";
 
 /**
  * A `Collection` of `categories`, drawn in each theme's idiom — see
@@ -46,7 +47,7 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
                 icon={<IconTile name={c.icon} fallback="switch" />}
                 focus={c.image_focus}
                 media={c.image ? (
-                  <Image
+                  <Image {...blurProps(c.image_blur)}
                     src={c.image}
                     alt={c.image_alt ?? ""}
                     fill

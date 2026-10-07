@@ -123,6 +123,17 @@ Schedule::command('technoware:request-reviews')->hourly()->withoutOverlapping();
 Schedule::command('technoware:prune-sign-in-codes')->hourly();
 
 /*
+ * Blurred loading previews for library pictures that have none (0.123.0).
+ *
+ * A new picture gets one when its row is created; this works through the
+ * library that already existed, 250 an hour, and is one cheap query once
+ * nothing is waiting. Scheduled rather than an upgrade step because decoding
+ * a few thousand photographs is minutes of work, and nothing waits on it: a
+ * picture without a preview loads the way every picture did before.
+ */
+Schedule::command('technoware:backfill-media-blur')->hourly()->withoutOverlapping();
+
+/*
  * Deliver the queued mail.
  *
  * **A cron drain rather than a daemon, because the scheduler is the only

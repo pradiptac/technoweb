@@ -29,6 +29,7 @@ export type CtaContent = {
   image?: string | null;
   image_alt?: string;
   image_focus?: string | null;
+  image_blur?: string | null;
   image_side?: "left" | "right" | null;
   // two_path
   paths?: { icon?: string | null; title: string; body?: string | null; cta: BlockLink }[];

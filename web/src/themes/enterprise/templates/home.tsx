@@ -1,6 +1,7 @@
 import { homeBlockSections } from "@/components/blocks/home-block-sections";
 import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import Link from "next/link";
 import {
   CaseStudies, Credentials, Industries, Partners, ProductCategories,
@@ -95,7 +96,7 @@ export function Home({
           {solutions.data.slice(0, 3).map((s, i) => (
             <article key={s.slug} data-card className="flex flex-col overflow-hidden rounded-sm border border-line-strong bg-card">
               <div className="relative aspect-[16/10] bg-surface-2">
-                <Image src={s.hero_image ?? pictures[i % pictures.length]} alt={s.hero_image ? s.hero_image_alt ?? "" : ""} aria-hidden={!s.hero_image || undefined} fill sizes="(min-width: 768px) 33vw, 100vw" loading="eager" className="object-cover" style={s.hero_image ? focalStyle(s.hero_image_focus) : undefined} />
+                <Image src={s.hero_image ?? pictures[i % pictures.length]} alt={s.hero_image ? s.hero_image_alt ?? "" : ""} aria-hidden={!s.hero_image || undefined} fill sizes="(min-width: 768px) 33vw, 100vw" loading="eager" className="object-cover" style={s.hero_image ? focalStyle(s.hero_image_focus) : undefined} {...(s.hero_image ? blurProps(s.hero_image_blur) : {})} />
               </div>
               <div className="flex flex-1 flex-col p-6">
                 <h3 className="text-19 font-semibold">{s.title}</h3>

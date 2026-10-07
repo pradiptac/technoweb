@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import Image from "next/image";
 import { Container } from "@/components/ui/container";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import type { SectionRevealAttr } from "@/lib/motion-choices";
 import type { StoryItem, StorySectionData } from "@/types/api";
 import { SectionFrame, SectionHead } from "./section-parts";
@@ -68,6 +69,7 @@ export function StorySection({ data, eager, reveal, id }: {
                   loading={eager && i === 0 ? "eager" : undefined}
                   className="object-cover"
                   style={{ ...focalStyle(it.image_focus), "--story-tl": name(i) } as CSSProperties}
+                  {...blurProps(it.image_blur)}
                 />
               ))}
             </div>
@@ -84,7 +86,7 @@ export function StorySection({ data, eager, reveal, id }: {
                     sizes="(min-width: 1024px) 45vw, 90vw"
                     loading={eager && i === 0 ? "eager" : undefined}
                     className="object-cover"
-                    style={focalStyle(it.image_focus)}
+                    style={focalStyle(it.image_focus)} {...blurProps(it.image_blur)}
                   />
                 </div>
                 <div className="flex gap-4">

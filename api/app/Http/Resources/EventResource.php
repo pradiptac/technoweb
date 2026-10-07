@@ -66,6 +66,7 @@ class EventResource extends JsonResource
             'cover_image' => $event->cover_image_path ? asset('storage/'.$event->cover_image_path) : null,
             'cover_image_alt' => MediaMeta::alt($event->cover_image_path),
             'cover_image_focus' => MediaMeta::focus($event->cover_image_path),
+            'cover_image_blur' => MediaMeta::blur($event->cover_image_path),
             'is_featured' => (bool) $event->is_featured,
             'is_past' => $event->isPast(),
             'registration_mode' => $event->registration_mode->value,

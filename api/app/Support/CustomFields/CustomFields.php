@@ -520,6 +520,7 @@ final class CustomFields
                         'url' => asset('storage/'.$raw),
                         'alt' => MediaMeta::alt((string) $raw) ?? $field->label,
                         'focus' => MediaMeta::focus((string) $raw),
+                        'blur' => MediaMeta::blur((string) $raw),
                         'width' => $row->width,
                         'height' => $row->height,
                     ];

@@ -6,6 +6,7 @@ import { Illustration } from "@/components/ui/illustrations";
 import { Logo } from "@/components/layout/logo";
 import { Prose } from "@/components/ui/prose";
 import { ADMIN_COOKIE } from "@/lib/admin-cookie";
+import { blurProps } from "@/lib/blur";
 import { brandName } from "@/lib/brand";
 import { lookAttrs, lookFor } from "@/lib/look";
 import { noIndex } from "@/lib/no-index";
@@ -113,6 +114,7 @@ export default async function ComingSoonPage() {
                   sizes="(min-width: 1024px) 40vw, 90vw"
                   className="object-cover"
                   style={settings.coming_soon_image_focus ? { objectPosition: settings.coming_soon_image_focus } : undefined}
+                  {...blurProps(settings.coming_soon_image_blur)}
                 />
               </div>
             ) : (

@@ -22,6 +22,7 @@ class ClientResource extends JsonResource
             'logo' => filled($this->logo_path) ? asset('storage/'.$this->logo_path) : null,
             'logo_alt' => MediaMeta::alt($this->logo_path) ?: $this->name,
             'logo_focus' => MediaMeta::focus($this->logo_path),
+            'logo_blur' => MediaMeta::blur($this->logo_path),
             'website_url' => $this->website_url,
             'note' => $this->note,
             'is_featured' => (bool) $this->is_featured,

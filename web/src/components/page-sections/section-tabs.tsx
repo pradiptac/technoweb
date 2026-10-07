@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRef, useState, type KeyboardEvent } from "react";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import { cn } from "@/lib/utils";
 import type { TabItem } from "@/types/api";
 
@@ -88,7 +89,7 @@ export function SectionTabs({ id, items, titled }: { id: string; items: TabItem[
                   fill
                   sizes="(min-width: 1024px) 45vw, 90vw"
                   className="object-cover"
-                  style={focalStyle(t.image_focus)}
+                  style={focalStyle(t.image_focus)} {...blurProps(t.image_blur)}
                 />
               </div>
             )}

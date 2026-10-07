@@ -1333,7 +1333,7 @@ const publicEvent = (e) => ({
   format: e.format, format_label: eventLabelOf(EVENT_FORMATS, e.format),
   starts_at: eventIso(e.starts_at), ends_at: eventIso(e.ends_at), ...eventLabels(e),
   venue_name: e.format === 'online' ? null : e.venue_name, venue_city: e.format === 'online' ? null : e.venue_city,
-  cover_image: e.cover_image, cover_image_alt: null, cover_image_focus: null,
+  cover_image: e.cover_image, cover_image_alt: null, cover_image_focus: null, cover_image_blur: null,
   is_featured: e.is_featured, is_past: eventIsPast(e),
   registration_mode: e.registration_mode, updated_at: e.updated_at, seo: null,
 });
@@ -1352,7 +1352,7 @@ const eventSchema = (e) => prune({
 const publicEventDetail = (e) => ({
   ...publicEvent(e),
   body: e.body, venue_address: e.format === 'online' ? null : e.venue_address, map_url: e.format === 'online' ? null : e.map_url,
-  speakers: e.speakers.map((s) => ({ name: s.name, role: s.role, photo: s.photo, photo_alt: null, photo_focus: null })),
+  speakers: e.speakers.map((s) => ({ name: s.name, role: s.role, photo: s.photo, photo_alt: null, photo_focus: null, photo_blur: null })),
   agenda: e.agenda,
   registration: {
     mode: e.registration_mode, external_url: e.registration_mode === 'external' ? e.external_url : null,

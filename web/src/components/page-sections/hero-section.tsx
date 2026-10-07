@@ -2,6 +2,7 @@ import Image from "next/image";
 import { Breadcrumbs, type Crumb } from "@/components/ui/breadcrumbs";
 import { Container } from "@/components/ui/container";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import { sectionReveal } from "@/lib/motion-choices";
 import { cn } from "@/lib/utils";
 import type { HeroSectionData } from "@/types/api";
@@ -51,7 +52,7 @@ export function HeroSection({ data, first, crumbs, eager, revealId }: {
           sizes={sizes}
           loading={eager ? "eager" : undefined}
           className={cn("object-cover", className)}
-          style={focalStyle(data.image_focus)}
+          style={focalStyle(data.image_focus)} {...blurProps(data.image_blur)}
         />
       )
     : null;

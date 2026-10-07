@@ -32,6 +32,7 @@ class SolutionResource extends JsonResource
             'hero_image' => $this->hero_image_path ? asset('storage/'.$this->hero_image_path) : null,
             'hero_image_alt' => MediaMeta::alt($this->hero_image_path),
             'hero_image_focus' => MediaMeta::focus($this->hero_image_path),
+            'hero_image_blur' => MediaMeta::blur($this->hero_image_path),
             'problem_statement' => $this->when($detail, $this->problem_statement),
             'overview' => $this->when($detail, $this->overview),
             'benefits' => $this->when($detail, $this->benefits),

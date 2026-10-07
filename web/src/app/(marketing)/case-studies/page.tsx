@@ -11,6 +11,7 @@ import { buildMetadata } from "@/lib/seo";
 import type { CaseStudy } from "@/types/api";
 import { CountUp } from "@/components/ui/count-up";
 import { brandName } from "@/lib/brand";
+import { blurProps } from "@/lib/blur";
 
 export const metadata = buildMetadata({
   title: "Case studies",
@@ -59,7 +60,7 @@ export default async function CaseStudiesIndex() {
                 summary={c.summary}
                 focus={c.cover_image_focus}
                 media={c.cover_image ? (
-                  <Image
+                  <Image {...blurProps(c.cover_image_blur)}
                     src={c.cover_image}
                     alt={c.cover_image_alt ?? ""}
                     fill

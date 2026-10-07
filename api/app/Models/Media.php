@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\Media\Placeholder;
+use App\Support\MediaMeta;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -89,5 +91,30 @@ class Media extends Model
     public function url(): string
     {
         return Storage::disk($this->disk)->url($this->path);
+    }
+
+    /**
+     * Every new row gets its blurred preview (0.123.0, `Placeholder`),
+     * whoever made it: an upload, a duplicate, a thumbnail cut by a resize,
+     * the WordPress importer. On `created` rather than at each creator, so a
+     * creator added later cannot forget it. An *edit* calls `refreshBlur()`
+     * itself — the three editing endpoints, a replacement and a version
+     * restore — because an edit that happens to leave the row's columns
+     * unchanged saves nothing, and an `updated` hook would never hear of it.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (Media $medium) {
+            if ($medium->blur === null) {
+                $medium->refreshBlur();
+            }
+        });
+    }
+
+    /** Re-make the blurred preview from the bytes now on disk. Never throws. */
+    public function refreshBlur(): void
+    {
+        $this->forceFill(['blur' => Placeholder::forMedia($this)])->saveQuietly();
+        MediaMeta::forget();
     }
 }

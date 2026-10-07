@@ -33,6 +33,7 @@ class CaseStudyResource extends JsonResource
             'cover_image' => $this->cover_image_path ? asset('storage/'.$this->cover_image_path) : null,
             'cover_image_alt' => MediaMeta::alt($this->cover_image_path),
             'cover_image_focus' => MediaMeta::focus($this->cover_image_path),
+            'cover_image_blur' => MediaMeta::blur($this->cover_image_path),
             'industry' => new IndustryResource($this->whenLoaded('industry')),
             // What this record is connected to, on the page only (`EntityLinks`).
             'entity' => $this->entity(),

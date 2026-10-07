@@ -44,7 +44,7 @@ the API's; the frontends never format an event's date themselves.
   "date_label": "Thursday 12 November 2026", "time_label": "3:00 pm – 4:30 pm IST",
   "day": "12", "month": "Nov", "year": "2026",
   "venue_name": "Technoware Experience Centre", "venue_city": "Mumbai",
-  "cover_image": "http://…/storage/media/x.jpg", "cover_image_alt": "…", "cover_image_focus": null,
+  "cover_image": "http://…/storage/media/x.jpg", "cover_image_alt": "…", "cover_image_focus": null, "cover_image_blur": null,
   "is_featured": true, "is_past": false,
   "registration_mode": "open",
   "updated_at": "2026-10-06T18:00:00+05:30",
@@ -64,7 +64,7 @@ The row above plus:
   "body": "<p>…</p>",
   "venue_address": "Unit 4, Lakeview Industrial Estate\nAndheri East, Mumbai 400093",
   "map_url": "https://maps.google.com/?q=…",
-  "speakers": [ { "name": "Asha Rao", "role": "Principal network engineer", "photo": "http://…", "photo_alt": "…", "photo_focus": null } ],
+  "speakers": [ { "name": "Asha Rao", "role": "Principal network engineer", "photo": "http://…", "photo_alt": "…", "photo_focus": null, "photo_blur": null } ],
   "agenda": [ { "time": "3:00 pm", "title": "What changes in Wi-Fi 7", "note": "Channels, MLO and what a client needs." } ],
   "registration": {
     "mode": "open", "external_url": null,

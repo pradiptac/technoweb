@@ -214,6 +214,7 @@ export default async function ProductOrCategoryPage({
             images={p.images ?? []}
             alts={p.image_alts}
             focuses={p.image_focuses}
+            blurs={p.image_blurs}
             name={fullName}
             priority
           />

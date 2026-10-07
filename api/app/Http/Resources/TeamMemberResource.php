@@ -30,6 +30,7 @@ class TeamMemberResource extends JsonResource
             'photo' => filled($this->photo_path) ? asset('storage/'.$this->photo_path) : null,
             'photo_alt' => MediaMeta::alt($this->photo_path) ?: $this->name,
             'photo_focus' => MediaMeta::focus($this->photo_path),
+            'photo_blur' => MediaMeta::blur($this->photo_path),
             'email' => $this->email,
             'linkedin_url' => $this->linkedin_url,
             'certifications' => TeamMemberCertificationResource::collection($this->whenLoaded('certifications')),

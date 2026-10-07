@@ -20,6 +20,7 @@ class GalleryItemResource extends JsonResource
             // nothing typed twice.
             'alt' => $this->alt_text ?: MediaMeta::alt($this->media_path),
             'focus' => MediaMeta::focus($this->media_path),
+            'blur' => MediaMeta::blur($this->media_path),
             'title' => $this->title,
             'subtitle' => $this->subtitle,
             'link_url' => $this->link_url,

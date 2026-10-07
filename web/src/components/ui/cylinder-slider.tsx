@@ -3,6 +3,7 @@
 import { useCallback, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import { cn } from "@/lib/utils";
 import { useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import type { Slider as SliderData } from "@/types/api";
@@ -150,7 +151,7 @@ export function CylinderSlider({
                       priority={priority && isCurrent}
                       loading={away <= 1 ? "eager" : undefined}
                       className="object-cover"
-                      style={focalStyle(slide.focus)}
+                      style={focalStyle(slide.focus)} {...blurProps(slide.blur)}
                     />
                   ) : (
                     <span aria-hidden className="grid h-full w-full place-items-center text-muted"><Chevron /></span>

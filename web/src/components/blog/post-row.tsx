@@ -5,6 +5,7 @@ import { CategoryChips } from "@/components/blog/category-chips";
 import type { BlogPost } from "@/types/api";
 import Image from "next/image";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 
 /**
  * One article in the listing: picture left, everything else right.
@@ -64,7 +65,7 @@ export function PostRow({ post, priority = false }: {
             // stayed lazy under a docblock saying it was not (2026-09-21).
             loading={priority ? "eager" : undefined}
             className="object-cover"
-            style={focalStyle(post.cover_image_focus)}
+            style={focalStyle(post.cover_image_focus)} {...blurProps(post.cover_image_blur)}
           />
         ) : (
           <span className="grid size-full place-items-center bg-linear-135 from-brand-800 to-brand-600">

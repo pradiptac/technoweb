@@ -385,6 +385,8 @@ Built in, measured, and never allowed to guess.
   credential-free, pruned only by age.
 - **Client-side error reporting** grouped by fingerprint, re-opening itself
   if a fix does not hold.
+- **Pictures that load from a blurred preview**, made automatically by the
+  media library for every photograph.
 - **A phone action bar**: Call, WhatsApp and a button of your own, pinned to
   the bottom of the screen on phones.
 - **A coming-soon switch**: a holding page in front of the site until launch,

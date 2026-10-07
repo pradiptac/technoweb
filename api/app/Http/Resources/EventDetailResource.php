@@ -50,6 +50,7 @@ class EventDetailResource extends EventResource
                 'photo' => filled($s['photo_path'] ?? null) ? asset('storage/'.$s['photo_path']) : null,
                 'photo_alt' => MediaMeta::alt($s['photo_path'] ?? null) ?: (string) ($s['name'] ?? ''),
                 'photo_focus' => MediaMeta::focus($s['photo_path'] ?? null),
+                'photo_blur' => MediaMeta::blur($s['photo_path'] ?? null),
             ], $event->speakers ?? [])),
             'agenda' => array_values(array_map(fn (array $a) => [
                 'time' => $a['time'] ?? null,

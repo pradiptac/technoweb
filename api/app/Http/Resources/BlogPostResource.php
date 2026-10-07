@@ -33,6 +33,7 @@ class BlogPostResource extends JsonResource
             'cover_image' => $this->cover_image_path ? asset('storage/'.$this->cover_image_path) : null,
             'cover_image_alt' => MediaMeta::alt($this->cover_image_path),
             'cover_image_focus' => MediaMeta::focus($this->cover_image_path),
+            'cover_image_blur' => MediaMeta::blur($this->cover_image_path),
             /*
              * Present only when eager-loaded, which every listing does. A post
              * carries several, so this is a list rather than one name: the

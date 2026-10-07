@@ -4,6 +4,7 @@ import { IconTile, hueForIcon } from "@/components/ui/icon-tile";
 import type { Service, ServiceCategory } from "@/types/api";
 import { groupServices, type ServiceGroup } from "@/lib/service-groups";
 import { ServiceTabs } from "./service-tabs";
+import { blurProps } from "@/lib/blur";
 
 /**
  * Every published service, grouped by service category (the client,
@@ -53,7 +54,7 @@ export function ServiceCatalogue({
           hue={hueForIcon(s.icon, "globe")}
           focus={s.image_focus}
           media={s.image ? (
-            <Image
+            <Image {...blurProps(s.image_blur)}
               src={s.image}
               // The title under it names the service; the picture's own words are for when it stands alone.
               alt={s.image_alt ?? ""}

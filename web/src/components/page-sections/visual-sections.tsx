@@ -453,9 +453,11 @@ export function BeforeAfterSection({ data, reveal }: { data: BeforeAfterSectionD
             before={data.before}
             beforeAlt={data.before_alt ?? ""}
             beforeFocus={data.before_focus}
+            beforeBlur={data.before_blur}
             after={data.after}
             afterAlt={data.after_alt ?? ""}
             afterFocus={data.after_focus}
+            afterBlur={data.after_blur}
             beforeLabel={data.before_label || "Before"}
             afterLabel={data.after_label || "After"}
             start={data.start ?? 50}

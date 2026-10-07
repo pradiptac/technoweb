@@ -232,6 +232,7 @@ final class SectionPresenter
             $data[$name] = self::url($path);
             $data["{$name}_alt"] = MediaMeta::alt($path) ?? '';
             $data["{$name}_focus"] = MediaMeta::focus($path);
+            $data["{$name}_blur"] = MediaMeta::blur($path);
         }
 
         return self::video($data);
@@ -433,6 +434,7 @@ final class SectionPresenter
             'image' => self::url($image),
             'image_alt' => $image ? (MediaMeta::alt($image) ?? '') : null,
             'image_focus' => $image ? MediaMeta::focus($image) : null,
+            'image_blur' => $image ? MediaMeta::blur($image) : null,
             'icon' => $icon,
             'kicker' => $kicker,
             'meta' => $meta,

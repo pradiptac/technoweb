@@ -3251,6 +3251,23 @@ moves the crop — nothing is resized, padded or letterboxed by it — and it
 applies to a vector as much as to a photograph, since it is a rule about
 cropping rather than pixels.
 
+**The blurred loading preview lives with the file too** (0.123.0).
+`media.blur` is a twelve-pixel-wide WebP of the picture as a `data:` URL, a
+couple of hundred characters, made when the row is created and re-made by
+every in-place edit, replacement and version restore. Every public resource
+that carries a `*_focus` carries a `*_blur` beside it — `cover_image_blur`,
+`hero_image_blur`, `image_blur`, `logo_blur`, `photo_blur`, `blur` on a slide
+and a gallery item, `image_blurs` parallel to `images`, `<name>_blur` on a
+page-builder section's pictures and a `cards` item — the `data:` URL, or
+**null when there is none**: a vector, a path with no library row, a picture
+the backfill has not reached. Never an empty string. The public `/settings`
+adds `<prefix>_blur` for the pictures drawn large only — the banners, the
+sign-in picture, the coming-soon picture and the shop's promo band and tiles
+— and never for the logo, the favicon or the app icon. The admin media
+resource does not return it. `technoware:backfill-media-blur` (hourly, 250 a
+run; `--all` re-makes every one) works through the pictures that predate the
+column.
+
 Strictly, alt text describes an image *in context*, and the same photograph can
 warrant different wording in two places. For a hardware catalogue the answer is
 almost always the name of the thing in the picture, so one description per file

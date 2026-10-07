@@ -4,6 +4,7 @@ import { IconMapPin } from "@/components/icons-ui";
 import { GlyphCalendar, GlyphClock, GlyphExternal, GlyphPeople, GlyphScreen } from "@/components/events/glyphs";
 import { eventPlace } from "@/components/events/event-tiles";
 import { focalStyle } from "@/lib/focal";
+import { blurProps } from "@/lib/blur";
 import { hueFor } from "@/lib/hues";
 import { initials } from "@/lib/initials";
 import { cn } from "@/lib/utils";
@@ -154,7 +155,7 @@ export function EventSpeakers({ speakers }: { speakers: EventSpeaker[] }) {
                   fill
                   sizes="64px"
                   className="object-cover"
-                  style={focalStyle(speaker.photo_focus)}
+                  style={focalStyle(speaker.photo_focus)} {...blurProps(speaker.photo_blur)}
                 />
               ) : (
                 <span

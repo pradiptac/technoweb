@@ -42,6 +42,7 @@ class ServiceResource extends JsonResource
             'image' => $this->image_path ? asset('storage/'.$this->image_path) : null,
             'image_alt' => MediaMeta::alt($this->image_path),
             'image_focus' => MediaMeta::focus($this->image_path),
+            'image_blur' => MediaMeta::blur($this->image_path),
             'body' => $this->when($detail, $this->body),
             'faqs' => FaqResource::collection($this->whenLoaded('faqs')),
             // The published blocks, in order, with the heading each renders under.

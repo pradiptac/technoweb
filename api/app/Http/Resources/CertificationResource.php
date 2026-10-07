@@ -29,6 +29,7 @@ class CertificationResource extends JsonResource
             // Falls back to the name: a badge is the certificate, not decoration.
             'image_alt' => MediaMeta::alt($this->image_path) ?: $this->name,
             'image_focus' => MediaMeta::focus($this->image_path),
+            'image_blur' => MediaMeta::blur($this->image_path),
             'file' => filled($this->file_path) ? asset('storage/'.$this->file_path) : null,
         ];
     }

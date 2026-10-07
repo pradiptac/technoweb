@@ -44,6 +44,7 @@ class PopupResource extends JsonResource
              */
             'image_alt' => MediaMeta::alt($this->image_path) ?: $this->name,
             'image_focus' => MediaMeta::focus($this->image_path),
+            'image_blur' => MediaMeta::blur($this->image_path),
             /*
              * The natural size, so the browser can reserve the box before the
              * bytes land. Absent rather than zero when the library has no row
