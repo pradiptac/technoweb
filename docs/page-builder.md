@@ -773,6 +773,75 @@ only near the screen and stopped by its button; no sideways scroll, at 1280
 and 390. `tests/Feature/BuilderExtrasTest.php` pins the four on the API
 side.
 
+## The assistant on a section (0.127.0)
+
+`POST /admin/pages/ai-section` (`App\Support\Seo\Ai\SectionDraft`): on the
+section an editor has open, **Write** its wording from a line about it, or
+**Reword**, **Shorten** or **Expand** what it says. It rides on the AI SEO
+assistant like the page draft — its switch, key, model, daily cap and
+counter, and the same refusal sentences — and it writes nothing: the answer
+is the section's `data` for the console's form, and the page is saved by that
+form as ever.
+
+- **Words only, by a merge.** A section is more than its wording: a picture,
+  a layout, where its buttons go, which list or form it shows. The model is
+  shown the wording as a small document of text fields and answers in that
+  shape; `merge()` lays the answer over the `data` the console sent — text
+  fields replaced, every other key exactly as it came. It cannot move a
+  picture because it is never told there is one.
+- **`SCHEMA` names fields and no limits.** Sixteen types, each listing which
+  of its fields are words (`text`, `rich`, `buttons`, and a `list` with its
+  own fields). Every length and every list's size is read from
+  `SectionRules::for()` — the save's rules — so the two cannot drift;
+  `SectionDraftTest` fails a field named here that the rules do not bound.
+  After the merge the save's validator is asked about **the paths the
+  assistant wrote** and nothing else: a picture not chosen yet is the
+  editor's to finish.
+- **A reworded section keeps its shape.** Reword, Shorten and Expand touch
+  only fields that already hold words and word a list's rows by position —
+  no kicker nobody wrote, no third step dropped. Write may fill any field
+  and, where a row is nothing but words (`grow`), change how many rows there
+  are; a timeline's rows (a date is a fact) and a story's (each needs its
+  picture) are fixed. A button's label is reworded only where there is a
+  button.
+- **Rich text is paragraphs, or it is refused.** The model never writes
+  HTML: a body goes to it as plain paragraphs and comes back as escaped
+  `<p>`s through `HtmlSanitiser`. A body holding a list, a link, a picture,
+  a table, a heading or a shortcode would lose it that way, so rewording one
+  is a 422 with a sentence. Write replaces the body by request. Bold and
+  italics are not kept, and the panel says so.
+- **Types that are claims are not offered**: no figures, comparison tables
+  or testimonials. A reworded quotation is words somebody did not say.
+- **What the model is told decides what it invents.** Two things measured on
+  the first cut, both fixed in the prompt and pinned by the test. Given the
+  business context, Reword turned a placeholder heading into a claim about
+  the company's city — so Reword and Shorten are given **no** business
+  context, and Expand is given it as "for tone, not a source of facts". And
+  "half as long again" turned a nine-word paragraph into two hundred words —
+  so every key carries its current length in words and a target
+  (`aim()`), and headings, titles and labels are told to stay.
+- Facts: Write and Expand mark what they were not given as `[CHECK: …]`;
+  the three rewording modes are told to keep every fact and marker as given.
+  That is an instruction, not a guarantee — "within 4 hours on working days"
+  came back once as "within 4 working hours" — so the panel tells the editor
+  to read it through, and Undo is one press away.
+- **The console** (`builder/section-assistant.tsx`): a folded panel at the
+  top of the card, drawn only for the types `ai_section.types` names (never
+  on a linked library section). Modes, blurbs and availability are the
+  API's. The answer goes in through `replaceData()` — one history step of
+  its own — so the panel's Undo and the builder's both restore the old
+  wording. Unnamed controls and `type="button"` throughout: the card is
+  inside the page's `<form>`.
+- **`epoch`.** A rich-text editor reads its value once, when it mounts, so
+  replacing a body from outside did not reach it — and that was already true
+  of Undo and Redo, which put a body back in the data while the editor went
+  on showing (and, on the next keystroke, saving) the words it had. The
+  builder bumps `epoch` on Undo, Redo and the assistant; the editor context
+  carries it and `EditorField` is keyed on it.
+
+Probe: `PAGE_ID=<id> node scripts/probes/section-ai.mjs` drives the real
+model on the sample builder page and saves nothing (three AI requests).
+
 ## Tests
 
 `tests/Feature/PageBuilderTest.php` — every type's rules valid and invalid, an
@@ -782,6 +851,8 @@ drop out when unpublished later), a content block inline, a background checked
 by the theme rule, a live list resolved, faq sections joining the one
 `FAQPage`, the preview presenting without writing, the options endpoint, every
 preset saved through the real rules, the role gate.
+`tests/Feature/SectionDraftTest.php` — the assistant on a section: the schema
+against the rules, the merge, lists, rich text in and out, every refusal.
 `tests/Unit/SanitisesRichTextTest.php` — the nested wildcard path.
 `tests/Unit/BodySectionsTest.php` — the heading split, `h3`s, a heading over
 nothing, an empty body, the forty cap, the size cut. `PageBuilderTest` also

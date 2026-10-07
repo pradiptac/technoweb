@@ -63,6 +63,14 @@ type Ctx = {
    * `b`, which is every block form's id as it always was.
    */
   idPrefix?: string;
+  /**
+   * Bumped when the content is replaced from outside the fields — the page
+   * builder's Undo and Redo, and its assistant (0.127.0). Every plain field
+   * here is controlled and follows `content` by itself; a rich-text editor
+   * takes its value once, when it mounts, so it is keyed on this and mounts
+   * again on the new words.
+   */
+  epoch?: number;
 };
 
 const BlockCtx = createContext<Ctx | null>(null);

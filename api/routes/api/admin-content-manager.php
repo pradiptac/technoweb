@@ -162,6 +162,9 @@ Route::middleware('role:content_manager')->group(function () {
     Route::post('pages/sections-from-body', [AdminPageController::class, 'sectionsFromBody'])->middleware('throttle:30,1')->name('pages.sections-from-body');
     // A draft builder page laid out by the assistant from a brief (0.116.0).
     Route::post('pages/ai-draft', [AdminPageController::class, 'aiDraft'])->middleware('throttle:6,1')->name('pages.ai-draft');
+    // The assistant on one section of the builder (0.127.0): answers new
+    // wording for the console's form and writes nothing.
+    Route::post('pages/ai-section', [AdminPageController::class, 'aiSection'])->middleware('throttle:20,1')->name('pages.ai-section');
     // The section library and page templates (2026-10-05, docs/page-builder.md).
     Route::get('saved-sections', [SavedSectionController::class, 'index'])->name('saved-sections.index');
     Route::post('saved-sections', [SavedSectionController::class, 'store'])->name('saved-sections.store');

@@ -19,6 +19,7 @@ import { StyleField } from "./style-field";
 import { PreviewDialog } from "./preview-dialog";
 import { LivePreview } from "./live-preview";
 import { SectionEditor, blankData, summaryOf } from "./section-editors";
+import { SectionAssistant } from "./section-assistant";
 import { libraryBlocksAction, saveToLibraryAction, sectionsFromBodyAction } from "../library-actions";
 
 type Errors = Record<string, string[]>;
@@ -128,6 +129,15 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
    */
   const [past, setPast] = useState<StoredSection[][]>([]);
   const [future, setFuture] = useState<StoredSection[][]>([]);
+  /*
+   * Bumped when a section's content is replaced from outside its fields —
+   * Undo, Redo, the assistant. The plain fields are controlled and follow by
+   * themselves; a rich-text editor reads its value once, so it is keyed on
+   * this (`epoch` in the editor context). Until 0.127.0 Undo put a body back
+   * in the data while the editor went on showing — and on the next keystroke
+   * saving — the words it had.
+   */
+  const [epoch, setEpoch] = useState(0);
   const lastPush = useRef<{ key: string; at: number }>({ key: "", at: 0 });
   const apply = useCallback(
     (change: (prev: StoredSection[]) => StoredSection[], coalesce?: string) => {
@@ -148,6 +158,7 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
     setPast((p) => p.slice(0, -1));
     lastPush.current = { key: "", at: 0 };
     setSections(past[past.length - 1]);
+    setEpoch((e) => e + 1);
   }, [past, sections, setSections]);
   const redo = useCallback(() => {
     if (!future.length) return;
@@ -155,6 +166,7 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
     setFuture((f) => f.slice(1));
     lastPush.current = { key: "", at: 0 };
     setSections(future[0]);
+    setEpoch((e) => e + 1);
   }, [future, sections, setSections]);
 
   const root = useRef<HTMLDivElement>(null);
@@ -319,6 +331,15 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
     [apply],
   );
 
+  // The assistant's wording: one history step of its own, never merged with typing.
+  const replaceData = useCallback(
+    (id: string, data: Record<string, unknown>) => {
+      apply((prev) => prev.map((s) => (s.id === id ? { ...s, data } : s)));
+      setEpoch((e) => e + 1);
+    },
+    [apply],
+  );
+
   /* Fresh ids for sections arriving from the library or a template. */
   const fresh = (blocks: StoredSection[]) => blocks.map((b) => ({ ...structuredClone(b), id: crypto.randomUUID() }) as StoredSection);
 
@@ -475,6 +496,9 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
             onHide={() => toggleHidden(i)}
             onRemove={() => remove(i)}
             patch={patch}
+            epoch={epoch}
+            onAssistant={(data) => replaceData(section.id, data)}
+            onUndo={undo}
           />
         ))}
       </ol>
@@ -606,7 +630,11 @@ function SaveToLibrary({ saving, label, onClose, onSave }: {
 function SectionCard({
   section, index, count, label, expanded, errors, options, media, onToggle, onMove, onDuplicate, onHide, onRemove, patch,
   dragging, dropBefore, dropAfter, onDragStart, onDragOverHalf, onDrop, onCopy, linkedName, onSaveToLibrary, onDetach,
+  epoch, onAssistant, onUndo,
 }: {
+  epoch: number;
+  onAssistant: (data: Record<string, unknown>) => void;
+  onUndo: () => void;
   linkedName?: string;
   onSaveToLibrary?: () => void;
   onDetach: () => void;
@@ -649,9 +677,10 @@ function SectionCard({
   );
   const err = useCallback((path: Path) => errors[`${prefix}.data.${path.join(".")}`]?.[0], [errors, prefix]);
   const ctx = useMemo(
-    () => ({ content: section.data as Obj, set, err, media, brands: [], idPrefix }),
-    [section.data, set, err, media, idPrefix],
+    () => ({ content: section.data as Obj, set, err, media, brands: [], idPrefix, epoch }),
+    [section.data, set, err, media, idPrefix, epoch],
   );
+  const assistant = !linked && options.ai_section?.types.includes(section.type) ? options.ai_section : null;
 
   return (
     <li
@@ -737,9 +766,14 @@ function SectionCard({
               {errors[`${prefix}.data.saved_id`] && <p className="mt-2 text-12-5 text-err">{errors[`${prefix}.data.saved_id`][0]}</p>}
             </div>
           ) : (
+          <>
+          {assistant && (
+            <SectionAssistant options={assistant} type={section.type} data={section.data} idPrefix={idPrefix} onApply={onAssistant} onUndo={onUndo} />
+          )}
           <BlockEditorProvider value={ctx}>
             <SectionEditor type={section.type} sectionId={section.id} options={options} />
           </BlockEditorProvider>
+          </>
           )}
           {!linked && (<>
           <RevealField

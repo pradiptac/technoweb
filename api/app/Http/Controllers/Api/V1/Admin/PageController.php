@@ -26,11 +26,13 @@ use App\Support\PageSections\SectionPresenter;
 use App\Support\PageSections\SectionPresets;
 use App\Support\PageSections\SectionRules;
 use App\Support\Seo\Ai\PageDraft;
+use App\Support\Seo\Ai\SectionDraft;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 /**
  * Standalone page CRUD — privacy, terms, downloads and anything else that is
@@ -116,6 +118,46 @@ class PageController extends Controller
     }
 
     /**
+     * The assistant on one section of the builder (0.127.0): write its
+     * wording from a brief, or reword, shorten or expand what it says.
+     * `SectionDraft` merges the answer onto the `data` sent — text fields
+     * only — and this answers that `data` for the console to put in its
+     * form. **Nothing is written**: the page is saved by its own form, as
+     * ever. 422 on `brief` or `section` with the assistant's own sentence.
+     */
+    public function aiSection(Request $request, SectionDraft $draft): JsonResponse
+    {
+        $input = $request->validate([
+            'mode' => ['required', 'string', Rule::in(SectionDraft::MODES)],
+            'type' => ['required', 'string', Rule::in(array_keys(SectionDraft::SCHEMA))],
+            'data' => ['present', 'array'],
+            'brief' => ['nullable', 'string', 'max:600', 'required_if:mode,write'],
+            'icons' => ['nullable', 'array', 'max:400'],
+            'icons.*' => ['string', 'max:40'],
+        ], [
+            'type.in' => 'The assistant cannot work on this kind of section.',
+            'brief.required_if' => 'Say what this section should be about.',
+            'brief.max' => 'Keep it to 600 characters.',
+        ]);
+
+        $result = $draft->run(
+            (string) $input['mode'],
+            (string) $input['type'],
+            (array) $request->input('data', []),
+            isset($input['brief']) ? (string) $input['brief'] : null,
+            (array) ($input['icons'] ?? []),
+        );
+
+        if (! $result['ok'] || ! isset($result['data'])) {
+            $error = $result['error'] ?? 'The AI service answered, but nothing in it was usable. Try again.';
+
+            return response()->json(['message' => $error, 'errors' => [$result['field'] ?? 'section' => [$error]]], 422);
+        }
+
+        return response()->json(['data' => ['section_data' => $result['data']]]);
+    }
+
+    /**
      * Everything the section builder's selects are drawn from, in one read:
      * the section types and presets, the per-type choices, and the pickers —
      * published content blocks, sliders, galleries and forms, and the two
@@ -143,6 +185,9 @@ class PageController extends Controller
                 ['value' => 'split', 'label' => 'Split', 'blurb' => 'The words on one side, the picture framed on the other.'],
                 ['value' => 'cover', 'label' => 'Cover', 'blurb' => 'The picture fills the band under a dark overlay, the words on top.'],
             ],
+            // The assistant on a section (0.127.0): whether it can be asked,
+            // on which types, and what it can do.
+            'ai_section' => SectionDraft::options(),
             'card_sources' => collect(SectionRules::cardSources())->map(fn ($label, $value) => ['value' => $value, 'label' => $label])->values(),
             'content_blocks' => ContentBlock::query()->where('status', PublishStatus::Published)->orderBy('type')->orderBy('name')
                 ->get(['id', 'type', 'name', 'slug'])

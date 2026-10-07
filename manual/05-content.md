@@ -246,6 +246,40 @@ It needs the AI assistant switched on and an OpenRouter key saved (see
 *Settings*), and each draft counts towards the assistant's daily limit. If it
 cannot run, the button opens a note saying why.
 
+### The assistant on a section
+
+Inside the builder, most sections have an **Assistant** line at the top of
+their card. Open it to have the wording of that one section written or
+changed:
+
+- **Write** — type a line or two about what the section should say, and it
+  writes the heading, the text and (for lists such as Features, Steps or
+  Questions) the items.
+- **Reword** — says the same thing more clearly, at about the same length.
+- **Shorten** — makes the running text about half as long. Headings stay.
+- **Expand** — makes the running text about twice as long.
+
+For Reword, Shorten and Expand you can add a note, such as "plainer words"
+or "more formal".
+
+What to expect:
+
+- It changes **words only**. The picture, the layout, where the buttons go,
+  the background and the number of rows in a list all stay as they are.
+- Nothing is saved until you save the page. **Undo** — in the assistant, or
+  at the top of the builder — puts the old wording back.
+- Read the result through. Anything it could not know is marked
+  **[CHECK: …]**, and it is told to keep your figures and names exactly, but
+  it can still get a detail wrong.
+- Bold and italics in a text are not kept. A text that contains a list, a
+  link, a picture or a table cannot be reworded this way — the assistant
+  says so and leaves it alone.
+- Sections that are somebody's words or your own figures — Testimonials,
+  Figures, Comparison table — have no assistant.
+
+It uses the same AI assistant as the page draft: it must be switched on with
+an OpenRouter key saved, and each use counts towards the daily limit.
+
 ## The blog
 
 **Blog → Blog** lists your articles. Each post has a title, a slug, an

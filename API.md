@@ -1226,7 +1226,7 @@ A CMS page whose `template` is `builder` is a stack of typed sections
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/pages/builder` | `role:content_manager`. `section_types`, `section_presets`, `hero_layouts`, `card_sources`, and the **published** `content_blocks`, `sliders`, `galleries`, `forms`, plus `product_categories` and `store_categories`, and `library: {sections[{id, name, type}], templates[{id, name, description, count}]}`. Declared above `pages/{page:id}` |
+| `GET` | `/admin/pages/builder` | `role:content_manager`. `section_types`, `section_presets`, `hero_layouts`, `ai_section` (0.127.0 — `{available, reason, types[], modes[{value, label, blurb, needs_brief}]}`: whether the assistant on a section can be asked now, the sentence when it cannot, the section types it words and what it can do), `card_sources`, and the **published** `content_blocks`, `sliders`, `galleries`, `forms`, plus `product_categories` and `store_categories`, and `library: {sections[{id, name, type}], templates[{id, name, description, count}]}`. Declared above `pages/{page:id}` |
 | `GET` | `/admin/saved-sections` | `role:content_manager`. The section library and page templates, by kind then name. `?kind=section\|template`, `?q=`, `?per_page=` (max 100). Rows: `id`, `kind`, `name`, `description`, `type`/`type_label` (a section's), `count`, `author`, `updated_at`. `meta.kinds` |
 | `POST` | `/admin/saved-sections` | `kind`, `name` (120), `description?` (300), `blocks` (1–40, the page's shape and rules). A `section` is exactly one block and never of type `saved` (422 on `blocks`/`blocks.0.type`). **201** |
 | `GET` | `/admin/saved-sections/{id}` | Adds `blocks`, `blocks_media`, `sections` (presented) and `linked_from[{id, title, kind}]` |
@@ -1235,6 +1235,32 @@ A CMS page whose `template` is `builder` is a stack of typed sections
 | `POST` | `/admin/pages/sections-from-body` | `role:content_manager`, throttled 30/min. `{body}` (required). The body cleaned as a saved one is and split into `rich_text` sections at its `<h2>`s (its `<h3>`s when it has none) — `{data: {sections}}` in the stored shape, ids included; **nothing written**. 0.109.0 |
 | `POST` | `/admin/pages/preview` | `role:content_manager`, throttled 60/min. `{blocks, page_id?}` — validated exactly as a save is, presented, **nothing written**. 200 `{data: {sections}}`, or a 422 keyed `blocks.N.data.field` |
 | `POST` | `/admin/pages/ai-draft` | `role:content_manager`, throttled 6/min, declared above `pages/{page:id}`. `{brief (10–1500), length? (short/standard/long, default standard), pictures? (default true), icons? (≤ 400 ids)}`. The assistant lays out a **draft** builder page from the brief. **201** `{data: {id, title, slug, admin_path: "/admin/pages/{id}?tab=builder", sections (count), dropped: [{type, reason}]}}`; a refusal is **422** `{message, errors: {brief: [sentence]}}`. 0.116.0 — see below |
+| `POST` | `/admin/pages/ai-section` | `role:content_manager`, throttled 20/min, declared above `pages/{page:id}`. `{mode (write, rewrite, shorten, expand), type, data, brief? (≤ 600; required for write), icons? (≤ 400 ids)}`. **200** `{data: {section_data}}` — the `data` sent with its wording replaced; **nothing is written**. A refusal is **422** on `brief` or `section`. 0.127.0 — see below |
+
+**`POST /admin/pages/ai-section` words one section and saves nothing**
+(0.127.0, `App\Support\Seo\Ai\SectionDraft`). `type` is one of `hero`,
+`rich_text`, `media_text`, `features`, `cards`, `form`, `faq`, `steps`,
+`tabs`, `checklist`, `cta`, `timeline`, `flow`, `story`, `columns` and
+`countdown` (any other is a 422 on `type`); `data` is that section's `data`
+as the console holds it. The model is shown only the section's text fields —
+plain fields, a rich-text field as a list of paragraphs, a button's label,
+the text fields of each row — and its answer is laid over `data`: text
+fields replaced, cut to the length the section's own rules allow, and every
+other key returned exactly as sent (a picture, a layout, a button's `href`,
+an icon, ids). `rewrite`, `shorten` and `expand` change only fields that
+already hold words and keep a list's rows by position; `write` may fill any
+text field and, for `features`, `faq`, `steps`, `tabs`, `checklist` and
+`flow`, replace the rows with between the rule's minimum and twelve new ones
+(an `icon` only for `features` and `flow`, and only one of the `icons`
+sent). A rich-text field comes back as `<p>` paragraphs built from escaped
+text and cleaned like a typed body. It shares the AI SEO assistant's switch,
+key, model, daily cap and counter — one run counted per answer used — and
+refuses on `section` with the same sentences as the page draft, plus: the
+section has nothing written (for the three rewording modes); its rich text
+"has formatting the assistant would lose" (a list, a link, a picture, a
+table, a heading or a shortcode — rewording modes only); the answer was
+unusable, unchanged, or did not pass the section's rules. `write` without a
+`brief` is a 422 on `brief`.
 
 **`blocks` on `POST`/`PATCH /admin/pages`** is a list of at most 40
 `{id (uuid), type, hidden, background, reveal, data}`; `type: saved` with `data: {saved_id}` places a library section linked — it must name a library *section* that exists, and the public read draws that section in its place (the page's `id` and `hidden` kept); `template` accepts `builder`

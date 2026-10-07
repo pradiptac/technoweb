@@ -21,6 +21,30 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.127.0 — 2026-10-07
+
+**The page builder: an assistant on each section.**
+
+- Most sections in the builder now have an **Assistant** at the top of their
+  card. **Write** drafts the section's wording from a line or two about it;
+  **Reword**, **Shorten** and **Expand** change what it already says.
+- It changes **words only**: the picture, the layout, where the buttons go,
+  the background and the rows of a list stay exactly as they are.
+- Nothing is saved until you save the page, and **Undo** puts the old
+  wording back. Anything the assistant could not know is marked
+  **[CHECK: …]** — read each result through.
+- Sections that are somebody's words or your own figures (Testimonials,
+  Figures, Comparison table) have no assistant, and a text containing a
+  list, a link or a picture is left alone rather than flattened.
+- It uses the AI assistant already set up under Settings (switched on, with
+  an OpenRouter key) and counts towards its daily limit.
+- Fixed: **Undo** in the builder now also puts a text section's words back
+  in the editor on screen; before, the editor could go on showing the newer
+  text.
+- After updating, nothing needs doing.
+
+---
+
 ## 0.126.0 — 2026-10-07
 
 **The page builder: shaped edges, moving backgrounds, more lists, a menu for the page.**

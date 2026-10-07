@@ -162,11 +162,12 @@ function VideoPath({ path, label, hint = VIDEO_HINT }: { path: Path; label: stri
 
 /** The body editor, bound to `data.body`. Named only so a draft can carry it back; the API never reads the name. */
 function Body({ sectionId, label = "Text" }: { sectionId: string; label?: string }) {
-  const { content, set, err } = useBlock();
+  const { content, set, err, epoch } = useBlock();
   const value = getIn(content, ["body"]);
 
   return (
     <EditorField
+      key={epoch ?? 0}
       name={`_sb_${sectionId}_body`}
       label={label}
       defaultValue={typeof value === "string" ? value : ""}
@@ -243,7 +244,7 @@ function ComparisonEditor() {
 
 /** Each column's heading and editor body; the bodies are cleaned on save like any page body. */
 function ColumnsEditor({ sectionId }: { sectionId: string }) {
-  const { content, set, err } = useBlock();
+  const { content, set, err, epoch } = useBlock();
   const columns = Array.isArray(content.columns) ? (content.columns as { heading?: string; body?: string }[]) : [];
 
   return (
@@ -257,6 +258,7 @@ function ColumnsEditor({ sectionId }: { sectionId: string }) {
             <li key={i} className="rounded-lg border border-line-strong bg-card p-4">
               <Text path={["columns", i, "heading"]} label={`Column ${i + 1} — heading`} />
               <EditorField
+                key={epoch ?? 0}
                 name={`_sb_${sectionId}_col${i}`}
                 label="Text"
                 defaultValue={typeof c?.body === "string" ? c.body : ""}

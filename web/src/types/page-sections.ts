@@ -256,6 +256,23 @@ export type PageBuilderOptions = {
     sections: { id: number; name: string; type: string | null }[];
     templates: { id: number; name: string; description: string | null; count: number }[];
   };
+  /** The assistant on a section (0.127.0). Optional for an older API, which has none. */
+  ai_section?: AiSectionOptions;
+};
+
+export type AiSectionMode = "write" | "rewrite" | "shorten" | "expand";
+
+/**
+ * What the builder is told about the assistant on a section (0.127.0,
+ * `ai_section` on `GET /admin/pages/builder`): whether it can be asked now
+ * and the API's sentence when it cannot, the section types it words, and
+ * the things it can do — all the API's, so nothing is listed here.
+ */
+export type AiSectionOptions = {
+  available: boolean;
+  reason: string | null;
+  types: string[];
+  modes: { value: AiSectionMode; label: string; blurb: string; needs_brief: boolean }[];
 };
 
 /**

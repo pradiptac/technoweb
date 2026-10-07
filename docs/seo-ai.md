@@ -239,7 +239,8 @@ and never about the contents** — whatever is found must still be valid JSON,
 and nothing repairs a truncated or malformed object, because a repaired
 answer is one the model did not give. It is one reader, shared with the
 chatbot's intake judge, and every JSON caller in this module comes through
-it: `SeoAssistant`, `AltText`, `ArticleBrief`, `PageDraft`.
+it: `SeoAssistant`, `AltText`, `ArticleBrief`, `PageDraft`, and `SectionDraft`
+(0.127.0, the assistant on one builder section — `docs/page-builder.md`).
 `SeoAiTest::test_json_wrapped_in_a_code_fence_is_still_read` pins it.
 
 ---

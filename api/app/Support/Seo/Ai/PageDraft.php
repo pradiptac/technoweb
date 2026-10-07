@@ -221,11 +221,12 @@ final class PageDraft
 
     /**
      * The icons the console sent, kept when they have an icon's shape.
+     * Shared with `SectionDraft`, which words one section the same way.
      *
      * @param  array<int, mixed>  $icons
      * @return list<string>
      */
-    private static function icons(array $icons): array
+    public static function icons(array $icons): array
     {
         $out = [];
         foreach ($icons as $icon) {

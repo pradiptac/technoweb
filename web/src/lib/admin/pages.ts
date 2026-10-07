@@ -2,7 +2,7 @@ import "server-only";
 import { apiFetch } from "@/lib/api";
 import { query, token } from "./_shared";
 import type {
-  AdminPage, AdminFaq, AiDraftAvailability, AiDraftLength, AiDraftResult, AnswerBlock, FaqOwnerGroup, PageBuilderOptions, PageSection, Paginated, PublishStatus,
+  AdminPage, AdminFaq, AiDraftAvailability, AiDraftLength, AiDraftResult, AiSectionMode, AnswerBlock, FaqOwnerGroup, PageBuilderOptions, PageSection, Paginated, PublishStatus,
   SavedSection, SeoOverride, StoredSection,
 } from "@/types/api";
 
@@ -103,6 +103,30 @@ export async function draftPageWithAi(input: AiDraftInput): Promise<AiDraftResul
     method: "POST", body: input, token: await token(), signal: AbortSignal.timeout(AI_DRAFT_TIMEOUT_MS),
   });
   return res.data;
+}
+
+export type AiSectionInput = {
+  mode: AiSectionMode;
+  type: string;
+  /** The section's `data` as the builder holds it. */
+  data: Record<string, unknown>;
+  brief: string | null;
+  icons: string[];
+};
+
+const AI_SECTION_TIMEOUT_MS = 90_000;
+
+/**
+ * Has the assistant write, reword, shorten or expand one section's wording
+ * (0.127.0). Answers the section's `data` with the words replaced and
+ * everything else as it was sent; nothing is saved. A refusal is a 422 on
+ * `brief` or `section`. The ceiling is this call's own, as the page draft's is.
+ */
+export async function wordSectionWithAi(input: AiSectionInput): Promise<Record<string, unknown>> {
+  const res = await apiFetch<{ data: { section_data: Record<string, unknown> } }>("/admin/pages/ai-section", {
+    method: "POST", body: input, token: await token(), signal: AbortSignal.timeout(AI_SECTION_TIMEOUT_MS),
+  });
+  return res.data.section_data;
 }
 
 export async function getPage(id: number): Promise<AdminPage> {

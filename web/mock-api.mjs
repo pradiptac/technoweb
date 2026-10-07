@@ -2119,6 +2119,17 @@ const BUILDER_OPTIONS = {
     { value: 'split', label: 'Split', blurb: 'The words on one side, the picture framed on the other.' },
     { value: 'cover', label: 'Cover', blurb: 'The picture fills the band under a dark overlay.' },
   ],
+  // The assistant on a section (0.127.0): off in the mock, as the page draft is.
+  ai_section: {
+    available: false, reason: AI_DRAFT_OFF,
+    types: ['hero', 'rich_text', 'media_text', 'features', 'cards', 'form', 'faq', 'steps', 'tabs', 'checklist', 'cta', 'timeline', 'flow', 'story', 'columns', 'countdown'],
+    modes: [
+      { value: 'write', label: 'Write', blurb: 'Write this section from a line or two about what it should say.', needs_brief: true },
+      { value: 'rewrite', label: 'Reword', blurb: 'Say the same thing more clearly, at about the same length.', needs_brief: false },
+      { value: 'shorten', label: 'Shorten', blurb: 'The running text about half as long, with the same facts. Headings stay.', needs_brief: false },
+      { value: 'expand', label: 'Expand', blurb: 'The running text about twice as long. A fact it was not given is marked [CHECK: …].', needs_brief: false },
+    ],
+  },
   card_sources: [
     { value: 'solutions', label: 'Solutions' }, { value: 'services', label: 'Services' }, { value: 'industries', label: 'Industries' },
     { value: 'case_studies', label: 'Case studies' }, { value: 'blog', label: 'Blog posts' }, { value: 'knowledge', label: 'Knowledge base articles' },
@@ -3381,6 +3392,10 @@ createServer(async (req, res) => {
         }
         if (req.method === 'DELETE') { savedSections.splice(savedSections.indexOf(item), 1); res.writeHead(204); return res.end(); }
       }
+    }
+    // The assistant on a section (0.127.0): refused, as it is with no key.
+    if (p === '/admin/pages/ai-section' && req.method === 'POST') {
+      return json(res, 422, { message: AI_DRAFT_OFF, errors: { section: [AI_DRAFT_OFF] } });
     }
     if (p === '/admin/pages/preview' && req.method === 'POST') {
       const body = await readJsonBody(req);
