@@ -119,6 +119,32 @@ everywhere — the public site, the customer portal and the console.
   of the nineteen are for headlines only, so the body list is shorter).
 - A preview below the fields shows the choice in both light and dark.
 
+### Your own fonts
+
+If your company has its own typeface, open **Your own fonts** under the two
+font lists.
+
+1. Type the font's **name** as it should appear in the lists.
+2. Choose the font file. It must be a **WOFF2** file (ending `.woff2`). If
+   you were given a TTF or OTF, convert it first — free online converters do
+   this.
+   - If the font came as one file that holds every weight (a *variable*
+     font), tick **This is a variable font** and upload that one file.
+   - Otherwise upload the **regular** weight and, if you have it, the
+     **bold** weight. Headings use the bold one.
+3. Press **Upload font**.
+
+The font now appears at the end of the **Headline font** and **Body font**
+lists, marked *(your font)*. Choose it there and press **Save site
+settings** — uploading alone does not change the site.
+
+You can keep two fonts. **Remove** deletes one; if the site was using it, it
+goes back to the default font.
+
+Check that your licence for the font allows use on a website. Some themes
+set their headings in a typeface of their own and keep it whatever you
+choose here.
+
 The colours you type are treated as a direction rather than exact values:
 every shade the site needs — for buttons, links, borders, hover states and the
 dark mode — is generated from them and adjusted until all text passes

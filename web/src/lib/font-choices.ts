@@ -1,3 +1,5 @@
+import { customFontVariable } from "./custom-fonts.ts";
+
 /**
  * The faces an editor may choose, by id — nineteen, all vendored.
  *
@@ -61,6 +63,13 @@ export const MONO_FONT = { variable: "--font-jetbrains", label: "JetBrains Mono"
 
 /** The face for a role, falling back to the role's default for an unknown or unsuitable id. */
 export function fontFor(id: string | null | undefined, role: "display" | "body"): { variable: string; label: string } {
+  // A company's own font (0.125.0, `lib/custom-fonts.ts`): a fixed slot with
+  // a fixed variable, which the root layout always declares — as the
+  // uploaded face, or as the default one while the slot is empty. So this
+  // can answer without knowing what has been uploaded.
+  const custom = customFontVariable(id);
+  if (custom) return { variable: custom, label: id === "custom-1" ? "Your font 1" : "Your font 2" };
+
   const choice = FONT_CHOICES.find((f) => f.id === id && f[role]);
   const fallback = FONT_CHOICES.find((f) => f.id === (role === "display" ? DEFAULT_DISPLAY_FONT : DEFAULT_BODY_FONT))!;
   const f = choice ?? fallback;

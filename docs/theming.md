@@ -115,3 +115,83 @@ variables sit on `<html>`, so the browser fetched all nine whatever the active
 theme — measured at 11 font files on one homepage. Unpreloaded, a face is
 fetched only when something is set in it: three families on the wire, and the
 display one swaps with the theme.
+
+## A company's own fonts (0.125.0)
+
+Nineteen faces are vendored. A company with a brand typeface uploads it
+instead: Site → Settings → Colour palette → *Your own fonts*.
+
+**Two fixed slots, not a list.** `custom-1` and `custom-2`. A slot's id and
+its CSS variable (`--font-custom-1`) never change, which is what lets the
+rest of the theme machinery stay as it was: `fontFor()` — pure, called from
+the palette generator with no settings in hand — answers for a custom id
+without knowing what has been uploaded, and the root layout declares the
+variable either way: as the uploaded face, or as the default body face while
+the slot is empty. A theme still pointing at an emptied slot therefore falls
+back to Inter rather than to an invalid `var()`. Two is a headline face and
+a body face, which is all the site has roles for.
+
+**What is stored.** `App\Support\CustomFonts`: eight rows in the public
+`appearance` group (a name, a regular file, a bold file and a "variable"
+flag per slot) and the files on the public disk under `fonts/` with a random
+forty-character name. WOFF2 only, checked by extension *and* by the four
+bytes every WOFF2 opens with — a TTF renamed `.woff2` would be served for a
+year and never drawn. Not a media-library file: a font has no thumbnail,
+nothing can be done to it there, and nothing but this class should be able
+to delete a file the site is set in. A replaced file is deleted and its name
+is never reused, so the answer can be cached for good. Emptying a slot takes
+the site off it (`theme_font_display`/`_body` back to the defaults).
+
+**Nothing typed reaches the stylesheet.** `customFontsCss()` declares the
+family as `tw-custom-1`, never the name somebody typed, and builds the
+file's address only from a stored path of exactly the shape the API writes
+(`fontHref`). The typed name appears in the two font lists and nowhere else.
+
+**Weights.** A variable font is one file declared `font-weight: 100 900`. A
+static font is a regular declared at 400 and an optional bold at 700: the
+site sets headings at 600 and 700, and CSS font matching sends both to the
+700 face. With no bold file the browser thickens the regular one, which is
+what a single static file can offer. Declaring a lone static file as a range
+would stop that — the browser would believe it already had a 700.
+
+**Served from the website's origin.** `/font/[name]` is a route handler that
+fetches the file from the API's storage and hands it on as `font/woff2`,
+immutable for a year. A picture can be shown cross-origin; a font is refused
+without CORS headers, which Apache can be told to send and
+`php artisan serve` cannot. Same-origin also puts the font behind whatever
+CDN the website is behind, and keeps `font-src 'self'` true. The name must
+be forty letters and digits and `.woff2`, or it is a 404 before any request
+is made.
+
+**In the page.** A `<style id="custom-fonts">` after the tokens, with a
+`<link rel="preload">` for each face the site is actually set in (bold for
+headings, regular for body). Its own element, because the appearance
+preview replaces the tokens' text and these do not change with a palette.
+Absent entirely on a site with no font of its own.
+
+**The trap this hit.** The settings form's generic renderer draws every row
+in a group that the group's own control does not claim, and `ThemePicker`
+claims only `theme*`. The eight new rows were therefore drawn as bare text
+inputs holding storage paths, posted with the tab — and since
+`PATCH /admin/settings` refuses a `custom_font_*` key, **every save of the
+appearance tab failed** with "Some values were rejected". The probe found it
+by choosing the uploaded font and reading the API. The renderer skips those
+rows now; the API's refusal stays, as the half that does not depend on the
+frontend remembering.
+
+**The panel** (`custom-fonts-panel.tsx`) sits inside the settings `<form>`,
+so its controls are unnamed and its buttons `type="button"`, building a
+`FormData` for their own Server Action — a nested form is dropped by the
+browser, and a named file input would ride along with every settings save.
+It is a `<details>`, closed until a font exists: two upload forms would be
+the largest thing on the tab for the fewest people.
+
+**Not every heading follows.** Several themes set their headings in a face
+of their own (Editorial, Enterprise, Terminal…), and keep it whatever is
+chosen here — as they always did for the built-in list. The probe reads the
+heading under `/theme-preview/classic` for that reason.
+
+`CustomFontTest`; `scripts/probes/custom-fonts.mjs` uploads one of the
+repository's own WOFF2 files, chooses it, and checks the declaration, the
+computed family, that the browser loaded the face, the file's origin, type
+and cache, the preload, and that removing it puts everything back.

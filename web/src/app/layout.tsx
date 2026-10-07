@@ -9,6 +9,7 @@ import { FullRows } from "@/components/ui/full-rows";
 import { SchemeSync } from "@/components/ui/scheme-sync";
 import { SITE } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
+import { customFontPreloads, customFontsCss, customFontsFor, usesCustomFonts } from "@/lib/custom-fonts";
 import { brandName } from "@/lib/brand";
 import { pwaFor } from "@/lib/pwa";
 import "./globals.css";
@@ -150,6 +151,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             __html: themeTokensCss(theme),
           }}
         />
+        {/*
+          A company's own typefaces (0.125.0, `lib/custom-fonts.ts`): the
+          `@font-face` rules and the two `--font-custom-N` variables a theme
+          set in one resolves through. Its own element, after the tokens —
+          the appearance preview replaces the tokens' text, and these do not
+          change with a palette. Absent entirely on a site with no font of
+          its own, so that site's head is what it was.
+        */}
+        {usesCustomFonts(settings) && (
+          <>
+            {customFontPreloads(settings).map((href) => (
+              <link key={href} rel="preload" as="font" type="font/woff2" href={href} crossOrigin="anonymous" />
+            ))}
+            <style id="custom-fonts" dangerouslySetInnerHTML={{ __html: customFontsCss(customFontsFor(settings)) }} />
+          </>
+        )}
 
         {/*
           Set the attribute before anything paints.

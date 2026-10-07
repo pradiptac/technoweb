@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Admin\ActivityController;
 use App\Http\Controllers\Api\V1\Admin\ChatAdminController;
 use App\Http\Controllers\Api\V1\Admin\ClientErrorController as AdminClientErrorController;
+use App\Http\Controllers\Api\V1\Admin\CustomFontController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\EmailTemplateController;
 use App\Http\Controllers\Api\V1\Admin\InboundMailController;
@@ -131,6 +132,13 @@ Route::middleware('role:admin')->group(function () {
         ->middleware('throttle:6,1')->name('settings.tickets.inbound.test');
 
     // Proving a third-party key from the screen it was typed into.
+    // A company's own typefaces (0.125.0): two slots, WOFF2 files, checked
+    // by their bytes. Not rows on the settings form — a font is a file.
+    Route::get('settings/fonts', [CustomFontController::class, 'index'])->name('settings.fonts.index');
+    Route::post('settings/fonts/{slot}', [CustomFontController::class, 'store'])
+        ->whereIn('slot', ['1', '2'])->middleware('throttle:20,1')->name('settings.fonts.store');
+    Route::delete('settings/fonts/{slot}', [CustomFontController::class, 'destroy'])
+        ->whereIn('slot', ['1', '2'])->name('settings.fonts.destroy');
     // The media CDN (0.124.0): one library file fetched through the saved
     // address and compared with this server's copy.
     Route::post('settings/media-cdn/test', [MediaCdnController::class, 'test'])

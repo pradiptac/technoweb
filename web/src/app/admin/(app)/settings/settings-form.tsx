@@ -219,6 +219,13 @@ function GroupPanel({
           if (row.key.startsWith("theme_")) {
             return null;
           }
+          // A company's own fonts are files, written by their own panel
+          // inside the picker (`CustomFontsPanel`). Drawn here they would be
+          // bare text inputs holding storage paths — and posting them is
+          // refused by the API, which fails the whole tab's save.
+          if (row.key.startsWith("custom_font_")) {
+            return null;
+          }
           // The Motion tab is one picker for the same reason.
           if (row.key === "motion_reveal") {
             return <MotionPicker key={row.key} rows={rows} />;

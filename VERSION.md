@@ -21,6 +21,26 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.125.0 — 2026-10-07
+
+**Your own fonts.**
+
+- **Site → Settings → Colour palette → Your own fonts**: upload your
+  company's typeface and it joins the Headline and Body font lists beside
+  the nineteen built in. Two fonts can be kept at once — typically one for
+  headings and one for text.
+- Each font is a **WOFF2** file (.woff2): one file for a variable font, or a
+  regular and an optional bold. A TTF or OTF can be converted with a free
+  online converter.
+- Uploading a font only makes it available; the site changes when you choose
+  it in a list and save, as with any other font. Removing a font puts the
+  site back on the default if it was in use.
+- Some themes set their headings in a typeface of their own; those headings
+  keep it whatever is chosen here, as they already do.
+- After updating, nothing needs doing.
+
+---
+
 ## 0.124.0 — 2026-10-07
 
 **Ready for a CDN, and an edited picture now shows at once.**

@@ -4056,6 +4056,23 @@ the form can never show the current value and treating blank as a delete would
 wipe the SMTP password on every unrelated save. Clearing one is the separate
 endpoint above.
 
+**A company's own fonts** (0.125.0, `role:admin`, `docs/theming.md`). Two
+slots, each a name and one or two WOFF2 files on the public disk under
+`fonts/`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/settings/fonts` | Both slots: `[{slot, id, name, regular, bold, variable}]` — `id` is `custom-1`/`custom-2`, `regular`/`bold` a stored path or null. `meta.max_kb` (2048) |
+| `POST` | `/admin/settings/fonts/{slot}` | multipart. `name` (required, ≤ 40, letters, digits, spaces and `. ' & -`), `regular` and `bold` (files, ≤ 2 MB each), `variable` (boolean). A file must have the `.woff2` extension **and** open with the WOFF2 signature, a 422 on its field otherwise; `regular` is required while the slot has none; `bold` with `variable` is a 422. A file not sent is kept; a replaced file is deleted; `variable` deletes a stored bold. Answers the slot. `slot` other than 1 or 2 is a 404. Throttled 20/min |
+| `DELETE` | `/admin/settings/fonts/{slot}` | Deletes the files, blanks the slot, and puts `theme_font_display` / `theme_font_body` back to `instrument` / `inter` when either was this slot's id |
+
+The slot's rows — `custom_font_{1,2}_name`, `_regular`, `_bold`, `_variable`
+— are in the public `appearance` group, so `/settings` carries them (blank
+ones dropped). **`PATCH /admin/settings` refuses any `custom_font_*` key**
+with a 422 on its row. `theme_font_display` and `theme_font_body` accept
+`custom-1` and `custom-2` like any other font id. The website serves a font
+file from its own origin at `/font/<name>` (Next, not this API).
+
 **The `appearance` group is nine keys and all of them are public**, because
 the site cannot paint itself without them. `theme` is a preset id
 (`technoware`, `ocean`, `forest`, `sunset`, `midnight`, `corporate`, `rose`,

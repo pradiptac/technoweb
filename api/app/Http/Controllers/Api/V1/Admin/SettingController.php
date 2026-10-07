@@ -673,6 +673,14 @@ class SettingController extends Controller
                 }
             }
 
+            // A custom font's rows are written by the font endpoints, which
+            // check the file; a path typed here would be one nothing checked.
+            if (str_starts_with($key, 'custom_font_')) {
+                throw ValidationException::withMessages([
+                    "settings.{$i}.value" => 'Upload a font under Your own fonts, not through this form.',
+                ]);
+            }
+
             if (in_array($key, $fonts, true) && filled($value)
                 && ! preg_match('/^[a-z][a-z0-9-]{1,31}$/', (string) $value)) {
                 throw ValidationException::withMessages([

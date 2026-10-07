@@ -385,6 +385,8 @@ Built in, measured, and never allowed to guess.
   credential-free, pruned only by age.
 - **Client-side error reporting** grouped by fingerprint, re-opening itself
   if a fix does not hold.
+- **Your own fonts**: upload the company's typeface and set headlines and
+  text in it, beside nineteen built in.
 - **Ready for a CDN**: an optional media CDN address for videos and
   documents, a site that behaves behind Cloudflare, and a status check that
   says when one is in front.

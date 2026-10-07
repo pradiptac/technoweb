@@ -665,6 +665,19 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'appearance', 'key' => 'theme_topbar', 'value' => null, 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_font_display', 'value' => 'instrument', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_font_body', 'value' => 'inter', 'type' => 'string'],
+            // A company's own typefaces (0.125.0, `App\Support\CustomFonts`): two
+            // slots, each a name and one or two WOFF2 files on the public
+            // disk. Public, because the root layout declares the faces
+            // before anybody signs in. Written only by the font endpoints —
+            // the settings `PATCH` refuses these keys.
+            ['group' => 'appearance', 'key' => 'custom_font_1_name', 'value' => null, 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'custom_font_1_regular', 'value' => null, 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'custom_font_1_bold', 'value' => null, 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'custom_font_1_variable', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'appearance', 'key' => 'custom_font_2_name', 'value' => null, 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'custom_font_2_regular', 'value' => null, 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'custom_font_2_bold', 'value' => null, 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'custom_font_2_variable', 'value' => '0', 'type' => 'boolean'],
 
             /*
              * The sign-in screen: what sits beside the form. `login_backdrop`

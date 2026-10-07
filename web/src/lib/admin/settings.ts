@@ -1,5 +1,5 @@
 import "server-only";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiUpload } from "@/lib/api";
 import { token } from "./_shared";
 import type {
   MailTemplateIndex, MailTemplateDetail, MailStatus, HunterAccount, InboundMailStatus,
@@ -270,6 +270,19 @@ export async function testSearchConsole(): Promise<{ site: string; days: number;
     method: "POST", body: {}, token: await token(),
   });
   return res.data;
+}
+
+export type CustomFontSlot = { slot: number; id: string; name: string | null; regular: string | null; bold: string | null; variable: boolean };
+
+/** Upload a company's own font into a slot: multipart, so `apiUpload` — `apiFetch` would send `{}`. */
+export async function saveCustomFont(slot: 1 | 2, data: FormData): Promise<CustomFontSlot> {
+  const res = await apiUpload<{ data: CustomFontSlot }>(`/admin/settings/fonts/${slot}`, data, { token: await token() });
+  return res.data;
+}
+
+/** Empty a font slot; the API takes the site off it too. */
+export async function removeCustomFont(slot: 1 | 2): Promise<void> {
+  await apiFetch<void>(`/admin/settings/fonts/${slot}`, { method: "DELETE", token: await token() });
 }
 
 /** Prove the media CDN: one library file fetched through the saved address and compared with the server's copy. */

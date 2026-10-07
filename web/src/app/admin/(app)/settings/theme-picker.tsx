@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { Field, Input, Select } from "@/components/ui/input";
 import { IconTile } from "@/components/ui/icon-tile";
 import { FONT_CHOICES } from "@/lib/font-choices";
+import { customFontsFor } from "@/lib/custom-fonts";
+import { CustomFontsPanel } from "./custom-fonts-panel";
 import { differs, nearestStep } from "@/lib/palette";
 import { ColourField } from "./settings-fields";
 import { DEFAULT_PRESET, PRESETS, generate, isHex, presetById, type Preset } from "@/lib/presets";
@@ -38,6 +40,9 @@ import type { SettingRow } from "@/lib/admin";
  */
 export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }) {
   const stored = Object.fromEntries(rows.map((r) => [r.key, r.value ?? ""]));
+  // The fonts the company uploaded itself, read from the same rows on every
+  // render — an upload re-renders this screen with the new ones.
+  const ownFonts = customFontsFor(stored);
   const initialId = stored.theme || DEFAULT_PRESET.id;
   const seed = presetById(initialId === "olive" ? DEFAULT_PRESET.id : initialId)?.inputs ?? DEFAULT_PRESET.inputs;
 
@@ -235,6 +240,9 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
             {FONT_CHOICES.filter((f) => f.display).map((f) => (
               <option key={f.id} value={f.id} style={{ fontFamily: `var(${f.variable})` }}>{f.label}</option>
             ))}
+            {ownFonts.map((f) => (
+              <option key={f.id} value={f.id} style={{ fontFamily: `var(${f.variable})` }}>{f.name} (your font)</option>
+            ))}
           </Select>
         </Field>
         <Field label="Body font" htmlFor="setting__theme_font_body" variant="float-static"
@@ -244,9 +252,15 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
             {FONT_CHOICES.filter((f) => f.body).map((f) => (
               <option key={f.id} value={f.id} style={{ fontFamily: `var(${f.variable})` }}>{f.label}</option>
             ))}
+            {ownFonts.map((f) => (
+              <option key={f.id} value={f.id} style={{ fontFamily: `var(${f.variable})` }}>{f.name} (your font)</option>
+            ))}
           </Select>
         </Field>
       </div>
+
+      {/* A company's own typefaces: uploaded here, chosen in the two lists above. */}
+      <CustomFontsPanel fonts={ownFonts} />
 
       {/* --------------------------- corners, spacing, cards, headings */}
       <div className="mt-2 grid gap-x-4 sm:grid-cols-2 xl:grid-cols-4">
