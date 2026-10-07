@@ -280,6 +280,27 @@ What to expect:
 It uses the same AI assistant as the page draft: it must be switched on with
 an OpenRouter key saved, and each use counts towards the daily limit.
 
+### Editing on the page
+
+On a wide screen (1400 pixels or more) the builder shows the page beside its
+sections — the **live preview** — and redraws it as you work. **Hide live
+preview** above the sections puts it away; **Desktop**, **Tablet** and
+**Phone** show the page at each width.
+
+You can change wording directly in that preview:
+
+- Press a **heading**, a **line of text** or a **button's wording**. A
+  dashed outline under the pointer shows what can be edited. Type; **Enter**
+  finishes, **Escape** puts back what was there.
+- The section's own fields on the left change as you type, and **Undo**
+  takes an edit back. As always, nothing is saved until you save the page.
+- The preview redraws when you finish, not while you type.
+- Longer formatted text, pictures, links, lists' rows and layout choices are
+  still changed in the section's card — pressing anywhere else in a section
+  opens it. So are a few words the page draws specially: tab names,
+  questions that open and close, links with an arrow, and counting figures.
+- Each field keeps its usual length; typing stops when it is full.
+
 ## The blog
 
 **Blog → Blog** lists your articles. Each post has a title, a slug, an

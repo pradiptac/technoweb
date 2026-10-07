@@ -188,6 +188,10 @@ class PageController extends Controller
             // The assistant on a section (0.127.0): whether it can be asked,
             // on which types, and what it can do.
             'ai_section' => SectionDraft::options(),
+            // Edit on the page (0.128.0): the plain-text fields of each type
+            // the live preview lets an editor change in place, and their
+            // lengths — read from the save's rules.
+            'inline_fields' => SectionRules::inlineFields(),
             'card_sources' => collect(SectionRules::cardSources())->map(fn ($label, $value) => ['value' => $value, 'label' => $label])->values(),
             'content_blocks' => ContentBlock::query()->where('status', PublishStatus::Published)->orderBy('type')->orderBy('name')
                 ->get(['id', 'type', 'name', 'slug'])

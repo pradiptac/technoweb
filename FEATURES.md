@@ -91,6 +91,8 @@ A full CMS for the people who write, without a developer in the loop.
   page can carry a menu of its own sections that follows the visitor down.
   An assistant on each section writes its wording from a line about it, or
   rewords, shortens or expands what it says — words only, with Undo.
+  Headings, lines of text and button wording can be edited directly on the
+  live preview.
 - **FAQs** managed in one place and attached to any solution, service, product
   or page — rendered on the page and as `FAQPage` structured data.
 - **Rich-text editor** with the full toolbar — headings, colour, tables,

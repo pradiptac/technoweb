@@ -96,7 +96,7 @@ final class Onboarding
                 'key' => 'scheduler',
                 'label' => 'Add the scheduler’s cron line',
                 'hint' => 'It delivers the mail and runs the backups; without it both stop silently.',
-                'href' => '/admin/system',
+                'href' => '/admin/system/status#scheduler',
                 'done' => (bool) (QueueHealth::scheduler()['running'] ?? false),
             ],
             [

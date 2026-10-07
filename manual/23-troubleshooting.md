@@ -15,6 +15,15 @@ there in red with a sentence beside them.
 
 ## The scheduler is not running
 
+**The quickest way: open System → System status → The scheduler.** It shows
+the exact command for your server, already filled in with the right paths,
+a **Copy** button, and the steps for adding it in Plesk, in cPanel or from a
+terminal. Where your host allows it, the site also tests the command and says
+whether it works. After adding it, press **Check again** on that screen:
+within two minutes it reads **Running**.
+
+The rest of this section is for when you cannot open the console.
+
 It is one cron job that must run every minute:
 
 ```

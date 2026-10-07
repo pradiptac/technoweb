@@ -13,7 +13,8 @@ import { SECTION_REVEALS } from "@/lib/motion-choices";
 import { cn } from "@/lib/utils";
 import type { SectionBackground } from "@/themes/options";
 import type { PageBuilderOptions, PageSectionType, SectionPreset, StoredSection } from "@/types/api";
-import { BlockEditorProvider, setIn, type Json, type Obj, type Path } from "../../blocks/editors/shared";
+import { specFor, type InlinePath } from "@/components/page-sections/inline-fields";
+import { BlockEditorProvider, getIn, setIn, type Json, type Obj, type Path } from "../../blocks/editors/shared";
 import { BackgroundField } from "./background-field";
 import { StyleField } from "./style-field";
 import { PreviewDialog } from "./preview-dialog";
@@ -266,12 +267,13 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
   };
 
   // A section pressed in the preview: open its card and bring it into view.
-  const selectFromPreview = useCallback((id: string) => {
+  // `quiet` is a press on words being edited there, which keep the focus.
+  const selectFromPreview = useCallback((id: string, quiet = false) => {
     setOpen((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
     window.requestAnimationFrame(() => {
       const card = root.current?.querySelector<HTMLElement>(`[data-section-card-id="${CSS.escape(id)}"]`);
       card?.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-      card?.querySelector<HTMLElement>("button[aria-expanded]")?.focus({ preventScroll: true });
+      if (!quiet) card?.querySelector<HTMLElement>("button[aria-expanded]")?.focus({ preventScroll: true });
     });
   }, []);
 
@@ -329,6 +331,29 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
   const patch = useCallback(
     (id: string, change: (s: StoredSection) => StoredSection) => apply((prev) => prev.map((s) => (s.id === id ? change(s) : s)), `patch:${id}`),
     [apply],
+  );
+
+  /*
+   * Words edited on the page (0.128.0, docs/page-builder.md "Edit on the
+   * page"). The preview is another document, so its message is checked like
+   * anything from outside: the path must be one of this type's in-place
+   * fields (the API's list), the words one line within the field's length,
+   * and `was` what the field holds **now** — an edit made against a draft
+   * the builder has since moved on from (a row removed, the field retyped in
+   * its card) is dropped rather than written to the wrong place. It goes
+   * through `patch`, so it is one undo step with any typing in that section
+   * within the second, and an emptied field is stored as the card stores it.
+   */
+  const editFromPreview = useCallback(
+    (id: string, path: InlinePath, value: string, was: string) => {
+      const section = sections.find((s) => s.id === id);
+      const spec = section && specFor(options.inline_fields?.[section.type], path);
+      if (!section || !spec || value.length > spec.max || /[\r\n]/.test(value)) return;
+      const current = getIn(section.data as Obj, path);
+      if ((typeof current === "string" ? current : "") !== was) return;
+      patch(id, (s) => ({ ...s, data: setIn(s.data as Obj, path, value === "" ? undefined : value) as Obj }));
+    },
+    [sections, options.inline_fields, patch],
   );
 
   // The assistant's wording: one history step of its own, never merged with typing.
@@ -514,7 +539,10 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
       </div>
       </div>
 
-      {showLive && <LivePreview sections={sections} pageId={pageId} focus={focus} onSelect={selectFromPreview} />}
+      {showLive && (
+        <LivePreview sections={sections} pageId={pageId} focus={focus} onSelect={selectFromPreview}
+          inline={options.inline_fields} onEdit={editFromPreview} />
+      )}
 
       <Modal open={picking} onClose={() => setPicking(false)} title="Add a section" size="lg"
         description="Each is a set of fields; the theme decides how it looks.">

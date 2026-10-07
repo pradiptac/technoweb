@@ -74,6 +74,9 @@ goes away as soon as the application is created.
    `/opt/cpanel/ea-php83/root/usr/bin/php /home/you/altis-tech-cms/api/artisan schedule:run >> /dev/null 2>&1`.
 3. **Add New Cron Job**. The wizard sees it within a minute.
 
+If you need the line again later, it is on **System → System status** in the
+console, under **The scheduler**, with a Copy button.
+
 If the wizard shows plain `php` at the start of the line, ask your host for the
 full path to PHP 8.3's command-line program, or see
 [23 — Troubleshooting](23-troubleshooting.md).

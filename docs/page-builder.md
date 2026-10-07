@@ -393,6 +393,72 @@ A throwaway browser probe checked it: beside at 1600, no
 redraw while idle, typing reaches the frame, a press opens the card, opening a
 card outlines the section, the phone width, hide/show, absent at 1280.
 
+### Edit on the page (0.128.0)
+
+**In the live preview, a heading, a line of text or a button's wording is
+changed where it stands.** Rich-text bodies, pictures, lists' rows and
+everything that is a choice keep their card; a press on the section still
+opens it.
+
+- **Which fields is the API's answer, read off the save's rules.**
+  `SectionRules::inlineFields()` — `inline_fields` on `GET
+  /admin/pages/builder` — is every field whose rules are `string`, a `max:`
+  and presence rules and nothing else, as a path (`items.*.title`,
+  `rows.*.cells.*`) with that length. A choice, a link, an icon id, a date
+  and a number are out by what they are; a stored path, a filter and the
+  rich bodies by `_path` and `NOT_INLINE`. Nothing is listed in TypeScript,
+  and `PageBuilderTest` pins it against the rules and against
+  `SectionDraft::SCHEMA` (what the assistant calls words can be edited here).
+- **A field is found on the page by its words, not by a prop.** The builder
+  sends each section's fields with their values; `BuilderPreviewBridge`
+  takes, inside that section's `[data-builder-id]`, the innermost element
+  whose whole text is exactly the value. No section component knows, which
+  is what lets all thirty types — and every theme's redrawing of them — take
+  part with nothing threaded through each. `PageSections` is unchanged, so
+  the public markup is too.
+- **Where the match is not certain, the field keeps its card**: the same
+  words in two fields but not in exactly two places; words inside a
+  `button`, a tab or a `summary` (a press there already means something);
+  a run holding a glyph or a picture (a link with its arrow); a figure that
+  counts up; a comparison's ticks; anything not drawn at this width. Two
+  places drawing one field are both that field. The words are looked for
+  again after a width change and after a press, since a tab or a slide may
+  have shown some that were not drawn before.
+- **One line of plain text.** `contenteditable="plaintext-only"` (plain
+  `true` with a paste handler where that is unsupported; only `textContent`
+  is ever read). Enter finishes, Escape puts back what was there, the field
+  is cut at its length, white space is collapsed, and a value holding a line
+  break is not offered at all.
+- **The frame is told about the draft it drew**, not the list as it stands:
+  `LivePreview` keeps `drawn` per draft id and answers the frame's
+  `tw:builder-ready` with `tw:builder-fields` for that draft.
+- **An edit is `{id, path, value, was}` and is checked like anything from
+  outside** (`editFromPreview`): from the shown frame only; the path one of
+  that type's in-place fields; one line within its length; and `was` what
+  the field holds now — so an edit made against a draft the builder has
+  moved on from (a row removed, the field retyped in its card) is dropped
+  rather than written to the wrong place. It goes through `patch`: the
+  card's own field follows, it is one undo step with any typing in that
+  section within the second, and an emptied field is stored as the card
+  stores it.
+- **The handler is read at the moment of the message** — an Effect Event
+  called inside `flushSync`. As a prop in the listener's closure it was
+  stale for a fast typist: the effect re-subscribes after the paint, the
+  second letter's message arrived first, was checked against the words
+  before the first letter, and every letter after it was refused. The probe
+  found it at 25ms a key, where only the first character landed.
+- **Nothing redraws while words are being edited.** The frame posts
+  `tw:builder-editing`; the redraw effect waits and a frame that finishes
+  loading meanwhile is dropped — a swap would take the caret away mid-word.
+  The redraw runs when the field is left, and the pane says so.
+- A press on editable words still opens the card and scrolls to it
+  (`quiet`), without moving focus to the card's toggle.
+
+Probe: `PAGE_ID=<id> node scripts/probes/inline-edit.mjs` — typing reaches
+the form and the card, no redraw while typing, Enter and Escape, a button's
+wording but never its link, the length, Undo, the phone width, and forged
+messages refused. It saves nothing.
+
 **Each section card has an Appear select** (2026-09-27), above its
 background: `SECTION_REVEALS` from `lib/motion-choices.ts`, stored on the
 section as `reveal` beside `hidden` and `background` — never `default`, which
@@ -853,6 +919,8 @@ by the theme rule, a live list resolved, faq sections joining the one
 preset saved through the real rules, the role gate.
 `tests/Feature/SectionDraftTest.php` — the assistant on a section: the schema
 against the rules, the merge, lists, rich text in and out, every refusal.
+`PageBuilderTest` also pins `inline_fields` (0.128.0): free text only, each
+with its rule's length, never a choice, a link, an icon or a file.
 `tests/Unit/SanitisesRichTextTest.php` — the nested wildcard path.
 `tests/Unit/BodySectionsTest.php` — the heading split, `h3`s, a heading over
 nothing, an empty body, the forty cap, the size cut. `PageBuilderTest` also

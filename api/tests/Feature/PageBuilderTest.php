@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PageSectionType;
 use App\Enums\PublishStatus;
 use App\Enums\Role as RoleEnum;
 use App\Models\ContentBlock;
@@ -15,6 +16,8 @@ use App\Models\Solution;
 use App\Models\TeamMember;
 use App\Models\User;
 use App\Support\MediaMeta;
+use App\Support\PageSections\SectionRules;
+use App\Support\Seo\Ai\SectionDraft;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -791,6 +794,68 @@ class PageBuilderTest extends TestCase
         foreach ($presets as $i => $preset) {
             $blocks = array_map(fn ($s) => ['id' => (string) Str::uuid()] + $s, $preset['sections']);
             $this->create($blocks, ['title' => "Preset {$i}", 'slug' => "preset-{$i}"])->assertCreated();
+        }
+    }
+
+    /**
+     * Edit on the page (0.128.0): the fields the live preview lets an editor
+     * change in place are read off the save's rules — free text only, each
+     * with the rule's own length.
+     */
+    public function test_the_fields_edited_on_the_page_are_the_free_text_of_the_rules(): void
+    {
+        $inline = $this->actingAs($this->user(), 'sanctum')->getJson('/api/v1/admin/pages/builder')->assertOk()->json('data.inline_fields');
+
+        $this->assertSame($inline, SectionRules::inlineFields());
+
+        $paths = fn (string $type) => array_column($inline[$type] ?? [], 'max', 'path');
+
+        // A hero: its words and its buttons' labels — never the layout, the
+        // picture, the video or where a button goes.
+        $this->assertSame(
+            ['kicker' => 80, 'heading' => 160, 'lede' => 400, 'primary.label' => 40, 'secondary.label' => 40],
+            $paths('hero'),
+        );
+
+        // Rich text keeps its editor; a row's plain text is edited in place.
+        $this->assertSame(['heading' => 160], $paths('rich_text'));
+        $this->assertArrayNotHasKey('body', $paths('media_text'));
+        $this->assertSame(120, $paths('columns')['columns.*.heading']);
+        $this->assertArrayNotHasKey('columns.*.body', $paths('columns'));
+        $this->assertSame(2000, $paths('tabs')['items.*.body']);
+        $this->assertSame(60, $paths('comparison')['rows.*.cells.*']);
+
+        // Nothing that is a choice, a link, an icon, a date, a filter or a file.
+        foreach ($inline as $type => $fields) {
+            $rules = SectionRules::for(PageSectionType::from($type));
+
+            foreach ($fields as $field) {
+                $this->assertContains('string', $rules[$field['path']], "{$type}.{$field['path']}");
+                $this->assertContains('max:'.$field['max'], $rules[$field['path']], "{$type}.{$field['path']}");
+                $this->assertDoesNotMatchRegularExpression(
+                    '/(^|\.)(icon|href|url|layout|source|side|media|display|tone|youtube|category|department|ends_at|section)$|_path$|_id$/',
+                    $field['path'],
+                    "{$type}.{$field['path']}",
+                );
+            }
+        }
+
+        // A type with no words of its own offers nothing.
+        foreach (['content_block', 'divider', 'theme_section', 'saved'] as $type) {
+            $this->assertArrayNotHasKey($type, $inline);
+        }
+
+        // Every field the assistant treats as plain words can be edited here too.
+        foreach (SectionDraft::SCHEMA as $type => $schema) {
+            foreach ($schema['text'] ?? [] as $key) {
+                $this->assertArrayHasKey($key, $paths($type), "{$type}.{$key}");
+            }
+            foreach ($schema['buttons'] ?? [] as $button) {
+                $this->assertArrayHasKey("{$button}.label", $paths($type), "{$type}.{$button}");
+            }
+            foreach ($schema['list']['text'] ?? [] as $key) {
+                $this->assertArrayHasKey("{$schema['list']['key']}.*.{$key}", $paths($type), "{$type} list {$key}");
+            }
         }
     }
 

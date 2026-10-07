@@ -69,7 +69,7 @@ class BackupController extends Controller
         $data = $request->validate(['type' => ['required', Rule::in(['full', 'incremental'])]]);
 
         if (! self::running()) {
-            throw ValidationException::withMessages(['type' => 'The scheduler is not running on this server, so the backup would never start. Add the cron entry `* * * * * cd /path/to/api && php artisan schedule:run`, or run `php artisan technoware:backup --wait` at a terminal.']);
+            throw ValidationException::withMessages(['type' => 'The scheduler is not running on this server, so the backup would never start. Add the scheduler’s cron line — System → Status shows the exact line for this server — or run `php artisan technoware:backup --wait` at a terminal.']);
         }
 
         if (Backup::query()->inFlight()->exists() || BackupRestore::query()->inFlight()->exists()) {

@@ -690,35 +690,15 @@ final class Wizard
         $this->laravel();
         $pulse = QueueHealth::scheduler();
 
+        // The same line System → Status shows afterwards: one definition
+        // (`SchedulerSetup`), so the wizard and the console cannot disagree
+        // about where this server keeps its command-line PHP.
+        $setup = \App\Support\System\SchedulerSetup::report();
+
         return [
             'running' => (bool) ($pulse['running'] ?? false),
-            'cron' => '* * * * * '.$this->phpCli().' '.$this->api.'/artisan schedule:run >> /dev/null 2>&1',
+            'cron' => $setup['cron'] ?? $setup['command'],
         ];
-    }
-
-    /**
-     * The command-line PHP on this host, as well as it can be guessed.
-     *
-     * `PHP_BINARY` in a web request is the FPM or CGI binary, not the CLI a
-     * cron line needs. Plesk and cPanel both keep a CLI beside each version
-     * at a predictable path; anything else gets plain `php`, and the manual
-     * says how to find the right one.
-     */
-    private function phpCli(): string
-    {
-        $bin = PHP_BINARY;
-
-        if (preg_match('#^(/opt/plesk/php/\d+\.\d+)/#', $bin, $m)) {
-            return $m[1].'/bin/php';
-        }
-        if (preg_match('#^(/opt/cpanel/ea-php\d+)/#', $bin, $m)) {
-            return $m[1].'/root/usr/bin/php';
-        }
-        if (preg_match('#^/opt/alt/php(\d+)/#', $bin, $m)) {
-            return '/opt/alt/php'.$m[1].'/usr/bin/php';
-        }
-
-        return 'php';
     }
 
     /* --------------------------------------------------------- 10. done */

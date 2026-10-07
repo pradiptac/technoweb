@@ -21,6 +21,32 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.128.0 — 2026-10-07
+
+**The page builder: edit wording on the page itself.**
+
+- In the builder's **live preview** (shown beside the sections on a wide
+  screen), press a heading, a line of text or a button's wording and type.
+  **Enter** finishes; **Escape** puts back what was there.
+- The section's own fields follow as you type, **Undo** takes an edit back,
+  and nothing is saved until you save the page.
+- The preview redraws when you finish, so the words do not jump while you
+  are typing.
+- Longer formatted text, pictures, links and layout are still changed in the
+  section's card, as are tab names, questions that open and close, links
+  with an arrow and counting figures.
+- **System → System status** now shows the scheduler's **exact command for
+  your server**, with a Copy button and the steps for adding it in Plesk, in
+  cPanel or from a terminal (on Windows, the equivalent). Where the host
+  allows, the site tests the command and says whether it works. The notices
+  elsewhere that say the scheduler has stopped link straight to it.
+- Fixed: on the dashboard's **Getting started** list, **Add the scheduler's
+  cron line** opened a "page not found". It now opens that part of System
+  status.
+- After updating, nothing needs doing.
+
+---
+
 ## 0.127.0 — 2026-10-07
 
 **The page builder: an assistant on each section.**

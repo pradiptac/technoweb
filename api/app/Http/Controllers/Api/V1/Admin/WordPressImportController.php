@@ -75,7 +75,7 @@ class WordPressImportController extends Controller
         }
 
         if (! self::draining()) {
-            throw ValidationException::withMessages(['queue' => 'Nothing is draining the queue, so the scan would never start. On the server add the cron entry `* * * * * cd /path/to/api && php artisan schedule:run`, or run `php artisan queue:work`.']);
+            throw ValidationException::withMessages(['queue' => 'Nothing is draining the queue, so the scan would never start. On the server add the scheduler’s cron line — System → Status shows the exact line for this server — or run `php artisan queue:work`.']);
         }
 
         // An earlier import of this site that nobody committed is replaced, not left to expire beside this one.

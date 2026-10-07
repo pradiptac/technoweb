@@ -1,14 +1,13 @@
+import Link from "next/link";
 import { Alert } from "@/components/ui/input";
 import type { QueueHealth } from "@/types/api";
 
 /*
-  The cron entry, spelled out where somebody is about to need it.
-
-  `/path/to/api` rather than a guess: the document root is a Plesk decision
-  and inventing one produces a line that looks authoritative and does not
-  work. The deploy notes in README.md carry the same line.
+  Where the cron entry is. It used to be printed here with `/path/to/api` in
+  it — rather than a guess that looks authoritative and does not work — for
+  somebody to rewrite by hand. System → Status now works the real line out on
+  the server and tests it (0.128.0), so this points there.
 */
-const CRON = "* * * * * cd /path/to/api && php artisan schedule:run >> /dev/null 2>&1";
 
 function ago(seconds: number): string {
   if (seconds < 90) return `${seconds} second${seconds === 1 ? "" : "s"} ago`;
@@ -97,20 +96,10 @@ export function DeliveryStatus({ queue, subject = "campaign" }: { queue: QueueHe
         {pending > 0 && ` ${pending} message${pending === 1 ? " is" : "s are"} already waiting.`}
       </p>
 
-      <p className="mt-2">On the server, add this one cron entry:</p>
-
-      {/*
-        Wide content scrolls inside its own box rather than the page. `w-0
-        min-w-full` is what makes that true inside a grid: a scroll container
-        still contributes its content's min-content width to the grid item it
-        sits in, so placed under the mailbox wizard's `grid gap-5` the crontab
-        line widened the whole column to 567px at 360 — the alert, the radio
-        cards, every field — with the pre scrolling happily inside it. A width
-        of zero contributes nothing; the min-width fills the box back out.
-      */}
-      <pre className="mt-1 w-0 min-w-full overflow-x-auto rounded border border-warn/25 bg-surface px-2.5 py-2 text-12 text-ink">
-        <code>{CRON}</code>
-      </pre>
+      <p className="mt-2">
+        On the server, add the scheduler’s one cron entry:{" "}
+        <Link href="/admin/system/status#scheduler" className="font-semibold underline">System → Status</Link> shows the exact line for this server and where to add it.
+      </p>
 
       <p className="mt-2">
         Or run a worker yourself: <code className="font-mono">php artisan queue:work</code>{" "}

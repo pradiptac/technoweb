@@ -12,6 +12,7 @@ import { noIndex } from "@/lib/no-index";
 import { buildMetadata } from "@/lib/seo";
 import { APP_VERSION } from "@/lib/version";
 import type { SystemStatus } from "@/types/system";
+import { SchedulerGuide } from "./scheduler-guide";
 
 export const metadata = buildMetadata({ title: "System status", path: "/admin/system/status", seo: noIndex });
 
@@ -90,8 +91,10 @@ export default async function SystemStatusPage() {
           {status.website.error && <p className="mt-3 text-13 text-err">{status.website.error}</p>}
         </Card>
 
-        <Card interactive={false} padding="sm" as="section" className="min-w-0">
-          <h2 className="mb-3 text-15 font-semibold">The scheduler</h2>
+        {/* Both columns: it carries a command line and the steps for adding it. */}
+        <Card interactive={false} padding="sm" as="section" className="min-w-0 lg:col-span-2">
+          {/* The anchor the dashboard's checklist and every "scheduler is not running" notice link to. */}
+          <h2 id="scheduler" className="mb-3 scroll-mt-24 text-15 font-semibold">The scheduler</h2>
           <p className="text-13-5">
             {status.scheduler.running
               ? <Badge tone="resolved">Running</Badge>
@@ -100,11 +103,13 @@ export default async function SystemStatusPage() {
               {status.scheduler.last_run_seconds == null ? "It has never run." : `Last seen ${status.scheduler.last_run_seconds} seconds ago.`}
             </span>
           </p>
-          {!status.scheduler.running && (
-            <p className="mt-2 text-13 text-muted">
-              Mail, backups and reminders wait for it. Add the cron job from <code className="font-mono [overflow-wrap:anywhere]">MANUAL/23-troubleshooting.md</code>.
-            </p>
-          )}
+          {status.scheduler.setup
+            ? <SchedulerGuide setup={status.scheduler.setup} running={Boolean(status.scheduler.running)} />
+            : !status.scheduler.running && (
+              <p className="mt-2 text-13 text-muted">
+                Mail, backups and reminders wait for it. Add the cron job from <code className="font-mono [overflow-wrap:anywhere]">MANUAL/23-troubleshooting.md</code>.
+              </p>
+            )}
         </Card>
 
         <Card interactive={false} padding="sm" as="section" className="min-w-0">

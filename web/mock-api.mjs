@@ -2130,6 +2130,38 @@ const BUILDER_OPTIONS = {
       { value: 'expand', label: 'Expand', blurb: 'The running text about twice as long. A fact it was not given is marked [CHECK: …].', needs_brief: false },
     ],
   },
+  // Edit on the page (0.128.0): the plain-text fields of each type, as the API derives them from its rules.
+  inline_fields: Object.fromEntries(Object.entries({
+    hero: [['kicker', 80], ['heading', 160], ['lede', 400], ['primary.label', 40], ['secondary.label', 40]],
+    rich_text: [['heading', 160]],
+    media_text: [['kicker', 80], ['heading', 160], ['primary.label', 40], ['secondary.label', 40]],
+    features: [['kicker', 80], ['heading', 160], ['lede', 400], ['items.*.title', 80], ['items.*.body', 300], ['items.*.link_label', 40]],
+    cards: [['kicker', 80], ['heading', 160], ['lede', 400]],
+    slider: [['heading', 160]],
+    gallery: [['heading', 160]],
+    form: [['heading', 160], ['lede', 400]],
+    faq: [['heading', 160], ['items.*.question', 300], ['items.*.answer', 2000]],
+    logos: [['heading', 120]],
+    testimonial: [['quote', 800], ['name', 120], ['role', 160]],
+    video: [['heading', 160], ['caption', 300]],
+    stats: [['kicker', 80], ['heading', 160], ['lede', 400], ['items.*.value', 24], ['items.*.label', 80]],
+    steps: [['kicker', 80], ['heading', 160], ['lede', 400], ['items.*.title', 80], ['items.*.body', 400]],
+    tabs: [['kicker', 80], ['heading', 160], ['lede', 400], ['items.*.label', 40], ['items.*.heading', 120], ['items.*.body', 2000]],
+    checklist: [['kicker', 80], ['heading', 160], ['lede', 400], ['items.*.text', 200], ['primary.label', 40], ['secondary.label', 40]],
+    cta: [['kicker', 80], ['heading', 160], ['lede', 400], ['primary.label', 40], ['secondary.label', 40]],
+    comparison: [['kicker', 80], ['heading', 160], ['lede', 400], ['plans.*.name', 40], ['plans.*.note', 60], ['rows.*.label', 120], ['rows.*.cells.*', 60], ['primary.label', 40]],
+    timeline: [['kicker', 80], ['heading', 160], ['lede', 400], ['items.*.date', 24], ['items.*.title', 120], ['items.*.body', 400]],
+    before_after: [['heading', 160], ['lede', 400], ['before_label', 24], ['after_label', 24], ['caption', 300]],
+    testimonials: [['kicker', 80], ['heading', 160], ['lede', 400], ['items.*.quote', 600], ['items.*.name', 120], ['items.*.role', 160]],
+    team: [['kicker', 80], ['heading', 160], ['lede', 400]],
+    downloads: [['kicker', 80], ['heading', 160], ['lede', 400], ['items.*.title', 120], ['items.*.note', 200]],
+    countdown: [['kicker', 80], ['heading', 160], ['lede', 400], ['done_text', 160], ['primary.label', 40], ['secondary.label', 40]],
+    columns: [['kicker', 80], ['heading', 160], ['lede', 400], ['columns.*.heading', 120]],
+    map: [['heading', 160], ['lede', 400], ['address', 300]],
+    story: [['kicker', 60], ['heading', 120], ['lede', 300], ['items.*.title', 100], ['items.*.body', 600]],
+    flow: [['kicker', 80], ['heading', 120], ['lede', 300], ['items.*.title', 60], ['items.*.note', 160], ['caption', 200]],
+    subnav: [['label', 40]],
+  }).map(([type, fields]) => [type, fields.map(([path, max]) => ({ path, max }))])),
   card_sources: [
     { value: 'solutions', label: 'Solutions' }, { value: 'services', label: 'Services' }, { value: 'industries', label: 'Industries' },
     { value: 'case_studies', label: 'Case studies' }, { value: 'blog', label: 'Blog posts' }, { value: 'knowledge', label: 'Knowledge base articles' },
@@ -4338,12 +4370,32 @@ createServer(async (req, res) => {
         ['social', 'Check the social links', '/admin/settings?tab=social', true],
         ['look', 'Choose a look', '/admin/themes', true],
         ['mail', 'Send a test email', '/admin/settings?tab=mail', false],
-        ['scheduler', 'Add the scheduler’s cron line', '/admin/system', true],
+        ['scheduler', 'Add the scheduler’s cron line', '/admin/system/status#scheduler', true],
         ['backups', 'Turn on backups', '/admin/backups/settings', false],
         ['team', 'Invite your team', '/admin/users/new', true],
         ['legal', 'Have the privacy and terms pages reviewed', '/admin/pages', false],
       ].map(([key, label, href, done]) => ({ key, label, hint: '', href, done }));
       return json(res, 200, { data: { steps, done: steps.filter((s) => s.done).length, total: steps.length } });
+    }
+    if (p === '/admin/system/status') {
+      return json(res, 200, { data: {
+        version: { version: '0.128.0', commit: null, built_at: null },
+        code_schema: '2026_10_06_000000', database_schema: '2026_10_06_000000', installed: null,
+        php: { version: '8.3.0', checks: [], max_execution_time: 30, memory_limit: '256M' },
+        scheduler: {
+          known: true, last_run_seconds: null, running: false,
+          setup: {
+            os: 'linux', panel: 'plesk', php: '/opt/plesk/php/8.3/bin/php', php_checked: null, php_version: null,
+            artisan: '/var/www/vhosts/example.com/altis-tech-cms/api/artisan', user: 'example',
+            command: '/opt/plesk/php/8.3/bin/php /var/www/vhosts/example.com/altis-tech-cms/api/artisan schedule:run >> /dev/null 2>&1',
+            cron: '* * * * * /opt/plesk/php/8.3/bin/php /var/www/vhosts/example.com/altis-tech-cms/api/artisan schedule:run >> /dev/null 2>&1',
+            work: '/opt/plesk/php/8.3/bin/php /var/www/vhosts/example.com/altis-tech-cms/api/artisan schedule:work',
+            windows_task: null, dev: true,
+          },
+        },
+        disk: { free: null, total: null },
+        website: { reachable: true, version: '0.128.0', api: true, url: 'http://127.0.0.1:3000', error: null },
+      } });
     }
     if (p === '/admin/users') return json(res, 200, { data: staffList });
 

@@ -293,8 +293,8 @@ class NewsletterImportController extends Controller
 
         if (! QueueHealth::delivering()) {
             throw ValidationException::withMessages([
-                'queue' => 'Nothing is draining the queue, so the scan would never start. On the server add the cron entry '
-                    .'`* * * * * cd /path/to/api && php artisan schedule:run >> /dev/null 2>&1`, or run `php artisan queue:work`.',
+                'queue' => 'Nothing is draining the queue, so the scan would never start. On the server add the scheduler’s cron line — '
+                    .'System → Status shows the exact line for this server — or run `php artisan queue:work`.',
             ]);
         }
 
@@ -468,8 +468,8 @@ class NewsletterImportController extends Controller
 
         if (! QueueHealth::delivering()) {
             throw ValidationException::withMessages([
-                'queue' => 'Nothing is draining the queue, so the crawl would never start. On the server add the cron entry '
-                    .'`* * * * * cd /path/to/api && php artisan schedule:run >> /dev/null 2>&1`, or run `php artisan queue:work`.',
+                'queue' => 'Nothing is draining the queue, so the crawl would never start. On the server add the scheduler’s cron line — '
+                    .'System → Status shows the exact line for this server — or run `php artisan queue:work`.',
             ]);
         }
 

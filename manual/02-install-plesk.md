@@ -78,6 +78,9 @@ The wizard shows one line starting `* * * * *`. In Plesk:
    command, and choose **Every minute** (or cron style `* * * * *`).
 3. Save. Within a minute the wizard sees it and finishes.
 
+If you need the line again later, it is on **System → System status** in the
+console, under **The scheduler**, with a Copy button.
+
 ## 8. Done
 
 The wizard shows a link to the console, `https://www.example.com/admin`. Sign

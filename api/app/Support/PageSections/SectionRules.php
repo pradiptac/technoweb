@@ -471,6 +471,80 @@ final class SectionRules
         };
     }
 
+    /**
+     * Text a type stores that is still not for editing on the page: a filter
+     * (it chooses what is listed, and is drawn nowhere), a link that is
+     * reduced to an id, and the rich-text bodies, which keep their editor.
+     */
+    private const NOT_INLINE = ['youtube', 'category', 'department', 'body', 'columns.*.body'];
+
+    /**
+     * The plain-text fields an editor may change on the page itself, in the
+     * builder's live preview (0.128.0, docs/page-builder.md "Edit on the
+     * page"), with the length each is held to.
+     *
+     * **Derived from `for()`, never listed**: a field is free text when its
+     * rules are `string`, a `max:` and presence rules and nothing else — so
+     * a choice (`Rule::in`), a link, an icon id, a date and a number are out
+     * by what they are, and a field added to a type tomorrow is in or out by
+     * its own rules. A stored path is text by its rules and not by its
+     * meaning, hence the `_path` suffix and `NOT_INLINE`.
+     *
+     * @return array<string, list<array{path: string, max: int}>>
+     */
+    public static function inlineFields(): array
+    {
+        $out = [];
+
+        foreach (PageSectionType::cases() as $type) {
+            $fields = [];
+
+            foreach (self::for($type) as $key => $rules) {
+                if (! is_array($rules) || in_array($key, self::NOT_INLINE, true) || str_ends_with($key, '_path')) {
+                    continue;
+                }
+
+                $max = self::freeTextMax($rules);
+
+                if ($max !== null) {
+                    $fields[] = ['path' => $key, 'max' => $max];
+                }
+            }
+
+            if ($fields !== []) {
+                $out[$type->value] = $fields;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * The `max:` of a field whose rules make it free text, or null.
+     *
+     * @param  array<int, mixed>  $rules
+     */
+    private static function freeTextMax(array $rules): ?int
+    {
+        $max = null;
+
+        foreach ($rules as $rule) {
+            if (! is_string($rule)) {
+                return null;
+            }
+
+            if (str_starts_with($rule, 'max:')) {
+                $max = (int) substr($rule, 4);
+            } elseif (! in_array($rule, ['nullable', 'required', 'string'], true)
+                && ! str_starts_with($rule, 'required_with:')
+                && ! str_starts_with($rule, 'required_if:')) {
+                return null;
+            }
+        }
+
+        return in_array('string', $rules, true) ? $max : null;
+    }
+
     /** A button: a label and a link, both or neither. @return array<string, mixed> */
     private static function button(string $key, string $at): array
     {

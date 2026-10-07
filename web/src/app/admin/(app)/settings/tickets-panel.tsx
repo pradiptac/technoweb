@@ -114,8 +114,8 @@ export function TicketsPanel({ status, rows }: { status: InboundMailStatus; rows
       {enabled && status.enabled && schedulerStopped && (
         <Alert tone="warn" title="The scheduler is not running, so the mailbox is not being read">
           Piping runs once a minute from the scheduled task, and nothing throws when
-          it stops — messages simply wait. The line it needs:
-          <span className="mt-1 block font-mono text-12">* * * * * php artisan schedule:run</span>
+          it stops — messages simply wait.{" "}
+          <Link href="/admin/system/status#scheduler" className="font-semibold underline">System → Status</Link> shows the exact line it needs on this server.
         </Alert>
       )}
 

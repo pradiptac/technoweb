@@ -4649,6 +4649,26 @@ html[data-builder-preview] [data-builder-id][data-builder-flash] {
   outline: 3px solid var(--color-brand-ink);
 }
 
+/*
+ * Edit on the page (0.128.0): words the bridge has made editable. The ring
+ * is the words' own colour, so it reads on a light section and a dark band
+ * alike without a token per ground; like the section's, it is an outline and
+ * paints nothing. `cursor: text` says the press will type rather than open
+ * the card.
+ */
+html[data-builder-preview] [data-edit] {
+  cursor: text;
+  border-radius: 3px;
+  outline: 1px dashed transparent;
+  outline-offset: 3px;
+}
+html[data-builder-preview] [data-edit]:hover {
+  outline-color: color-mix(in oklab, currentColor 55%, transparent);
+}
+html[data-builder-preview] [data-edit]:focus {
+  outline: 2px solid currentColor;
+}
+
 /* ------------------------------------------------- editor-built forms
  *
  * `components/forms/form-block.tsx` (0.117.0): conditions, steps and the

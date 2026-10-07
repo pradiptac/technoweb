@@ -72,7 +72,8 @@ export default async function CampaignReportPage({ params }: { params: Promise<{
             written, which is why the screen otherwise looks like a send in progress.
           </p>
           <p className="mt-2">
-            On the server this is the scheduler&rsquo;s cron entry. On a development machine,
+            On the server this is the scheduler&rsquo;s cron entry — <Link href="/admin/system/status#scheduler" className="font-semibold underline">System → Status</Link> shows
+            the exact line. On a development machine,
             run <code className="font-mono">php artisan schedule:work</code> — or{" "}
             <code className="font-mono">php artisan queue:work</code> to deliver at once.
           </p>

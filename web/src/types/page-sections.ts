@@ -258,6 +258,12 @@ export type PageBuilderOptions = {
   };
   /** The assistant on a section (0.127.0). Optional for an older API, which has none. */
   ai_section?: AiSectionOptions;
+  /**
+   * Edit on the page (0.128.0): per section type, the plain-text fields the
+   * live preview lets an editor change in place — a path with `*` for a row,
+   * and the length the save holds it to. The API's, read off its own rules.
+   */
+  inline_fields?: Record<string, { path: string; max: number }[]>;
 };
 
 export type AiSectionMode = "write" | "rewrite" | "shorten" | "expand";

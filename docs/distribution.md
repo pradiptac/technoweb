@@ -288,6 +288,54 @@ the delete, the key that is not copied, a key already saved for OpenRouter
 that is kept, a second run that changes nothing, and an install holding none
 of the rows.
 
+## The scheduler's command (0.128.0)
+
+Everything unattended hangs off one line run every minute, and the part of it
+nobody can guess is the path to the **command-line** PHP: in a web request
+`PHP_BINARY` is the FPM or CGI binary — under Apache's module, Apache itself.
+The wizard worked the path out and showed the line once, on a screen that
+cannot be reopened; five console notices printed
+`cd /path/to/api && php artisan schedule:run` for somebody to rewrite.
+
+`App\Support\System\SchedulerSetup` is the one definition now, read by the
+wizard's last step and by `GET /admin/system/status` (`scheduler.setup`):
+
+- **`phpCli()` is a pure mapping**, pinned row by row in
+  `tests/Unit/SchedulerSetupTest.php` because none of these hosts can be
+  reached from a development machine: a request served by the CLI names it;
+  Plesk `/opt/plesk/php/8.3/bin/php`, cPanel
+  `/opt/cpanel/ea-php83/root/usr/bin/php`, CloudLinux
+  `/opt/alt/php83/usr/bin/php`; on Windows the `php.exe` beside
+  `php-cgi.exe`, or in `PHP_BINDIR` when the binary is `httpd.exe` (XAMPP);
+  otherwise the versioned and then the plain binary in `PHP_BINDIR`; plain
+  `php` last.
+- **`verify()` is the diagnosis**: it runs that binary with a fixed
+  `-r "echo PHP_VERSION, '|', PHP_SAPI;"` (three seconds, nothing from the
+  request) and reports `php_checked` true only for a `cli` SAPI at
+  `Requirements::PHP_MIN` or newer. A binary that will not run is `false` —
+  a result. `null` means the host would not let a web request start a
+  program at all (`proc_open` disabled, the shared-hosting case): *could not
+  be checked*, never a guess dressed as one. Cached ten minutes.
+- **The line in each form somebody pastes**: `command` (a control panel's
+  box), `cron` (a crontab; null on Windows), `work` (`schedule:work`, a
+  terminal left open), `windows_task` (a `schtasks` line; Windows has no
+  cron and no `/dev/null`). A path is quoted only when it has to be.
+- **The screen** (`system/status/scheduler-guide.tsx`) composes nothing: the
+  command with a Copy button, what the check found in words, the steps for
+  the panel detected with the others a fold away, and "Check again"
+  (`router.refresh()` — a link to the same route is answered from the
+  router's own copy). Open while the scheduler is not running, folded once it is. Its
+  heading is `#scheduler`, which the dashboard checklist and every "the
+  scheduler is not running" notice (backups, mail, the ticket mailbox, the
+  campaign report) link to in place of a generic line.
+- Pint is not run over `api/install/Wizard.php`: it is outside the app's
+  formatting and the fixer rewrites the whole file.
+
+Measured on the development machine (Windows, Laragon): the card printed
+`C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe D:\technoweb\api\artisan
+schedule:run`, "Checked just now: PHP 8.3.30". The Plesk and cPanel paths
+are the unit test's word, not a measurement.
+
 ## Known limits
 
 - **Hosting.** cPanel needs "Setup Node.js App" (CloudLinux/Passenger) and

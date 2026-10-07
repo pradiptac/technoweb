@@ -46,6 +46,17 @@ class OnboardingTest extends TestCase
         $this->assertSame(count($data['steps']), $data['total']);
         foreach ($data['steps'] as $step) {
             $this->assertStringStartsWith('/admin', $step['href'], 'a console path, never a URL');
+
+            // And a screen that exists: the scheduler step pointed at
+            // `/admin/system`, which has no page of its own (System is
+            // `/system/status` and `/system/updates`), so the checklist's
+            // own link opened a 404 until 0.128.0. Read from the console's
+            // route folders, since the two sides share no list.
+            $screen = (string) preg_replace('/[?#].*$/', '', substr($step['href'], strlen('/admin')));
+            $this->assertFileExists(
+                base_path('../web/src/app/admin/(app)'.$screen.'/page.tsx'),
+                "{$step['key']} links to {$step['href']}, which is not a console screen",
+            );
         }
 
         return collect($data['steps'])->pluck('done', 'key')->all();

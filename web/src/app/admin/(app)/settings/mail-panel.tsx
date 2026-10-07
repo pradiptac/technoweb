@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Alert, Field, Input, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -165,10 +166,8 @@ export function MailPanel({ status, rows }: { status: MailStatus; rows: SettingG
           oldest for {Math.round((status.queue.oldest_seconds ?? 0) / 60)} minutes. Mail is
           delivered by the scheduled task, so this almost always means the scheduler has
           stopped — nothing is lost, and everything waiting will go out as soon as it runs
-          again.
-          <span className="mt-1 block font-mono text-12">
-            * * * * * php artisan schedule:run
-          </span>
+          again.{" "}
+          <Link href="/admin/system/status#scheduler" className="font-semibold underline">System → Status</Link> shows the exact line it needs on this server.
         </Alert>
       )}
 
