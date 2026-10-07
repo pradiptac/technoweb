@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Http\Resources\Concerns\IncludesSchema;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\Solution;
 use App\Support\MediaMeta;
@@ -16,7 +17,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Solution */
 class SolutionResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSeo;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSections, IncludesSeo;
 
     public function toArray(Request $request): array
     {
@@ -36,6 +37,10 @@ class SolutionResource extends JsonResource
             'hero_image_blur' => MediaMeta::blur($this->hero_image_path),
             'problem_statement' => $this->when($detail, $this->problem_statement),
             'overview' => $this->when($detail, $this->overview),
+            // The builder's sections in place of the written body (0.129.0): on
+            // this record's own page only, and only while it is laid out as
+            // sections. The body above is still sent.
+            'sections' => $this->publicSections($this->includeSchema),
             'benefits' => $this->when($detail, $this->benefits),
             'technologies' => $this->when($detail, $this->technologies),
             'status' => $this->status?->value,

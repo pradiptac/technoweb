@@ -171,7 +171,7 @@ export type Product = PublicCustomFields & AnswerContent & {
   seo?: Seo | null;
 };
 
-export type Solution = PublicCustomFields & AnswerContent & {
+export type Solution = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -198,7 +198,7 @@ export type Solution = PublicCustomFields & AnswerContent & {
   seo?: Seo | null;
 };
 
-export type Service = PublicCustomFields & AnswerContent & {
+export type Service = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -288,7 +288,7 @@ export type AnswerContent = {
   faq_schema?: SchemaGraph;
 };
 
-export type Industry = PublicCustomFields & AnswerContent & {
+export type Industry = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & {
   id: number;
   name: string;
   slug: string;
@@ -304,7 +304,7 @@ export type Industry = PublicCustomFields & AnswerContent & {
 };
 
 /** A case study carries `entity` and `faq_schema` like the rest, and has no answer blocks or FAQs of its own. */
-export type CaseStudy = PublicCustomFields & Pick<AnswerContent, "entity" | "faq_schema"> & {
+export type CaseStudy = PublicCustomFields & Pick<AnswerContent, "entity" | "faq_schema"> & import("./page-sections").RecordSectionsRead & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -1019,7 +1019,7 @@ export type KnowledgeCategory = { id: number; name: string; slug: string };
 /** A headline stat on a case study: the figure and what it measures. */
 export type CaseStudyResult = { value: string; label: string };
 
-export type AdminCaseStudy = AdminCustomFields & {
+export type AdminCaseStudy = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
   title: string;
   slug: string;
@@ -1168,7 +1168,7 @@ export type AdminProductCategory = {
   show_in_menu?: boolean;
 };
 
-export type AdminIndustry = AdminCustomFields & {
+export type AdminIndustry = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
   /** `name`, not `title` — this model's slug derives from name. */
   name: string;
@@ -1189,7 +1189,7 @@ export type AdminIndustry = AdminCustomFields & {
   show_in_menu?: boolean;
 };
 
-export type AdminService = AdminCustomFields & {
+export type AdminService = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
   title: string;
   slug: string;
@@ -2518,7 +2518,7 @@ export type StoreCategory = AnswerContent & {
 /** A FAQ as the CMS edits it. The API replaces the set wholesale, so no id. */
 export type FaqItem = { question: string; answer: string };
 
-export type AdminSolution = AdminCustomFields & {
+export type AdminSolution = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
   title: string;
   slug: string;

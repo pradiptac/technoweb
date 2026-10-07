@@ -21,6 +21,40 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.129.0 — 2026-10-07
+
+**Sections on solutions, services, industries and case studies.**
+
+- Each of these now has a **Sections** tab. Set **The page's body shows** to
+  **Sections** and lay the body out with the same sections a builder page
+  uses.
+- **Only the body changes.** The page keeps its heading, its related lists,
+  its FAQs and its closing band; the sections stand where the written text
+  stood.
+- **Nothing is lost.** The written text stays stored while it is not shown,
+  and comes back when the choice is set to **Written body**. The sections
+  are kept too. Until a section is added, the page shows the written text.
+- **Lay it out as sections** turns the existing text into sections at its
+  headings, as a starting point.
+- Hero and the theme's own homepage sections are not offered here, because
+  the page already has its heading.
+- Saved sections from the library can be placed on these records, and the
+  library will not delete one that a record still uses.
+- Not yet: the same on the other record types (blog posts, knowledge
+  articles, products and the rest) — that is the next release. Search and the
+  website assistant still read the written text of a record laid out as
+  sections.
+- Fixed: on a phone, a service with a long name ("Domain registration")
+  made its page scroll sideways by a few pixels. The heading's button now
+  wraps there.
+- Fixed: on a case study, the **Client** line under the heading was dark
+  text on a dark banner and could not be read. It now takes the heading's
+  own text colour.
+- Fixed: searching **cron** in the console's search (Ctrl K) found nothing.
+  It now lists **Scheduler command (cron job)**, which opens System status
+  at the scheduler's command. "crontab", "scheduler" and "scheduled task"
+  find it too.
+
 ## 0.128.0 — 2026-10-07
 
 **The page builder: edit wording on the page itself.**

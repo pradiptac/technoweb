@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Http\Resources\Concerns\IncludesSchema;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\CaseStudy;
 use App\Support\MediaMeta;
@@ -15,7 +16,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin CaseStudy */
 class CaseStudyResource extends JsonResource
 {
-    use IncludesCustomFields, IncludesSchema, IncludesSeo;
+    use IncludesCustomFields, IncludesSchema, IncludesSections, IncludesSeo;
 
     public function toArray(Request $request): array
     {
@@ -30,6 +31,10 @@ class CaseStudyResource extends JsonResource
             'client_name' => $this->client_name,
             'summary' => $this->summary,
             'body' => $this->when($detail, $this->body),
+            // The builder's sections in place of the written body (0.129.0): on
+            // this record's own page only, and only while it is laid out as
+            // sections. The body above is still sent.
+            'sections' => $this->publicSections($this->includeSchema),
             'results' => $this->results,
             'cover_image' => $this->cover_image_path ? MediaUrl::for($this->cover_image_path) : null,
             'cover_image_alt' => MediaMeta::alt($this->cover_image_path),

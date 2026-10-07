@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Http\Resources\Concerns\IncludesSchema;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\Industry;
 use Illuminate\Http\Request;
@@ -13,7 +14,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Industry */
 class IndustryResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSeo;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSections, IncludesSeo;
 
     public function toArray(Request $request): array
     {
@@ -28,6 +29,10 @@ class IndustryResource extends JsonResource
             'summary' => $this->summary,
             'icon' => $this->icon,
             'body' => $this->when($detail, $this->body),
+            // The builder's sections in place of the written body (0.129.0): on
+            // this record's own page only, and only while it is laid out as
+            // sections. The body above is still sent.
+            'sections' => $this->publicSections($this->includeSchema),
             'solutions' => SolutionResource::collection($this->whenLoaded('solutions')),
             'faqs' => $this->publicFaqs(),
             // The published blocks, in order, with the heading each renders under.

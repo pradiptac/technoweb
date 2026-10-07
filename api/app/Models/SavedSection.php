@@ -23,6 +23,19 @@ class SavedSection extends Model
 
     public const KIND_TEMPLATE = 'template';
 
+    /**
+     * The record types whose body area can hold sections, by the kind a
+     * `linkedFrom()` row names them with, each with its title column.
+     *
+     * @var array<string, array{0: class-string<Model>, 1: string}>
+     */
+    public const RECORDS = [
+        'solution' => [Solution::class, 'title'],
+        'service' => [Service::class, 'title'],
+        'industry' => [Industry::class, 'name'],
+        'case_study' => [CaseStudy::class, 'title'],
+    ];
+
     protected $fillable = ['kind', 'name', 'description', 'blocks', 'created_by'];
 
     protected function casts(): array
@@ -37,7 +50,7 @@ class SavedSection extends Model
     }
 
     /**
-     * The pages (and templates) that place this section linked — what a
+     * The pages, templates and records that place this section linked — what a
      * delete would break, so it is refused while there are any.
      *
      * @return list<array{id:int,title:string,kind:string}>
@@ -57,6 +70,16 @@ class SavedSection extends Model
         foreach (self::query()->where('kind', self::KIND_TEMPLATE)->get(['id', 'name', 'blocks']) as $template) {
             if ($places($template->blocks)) {
                 $uses[] = ['id' => $template->id, 'title' => $template->name, 'kind' => 'template'];
+            }
+        }
+        // The records that carry sections in their body area (0.129.0). A
+        // link from one is as breakable as a page's, whichever layout the
+        // record is showing today.
+        foreach (self::RECORDS as $kind => [$model, $title]) {
+            foreach ($model::query()->whereNotNull('blocks')->get(['id', $title, 'blocks']) as $record) {
+                if ($places($record->getAttribute('blocks'))) {
+                    $uses[] = ['id' => (int) $record->getKey(), 'title' => (string) $record->getAttribute($title), 'kind' => $kind];
+                }
             }
         }
 

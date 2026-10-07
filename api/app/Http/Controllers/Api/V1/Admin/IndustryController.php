@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateIndustryRequest;
 use App\Http\Resources\Admin\IndustryResource;
 use App\Models\Industry;
 use App\Support\CustomFields\CustomFields;
+use App\Support\PageSections\RecordSections;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -60,6 +61,7 @@ class IndustryController extends Controller
         $industry = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $solutionIds = $attributes['solution_ids'] ?? null;
             unset($attributes['solution_ids']);
             $content = $this->pullAnswerContent($attributes);
@@ -84,6 +86,7 @@ class IndustryController extends Controller
         DB::transaction(function () use ($request, $industry) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $hasSolutions = array_key_exists('solution_ids', $attributes);
             $solutionIds = $attributes['solution_ids'] ?? [];
             unset($attributes['solution_ids']);

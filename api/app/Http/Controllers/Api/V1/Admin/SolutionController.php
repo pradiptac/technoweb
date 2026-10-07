@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateSolutionRequest;
 use App\Http\Resources\Admin\SolutionResource;
 use App\Models\Solution;
 use App\Support\CustomFields\CustomFields;
+use App\Support\PageSections\RecordSections;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -63,6 +64,7 @@ class SolutionController extends Controller
         $solution = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $relations = $this->pull($attributes, self::RELATIONS);
 
             $solution = Solution::create($attributes);
@@ -85,6 +87,7 @@ class SolutionController extends Controller
         DB::transaction(function () use ($request, $solution) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $relations = $this->pull($attributes, self::RELATIONS);
 
             $solution->update($attributes);

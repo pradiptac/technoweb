@@ -2046,6 +2046,13 @@ const readiness = (table, type, id, full) => {
    blocks (and FAQs), in the admin resource shapes the edit forms read.
    Enough to open every AEO tab against the mock; a PATCH echoes the row.
    Every index carries `meta.answer_block_kinds`. */
+/*
+ * A record whose body area may be laid out as builder sections (0.129.0):
+ * `body_layout` on every row, the list as stored and its media on a detail
+ * read. The public read carries `sections` only while a record is laid out
+ * that way; none of the mock's records is, so none sends the key.
+ */
+const RECORD_SECTIONS = { body_layout: 'body', blocks: [], blocks_media: {} };
 const adminOf = (r, extra = {}) => ({
   status: 'published', status_label: 'Published', sort_order: 0, show_in_menu: true,
   seo: null, seo_defaults: null, faqs: [], answer_blocks: [],
@@ -2128,6 +2135,14 @@ const BUILDER_OPTIONS = {
       { value: 'rewrite', label: 'Reword', blurb: 'Say the same thing more clearly, at about the same length.', needs_brief: false },
       { value: 'shorten', label: 'Shorten', blurb: 'The running text about half as long, with the same facts. Headings stay.', needs_brief: false },
       { value: 'expand', label: 'Expand', blurb: 'The running text about twice as long. A fact it was not given is marked [CHECK: …].', needs_brief: false },
+    ],
+  },
+  // Sections on other records (0.129.0): what a record's body area may show, and the types it cannot hold.
+  record_sections: {
+    excluded_types: ['hero', 'theme_section'],
+    layouts: [
+      { value: 'body', label: 'Written body', blurb: 'The page shows the text written on this form.' },
+      { value: 'sections', label: 'Sections', blurb: 'The page shows the sections laid out below instead. The written text is kept.' },
     ],
   },
   // Edit on the page (0.128.0): the plain-text fields of each type, as the API derives them from its rules.
@@ -2239,13 +2254,13 @@ const ADMIN_CMS = [
         benefits: solutionDetail.benefits, technologies: solutionDetail.technologies,
         hero_image_path: null, product_ids: [1], industry_ids: [4],
         faqs: solutionDetail.faqs.map(({ question, answer }) => ({ question, answer })),
-        answer_blocks: SOLUTION_ANSWER_BLOCKS }
-    : { problem_statement: null, overview: null, benefits: [], technologies: [], hero_image_path: null, product_ids: [], industry_ids: [] }) },
+        answer_blocks: SOLUTION_ANSWER_BLOCKS, ...RECORD_SECTIONS }
+    : { problem_statement: null, overview: null, benefits: [], technologies: [], hero_image_path: null, product_ids: [], industry_ids: [], ...RECORD_SECTIONS }) },
   { base: '/admin/services', rows: services, detail: (r) => adminOf(r, {
-      body: null, service_category_id: r.category?.id ?? null, category_name: r.category?.name ?? null,
+      ...RECORD_SECTIONS, body: null, service_category_id: r.category?.id ?? null, category_name: r.category?.name ?? null,
       image_path: r.image ? `media/services/${r.slug}.jpg` : null }) },
   { base: '/admin/service-categories', rows: serviceCategories, detail: adminServiceCategory },
-  { base: '/admin/industries', rows: industries, detail: (r) => adminOf(r, { body: null, solution_ids: [] }) },
+  { base: '/admin/industries', rows: industries, detail: (r) => adminOf(r, { body: null, solution_ids: [], ...RECORD_SECTIONS }) },
   { base: '/admin/product-categories', rows: productCategories, detail: (r) => adminOf(r, { image_path: null, parent_name: null }) },
   { base: '/admin/brands', rows: brands, detail: (r) => adminOf(r, { logo_path: null, is_featured: false, product_count: 1 }) },
   { base: '/admin/products', rows: products, detail: (r) => adminOf(r, {

@@ -264,6 +264,39 @@ export type PageBuilderOptions = {
    * and the length the save holds it to. The API's, read off its own rules.
    */
   inline_fields?: Record<string, { path: string; max: number }[]>;
+  /**
+   * Sections on records other than pages (0.129.0): the two things a record's
+   * body area may show, and the section types it cannot hold — the API's
+   * (`RecordSections`), so neither is listed here.
+   */
+  record_sections?: {
+    excluded_types: string[];
+    layouts: { value: RecordBodyLayout; label: string; blurb: string }[];
+  };
+  /**
+   * Set by `recordBuilderOptions()` on the copy of these options a record's
+   * form hands the builder — never sent by the API. It is what tells an
+   * editor it is inside a record: no "this page's FAQs", no page templates.
+   */
+  in_record?: boolean;
+};
+
+/** What a record's page draws in its body area (0.129.0). */
+export type RecordBodyLayout = "body" | "sections";
+
+/**
+ * A record that may lay out its body area as sections — a solution, a
+ * service, an industry, a case study. On the public read `sections` is
+ * present only on the record's own page and only while it is laid out that
+ * way; the written body is still sent.
+ */
+export type RecordSectionsRead = { sections?: PageSection[] };
+
+/** The same record as the console reads it: the choice on every row, the list on a detail read. */
+export type AdminRecordSections = {
+  body_layout?: RecordBodyLayout;
+  blocks?: StoredSection[];
+  blocks_media?: Record<string, string>;
 };
 
 export type AiSectionMode = "write" | "rewrite" | "shorten" | "expand";
@@ -316,5 +349,5 @@ export type SavedSection = {
   /** Detail only. */
   blocks?: StoredSection[];
   blocks_media?: Record<string, string>;
-  linked_from?: { id: number; title: string; kind: "page" | "template" }[];
+  linked_from?: { id: number; title: string; kind: "page" | "template" | "solution" | "service" | "industry" | "case_study" }[];
 };

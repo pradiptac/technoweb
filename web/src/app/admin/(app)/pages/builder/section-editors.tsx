@@ -465,9 +465,21 @@ export function SectionEditor({ type, sectionId, options }: {
       return (
         <>
           <Text path={["heading"]} label="Heading" placeholder="Common questions" />
-          <Choice path={["source"]} label="Which questions" fallback="custom" options={[
-            { value: "custom", label: "Written here" }, { value: "page", label: "This page’s FAQs (the AEO tab)" },
-          ]} hint="Either way they join the page’s one FAQ listing for search engines." />
+          {/*
+            Inside a record (0.129.0) the questions are always written here:
+            the record's own FAQs are drawn under its sections already, and
+            the API refuses the other choice (`RecordSections`).
+          */}
+          {options.in_record ? (
+            <p className="mb-[18px] text-13 text-muted">
+              Questions written here. This page’s own FAQs are listed under the sections already; both join its one FAQ
+              listing for search engines.
+            </p>
+          ) : (
+            <Choice path={["source"]} label="Which questions" fallback="custom" options={[
+              { value: "custom", label: "Written here" }, { value: "page", label: "This page’s FAQs (the AEO tab)" },
+            ]} hint="Either way they join the page’s one FAQ listing for search engines." />
+          )}
           {source === "custom" && (
             <Repeater path={["items"]} label="Questions" subject="Question" min={1} max={30} blank={() => ({})} row={(p) => (
               <>

@@ -71,8 +71,8 @@ class SavedSectionController extends Controller
     }
 
     /**
-     * Refused while any page or template places it linked: deleting it would
-     * take the section off those pages with nothing said. Detach it there
+     * Refused while any page, template or record places it linked: deleting it
+     * would take the section off those pages with nothing said. Detach it there
      * first (the builder's "Make a copy here"), then delete.
      */
     public function destroy(SavedSection $savedSection): Response|JsonResponse
@@ -90,7 +90,7 @@ class SavedSectionController extends Controller
     }
 
     /**
-     * "2 pages and 1 template", counted from `linkedFrom()`.
+     * "2 pages, 1 template and 1 solution", counted from `linkedFrom()`.
      *
      * @param  list<array{kind: string}>  $uses
      */
@@ -98,13 +98,20 @@ class SavedSectionController extends Controller
     {
         $counts = array_count_values(array_column($uses, 'kind'));
         $parts = [];
-        foreach (['page' => 'page', 'template' => 'template'] as $kind => $word) {
+        $words = [
+            'page' => ['page', 'pages'], 'template' => ['template', 'templates'],
+            'solution' => ['solution', 'solutions'], 'service' => ['service', 'services'],
+            'industry' => ['industry', 'industries'], 'case_study' => ['case study', 'case studies'],
+        ];
+        foreach ($words as $kind => [$one, $many]) {
             if ($n = $counts[$kind] ?? 0) {
-                $parts[] = $n.' '.$word.($n === 1 ? '' : 's');
+                $parts[] = $n.' '.($n === 1 ? $one : $many);
             }
         }
 
-        return implode(' and ', $parts);
+        $last = array_pop($parts);
+
+        return $parts === [] ? (string) $last : implode(', ', $parts).' and '.$last;
     }
 
     /**

@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getCaseStudy, getIndustries } from "@/lib/admin";
+import { getCaseStudy, getIndustries, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { CaseStudyForm } from "../case-study-form";
@@ -56,7 +56,7 @@ export default async function EditCaseStudyPage({
         )}
       </PageHeader>
 
-      <CaseStudyForm study={study} industries={industries} saved={Boolean(saved)} />
+      <CaseStudyForm study={study} industries={industries} saved={Boolean(saved)} builder={await getPageBuilderOptions()} />
     </>
   );
 }

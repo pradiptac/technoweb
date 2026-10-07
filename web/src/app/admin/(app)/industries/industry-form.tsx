@@ -15,12 +15,13 @@ import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
 import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
+import { BodyReplacedNote, RecordSectionsPanel, SECTIONS_TAB, useRecordSections } from "../pages/builder/record-sections";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import {
   createIndustryAction, updateIndustryAction, deleteIndustryAction, type IndustryFormState,
 } from "./actions";
-import type { CustomFieldGroupDefinition, AdminIndustry, AnswerBlockKindOption } from "@/types/api";
+import type { CustomFieldGroupDefinition, AdminIndustry, AnswerBlockKindOption, PageBuilderOptions } from "@/types/api";
 
 const initial: IndustryFormState = {};
 
@@ -28,6 +29,8 @@ const initial: IndustryFormState = {};
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
     fields: ["name", "slug", "summary", "body", "sort_order", "show_in_menu"] },
+  // Sections in place of the written body (0.129.0) — the choice and the builder.
+  SECTIONS_TAB,
   { id: "media", label: "Media", fields: ["icon"] },
   { id: "related", label: "Related", fields: ["solution_ids"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
@@ -36,7 +39,7 @@ const GROUPS: TabGroup[] = [
 ];
 
 export function IndustryForm({
-  industry, solutions, saved, kinds, fieldGroups,
+  industry, solutions, saved, kinds, fieldGroups, builder,
 }: {
   industry?: AdminIndustry;
   solutions: { id: number; name: string }[];
@@ -45,6 +48,8 @@ export function IndustryForm({
   kinds: AnswerBlockKindOption[];
   /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
   fieldGroups?: CustomFieldGroupDefinition[];
+  /** `GET /admin/pages/builder` — the section builder's types and pickers, for the Sections tab. */
+  builder: PageBuilderOptions;
 }) {
   const editing = Boolean(industry);
   const [state, formAction, pending] = useActionState(
@@ -55,6 +60,9 @@ export function IndustryForm({
   const seoErr = (f: string) => state.fieldErrors?.[`seo.${f}`]?.[0];
   const rowErr = (prefix: string) =>
     err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
+
+  // The body area: the written body, or builder sections (0.129.0).
+  const body = useRecordSections(industry);
 
   // Custom fields (docs/custom-content.md): the groups that apply, from the API.
   const customGroups = industry?.custom_field_groups ?? fieldGroups ?? [];
@@ -90,6 +98,8 @@ export function IndustryForm({
               hint="One line, shown on the industries index and in the header menu. Max 500 characters.">
               <Textarea id="summary" name="summary" rows={3} defaultValue={industry?.summary ?? ""} maxLength={500} />
             </Field>
+            <BodyReplacedNote state={body} />
+
             <EditorField name="body" defaultValue={industry?.body ?? ""} error={err("body")} />
           </div>
           <aside className="grid content-start gap-0">
@@ -121,6 +131,17 @@ export function IndustryForm({
             </p>
           </aside>
         </div>
+
+        {/* Sections in place of the written body. One child, always mounted. */}
+        <RecordSectionsPanel
+          state={body}
+          builder={builder}
+          media={industry?.blocks_media ?? {}}
+          errors={state.fieldErrors ?? {}}
+          bodyField="body"
+          storedBody={industry?.body ?? ""}
+          noun="industry"
+        />
 
         <div>
           <IconField defaultValue={industry?.icon ?? null} error={err("icon")} />

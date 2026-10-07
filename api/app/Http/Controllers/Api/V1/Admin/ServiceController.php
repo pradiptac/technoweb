@@ -12,6 +12,7 @@ use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Support\CustomFields\CustomFields;
 use App\Support\ListSort;
+use App\Support\PageSections\RecordSections;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -89,6 +90,7 @@ class ServiceController extends Controller
         $service = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $content = $this->pullAnswerContent($attributes);
 
             $service = Service::create($attributes);
@@ -108,6 +110,7 @@ class ServiceController extends Controller
         DB::transaction(function () use ($request, $service) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $content = $this->pullAnswerContent($attributes);
 
             $service->update($attributes);

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { ApiError } from "@/lib/api";
-import { getAnswerBlockKinds, getIndustry, getSolutionOptions } from "@/lib/admin";
+import { getAnswerBlockKinds, getIndustry, getSolutionOptions, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { IndustryForm } from "../industry-form";
@@ -49,7 +49,7 @@ export default async function EditIndustryPage({
         </Link>
       </PageHeader>
 
-      <IndustryForm industry={industry} solutions={solutions} saved={Boolean(saved)} kinds={kinds} />
+      <IndustryForm industry={industry} solutions={solutions} saved={Boolean(saved)} kinds={kinds} builder={await getPageBuilderOptions()} />
     </>
   );
 }

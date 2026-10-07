@@ -68,9 +68,13 @@ final class SectionPresenter
 {
     /**
      * @param  array<int, mixed>|null  $blocks  as stored (or as normalised, for a preview)
+     * @param  list<string>  $except  types left out — what a record's body area cannot hold
+     *                                (`RecordSections`), checked after a linked library
+     *                                section has been swapped in, since that is where one
+     *                                could arrive unseen
      * @return list<array<string, mixed>>
      */
-    public static function present(?array $blocks, ?Page $page = null): array
+    public static function present(?array $blocks, ?Page $page = null, array $except = []): array
     {
         $out = [];
 
@@ -79,7 +83,7 @@ final class SectionPresenter
                 continue;
             }
             $type = PageSectionType::tryFrom((string) ($block['type'] ?? ''));
-            if (! $type) {
+            if (! $type || in_array($type->value, $except, true)) {
                 continue;
             }
 

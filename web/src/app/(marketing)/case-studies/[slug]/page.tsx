@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
+import { RecordSections, laidOutAsSections } from "@/components/page-sections/record-sections";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { CustomFieldDetails } from "@/components/content/custom-field-details";
@@ -77,6 +78,18 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
   if (!study) notFound();
 
   const results = study.results ?? [];
+  const crumbs = [
+    { name: "Case studies", path: "/case-studies" },
+    { name: study.title, path: `/case-studies/${study.slug}` },
+  ];
+  /*
+   * The body laid out as builder sections (0.129.0, docs/page-builder.md
+   * "Sections on other records"). The results and the cover stay above them
+   * — they are the study's own, not its body — and what followed the body
+   * follows the sections. Full-width bands cannot sit inside the container
+   * the rest shares, so with sections the page is that container cut in two.
+   */
+  const laidOut = laidOutAsSections(study);
 
   return (
     <>
@@ -85,19 +98,20 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         kicker={study.industry?.name ?? "Case study"}
         title={study.title}
         lede={study.summary}
-        crumbs={[
-          { name: "Case studies", path: "/case-studies" },
-          { name: study.title, path: `/case-studies/${study.slug}` },
-        ]}
+        crumbs={crumbs}
       >
         {study.client_name && (
-          <p className="text-14 text-muted">
-            Client: <strong className="font-semibold text-ink">{study.client_name}</strong>
+          // No colour of its own: the heading's ground is the theme's — a dark
+          // banner on some, the page on others — and `text-muted` on a dark
+          // banner measured 1.18:1. It inherits the heading's ink instead.
+          <p className="text-14">
+            Client: <strong className="font-semibold">{study.client_name}</strong>
           </p>
         )}
       </PageHero>
 
-      <Container data-aos="fade-up" className="section-y">
+      {(!laidOut || results.length > 0 || study.cover_image) && (
+      <Container data-aos="fade-up" className={laidOut ? "section-y pb-0" : "section-y"}>
         {results.length > 0 && (
           <dl className={cn("mb-12 grid gap-px overflow-hidden rounded-xl border border-line-strong bg-line", stripColumns(results.length))}>
             {results.map((r) => (
@@ -138,19 +152,18 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
           </div>
         )}
 
-        {study.body && <ProseWithShortcodes html={study.body} />}
-
-        {/* What the study is connected to — the industry, the solutions, the articles. A case study has no answer blocks of its own. */}
-        {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
-        <CustomFieldDetails fields={study.custom_fields} className="mt-12" />
-        <RelatedEntities entity={study.entity} className="mt-12" />
-
-        <p className="mt-12 border-t border-line pt-6">
-          <Link href="/case-studies" className="inline-block py-1 text-14 font-semibold text-brand-ink hover:underline">
-            ← All case studies
-          </Link>
-        </p>
+        {!laidOut && <CaseStudyRest study={study} />}
       </Container>
+      )}
+
+      {laidOut && (
+        <>
+          <RecordSections sections={study.sections ?? []} crumbs={crumbs} />
+          <Container data-aos="fade-up" className="section-y *:first:mt-0">
+            <CaseStudyRest study={study} laidOut />
+          </Container>
+        </>
+      )}
 
       <CtaBand
         title="Similar setup to yours?"
@@ -168,6 +181,29 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
       */}
       {study.schema && <JsonLd data={study.schema} />}
       {study.faq_schema && <JsonLd data={study.faq_schema} />}
+    </>
+  );
+}
+
+/**
+ * What follows the cover: the written body — unless the page is laid out as
+ * sections, which stand in its place — then the details, what the study is
+ * connected to, and the way back. A case study has no answer blocks of its own.
+ */
+function CaseStudyRest({ study, laidOut = false }: { study: CaseStudy; laidOut?: boolean }) {
+  return (
+    <>
+      {!laidOut && study.body && <ProseWithShortcodes html={study.body} />}
+
+      {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
+      <CustomFieldDetails fields={study.custom_fields} className="mt-12" />
+      <RelatedEntities entity={study.entity} className="mt-12" />
+
+      <p className="mt-12 border-t border-line pt-6">
+        <Link href="/case-studies" className="inline-block py-1 text-14 font-semibold text-brand-ink hover:underline">
+          ← All case studies
+        </Link>
+      </p>
     </>
   );
 }

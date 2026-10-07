@@ -25,8 +25,11 @@ class Service extends Model implements Answerable, Faqable
 
     protected $fillable = [
         'service_category_id', 'title', 'slug', 'summary', 'highlights', 'body', 'icon', 'image_path',
-        'status', 'sort_order', 'show_in_menu',
+        'status', 'sort_order', 'show_in_menu', 'body_layout', 'blocks',
     ];
+
+    /** In memory as in the column: a new record's page draws its written body. */
+    protected $attributes = ['body_layout' => 'body'];
 
     /** How many highlights a card draws, and how long one may be. */
     public const HIGHLIGHTS_MAX = 6;
@@ -35,7 +38,7 @@ class Service extends Model implements Answerable, Faqable
 
     protected function casts(): array
     {
-        return ['status' => PublishStatus::class, 'show_in_menu' => 'boolean', 'highlights' => 'array'];
+        return ['status' => PublishStatus::class, 'show_in_menu' => 'boolean', 'highlights' => 'array', 'blocks' => 'array'];
     }
 
     /**

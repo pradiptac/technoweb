@@ -18,7 +18,15 @@ class Industry extends Model implements Answerable, Faqable
 {
     use HasAnswerBlocks, HasCustomFields, HasSeo, Sluggable;
 
-    protected $fillable = ['name', 'slug', 'summary', 'body', 'icon', 'sort_order', 'show_in_menu'];
+    protected $fillable = ['name', 'slug', 'summary', 'body', 'icon', 'sort_order', 'show_in_menu', 'body_layout', 'blocks'];
+
+    /** In memory as in the column: a new record's page draws its written body. */
+    protected $attributes = ['body_layout' => 'body'];
+
+    protected function casts(): array
+    {
+        return ['blocks' => 'array'];
+    }
 
     protected function slugSource(): string
     {

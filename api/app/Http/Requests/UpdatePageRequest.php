@@ -31,7 +31,7 @@ class UpdatePageRequest extends FormRequest
      */
     protected function richTextFields(): array
     {
-        return ['body', 'answer_blocks.*.detail', 'blocks.*.data.body', 'blocks.*.data.columns.*.body'];
+        return ['body', 'answer_blocks.*.detail', ...SectionRules::RICH_TEXT];
     }
 
     public function authorize(): bool

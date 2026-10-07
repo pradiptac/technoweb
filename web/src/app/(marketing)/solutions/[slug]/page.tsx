@@ -7,11 +7,13 @@ import { AnswerBlocks } from "@/components/content/answer-blocks";
 import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { PageHero } from "@/components/ui/page-hero";
+import { RecordSections, endsOnCta, hasEntityLinks, laidOutAsSections } from "@/components/page-sections/record-sections";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { IconArrowRight, IconCheck } from "@/components/icons";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
+import { cn } from "@/lib/utils";
 import type { Solution } from "@/types/api";
 
 async function load(slug: string): Promise<Solution | null> {
@@ -73,6 +75,71 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
   const products = solution.products ?? [];
   const industries = solution.industries ?? [];
   const faqs = solution.faqs ?? [];
+  const crumbs = [
+    { name: "Solutions", path: "/solutions" },
+    { name: solution.title, path: `/solutions/${solution.slug}` },
+  ];
+
+  /*
+   * The body area laid out as builder sections (0.129.0, docs/page-builder.md
+   * "Sections on other records"). They stand where the problem, the overview
+   * and the benefits stood, as full-width bands under the heading; everything
+   * else the page had is kept under them — the details, the answers and FAQs,
+   * what it is related to, and the three lists that sit beside the written
+   * body, which become a row since there is no column left to sit beside.
+   */
+  const sections = solution.sections ?? [];
+  const laidOut = laidOutAsSections(solution);
+  const lists = [technologies, products, industries].filter((l) => l.length > 0).length;
+  const hasDetails = (solution.custom_fields?.length ?? 0) > 0 || (solution.answer_blocks?.length ?? 0) > 0
+    || faqs.length > 0 || hasEntityLinks(solution.entity);
+
+  const related = (
+    <>
+      {technologies.length > 0 && (
+        <div className="rounded-xl border border-line-strong bg-surface p-5.5">
+          <h2 className="text-15-5">Technologies we deploy</h2>
+          <ul className="mt-3.5 flex flex-wrap gap-2">
+            {technologies.map((t) => (
+              <li key={t} className="rounded-full border border-line-strong bg-card px-3 py-1.5 font-mono text-12 text-muted">
+                {t}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {products.length > 0 && (
+        <div className="rounded-xl border border-line-strong bg-card p-5.5">
+          <h2 className="text-15-5">Hardware we use here</h2>
+          <ul className="mt-3.5 grid gap-2.5">
+            {products.slice(0, 6).map((p) => (
+              <li key={p.id}>
+                <Link href={`/products/${p.slug}`} className="block py-1 text-14 hover:text-brand-ink hover:underline">
+                  {p.brand?.name ? `${p.brand.name} ` : ""}{p.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {industries.length > 0 && (
+        <div className="rounded-xl border border-line-strong bg-card p-5.5">
+          <h2 className="text-15-5">Common in</h2>
+          <ul className="mt-3.5 flex flex-wrap gap-2">
+            {industries.map((i) => (
+              <li key={i.id}>
+                <Link href={`/industries/${i.slug}`} className="block rounded-full border border-line-strong px-3 py-1.5 text-13 hover:border-brand-300 hover:bg-brand-50">
+                  {i.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
+  );
 
   return (
     <>
@@ -81,10 +148,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
         kicker="Solution"
         title={solution.title}
         lede={solution.summary}
-        crumbs={[
-          { name: "Solutions", path: "/solutions" },
-          { name: solution.title, path: `/solutions/${solution.slug}` },
-        ]}
+        crumbs={crumbs}
       >
         <div className="flex flex-wrap gap-3">
           <ButtonLink href={`/contact?subject=${encodeURIComponent(solution.title)}`}>
@@ -98,6 +162,27 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
         </div>
       </PageHero>
 
+      {laidOut ? (
+        <>
+          <RecordSections sections={sections} crumbs={crumbs} />
+
+          {(hasDetails || lists > 0) && (
+            <Container data-aos="fade-up" className="section-y">
+              <div className="grid gap-12">
+                <CustomFieldDetails fields={solution.custom_fields} />
+                <AnswerBlocks blocks={solution.answer_blocks} faqs={faqs} />
+                <RelatedEntities entity={solution.entity} />
+                {lists > 0 && (
+                  // As many columns as there are lists, so one or two never leave a hole in a row of three.
+                  <div className={cn("grid items-start gap-5", lists >= 2 && "sm:grid-cols-2", lists >= 3 && "lg:grid-cols-3")}>
+                    {related}
+                  </div>
+                )}
+              </div>
+            </Container>
+          )}
+        </>
+      ) : (
       <Container data-aos="fade-up" className="section-y">
         <div className="grid gap-12 lg:grid-cols-[1fr_320px] lg:gap-16">
           <div className="min-w-0">
@@ -142,56 +227,19 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
           </div>
 
           <aside className="grid content-start gap-5">
-            {technologies.length > 0 && (
-              <div className="rounded-xl border border-line-strong bg-surface p-5.5">
-                <h2 className="text-15-5">Technologies we deploy</h2>
-                <ul className="mt-3.5 flex flex-wrap gap-2">
-                  {technologies.map((t) => (
-                    <li key={t} className="rounded-full border border-line-strong bg-card px-3 py-1.5 font-mono text-12 text-muted">
-                      {t}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {products.length > 0 && (
-              <div className="rounded-xl border border-line-strong bg-card p-5.5">
-                <h2 className="text-15-5">Hardware we use here</h2>
-                <ul className="mt-3.5 grid gap-2.5">
-                  {products.slice(0, 6).map((p) => (
-                    <li key={p.id}>
-                      <Link href={`/products/${p.slug}`} className="block py-1 text-14 hover:text-brand-ink hover:underline">
-                        {p.brand?.name ? `${p.brand.name} ` : ""}{p.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {industries.length > 0 && (
-              <div className="rounded-xl border border-line-strong bg-card p-5.5">
-                <h2 className="text-15-5">Common in</h2>
-                <ul className="mt-3.5 flex flex-wrap gap-2">
-                  {industries.map((i) => (
-                    <li key={i.id}>
-                      <Link href={`/industries/${i.slug}`} className="block rounded-full border border-line-strong px-3 py-1.5 text-13 hover:border-brand-300 hover:bg-brand-50">
-                        {i.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {related}
           </aside>
         </div>
       </Container>
+      )}
 
-      <CtaBand
-        title={`Thinking about ${solution.title.toLowerCase()}?`}
-        body="Start with a site visit. We will tell you what your current setup can still do, and what genuinely needs replacing."
-      />
+      {/* Sections that end on their own call to action, with nothing under them, are the page's close. */}
+      {!(laidOut && endsOnCta(sections) && !hasDetails && lists === 0) && (
+        <CtaBand
+          title={`Thinking about ${solution.title.toLowerCase()}?`}
+          body="Start with a site visit. We will tell you what your current setup can still do, and what genuinely needs replacing."
+        />
+      )}
 
       {solution.schema && <JsonLd data={solution.schema} />}
       {/* The FAQPage over the FAQs and question blocks — the API's, absent under two entries, and the only one on the page. */}

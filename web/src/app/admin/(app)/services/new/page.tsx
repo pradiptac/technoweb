@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/admin/page-header";
-import { getAnswerBlockKinds, getCustomFieldGroups, getServiceCategoryOptions } from "@/lib/admin";
+import { getAnswerBlockKinds, getCustomFieldGroups, getServiceCategoryOptions, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ServiceForm } from "../service-form";
@@ -22,7 +22,7 @@ export default async function NewServicePage() {
         title="New service"
       />
 
-      <ServiceForm kinds={kinds} categories={categories} fieldGroups={await getCustomFieldGroups("/admin/services")} />
+      <ServiceForm kinds={kinds} categories={categories} fieldGroups={await getCustomFieldGroups("/admin/services")} builder={await getPageBuilderOptions()} />
     </>
   );
 }

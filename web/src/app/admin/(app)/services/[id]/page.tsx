@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getAnswerBlockKinds, getService, getServiceCategoryOptions } from "@/lib/admin";
+import { getAnswerBlockKinds, getService, getServiceCategoryOptions, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ServiceForm } from "../service-form";
@@ -58,7 +58,7 @@ export default async function EditServicePage({
         )}
       </PageHeader>
 
-      <ServiceForm service={service} saved={Boolean(saved)} kinds={kinds} categories={categories} />
+      <ServiceForm service={service} saved={Boolean(saved)} kinds={kinds} categories={categories} builder={await getPageBuilderOptions()} />
     </>
   );
 }

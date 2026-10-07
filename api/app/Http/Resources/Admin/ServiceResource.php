@@ -4,6 +4,7 @@ namespace App\Http\Resources\Admin;
 
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -11,7 +12,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Service */
 class ServiceResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesCustomFields;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSections;
 
     public function toArray(Request $request): array
     {
@@ -23,6 +24,9 @@ class ServiceResource extends JsonResource
             'slug' => $this->slug,
             'summary' => $this->summary,
             'body' => $this->when($detail, $this->body),
+            // Which of the two the page draws in its body area, and the builder's
+            // sections as stored (0.129.0) — see IncludesSections.
+            ...$this->adminSections($detail),
             'icon' => $this->icon,
             'service_category_id' => $this->service_category_id,
             'category_name' => $this->whenLoaded('category', fn () => $this->category?->name),

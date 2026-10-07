@@ -53,6 +53,14 @@ final class SectionRules
     public const MAX_SECTIONS = 40;
 
     /**
+     * The rich text inside a list of sections, as `SanitisesRichText` paths:
+     * a `rich_text` or `media_text` body, and each body of a `columns`
+     * section. Every request that accepts `blocks` names these in its
+     * `richTextFields()`, or a section's markup is stored as typed.
+     */
+    public const RICH_TEXT = ['blocks.*.data.body', 'blocks.*.data.columns.*.body'];
+
+    /**
      * A section's style (2026-10-05, docs/page-builder.md "Style"): how it
      * sits on the page, beside what it says. Every key is optional and each
      * value is a choice from its list — never a number or a colour, so

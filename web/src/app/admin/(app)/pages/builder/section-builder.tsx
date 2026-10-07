@@ -434,7 +434,8 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
         <Button type="button" size="sm" variant="ghost" onClick={redo} disabled={!future.length} title="Redo (Ctrl/⌘ Shift Z)">Redo</Button>
         <span className="mx-1 h-5 w-px bg-line" aria-hidden />
         <Button type="button" size="sm" variant="ghost" onClick={paste}>Paste a section</Button>
-        {!inLibrary && <Button type="button" size="sm" variant="ghost" onClick={() => setSaving({ kind: "template" })} disabled={!sections.length}>Save as template</Button>}
+        {/* A template is a whole page to start from; a record's body area is not one. */}
+        {!inLibrary && !options.in_record && <Button type="button" size="sm" variant="ghost" onClick={() => setSaving({ kind: "template" })} disabled={!sections.length}>Save as template</Button>}
         <span className="ml-auto text-12 text-faint">Drag a section by its handle, or use its arrows.</span>
         {wide && (
           <Button type="button" size="sm" variant={showLive ? "secondary" : "ghost"} aria-pressed={showLive} onClick={() => setLivePref(!showLive)}>

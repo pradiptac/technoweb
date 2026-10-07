@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateCaseStudyRequest;
 use App\Http\Resources\Admin\CaseStudyResource;
 use App\Models\CaseStudy;
 use App\Support\CustomFields\CustomFields;
+use App\Support\PageSections\RecordSections;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -57,6 +58,7 @@ class CaseStudyController extends Controller
         $study = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
 
             $study = CaseStudy::create($attributes);
 
@@ -78,6 +80,7 @@ class CaseStudyController extends Controller
         DB::transaction(function () use ($request, $caseStudy) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
 
             $caseStudy->update($attributes);
 

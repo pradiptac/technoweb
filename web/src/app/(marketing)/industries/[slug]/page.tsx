@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
+import { RecordSections, laidOutAsSections } from "@/components/page-sections/record-sections";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { ArrowLink } from "@/components/ui/button";
 import { Card, CardHead } from "@/components/ui/card";
@@ -68,6 +69,13 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
   if (!industry) notFound();
 
   const solutions = industry.solutions ?? [];
+  const crumbs = [
+    { name: "Industries", path: "/industries" },
+    { name: industry.name, path: `/industries/${industry.slug}` },
+  ];
+  // The body laid out as builder sections (0.129.0): full-width bands under
+  // the heading, in place of the written body; the rest of the page is as it was.
+  const laidOut = laidOutAsSections(industry);
 
   return (
     <>
@@ -76,14 +84,13 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
         kicker="Industry"
         title={`Infrastructure for ${industry.name.toLowerCase()}`}
         lede={industry.summary}
-        crumbs={[
-          { name: "Industries", path: "/industries" },
-          { name: industry.name, path: `/industries/${industry.slug}` },
-        ]}
+        crumbs={crumbs}
       />
 
+      {laidOut && <RecordSections sections={industry.sections ?? []} crumbs={crumbs} />}
+
       <Container data-aos="fade-up" className="section-y">
-        {industry.body && <ProseWithShortcodes html={industry.body} className="mb-14" />}
+        {!laidOut && industry.body && <ProseWithShortcodes html={industry.body} className="mb-14" />}
 
         {/* The answer blocks and FAQs, then what the record is connected to — before the solutions grid. */}
         {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}

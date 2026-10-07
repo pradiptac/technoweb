@@ -74,6 +74,24 @@ export function jsonListFromFormData<T>(formData: FormData, key: string): T[] {
 }
 
 /**
+ * A record's Sections tab (0.129.0, `RecordSectionsPanel`), as the two keys
+ * the API takes: which of the two its page shows, and the builder's list.
+ * Nothing when the form posted no `blocks` control — a form without the tab
+ * leaves both alone, the rule `custom_fields` follows.
+ */
+export function sectionsFromFormData(formData: FormData): {
+  body_layout?: import("@/types/page-sections").RecordBodyLayout;
+  blocks?: import("@/types/page-sections").StoredSection[];
+} {
+  if (!formData.has("blocks")) return {};
+
+  return {
+    body_layout: str(formData, "body_layout") === "sections" ? "sections" : "body",
+    blocks: jsonListFromFormData<import("@/types/page-sections").StoredSection>(formData, "blocks"),
+  };
+}
+
+/**
  * The Fields tab's inputs, as the `custom_fields` object the API takes.
  *
  * `CustomFieldsPanel` names every control `cf__<key>` and posts one hidden

@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Concerns;
 
 use App\Support\EntityLinks;
+use App\Support\PageSections\RecordSections;
 use App\Support\StructuredData;
 use Illuminate\Http\Resources\MissingValue;
 
@@ -65,8 +66,14 @@ trait IncludesSchema
             return new MissingValue;
         }
 
-        $faqs = $this->resource->relationLoaded('faqs') ? $this->resource->getRelation('faqs') : [];
+        $faqs = $this->resource->relationLoaded('faqs') ? $this->resource->getRelation('faqs')->all() : [];
         $blocks = $this->resource->relationLoaded('publishedAnswerBlocks') ? $this->resource->getRelation('publishedAnswerBlocks') : [];
+
+        // A record laid out as sections (0.129.0): the questions typed into
+        // its `faq` sections join the same graph — one `FAQPage` on the page,
+        // under the same gate, as a builder page's do. Nothing while the
+        // page draws its written body.
+        $faqs = [...$faqs, ...RecordSections::faqEntries($this->resource)];
 
         // Absent rather than null under the gate: `when()` would keep the
         // key with a null in it, and a null graph is a block the frontend

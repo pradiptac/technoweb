@@ -710,17 +710,40 @@ export type NavEntry =
  * The same rows as `{label, href, group}` for the command palette — the
  * screens this role may open, with no icons, so the palette's client bundle
  * carries none of the map either — plus, for each settings screen the role
- * may open, its tabs and its fields.
+ * may open, its tabs and its fields, and the named parts of a screen in
+ * `PALETTE_SECTIONS`.
  */
-export function palettePages(roles: string[]): { label: string; href: string; group?: string }[] {
+export function palettePages(roles: string[]): { label: string; href: string; group?: string; keywords?: string }[] {
   const screens = navFor(roles).flatMap((item) =>
     item.kind === "link"
       ? [{ label: item.label, href: item.href }]
       : item.links.map((l) => ({ label: l.label, href: l.href, group: item.label })),
   );
   const open = new Set(screens.map((s) => s.href));
-  return [...screens, ...settingsPages().filter((r) => open.has(r.href.split(/[?#]/)[0]))];
+  const reachable = (r: { href: string }) => open.has(r.href.split(/[?#]/)[0]);
+  return [...screens, ...PALETTE_SECTIONS.filter(reachable), ...settingsPages().filter(reachable)];
 }
+
+/**
+ * Parts of a screen that people look for by a name the screen does not carry.
+ *
+ * Asked for on 2026-10-08: "I have searched for cron in Ctrl+K but not
+ * coming". The scheduler's command is a card on System status, and the
+ * palette matched only a screen's own label and its group — so the one thing
+ * an administrator is sent to find after installing had no row. Each entry
+ * opens its screen at the part's own id, and `keywords` are the other words
+ * somebody types for it; the palette matches them and never shows them. Kept
+ * by `palettePages` only for a role whose sidebar names the screen, the rule
+ * the settings rows follow.
+ */
+const PALETTE_SECTIONS: { label: string; href: string; group: string; keywords: string }[] = [
+  {
+    label: "Scheduler command (cron job)",
+    href: "/admin/system/status#scheduler",
+    group: "System · System status",
+    keywords: "cron crontab cronjob scheduler schedule:run schedule:work scheduled task task scheduler background jobs queue",
+  },
+];
 
 /**
  * The settings screens, one row per tab and one per setting.

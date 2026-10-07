@@ -78,6 +78,11 @@ A full CMS for the people who write, without a developer in the loop.
 - **Case studies** with client, industry and a results table.
 - **Standalone pages** (privacy, terms, downloads and anything else) in two
   templates, with shortcodes to drop a slider, gallery or form into any body.
+- **Sections on solutions, services, industries and case studies**: the body
+  of any of them can be laid out with the page builder's sections instead of
+  written text. Only the body changes — the page keeps its heading, related
+  lists, FAQs and closing band — and the written text is kept for switching
+  back.
 - **A section page builder**: a page laid out as a stack of ready sections —
   hero, text, picture or video with text, features, live lists from the
   catalogue, content blocks, sliders, galleries, forms, questions, logo

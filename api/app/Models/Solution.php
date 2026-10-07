@@ -24,8 +24,11 @@ class Solution extends Model implements Answerable, Faqable
     protected $fillable = [
         'title', 'slug', 'summary', 'problem_statement', 'overview',
         'benefits', 'technologies', 'icon', 'hero_image_path', 'status', 'sort_order',
-        'show_in_menu',
+        'show_in_menu', 'body_layout', 'blocks',
     ];
+
+    /** In memory as in the column: a new record's page draws its written body. */
+    protected $attributes = ['body_layout' => 'body'];
 
     protected function casts(): array
     {
@@ -33,6 +36,7 @@ class Solution extends Model implements Answerable, Faqable
             'show_in_menu' => 'boolean',
             'benefits' => 'array',
             'technologies' => 'array',
+            'blocks' => 'array',
             'status' => PublishStatus::class,
         ];
     }

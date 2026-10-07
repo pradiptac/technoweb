@@ -6,7 +6,7 @@ import { ApiError } from "@/lib/api";
 import {
   createCaseStudy, deleteCaseStudy, updateCaseStudy, type CaseStudyPayload,
 } from "@/lib/admin";
-import { customFieldsFromFormData, seoFromFormData, str } from "@/lib/admin-form";
+import { customFieldsFromFormData, sectionsFromFormData, seoFromFormData, str } from "@/lib/admin-form";
 import type { CaseStudyResult, PublishStatus } from "@/types/api";
 
 export type CaseStudyFormState = { error?: string; fieldErrors?: Record<string, string[]> };
@@ -40,6 +40,8 @@ function payloadFrom(formData: FormData): CaseStudyPayload {
   return {
     // Custom fields: absent when no Fields tab was drawn, so the API leaves them alone.
     ...customFieldsFromFormData(formData),
+    // The Sections tab: which of the two the page shows, and the builder's list.
+    ...sectionsFromFormData(formData),
     title: str(formData, "title") ?? "",
     slug: str(formData, "slug"),
     client_name: str(formData, "client_name"),

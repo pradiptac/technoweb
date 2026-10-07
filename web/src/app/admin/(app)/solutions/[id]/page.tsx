@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getAnswerBlockKinds, getIndustries, getProductOptions, getSolution } from "@/lib/admin";
+import { getAnswerBlockKinds, getIndustries, getProductOptions, getSolution, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { SolutionForm } from "../solution-form";
@@ -60,7 +60,7 @@ export default async function EditSolutionPage({
         )}
       </PageHeader>
 
-      <SolutionForm solution={solution} products={products} industries={industries} saved={Boolean(saved)} kinds={kinds} />
+      <SolutionForm solution={solution} products={products} industries={industries} saved={Boolean(saved)} kinds={kinds} builder={await getPageBuilderOptions()} />
     </>
   );
 }

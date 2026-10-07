@@ -11,6 +11,7 @@ import { EditorField } from "@/components/admin/editor-field";
 import { ResultsField } from "@/components/admin/results-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
+import { BodyReplacedNote, RecordSectionsPanel, SECTIONS_TAB, useRecordSections } from "../pages/builder/record-sections";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import { CoverField } from "@/components/admin/cover-field";
@@ -18,7 +19,7 @@ import {
   createCaseStudyAction, updateCaseStudyAction, deleteCaseStudyAction,
   type CaseStudyFormState,
 } from "./actions";
-import type { CustomFieldGroupDefinition, AdminCaseStudy, AdminIndustry } from "@/types/api";
+import type { CustomFieldGroupDefinition, AdminCaseStudy, AdminIndustry, PageBuilderOptions } from "@/types/api";
 
 const initial: CaseStudyFormState = {};
 
@@ -27,18 +28,22 @@ const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
     fields: ["title", "slug", "summary", "results", "body", "status",
              "industry_id", "client_name"] },
+  // Sections in place of the written body (0.129.0) — the choice and the builder.
+  SECTIONS_TAB,
   { id: "media", label: "Media", fields: ["cover_image_path"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
 ];
 
 export function CaseStudyForm({
-  study, industries, saved, fieldGroups,
+  study, industries, saved, fieldGroups, builder,
 }: {
   study?: AdminCaseStudy;
   industries: AdminIndustry[];
   saved?: boolean;
   /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
   fieldGroups?: CustomFieldGroupDefinition[];
+  /** `GET /admin/pages/builder` — the section builder's types and pickers, for the Sections tab. */
+  builder: PageBuilderOptions;
 }) {
   const editing = Boolean(study);
   const [state, formAction, pending] = useActionState(
@@ -48,6 +53,9 @@ export function CaseStudyForm({
 
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
   const seoErr = (f: string) => state.fieldErrors?.[`seo.${f}`]?.[0];
+
+  // The body area: the written body, or builder sections (0.129.0).
+  const body = useRecordSections(study);
 
   // Custom fields (docs/custom-content.md): the groups that apply, from the API.
   const customGroups = study?.custom_field_groups ?? fieldGroups ?? [];
@@ -97,6 +105,8 @@ export function CaseStudyForm({
 
             <ResultsField defaultValue={study?.results ?? []} error={resultsErr} />
 
+            <BodyReplacedNote state={body} />
+
             <EditorField name="body" defaultValue={study?.body ?? ""} error={err("body")} />
           </div>
 
@@ -122,6 +132,17 @@ export function CaseStudyForm({
             </Field>
           </aside>
         </div>
+
+        {/* Sections in place of the written body. One child, always mounted. */}
+        <RecordSectionsPanel
+          state={body}
+          builder={builder}
+          media={study?.blocks_media ?? {}}
+          errors={state.fieldErrors ?? {}}
+          bodyField="body"
+          storedBody={study?.body ?? ""}
+          noun="case study"
+        />
 
         <div>
           <CoverField

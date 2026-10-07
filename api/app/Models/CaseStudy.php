@@ -18,12 +18,15 @@ class CaseStudy extends Model
 
     protected $fillable = [
         'industry_id', 'title', 'slug', 'client_name', 'summary',
-        'body', 'results', 'cover_image_path', 'status',
+        'body', 'results', 'cover_image_path', 'status', 'body_layout', 'blocks',
     ];
+
+    /** In memory as in the column: a new record's page draws its written body. */
+    protected $attributes = ['body_layout' => 'body'];
 
     protected function casts(): array
     {
-        return ['results' => 'array', 'status' => PublishStatus::class];
+        return ['results' => 'array', 'status' => PublishStatus::class, 'blocks' => 'array'];
     }
 
     public function urlPrefix(): string

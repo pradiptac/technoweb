@@ -17,13 +17,14 @@ import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { StringListField } from "@/components/admin/string-list-field";
 import { Tabs } from "@/components/admin/tabs";
+import { BodyReplacedNote, RecordSectionsPanel, SECTIONS_TAB, useRecordSections } from "../pages/builder/record-sections";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import {
   createSolutionAction, updateSolutionAction, deleteSolutionAction,
   type SolutionFormState,
 } from "./actions";
-import type { CustomFieldGroupDefinition, AdminIndustry, PickerOption, AdminSolution, AnswerBlockKindOption } from "@/types/api";
+import type { CustomFieldGroupDefinition, AdminIndustry, PickerOption, AdminSolution, AnswerBlockKindOption, PageBuilderOptions } from "@/types/api";
 
 const initial: SolutionFormState = {};
 
@@ -35,6 +36,8 @@ const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
     fields: ["title", "slug", "summary", "problem_statement", "overview",
              "benefits", "technologies", "status", "sort_order", "show_in_menu"] },
+  // Sections in place of the written body (0.129.0) — the choice and the builder.
+  SECTIONS_TAB,
   { id: "media", label: "Media", fields: ["icon", "hero_image_path"] },
   { id: "related", label: "Related", fields: ["product_ids", "industry_ids", "faqs"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
@@ -43,7 +46,7 @@ const GROUPS: TabGroup[] = [
 ];
 
 export function SolutionForm({
-  solution, products, industries, saved, kinds, fieldGroups,
+  solution, products, industries, saved, kinds, fieldGroups, builder,
 }: {
   solution?: AdminSolution;
   products: PickerOption[];
@@ -53,6 +56,8 @@ export function SolutionForm({
   kinds: AnswerBlockKindOption[];
   /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
   fieldGroups?: CustomFieldGroupDefinition[];
+  /** `GET /admin/pages/builder` — the section builder's types and pickers, for the Sections tab. */
+  builder: PageBuilderOptions;
 }) {
   const editing = Boolean(solution);
   const [state, formAction, pending] = useActionState(
@@ -67,6 +72,9 @@ export function SolutionForm({
   const rowErr = (prefix: string) =>
     err(prefix) ?? Object.entries(state.fieldErrors ?? {})
       .find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
+
+  // The body area: the written body, or builder sections (0.129.0).
+  const body = useRecordSections(solution);
 
   // Custom fields (docs/custom-content.md): the groups that apply, from the API.
   const customGroups = solution?.custom_field_groups ?? fieldGroups ?? [];
@@ -108,6 +116,8 @@ export function SolutionForm({
               <Textarea id="summary" name="summary" rows={3} defaultValue={solution?.summary ?? ""}
                 maxLength={500} aria-invalid={Boolean(err("summary"))} />
             </Field>
+
+            <BodyReplacedNote state={body} kept="The problem statement, overview and benefits below are kept, and come back if the layout is switched." />
 
             <Field label="Problem statement" htmlFor="problem_statement" error={err("problem_statement")}
               hint="The situation this solves, in the customer's words. Plain prose — it renders as a lede, not rich text.">
@@ -171,6 +181,17 @@ export function SolutionForm({
             </label>
           </aside>
         </div>
+
+        {/* Sections in place of the written body. One child, always mounted. */}
+        <RecordSectionsPanel
+          state={body}
+          builder={builder}
+          media={solution?.blocks_media ?? {}}
+          errors={state.fieldErrors ?? {}}
+          bodyField="overview"
+          storedBody={solution?.overview ?? ""}
+          noun="solution"
+        />
 
         <div className="grid gap-x-8 md:grid-cols-2">
           <IconField defaultValue={solution?.icon ?? null} error={err("icon")} />

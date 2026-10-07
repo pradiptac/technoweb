@@ -301,6 +301,30 @@ You can change wording directly in that preview:
   questions that open and close, links with an arrow, and counting figures.
 - Each field keeps its usual length; typing stops when it is full.
 
+### Sections on solutions, services, industries and case studies
+
+The same sections can lay out the **body** of a solution, a service, an
+industry or a case study. Open one, go to its **Sections** tab and set **The
+page's body shows** to **Sections**. The builder appears; add and arrange
+sections exactly as on a page, then save.
+
+- **Only the body changes.** The page keeps its heading, its related lists,
+  its FAQs and the closing band. The sections stand where the written text
+  stood, as full-width bands.
+- **What you wrote is kept.** The text on the Content tab stays stored while
+  it is not shown. Set the choice back to **Written body** and it returns;
+  your sections are kept too.
+- **Start from what is there.** With no sections yet, **Lay it out as
+  sections** turns the written text into sections at its headings.
+- Until at least one section is added, the page goes on showing the written
+  text.
+- Two kinds of section are not offered here, because the page already has
+  its own heading: **Hero** and **From the theme**. A **Questions** section
+  holds questions you type into it; the page's own FAQs are listed under the
+  sections as before.
+- On a solution, the lists that normally sit beside the text (technologies,
+  hardware, industries) move under the sections as a row.
+
 ## The blog
 
 **Blog → Blog** lists your articles. Each post has a title, a slug, an

@@ -314,6 +314,17 @@ never sees it, so the input closes the palette on Escape itself; and the
 button's 30px at 320 was exactly the scheme toggle's margin, which is `sm:`
 now. `scripts/probes/command-palette.mjs` measures it.
 
+**A part of a screen is a row too, found by words its screen does not carry**
+(2026-10-08). The client searched "cron" and got nothing: the scheduler's
+command is a card on System status, and the palette matched a row's label
+and group only. `PALETTE_SECTIONS` in `nav-items.tsx` lists such parts —
+a label, the screen's path with the part's own id as the hash, and
+`keywords`, the other words somebody types for it — and a `PalettePage` may
+carry `keywords`, which the palette matches and never shows. Kept only for a
+role whose sidebar names the screen, the settings rows' rule. The part's
+heading needs a `scroll-mt-*`, or it lands under the sticky header. Add a
+row there when a screen gains something people will look for by name.
+
 **The sidebar says what arrived while the console was open, and so does the
 tab.** `admin/(app)/new-since.tsx`: a poller in the layout asks
 `/api/admin/new-since` (the API's staff-wide `GET /admin/new-since?since=`,

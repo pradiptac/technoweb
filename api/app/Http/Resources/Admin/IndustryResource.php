@@ -4,6 +4,7 @@ namespace App\Http\Resources\Admin;
 
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Models\Industry;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -16,7 +17,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Industry */
 class IndustryResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesCustomFields;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSections;
 
     public function toArray(Request $request): array
     {
@@ -30,6 +31,9 @@ class IndustryResource extends JsonResource
             'slug' => $this->slug,
             'summary' => $this->summary,
             'body' => $this->when($detail, $this->body),
+            // Which of the two the page draws in its body area, and the builder's
+            // sections as stored (0.129.0) — see IncludesSections.
+            ...$this->adminSections($detail),
             'icon' => $this->icon,
             'sort_order' => (int) $this->sort_order,
             'show_in_menu' => (bool) $this->show_in_menu,

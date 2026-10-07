@@ -14,8 +14,11 @@ import type { StoredSection } from "@/types/api";
  * A change to a library section purges **every** page (`updateTag("pages")`):
  * nothing records which pages place it linked short of reading them all, and
  * the tag is the one every public page fetch carries — the same purge a page
- * save makes, for a write that can reach any page.
+ * save makes, for a write that can reach any page. Since 0.129.0 a solution,
+ * a service, an industry or a case study can place one too, so their tags go
+ * with it (`PLACES_SECTIONS`).
  */
+const PLACES_SECTIONS = ["pages", "solutions", "services", "industries", "case-studies"] as const;
 export type LibraryResult = { ok: boolean; id?: number; error?: string; fieldErrors?: Record<string, string[]> };
 
 function fail(error: unknown): LibraryResult {
@@ -40,7 +43,7 @@ export async function saveToLibraryAction(payload: SavedSectionPayload): Promise
 export async function updateLibraryAction(id: number, payload: SavedSectionPayload): Promise<LibraryResult> {
   try {
     await updateSavedSection(id, payload);
-    updateTag("pages");
+    PLACES_SECTIONS.forEach((tag) => updateTag(tag));
     revalidatePath("/admin/pages/library");
     return { ok: true, id };
   } catch (error) {

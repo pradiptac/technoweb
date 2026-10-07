@@ -908,6 +908,96 @@ form as ever.
 Probe: `PAGE_ID=<id> node scripts/probes/section-ai.mjs` drives the real
 model on the sample builder page and saves nothing (three AI requests).
 
+## Sections on other records (0.129.0)
+
+A solution, a service, an industry and a case study can each lay out their
+**body area** as builder sections. The client's decision is the whole shape of
+it: *the sections take the body area only*. The record's page keeps its theme
+heading (the one `h1`), its related lists, its FAQs and its closing band; what
+the sections replace is the written body.
+
+**Two columns, and neither clears the other.** `blocks` is the list a page
+stores, validated by the same rules; `body_layout` is `body` (the default,
+every record as it was) or `sections`. The public read sends `sections` only
+on the record's own page — gated on `withSchema()`, the "this resource is the
+page" flag, because a nested resource inherits its parent's route name — and
+only while `RecordSections::inUse()`: the layout is `sections` **and** the
+list is not empty. The written body is still sent, and still stored, so
+switching back loses nothing; sections chosen with none laid out is the
+written body, never an empty page.
+
+**`App\Support\PageSections\RecordSections` is the difference from a page,
+and it is three refusals.** A body area cannot hold a `hero` or a
+`theme_section` (the page already opens on its heading), nor an FAQ section
+reading "this page's FAQs" (the record's FAQs are drawn under the sections
+already). Each is a 422 on write — `blocks.N.type`, `blocks.N.data.source`,
+or `blocks.N.data.saved_id` for a linked library section that is one of
+them — **and dropped again on read** (`SectionPresenter::present()` takes an
+`$except` list, checked after `resolve()` has swapped the library's section
+in), because a library section can be edited into a hero after it was
+placed. `RecordSectionsTest` plants exactly that. Everything else is the page
+builder's: `SectionRules::forPayload()`, `after()`, `normalise()`,
+`SectionRules::RICH_TEXT` in each request's `richTextFields()`.
+
+**One `FAQPage` still.** Questions typed into a `faq` section join the
+record's graph through `IncludesSchema::faqSchema()`
+(`RecordSections::faqEntries()`), under the same two-entry gate, and only
+while the page draws the sections. A case study has no FAQs of its own; a
+section's questions are its graph.
+
+**The library knows about records.** `SavedSection::linkedFrom()` reads the
+four tables too (`SavedSection::RECORDS`), so a section a solution places
+linked cannot be deleted from under it, and an edit to a library section
+purges the four record tags beside `pages` (`library-actions.ts`).
+
+### On the public page
+
+`components/page-sections/record-sections.tsx`. The sections are full-width
+bands, as on a builder page, so each route draws them **between** its heading
+and a container holding the rest — never inside the body's old column, where
+a band with its own background would be a box in a box beside an aside:
+
+- **Solution**: in place of "The problem", "What we do" and "What you get".
+  The three lists that sat beside the body (technologies, hardware,
+  industries) become a row under the details, with as many columns as there
+  are lists. The closing band is left out only when the sections end on a
+  call to action and nothing at all is drawn under them.
+- **Service**: in place of the body. The details and the enquiry form keep
+  their two columns; with no details the form stands alone, centred.
+- **Industry**: in place of the body; the rest of the page is as it was.
+- **Case study**: the results and the cover stay above the sections — they
+  are the study's own, not its body — and the details and the way back
+  follow them, so the page's one container becomes two.
+
+`PageSections` is called with `ownsH1={false}`: `PageHero` is the `h1`,
+every section heading an `h2`. A record whose page draws its written body
+renders the markup it always did.
+
+### In the console
+
+One tab, **Sections**, second on each of the four forms
+(`pages/builder/record-sections.tsx`): the choice ("The page's body shows")
+and, once Sections is chosen, the page builder itself. The tab is always in
+the form's list and its panel always mounted, so the choice and the list
+post from present controls and a 422 on `blocks.2.data.heading` has a tab to
+land on. `recordBuilderOptions()` takes out of the builder's options what
+the API would refuse — the excluded types (`record_sections.excluded_types`
+on `GET /admin/pages/builder`, never listed in TypeScript), library sections
+of those types, page templates and starting stacks — and sets `in_record`,
+which is what hides the FAQ editor's "this page's FAQs" and "Save as
+template". "This page's content" lays the record's written body out as
+sections in one press, as on a page. The Content tab says when what is
+written there is not what the page is showing.
+
+Not built in this release, and next: the same on the remaining record types
+(0.130.0). Search, the assistant's retrieval and the SEO scores read the
+written body, as they do for a builder page — a record laid out as sections
+is found by what its body still says.
+
+Probe: `RECORD=solutions RECORD_ID=<id> node scripts/probes/record-sections.mjs`
+turns sections on through the real form, reads the public page at 1280 and
+360, and puts the record back.
+
 ## Tests
 
 `tests/Feature/PageBuilderTest.php` — every type's rules valid and invalid, an
@@ -922,6 +1012,12 @@ against the rules, the merge, lists, rich text in and out, every refusal.
 `PageBuilderTest` also pins `inline_fields` (0.128.0): free text only, each
 with its rule's length, never a choice, a link, an icon or a file.
 `tests/Unit/SanitisesRichTextTest.php` — the nested wildcard path.
+`tests/Feature/RecordSectionsTest.php` — sections on the four record types
+(0.129.0): stored and presented per type, the body kept and the layout
+switched both ways, a section checked and cleaned by the page's rules, the
+three refusals, a linked library section held to them on write and on read,
+the one `FAQPage`, no `sections` on a nested record, the library's refusal
+to delete.
 `tests/Unit/BodySectionsTest.php` — the heading split, `h3`s, a heading over
 nothing, an empty body, the forty cap, the size cut. `PageBuilderTest` also
 pins the four 0.109.0 types and `sections-from-body` (cleaned, role-gated,
