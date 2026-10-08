@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, FileInput, Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import type { CustomFont } from "@/lib/custom-fonts";
 import { removeFontAction, uploadFontAction, type FontActionState } from "./fonts-actions";
 
@@ -112,8 +113,8 @@ function Slot({ slot, font }: { slot: 1 | 2; font: CustomFont | null }) {
           <FileInput id={`${id}-bold`} ref={bold} accept=".woff2,font/woff2" />
         </Field>
       )}
-      <label className="mb-4 flex items-start gap-2.5 text-13">
-        <input type="checkbox" className="mt-0.5 size-4 accent-(--color-brand-600)" checked={variable} onChange={(e) => setVariable(e.currentTarget.checked)} />
+      <label className="mb-4 flex cursor-pointer items-start gap-3 text-13">
+        <Switch className="mt-px" checked={variable} onChange={(e) => setVariable(e.currentTarget.checked)} />
         <span>
           This is a variable font
           <span className="block text-12-5 text-muted">One file that holds every weight. Tick it only if the font was supplied that way.</span>

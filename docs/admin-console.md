@@ -635,6 +635,52 @@ seven ad-hoc `en-GB` date formatters onto `lib/dates.ts` (`dateTimeShort` is
 new — a queue's timestamp without the year), eight `<section … bg-card>`
 panels onto `Card`, and three drifted helper copies into `lib/`
 (`format-bytes.ts`, `initials.ts`, `request-host.ts`).
+
+**It is a sliding switch since 0.135.0** (the client: "all settings 0/1
+should be replaced by animated sliding small switch. it can save the space
+of each settings page"). Three parts:
+
+- `components/ui/switch.tsx` is the drawing and nothing else: a real
+  `<input type="checkbox" role="switch">` laid over a 36×20 track at zero
+  opacity, the track its next sibling with a look keyed on `peer-checked` /
+  `peer-focus-visible` / `peer-disabled`. **Not `sr-only`**: clipped to a
+  pixel the control cannot be pressed where it is drawn, which a screen
+  reader's touch exploration and Playwright's `setChecked()` both need (two
+  existing probes tick a setting that way). The input is 24px tall, the
+  tap-target floor, and the track takes no pointer events. Still a checkbox, so a label's `htmlFor`, Space, a form's
+  own posting (the email templates post `name`/`value="1"` after a hidden
+  `0`) and every existing `checked` work unchanged. The thumb moves with the
+  CSS `translate` property — `peer-checked:after:translate-x-4` sets
+  `translate`, so the transition names `translate`; `transition-transform`
+  would animate nothing. The track at rest is `faint`, on it is `brand-600`,
+  and the thumb is `card` at rest and `brand-on` when on — both invert, since
+  in dark the resting track is light and the 600 fill bright, and a white
+  thumb would vanish into either.
+- `SettingSwitch` composes it beside the hidden `1`/`0` input, as before.
+  `SettingSwitchField` lost its bordered box — the box was most of the height
+  of a screen of switches.
+- **A row whose options are exactly `0` and `1` is a switch**
+  (`onOffNotes()` in `settings-fields.tsx`, called before the `ChoiceField`
+  branch). Those rows — the four backup switches, online meetings, "leave
+  out busy Google times", basket reminders — were dropdowns "because the
+  options' descriptions are the point"; the description now sits under the
+  label and follows the state. Decided by the options, never by a list of
+  keys, so a two-choice row with other values (`dispatched`/`paid`) stays a
+  dropdown and the next on/off row the API describes needs nothing here.
+
+Also moved onto it: the three ways of paying on the payments tab (a
+hand-written Offered/Not offered `<select>`), "This is a variable font", the
+theme's per-section Show, and the email templates' two switches. **Not
+moved, on purpose**: tick boxes on record forms (Featured, Show in menu, a
+custom field's checkbox) — those are a record's fields, and a grid of
+relation tick boxes is a list, not a set of switches.
+
+`scripts/probes/setting-switch.mjs` reads every screen's path out of
+`settings-copy.ts` and fails on an Off/On `<select>`, a bare tick box
+posting a `setting__` key, or a switch whose hidden value disagrees with it;
+it samples the thumb's `translate` part-way through the slide, toggles from
+the keyboard, and saves one setting over and back to prove the state
+survives React's form reset and a reload.
 ## The AEO tab (2026-09-21)
 
 Every entity form that carries answer blocks — pages, products, store

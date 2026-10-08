@@ -428,6 +428,8 @@ Built in, measured, and never allowed to guess.
   if a fix does not hold.
 - **Your own fonts**: upload the company's typeface and set headlines and
   text in it, beside nineteen built in.
+- **Settings that read at a glance**: everything that is simply on or off is
+  a small sliding switch, with a line under it saying what that state means.
 - **Ready for a CDN**: an optional media CDN address for videos and
   documents, a site that behaves behind Cloudflare, and a status check that
   says when one is in front.

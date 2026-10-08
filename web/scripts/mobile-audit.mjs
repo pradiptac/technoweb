@@ -136,7 +136,7 @@ const ADMIN_ROUTES = [
   // audited; the Email to ticket panel is the one the consent callback belongs
   // to, and that callback is a page nothing links to.
   "/admin/site/settings", "/admin/blog/settings", "/admin/media/settings", "/admin/seo/settings", "/admin/store/settings",
-  "/admin/newsletter/settings", "/admin/leads/settings", "/admin/tickets/settings", "/admin/customers/settings", "/admin/chat/settings",
+  "/admin/newsletter/settings", "/admin/leads/settings", "/admin/tickets/settings", "/admin/customers/settings", "/admin/chat/settings", "/admin/messaging/settings",
   // Engineer visits (docs/visits.md).
   "/admin/visits", "/admin/visits/settings",
   // Online meetings (docs/meetings.md): the table, the week view, the slot

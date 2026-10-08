@@ -843,7 +843,8 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   /*
     Backups (2026-09-27, docs/backups.md): the schedule and what is in it on
     the first tab, then one tab per destination. The switches arrive with
-    options from the API, so they draw as choices rather than "1 or 0".
+    an Off and an On from the API, so each draws as a switch with the
+    sentence for its state underneath (0.135.0; a dropdown until then).
   */
   backup_enabled: { label: "Scheduled backups" },
   backup_time: { label: "Backup time", hint: "24-hour clock, this site’s time zone. Pick a quiet hour — the database is read while people use the site.", placeholder: "02:15" },

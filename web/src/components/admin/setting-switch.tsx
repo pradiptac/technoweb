@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 
+import { Switch } from "@/components/ui/switch";
+
 /**
- * A boolean setting as a visible checkbox beside a **controlled hidden
- * input** carrying `1`/`0`.
+ * A boolean setting as a small sliding switch (0.135.0; a tick box until
+ * then) beside a **controlled hidden input** carrying `1`/`0`.
  *
  * The hidden input is the whole reason this exists: an unchecked checkbox
  * posts nothing, and every settings action PATCHes only the keys it finds
@@ -44,15 +46,14 @@ export function SettingSwitch({
   return (
     <label
       htmlFor={id}
-      className={align === "start" ? "flex cursor-pointer items-start gap-2.5 text-13-5" : "flex cursor-pointer items-center gap-2 text-13-5 font-semibold"}
+      className={align === "start" ? "flex cursor-pointer items-start gap-3 text-13-5" : "flex cursor-pointer items-center gap-2.5 text-13-5 font-semibold"}
     >
-      <input
+      <Switch
         ref={ref}
         id={id}
-        type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className={align === "start" ? "mt-0.5 size-4 accent-brand-600" : "size-4 accent-brand-600"}
+        className={align === "start" ? "mt-px" : undefined}
       />
       <input type="hidden" name={name} value={checked ? "1" : "0"} />
       {note ? (

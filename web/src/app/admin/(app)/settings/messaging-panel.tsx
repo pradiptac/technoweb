@@ -62,7 +62,7 @@ export function MessagingPanel({ status, rows }: { status: MessagingStatus; rows
 
       {secret && (
         <div className="border-t border-line pt-4">
-          <h3 className="mb-2 text-15 font-semibold text-ink">Webhook secret</h3>
+          <h2 className="mb-2 text-15 font-semibold text-ink">Webhook secret</h2>
           <p className="measure mb-3 text-12-5 text-muted">
             Gupshup signs nothing, so its webhooks carry this on the callback URL as{" "}
             <code className="font-mono">?token=…</code>. Without it every Gupshup callback — delivery
@@ -81,7 +81,7 @@ export function MessagingPanel({ status, rows }: { status: MessagingStatus; rows
 
       {start && end && (
         <div className="border-t border-line pt-4">
-          <h3 className="mb-2 text-15 font-semibold text-ink">Quiet hours</h3>
+          <h2 className="mb-2 text-15 font-semibold text-ink">Quiet hours</h2>
           <p className="measure mb-3 text-12-5 text-muted">
             Basket reminders, wishlist notes and broadcasts go out only between these two times ({status.quiet_hours.timezone});
             anything that falls due outside waits for the window to open, on every channel and by email.
@@ -122,7 +122,7 @@ function ChannelSection({
   return (
     <section className="border-t border-line pt-4 first:border-t-0 first:pt-0" aria-labelledby={`${channel.value}-heading`}>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <h3 id={`${channel.value}-heading`} className="text-15 font-semibold text-ink">{channel.label}</h3>
+        <h2 id={`${channel.value}-heading`} className="text-15 font-semibold text-ink">{channel.label}</h2>
         <span className={channel.ready ? "text-12 font-semibold text-ok" : "text-12 text-muted"}>
           {channel.ready ? "Ready" : channel.provider ? "Not fully configured" : "Off"}
         </span>

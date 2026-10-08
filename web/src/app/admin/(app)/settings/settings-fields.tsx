@@ -90,21 +90,53 @@ export function settingOn(value: string | null | undefined): boolean {
  * for, drawn as a switch rather than a text box that wanted a 1 or a 0.
  *
  * The decision is the row's own `type`, which the seeder keeps current on
- * every run, so a new `*_enabled` row needs nothing here. A boolean that
- * does arrive with `options` (the backup switches, basket reminders) stays a
- * `ChoiceField`, because there the options' descriptions are the point.
+ * every run, so a new `*_enabled` row needs nothing here.
+ *
+ * A row the API offers exactly an Off and an On for (the backup switches,
+ * basket reminders, meetings) is a switch too since 0.135.0 — see
+ * `onOffNotes()` — and the line under its label is the description of the
+ * state it is in, changing as it is pressed: the explanations were the point
+ * of the dropdown those rows used to be, so they are kept.
+ *
+ * No box around it: the switch is the control, and a bordered panel per
+ * setting was most of the height of a screen of them.
  * `SettingSwitch` posts `1`/`0` through its hidden input, exactly what the
- * text box accepted, so the save path and the API are unchanged.
+ * text box and the dropdown posted, so the save path and the API are
+ * unchanged.
  */
-export function SettingSwitchField({ id, label, hint, defaultValue }: { id: string; label: string; hint?: string; defaultValue: string | null }) {
+export function SettingSwitchField({
+  id, label, hint, defaultValue, notes,
+}: {
+  id: string;
+  label: string;
+  hint?: string;
+  defaultValue: string | null;
+  /** What each state means, when the API said so. */
+  notes?: { on?: string; off?: string };
+}) {
   const [on, setOn] = useState(settingOn(defaultValue));
+  const note = (on ? notes?.on : notes?.off) || hint;
   return (
-    <div className="mb-5 rounded-lg border border-line-strong bg-surface px-4 py-3">
-      <SettingSwitch id={id} name={id} checked={on} onChange={setOn} align={hint ? "start" : "center"} note={hint}>
+    <div className="mb-4 min-w-0 self-start py-1">
+      <SettingSwitch id={id} name={id} checked={on} onChange={setOn} align={note ? "start" : "center"} note={note}>
         {label}
       </SettingSwitch>
     </div>
   );
+}
+
+/**
+ * The two descriptions of a row whose choices are exactly `0` and `1`, or
+ * null for any other list. Decided by the options themselves, never by a
+ * list of keys, so the next on/off setting the API describes needs nothing
+ * here — and a two-choice row with other values ("dispatched"/"paid") stays
+ * a dropdown.
+ */
+export function onOffNotes(options?: { value: string; description?: string }[] | null): { on?: string; off?: string } | null {
+  if (!options || options.length !== 2) return null;
+  const off = options.find((o) => o.value === "0");
+  const on = options.find((o) => o.value === "1");
+  return off && on ? { on: on.description, off: off.description } : null;
 }
 
 /**

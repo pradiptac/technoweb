@@ -7,6 +7,7 @@ import { ReorderButtons } from "@/components/admin/reorder-buttons";
 import { Field, Input, Select } from "@/components/ui/input";
 import { SECTION_REVEALS } from "@/lib/motion-choices";
 import { announcementBand } from "@/lib/palette";
+import { Switch } from "@/components/ui/switch";
 import { isHex } from "@/lib/presets";
 import { cn } from "@/lib/utils";
 import { MANIFESTS } from "@/themes/manifests";
@@ -277,8 +278,8 @@ function SectionRow({
         {locked ? (
           <span className="text-12-5 text-muted" title="The hero is always shown.">Always</span>
         ) : (
-          <label className="flex cursor-pointer items-center gap-1.5 text-12-5 text-muted">
-            <input type="checkbox" checked={enabled} onChange={(e) => patch({ enabled: e.target.checked ? undefined : false })} className="size-4 accent-brand-600" />
+          <label className="flex cursor-pointer items-center gap-2 text-12-5 text-muted">
+            <Switch checked={enabled} onChange={(e) => patch({ enabled: e.target.checked ? undefined : false })} />
             Show
           </label>
         )}

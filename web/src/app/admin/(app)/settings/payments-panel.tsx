@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
 import { RupeeSetting } from "@/components/admin/rupee-setting";
+import { SettingSwitch } from "@/components/admin/setting-switch";
 import { Badge } from "@/components/ui/badge";
 import { ClearSecretButton } from "./clear-secret-button";
 // Types only. `lib/admin.ts` is server-only, and a type import is
@@ -301,21 +302,24 @@ export function PaymentsPanel({ meta, rows }: { meta: PaymentsMeta; rows: Settin
 }
 
 /**
- * A yes/no setting, rendered as a select rather than a checkbox.
+ * A way of paying, offered or not: a switch (0.135.0; a two-option select
+ * until then).
  *
- * Settings cross the wire as strings and a checkbox submits nothing at all when
- * it is unticked — so an unticked box and an absent field are the same thing to
- * the endpoint, and switching something off would silently do nothing.
+ * Settings cross the wire as strings and a bare checkbox submits nothing at
+ * all when it is unticked — so switching something off would silently do
+ * nothing. `SettingSwitch` posts `1` or `0` through a hidden input, which is
+ * what the select did.
  */
 function Toggle({ row, label, hint }: { row?: SettingRow; label: string; hint?: string }) {
+  const [on, setOn] = useState(row?.value === "1");
   if (!row) return null;
 
   return (
-    <Field label={label} htmlFor={`setting__${row.key}`} hint={hint} variant="float-static">
-      <Select id={`setting__${row.key}`} name={`setting__${row.key}`} defaultValue={row.value === "1" ? "1" : "0"}>
-        <option value="1">Offered at the checkout</option>
-        <option value="0">Not offered</option>
-      </Select>
-    </Field>
+    <div className="mb-[18px] min-w-0 self-start py-1">
+      <SettingSwitch id={`setting__${row.key}`} name={`setting__${row.key}`} checked={on} onChange={setOn} align="start"
+        note={<>{on ? "Offered at the checkout." : "Not offered."}{hint ? ` ${hint}` : ""}</>}>
+        {label}
+      </SettingSwitch>
+    </div>
   );
 }

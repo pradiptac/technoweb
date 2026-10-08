@@ -27,7 +27,11 @@ A few things are true on every settings screen:
   the clear button beside it.
 - A change saved here reaches the website **at once**. A setting changed any
   other way (directly in the database) can take up to ten minutes to show.
-- Switches that read "1 to enable, 0 to disable" mean exactly that.
+- Anything that is simply on or off is a small **switch**: press it (or tab
+  to it and press Space) and it slides across. Coloured means on. Where a
+  switch needs explaining, the line under it says what the state it is in
+  means, and changes when you press it. Nothing is saved until you press
+  **Save**.
 
 ## General
 

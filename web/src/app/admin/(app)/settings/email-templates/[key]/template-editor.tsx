@@ -7,6 +7,7 @@ import { Form } from "@/components/ui/form";
 import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormActions } from "@/components/admin/form-actions";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
   previewTemplateAction,
@@ -124,9 +125,9 @@ export function TemplateEditor({
             which is "1" only when the box is ticked.
           */}
           <input type="hidden" name="sends" value="0" />
-          <label className={cn("mb-5 flex items-start gap-2.5 text-13-5", locked && "opacity-70")}>
-            <input
-              type="checkbox" name="sends" value="1" className="mt-0.5 size-4 accent-brand-600"
+          <label className={cn("mb-5 flex items-start gap-3 text-13-5", locked ? "opacity-70" : "cursor-pointer")}>
+            <Switch
+              name="sends" value="1" className="mt-px"
               checked={sends} disabled={locked}
               onChange={(e) => setSends(e.target.checked)}
             />
@@ -175,14 +176,16 @@ export function TemplateEditor({
           </Field>
 
           <input type="hidden" name="is_enabled" value="0" />
-          <label className="mb-6 flex items-center gap-2.5 text-13-5">
-            <input
-              type="checkbox" name="is_enabled" value="1" className="size-4 accent-brand-600"
+          <label className="mb-6 flex cursor-pointer items-start gap-3 text-13-5">
+            <Switch
+              name="is_enabled" value="1" className="mt-px"
               checked={enabled} onChange={(e) => setEnabled(e.target.checked)}
             />
-            Use this wording
-            <span className="text-muted">
-              — switch it off to go back to the built-in message without losing what you have written.
+            <span>
+              <b className="font-semibold">Use this wording</b>
+              <span className="block text-muted">
+                Switch it off to go back to the built-in message without losing what you have written.
+              </span>
             </span>
           </label>
 

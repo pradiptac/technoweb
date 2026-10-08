@@ -21,6 +21,40 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.135.0 — 2026-10-08
+
+**On/off settings are small sliding switches.**
+
+- Every setting that is simply on or off — on all sixteen settings screens,
+  the promo banner, the info bar, the email-to-ticket mailbox, the email
+  templates and the theme's section list — is now a small switch that slides
+  when you press it, instead of a tick box or an **Off / On** drop-down.
+- The settings that used to be a drop-down (backups, online meetings, basket
+  reminders, the ways of paying) keep their explanation: the line under the
+  switch says what the state it is in means, and changes as you press it.
+- A screen of switches is shorter than it was: the box around each one is
+  gone and a switch takes one line where a drop-down took a field.
+- Nothing about what is saved has changed. Works from the keyboard (Tab to
+  it, Space to change it) and does not animate for a visitor who has asked
+  for less motion.
+
+For developers: `components/ui/switch.tsx` is the drawing — a real
+`<input type="checkbox" role="switch">` laid over its track at zero opacity
+(not `sr-only`, so it is pressable where it is drawn), the track after it
+keyed on `peer-*`; the thumb moves with `translate`, never
+`transition-transform`. `SettingSwitch` composes it beside the same hidden
+`1`/`0` input. `onOffNotes()` in `settings-fields.tsx` turns a row whose
+options are exactly `0` and `1` into a switch — decided by the options, not
+by a list of keys. `scripts/probes/setting-switch.mjs` reads the screen
+paths from `settings-copy.ts` and fails on any Off/On drop-down or bare tick
+box posting a `setting__` key.
+
+Fixed on the way: Messaging → Settings was the one settings screen neither
+audit list named, and its section headings skipped a level (`h1` → `h3`);
+they are `h2` and the screen is in both lists now.
+
+---
+
 ## 0.134.0 — 2026-10-08
 
 **Invoices made in Zoho Books by themselves.**

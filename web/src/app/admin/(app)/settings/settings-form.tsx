@@ -27,7 +27,7 @@ import { saveSettingsAction, type SettingsFormState } from "./actions";
 import {
   GROUP_TITLES, HIDDEN, LABELS, STANDALONE_GROUPS, SYSTEM_SCREEN, orderFields, screenFor, sectionFor, type SettingsScreen,
 } from "./settings-copy";
-import { ChoiceField, ServerLimits, SettingColourField, SettingSwitchField } from "./settings-fields";
+import { ChoiceField, onOffNotes, ServerLimits, SettingColourField, SettingSwitchField } from "./settings-fields";
 import type { PaymentsMeta, SettingGroups, UploadLimits } from "@/lib/admin";
 import type { BackupDriveStatus, InboundMailStatus, MailStatus, MessagingStatus } from "@/types/api";
 import { MessagingPanel } from "./messaging-panel";
@@ -315,6 +315,15 @@ function GroupPanel({
           if ((row.key.endsWith("_colour") || row.key === "chatbot_background") && !row.options?.length) {
             return (
               <SettingColourField key={row.key} id={id} label={meta.label} hint={meta.hint} defaultValue={row.value ?? ""} />
+            );
+          }
+
+          // An Off and an On, whatever the row is called: a switch, with the
+          // API's own sentence for the state it is in underneath.
+          const onOff = onOffNotes(row.options);
+          if (onOff) {
+            return (
+              <SettingSwitchField key={row.key} id={id} label={meta.label} hint={meta.hint} defaultValue={row.value} notes={onOff} />
             );
           }
 

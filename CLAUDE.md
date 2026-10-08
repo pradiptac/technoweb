@@ -1361,9 +1361,18 @@ Server Action instead — the same rule `lib/settings.ts` documents for
 `telHref`.
 
 **A boolean setting is a `SettingSwitch`** (`components/admin/setting-switch.tsx`):
-the visible checkbox beside the controlled hidden `1`/`0` input every settings
-action posts, re-asserting its own state after a submit. The promo screen, the
-info bar and the ticket mailbox each carried a copy until 2026-09-21.
+a small sliding switch (0.135.0; a tick box until then) beside the controlled
+hidden `1`/`0` input every settings action posts, re-asserting its own state
+after a submit. The promo screen, the info bar and the ticket mailbox each
+carried a copy until 2026-09-21. The drawing is `components/ui/switch.tsx` — a
+real checkbox with `role="switch"` laid over its track at zero opacity (never
+`sr-only`: it must be pressable where it is drawn), the track after it keyed on
+`peer-*`; the thumb slides with `translate` (the v4 trap). **A settings row
+whose options are exactly `0` and `1` is a switch, never a dropdown**
+(`onOffNotes()`, by the options, not a list of keys), with the API's sentence
+for the current state underneath; `scripts/probes/setting-switch.mjs` fails
+on an Off/On `<select>` or a bare tick box posting a `setting__` key on any
+screen `settings-copy.ts` declares.
 
 **Admin form buttons go in `FormActions`.** It pins the row to the bottom of
 the viewport while the form is taller than the screen — on a populated product
