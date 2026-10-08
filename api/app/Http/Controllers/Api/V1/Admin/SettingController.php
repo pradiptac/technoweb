@@ -1032,6 +1032,9 @@ class SettingController extends Controller
             'google_analytics_id' => ['/^G-[A-Z0-9]+$/', 'A GA4 measurement id looks like G-XXXXXXXXXX.'],
             'google_tag_manager_id' => ['/^GTM-[A-Z0-9]+$/', 'A Tag Manager container id looks like GTM-XXXXXXX.'],
             'meta_pixel_id' => ['/^\d+$/', 'A Meta Pixel id is digits only.'],
+            // What gets pasted by mistake is the client *secret*, or the
+            // project id; a client id has one shape and Google refuses any other.
+            'google_login_client_id' => ['/^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/', 'A Google client ID ends in .apps.googleusercontent.com — copy it from the OAuth client in Google Cloud.'],
             // The prefix on a ticket, visit or order number (App\Support\References),
             // read back upper-cased: it must stay something the email-to-ticket
             // reader and a person on the telephone can both parse.

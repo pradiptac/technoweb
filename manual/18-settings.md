@@ -9,7 +9,7 @@ under **Site → Settings**, the email templates and webhooks.
 
 | Screen | Tabs |
 |---|---|
-| **System → Settings** | General, Contact, Social profiles, Reference numbers · Sign-in screen, Sign-in · Outgoing mail, API keys · Data retention |
+| **System → Settings** | General, Contact, Social profiles, Reference numbers · Sign-in screen, Sign-in, Sign in with Google · Outgoing mail, API keys · Data retention |
 | **Site → Settings** | Homepage, Colour palette, Motion, Page banners, Embeds, Analytics, Cookie consent |
 | **Store → Settings** | Store, Basket reminders, Payments (chapter 07) |
 | **Campaign → Settings** | Newsletter (chapter 11) |
@@ -134,7 +134,9 @@ unsubscribe pages), so those links never reach a third party.
 ## Sign-in and Sign-in screen
 
 See chapter 17 for sign-in by code or password, and chapter 15 for the
-sign-in screen's background.
+sign-in screen's background. **Sign in with Google** — letting customers use
+their Google account on the portal — is set up here and explained in
+chapter 9.
 
 ## Outgoing mail
 

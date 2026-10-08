@@ -20,6 +20,9 @@ class CustomerResource extends JsonResource
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
             'email_verified' => $this->email_verified_at !== null,
+            // Whether "Continue with Google" has been used for this account.
+            // A fact about how they sign in, never Google's identifier.
+            'google_linked' => $this->google_sub !== null,
 
             /*
              * What the last checkout used, so the next one can be prefilled.

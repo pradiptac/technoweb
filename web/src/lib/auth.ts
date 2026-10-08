@@ -82,6 +82,16 @@ export const IMPERSONATION_COOKIE = {
   options: () => cookieOptions(60 * 60),
 };
 
+/**
+ * The session cookie for a response that redirects — the Google callback
+ * (docs/auth.md "Signing in with Google"). Fourteen days, the life a sign-in
+ * with "keep me signed in" has; there is no checkbox on a Google button.
+ */
+export const SESSION_COOKIE = {
+  name: COOKIE,
+  options: () => cookieOptions(60 * 60 * 24 * 14),
+};
+
 export async function clearToken() {
   const jar = await cookies();
   jar.delete(COOKIE);
@@ -180,6 +190,37 @@ export async function signInWithCode(email: string, code: string, remember = tru
   await setToken(res.token, remember);
   await forgetMergedWishlist(wishlist);
   return res.customer;
+}
+
+/* ------------------------------------------------------ sign in with Google */
+
+/** Where to send the browser for Google's consent. Refused (403) while it is off. */
+export async function googleSignInUrl(redirectUri: string, binding: string): Promise<string> {
+  const res = await apiFetch<{ data: { url: string } }>("/auth/google/authorize", {
+    method: "POST",
+    body: { redirect_uri: redirectUri, binding },
+  });
+
+  return res.data.url;
+}
+
+/**
+ * Spend what Google sent back. Answers the session token rather than
+ * setting it: the caller is a route handler that redirects, and the cookie
+ * has to be written onto that response (the note on `IMPERSONATION_COOKIE`).
+ * `mergedWishlist` says a guest's list was forwarded, and so merged.
+ */
+export async function signInWithGoogle(input: {
+  code: string; state: string; redirectUri: string; binding: string;
+}): Promise<{ token: string; mergedWishlist: boolean }> {
+  const wishlist = await wishlistToken();
+  const res = await apiFetch<AuthResponse>("/auth/google/callback", {
+    method: "POST",
+    body: { code: input.code, state: input.state, redirect_uri: input.redirectUri, binding: input.binding },
+    headers: wishlistHeader(wishlist),
+  });
+
+  return { token: res.token, mergedWishlist: Boolean(wishlist) };
 }
 
 /* ------------------------------------------------------- password recovery */

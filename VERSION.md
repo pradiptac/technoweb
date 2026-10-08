@@ -21,6 +21,29 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.133.0 — 2026-10-08
+
+**Customers can sign in and register with Google.**
+
+- A **Continue with Google** button on the customer sign-in screen, and
+  **Sign up with Google** on the registration screen.
+- If an account already uses the customer's Google email address, they are
+  signed in to it. If none does, an account is created with their name from
+  Google — while registration is open, and waiting in your approval queue if
+  you require approval. The other ways to sign in still work.
+- **Off until you set it up.** Under System → Settings → Sign-in → **Sign in
+  with Google**, paste a client ID and secret from Google Cloud and tick the
+  switch. The screen shows the exact redirect address to give Google, with a
+  Copy button. The manual's Customers chapter has the steps.
+- A customer's screen in the console shows when their account is linked to
+  Google.
+- Staff sign-in to the console is unchanged.
+
+For developers: `docs/auth.md` "Signing in with Google"; `GoogleSignInTest`;
+`scripts/probes/google-signin.mjs`. Run `php artisan migrate` and
+`php artisan db:seed --class=SettingsSeeder` on a checkout (the updater does
+both).
+
 ## 0.132.0 — 2026-10-08
 
 **Returns: customers ask to send items back, and you work each one to a refund.**

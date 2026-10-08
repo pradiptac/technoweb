@@ -190,3 +190,122 @@ hashed, and the cap of five meant nothing. One conditional
 NULL AND expires_at > now()` decides whether a request gets a guess at all;
 only a request that changed a row compares. `SignInCodeTest` stages the race
 by answering the first comparison with seven more guesses.
+
+## Signing in with Google (0.133.0)
+
+Customers can sign in to the portal — and register — with a Google account.
+Customers only: the console's sign-in is unchanged, and this is not a way
+into it. Off until an administrator saves an OAuth client and switches it on
+(System → Settings → Sign-in → Sign in with Google).
+
+**It is a sign-in, not a connection.** The other Google integrations
+(outgoing mail, the ticket mailbox, the calendar, Drive) are
+`OAuthConnection`s: they keep a refresh token and go on acting. This asks
+Google who somebody is, once, and throws its tokens away —
+`App\Support\Auth\GoogleSignIn`, the ordinary OpenID Connect code flow with
+scope `openid email profile`.
+
+**The round trip, and the three things it is held to.**
+
+1. The button is a plain `<a>` at `/portal/auth/google` (a Next route
+   handler). It asks `POST /auth/google/authorize` where to send the
+   browser, having put a random value in an httpOnly cookie
+   (`tw_google_signin`, ten minutes, `sameSite: lax`, path
+   `/portal/auth/google`). The API mints a **state** and a **nonce** and keeps
+   them in the cache with the redirect address and the **hash** of that
+   value.
+2. Google returns the browser to `/portal/auth/google/callback`, which posts
+   the `code`, the `state` and the cookie's value to
+   `POST /auth/google/callback`.
+3. The API pulls the state (`Cache::pull` — one attempt, whatever happens),
+   refuses unless the redirect address and the value match what it stored,
+   exchanges the code at Google's token endpoint, and checks the ID token's
+   issuer, audience, expiry and nonce.
+
+- **The state is single-use and server-side**, so a callback cannot be
+  replayed.
+- **The attempt belongs to the browser that began it.** Without the cookie
+  value, somebody finishes the consent with *their* Google account and hands
+  a victim the callback link; the victim is then signed in as the attacker
+  and whatever they type lands in an account somebody else reads. A callback
+  from another browser is refused **before Google is asked anything**, and
+  spends the attempt.
+- **The redirect address is this site's own callback and nothing else** —
+  `CallbackPath::assert()` with `/portal/auth/google/callback`, the check
+  every other OAuth round trip here uses.
+
+**The ID token's signature is not verified, deliberately.** It arrives
+directly from Google's token endpoint over TLS, in exchange for the code and
+this site's own client secret; OpenID Connect Core §3.1.3.7 allows the TLS
+server check to stand in for the signature in exactly that case. So there is
+no key set to fetch and no JWT library. The claims are still checked.
+
+**Who it is, in order.**
+
+1. The customer already linked to that Google account — `customers.google_sub`,
+   Google's own stable id, so a customer who has since changed their address
+   here is still found.
+2. The customer at the address Google has **verified**, linked from then on.
+   A verified Google address is the proof a sign-in code is: control of the
+   mailbox. An address Google has not verified finds nobody and makes
+   nothing.
+3. Nobody — so a new account, while `registration_enabled` is on. It is born
+   confirmed and `active` or `pending` exactly as the registration form
+   decides (`customer_approval_required`). With registration closed the
+   answer is 403 `registration_closed`; saying "no account uses that
+   address" here is not the membership oracle `/auth/register` refuses to
+   be, because it is said only to somebody Google has just confirmed owns
+   the address.
+
+**A first confirmation is `markEmailVerified()`, like every other.** An
+unconfirmed account at that address — which anybody could have registered,
+choosing its password — has that password replaced, its sessions ended and
+the address's paid guest orders joined to it. And the desk is told
+(`CustomerRegistered`, the `customer.registered` webhook), because the
+approval queue is fed by nothing else.
+
+**Google vouches for its own address and no other.** A customer linked
+earlier who has moved their account to a new, unconfirmed address is found
+by `google_sub` and refused `email_unverified`: signing in to Google proves
+nothing about the new mailbox.
+
+**The account's status still decides**, through the same private helpers a
+password and a code use: pending waits, rejected and suspended are refused,
+and `portal_enabled` off closes this door with the others (the `portal`
+middleware is on both routes).
+
+**What the site is told is one bit.** The client ID, the secret and the
+switch are the private `google_login` group; `/settings` publishes
+`google_login_live` — the switch *and* both halves of the client — so a
+button is never drawn for a sign-in that cannot finish. `customers.google_sub`
+is in no response; the customer's own resource and the console's carry
+`google_linked`.
+
+**The callback address is built on the browser's origin, not `siteUrl()`**
+(`lib/google-redirect.ts`). `siteUrl()` is the production domain on every
+machine, so the first cut sent a developer's browser back to the live site,
+where the binding cookie does not exist — found by the probe, which reads
+the redirect. The host is read `x-forwarded-host` first, the way `proxy.ts`
+reads it; a caller who lies about `Host` is refused by `CallbackPath`. The
+console's settings note shows the same address with a Copy button, read in
+the browser for the same reason.
+
+**On the page.** `GoogleButton` (`components/auth/`) is `ButtonAnchor` — a
+plain `<a>`, because a `next/link` would prefetch the handler and mint an
+attempt per render — with Google's "G" drawn from the `--color-g-*` tokens.
+`SignInForm` takes it as `before`, rendered by the server and handed in, so
+the shared client form knows nothing about Google and the console passes
+nothing. The registration screen draws the same button as "Sign up with
+Google". A round trip that does not end signed in lands on
+`/portal/login?google=<key>`, and the sentence is a lookup
+(`GOOGLE_NOTICES`), never text from the URL. The session cookie is set on
+the redirect response (`SESSION_COOKIE`), fourteen days.
+
+**Not built**: Microsoft sign-in (asked for and then withdrawn by the
+client), Google sign-in for staff, unlinking from the portal (a linked
+customer can still sign in with a code or a password), and Google One Tap.
+
+`GoogleSignInTest` (23, Google `Http::fake()`d). `scripts/probes/google-signin.mjs`
+drives the screens and reads the redirect without contacting Google. **A
+real sign-in has not been driven end to end here**: it needs the client's
+own OAuth client, and is the one check left for them to make.

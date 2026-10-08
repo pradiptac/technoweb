@@ -659,6 +659,21 @@ Route::post('auth/verify-code', [AuthController::class, 'verifyCode'])
     ->name('auth.verify-code');
 
 /*
+ * "Continue with Google" (0.133.0, docs/auth.md "Signing in with Google").
+ *
+ * Called by the website's two route handlers, never by a browser: the first
+ * answers where to send it, the second spends what Google sent back and
+ * answers exactly like `auth/login`. Both are refused while the switch is
+ * off or the client is not set.
+ */
+Route::post('auth/google/authorize', [AuthController::class, 'googleAuthorize'])
+    ->middleware(['portal', 'throttle:20,1'])
+    ->name('auth.google.authorize');
+Route::post('auth/google/callback', [AuthController::class, 'googleCallback'])
+    ->middleware(['portal', 'throttle:20,1'])
+    ->name('auth.google.callback');
+
+/*
  * Self-registration.
  *
  * Throttled harder than login, because all three send mail to an address

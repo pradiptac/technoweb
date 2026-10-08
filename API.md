@@ -73,6 +73,8 @@ revokes the previous token of the same name.
 | `POST` | `/auth/verify-code` | Customer. Public, throttled 10/min. Answers exactly like `login` |
 | `POST` | `/admin/auth/request-code` | Staff. Public, throttled 5/min |
 | `POST` | `/admin/auth/verify-code` | Staff. Public, throttled 10/min |
+| `POST` | `/auth/google/authorize` | Customer. Public, throttled 20/min. Where to send a browser for "Continue with Google" |
+| `POST` | `/auth/google/callback` | Customer. Public, throttled 20/min. Spends what Google sent back; answers exactly like `login` |
 | `POST` | `/auth/forgot-password` | Customer. Public, throttled. Answers the same whatever the address |
 | `POST` | `/auth/reset-password` | Customer. Public. Spends a token and revokes every session |
 | `POST` | `/auth/login` | Customer. Public, throttled |
@@ -178,6 +180,55 @@ and a spent token: one 202 or one 422, one sentence. The audit line is logged at
 `warning`, because both `.env` files ship `LOG_LEVEL=warning` and an
 `info` line would be discarded — which is what was happening while a comment
 claimed an operator could read it.
+
+### Signing in with Google
+
+Customers only (0.133.0, `docs/auth.md`). Both routes are called by the
+website's two route handlers, never by a browser, and both answer **403**
+`reason: google_login_disabled` unless `google_login_enabled` is on and a
+client ID and secret are saved.
+
+**`POST /auth/google/authorize`** takes `redirect_uri` — this site's own
+`/portal/auth/google/callback`, on the host of `FRONTEND_URL` or localhost,
+a 422 otherwise — and `binding`, 32–128 lower-case hex characters the
+website has just put in an httpOnly cookie. It answers `{data: {url}}`:
+Google's consent address with this client, the redirect, `response_type:
+code`, scope `openid email profile`, a `state`, a `nonce` and
+`prompt: select_account`. The state lives ten minutes.
+
+**`POST /auth/google/callback`** takes `code`, `state`, `redirect_uri` and
+`binding`. The state is spent by the first call that names it. It answers:
+
+- **200** `{token, customer}`, the login's shape — and merges a guest's
+  wishlist when `X-Wishlist-Token` is forwarded.
+- **422** with a `reason`: `google_expired` (an unknown or spent state, or a
+  `redirect_uri` or `binding` that is not the one the attempt began with —
+  refused before Google is asked anything), `google_failed` (Google refused
+  the code, could not be reached, or its ID token's issuer, audience, expiry
+  or nonce did not check out — in one plain sentence, never Google's words,
+  which go to the log), `google_unverified` (Google has not verified the
+  account's address).
+- **403** with the login's own `reason`: `registration_closed` (no account
+  uses that address and `registration_enabled` is off), `pending_approval`,
+  `rejected`, `suspended`, `email_unverified` (a linked account since moved
+  to an address nobody has confirmed), `portal_disabled`.
+
+**Who is signed in**: the customer whose `google_sub` is the token's `sub`;
+else the customer at the token's verified `email`, linked from then on; else
+a new account — the name Google gives, a random password, confirmed, and
+`pending` or `active` by `customer_approval_required`. Confirming an address
+this way does what every first confirmation does (the password nobody proved
+is replaced, sessions end, paid guest orders are joined) and sends
+`CustomerRegistered` to `support_email` with the `customer.registered`
+webhook.
+
+**Settings**: the private `google_login` group — `google_login_enabled`
+(`0`/`1`, off by default), `google_login_client_id` (must end
+`.apps.googleusercontent.com`, a 422 on the row otherwise) and
+`google_login_client_secret` (secret). The public `/settings` map carries
+`google_login_live` (`"1"`/`"0"`): the switch and a whole client. Both
+customer resources carry `google_linked`; Google's identifier is in no
+response.
 
 ### Roles
 

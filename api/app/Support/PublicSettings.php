@@ -9,6 +9,7 @@ use App\Models\Media;
 use App\Models\Page;
 use App\Models\Setting;
 use App\Models\Solution;
+use App\Support\Auth\GoogleSignIn;
 use App\Support\Chat\ChatSettings;
 use App\Support\Meetings\MeetingSettings;
 use App\Support\Visits\VisitSettings;
@@ -190,6 +191,11 @@ class PublicSettings
          * the first order. Push also needs the browser half of Firebase,
          * the public `push` group, or the bell has nothing to subscribe with.
          */
+        // Whether the portal's sign-in and registration screens may offer
+        // "Continue with Google": the switch and a whole client. The client
+        // itself is private (`google_login`).
+        $values['google_login_live'] = GoogleSignIn::live() ? '1' : '0';
+
         $values['messaging_whatsapp_live'] = MessageChannel::WhatsApp->ready() ? '1' : '0';
         $values['messaging_rcs_live'] = MessageChannel::Rcs->ready() ? '1' : '0';
         $values['push_live'] = MessageChannel::Push->ready() && collect(['push_api_key', 'push_project_id', 'push_messaging_sender_id', 'push_app_id', 'push_vapid_key'])

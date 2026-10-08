@@ -83,8 +83,15 @@ export function SignInForm({
   passwordEnabled = true,
   defaultMethod = "otp",
   returnTo,
+  before,
 }: {
   actions: SignInActions;
+  /**
+   * Drawn above whichever method is showing — the portal's "Continue with
+   * Google". Rendered by the server and handed in, so this client module
+   * knows nothing about it; the console passes nothing.
+   */
+  before?: ReactNode;
   /** Where "Forgot your password?" goes — each door has its own reset. */
   forgotHref: string;
   /**
@@ -132,6 +139,7 @@ export function SignInForm({
   if (mode === "password" || !otpEnabled) {
     return (
       <>
+        {before}
         <PasswordSignIn action={actions.login} forgotHref={forgotHref} returnTo={returnTo} onUseCode={otpEnabled ? () => setMode("code") : undefined} />
         {registerLink}
       </>
@@ -140,6 +148,7 @@ export function SignInForm({
 
   return (
     <>
+      {before}
       <CodeSignIn actions={actions} returnTo={returnTo} onUsePassword={passwordEnabled ? () => setMode("password") : undefined} />
       {registerLink}
     </>

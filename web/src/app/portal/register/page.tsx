@@ -9,6 +9,7 @@ import { noIndex } from "@/lib/no-index";
 import { RegisterForm } from "./register-form";
 import { brandName } from "@/lib/brand";
 import { PortalClosed } from "@/components/portal/portal-closed";
+import { GoogleButton } from "@/components/auth/google-button";
 
 export const metadata = buildMetadata({
   title: "Create a customer account",
@@ -69,6 +70,8 @@ export default async function RegisterPage() {
         )
       }
     >
+      {/* A new address is given an account by its first Google sign-in, so the same button registers. */}
+      {settingEnabled(settings, "google_login_live") && <GoogleButton label="Sign up with Google" />}
       <RegisterForm />
     </AuthLayout>
   );

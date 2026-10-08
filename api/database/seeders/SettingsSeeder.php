@@ -596,6 +596,20 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'auth', 'key' => 'password_login_enabled', 'value' => '1', 'type' => 'boolean'],
 
             /*
+             * "Continue with Google" on the customer portal (0.133.0).
+             *
+             * A group of its own, and private: `auth` is public, and a client
+             * secret has no business beside rows a sign-in screen reads. The
+             * site learns one derived bit, `google_login_live` — the switch
+             * *and* both halves of the client — so a button is never drawn
+             * for a sign-in that cannot finish. Off by default: it needs an
+             * OAuth client that only the site's owner can create.
+             */
+            ['group' => 'google_login', 'key' => 'google_login_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'google_login', 'key' => 'google_login_client_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'google_login', 'key' => 'google_login_client_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+
+            /*
              * Which step a sign-in form opens on.
              *
              * Separate from the three switches above, because "may somebody use

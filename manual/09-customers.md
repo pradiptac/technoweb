@@ -20,6 +20,7 @@ and the approval queue) and, for administrators, **Portal** (its settings).
 | How | Status on arrival |
 |---|---|
 | The person registers on the portal (if registration is open) | Waits for email confirmation, then active — or waits for approval, if you require it |
+| The person presses **Sign up with Google** (if you have switched Google sign-in on) | Active straight away, since Google has already confirmed the address — or waits for approval, if you require it |
 | The person pays for a shop order | Active |
 | The person emails your support mailbox (with email-to-ticket on) | Active, unless you chose to ignore unknown senders |
 | An administrator creates one from the server's command line | Active |
@@ -159,3 +160,50 @@ a code or sets a password through "Forgot your password?".
 - "View as" lasts an hour, cannot change the email address, and is logged.
 - A new approval queue is only useful if somebody watches it — make sure
   whoever handles support knows to look at **Customers** daily.
+
+## Sign in with Google
+
+Customers can sign in to the portal, and register, with their Google account
+instead of a code or a password. It is off until you set it up. Staff sign-in
+to the console is not affected.
+
+**Setting it up** (an administrator, once):
+
+1. In **Google Cloud Console** (console.cloud.google.com) choose or create a
+   project, then open **APIs & Services → OAuth consent screen** and fill in
+   your company's name and support email. Choose **External**, and publish
+   it — left in "Testing", only the test users you list can sign in.
+2. Open **APIs & Services → Credentials → Create credentials → OAuth client
+   ID**, and choose **Web application**.
+3. In this console open **System → Settings → Sign-in → Sign in with
+   Google**. Copy the **Authorised redirect URI** shown there and paste it
+   into Google under *Authorised redirect URIs*, exactly as written.
+4. Google gives you a **client ID** and a **client secret**. Paste both into
+   the same settings screen, tick **Offer "Continue with Google"**, and save.
+
+The button now appears on the customer sign-in screen (*Continue with
+Google*) and on the registration screen (*Sign up with Google*).
+
+**What happens when a customer uses it:**
+
+- If an account already uses their Google email address, they are signed in
+  to it. Nothing about the account changes, and they can still sign in with
+  a code or a password.
+- If no account uses that address, one is created with the name Google
+  gives — provided registration is open. If you require approval, the
+  account waits in your approval queue as usual and you are emailed.
+- If registration is closed, they are told to contact you.
+- A suspended or rejected account is refused, as with any sign-in.
+
+The customer's screen in the console shows **Google sign-in: Linked** once
+they have used it.
+
+Things to know:
+
+- The redirect address must match exactly. If you change your website's
+  domain, or move between `www` and no `www`, add the new address in Google
+  as well.
+- If the button is ticked but does not appear, the client ID or the secret
+  is missing — the settings screen says so.
+- The client secret is stored encrypted and never shown again. To replace
+  it, type the new one and save.

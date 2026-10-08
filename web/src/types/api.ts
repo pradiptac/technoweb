@@ -1540,6 +1540,8 @@ export type AdminCustomer = {
   status_note: string | null;
   email_verified: boolean;
   email_verified_at: string | null;
+  /** Whether "Continue with Google" has been used for this account. */
+  google_linked?: boolean;
   approved_at: string | null;
   approved_by?: string | null;
   ticket_count?: number;

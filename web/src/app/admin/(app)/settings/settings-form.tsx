@@ -34,6 +34,7 @@ import { MessagingPanel } from "./messaging-panel";
 import { MediaCdnTest } from "./media-cdn-test";
 import { BackupDestinationPanel } from "./backup-destination-panel";
 import { MeetingsGooglePanel } from "./meetings-google-panel";
+import { GoogleLoginNote } from "./google-login-note";
 import type { MeetingsGoogleStatus } from "@/types/meetings";
 
 const initial: SettingsFormState = {};
@@ -512,6 +513,15 @@ function GroupPanel({
 
         {/* The Workspace calendar every meeting is organised on: its consent, a test, the last refusal. */}
         {group === "meetings_google" && <MeetingsGooglePanel status={meetingsGoogle} rows={rows} />}
+
+        {/* Customers' "Continue with Google": the redirect address to register with Google, and whether it is live. */}
+        {group === "google_login" && (
+          <GoogleLoginNote
+            enabled={["1", "true"].includes(String(rows.find((r) => r.key === "google_login_enabled")?.value ?? ""))}
+            hasId={Boolean(rows.find((r) => r.key === "google_login_client_id")?.value)}
+            hasSecret={rows.some((r) => r.key === "google_login_client_secret" && Boolean(r.is_set))}
+          />
+        )}
 
         {group === "integrations" && (
           <>

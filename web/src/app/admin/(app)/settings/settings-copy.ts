@@ -612,6 +612,19 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Passwords still accepted",
     hint: "Turning this off with mail misconfigured locks everybody out, and getting back in then needs somebody with access to the server.",
   },
+  google_login_enabled: {
+    label: "Offer “Continue with Google”",
+    hint: "On the customer sign-in and registration screens. It appears once the client ID and secret below are saved.",
+  },
+  google_login_client_id: {
+    label: "Google client ID",
+    hint: "From your OAuth client in Google Cloud. It ends in .apps.googleusercontent.com.",
+    placeholder: "1234567890-abc….apps.googleusercontent.com",
+  },
+  google_login_client_secret: {
+    label: "Google client secret",
+    hint: "Stored encrypted and never shown again. Leave blank to keep the one saved.",
+  },
   social_linkedin: { label: "LinkedIn", placeholder: "https://www.linkedin.com/company/…" },
   social_x: { label: "X", placeholder: "https://x.com/…" },
   social_facebook: { label: "Facebook", placeholder: "https://www.facebook.com/…" },
@@ -1024,6 +1037,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Browser push",
     blurb: "The browser half of Firebase — Project settings → General → your web app, and Cloud Messaging → Web Push certificates for the key pair. Public by nature: a browser cannot subscribe without it. The bell appears on the shop and in the portal once these five and the push provider are all set.",
   },
+  google_login: {
+    title: "Sign in with Google",
+    blurb: "Lets customers sign in to the portal — and register — with their Google account instead of a code or a password. You need an OAuth client from Google Cloud (APIs & Services → Credentials → Create credentials → OAuth client ID → Web application). Off until you switch it on.",
+  },
   auth: {
     title: "Sign-in",
     blurb: "How people get in. A one-time code by email is the default for both the portal and this console; passwords remain available behind a link. Leave passwords on unless you are certain outgoing mail is reliable — with codes as the only way in, a broken mail configuration locks out every account, including yours.",
@@ -1126,6 +1143,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
   embeds: ["reviews_embed", "reviews_kicker", "reviews_heading", "reviews_lede", "body_code"],
   portal: ["portal_enabled", "registration_enabled", "customer_approval_required"],
   auth: ["default_login_method", "otp_login_enabled", "otp_admin_login_enabled", "password_login_enabled"],
+  google_login: ["google_login_enabled", "google_login_client_id", "google_login_client_secret"],
   analytics: ["google_analytics_id", "google_tag_manager_id", "google_site_verification", "meta_pixel_id", "meta_domain_verification"],
   security: ["activity_retention_days", "application_retention_days", "chat_retention_days", "client_error_retention_days",
              "comment_retention_days", "seo_ai_retention_days"],
@@ -1222,7 +1240,7 @@ export const SCREENS: SettingsScreen[] = [
         choice serve staff and customers alike, which is what keeps them
         here rather than under Customers.
       */
-      { label: "Sign-in", groups: ["login", "auth"] },
+      { label: "Sign-in", groups: ["login", "auth", "google_login"] },
       /*
         `integrations` holds the OpenRouter, Hunter, Search Console and GA4
         credentials, spent by four modules between them — one credential for

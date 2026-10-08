@@ -100,6 +100,7 @@ export default async function AdminCustomerPage({
               <Row label="Activated">{formatDate(customer.approved_at, "dateTime")}</Row>
               <Row label="Activated by">{customer.approved_by || "—"}</Row>
               <Row label="Last signed in">{formatDate(customer.last_login_at, "dateTime")}</Row>
+              {customer.google_linked && <Row label="Google sign-in">Linked</Row>}
               <Row label="Tickets">
                 {/*
                   Linked rather than stated, because "6 tickets" is the point at

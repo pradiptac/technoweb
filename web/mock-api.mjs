@@ -2593,6 +2593,14 @@ createServer(async (req, res) => {
       message: 'If that address has an account, a sign-in code is on its way. It expires in 10 minutes.',
     });
   }
+  /* "Continue with Google" (docs/auth.md). The mock has no OAuth client, so
+     it is off here exactly as it is on an install that has not set one:
+     `google_login_live` is "0" in the settings below, the button is not
+     drawn, and both endpoints refuse the way the API does. */
+  if ((p === '/auth/google/authorize' || p === '/auth/google/callback') && req.method === 'POST') {
+    const message = 'Signing in with Google is not available.';
+    return json(res, 403, { message, reason: 'google_login_disabled', errors: { email: [message] } });
+  }
   if (p === '/admin/auth/request-code' && req.method === 'POST') {
     return json(res, 202, {
       message: 'If that address has a staff account, a sign-in code is on its way. It expires in 10 minutes.',
@@ -2811,7 +2819,7 @@ createServer(async (req, res) => {
     theme: 'olive',
     // Messaging (Phase 2): WhatsApp live, so the checkout draws its box;
     // push live with a mock web config, so the store strip draws the bell.
-    messaging_whatsapp_live: '1', messaging_rcs_live: '0', push_live: '1',
+    messaging_whatsapp_live: '1', messaging_rcs_live: '0', push_live: '1', google_login_live: '0',
     // Online meetings (docs/meetings-contract.md): the four public rows.
     meetings_enabled: '1', meeting_slot_step: '30', meeting_min_notice_hours: '4', meeting_max_days: '30',
     push_api_key: 'AIzaMockKey000000000000000000000000000', push_project_id: 'technoware-push',

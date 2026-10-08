@@ -215,6 +215,10 @@ The support desk customers log into, and the queue the team works from.
   queue — or accounts issued by staff.
 - **Sign in with a one-time code** or a password; the code is bound to the
   portal so it can never open the console.
+- **Sign in or register with Google**, for customers: one button on the
+  sign-in and registration screens, switched on once you add your own Google
+  OAuth client. An existing account is found by its email address; a new
+  one still waits for approval if you require it.
 - **Tickets** with categories, priorities, attachments, an SLA clock, a full
   conversation thread, close and reopen.
 - **Knowledge-base deflection** before a ticket is raised.
