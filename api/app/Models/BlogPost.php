@@ -24,6 +24,7 @@ class BlogPost extends Model implements Answerable, Faqable
     protected $fillable = [
         'author_id', 'title', 'slug', 'excerpt', 'body',
         'cover_image_path', 'status', 'is_featured', 'comments_enabled', 'published_at', 'reading_minutes',
+        'body_layout', 'blocks',
     ];
 
     /**
@@ -34,7 +35,7 @@ class BlogPost extends Model implements Answerable, Faqable
      * models were fixed for, where a variation called itself unsellable
      * because `is_active` had not been read back.
      */
-    protected $attributes = ['is_featured' => false, 'comments_enabled' => true];
+    protected $attributes = ['is_featured' => false, 'comments_enabled' => true, 'body_layout' => 'body'];
 
     protected function casts(): array
     {
@@ -43,6 +44,7 @@ class BlogPost extends Model implements Answerable, Faqable
             'is_featured' => 'boolean',
             'comments_enabled' => 'boolean',
             'published_at' => 'datetime',
+            'blocks' => 'array',
         ];
     }
 

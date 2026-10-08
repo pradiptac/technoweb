@@ -59,7 +59,7 @@ export type AdminEventSpeaker = {
 
 export type AdminEventAgendaItem = { time: string | null; title: string; note: string | null };
 
-export type AdminEvent = {
+export type AdminEvent = import("@/types/page-sections").AdminRecordSections & {
   id: number;
   title: string;
   slug: string;
@@ -108,6 +108,9 @@ export type AdminEvent = {
 export type EventSpeakerPayload = { name: string; role: string | null; photo_path: string | null };
 
 export type EventPayload = {
+  /** Sections in place of the written body (0.130.0); absent leaves both alone. */
+  body_layout?: import("@/types/page-sections").RecordBodyLayout;
+  blocks?: import("@/types/page-sections").StoredSection[];
   title: string;
   slug: string | null;
   summary: string | null;

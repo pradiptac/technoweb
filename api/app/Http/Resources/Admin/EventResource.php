@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin;
 
 use App\Http\Resources\Concerns\IncludesAnswerContent;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Models\Event;
 use App\Support\Events\EventText;
 use Illuminate\Http\Request;
@@ -31,7 +32,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  */
 class EventResource extends JsonResource
 {
-    use IncludesAnswerContent;
+    use IncludesAnswerContent, IncludesSections;
 
     public function toArray(Request $request): array
     {
@@ -45,6 +46,9 @@ class EventResource extends JsonResource
             'slug' => $event->slug,
             'summary' => $event->summary,
             'body' => $this->when($detail, $event->body),
+            // Which of the two the page draws in its body area, and the builder's
+            // sections as stored (0.130.0) — see IncludesSections.
+            ...$this->adminSections($detail),
             'status' => $event->status->value,
             'status_label' => $event->status->label(),
             'is_featured' => (bool) $event->is_featured,

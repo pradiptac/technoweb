@@ -11,6 +11,7 @@ use App\Http\Resources\Admin\ProductResource;
 use App\Models\Product;
 use App\Support\CustomFields\CustomFields;
 use App\Support\ListSort;
+use App\Support\PageSections\RecordSections;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -76,6 +77,7 @@ class ProductController extends Controller
         $product = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $relations = $this->pull($attributes, self::RELATIONS);
 
             $product = Product::create($attributes);
@@ -98,6 +100,7 @@ class ProductController extends Controller
         DB::transaction(function () use ($request, $product) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $relations = $this->pull($attributes, self::RELATIONS);
 
             $product->update($attributes);

@@ -17,13 +17,14 @@ import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
+import { BodyReplacedNote, RecordSectionsPanel, SECTIONS_TAB, useRecordSections } from "../pages/builder/record-sections";
 import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import { SpecField } from "@/components/admin/spec-field";
 import { StringListField } from "@/components/admin/string-list-field";
 import {
   createProductAction, updateProductAction, deleteProductAction, type ProductFormState,
 } from "./actions";
-import type { CustomFieldGroupDefinition, AdminProduct, PickerOption, AnswerBlockKindOption } from "@/types/api";
+import type { CustomFieldGroupDefinition, AdminProduct, PickerOption, AnswerBlockKindOption, PageBuilderOptions } from "@/types/api";
 
 const initial: ProductFormState = {};
 
@@ -36,6 +37,8 @@ const GROUPS: TabGroup[] = [
     fields: ["name", "slug", "sku", "short_description", "description",
              "specifications", "features", "status", "brand_id",
              "product_category_id", "sort_order", "is_featured", "availability"] },
+  // Sections in place of the written body (0.130.0) — the choice and the builder.
+  SECTIONS_TAB,
   { id: "media", label: "Media", fields: ["images", "datasheet_path"] },
   { id: "related", label: "Related",
     fields: ["solution_ids", "related_product_ids", "faqs"] },
@@ -45,7 +48,7 @@ const GROUPS: TabGroup[] = [
 ];
 
 export function ProductForm({
-  product, brands, categories, solutions, products, saved, kinds, fieldGroups,
+  product, brands, categories, solutions, products, saved, kinds, fieldGroups, builder,
 }: {
   product?: AdminProduct;
   brands: PickerOption[];
@@ -57,6 +60,8 @@ export function ProductForm({
   kinds: AnswerBlockKindOption[];
   /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
   fieldGroups?: CustomFieldGroupDefinition[];
+  /** `GET /admin/pages/builder` — the section builder's types and pickers, for the Sections tab. */
+  builder: PageBuilderOptions;
 }) {
   const editing = Boolean(product);
   const [state, formAction, pending] = useActionState(
@@ -67,6 +72,9 @@ export function ProductForm({
   const seoErr = (f: string) => state.fieldErrors?.[`seo.${f}`]?.[0];
   const rowErr = (prefix: string) =>
     err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
+
+  // The body area: the written body, or builder sections (0.130.0).
+  const body = useRecordSections(product);
 
   // Custom fields (docs/custom-content.md): the groups that apply, from the API.
   const customGroups = product?.custom_field_groups ?? fieldGroups ?? [];
@@ -113,6 +121,8 @@ export function ProductForm({
               <Textarea id="short_description" name="short_description" rows={3}
                 defaultValue={product?.short_description ?? ""} maxLength={500} />
             </Field>
+
+            <BodyReplacedNote state={body} />
 
             <EditorField name="description" label="Description"
               defaultValue={product?.description ?? ""} error={err("description")} />
@@ -193,6 +203,18 @@ export function ProductForm({
             </Field>
           </aside>
         </div>
+
+        {/* Sections in place of the written body. One child, always mounted. */}
+        <RecordSectionsPanel
+          state={body}
+          builder={builder}
+          media={product?.blocks_media ?? {}}
+          errors={state.fieldErrors ?? {}}
+          bodyField="description"
+          storedBody={product?.description ?? ""}
+          noun="product"
+          keeps="Its pictures, specifications, features, the enquiry panel, FAQs and related products stay where they are."
+        />
 
         <div>
           <GalleryField

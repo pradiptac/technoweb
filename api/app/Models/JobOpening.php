@@ -34,7 +34,11 @@ class JobOpening extends Model
         'job_experience_level_id', 'salary_min', 'salary_max', 'salary_period', 'salary_currency',
         'summary', 'description', 'responsibilities', 'requirements',
         'status', 'published_at', 'closes_at', 'sort_order',
+        'body_layout', 'blocks',
     ];
+
+    /** In memory as in the column: a new record's page draws its written body. */
+    protected $attributes = ['body_layout' => 'body'];
 
     protected function casts(): array
     {
@@ -43,6 +47,7 @@ class JobOpening extends Model
             'employment_type' => EmploymentType::class,
             'responsibilities' => 'array',
             'requirements' => 'array',
+            'blocks' => 'array',
             'published_at' => 'datetime',
             'closes_at' => 'date',
             'openings' => 'integer',

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getEventWithMeta, type AdminEvent, type EventMeta } from "@/lib/admin";
+import { getEventWithMeta, getPageBuilderOptions, type AdminEvent, type EventMeta } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { requireScreen } from "@/lib/admin-screen";
@@ -60,7 +60,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
         A refused save changes nothing here, so the form stays mounted and
         `<Form>` puts back what was typed.
       */}
-      <EventForm key={event.updated_at ?? String(event.id)} event={event} meta={meta} />
+      <EventForm key={event.updated_at ?? String(event.id)} event={event} meta={meta} builder={await getPageBuilderOptions()} />
     </>
   );
 }

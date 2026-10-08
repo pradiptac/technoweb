@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import { createEntry, deleteEntry, updateEntry, type EntryPayload } from "@/lib/admin";
-import { customFieldsFromFormData, jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
+import { customFieldsFromFormData, jsonListFromFormData, sectionsFromFormData, seoFromFormData, str } from "@/lib/admin-form";
 import type { AnswerBlock, FaqItem, PublishStatus } from "@/types/api";
 
 export type EntryFormState = { error?: string; fieldErrors?: Record<string, string[]> };
@@ -16,6 +16,8 @@ function payloadFrom(formData: FormData): EntryPayload {
   return {
     // Custom fields: absent when no Fields tab was drawn, so the API leaves them alone.
     ...customFieldsFromFormData(formData),
+    // The Sections tab: which of the two the page shows, and the builder's list.
+    ...sectionsFromFormData(formData),
     title: str(formData, "title") ?? "",
     slug: str(formData, "slug"),
     summary: str(formData, "summary"),

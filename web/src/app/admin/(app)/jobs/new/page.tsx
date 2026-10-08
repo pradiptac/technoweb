@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
-import { getJobExperienceLevels, getJobQualifications } from "@/lib/admin";
+import { getJobExperienceLevels, getJobQualifications, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { JobForm } from "../job-form";
@@ -28,7 +28,7 @@ export default async function NewJobPage() {
   return (
     <>
       <PageHeader title="New vacancy" back={{ href: "/admin/jobs", label: "All vacancies" }} />
-      <JobForm qualifications={qualifications} levels={levels} />
+      <JobForm qualifications={qualifications} levels={levels} builder={await getPageBuilderOptions()} />
     </>
   );
 }

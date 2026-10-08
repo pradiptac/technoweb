@@ -102,6 +102,10 @@ class SavedSectionController extends Controller
             'page' => ['page', 'pages'], 'template' => ['template', 'templates'],
             'solution' => ['solution', 'solutions'], 'service' => ['service', 'services'],
             'industry' => ['industry', 'industries'], 'case_study' => ['case study', 'case studies'],
+            'blog_post' => ['blog post', 'blog posts'], 'knowledge_article' => ['knowledge article', 'knowledge articles'],
+            'product' => ['product', 'products'], 'store_product' => ['shop product', 'shop products'],
+            'event' => ['event', 'events'], 'job_opening' => ['vacancy', 'vacancies'],
+            'entry' => ['content entry', 'content entries'],
         ];
         foreach ($words as $kind => [$one, $many]) {
             if ($n = $counts[$kind] ?? 0) {

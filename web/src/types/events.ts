@@ -89,7 +89,7 @@ export type EventRegistrationRules = {
 };
 
 /** `GET /events/{slug}`. `online_url` is never here: the join link goes to registrants only. */
-export type EventDetail = EventSummary & {
+export type EventDetail = EventSummary & import("./page-sections").RecordSectionsRead & {
   body: string | null;
   venue_address: string | null;
   map_url: string | null;

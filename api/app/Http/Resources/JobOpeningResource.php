@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Models\JobOpening;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -16,6 +17,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin JobOpening */
 class JobOpeningResource extends JsonResource
 {
+    use IncludesSections;
+
     public function toArray(Request $request): array
     {
         return [
@@ -32,6 +35,10 @@ class JobOpeningResource extends JsonResource
             'openings' => $this->openings,
             'summary' => $this->summary,
             'description' => $this->when($request->routeIs('*.show'), $this->description),
+            // The builder's sections in place of the written description (0.130.0),
+            // while the vacancy is laid out as sections. Gated as the description
+            // is: a vacancy is never nested inside another record's read.
+            'sections' => $this->publicSections($request->routeIs('*.show')),
             'responsibilities' => $this->responsibilities ?? [],
             'requirements' => $this->requirements ?? [],
             'experience' => $this->whenLoaded('experienceLevel', fn () => $this->experienceLevel ? [

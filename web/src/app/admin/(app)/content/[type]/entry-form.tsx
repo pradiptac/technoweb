@@ -15,9 +15,10 @@ import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
+import { BodyReplacedNote, RecordSectionsPanel, SECTIONS_TAB, useRecordSections } from "../../pages/builder/record-sections";
 import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import { createEntryAction, deleteEntryAction, updateEntryAction, type EntryFormState } from "./actions";
-import type { AdminContentType, AdminEntry, AnswerBlockKindOption, CustomFieldGroupDefinition } from "@/types/api";
+import type { AdminContentType, AdminEntry, AnswerBlockKindOption, CustomFieldGroupDefinition, PageBuilderOptions } from "@/types/api";
 
 const initial: EntryFormState = {};
 
@@ -39,7 +40,7 @@ function toLocalInput(iso: string | null): string {
  * wrong panel.
  */
 export function EntryForm({
-  type, entry, kinds, fieldGroups, saved,
+  type, entry, kinds, fieldGroups, saved, builder,
 }: {
   type: AdminContentType;
   entry?: AdminEntry;
@@ -47,6 +48,8 @@ export function EntryForm({
   /** `meta.custom_field_groups` from the entries index, for a new entry. */
   fieldGroups?: CustomFieldGroupDefinition[];
   saved?: boolean;
+  /** `GET /admin/pages/builder` — the section builder's types and pickers, for the Sections tab. */
+  builder: PageBuilderOptions;
 }) {
   const editing = Boolean(entry);
   const [state, formAction, pending] = useActionState(editing ? updateEntryAction : createEntryAction, initial);
@@ -55,6 +58,9 @@ export function EntryForm({
   const seoErr = (f: string) => state.fieldErrors?.[`seo.${f}`]?.[0];
   const rowErr = (prefix: string) =>
     err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
+
+  // The body area: the written body, or builder sections (0.130.0).
+  const body = useRecordSections(entry);
 
   const customGroups = entry?.custom_field_groups ?? fieldGroups ?? [];
   const record = entry ? { type: "entry", id: entry.id } : null;
@@ -83,6 +89,8 @@ export function EntryForm({
               <Textarea id="summary" name="summary" rows={3} maxLength={1000} defaultValue={entry?.summary ?? ""} />
             </Field>
 
+            {type.has_body && <BodyReplacedNote state={body} />}
+
             {type.has_body && <EditorField name="body" defaultValue={entry?.body ?? ""} error={err("body")} />}
           </div>
 
@@ -107,6 +115,23 @@ export function EntryForm({
             </Field>
           </aside>
         </div>
+      ),
+    },
+    {
+      // Sections in place of the written body (0.130.0) — the choice and the builder.
+      tab: SECTIONS_TAB,
+      node: (
+        <RecordSectionsPanel
+          key="sections"
+          state={body}
+          builder={builder}
+          media={entry?.blocks_media ?? {}}
+          errors={state.fieldErrors ?? {}}
+          bodyField="body"
+          storedBody={entry?.body ?? ""}
+          noun="entry"
+          keeps="Its heading, picture, details, FAQs and closing band stay where they are."
+        />
       ),
     },
     ...(type.has_image ? [{

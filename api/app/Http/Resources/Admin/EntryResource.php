@@ -4,6 +4,7 @@ namespace App\Http\Resources\Admin;
 
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Models\Entry;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -11,7 +12,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Entry */
 class EntryResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesCustomFields;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSections;
 
     public function toArray(Request $request): array
     {
@@ -25,6 +26,9 @@ class EntryResource extends JsonResource
             'path' => $this->publicPath(),
             'summary' => $this->summary,
             'body' => $this->when($detail, $this->body),
+            // Which of the two the page draws in its body area, and the builder's
+            // sections as stored (0.130.0) — see IncludesSections.
+            ...$this->adminSections($detail),
             'image_path' => $this->image_path,
             'image' => $this->image_path ? asset('storage/'.$this->image_path) : null,
             'status' => $this->status->value,

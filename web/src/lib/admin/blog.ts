@@ -15,6 +15,9 @@ export type BlogQueryParams = {
 
 /** Fields the blog form submits. `seo` is written to the override row. */
 export type BlogPostPayload = Partial<{
+  /** Sections in place of the written body (0.130.0); absent leaves both alone. */
+  body_layout: import("@/types/page-sections").RecordBodyLayout;
+  blocks: import("@/types/page-sections").StoredSection[];
   /** Custom field values keyed by field key (docs/custom-content.md); absent leaves them alone. */
   custom_fields: Record<string, unknown>;
   title: string;

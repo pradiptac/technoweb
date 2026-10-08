@@ -7,12 +7,14 @@ use App\Enums\PublishStatus;
 use App\Http\Requests\Concerns\AcceptsCustomFields;
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
+use App\Http\Requests\Concerns\ValidatesRecordSections;
+use App\Support\PageSections\SectionRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreProductRequest extends FormRequest
 {
-    use AcceptsCustomFields, SanitisesRichText;
+    use AcceptsCustomFields, SanitisesRichText, ValidatesRecordSections;
 
     protected function customFieldTarget(): string
     {
@@ -26,7 +28,7 @@ class StoreProductRequest extends FormRequest
      */
     protected function richTextFields(): array
     {
-        return ['description', 'answer_blocks.*.detail'];
+        return ['description', 'answer_blocks.*.detail', ...SectionRules::RICH_TEXT];
     }
 
     public function authorize(): bool
@@ -68,6 +70,8 @@ class StoreProductRequest extends FormRequest
             ...CmsFieldRules::ids('related_product_ids', 'products'),
             ...CmsFieldRules::faqs(),
             ...CmsFieldRules::answerBlocks(),
+            // Builder sections in place of the written body (0.130.0, `RecordSections`).
+            ...$this->recordSectionRules(),
             ...SeoRules::rules(),
             ...$this->customFieldRules(),
         ];
@@ -75,6 +79,6 @@ class StoreProductRequest extends FormRequest
 
     public function messages(): array
     {
-        return ProductFieldRules::messages();
+        return [...$this->recordSectionMessages(), ...ProductFieldRules::messages()];
     }
 }

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import { createBlogPost, deleteBlogPost, updateBlogPost, type BlogPostPayload } from "@/lib/admin";
-import { customFieldsFromFormData, jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
+import { customFieldsFromFormData, jsonListFromFormData, sectionsFromFormData, seoFromFormData, str } from "@/lib/admin-form";
 import type { AnswerBlock, FaqItem, PublishStatus } from "@/types/api";
 
 export type PostFormState = { error?: string; fieldErrors?: Record<string, string[]> };
@@ -21,6 +21,8 @@ function payloadFrom(formData: FormData): BlogPostPayload {
   return {
     // Custom fields: absent when no Fields tab was drawn, so the API leaves them alone.
     ...customFieldsFromFormData(formData),
+    // The Sections tab: which of the two the page shows, and the builder's list.
+    ...sectionsFromFormData(formData),
     title: str(formData, "title") ?? "",
     slug: str(formData, "slug"),
     excerpt: str(formData, "excerpt"),

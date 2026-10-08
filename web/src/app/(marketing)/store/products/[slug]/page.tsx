@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
+import { RecordSections, laidOutAsSections } from "@/components/page-sections/record-sections";
 import { Badge } from "@/components/ui/badge";
 import { Prose, SpecTable } from "@/components/ui/prose";
 import { IconCheck } from "@/components/icons";
@@ -99,6 +100,44 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
 
   const discounted = product.compare_at_paise && product.compare_at_paise > product.price_paise;
 
+  const crumbs = [
+    { name: "Store", path: "/store" },
+    ...(product.category
+      ? [{ name: product.category.name, path: `/store/categories/${product.category.slug}` }]
+      : []),
+  ];
+  // Builder sections in place of the written description (0.130.0).
+  const laidOut = laidOutAsSections(product);
+
+  // The reviews and the suggestions, which close the page whichever way the description is drawn.
+  const tail = (
+    <>
+          <ReviewsSection slug={product.slug} productName={product.name} rating={product.rating ?? null} initial={firstReviews} />
+
+          {alsoLike.length > 0 && (
+            <section aria-labelledby="also-like" className="mt-16" data-aos="fade-up">
+              <h2
+                id="also-like"
+                className="mb-6 text-22 font-semibold after:mt-2.5 after:block after:h-[3px] after:w-10 after:rounded-full after:bg-brand-600"
+              >
+                You may also like
+              </h2>
+              <ul data-collection="products" data-cols="4" className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+                {alsoLike.map((p) => (
+                  <li key={p.id}>
+                    <StoreProductCard product={p} headingLevel={3} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* The browser's own list, after hydration; this product is remembered and kept off its own strip. */}
+          <RememberProduct product={{ slug: product.slug, name: product.name, image: product.images?.[0] ?? null, focus: product.image_focuses?.[0] ?? null, price_paise: product.price_paise }} />
+          <RecentlyViewed exclude={product.slug} className="mt-14" />
+    </>
+  );
+
   const shippingPaise = Math.max(0, parseInt(settings.store_shipping_paise ?? "0", 10) || 0);
   const returnDays = Math.max(1, parseInt(settings.store_return_days ?? "7", 10) || 7);
   const delivery = shippingPaise === 0
@@ -122,12 +161,7 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
         kicker={product.brand?.name ?? "Store"}
         title={product.name}
         lede={product.short_description}
-        crumbs={[
-          { name: "Store", path: "/store" },
-          ...(product.category
-            ? [{ name: product.category.name, path: `/store/categories/${product.category.slug}` }]
-            : []),
-        ]}
+        crumbs={crumbs}
       />
 
       {/*
@@ -365,7 +399,7 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
             </div>
           )}
 
-          {product.description && (
+          {!laidOut && product.description && (
             <div className="mt-14">
               <h2 className="display-3 mb-4">Details</h2>
               <Prose html={product.description} />
@@ -392,31 +426,26 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
           </div>
           </div>
 
-          <ReviewsSection slug={product.slug} productName={product.name} rating={product.rating ?? null} initial={firstReviews} />
-
-          {alsoLike.length > 0 && (
-            <section aria-labelledby="also-like" className="mt-16" data-aos="fade-up">
-              <h2
-                id="also-like"
-                className="mb-6 text-22 font-semibold after:mt-2.5 after:block after:h-[3px] after:w-10 after:rounded-full after:bg-brand-600"
-              >
-                You may also like
-              </h2>
-              <ul data-collection="products" data-cols="4" className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-                {alsoLike.map((p) => (
-                  <li key={p.id}>
-                    <StoreProductCard product={p} headingLevel={3} />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {/* The browser's own list, after hydration; this product is remembered and kept off its own strip. */}
-          <RememberProduct product={{ slug: product.slug, name: product.name, image: product.images?.[0] ?? null, focus: product.image_focuses?.[0] ?? null, price_paise: product.price_paise }} />
-          <RecentlyViewed exclude={product.slug} className="mt-14" />
+          {!laidOut && tail}
         </Container>
       </section>
+
+      {/*
+        Builder sections in place of "Details" (0.130.0): full-width bands
+        under the buying block and what is read beside it, then the reviews
+        and the suggestions in a section of their own. The search strip stays
+        with the buying block — a sticky box is held by its own parent, and
+        over a band with a background of its own it would be a bar floating
+        on somebody else's ground.
+      */}
+      {laidOut && (
+        <>
+          <RecordSections sections={product.sections ?? []} crumbs={crumbs} />
+          <section className="section-y">
+            <Container className="[&>*:first-child]:mt-0">{tail}</Container>
+          </section>
+        </>
+      )}
 
     </>
   );

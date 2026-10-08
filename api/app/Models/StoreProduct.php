@@ -47,6 +47,7 @@ class StoreProduct extends Model implements Answerable, Faqable
         'price_paise', 'compare_at_paise', 'track_stock', 'stock', 'allow_oversell', 'returnable',
         'condition', 'google_product_category', 'weight_grams', 'feed_include',
         'status', 'is_featured', 'sort_order',
+        'body_layout', 'blocks',
     ];
 
     /**
@@ -71,6 +72,8 @@ class StoreProduct extends Model implements Answerable, Faqable
         'feed_include' => true,
         'condition' => 'new',
         'rating_count' => 0,
+        // The page draws the written description until sections are chosen.
+        'body_layout' => 'body',
     ];
 
     protected function casts(): array
@@ -84,6 +87,7 @@ class StoreProduct extends Model implements Answerable, Faqable
             // A list, so the plain array cast keeps its order (MySQL reorders
             // object keys, never list items). See `App\Support\Store\ProductVideos`.
             'videos' => 'array',
+            'blocks' => 'array',
             'type' => ProductType::class,
             'condition' => ProductCondition::class,
             'weight_grams' => 'integer',

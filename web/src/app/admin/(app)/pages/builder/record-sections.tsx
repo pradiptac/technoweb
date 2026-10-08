@@ -10,7 +10,9 @@ import { SectionBuilder } from "./section-builder";
 /**
  * Builder sections on a record that is not a page (0.129.0,
  * docs/page-builder.md "Sections on other records") — the console half, shared
- * by the solution, service, industry and case-study forms.
+ * by the solution, service, industry and case-study forms and, since 0.130.0,
+ * the blog post, knowledge article, product, shop product, event, vacancy
+ * and custom content entry forms.
  *
  * A record's page keeps its theme heading, its related lists, its FAQs and
  * its closing band; what the sections replace is the **written body**, and
@@ -84,7 +86,10 @@ export function BodyReplacedNote({ state, kept = "What is written below is kept,
   );
 }
 
-export function RecordSectionsPanel({ state, builder, media, errors, bodyField, storedBody, noun }: {
+/** What a record's page keeps whichever layout is chosen, when a form does not say. */
+const KEEPS = "Its heading, related lists, FAQs and closing band stay where they are.";
+
+export function RecordSectionsPanel({ state, builder, media, errors, bodyField, storedBody, noun, keeps = KEEPS }: {
   state: RecordSectionsState;
   /** `GET /admin/pages/builder` — the page builder's own options. */
   builder: PageBuilderOptions;
@@ -97,6 +102,8 @@ export function RecordSectionsPanel({ state, builder, media, errors, bodyField, 
   storedBody: string;
   /** What the record is, for the sentences: "solution", "case study". */
   noun: string;
+  /** What the page keeps around the body, as a sentence — each kind of page keeps different things. */
+  keeps?: string;
 }) {
   const { layout, setLayout, sections, setSections, usingSections } = state;
   const input = useRef<HTMLInputElement>(null);
@@ -155,8 +162,8 @@ export function RecordSectionsPanel({ state, builder, media, errors, bodyField, 
 
       <p className="measure mb-5 text-13-5 text-muted">
         {usingSections
-          ? `Sections take the place of the ${noun}’s written body only. Its heading, related lists, FAQs and closing band stay where they are.`
-          : `Choose Sections to lay the ${noun}’s body out as sections — the same ones a builder page uses. Its heading, related lists, FAQs and closing band stay where they are.`}
+          ? `Sections take the place of the ${noun}’s written body only. ${keeps}`
+          : `Choose Sections to lay the ${noun}’s body out as sections — the same ones a builder page uses. ${keeps}`}
         {usingSections && sections.length === 0 && " Until a section is added, the page goes on showing the written body."}
       </p>
 
@@ -172,5 +179,26 @@ export function RecordSectionsPanel({ state, builder, media, errors, bodyField, 
         />
       )}
     </div>
+  );
+}
+
+/**
+ * The Sections tab for somebody who cannot open the builder (0.130.0).
+ *
+ * The builder's options, its preview, its library and its pictures are a
+ * content manager's routes, and a shop product's form is a store manager's.
+ * A store manager without the other role gets this in the tab's place: one
+ * child, so `Tabs` still reads its panels by position, and **no `blocks`
+ * control**, so a save from this form leaves the record's sections exactly
+ * as they are (`sectionsFromFormData`).
+ */
+export function SectionsUnavailable({ state, noun }: { state: RecordSectionsState; noun: string }) {
+  return (
+    <p className="measure rounded border border-dashed border-line-strong bg-surface px-4 py-3 text-13-5 text-muted">
+      {state.usingSections
+        ? `This ${noun}’s body is laid out as sections. `
+        : `A ${noun}’s body can be laid out as sections — the same ones a builder page uses. `}
+      Laying them out needs the Content manager role, which this account does not have. Saving this form leaves the sections as they are.
+    </p>
   );
 }

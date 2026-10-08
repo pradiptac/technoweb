@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Enums\EventRegistrationMode;
 use App\Http\Resources\Concerns\IncludesSchema;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Models\Event;
 use App\Support\Events\EventText;
 use App\Support\MediaMeta;
@@ -32,7 +33,7 @@ use Illuminate\Http\Request;
  */
 class EventDetailResource extends EventResource
 {
-    use IncludesSchema;
+    use IncludesSchema, IncludesSections;
 
     public function toArray(Request $request): array
     {
@@ -43,6 +44,10 @@ class EventDetailResource extends EventResource
         return [
             ...$this->row(),
             'body' => $event->body,
+            // The builder's sections in place of the written body (0.130.0): on
+            // this record's own page only, and only while it is laid out as
+            // sections. The body above is still sent.
+            'sections' => $this->publicSections($this->includeSchema),
             'venue_address' => $event->format->hasVenue() ? $event->venue_address : null,
             'map_url' => $event->format->hasVenue() ? $event->map_url : null,
             'speakers' => array_values(array_map(fn (array $s) => [

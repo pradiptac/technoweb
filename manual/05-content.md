@@ -301,10 +301,12 @@ You can change wording directly in that preview:
   questions that open and close, links with an arrow, and counting figures.
 - Each field keeps its usual length; typing stops when it is full.
 
-### Sections on solutions, services, industries and case studies
+### Sections on other records
 
 The same sections can lay out the **body** of a solution, a service, an
-industry or a case study. Open one, go to its **Sections** tab and set **The
+industry, a case study, a blog post, a knowledge article, a product, a shop
+product, an event, a vacancy or an entry of your own content types. Open
+one, go to its **Sections** tab and set **The
 page's body shows** to **Sections**. The builder appears; add and arrange
 sections exactly as on a page, then save.
 
@@ -324,6 +326,17 @@ sections exactly as on a page, then save.
   sections as before.
 - On a solution, the lists that normally sit beside the text (technologies,
   hardware, industries) move under the sections as a row.
+- On a blog post, the sidebar moves under the sections, beside the comments.
+  The list of headings beside a post is not shown, because it is made from
+  the written text.
+- On a shop product, the sections stand where **Details** stood, under the
+  buying panel and the specification. Laying them out needs the **Content
+  manager** role; a store manager without it sees a note in the tab, and
+  saving the product leaves its sections as they are.
+- On an event or a vacancy, the registration panel or the Apply button
+  follows the sections.
+- Categories do not have a Sections tab: their description is a line in the
+  heading, not a body.
 
 ## The blog
 

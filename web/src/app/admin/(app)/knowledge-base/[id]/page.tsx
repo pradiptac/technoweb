@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getAnswerBlockKinds, getKnowledgeArticle, getKnowledgeCategories } from "@/lib/admin";
+import { getAnswerBlockKinds, getKnowledgeArticle, getKnowledgeCategories, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ArticleForm } from "../article-form";
@@ -57,7 +57,7 @@ export default async function EditKnowledgeArticlePage({
         )}
       </PageHeader>
 
-      <ArticleForm article={article} categories={categories} saved={Boolean(saved)} kinds={kinds} />
+      <ArticleForm article={article} categories={categories} saved={Boolean(saved)} kinds={kinds} builder={await getPageBuilderOptions()} />
     </>
   );
 }

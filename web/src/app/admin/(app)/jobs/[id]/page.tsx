@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
-import { getJobExperienceLevels, getJobOpening, getJobQualifications } from "@/lib/admin";
+import { getJobExperienceLevels, getJobOpening, getJobQualifications, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { JobForm } from "../job-form";
@@ -54,7 +54,7 @@ export default async function EditJobPage({
         </span>
       </PageHeader>
 
-      <JobForm job={job} qualifications={qualifications} levels={levels} saved={done} />
+      <JobForm job={job} qualifications={qualifications} levels={levels} saved={done} builder={await getPageBuilderOptions()} />
     </>
   );
 }

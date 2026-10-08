@@ -34,6 +34,14 @@ class SavedSection extends Model
         'service' => [Service::class, 'title'],
         'industry' => [Industry::class, 'name'],
         'case_study' => [CaseStudy::class, 'title'],
+        // 0.130.0: the rest of the records with a written body.
+        'blog_post' => [BlogPost::class, 'title'],
+        'knowledge_article' => [KnowledgeArticle::class, 'title'],
+        'product' => [Product::class, 'name'],
+        'store_product' => [StoreProduct::class, 'name'],
+        'event' => [Event::class, 'title'],
+        'job_opening' => [JobOpening::class, 'title'],
+        'entry' => [Entry::class, 'title'],
     ];
 
     protected $fillable = ['kind', 'name', 'description', 'blocks', 'created_by'];

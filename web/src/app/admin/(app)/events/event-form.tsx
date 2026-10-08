@@ -13,7 +13,9 @@ import { SeoPanel } from "@/components/admin/seo-panel";
 import { CoverField } from "@/components/admin/cover-field";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
+import { BodyReplacedNote, RecordSectionsPanel, SECTIONS_TAB, useRecordSections } from "../pages/builder/record-sections";
 import type { AdminEvent, EventMeta } from "@/lib/admin";
+import type { PageBuilderOptions } from "@/types/api";
 import { createEventAction, deleteEventAction, updateEventAction, type EventFormState } from "./actions";
 import { AgendaField, SpeakersField } from "./programme-fields";
 import { SeatMeter } from "./seat-meter";
@@ -32,6 +34,8 @@ const initial: EventFormState = {};
  */
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content", fields: ["title", "slug", "summary", "body", "status", "is_featured"] },
+  // Sections in place of the written body (0.130.0) — the choice and the builder.
+  SECTIONS_TAB,
   { id: "when", label: "When and where",
     fields: ["format", "starts_at", "ends_at", "venue_name", "venue_city", "venue_address", "map_url", "online_url"] },
   { id: "registration", label: "Registration",
@@ -74,7 +78,12 @@ const OWNED = GROUPS.flatMap((g) => g.fields);
  * a later prop — so without the key a saved "Published" would snap back to
  * "Draft" on screen.
  */
-export function EventForm({ event, meta }: { event?: AdminEvent; meta: EventMeta }) {
+export function EventForm({ event, meta, builder }: {
+  event?: AdminEvent;
+  meta: EventMeta;
+  /** `GET /admin/pages/builder` — the section builder's types and pickers, for the Sections tab. */
+  builder: PageBuilderOptions;
+}) {
   const editing = Boolean(event);
   const [state, formAction, pending] = useActionState(editing ? updateEventAction : createEventAction, initial);
 
@@ -107,6 +116,9 @@ export function EventForm({ event, meta }: { event?: AdminEvent; meta: EventMeta
   /** Per-row errors arrive as e.g. faqs.0.answer; surface the first. */
   const rowErr = (prefix: string) =>
     err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
+
+  // The body area: the written body, or builder sections (0.130.0).
+  const body = useRecordSections(event);
 
   const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
 
@@ -165,6 +177,8 @@ export function EventForm({ event, meta }: { event?: AdminEvent; meta: EventMeta
                 maxLength={300} aria-invalid={Boolean(err("summary"))} />
             </Field>
 
+            <BodyReplacedNote state={body} />
+
             <EditorField name="body" label="About the event" defaultValue={event?.body ?? ""} error={err("body")}
               hint="What it is, who it is for and what they will leave with. The agenda and the speakers have a panel of their own." />
           </div>
@@ -193,6 +207,18 @@ export function EventForm({ event, meta }: { event?: AdminEvent; meta: EventMeta
             )}
           </aside>
         </div>
+
+        {/* Sections in place of the written body. One child, always mounted. */}
+        <RecordSectionsPanel
+          state={body}
+          builder={builder}
+          media={event?.blocks_media ?? {}}
+          errors={state.fieldErrors ?? {}}
+          bodyField="body"
+          storedBody={event?.body ?? ""}
+          noun="event"
+          keeps="Its heading, date and place, agenda, speakers, registration panel and FAQs stay where they are."
+        />
 
         {/* --------------------------------------------------- When and where */}
         <div className="max-w-[820px]">

@@ -286,7 +286,9 @@ export type RecordBodyLayout = "body" | "sections";
 
 /**
  * A record that may lay out its body area as sections — a solution, a
- * service, an industry, a case study. On the public read `sections` is
+ * service, an industry, a case study and, since 0.130.0, a blog post, a
+ * knowledge article, a product, a shop product, an event, a vacancy and a
+ * custom content entry. On the public read `sections` is
  * present only on the record's own page and only while it is laid out that
  * way; the written body is still sent.
  */
@@ -349,5 +351,7 @@ export type SavedSection = {
   /** Detail only. */
   blocks?: StoredSection[];
   blocks_media?: Record<string, string>;
-  linked_from?: { id: number; title: string; kind: "page" | "template" | "solution" | "service" | "industry" | "case_study" }[];
+  linked_from?: { id: number; title: string; kind: "page" | "template" | "solution" | "service" | "industry" | "case_study"
+      | "blog_post" | "knowledge_article" | "product" | "store_product" | "event" | "job_opening" | "entry";
+  }[];
 };

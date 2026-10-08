@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
 import {
   getBrandOptions, getProduct, getProductCategoryOptions, getProductOptions, getSolutionOptions, getAnswerBlockKinds,
+  getPageBuilderOptions,
 } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -61,7 +62,7 @@ export default async function EditProductPage({
         </Link>
       </PageHeader>
 
-      <ProductForm kinds={kinds}
+      <ProductForm kinds={kinds} builder={await getPageBuilderOptions()}
         product={product}
         brands={brands}
         categories={categories}

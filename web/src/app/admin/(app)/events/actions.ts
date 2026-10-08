@@ -8,7 +8,7 @@ import {
   updateEventRegistration,
   type AdminEventAgendaItem, type EventPayload, type EventRegistrationUpdate, type EventSpeakerPayload,
 } from "@/lib/admin";
-import { jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
+import { jsonListFromFormData, sectionsFromFormData, seoFromFormData, str } from "@/lib/admin-form";
 import type { FaqItem } from "@/types/api";
 
 export type EventFormState = { error?: string; fieldErrors?: Record<string, string[]> };
@@ -40,6 +40,8 @@ function payloadFrom(formData: FormData, editing: boolean): EventPayload {
   const maxSeats = int(formData, "max_seats");
 
   return {
+    // The Sections tab: which of the two the page shows, and the builder's list.
+    ...sectionsFromFormData(formData),
     title: str(formData, "title") ?? "",
     slug: str(formData, "slug"),
     summary: str(formData, "summary"),

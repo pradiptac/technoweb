@@ -4,6 +4,7 @@ import { blurProps } from "@/lib/blur";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
+import { RecordSections, laidOutAsSections } from "@/components/page-sections/record-sections";
 import { CtaBand } from "@/components/ui/cta-band";
 import { Breadcrumbs } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
@@ -131,6 +132,123 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   // Anchors on the sections, for the map and for links into the post.
   const { html: body, headings } = withHeadingIds(post.body ?? "");
 
+  // Builder sections in place of the written body (0.130.0).
+  const laidOut = laidOutAsSections(post);
+  const crumbs = [
+    { name: "Blog", path: "/blog" },
+    { name: post.title, path: `/blog/${post.slug}` },
+  ];
+
+  // The article's heading: where it is, its title, who wrote it, its picture, the share row.
+  const head = (
+    <>
+      <Breadcrumbs crumbs={crumbs} />
+
+      <CategoryChips categories={post.categories} className="mt-5" />
+
+      <h1 className="display-2 mt-4">{post.title}</h1>
+      {post.excerpt && <p className="lede mt-4">{post.excerpt}</p>}
+
+      <ArticleMeta
+        className="mt-5 border-t border-line pt-5"
+        date={post.published_at}
+        readingMinutes={post.reading_minutes}
+        author={post.author?.name}
+      />
+
+      {post.cover_image && (
+        <div data-aos="fade-up" className="mt-7">
+          {/*
+            The one image on the site with no fixed-height well; it
+            carries the 4:3 every picture on the blog is cropped to, so
+            nothing shifts while it loads. (The share image is generated
+            separately at 1200x630 and does not read this file.)
+          */}
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-line">
+            <Image
+              src={post.cover_image}
+              alt={post.cover_image_alt ?? ""}
+              fill
+              sizes="(min-width: 1024px) 60vw, 100vw"
+              priority
+              className="object-cover"
+              style={focalStyle(post.cover_image_focus)} {...blurProps(post.cover_image_blur)}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="mt-6 border-y border-line py-4">
+        <ShareLinks url={`${SITE.url}/blog/${post.slug}`} title={post.title} />
+      </div>
+    </>
+  );
+
+  // Everything after the body: the details, the questions, the post either side, the comments.
+  const after = (
+    <>
+      {/* The answer blocks and FAQs, then what the post is about — after the body, before the neighbours. */}
+      {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
+      <CustomFieldDetails fields={post.custom_fields} className="mt-10" />
+      <AnswerBlocks blocks={post.answer_blocks} faqs={post.faqs ?? []} className="mt-10" />
+      <RelatedEntities entity={post.entity} className="mt-10" />
+
+      {/*
+        The post either side, before the comments: a reader who has
+        reached the end is offered the next thing first, and the
+        conversation below it.
+      */}
+      <PostNav previous={post.previous} next={post.next} />
+
+      {/*
+        Comments, inside the article column so they sit at the reader's
+        measure rather than the page's, and above the "all articles"
+        footer: a conversation belongs with the thing it is about.
+
+        Rendered when the post takes comments, or when it has some
+        already. Not merely when the fetch succeeded: the endpoint
+        answers 200 whether comments are enabled or not, so gating on
+        that put a "Comments — comments are closed on this post" heading
+        under **every** article on an install with the shipped default
+        (`comments_enabled` is off), which is a block explaining the
+        absence of a feature nobody had switched on.
+
+        The second half of the condition is what keeps a closed thread
+        readable: closing comments on an old post must not delete the
+        conversation that happened on it.
+      */}
+      {comments !== null && (comments.meta.open || comments.meta.total > 0) && (
+        <Comments
+          slug={post.slug}
+          comments={comments.data}
+          total={comments.meta.total}
+          open={comments.meta.open}
+        />
+      )}
+
+      <footer className="mt-8">
+        <Link href="/blog" className="inline-block py-1 text-14 font-semibold text-brand-ink hover:underline">
+          ← All articles
+        </Link>
+      </footer>
+    </>
+  );
+
+  const sidebar = (
+    <BlogSidebar
+      taxonomy={taxonomy}
+      settings={settings}
+      activeCategory={post.categories?.[0]?.slug}
+      sticky={false}
+    />
+  );
+
+  const relatedStories = alsoRead.length > 0 ? (
+    <div className="mt-14">
+      <PostGrid posts={alsoRead} heading="Related stories" id="related-stories" />
+    </div>
+  ) : null;
+
   return (
     <>
       <CategoryStrip
@@ -138,141 +256,73 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         active={post.categories?.[0]?.slug}
       />
 
-      <Container className="section-y">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-9">
-          <article id="post-body" className="min-w-0">
-            <ReadingProgress target="post-body" />
-            <Breadcrumbs
-              crumbs={[
-                { name: "Blog", path: "/blog" },
-                { name: post.title, path: `/blog/${post.slug}` },
-              ]}
-            />
+      {laidOut ? (
+        /*
+          Laid out as sections: the heading on its own, at the width the
+          article column has; then the sections as full-width bands; then
+          what follows the body beside the sidebar. The sidebar moves down
+          with it — beside a heading alone it would be a tall column next to
+          a short one — and there is no map, since the map is the written
+          body's headings.
+        */
+        <article id="post-body">
+          <ReadingProgress target="post-body" />
+          <Container className="section-y pb-10">
+            <div className="mx-auto max-w-[900px]">{head}</div>
+          </Container>
 
-            <CategoryChips categories={post.categories} className="mt-5" />
+          <RecordSections sections={post.sections ?? []} crumbs={crumbs} />
 
-            <h1 className="display-2 mt-4">{post.title}</h1>
-            {post.excerpt && <p className="lede mt-4">{post.excerpt}</p>}
-
-            <ArticleMeta
-              className="mt-5 border-t border-line pt-5"
-              date={post.published_at}
-              readingMinutes={post.reading_minutes}
-              author={post.author?.name}
-            />
-
-            {post.cover_image && (
-              <div data-aos="fade-up" className="mt-7">
-                {/*
-                  The one image on the site with no fixed-height well; it
-                  carries the 4:3 every picture on the blog is cropped to, so
-                  nothing shifts while it loads. (The share image is generated
-                  separately at 1200x630 and does not read this file.)
-                */}
-                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-line">
-                  <Image
-                    src={post.cover_image}
-                    alt={post.cover_image_alt ?? ""}
-                    fill
-                    sizes="(min-width: 1024px) 60vw, 100vw"
-                    priority
-                    className="object-cover"
-                    style={focalStyle(post.cover_image_focus)} {...blurProps(post.cover_image_blur)}
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="mt-6 border-y border-line py-4">
-              <ShareLinks url={`${SITE.url}/blog/${post.slug}`} title={post.title} />
+          <Container className="section-y">
+            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-9">
+              <div className="min-w-0 [&>*:first-child]:mt-0">{after}</div>
+              <div className="min-w-0">{sidebar}</div>
             </div>
+            {relatedStories}
+          </Container>
+        </article>
+      ) : (
+        <Container className="section-y">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-9">
+            <article id="post-body" className="min-w-0">
+              <ReadingProgress target="post-body" />
+              {head}
 
-            {/*
-              `Prose` keeps its own 68ch measure inside this column. The page is
-              no longer a centred 780px block — it has a sidebar now — but the
-              thing that is actually *read* still wants a reading width, which
-              is what that cap is for.
-            */}
-            <div data-aos="fade-up" className="mt-8">
               {/*
-                The one `Prose` on the site without the 68ch measure. The
-                column beside the sidebar is the measure here — asked for,
-                so a post fills the room the layout gives it rather than
-                stopping two thirds of the way across it.
+                `Prose` keeps its own 68ch measure inside this column. The page is
+                no longer a centred 780px block — it has a sidebar now — but the
+                thing that is actually *read* still wants a reading width, which
+                is what that cap is for.
               */}
-              {body && <ProseWithShortcodes html={body} className="max-w-none" />}
+              <div data-aos="fade-up" className="mt-8">
+                {/*
+                  The one `Prose` on the site without the 68ch measure. The
+                  column beside the sidebar is the measure here — asked for,
+                  so a post fills the room the layout gives it rather than
+                  stopping two thirds of the way across it.
+                */}
+                {body && <ProseWithShortcodes html={body} className="max-w-none" />}
+              </div>
+
+              {after}
+            </article>
+
+            <div className="min-w-0">
+              {sidebar}
+              {/*
+                After the sidebar's cards and the one sticky thing in the
+                column: once the reader is past those cards — a third of a long
+                post — the map holds at the header for the rest of the read,
+                and nothing comes after it to paint over it. See BlogSidebar
+                for why the aside itself is not sticky here.
+              */}
+              <ArticleMap headings={headings} sticky className="mt-6 hidden lg:block" />
             </div>
-
-            {/* The answer blocks and FAQs, then what the post is about — after the body, before the neighbours. */}
-            {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
-            <CustomFieldDetails fields={post.custom_fields} className="mt-10" />
-            <AnswerBlocks blocks={post.answer_blocks} faqs={post.faqs ?? []} className="mt-10" />
-            <RelatedEntities entity={post.entity} className="mt-10" />
-
-            {/*
-              The post either side, before the comments: a reader who has
-              reached the end is offered the next thing first, and the
-              conversation below it.
-            */}
-            <PostNav previous={post.previous} next={post.next} />
-
-            {/*
-              Comments, inside the article column so they sit at the reader's
-              measure rather than the page's, and above the "all articles"
-              footer: a conversation belongs with the thing it is about.
-
-              Rendered when the post takes comments, or when it has some
-              already. Not merely when the fetch succeeded: the endpoint
-              answers 200 whether comments are enabled or not, so gating on
-              that put a "Comments — comments are closed on this post" heading
-              under **every** article on an install with the shipped default
-              (`comments_enabled` is off), which is a block explaining the
-              absence of a feature nobody had switched on.
-
-              The second half of the condition is what keeps a closed thread
-              readable: closing comments on an old post must not delete the
-              conversation that happened on it.
-            */}
-            {comments !== null && (comments.meta.open || comments.meta.total > 0) && (
-              <Comments
-                slug={post.slug}
-                comments={comments.data}
-                total={comments.meta.total}
-                open={comments.meta.open}
-              />
-            )}
-
-            <footer className="mt-8">
-              <Link href="/blog" className="inline-block py-1 text-14 font-semibold text-brand-ink hover:underline">
-                ← All articles
-              </Link>
-            </footer>
-          </article>
-
-          <div className="min-w-0">
-            <BlogSidebar
-              taxonomy={taxonomy}
-              settings={settings}
-              activeCategory={post.categories?.[0]?.slug}
-              sticky={false}
-            />
-            {/*
-              After the sidebar's cards and the one sticky thing in the
-              column: once the reader is past those cards — a third of a long
-              post — the map holds at the header for the rest of the read,
-              and nothing comes after it to paint over it. See BlogSidebar
-              for why the aside itself is not sticky here.
-            */}
-            <ArticleMap headings={headings} sticky className="mt-6 hidden lg:block" />
           </div>
-        </div>
 
-        {alsoRead.length > 0 && (
-          <div className="mt-14">
-            <PostGrid posts={alsoRead} heading="Related stories" id="related-stories" />
-          </div>
-        )}
-      </Container>
+          {relatedStories}
+        </Container>
+      )}
 
       <CtaBand
         title="Ran into this on your own network?"

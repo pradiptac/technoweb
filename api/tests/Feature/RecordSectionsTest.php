@@ -3,12 +3,20 @@
 namespace Tests\Feature;
 
 use App\Enums\Role as RoleEnum;
+use App\Models\BlogPost;
 use App\Models\CaseStudy;
+use App\Models\ContentType;
+use App\Models\Entry;
+use App\Models\Event;
 use App\Models\Industry;
+use App\Models\JobOpening;
+use App\Models\KnowledgeArticle;
+use App\Models\Product;
 use App\Models\Role;
 use App\Models\SavedSection;
 use App\Models\Service;
 use App\Models\Solution;
+use App\Models\StoreProduct;
 use App\Models\User;
 use App\Support\PageSections\RecordSections;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,6 +31,10 @@ use Tests\TestCase;
  * as sections. The list is the page builder's, validated by its rules; the
  * record chooses between it and its written body with `body_layout`, and
  * neither is cleared by choosing the other.
+ *
+ * 0.130.0 added the rest of the records with a written body — blog posts,
+ * knowledge articles, catalogue products, shop products, events, vacancies
+ * and custom content entries — and the same three tests run over all eleven.
  */
 class RecordSectionsTest extends TestCase
 {
@@ -41,7 +53,23 @@ class RecordSectionsTest extends TestCase
             'service' => ['services', 'services', Service::class, 'body', ['title' => 'Managed Wi-Fi', 'status' => 'published']],
             'industry' => ['industries', 'industries', Industry::class, 'body', ['name' => 'Managed Wi-Fi']],
             'case study' => ['case-studies', 'case-studies', CaseStudy::class, 'body', ['title' => 'Managed Wi-Fi', 'status' => 'published']],
+            'blog post' => ['blog-posts', 'blog', BlogPost::class, 'body', ['title' => 'Managed Wi-Fi', 'status' => 'published']],
+            'knowledge article' => ['knowledge-articles', 'knowledge-base', KnowledgeArticle::class, 'body', ['title' => 'Managed Wi-Fi', 'status' => 'published']],
+            'product' => ['products', 'products', Product::class, 'description', ['name' => 'Managed Wi-Fi', 'status' => 'published']],
+            // The shop is a store manager's; the editor here holds both roles.
+            'shop product' => ['store/products', 'store/products', StoreProduct::class, 'description', ['name' => 'Managed Wi-Fi', 'type' => 'physical', 'price_paise' => 100000, 'status' => 'published']],
+            'event' => ['events', 'events', Event::class, 'body', ['title' => 'Managed Wi-Fi', 'format' => 'online', 'starts_at' => '2031-01-15T15:00', 'status' => 'published']],
+            'vacancy' => ['job-openings', 'careers', JobOpening::class, 'description', ['title' => 'Managed Wi-Fi', 'employment_type' => 'full_time', 'status' => 'published']],
+            // An entry is addressed through its type, made in `setUp()`.
+            'content entry' => ['content-types/guides/entries', 'types/guides', Entry::class, 'body', ['title' => 'Managed Wi-Fi', 'status' => 'published']],
         ];
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        ContentType::create(['name' => 'Guide', 'plural' => 'Guides', 'slug' => 'guides', 'has_body' => true, 'archive_enabled' => true, 'is_active' => true]);
     }
 
     private function editor(): User
@@ -49,8 +77,9 @@ class RecordSectionsTest extends TestCase
         $user = User::firstOrCreate(['email' => 'sections-editor@example.test'], [
             'name' => 'Editor', 'password' => 'password-for-tests', 'is_active' => true,
         ]);
-        $role = RoleEnum::ContentManager;
-        $user->roles()->syncWithoutDetaching([Role::firstOrCreate(['slug' => $role->value], ['name' => $role->label()])->id]);
+        foreach ([RoleEnum::ContentManager, RoleEnum::StoreManager] as $role) {
+            $user->roles()->syncWithoutDetaching([Role::firstOrCreate(['slug' => $role->value], ['name' => $role->label()])->id]);
+        }
 
         return $user;
     }
@@ -174,6 +203,30 @@ class RecordSectionsTest extends TestCase
             'title' => 'A page', 'template' => 'builder', 'status' => 'published',
             'blocks' => [self::section('hero', ['heading' => 'A page title', 'layout' => 'centered'])],
         ])->assertCreated();
+    }
+
+    /**
+     * Every type refuses a hero, not just the one the test above spells out.
+     *
+     * Each type's request has to *call* the body area's checks, and they do
+     * not all reach them the same way: ten use `ValidatesRecordSections`,
+     * and the event request, which has a `withValidator` of its own, calls
+     * `RecordSections::after()` itself. Taking that one line out of the event
+     * request left every other test here green (the control run that found
+     * the gap, 0.130.0).
+     *
+     * @param  array<string, mixed>  $base
+     */
+    #[DataProvider('records')]
+    public function test_every_record_type_refuses_what_a_body_area_cannot_hold(string $admin, string $public, string $model, string $body, array $base): void
+    {
+        $this->store($admin, [...$base, 'blocks' => [self::section('hero', ['heading' => 'A second title', 'layout' => 'centered'])]])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.type');
+
+        $this->store($admin, [...$base, 'blocks' => [self::section('faq', ['source' => 'page'])]])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.source');
+
+        $this->assertSame(0, $model::query()->count());
     }
 
     public function test_a_linked_library_section_is_held_to_the_same_limits_on_write_and_on_read(): void

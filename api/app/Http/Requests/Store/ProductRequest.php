@@ -8,7 +8,9 @@ use App\Enums\PublishStatus;
 use App\Http\Requests\Concerns\AcceptsCustomFields;
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
+use App\Http\Requests\Concerns\ValidatesRecordSections;
 use App\Http\Requests\SeoRules;
+use App\Support\PageSections\SectionRules;
 use App\Support\Store\ProductVideos;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -28,7 +30,7 @@ use Illuminate\Validation\Rule;
  */
 class ProductRequest extends FormRequest
 {
-    use AcceptsCustomFields, SanitisesRichText;
+    use AcceptsCustomFields, SanitisesRichText, ValidatesRecordSections;
 
     protected function customFieldTarget(): string
     {
@@ -46,7 +48,7 @@ class ProductRequest extends FormRequest
         // bypasses the sanitiser entirely — it is rendered into an email and,
         // through the order page, into a browser. `answer_blocks.*.detail` is
         // the explanation under each answer block, rich text like any body.
-        return ['description', 'activation_procedure', 'answer_blocks.*.detail'];
+        return ['description', 'activation_procedure', 'answer_blocks.*.detail', ...SectionRules::RICH_TEXT];
     }
 
     public function authorize(): bool
@@ -207,6 +209,8 @@ class ProductRequest extends FormRequest
 
             ...CmsFieldRules::faqs(),
             ...CmsFieldRules::answerBlocks(),
+            // Builder sections in place of the written body (0.130.0, `RecordSections`).
+            ...$this->recordSectionRules(),
             ...SeoRules::rules(),
             ...$this->customFieldRules(),
         ];
@@ -216,6 +220,7 @@ class ProductRequest extends FormRequest
     public function messages(): array
     {
         return [
+            ...$this->recordSectionMessages(),
             'name.required' => 'Give the product a name.',
             'price_paise.required' => 'Everything in the store has a price. Set one.',
             'slug.unique' => 'Another store product already uses that slug.',

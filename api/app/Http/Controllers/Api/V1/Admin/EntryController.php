@@ -13,6 +13,7 @@ use App\Http\Resources\Admin\EntryResource;
 use App\Models\ContentType;
 use App\Models\Entry;
 use App\Support\CustomFields\CustomFields;
+use App\Support\PageSections\RecordSections;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -79,6 +80,7 @@ class EntryController extends Controller
         $entry = DB::transaction(function () use ($request, $contentType) {
             [$attributes, $seo] = $this->split($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $content = $this->pullAnswerContent($attributes);
 
             // The type first, so the slug is made unique within it.
@@ -101,6 +103,7 @@ class EntryController extends Controller
         DB::transaction(function () use ($request, $entry) {
             [$attributes, $seo] = $this->split($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $content = $this->pullAnswerContent($attributes);
 
             // A blank slug on an edit means "keep it", never "make it null".

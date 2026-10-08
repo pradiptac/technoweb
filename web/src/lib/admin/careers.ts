@@ -6,6 +6,9 @@ import type {
 } from "@/types/api";
 
 export type JobOpeningPayload = Partial<{
+  /** Sections in place of the written body (0.130.0); absent leaves both alone. */
+  body_layout: import("@/types/page-sections").RecordBodyLayout;
+  blocks: import("@/types/page-sections").StoredSection[];
   title: string; slug: string | null; department: string | null; location: string | null;
   employment_type: string; openings: number; job_experience_level_id: number | null;
   salary_min: number | null; salary_max: number | null; salary_period: string; salary_currency: string;

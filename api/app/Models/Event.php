@@ -82,6 +82,7 @@ class Event extends Model implements Faqable
         'cover_image_path', 'speakers', 'agenda',
         'registration_mode', 'external_url', 'capacity', 'waitlist_enabled', 'max_seats',
         'registration_closes_at',
+        'body_layout', 'blocks',
     ];
 
     /**
@@ -96,6 +97,7 @@ class Event extends Model implements Faqable
         'registration_mode' => 'none',
         'waitlist_enabled' => false,
         'max_seats' => 5,
+        'body_layout' => 'body',
     ];
 
     protected function casts(): array
@@ -112,6 +114,7 @@ class Event extends Model implements Faqable
             // Lists, and JSON arrays keep their order — the running order is content.
             'speakers' => 'array',
             'agenda' => 'array',
+            'blocks' => 'array',
             'capacity' => 'integer',
             'max_seats' => 'integer',
         ];

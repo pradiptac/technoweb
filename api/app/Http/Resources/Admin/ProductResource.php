@@ -4,6 +4,7 @@ namespace App\Http\Resources\Admin;
 
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -18,7 +19,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Product */
 class ProductResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesCustomFields;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSections;
 
     public function toArray(Request $request): array
     {
@@ -31,6 +32,9 @@ class ProductResource extends JsonResource
             'sku' => $this->sku,
             'short_description' => $this->short_description,
             'description' => $this->when($detail, $this->description),
+            // Which of the two the page draws in its body area, and the builder's
+            // sections as stored (0.130.0) — see IncludesSections.
+            ...$this->adminSections($detail),
             'brand_id' => $this->brand_id,
             'brand_name' => $this->whenLoaded('brand', fn () => $this->brand?->name),
             'product_category_id' => $this->product_category_id,

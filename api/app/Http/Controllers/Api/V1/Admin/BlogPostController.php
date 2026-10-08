@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateBlogPostRequest;
 use App\Http\Resources\Admin\BlogPostResource;
 use App\Models\BlogPost;
 use App\Support\CustomFields\CustomFields;
+use App\Support\PageSections\RecordSections;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -64,6 +65,7 @@ class BlogPostController extends Controller
         $post = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
 
             // Whoever is writing it, unless they said otherwise.
             $attributes['author_id'] ??= $request->user()->id;
@@ -94,6 +96,7 @@ class BlogPostController extends Controller
         DB::transaction(function () use ($request, $blogPost) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
 
             // Changing the slug leaves a 301 behind automatically — see the
             // updating hook in the Sluggable trait.

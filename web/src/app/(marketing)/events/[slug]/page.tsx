@@ -2,6 +2,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
+import { RecordSections, laidOutAsSections } from "@/components/page-sections/record-sections";
 import { ButtonLink } from "@/components/ui/button";
 import { CtaBand } from "@/components/ui/cta-band";
 import { FaqList } from "@/components/ui/faq";
@@ -90,6 +91,15 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const others = upcoming.filter((other) => other.slug !== event.slug).slice(0, 3);
   // What the cached event says. The panel asks for what is true this minute.
   const registers = !event.is_past && event.registration.mode === "open";
+  // Builder sections in place of the written description (0.130.0): bands
+  // under the at-a-glance strip, and the details and the registration panel
+  // after them.
+  const laidOut = laidOutAsSections(event);
+  const crumbs = [{ name: "Events", path: "/events" }, { name: event.title, path: `/events/${event.slug}` }];
+  // With the description gone to the sections, the left column may hold
+  // nothing — then the panel stands alone, centred, not beside a void.
+  const alone = laidOut && !(event.cover_image || event.venue_name || event.venue_address
+    || event.agenda.length > 0 || event.speakers.length > 0 || faqs.length > 0);
 
   return (
     <>
@@ -98,7 +108,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         kicker={event.is_past ? "Past event" : "Event"}
         title={event.title}
         lede={event.summary}
-        crumbs={[{ name: "Events", path: "/events" }, { name: event.title, path: `/events/${event.slug}` }]}
+        crumbs={crumbs}
       >
         {/*
           The panel is beside the content from `lg` and under it on a phone,
@@ -124,8 +134,11 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         </Container>
       </div>
 
+      {laidOut && <RecordSections sections={event.sections ?? []} crumbs={crumbs} />}
+
       <Container className="section-y">
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-14">
+        <div className={alone ? "mx-auto max-w-[420px]" : "grid gap-12 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-14"}>
+          {!alone && (
           <div className="grid min-w-0 content-start gap-12">
             {event.cover_image && (
               /*
@@ -155,13 +168,13 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               column beside a registration form reads as a page that failed
               to load.
             */}
-            {event.body
+            {!laidOut && (event.body
               ? <ProseWithShortcodes html={event.body} />
               : (
                 <p className="text-base leading-[1.7] text-ink-2">
                   {event.summary ?? `${event.title} is on ${event.date_label}, ${event.time_label}.`}
                 </p>
-              )}
+              ))}
 
             <EventAgenda items={event.agenda} />
             <EventSpeakers speakers={event.speakers} />
@@ -170,6 +183,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             {/* The API's `faq_schema`, below, is the page's one FAQPage; `FaqList` emits none. */}
             {faqs.length > 0 && <div><FaqList faqs={faqs} /></div>}
           </div>
+          )}
 
           {/*
             The registration panel: beside the content and sticky from `lg`,

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
 import { ApiError } from "@/lib/api";
-import { getEntries } from "@/lib/admin";
+import { getEntries, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { EntryForm } from "../entry-form";
@@ -35,7 +35,7 @@ export default async function NewEntryPage({ params }: { params: Promise<{ type:
     <>
       <PageHeader back={{ href: `/admin/content/${slug}`, label: `All ${meta.type.plural.toLowerCase()}` }}
         title={`New ${meta.type.name.toLowerCase()}`} />
-      <EntryForm type={meta.type} kinds={meta.answer_block_kinds} fieldGroups={meta.custom_field_groups} />
+      <EntryForm type={meta.type} kinds={meta.answer_block_kinds} fieldGroups={meta.custom_field_groups} builder={await getPageBuilderOptions()} />
     </>
   );
 }

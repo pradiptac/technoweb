@@ -18,7 +18,11 @@ import type { StoredSection } from "@/types/api";
  * a service, an industry or a case study can place one too, so their tags go
  * with it (`PLACES_SECTIONS`).
  */
-const PLACES_SECTIONS = ["pages", "solutions", "services", "industries", "case-studies"] as const;
+const PLACES_SECTIONS = [
+  "pages", "solutions", "services", "industries", "case-studies",
+  // 0.130.0: the rest of the records with a written body.
+  "blog", "kb", "products", "store-products", "events", "careers", "entries",
+] as const;
 export type LibraryResult = { ok: boolean; id?: number; error?: string; fieldErrors?: Record<string, string[]> };
 
 function fail(error: unknown): LibraryResult {

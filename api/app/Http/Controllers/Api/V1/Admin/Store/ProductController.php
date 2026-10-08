@@ -12,6 +12,7 @@ use App\Http\Requests\Store\ProductRequest;
 use App\Http\Resources\Admin\Store\ProductResource;
 use App\Models\StoreProduct;
 use App\Support\CustomFields\CustomFields;
+use App\Support\PageSections\RecordSections;
 use App\Support\Store\ProductVideos;
 use App\Support\Store\SpecIndex;
 use App\Support\Store\StockLedger;
@@ -102,6 +103,7 @@ class ProductController extends Controller
         $product = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $variations = $this->pull($attributes, self::RELATIONS);
             $attributes = ProductVideos::normaliseAttributes($attributes);
 
@@ -144,6 +146,7 @@ class ProductController extends Controller
         DB::transaction(function () use ($request, $storeProduct) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $variations = $this->pull($attributes, self::RELATIONS);
             $attributes = ProductVideos::normaliseAttributes($attributes);
 

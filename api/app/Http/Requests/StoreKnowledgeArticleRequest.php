@@ -6,12 +6,14 @@ use App\Enums\PublishStatus;
 use App\Http\Requests\Concerns\AcceptsCustomFields;
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
+use App\Http\Requests\Concerns\ValidatesRecordSections;
+use App\Support\PageSections\SectionRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreKnowledgeArticleRequest extends FormRequest
 {
-    use AcceptsCustomFields, SanitisesRichText;
+    use AcceptsCustomFields, SanitisesRichText, ValidatesRecordSections;
 
     protected function customFieldTarget(): string
     {
@@ -26,7 +28,7 @@ class StoreKnowledgeArticleRequest extends FormRequest
      */
     protected function richTextFields(): array
     {
-        return ['body', 'answer_blocks.*.detail'];
+        return ['body', 'answer_blocks.*.detail', ...SectionRules::RICH_TEXT];
     }
 
     public function authorize(): bool
@@ -55,6 +57,8 @@ class StoreKnowledgeArticleRequest extends FormRequest
 
             ...CmsFieldRules::faqs(),
             ...CmsFieldRules::answerBlocks(),
+            // Builder sections in place of the written body (0.130.0, `RecordSections`).
+            ...$this->recordSectionRules(),
             ...SeoRules::rules(),
             ...$this->customFieldRules(),
         ];
@@ -63,6 +67,7 @@ class StoreKnowledgeArticleRequest extends FormRequest
     public function messages(): array
     {
         return [
+            ...$this->recordSectionMessages(),
             'title.required' => 'Give the article a title.',
             'slug.alpha_dash' => 'A slug can contain letters, numbers, dashes and underscores only.',
             'slug.unique' => 'Another article already uses that slug.',

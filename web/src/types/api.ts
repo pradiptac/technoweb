@@ -140,7 +140,7 @@ export type ProductCategory = AnswerContent & {
   seo?: Seo | null;
 };
 
-export type Product = PublicCustomFields & AnswerContent & {
+export type Product = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -325,7 +325,7 @@ export type CaseStudy = PublicCustomFields & Pick<AnswerContent, "entity" | "faq
   seo?: Seo | null;
 };
 
-export type KnowledgeArticle = PublicCustomFields & AnswerContent & {
+export type KnowledgeArticle = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -343,7 +343,7 @@ export type KnowledgeArticle = PublicCustomFields & AnswerContent & {
   seo?: Seo | null;
 };
 
-export type BlogPost = PublicCustomFields & AnswerContent & {
+export type BlogPost = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -806,7 +806,7 @@ export type ContentTypeSummary = {
 };
 
 /** One entry of a custom content type, as the public site reads it. */
-export type ContentEntry = PublicCustomFields & AnswerContent & {
+export type ContentEntry = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & {
   id: number;
   title: string;
   slug: string;
@@ -858,7 +858,7 @@ export type ContentTypeMeta = {
   schema_types: { value: "Article" | "WebPage"; label: string }[];
 };
 
-export type AdminEntry = AdminCustomFields & {
+export type AdminEntry = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
   content_type_id: number;
   title: string;
@@ -959,7 +959,7 @@ export type SeoAiMeta = {
  * round-trip. `seo` is what was typed; `seo_defaults` is what the site falls
  * back to, shown as placeholders.
  */
-export type AdminBlogPost = AdminCustomFields & {
+export type AdminBlogPost = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
   title: string;
   slug: string;
@@ -989,7 +989,7 @@ export type AdminBlogPost = AdminCustomFields & {
   updated_at: string;
 };
 
-export type AdminKnowledgeArticle = AdminCustomFields & {
+export type AdminKnowledgeArticle = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
   title: string;
   slug: string;
@@ -1570,7 +1570,7 @@ export type ApplicationStatus =
   | "new" | "shortlisted" | "interviewing" | "offered" | "hired" | "rejected";
 
 /** A vacancy as the public careers pages see it. */
-export type JobOpening = {
+export type JobOpening = import("./page-sections").RecordSectionsRead & {
   id: number;
   title: string;
   slug: string;
@@ -1596,7 +1596,7 @@ export type JobOpening = {
   seo?: Seo | null;
 };
 
-export type AdminJobOpening = {
+export type AdminJobOpening = import("./page-sections").AdminRecordSections & {
   id: number;
   title: string;
   slug: string;
@@ -1666,7 +1666,7 @@ export type PickerOption = { id: number; name: string };
  * `images` holds storable paths and `image_urls` the resolved previews — the
  * form submits the former and renders the latter.
  */
-export type AdminProduct = AdminCustomFields & {
+export type AdminProduct = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
   /** schema.org availability, or null when nobody has said. */
   availability?: string | null;
@@ -1712,7 +1712,7 @@ export type AdminProduct = AdminCustomFields & {
  * by parsing the text — see `lib/money.ts`. A decimal on the wire is where a
  * price becomes 1179.9999.
  */
-export type AdminStoreProduct = AdminCustomFields & {
+export type AdminStoreProduct = AdminCustomFields & import("./page-sections").AdminRecordSections & {
   id: number;
   name: string;
   slug: string;
@@ -1854,7 +1854,7 @@ export type AdminStoreCategory = {
 };
 
 /** What the storefront reads. No stock count — see the API resource. */
-export type StoreProduct = PublicCustomFields & AnswerContent & {
+export type StoreProduct = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & {
   id: number;
   name: string;
   slug: string;

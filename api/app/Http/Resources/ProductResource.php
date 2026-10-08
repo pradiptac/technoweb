@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Http\Resources\Concerns\IncludesSchema;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\Product;
 use App\Support\MediaMeta;
@@ -16,7 +17,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Product */
 class ProductResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSeo;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSections, IncludesSeo;
 
     public function toArray(Request $request): array
     {
@@ -31,6 +32,10 @@ class ProductResource extends JsonResource
             'short_description' => $this->short_description,
             // Full body only on the detail endpoint — keeps list payloads small.
             'description' => $this->when($request->routeIs('*.show'), $this->description),
+            // The builder's sections in place of the written body (0.130.0): on
+            // this record's own page only, and only while it is laid out as
+            // sections. The body above is still sent.
+            'sections' => $this->publicSections($this->includeSchema),
             'specifications' => $this->when($request->routeIs('*.show'), $this->specifications),
             'features' => $this->when($request->routeIs('*.show'), $this->features),
             'images' => collect($this->images ?? [])->map(fn ($p) => MediaUrl::for($p))->all(),

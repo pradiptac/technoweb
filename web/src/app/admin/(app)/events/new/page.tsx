@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
-import { getEventMeta, type EventMeta } from "@/lib/admin";
+import { getEventMeta, getPageBuilderOptions, type EventMeta } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { requireScreen } from "@/lib/admin-screen";
@@ -32,7 +32,7 @@ export default async function NewEventPage() {
         lede="Give it a title and a start time and save it as a draft; the venue, the programme and registration can follow. Nothing is on the site until its status is Published."
       />
 
-      <EventForm meta={meta} />
+      <EventForm meta={meta} builder={await getPageBuilderOptions()} />
     </>
   );
 }

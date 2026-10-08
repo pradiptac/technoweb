@@ -1237,9 +1237,12 @@ A CMS page whose `template` is `builder` is a stack of typed sections
 | `POST` | `/admin/pages/ai-draft` | `role:content_manager`, throttled 6/min, declared above `pages/{page:id}`. `{brief (10–1500), length? (short/standard/long, default standard), pictures? (default true), icons? (≤ 400 ids)}`. The assistant lays out a **draft** builder page from the brief. **201** `{data: {id, title, slug, admin_path: "/admin/pages/{id}?tab=builder", sections (count), dropped: [{type, reason}]}}`; a refusal is **422** `{message, errors: {brief: [sentence]}}`. 0.116.0 — see below |
 | `POST` | `/admin/pages/ai-section` | `role:content_manager`, throttled 20/min, declared above `pages/{page:id}`. `{mode (write, rewrite, shorten, expand), type, data, brief? (≤ 600; required for write), icons? (≤ 400 ids)}`. **200** `{data: {section_data}}` — the `data` sent with its wording replaced; **nothing is written**. A refusal is **422** on `brief` or `section`. 0.127.0 — see below |
 
-**Sections in a record's body area (0.129.0).** `POST`/`PATCH` on
-`/admin/solutions`, `/admin/services`, `/admin/industries` and
-`/admin/case-studies` take `body_layout` (`body` or `sections`; anything else
+**Sections in a record's body area (0.129.0; seven more types in 0.130.0).**
+`POST`/`PATCH` on `/admin/solutions`, `/admin/services`, `/admin/industries`
+and `/admin/case-studies` — and, since 0.130.0, `/admin/blog-posts`,
+`/admin/knowledge-articles`, `/admin/products`, `/admin/store/products`
+(`role:store_manager`), `/admin/events`, `/admin/job-openings` and
+`/admin/content-types/{type-slug}/entries` — take `body_layout` (`body` or `sections`; anything else
 a 422, a blank stored as `body`) and `blocks` — the page builder's list, at
 most 40, validated row by row exactly as a page's is (a 422 keyed
 `blocks.N.data.field`), with three things refused that a page may hold: a
@@ -1254,12 +1257,18 @@ of each carries `sections`** — presented as a builder page's are — only on
 the record's own page and only while `body_layout` is `sections` and the
 list is not empty; a list row, a record nested in another's read, and a
 record on its written body carry no key. The written body (`overview`,
-`body`) is still sent. Questions typed into a `faq` section join the
+`body`, or `description` on a product, a shop product and a vacancy) is
+still sent. The public reads are `GET /blog/{slug}`, `/knowledge-base/{slug}`,
+`/products/{slug}`, `/store/products/{slug}`, `/events/{slug}`,
+`/careers/{slug}` and `/types/{type}/{slug}`; a vacancy has no `faq_schema`,
+so questions typed into a section on one join no graph. Questions typed into a `faq` section join the
 record's `faq_schema` while the sections are showing. `GET
 /admin/pages/builder` adds `record_sections: {excluded_types[], layouts[{value,
 label, blurb}]}`, and `linked_from` on a library section (and the 422 that
 refuses its delete) names records too: `kind` is `page`, `template`,
-`solution`, `service`, `industry` or `case_study`.
+`solution`, `service`, `industry`, `case_study`, `blog_post`,
+`knowledge_article`, `product`, `store_product`, `event`, `job_opening` or
+`entry`.
 
 **`POST /admin/pages/ai-section` words one section and saves nothing**
 (0.127.0, `App\Support\Seo\Ai\SectionDraft`). `type` is one of `hero`,

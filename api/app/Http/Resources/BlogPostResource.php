@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Http\Resources\Concerns\IncludesSchema;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\BlogPost;
 use App\Support\Blog\Comments;
@@ -17,7 +18,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin BlogPost */
 class BlogPostResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSeo;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSections, IncludesSeo;
 
     public function toArray(Request $request): array
     {
@@ -31,6 +32,10 @@ class BlogPostResource extends JsonResource
             'updated_at' => $this->updated_at?->toIso8601String(),
             'excerpt' => $this->excerpt,
             'body' => $this->when($detail, $this->body),
+            // The builder's sections in place of the written body (0.130.0): on
+            // this record's own page only, and only while it is laid out as
+            // sections. The body above is still sent.
+            'sections' => $this->publicSections($this->includeSchema),
             'cover_image' => $this->cover_image_path ? MediaUrl::for($this->cover_image_path) : null,
             'cover_image_alt' => MediaMeta::alt($this->cover_image_path),
             'cover_image_focus' => MediaMeta::focus($this->cover_image_path),

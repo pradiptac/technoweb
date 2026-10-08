@@ -10,7 +10,7 @@ import {
   saveJobExperienceLevel, deleteJobExperienceLevel,
   type JobOpeningPayload,
 } from "@/lib/admin";
-import { seoFromFormData, str as field } from "@/lib/admin-form";
+import { sectionsFromFormData, seoFromFormData, str as field } from "@/lib/admin-form";
 
 export type JobState = { error?: string; fieldErrors?: Record<string, string[]> };
 
@@ -38,6 +38,8 @@ function payloadFrom(formData: FormData): JobOpeningPayload {
   const str = (k: string) => field(formData, k);
 
   return {
+    // The Sections tab: which of the two the page shows, and the builder's list.
+    ...sectionsFromFormData(formData),
     title: String(formData.get("title") ?? "").trim(),
     slug: str("slug"),
     department: str("department"),

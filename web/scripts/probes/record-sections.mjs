@@ -7,9 +7,12 @@ import { chromium } from "playwright";
  *
  *   ADMIN_LOGIN_EMAIL=… ADMIN_LOGIN_PASSWORD=… RECORD=solutions RECORD_ID=<id> \
  *     node scripts/probes/record-sections.mjs
- *   RECORD is solutions, services, industries or case-studies — the console
- *   folder, which is also the public prefix. The record must be published.
- *   SHOTS=<dir> saves the public page at 1280 and 360.
+ *   RECORD is the console folder — solutions, services, industries,
+ *   case-studies, and since 0.130.0 blog, knowledge-base, products,
+ *   store/products, events, jobs and content/<type>. PUBLIC_PREFIX is the public
+ *   prefix where it differs: `careers` for jobs, the type's slug for an
+ *   entry. FAQ=0 for a record with no FAQPage of its own (a vacancy). The
+ *   record must be published. SHOTS=<dir> saves the page at 1280 and 360.
  *
  * On the record's edit form: the Sections tab is there, and choosing Sections
  * draws the builder with no Hero and nothing "From the theme" to add. Three
@@ -27,6 +30,10 @@ import { chromium } from "playwright";
 const BASE = process.env.BASE ?? "http://127.0.0.1:3000";
 const SHOTS = process.env.SHOTS;
 const RECORD = process.env.RECORD ?? "solutions";
+// Not `PUBLIC`: Windows sets that one itself, to C:\Users\Public.
+const PUBLIC = process.env.PUBLIC_PREFIX ?? RECORD;
+const WANTS_FAQ = process.env.FAQ !== "0";
+const NAME = RECORD.replaceAll("/", "-");
 const ID = process.env.RECORD_ID;
 if (!ID) { console.error("RECORD_ID is required"); process.exit(2); }
 
@@ -64,8 +71,9 @@ const open = async () => {
 };
 const save = async () => {
   await Promise.all([
-    page.waitForURL((u) => u.searchParams.get("saved") === "1", { timeout: T }),
-    page.getByRole("button", { name: "Save changes" }).click(),
+    // `?saved=1` on most forms; `?done=…` on the vacancy and event forms.
+    page.waitForURL((u) => u.searchParams.has("saved") || u.searchParams.has("done"), { timeout: T }),
+    page.getByRole("button", { name: /^Save (changes|vacancy)$/ }).click(),
   ]);
   await page.waitForLoadState("load");
 };
@@ -107,7 +115,7 @@ const site = await context.newPage();
 listen(site, "site");
 const read = async (width) => {
   await site.setViewportSize({ width, height: 900 });
-  await site.goto(`${BASE}/${RECORD}/${slug}`, { waitUntil: "load", timeout: T });
+  await site.goto(`${BASE}/${PUBLIC}/${slug}`, { waitUntil: "load", timeout: T });
   // Hydrated — `data-aos-ready` is stamped by the reveal observer after it.
   // A screenshot taken before then hides the caret by styling every input,
   // and React reports the styled inputs as a hydration mismatch.
@@ -143,14 +151,15 @@ ok(found.h1 === 1, `one h1 (${found.h1})`);
 ok(["rich_text", "checklist", "faq"].every((t) => found.bands.includes(t)), `the sections are drawn (${found.bands.join(", ")})`);
 ok(found.headings.includes("H2:Probe: how it works") && found.headings.includes("H2:Probe: what is included"), `their headings are h2 (${found.headings.join(" | ")})`);
 ok(found.full && !found.nested && found.afterHero, "as full-width bands under the heading, not inside the page's container");
-ok(found.faqPages.length === 1 && found.faqPages[0].includes("Probe question one?"), `one FAQPage, holding the typed questions (${found.faqPages.length})`);
+if (WANTS_FAQ) ok(found.faqPages.length === 1 && found.faqPages[0].includes("Probe question one?"), `one FAQPage, holding the typed questions (${found.faqPages.length})`);
+else ok(found.faqPages.length === 0, `no FAQPage on a record that has none (${found.faqPages.length})`);
 ok(found.overflow <= 0, `no horizontal overflow at 1280 (${found.overflow}px)`);
-if (SHOTS) await shoot(`${SHOTS}/record-${RECORD}-1280.png`);
+if (SHOTS) await shoot(`${SHOTS}/record-${NAME}-1280.png`);
 
 await read(360);
 const phone = await site.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 ok(phone <= 0, `no horizontal overflow at 360 (${phone}px)`);
-if (SHOTS) await shoot(`${SHOTS}/record-${RECORD}-360.png`);
+if (SHOTS) await shoot(`${SHOTS}/record-${NAME}-360.png`);
 
 // KEEP=1 stops here, leaving the sections on — for auditing the public page
 // by hand. Run again without it afterwards only after removing them.

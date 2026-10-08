@@ -10,6 +10,8 @@ use App\Http\Requests\Concerns\SanitisesRichText;
 use App\Models\Event;
 use App\Support\Events\EventSettings;
 use App\Support\Events\EventText;
+use App\Support\PageSections\RecordSections;
+use App\Support\PageSections\SectionRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
@@ -41,6 +43,12 @@ use Illuminate\Validation\Validator;
 class StoreEventRequest extends FormRequest
 {
     use SanitisesRichText;
+
+    /** `body`, as the trait's default says, and the rich text inside the builder's sections. */
+    protected function richTextFields(): array
+    {
+        return ['body', ...SectionRules::RICH_TEXT];
+    }
 
     /** What a `datetime-local` input posts, with or without seconds. */
     private const WALL_CLOCK = '/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2})?$/';
@@ -106,6 +114,8 @@ class StoreEventRequest extends FormRequest
             'notify_registrants' => ['nullable', 'boolean'],
 
             ...CmsFieldRules::faqs(),
+            // Builder sections in place of the written body (0.130.0, `RecordSections`).
+            ...RecordSections::rules($this->input('blocks')),
             ...SeoRules::rules(),
         ];
     }
@@ -122,6 +132,7 @@ class StoreEventRequest extends FormRequest
     public function messages(): array
     {
         return [
+            ...RecordSections::messages($this->input('blocks')),
             'slug.not_in' => 'That address is used by the registration pages. Choose another.',
             'slug.unique' => 'Another event already uses that address.',
             'starts_at.required' => 'When does it start?',
@@ -142,6 +153,13 @@ class StoreEventRequest extends FormRequest
 
     public function withValidator(Validator $validator): void
     {
+        // The sections' own checks, whatever the field-by-field rules said —
+        // this class has a `withValidator` of its own, so it calls what
+        // `ValidatesRecordSections` would have.
+        $validator->after(function (Validator $v) {
+            RecordSections::after($v, $this->input('blocks'));
+        });
+
         $validator->after(function (Validator $v) {
             // The field-by-field rules first: a date that is not a date
             // cannot be compared with one that is.
@@ -236,7 +254,7 @@ class StoreEventRequest extends FormRequest
      */
     public function modelData(): array
     {
-        $data = collect($this->safe()->except(['faqs', 'seo', 'notify_registrants']))->all();
+        $data = RecordSections::store(collect($this->safe()->except(['faqs', 'seo', 'notify_registrants']))->all());
         $creating = $this->existing() === null;
 
         foreach (['starts_at', 'ends_at', 'registration_closes_at'] as $key) {

@@ -14,6 +14,9 @@ export type KnowledgeQueryParams = {
 };
 
 export type KnowledgeArticlePayload = Partial<{
+  /** Sections in place of the written body (0.130.0); absent leaves both alone. */
+  body_layout: import("@/types/page-sections").RecordBodyLayout;
+  blocks: import("@/types/page-sections").StoredSection[];
   /** Custom field values keyed by field key (docs/custom-content.md); absent leaves them alone. */
   custom_fields: Record<string, unknown>;
   title: string;

@@ -1324,7 +1324,9 @@ const adminEvent = (e, detail = false) => {
     status_label: eventLabelOf(EVENT_STATUSES, e.status), format_label: eventLabelOf(EVENT_FORMATS, e.format),
     starts_at_iso: eventIso(e.starts_at), date_label, time_label, is_past: eventIsPast(e),
     counts: eventCounts(e), public_path: `/events/${e.slug}`, admin_path: `/admin/events/${e.id}`,
-    ...(detail ? { faqs: faqs.map(({ question, answer }) => ({ question, answer })), seo, seo_defaults: null } : {}),
+    // Sections in place of the written description (0.130.0): the choice on every row, the list on a detail read.
+    body_layout: 'body',
+    ...(detail ? { faqs: faqs.map(({ question, answer }) => ({ question, answer })), seo, seo_defaults: null, blocks: [], blocks_media: {} } : {}),
   };
 };
 /* The public row: no `online_url`, no path, no count, no staff field. */
@@ -2047,7 +2049,8 @@ const readiness = (table, type, id, full) => {
    Enough to open every AEO tab against the mock; a PATCH echoes the row.
    Every index carries `meta.answer_block_kinds`. */
 /*
- * A record whose body area may be laid out as builder sections (0.129.0):
+ * A record whose body area may be laid out as builder sections (0.129.0;
+ * 0.130.0 added posts, articles, products, shop products and events):
  * `body_layout` on every row, the list as stored and its media on a detail
  * read. The public read carries `sections` only while a record is laid out
  * that way; none of the mock's records is, so none sends the key.
@@ -2264,15 +2267,17 @@ const ADMIN_CMS = [
   { base: '/admin/product-categories', rows: productCategories, detail: (r) => adminOf(r, { image_path: null, parent_name: null }) },
   { base: '/admin/brands', rows: brands, detail: (r) => adminOf(r, { logo_path: null, is_featured: false, product_count: 1 }) },
   { base: '/admin/products', rows: products, detail: (r) => adminOf(r, {
+      ...RECORD_SECTIONS,
       brand_id: r.brand?.id ?? null, brand_name: r.brand?.name ?? null,
       product_category_id: r.category?.id ?? null, category_name: r.category?.name ?? null,
       image_urls: [], datasheet_path: null, is_featured: false, solution_ids: [1], related_product_ids: [],
       faqs: (r.faqs || []).map(({ question, answer }) => ({ question, answer })) }) },
   { base: '/admin/pages', rows: cmsPages, detail: (r) => adminOf(r, { blocks: r.blocks ?? [], blocks_media: {}, sections: r.sections ?? [] }) },
-  { base: '/admin/blog-posts', rows: posts, detail: (r) => adminOf(r, { cover_image_path: null, author_id: 3 }) },
-  { base: '/admin/knowledge-articles', rows: kbArticles, detail: (r) => adminOf(r, { knowledge_category_id: 1, view_count: 0, helpful_count: 0 }) },
+  { base: '/admin/blog-posts', rows: posts, detail: (r) => adminOf(r, { cover_image_path: null, author_id: 3, ...RECORD_SECTIONS }) },
+  { base: '/admin/knowledge-articles', rows: kbArticles, detail: (r) => adminOf(r, { knowledge_category_id: 1, view_count: 0, helpful_count: 0, ...RECORD_SECTIONS }) },
   { base: '/admin/store/categories', rows: storeCategories, detail: (r) => adminOf(r, { is_active: true, icon_path: null, image_path: null }) },
   { base: '/admin/store/products', rows: storeProducts, detail: (r) => adminOf(r, {
+      ...RECORD_SECTIONS,
       store_category_id: r.category?.id ?? null, category_name: r.category?.name ?? null,
       brand_id: r.brand?.id ?? null, brand_name: r.brand?.name ?? null,
       track_stock: true, stock: r.in_stock ? 12 : 0, stock_on_hand: r.in_stock ? 12 : 0, allow_oversell: false,

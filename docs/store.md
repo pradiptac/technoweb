@@ -1630,3 +1630,24 @@ Business Manager → Catalogue → connect the same catalogue.
 ## Add to basket on one line (2026-09-28)
 
 Every Add to basket in a row of product cards sits on one line, in every theme (the client, 2026-09-28): the actions row is the card's last part with `mt-auto` (it used to be the price, and a wrapped discount badge moved the button); a theme that lays the card out itself stretches the body to the row's height (Editorial, and Datacenter's column) and never sets a `margin-top` on `[data-tile-actions]`. `scripts/probes/store-cart-level.mjs` measures all twelve themes.
+
+## A store manager can open a shop product (0.130.0)
+
+The shop product's edit and new screens load the brand list from
+`GET /admin/brands`, a `role:content_manager` route — so an account holding
+**only** `store_manager` got a 403 inside `Promise.all` and the screen was an
+error boundary, for exactly the role the screen belongs to. Found by opening
+the form as a throwaway store manager to check the Sections tab's note; no
+audit signs in as one.
+
+Both pages now catch **a 403 and nothing else** on that one read
+(`getBrandOptions().catch(...)`, the shape `getPageBuilderOptionsIfAllowed`
+has) and hand the form an empty list. The form then offers the product's own
+brand (`brand_id` + `brand_name` from the admin read) so the select still
+holds it and a save cannot clear it — the rule the services picker beside it
+already followed — and says under the box that the full list needs the
+Content manager role. A new product made by that account has no brand until
+somebody with the list sets one.
+
+The API was not widened: the brand list stays a content manager's. Checked
+by saving the form as that account and reading `brand_id` back unchanged.

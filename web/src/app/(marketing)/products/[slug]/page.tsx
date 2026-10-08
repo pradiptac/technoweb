@@ -8,6 +8,7 @@ import { AnswerBlocks } from "@/components/content/answer-blocks";
 import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { PageHero } from "@/components/ui/page-hero";
+import { RecordSections, laidOutAsSections } from "@/components/page-sections/record-sections";
 import { ProductGallery } from "@/components/product/product-gallery";
 import { SpecTable } from "@/components/ui/prose";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
@@ -170,6 +171,96 @@ export default async function ProductOrCategoryPage({
   const solutions = p.related_solutions ?? [];
   const faqs = p.faqs ?? [];
   const fullName = [p.brand?.name, p.name].filter(Boolean).join(" ");
+  const productCrumbs = [
+    { name: "Products", path: "/products" },
+    ...(p.category ? [{ name: p.category.name, path: `/products/${p.category.slug}` }] : []),
+    { name: p.name, path: `/products/${p.slug}` },
+  ];
+  // Builder sections in place of the written description (0.130.0).
+  const laidOut = laidOutAsSections(p);
+
+  // Everything under the picture and the panel. With sections it follows them.
+  const rest = (
+    <>
+        {/*
+          Everything long-form sits below the split at the page's own measure,
+          rather than in a column narrowed by a sidebar. A specification table
+          reads badly in 60% of the width and there is nothing beside it that
+          needs to stay in view.
+        */}
+        <div className={laidOut ? "grid gap-12" : "mt-14 grid gap-12"}>
+          {!laidOut && p.description && (
+            <section data-aos="fade-up">
+              <h2 className="display-3 mb-4">Overview</h2>
+              <ProseWithShortcodes html={p.description} />
+            </section>
+          )}
+
+          {features.length > 0 && (
+            <section data-aos="fade-up">
+              <h2 className="display-3">Key features</h2>
+              <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {features.map((f) => (
+                  <li key={f} className="flex items-start gap-3 rounded-lg border border-line-strong bg-card p-4">
+                    <IconCheck className="mt-0.5 size-4 shrink-0 text-brand-ink" />
+                    <span className="text-14-5 leading-[1.55]">{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {Object.keys(specs).length > 0 && (
+            <section data-aos="fade-up">
+              <h2 className="display-3 mb-5">Specifications</h2>
+              <div className="rounded-lg border border-line-strong bg-card px-5">
+                <SpecTable specs={specs} />
+              </div>
+            </section>
+          )}
+
+          {/* The answer blocks with the FAQs merged into their questions, then what the product is connected to. */}
+          {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
+          <CustomFieldDetails fields={p.custom_fields} className="mb-12" />
+          <AnswerBlocks blocks={p.answer_blocks} faqs={faqs} />
+          <RelatedEntities entity={p.entity} />
+
+          {/*
+            The form is a destination now rather than a sidebar widget — the
+            panel above links to it and this is where somebody arrives having
+            read the specification. `scroll-mt-24` so the sticky header does not
+            cover the heading when the anchor lands.
+          */}
+          <section id="enquire" data-aos="fade-up" className="scroll-mt-24">
+            <div className="max-w-[640px] rounded-xl border border-line-strong bg-surface p-6 lg:p-7">
+              <h2 className="display-3">Request information</h2>
+              <p className="mt-2 mb-5 text-14 text-muted">
+                Pricing, lead time, or whether this is genuinely the right model for your site.
+              </p>
+              <EnquiryForm source={`product:${p.slug}`} subject={fullName} compact />
+            </div>
+          </section>
+        </div>
+
+        {related.length > 0 && (
+          <section data-aos="fade-up" className="mt-16 border-t border-line pt-12">
+            <h2 className="display-3 mb-6">Related hardware</h2>
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {related.slice(0, 4).map((rp) => (
+                <li key={rp.id}>
+                  <Card href={`/products/${rp.slug}`} padding="none" className="h-full p-4.5 hover:bg-brand-50">
+                    {rp.brand?.name && (
+                      <span className="text-11 font-semibold uppercase tracking-[.1em] text-brand-ink">{rp.brand.name}</span>
+                    )}
+                    <h3 className="mt-1.5 text-15 leading-snug">{rp.name}</h3>
+                  </Card>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+    </>
+  );
 
   return (
     <>
@@ -178,11 +269,7 @@ export default async function ProductOrCategoryPage({
         kicker={p.brand?.name ?? "Product"}
         title={p.name}
         lede={p.short_description}
-        crumbs={[
-          { name: "Products", path: "/products" },
-          ...(p.category ? [{ name: p.category.name, path: `/products/${p.category.slug}` }] : []),
-          { name: p.name, path: `/products/${p.slug}` },
-        ]}
+        crumbs={productCrumbs}
       >
         <div className="flex flex-wrap items-center gap-3">
           <ButtonLink href="#enquire">Request information <IconArrowRight /></ButtonLink>
@@ -277,84 +364,20 @@ export default async function ProductOrCategoryPage({
           </div>
         </div>
 
-        {/*
-          Everything long-form sits below the split at the page's own measure,
-          rather than in a column narrowed by a sidebar. A specification table
-          reads badly in 60% of the width and there is nothing beside it that
-          needs to stay in view.
-        */}
-        <div className="mt-14 grid gap-12">
-          {p.description && (
-            <section data-aos="fade-up">
-              <h2 className="display-3 mb-4">Overview</h2>
-              <ProseWithShortcodes html={p.description} />
-            </section>
-          )}
-
-          {features.length > 0 && (
-            <section data-aos="fade-up">
-              <h2 className="display-3">Key features</h2>
-              <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {features.map((f) => (
-                  <li key={f} className="flex items-start gap-3 rounded-lg border border-line-strong bg-card p-4">
-                    <IconCheck className="mt-0.5 size-4 shrink-0 text-brand-ink" />
-                    <span className="text-14-5 leading-[1.55]">{f}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {Object.keys(specs).length > 0 && (
-            <section data-aos="fade-up">
-              <h2 className="display-3 mb-5">Specifications</h2>
-              <div className="rounded-lg border border-line-strong bg-card px-5">
-                <SpecTable specs={specs} />
-              </div>
-            </section>
-          )}
-
-          {/* The answer blocks with the FAQs merged into their questions, then what the product is connected to. */}
-          {/* Custom fields in "details" groups (docs/custom-content.md): nothing when there are none. */}
-          <CustomFieldDetails fields={p.custom_fields} className="mb-12" />
-          <AnswerBlocks blocks={p.answer_blocks} faqs={faqs} />
-          <RelatedEntities entity={p.entity} />
-
-          {/*
-            The form is a destination now rather than a sidebar widget — the
-            panel above links to it and this is where somebody arrives having
-            read the specification. `scroll-mt-24` so the sticky header does not
-            cover the heading when the anchor lands.
-          */}
-          <section id="enquire" data-aos="fade-up" className="scroll-mt-24">
-            <div className="max-w-[640px] rounded-xl border border-line-strong bg-surface p-6 lg:p-7">
-              <h2 className="display-3">Request information</h2>
-              <p className="mt-2 mb-5 text-14 text-muted">
-                Pricing, lead time, or whether this is genuinely the right model for your site.
-              </p>
-              <EnquiryForm source={`product:${p.slug}`} subject={fullName} compact />
-            </div>
-          </section>
-        </div>
-
-        {related.length > 0 && (
-          <section data-aos="fade-up" className="mt-16 border-t border-line pt-12">
-            <h2 className="display-3 mb-6">Related hardware</h2>
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {related.slice(0, 4).map((rp) => (
-                <li key={rp.id}>
-                  <Card href={`/products/${rp.slug}`} padding="none" className="h-full p-4.5 hover:bg-brand-50">
-                    {rp.brand?.name && (
-                      <span className="text-11 font-semibold uppercase tracking-[.1em] text-brand-ink">{rp.brand.name}</span>
-                    )}
-                    <h3 className="mt-1.5 text-15 leading-snug">{rp.name}</h3>
-                  </Card>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+        {!laidOut && rest}
       </Container>
+
+      {/*
+        Builder sections in place of the Overview (0.130.0): full-width bands
+        under the picture and the panel, and everything long-form after them
+        in a container of its own.
+      */}
+      {laidOut && (
+        <>
+          <RecordSections sections={p.sections ?? []} crumbs={productCrumbs} />
+          <Container className="section-y">{rest}</Container>
+        </>
+      )}
 
       <CtaBand />
 

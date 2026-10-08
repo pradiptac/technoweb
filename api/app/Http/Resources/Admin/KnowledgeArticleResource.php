@@ -4,6 +4,7 @@ namespace App\Http\Resources\Admin;
 
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Models\KnowledgeArticle;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -17,7 +18,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin KnowledgeArticle */
 class KnowledgeArticleResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesCustomFields;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSections;
 
     public function toArray(Request $request): array
     {
@@ -29,6 +30,9 @@ class KnowledgeArticleResource extends JsonResource
             'slug' => $this->slug,
             'excerpt' => $this->excerpt,
             'body' => $this->when($detail, $this->body),
+            // Which of the two the page draws in its body area, and the builder's
+            // sections as stored (0.130.0) — see IncludesSections.
+            ...$this->adminSections($detail),
             'tags' => $this->tags ?? [],
             'status' => $this->status->value,
             'status_label' => $this->status->label(),

@@ -21,6 +21,39 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.130.0 — 2026-10-08
+
+**Sections on the rest of your records.**
+
+- The **Sections** tab is now also on **blog posts, knowledge articles,
+  products, shop products, events, vacancies** and entries of **your own
+  content types**. Set **The page's body shows** to **Sections** and lay the
+  body out with the same sections a builder page uses.
+- As before, **only the body changes** and **nothing is lost**: the written
+  text stays stored and comes back when the choice is set to **Written
+  body**.
+- What each page keeps around its sections is said on the tab. A blog post
+  keeps its heading, picture, comments and sidebar (the sidebar moves under
+  the sections). A shop product keeps its pictures, price, buying panel,
+  specification and reviews. An event keeps its date, agenda, speakers and
+  registration panel. A vacancy keeps its lists and the application form.
+- **Shop products:** laying out sections needs the **Content manager** role.
+  A store manager without it sees a note in the tab, and saving the product
+  leaves its sections as they are.
+- **Categories have no Sections tab.** A category's description is a line in
+  its heading, not a body, so there is nothing for sections to take over.
+- Not changed: search, the website assistant, the SEO scores and the Google
+  and Meta product feeds still read the written text.
+- Fixed: an account with only the **Store manager** role could not open a
+  shop product to edit it, or start a new one — the screen showed an error,
+  because the brand list it loads belongs to another role. The form now
+  opens; the brand box offers the product's own brand, and saving keeps it.
+- Fixed: on a page of your own content types, the date under the heading was
+  dark text on a dark banner and could not be read. It now takes the
+  heading's text colour.
+- Fixed: on a phone, **Delete vacancy** on the vacancy form was too small to
+  press reliably. It is taller now.
+
 ## 0.129.0 — 2026-10-07
 
 **Sections on solutions, services, industries and case studies.**

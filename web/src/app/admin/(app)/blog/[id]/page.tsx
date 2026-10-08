@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getAnswerBlockKinds, getBlogCategoryList, getBlogPost, getStaff } from "@/lib/admin";
+import { getAnswerBlockKinds, getBlogCategoryList, getBlogPost, getStaff, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { PostForm } from "../post-form";
@@ -62,7 +62,7 @@ export default async function EditBlogPostPage({
         )}
       </PageHeader>
 
-      <PostForm post={post} staff={staff} categories={categories} saved={Boolean(saved)} kinds={kinds} />
+      <PostForm post={post} staff={staff} categories={categories} saved={Boolean(saved)} kinds={kinds} builder={await getPageBuilderOptions()} />
     </>
   );
 }

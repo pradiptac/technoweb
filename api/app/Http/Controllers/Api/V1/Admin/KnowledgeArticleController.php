@@ -11,6 +11,7 @@ use App\Http\Resources\Admin\KnowledgeArticleResource;
 use App\Models\KnowledgeArticle;
 use App\Models\KnowledgeCategory;
 use App\Support\CustomFields\CustomFields;
+use App\Support\PageSections\RecordSections;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -72,6 +73,7 @@ class KnowledgeArticleController extends Controller
         $article = DB::transaction(function () use ($request) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $content = $this->pullAnswerContent($attributes);
 
             $article = KnowledgeArticle::create($this->withPublishedAt($attributes));
@@ -94,6 +96,7 @@ class KnowledgeArticleController extends Controller
         DB::transaction(function () use ($request, $knowledgeArticle) {
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $custom = $this->pullCustomFields($attributes);
+            $attributes = RecordSections::store($attributes);
             $content = $this->pullAnswerContent($attributes);
 
             $knowledgeArticle->update($this->withPublishedAt($attributes, $knowledgeArticle));

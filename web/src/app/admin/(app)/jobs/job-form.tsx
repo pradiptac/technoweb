@@ -11,8 +11,9 @@ import { EditorField } from "@/components/admin/editor-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
+import { BodyReplacedNote, RecordSectionsPanel, SECTIONS_TAB, useRecordSections } from "../pages/builder/record-sections";
 import { createJobAction, updateJobAction, deleteJobAction, type JobState } from "./actions";
-import type { AdminJobOpening, JobExperienceLevelRow, JobQualificationRow } from "@/types/api";
+import type { AdminJobOpening, JobExperienceLevelRow, JobQualificationRow, PageBuilderOptions } from "@/types/api";
 
 const initial: JobState = {};
 
@@ -28,6 +29,8 @@ const GROUPS: TabGroup[] = [
     id: "content", label: "Content",
     fields: ["title", "slug", "summary", "description", "status", "published_at", "closes_at", "sort_order"],
   },
+  // Sections in place of the written body (0.130.0) — the choice and the builder.
+  SECTIONS_TAB,
   {
     id: "details", label: "The role",
     fields: ["department", "location", "employment_type", "openings",
@@ -39,12 +42,14 @@ const GROUPS: TabGroup[] = [
 ];
 
 export function JobForm({
-  job, qualifications, levels, saved,
+  job, qualifications, levels, saved, builder,
 }: {
   job?: AdminJobOpening;
   qualifications: JobQualificationRow[];
   levels: JobExperienceLevelRow[];
   saved?: string;
+  /** `GET /admin/pages/builder` — the section builder's types and pickers, for the Sections tab. */
+  builder: PageBuilderOptions;
 }) {
   const editing = Boolean(job);
   const [state, formAction, pending] = useActionState(
@@ -52,6 +57,9 @@ export function JobForm({
   );
 
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
+  // The body area: the written body, or builder sections (0.130.0).
+  const body = useRecordSections(job);
+
   const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
 
   const chosen = new Set(job?.qualification_ids ?? []);
@@ -94,6 +102,8 @@ export function JobForm({
               <Textarea id="summary" name="summary" rows={2} defaultValue={job?.summary ?? ""} />
             </Field>
 
+            <BodyReplacedNote state={body} />
+
             <EditorField name="description" label="About the role" defaultValue={job?.description ?? ""} error={err("description")} />
           </div>
 
@@ -123,6 +133,18 @@ export function JobForm({
             </Field>
           </aside>
         </div>
+
+        {/* Sections in place of the written body. One child, always mounted. */}
+        <RecordSectionsPanel
+          state={body}
+          builder={builder}
+          media={job?.blocks_media ?? {}}
+          errors={state.fieldErrors ?? {}}
+          bodyField="description"
+          storedBody={job?.description ?? ""}
+          noun="vacancy"
+          keeps="Its heading, the facts at a glance, the two lists and the application form stay where they are."
+        />
 
         {/*
           "The role" is one tab and was six top-level siblings --
@@ -259,7 +281,8 @@ export function JobForm({
                 "Delete this vacancy? Applications it received are kept, and stay on the applications screen.",
               )) e.preventDefault();
             }}
-            className="ml-auto text-13-5 font-semibold text-err hover:underline"
+            // `py-1`: 28px tall. At 20px it was under the 24px tap-target floor on a phone (0.130.0).
+            className="ml-auto py-1 text-13-5 font-semibold text-err hover:underline"
           >
             Delete vacancy
           </button>

@@ -29,7 +29,11 @@ class Product extends Model implements Answerable, Faqable
         'brand_id', 'product_category_id', 'name', 'slug', 'sku',
         'short_description', 'description', 'specifications', 'features',
         'images', 'datasheet_path', 'status', 'is_featured', 'availability', 'sort_order',
+        'body_layout', 'blocks',
     ];
+
+    /** In memory as in the column: a new record's page draws its written body. */
+    protected $attributes = ['body_layout' => 'body'];
 
     protected function casts(): array
     {
@@ -42,6 +46,7 @@ class Product extends Model implements Answerable, Faqable
             'status' => PublishStatus::class,
             'availability' => ProductAvailability::class,
             'is_featured' => 'boolean',
+            'blocks' => 'array',
         ];
     }
 

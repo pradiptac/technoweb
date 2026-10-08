@@ -22,11 +22,15 @@ class KnowledgeArticle extends Model implements Answerable, Faqable
     protected $fillable = [
         'knowledge_category_id', 'title', 'slug', 'excerpt', 'body',
         'tags', 'status', 'view_count', 'helpful_count', 'published_at',
+        'body_layout', 'blocks',
     ];
+
+    /** In memory as in the column: a new record's page draws its written body. */
+    protected $attributes = ['body_layout' => 'body'];
 
     protected function casts(): array
     {
-        return ['tags' => 'array', 'status' => PublishStatus::class, 'published_at' => 'datetime'];
+        return ['tags' => 'array', 'status' => PublishStatus::class, 'published_at' => 'datetime', 'blocks' => 'array'];
     }
 
     public function urlPrefix(): string

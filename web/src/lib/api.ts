@@ -409,7 +409,7 @@ export const publicApi = {
   careers: () =>
     apiFetch<Collection<JobOpening>>("/careers", { revalidate: 120, tags: ["careers"] }),
   career: (slug: string) =>
-    apiFetch<Single<JobOpening>>(`/careers/${slug}`, { revalidate: 120, tags: [`career:${slug}`] }),
+    apiFetch<Single<JobOpening>>(`/careers/${slug}`, { revalidate: 120, tags: ["careers", `career:${slug}`] }),
 
   /*
    * Events (docs/events-contract.md).
@@ -519,7 +519,8 @@ export const publicApi = {
   entry: (type: string, slug: string) =>
     apiFetch<Single<ContentEntry>>(`/types/${type}/${slug}`, {
       revalidate: 600,
-      tags: [`entries:${type}`, `entry:${type}:${slug}`],
+      // `entries` is every type's: a library section edited in the console can sit on any entry.
+      tags: ["entries", `entries:${type}`, `entry:${type}:${slug}`],
     }),
 
   /**

@@ -5,6 +5,7 @@ namespace App\Http\Resources\Admin\Store;
 use App\Http\Resources\Admin\SeoOverrideArray;
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Models\StoreProduct;
 use App\Support\Store\ActivationProcedure;
 use App\Support\Store\ProductFeed;
@@ -26,7 +27,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin StoreProduct */
 class ProductResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesCustomFields;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSections;
 
     public function toArray(Request $request): array
     {
@@ -67,6 +68,9 @@ class ProductResource extends JsonResource
 
             'short_description' => $this->short_description,
             'description' => $this->when($detail, $this->description),
+            // Which of the two the page draws in its body area, and the builder's
+            // sections as stored (0.130.0) — see IncludesSections.
+            ...$this->adminSections($detail),
 
             /*
              * Detail only, like the description: these are two long fields

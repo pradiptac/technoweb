@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
+import { RecordSections, laidOutAsSections } from "@/components/page-sections/record-sections";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Prose } from "@/components/ui/prose";
@@ -188,6 +189,14 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
   // Whoever reads applications, from Settings → Contact; the support desk otherwise.
   const contact = settings.careers_email || settings.support_email || null;
   const otherRoles = others.filter((o) => o.slug !== job.slug).slice(0, 3);
+  // Builder sections in place of the written description (0.130.0): bands
+  // under the at-a-glance strip, and the lists and the facts after them.
+  const laidOut = laidOutAsSections(job);
+  const crumbs = [{ name: "Careers", path: "/careers" }, { name: job.title, path: `/careers/${job.slug}` }];
+  // With the description gone to the sections, the left column may hold
+  // nothing — then the facts stand alone, centred, not beside a void.
+  const alone = laidOut && job.responsibilities.length === 0 && job.requirements.length === 0
+    && (job.qualifications?.length ?? 0) === 0;
 
   return (
     <>
@@ -196,7 +205,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
         kicker="Careers"
         title={job.title}
         lede={job.summary}
-        crumbs={[{ name: "Careers", path: "/careers" }, { name: job.title, path: `/careers/${job.slug}` }]}
+        crumbs={crumbs}
       />
 
       {/* At a glance, under the hero — the facts a reader decides on first. */}
@@ -206,18 +215,21 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
         </Container>
       </div>
 
+      {laidOut && <RecordSections sections={job.sections ?? []} crumbs={crumbs} />}
+
       <Container className="section-y">
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-14">
-          <div className="min-w-0">
+        <div className={alone ? "mx-auto max-w-[420px]" : "grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-14"}>
+          {!alone && (
+          <div className={laidOut ? "min-w-0 [&>*:first-child]:mt-0" : "min-w-0"}>
             {/*
               The description, or the summary standing in for one: a vacancy
               whose editor wrote a summary and no body used to open on an
               empty column, and the summary is already in the hero — but a
               column with nothing in it reads as a page that failed to load.
             */}
-            {job.description
+            {!laidOut && (job.description
               ? <Prose html={job.description} />
-              : job.summary && <p className="text-16 leading-[1.7] text-ink-2">{job.summary}</p>}
+              : job.summary && <p className="text-16 leading-[1.7] text-ink-2">{job.summary}</p>)}
 
             {(job.responsibilities.length > 0 || job.requirements.length > 0) && (
               <div className="mt-10 grid gap-5 xl:grid-cols-2">
@@ -239,6 +251,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
               </section>
             )}
           </div>
+          )}
 
           {/*
             The aside has a job of its own now: the facts, the button that

@@ -6,6 +6,7 @@ use App\Http\Resources\BrandResource;
 use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Http\Resources\Concerns\IncludesSchema;
+use App\Http\Resources\Concerns\IncludesSections;
 use App\Http\Resources\SeoResource;
 use App\Models\StoreProduct;
 use App\Support\MediaMeta;
@@ -32,7 +33,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin StoreProduct */
 class ProductResource extends JsonResource
 {
-    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema;
+    use IncludesAnswerContent, IncludesCustomFields, IncludesSchema, IncludesSections;
 
     public function toArray(Request $request): array
     {
@@ -64,6 +65,10 @@ class ProductResource extends JsonResource
 
             // Full body only on the detail endpoint — keeps list payloads small.
             'description' => $this->when($detail, $this->description),
+            // The builder's sections in place of the written body (0.130.0): on
+            // this record's own page only, and only while it is laid out as
+            // sections. The body above is still sent.
+            'sections' => $this->publicSections($this->includeSchema),
             'specifications' => $this->when($detail, $this->specifications),
             'features' => $this->when($detail, $this->features),
             // Two buyer's questions, stated where they are asked. Detail

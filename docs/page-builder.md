@@ -989,14 +989,97 @@ template". "This page's content" lays the record's written body out as
 sections in one press, as on a page. The Content tab says when what is
 written there is not what the page is showing.
 
-Not built in this release, and next: the same on the remaining record types
-(0.130.0). Search, the assistant's retrieval and the SEO scores read the
-written body, as they do for a builder page — a record laid out as sections
-is found by what its body still says.
+Search, the assistant's retrieval and the SEO scores read the written body,
+as they do for a builder page — a record laid out as sections is found by
+what its body still says.
+
+### The remaining record types (0.130.0)
+
+The same two columns, the same `RecordSections`, on the seven other records
+that have a written body: **blog posts, knowledge articles, catalogue
+products, shop products, events, vacancies and custom content entries**.
+What is new is only where each one differs.
+
+**Which records, and which not.** A record qualifies when its page draws a
+written, rich-text body. A product category and a shop category do not: their
+description is one plain-text line in the heading, so there is no body area
+to take over, and bands above a product listing would be a new area rather
+than the client's "body area only". A landing page does not either — its
+written introduction is what `LandingPageQuality` gates publishing on, and
+sections in its place would be a way round the gate. Brands, team members,
+clients and certifications have no page.
+
+**API.** Ten requests use `ValidatesRecordSections`; `StoreEventRequest` has
+a `withValidator` of its own, so it calls `RecordSections::rules()`,
+`messages()` and `after()` itself (a trait's method would be silently
+replaced by the class's). The event and vacancy requests build their columns
+in `modelData()`, which is where `RecordSections::store()` runs for them; the
+rest call it in the controller beside `pullCustomFields`. A vacancy's public
+resource gates `sections` on the route as its `description` already is — a
+vacancy is never nested in another record's read; every other type uses
+`withSchema()`. A vacancy has no `faq_schema`, so questions typed into a
+section on one are drawn and declared nowhere. `SavedSection::RECORDS` names
+all eleven types, and the library's purge reaches their tags
+(`PLACES_SECTIONS`); a vacancy's and an entry's detail fetch gained their
+collection's tag (`careers`, `entries`) for it — the rule every other detail
+fetch already kept.
+
+**The shop product form is a store manager's, and the builder is a content
+manager's.** The builder's options, preview, library and pictures are all
+`role:content_manager` routes. The form's pages ask for the options with
+`getPageBuilderOptionsIfAllowed()` — null on a 403, anything else thrown —
+and with null the Sections tab holds `SectionsUnavailable`, a note and **no
+`blocks` control**, so a save from that account leaves the sections exactly
+as they are (`sectionsFromFormData` returns nothing). One child either way:
+`Tabs` reads its panels by position. The API itself still accepts `blocks`
+on a shop product from a store manager; the note is about what the screen
+can draw, not a permission.
+
+**`keeps` on `RecordSectionsPanel`** is the sentence saying what the page
+keeps around its body — a blog post keeps its sidebar and comments, a shop
+product its price and buying panel — since "related lists, FAQs and closing
+band" is true of a solution and of little else.
+
+**On the public page**, each route splits where its body sat:
+
+- **Knowledge article**: the heading's container, the bands, then the
+  details, the vote, the tags and the ticket box. No article map — the map
+  is the written body's headings.
+- **Blog post**: the heading on its own at the article column's width
+  (900px, centred), the bands, then what follows the body beside the
+  sidebar. The sidebar moves down with it: beside a heading alone it would
+  be a tall column next to a short one. The whole is still the `<article>`
+  the reading-progress bar measures.
+- **Catalogue product**: the picture and the panel, the bands in place of
+  "Overview", then features, specifications, FAQs, the enquiry form and
+  related hardware in a container of their own.
+- **Shop product**: the bands sit under the buying block and everything read
+  beside it (features, specification, applications, FAQs), in place of
+  "Details", and the reviews and suggestions follow. The grid is not split:
+  the buy panel's sticky travel depends on its two-row area. The search
+  strip stays with the buying block, because a sticky box is held by its own
+  parent and would float over bands that have grounds of their own.
+- **Event** and **vacancy**: the bands under the at-a-glance strip, then the
+  details beside the registration panel (or the facts and the Apply button).
+  When the description was all the left column held, the panel stands alone,
+  centred at 420px, rather than beside a void.
+- **Custom content entry**: the picture above the bands, the details and
+  questions after them; the lower container is left out when it would be
+  empty.
+
+A block that opens a container after the bands gives up its top margin
+(`[&>*:first-child]:mt-0` on the container), since the container's own
+section spacing is already above it. A record on its written body renders
+the markup it always did — every moved block is a constant used once on that
+branch.
 
 Probe: `RECORD=solutions RECORD_ID=<id> node scripts/probes/record-sections.mjs`
 turns sections on through the real form, reads the public page at 1280 and
-360, and puts the record back.
+360, and puts the record back. `RECORD` is the console folder (`blog`,
+`store/products`, `content/<type>`…); `PUBLIC_PREFIX` is the public prefix
+where it differs (`careers` for `jobs`, the type's slug for an entry) —
+not `PUBLIC`, which Windows sets itself — and `FAQ=0` is for a vacancy,
+which has no `FAQPage`.
 
 ## Tests
 
@@ -1012,8 +1095,8 @@ against the rules, the merge, lists, rich text in and out, every refusal.
 `PageBuilderTest` also pins `inline_fields` (0.128.0): free text only, each
 with its rule's length, never a choice, a link, an icon or a file.
 `tests/Unit/SanitisesRichTextTest.php` — the nested wildcard path.
-`tests/Feature/RecordSectionsTest.php` — sections on the four record types
-(0.129.0): stored and presented per type, the body kept and the layout
+`tests/Feature/RecordSectionsTest.php` — sections on the eleven record types
+(0.129.0, the seven more in 0.130.0 through the same data provider): stored and presented per type, the body kept and the layout
 switched both ways, a section checked and cleaned by the page's rules, the
 three refusals, a linked library section held to them on write and on read,
 the one `FAQPage`, no `sections` on a nested record, the library's refusal

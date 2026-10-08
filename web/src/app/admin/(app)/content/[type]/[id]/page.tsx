@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getEntries, getEntry } from "@/lib/admin";
+import { getEntries, getEntry, getPageBuilderOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { EntryForm } from "../entry-form";
@@ -50,7 +50,7 @@ export default async function EditEntryPage({
         )}
       </PageHeader>
 
-      <EntryForm type={meta.type} entry={entry} kinds={meta.answer_block_kinds} saved={Boolean(saved)} />
+      <EntryForm type={meta.type} entry={entry} kinds={meta.answer_block_kinds} saved={Boolean(saved)} builder={await getPageBuilderOptions()} />
     </>
   );
 }

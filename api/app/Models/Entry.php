@@ -39,7 +39,11 @@ class Entry extends Model implements Answerable, Faqable
     protected $fillable = [
         'content_type_id', 'title', 'slug', 'summary', 'body', 'image_path',
         'status', 'published_at', 'sort_order',
+        'body_layout', 'blocks',
     ];
+
+    /** In memory as in the column: a new record's page draws its written body. */
+    protected $attributes = ['body_layout' => 'body'];
 
     private ?string $typeSlugCache = null;
 
@@ -49,6 +53,7 @@ class Entry extends Model implements Answerable, Faqable
             'status' => PublishStatus::class,
             'published_at' => 'datetime',
             'sort_order' => 'integer',
+            'blocks' => 'array',
         ];
     }
 

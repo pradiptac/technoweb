@@ -22,12 +22,13 @@ import { VariationField } from "@/components/admin/variation-field";
 import { VideoField } from "@/components/admin/video-field";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
+import { BodyReplacedNote, RecordSectionsPanel, SECTIONS_TAB, SectionsUnavailable, useRecordSections } from "../../pages/builder/record-sections";
 import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
 import { paiseToRupeeInput } from "@/lib/money";
 import {
   createStoreProductAction, deleteStoreProductAction, updateStoreProductAction, type StoreFormState,
 } from "../actions";
-import type { CustomFieldGroupDefinition, AdminStoreCategory, AdminStoreProduct, AnswerBlockKindOption, PickerOption } from "@/types/api";
+import type { CustomFieldGroupDefinition, AdminStoreCategory, AdminStoreProduct, AnswerBlockKindOption, PageBuilderOptions, PickerOption } from "@/types/api";
 
 const initial: StoreFormState = {};
 
@@ -48,6 +49,8 @@ const GROUPS: TabGroup[] = [
     fields: ["name", "slug", "sku", "type", "short_description", "description",
              "specifications", "features", "warranty", "applications", "status", "store_category_id", "brand_id",
              "sort_order", "is_featured"] },
+  // Sections in place of the written body (0.130.0) — the choice and the builder.
+  SECTIONS_TAB,
   { id: "selling", label: "Selling",
     fields: ["price_paise", "compare_at_paise", "track_stock", "stock", "returnable", "variations"] },
   // Every field here, or its 422 is charged to the Content tab in silence.
@@ -75,7 +78,7 @@ const GROUPS: TabGroup[] = [
 ];
 
 export function StoreProductForm({
-  product, categories, brands, services, saved, kinds, fieldGroups,
+  product, categories, brands, services, saved, kinds, fieldGroups, builder,
 }: {
   product?: AdminStoreProduct;
   categories: AdminStoreCategory[];
@@ -87,6 +90,12 @@ export function StoreProductForm({
   kinds: AnswerBlockKindOption[];
   /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
   fieldGroups?: CustomFieldGroupDefinition[];
+  /**
+   * `GET /admin/pages/builder`, for the Sections tab — or null when this
+   * account may not read it: the builder is a content manager's, and a store
+   * manager without that role is told so in the tab's place.
+   */
+  builder: PageBuilderOptions | null;
 }) {
   const editing = Boolean(product);
   const [state, formAction, pending] = useActionState(
@@ -119,6 +128,15 @@ export function StoreProductForm({
   const seoErr = (f: string) => state.fieldErrors?.[`seo.${f}`]?.[0];
   const rowErr = (prefix: string) =>
     err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
+
+  // The body area: the written body, or builder sections (0.130.0).
+  const body = useRecordSections(product);
+
+  // With no list to choose from (an account that may not read it), the
+  // select still holds this product's own brand — the services picker's rule.
+  const brandOptions: PickerOption[] = brands.length > 0 || !product?.brand_id
+    ? brands
+    : [{ id: product.brand_id, name: product.brand_name ?? "This product’s brand" }];
 
   // Custom fields (docs/custom-content.md): the groups that apply, from the API.
   const customGroups = product?.custom_field_groups ?? fieldGroups ?? [];
@@ -165,6 +183,8 @@ export function StoreProductForm({
               <Textarea id="short_description" name="short_description" rows={3}
                 defaultValue={product?.short_description ?? ""} maxLength={500} />
             </Field>
+
+            <BodyReplacedNote state={body} />
 
             <EditorField name="description" label="Description"
               defaultValue={product?.description ?? ""} error={err("description")} />
@@ -231,10 +251,11 @@ export function StoreProductForm({
               </Select>
             </Field>
 
-            <Field label="Brand" htmlFor="brand_id" error={err("brand_id")} variant="float-static">
+            <Field label="Brand" htmlFor="brand_id" error={err("brand_id")} variant="float-static"
+              hint={brands.length === 0 ? "The full brand list needs the Content manager role. This product keeps the brand it has." : undefined}>
               <Select id="brand_id" name="brand_id" defaultValue={product?.brand_id ? String(product.brand_id) : ""}>
                 <option value="">No brand</option>
-                {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                {brandOptions.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
               </Select>
             </Field>
 
@@ -251,6 +272,20 @@ export function StoreProductForm({
             </Field>
           </aside>
         </div>
+
+        {/* Sections in place of the written description. One child, always mounted. */}
+        {builder ? (
+          <RecordSectionsPanel
+            state={body}
+            builder={builder}
+            media={product?.blocks_media ?? {}}
+            errors={state.fieldErrors ?? {}}
+            bodyField="description"
+            storedBody={product?.description ?? ""}
+            noun="product"
+            keeps="Its pictures, price, buying panel, specifications, features, FAQs and reviews stay where they are."
+          />
+        ) : <SectionsUnavailable state={body} noun="product" />}
 
         <div className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
           <div className="min-w-0">

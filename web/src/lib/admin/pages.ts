@@ -1,5 +1,5 @@
 import "server-only";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 import { query, token } from "./_shared";
 import type {
   AdminPage, AdminFaq, AiDraftAvailability, AiDraftLength, AiDraftResult, AiSectionMode, AnswerBlock, FaqOwnerGroup, PageBuilderOptions, PageSection, Paginated, PublishStatus,
@@ -178,6 +178,23 @@ export async function deleteSavedSection(id: number): Promise<void> {
 export async function getPageBuilderOptions(): Promise<PageBuilderOptions> {
   const res = await apiFetch<{ data: PageBuilderOptions }>("/admin/pages/builder", { token: await token() });
   return res.data;
+}
+
+/**
+ * The same options, or **null when this account may not read them** (0.130.0).
+ *
+ * The builder is a content manager's, and a shop product's form — which has
+ * a Sections tab since 0.130.0 — is a store manager's. A 403 is the answer
+ * "not this role" and becomes null, so that form can say so in the tab's
+ * place; anything else (the API down, a session gone) is thrown as before.
+ */
+export async function getPageBuilderOptionsIfAllowed(): Promise<PageBuilderOptions | null> {
+  try {
+    return await getPageBuilderOptions();
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 403) return null;
+    throw error;
+  }
 }
 
 /**

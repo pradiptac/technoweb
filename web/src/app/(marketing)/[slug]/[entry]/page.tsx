@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
+import { RecordSections, hasEntityLinks, laidOutAsSections } from "@/components/page-sections/record-sections";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
 import { CustomFieldDetails } from "@/components/content/custom-field-details";
@@ -73,6 +74,37 @@ export default async function EntryPage({ params }: { params: Promise<{ slug: st
     { name: record.title, path: record.path },
   ];
 
+  // Builder sections in place of the written body (0.130.0).
+  const laidOut = laidOutAsSections(record);
+
+  const picture = record.image ? (
+    <div className="relative mb-10 aspect-[1200/630] overflow-hidden rounded-lg border border-line">
+      <Image
+        src={record.image}
+        alt={record.image_alt ?? ""}
+        fill
+        priority
+        sizes="(min-width: 1280px) 1200px, 100vw"
+        className="object-cover"
+        style={record.image_focus ? { objectPosition: record.image_focus } : undefined}
+        {...blurProps(record.image_blur)}
+      />
+    </div>
+  ) : null;
+
+  // What follows the body, whichever way it is drawn.
+  const rest = (
+    <>
+      {/* Custom fields in "details" groups: nothing when there are none. */}
+      <CustomFieldDetails fields={record.custom_fields} className="mt-12" />
+
+      <AnswerBlocks blocks={record.answer_blocks} faqs={record.faqs ?? []} className="mt-12" />
+      <RelatedEntities entity={record.entity} className="mt-12" />
+    </>
+  );
+  const hasRest = (record.custom_fields?.length ?? 0) > 0 || (record.answer_blocks?.length ?? 0) > 0
+    || (record.faqs?.length ?? 0) > 0 || hasEntityLinks(record.entity);
+
   return (
     <>
       <PageHero
@@ -81,37 +113,38 @@ export default async function EntryPage({ params }: { params: Promise<{ slug: st
         lede={record.summary ?? undefined}
         crumbs={crumbs}
       >
+        {/*
+          No colour of its own: it inherits the hero's ink, which is light
+          over a banner and the page's ink without one. It was `text-muted`,
+          2.27:1 on a dark banner — found by the audit the first time an
+          entry's page was run through it (0.130.0).
+        */}
         {record.published_at && (
-          <p className="text-13-5 text-muted">
+          <p className="text-13-5">
             <time dateTime={record.published_at}>{formatDate(record.published_at, "long")}</time>
           </p>
         )}
       </PageHero>
 
-      <Container data-aos="fade-up" className="section-y">
-        {record.image && (
-          <div className="relative mb-10 aspect-[1200/630] overflow-hidden rounded-lg border border-line">
-            <Image
-              src={record.image}
-              alt={record.image_alt ?? ""}
-              fill
-              priority
-              sizes="(min-width: 1280px) 1200px, 100vw"
-              className="object-cover"
-              style={record.image_focus ? { objectPosition: record.image_focus } : undefined}
-              {...blurProps(record.image_blur)}
-            />
-          </div>
-        )}
-
-        {record.body ? <ProseWithShortcodes html={record.body} /> : null}
-
-        {/* Custom fields in "details" groups: nothing when there are none. */}
-        <CustomFieldDetails fields={record.custom_fields} className="mt-12" />
-
-        <AnswerBlocks blocks={record.answer_blocks} faqs={record.faqs ?? []} className="mt-12" />
-        <RelatedEntities entity={record.entity} className="mt-12" />
-      </Container>
+      {/*
+        Builder sections in place of the written body (0.130.0): the picture
+        stays above them, and the details, questions and related lists follow
+        in a container of their own — left out when there is nothing to put
+        in it. An entry on its written body is the one container it always was.
+      */}
+      {laidOut ? (
+        <>
+          {picture && <Container data-aos="fade-up" className="section-y pb-0">{picture}</Container>}
+          <RecordSections sections={record.sections ?? []} crumbs={crumbs} />
+          {hasRest && <Container data-aos="fade-up" className="section-y [&>*:first-child]:mt-0">{rest}</Container>}
+        </>
+      ) : (
+        <Container data-aos="fade-up" className="section-y">
+          {picture}
+          {record.body ? <ProseWithShortcodes html={record.body} /> : null}
+          {rest}
+        </Container>
+      )}
 
       <CtaBand />
 
