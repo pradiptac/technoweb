@@ -12,6 +12,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import {
   FulfilPanel, InvoicePanel, NotePanel, RecordPaymentPanel, RecordRefundPanel, ShippingPanel, StatusPanel,
+  ZohoInvoicePanel,
 } from "./order-panels";
 import type { AdminOrder } from "@/types/api";
 import { Card } from "@/components/ui/card";
@@ -144,6 +145,8 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
           */}
           {order.needs_shipping ? <ShippingPanel order={order} /> : null}
 
+          {/* Above the upload it replaces; renders nothing while Zoho Books is not in use. */}
+          <ZohoInvoicePanel order={order} />
           <InvoicePanel order={order} />
           <NotePanel order={order} />
         </div>

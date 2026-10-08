@@ -6,6 +6,8 @@ use App\Enums\PaymentMethod;
 use App\Models\Order;
 use App\Models\OrderReturn;
 use App\Support\Store\DigitalFulfilment;
+use App\Support\Store\Zoho\ZohoInvoices;
+use App\Support\Store\Zoho\ZohoSettings;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -75,6 +77,23 @@ class OrderResource extends JsonResource
             'invoice_number' => $this->invoice_number,
             'invoice_date' => $this->invoice_date?->toDateString(),
             'has_invoice' => filled($this->invoice_path),
+            /*
+             * Where this order's invoice in Zoho Books has got to (0.134.0),
+             * or null when nothing has been asked — the integration is off,
+             * or the order is not due one yet. `error` is Zoho's own words,
+             * for staff; `can_create` says whether the button will be taken.
+             */
+            'zoho' => $this->zoho_status === null && ! ZohoSettings::ready() ? null : [
+                'status' => $this->zoho_status,
+                'invoice_id' => $this->zoho_invoice_id,
+                'attempts' => (int) $this->zoho_attempts,
+                'error' => $this->zoho_error,
+                'next_attempt_at' => $this->zoho_status === 'failed' && $this->zoho_attempts < ZohoInvoices::MAX_ATTEMPTS
+                    ? $this->zoho_next_attempt_at?->toIso8601String()
+                    : null,
+                'synced_at' => $this->zoho_synced_at?->toIso8601String(),
+                'can_create' => ZohoSettings::ready() && ! in_array($this->zoho_status, ['created', 'creating'], true),
+            ],
 
             'courier' => $this->courier,
             'tracking_number' => $this->tracking_number,

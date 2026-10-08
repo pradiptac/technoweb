@@ -36,11 +36,13 @@ import { BackupDestinationPanel } from "./backup-destination-panel";
 import { MeetingsGooglePanel } from "./meetings-google-panel";
 import { GoogleLoginNote } from "./google-login-note";
 import type { MeetingsGoogleStatus } from "@/types/meetings";
+import { ZohoBooksPanel } from "./zoho-books-panel";
+import type { ZohoBooksStatus } from "@/types/zoho";
 
 const initial: SettingsFormState = {};
 
 export function SettingsForm({
-  screen, groups, uploads, payments, mail, inbound, messaging, drive, meetingsGoogle,
+  screen, groups, uploads, payments, mail, inbound, messaging, drive, meetingsGoogle, zoho,
 }: {
   screen: SettingsScreen;
   groups: SettingGroups;
@@ -56,6 +58,8 @@ export function SettingsForm({
   drive?: BackupDriveStatus;
   /** Only Meeting settings draws the Google Calendar connection. */
   meetingsGoogle?: MeetingsGoogleStatus;
+  /** Only Store settings draws the Zoho Books connection. */
+  zoho?: ZohoBooksStatus;
 }) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);
 
@@ -74,7 +78,7 @@ export function SettingsForm({
   }
 
   const panel = (group: string) => (
-    <GroupPanel key={group} group={group} rows={groups[group]} uploads={uploads} payments={payments} mail={mail} inbound={inbound} messaging={messaging} drive={drive} meetingsGoogle={meetingsGoogle} />
+    <GroupPanel key={group} group={group} rows={groups[group]} uploads={uploads} payments={payments} mail={mail} inbound={inbound} messaging={messaging} drive={drive} meetingsGoogle={meetingsGoogle} zoho={zoho} />
   );
 
   return (
@@ -132,7 +136,7 @@ export function SettingsForm({
  * can draw a group the same way.
  */
 function GroupPanel({
-  group, rows, uploads, payments, mail, inbound, messaging, drive, meetingsGoogle,
+  group, rows, uploads, payments, mail, inbound, messaging, drive, meetingsGoogle, zoho,
 }: {
   group: string;
   rows: SettingGroups[string];
@@ -143,6 +147,7 @@ function GroupPanel({
   messaging?: MessagingStatus;
   drive?: BackupDriveStatus;
   meetingsGoogle?: MeetingsGoogleStatus;
+  zoho?: ZohoBooksStatus;
 }) {
   const meta = GROUP_TITLES[group] ?? { title: group, blurb: "" };
 
@@ -513,6 +518,9 @@ function GroupPanel({
 
         {/* The Workspace calendar every meeting is organised on: its consent, a test, the last refusal. */}
         {group === "meetings_google" && <MeetingsGooglePanel status={meetingsGoogle} rows={rows} />}
+
+        {/* Zoho Books: its consent, the organisation and taxes only Zoho can list, a test, where things stand. */}
+        {group === "zoho_books" && <ZohoBooksPanel status={zoho} rows={rows} />}
 
         {/* Customers' "Continue with Google": the redirect address to register with Google, and whether it is live. */}
         {group === "google_login" && (

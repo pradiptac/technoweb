@@ -259,6 +259,8 @@ export async function getStockMovements(
 
 export type OrderQueryParams = {
   status?: string; q?: string; open?: boolean; unpaid?: boolean;
+  /** `failed`: orders whose Zoho Books invoice was refused. */
+  zoho?: string;
   page?: number; per_page?: number; sort?: string; dir?: string;
 };
 
@@ -268,6 +270,7 @@ export async function getStoreOrders(params: OrderQueryParams = {}) {
   if (params.q) query.set("q", params.q);
   if (params.open) query.set("open", "1");
   if (params.unpaid) query.set("unpaid", "1");
+  if (params.zoho === "failed") query.set("zoho", "failed");
   if (params.sort) query.set("sort", params.sort);
   if (params.dir) query.set("dir", params.dir);
   if (params.page) query.set("page", String(params.page));

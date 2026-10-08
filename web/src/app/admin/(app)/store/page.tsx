@@ -218,6 +218,8 @@ export default async function StoreDashboardPage({
     { key: "refund", count: attention.refund_requested, label: "refund requested", href: "/admin/store/orders?status=refund_requested", icon: IconTag, tone: "warn" as const },
     /* Returns nobody has answered: the desk's own `waiting` scope, the list this opens. */
     { key: "returns", count: attention.returns_requested ?? 0, label: "returns waiting for a decision", href: "/admin/store/returns?status=requested", icon: IconTag, tone: "warn" as const },
+    /* Invoices Zoho Books refused: each order says why, in Zoho's words, and offers the retry. */
+    { key: "zoho", count: attention.zoho_failed ?? 0, label: "Zoho invoices refused", href: "/admin/store/orders?zoho=failed", icon: IconTag, tone: "err" as const },
     { key: "unpaid", count: attention.awaiting_payment, label: "never paid for", href: "/admin/store/orders?unpaid=1", icon: IconClock, tone: "info" as const },
   ].filter((w) => w.count > 0);
 

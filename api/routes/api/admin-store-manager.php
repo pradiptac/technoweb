@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Admin\Store\ReportController as AdminStoreReport
 use App\Http\Controllers\Api\V1\Admin\Store\ReturnController as AdminStoreReturnController;
 use App\Http\Controllers\Api\V1\Admin\Store\ReviewController as AdminStoreReviewController;
 use App\Http\Controllers\Api\V1\Admin\Store\StockController as AdminStoreStockController;
+use App\Http\Controllers\Api\V1\Admin\ZohoBooksController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -126,6 +127,11 @@ Route::middleware('role:store_manager')->group(function () {
      */
     Route::post('store/orders/{order}/payments', [AdminStoreOrderController::class, 'recordPayment'])->name('store.orders.payments');
     Route::post('store/orders/{order}/refunds', [AdminStoreOrderController::class, 'recordRefund'])->name('store.orders.refunds');
+    // Make — or try again to make — this order's invoice in Zoho Books
+    // (0.134.0, docs/store.md "Zoho Books invoices"). A store manager's
+    // press; connecting the account is the administrator's.
+    Route::post('store/orders/{order}/zoho-invoice', [ZohoBooksController::class, 'createForOrder'])
+        ->middleware('throttle:20,1')->name('store.orders.zoho-invoice');
     Route::post('store/orders/{order}/fulfil', [AdminStoreOrderController::class, 'fulfil'])->name('store.orders.fulfil');
 
     /*

@@ -8,7 +8,7 @@ import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import {
-  addNoteAction, fulfilOrderAction, moveOrderAction, recordPaymentAction, recordRefundAction, saveInvoiceAction,
+  addNoteAction, createZohoInvoiceAction, fulfilOrderAction, moveOrderAction, recordPaymentAction, recordRefundAction, saveInvoiceAction,
   saveShippingAction,
   type OrderActionState,
 } from "../actions";
@@ -155,7 +155,9 @@ export function InvoicePanel({ order }: { order: AdminOrder }) {
 
       <h2 className="mb-1 text-15 font-semibold">GST invoice</h2>
       <p className="measure mb-3 text-13 text-muted">
-        Prepared outside this system and attached here — nothing is generated automatically.
+        {order.zoho
+          ? "Made in Zoho Books by itself (see above), or prepared outside this system and attached here. An invoice attached here by hand is left alone by Zoho Books."
+          : "Prepared outside this system and attached here — nothing is generated automatically."}
         {order.gst_required
           ? ` This customer asked for one: ${order.company_name ?? "—"} (${order.gstin ?? "—"}).`
           : " This customer did not ask for one."}
@@ -190,6 +192,84 @@ export function InvoicePanel({ order }: { order: AdminOrder }) {
       <Button type="submit" size="sm" pending={pending}>
         {pending ? "Saving…" : "Save invoice"}
       </Button>
+    </Form>
+  );
+}
+
+/**
+ * The order's invoice in Zoho Books (docs/store.md "Zoho Books invoices").
+ *
+ * Drawn only when the API sends `zoho` — Zoho is set up, or something was
+ * once asked of it for this order — so a shop that never connected it sees
+ * the upload panel and nothing else. What it says is the API's: the status,
+ * Zoho's own words for a refusal, when the next attempt is due, and
+ * `can_create`, which is whether the button will be taken.
+ */
+export function ZohoInvoicePanel({ order }: { order: AdminOrder }) {
+  const [state, formAction, pending] = useActionState(createZohoInvoiceAction, initial);
+  const zoho = order.zoho;
+
+  if (!zoho) return null;
+
+  const failed = zoho.status === "failed";
+
+  return (
+    <Form
+      action={formAction}
+      state={state}
+      className={failed
+        ? "min-w-0 rounded-lg border border-err/40 bg-err-soft p-5"
+        : "min-w-0 rounded-lg border border-line-strong bg-card p-5"}
+    >
+      <input type="hidden" name="order_number" value={order.order_number} />
+
+      <h2 className={`mb-1 text-15 font-semibold ${failed ? "text-err" : ""}`}>Zoho Books invoice</h2>
+
+      <p className={`measure mb-3 text-13 ${failed ? "text-err" : "text-muted"}`}>
+        {zoho.status === "created" && (
+          <>
+            Invoice <strong className="font-mono">{order.invoice_number ?? "—"}</strong> was made in Zoho Books
+            {zoho.synced_at && ` on ${formatDate(zoho.synced_at, "dateTime")}`} and its PDF is attached to this order.
+            Record the payment against it in Zoho Books — that is not done from here.
+          </>
+        )}
+        {zoho.status === "pending" && "Queued. The invoice is made within a few minutes."}
+        {zoho.status === "creating" && "Being made in Zoho Books now."}
+        {zoho.status === "skipped" && "Not made: this order already had an uploaded invoice, and two invoices for one order is a question nobody can answer later."}
+        {failed && (
+          <>
+            Zoho Books refused this invoice{zoho.attempts > 1 ? ` (${zoho.attempts} attempts)` : ""}.{" "}
+            {zoho.next_attempt_at
+              ? `It will be tried again by itself around ${formatDate(zoho.next_attempt_at, "dateTime")}.`
+              : "It will not be tried again by itself."}
+          </>
+        )}
+        {zoho.status === null && (order.has_invoice
+          ? "Nothing has been asked of Zoho Books for this order: it already has an uploaded invoice."
+          : "Not made yet. It is made by itself when the order reaches the stage chosen in Store settings; or make it now.")}
+      </p>
+
+      {failed && zoho.error && !state.error && (
+        /*
+          Zoho's words can carry an identifier with nowhere to break. `anywhere`
+          rather than `break-words`: only the first lowers the min-content
+          width, and this form is a grid item, so the second still widened the
+          whole column — 652px in a 360px screen, measured by the probe.
+        */
+        <p className="mb-3 rounded border border-err/25 bg-card px-3 py-2 text-13 text-ink [overflow-wrap:anywhere]">
+          {zoho.error}
+        </p>
+      )}
+
+      {state.error && <Alert tone="err" title="Not made">{state.error}</Alert>}
+      {state.ok && !state.error && <Alert tone="ok" title={state.ok} />}
+
+      {/* No button over an uploaded invoice: the API would skip it again, and a button that does nothing teaches people to ignore it. */}
+      {zoho.can_create && !((zoho.status === null || zoho.status === "skipped") && order.has_invoice) && (
+        <Button type="submit" size="sm" pending={pending}>
+          {pending ? "Asking Zoho Books…" : failed ? "Try again now" : "Create the Zoho invoice now"}
+        </Button>
+      )}
     </Form>
   );
 }

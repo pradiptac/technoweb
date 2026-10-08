@@ -2174,6 +2174,8 @@ export type StoreDashboard = {
     refund_requested: number;
     /** Returns nobody has answered. Links to `/admin/store/returns?status=requested`. */
     returns_requested?: number;
+    /** Orders whose Zoho Books invoice was refused. Links to `/admin/store/orders?zoho=failed`. */
+    zoho_failed?: number;
     out_of_stock: number;
     codes_exhausted: number;
     failed_payments: number;
@@ -2356,6 +2358,8 @@ export type AdminOrder = {
   awaiting_codes?: boolean;
   /** Detail read only (0.132.0): the order's returns, newest first. */
   returns?: import("./returns").OrderReturnSummary[];
+  /** Where the order's Zoho Books invoice has got to (0.134.0). Null while Zoho is off and nothing was asked. */
+  zoho?: import("./zoho").OrderZohoState | null;
   placed_at?: string | null;
   paid_at?: string | null;
   dispatched_at?: string | null;

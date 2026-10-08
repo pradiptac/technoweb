@@ -397,6 +397,28 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'meetings_google', 'key' => 'meetings_google_error', 'value' => null, 'type' => 'string'],
 
             /*
+             * Zoho Books (0.134.0, docs/store.md "Zoho Books invoices"): an
+             * order's invoice made in the company's own books. Private —
+             * a client secret and a refresh token live here — and off until
+             * an administrator connects an account and chooses the
+             * organisation and the two taxes. The `_oauth_` rows are the
+             * shape every `OAuthConnection` slot has.
+             */
+            ['group' => 'zoho_books', 'key' => 'zoho_books_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_dc', 'value' => 'in', 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_oauth_client_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_oauth_client_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_oauth_refresh_token', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_oauth_account', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_oauth_connected_at', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_organization_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_home_state', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_tax_intra', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_tax_inter', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_invoice_when', 'value' => 'dispatched', 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_error', 'value' => null, 'type' => 'string'],
+
+            /*
              * Comments, site-wide.
              *
              * **Default off.** Switched on this puts a public form on every

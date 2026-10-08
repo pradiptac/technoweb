@@ -28,6 +28,7 @@ use App\Support\Messaging\Providers\GoogleRbm;
 use App\Support\Net\PublicHost;
 use App\Support\Seo\GoogleServiceAccount;
 use App\Support\Store\CartReminders;
+use App\Support\Store\Zoho\ZohoSettings;
 use App\Support\ThemeOptions;
 use App\Support\UploadLimits;
 use App\Support\Visits\VisitSettings;
@@ -304,6 +305,9 @@ class SettingController extends Controller
             'chatbot_animation' => ChatSettings::ANIMATIONS,
             'stats_size' => self::STAT_SIZES,
             'social_style' => self::SOCIAL_STYLES,
+            // Zoho Books: the data centre, when an invoice is made, and the
+            // state the business is registered in — `ZohoSettings` owns all three.
+            'zoho_books_dc', 'zoho_books_invoice_when', 'zoho_books_home_state' => ZohoSettings::options($key),
             'theme_radius' => self::RADII,
             'theme_density' => self::DENSITIES,
             'theme_surface' => self::SURFACES,
@@ -1162,7 +1166,9 @@ class SettingController extends Controller
             // `EventSettings` (0.118.0, docs/events.md).
             $refusal = VisitSettings::refusalFor($key, $row['value'] ?? null)
                 ?? MeetingSettings::refusalFor($key, $row['value'] ?? null)
-                ?? EventSettings::refusalFor($key, $row['value'] ?? null);
+                ?? EventSettings::refusalFor($key, $row['value'] ?? null)
+                // And the `zoho_books` group's choices (0.134.0, docs/store.md).
+                ?? ZohoSettings::refusalFor($key, $row['value'] ?? null);
 
             if ($refusal !== null) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => $refusal]);

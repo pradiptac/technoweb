@@ -11,7 +11,7 @@ under **Site → Settings**, the email templates and webhooks.
 |---|---|
 | **System → Settings** | General, Contact, Social profiles, Reference numbers · Sign-in screen, Sign-in, Sign in with Google · Outgoing mail, API keys · Data retention |
 | **Site → Settings** | Homepage, Colour palette, Motion, Page banners, Embeds, Analytics, Cookie consent |
-| **Store → Settings** | Store, Basket reminders, Payments (chapter 07) |
+| **Store → Settings** | Store, Basket reminders, Payments, Zoho Books (chapter 07) |
 | **Campaign → Settings** | Newsletter (chapter 11) |
 | **SEO → Settings** | SEO defaults, IndexNow (chapter 13) |
 | **Assistant → Settings** | Website assistant (chapter 16) |

@@ -44,6 +44,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             require __DIR__.'/api/admin-meeting-setup.php';
             require __DIR__.'/api/admin-meeting-hosts.php';
             require __DIR__.'/api/admin-meeting-google.php';
+            require __DIR__.'/api/admin-zoho-books.php';
             require __DIR__.'/api/admin-my-meetings.php';
             require __DIR__.'/api/admin-seo-manager.php';
             require __DIR__.'/api/admin-content-manager.php';

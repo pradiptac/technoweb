@@ -307,6 +307,15 @@ Schedule::command('technoware:sync-meetings')
     ->withoutOverlapping(5);
 
 /*
+ * Zoho Books invoices (0.134.0, docs/store.md "Zoho Books invoices"): what
+ * the queued job did not get to, and attempts that are due again. Does
+ * nothing at all while the integration is off or not fully set up.
+ */
+Schedule::command('technoware:sync-zoho-invoices')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10);
+
+/*
  * Backups (2026-09-27, docs/backups.md). The worker every minute, in the
  * background so its forty seconds do not hold up the queue drain behind it,
  * and never two at once. It works through any restore, then any backup, then

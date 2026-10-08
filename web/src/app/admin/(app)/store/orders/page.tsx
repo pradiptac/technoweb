@@ -23,7 +23,8 @@ export const metadata = buildMetadata({ title: "Orders", path: "/admin/store/ord
 */
 
 type SearchParams = {
-  q?: string; status?: string; open?: string; unpaid?: string; page?: string; per_page?: string; sort?: string; dir?: string;
+  q?: string; status?: string; open?: string; unpaid?: string; zoho?: string;
+  page?: string; per_page?: string; sort?: string; dir?: string;
 };
 
 export default async function StoreOrdersPage({
@@ -42,6 +43,7 @@ export default async function StoreOrdersPage({
       status: params.status,
       open: params.open === "1",
       unpaid: params.unpaid === "1",
+      zoho: params.zoho,
       sort: params.sort,
       dir: params.dir,
       page: Number(params.page) || 1,
@@ -56,8 +58,9 @@ export default async function StoreOrdersPage({
   }
 
   const orders = result.data;
-  const filtered = Boolean(params.q || params.status || params.open || params.unpaid);
-  const listParams = { q: params.q, status: params.status, open: params.open, unpaid: params.unpaid, per_page: params.per_page, sort: params.sort, dir: params.dir };
+  const zohoFailed = params.zoho === "failed";
+  const filtered = Boolean(params.q || params.status || params.open || params.unpaid || zohoFailed);
+  const listParams = { q: params.q, status: params.status, open: params.open, unpaid: params.unpaid, zoho: zohoFailed ? "failed" : undefined, per_page: params.per_page, sort: params.sort, dir: params.dir };
   const sortable = { basePath: "/admin/store/orders", params: listParams, sort: params.sort, dir: params.dir };
 
   return (
@@ -97,13 +100,22 @@ export default async function StoreOrdersPage({
           </Select>
         </FilterField>
 
+        {/* Arrived from the dashboard's tile: kept across Apply, dropped by Clear. */}
+        {zohoFailed && <input type="hidden" name="zoho" value="failed" />}
+
         <div className="flex gap-2">
           <Button type="submit" size="sm">Apply</Button>
           {filtered && <ButtonLink href="/admin/store/orders" variant="ghost" size="sm">Clear</ButtonLink>}
         </div>
       </FilterBar>
 
-      {result.meta.pending_payment > 0 && !params.unpaid && (
+      {zohoFailed && (
+        <p className="mb-3 text-13 text-muted">
+          Showing orders whose Zoho Books invoice was refused. Open one to read why and try again.
+        </p>
+      )}
+
+      {result.meta.pending_payment > 0 && !params.unpaid && !zohoFailed && (
         <p className="mb-3 text-13 text-muted">
           <Link href="/admin/store/orders?unpaid=1" className="font-semibold text-brand-ink underline">
             {result.meta.pending_payment} awaiting payment

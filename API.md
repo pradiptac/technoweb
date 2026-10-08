@@ -2406,6 +2406,7 @@ the selectors on the product page would shuffle between two loads.
 | `GET`/`PATCH`/`DELETE` | `/admin/store/coupons/{id}` | Deleting a used code is refused |
 
 | `POST` | `/admin/store/orders/{number}/payments` | Record money that arrived without a gateway |
+| `POST` | `/admin/store/orders/{number}/zoho-invoice` | Make this order's Zoho Books invoice now. 200 `{data: {status, invoice_number}}` — `status` is `created`, `skipped` (the order already has an uploaded invoice) or `creating` (another attempt holds it). **422** with a sentence when Zoho Books is off or not fully set up, when the order already has its Zoho invoice, and — in Zoho's own words, also on `errors.zoho` — when Zoho refuses. Throttled 20/min |
 | `POST` | `/admin/store/orders/{number}/refunds` | Record money that went back: `amount_paise`, `reference`, `note`. A `payments` row with status `refunded`; partial refunds add up, and the amount that completes what was paid moves the order to `refunded`. 422 on an unpaid order, past the ceiling, or an order already refunded in full. Calls no gateway |
 
 **Nothing here can mark an order paid *from a dropdown*.** `PendingPayment` may
@@ -2421,6 +2422,8 @@ recorded and flagged in the trail rather than refused.
 **Bound by order number, not id** — the rule every CMS entity follows exists
 because an edit form changes the slug it is addressed by, and nothing about an
 order can change its number.
+
+**Every admin order carries `zoho`** (0.134.0) — `{status, invoice_id, attempts, error, next_attempt_at, synced_at, can_create}`, or **null** while Zoho Books is not set up and nothing was ever asked of it for that order. `status` is `pending`, `creating`, `created`, `failed`, `skipped` or null; `error` is Zoho's own words; `next_attempt_at` is null once the five automatic attempts are spent; `can_create` says whether `POST …/zoho-invoice` will be taken. `GET /admin/store/orders?zoho=failed` lists the orders whose invoice was refused, and `/admin/store/dashboard` carries `attention.zoho_failed`. An invoice Zoho made is stored as an uploaded one is: `invoice_number`, `invoice_date`, `has_invoice`, and the same download route. See "Zoho Books" under the settings.
 
 **The invoice is uploaded, not generated**, to the private disk, streamed by an
 authorised route. `invoice_path` never appears in a response.
@@ -4155,7 +4158,14 @@ the `Role` enum already placed configuration under administrator.
 | `POST` | `/admin/settings/tickets/inbound/authorize` | `provider` of `google` or `microsoft`, `redirect_uri` checked exactly against `/admin/settings/tickets/callback` on this site's host. Returns the consent URL |
 | `POST` | `/admin/settings/tickets/inbound/callback` | `code`, `state`. Exchanges the code, stores the `inbound_oauth_*` rows, settles `inbound_mail_provider` and fills a blank `inbound_mail_address` from the connected account |
 | `POST` | `/admin/settings/tickets/inbound/disconnect` | Forgets the inbound token only; the outgoing mailbox is untouched |
+| `GET` | `/admin/settings/zoho-books` | Zoho Books (0.134.0, `docs/store.md`): `enabled`, `ready` (the switch and everything it needs), `missing[]` (sentences, in the order to do them), `is_connected`, `account`, `connected_at`, `client_configured`, `data_centre`, `organization_id`, `organizations[{id, name}]` and `taxes[{id, name, percentage, kind}]` (read from Zoho now; empty when unconnected, or when no organisation is saved), `error` (Zoho's last refusal), `callback_path`, `waiting`, `failed` (order counts) |
+| `POST` | `/admin/settings/zoho-books/authorize` | `redirect_uri`, checked exactly against `/admin/store/settings/zoho/callback` on this site's host. Returns the consent URL at the saved data centre. 422 until a client ID and secret are saved |
+| `POST` | `/admin/settings/zoho-books/callback` | `code`, `state` → `{account}`. Stores the `zoho_books_oauth_*` rows; a single organisation is chosen automatically |
+| `POST` | `/admin/settings/zoho-books/disconnect` | Revokes the token at Zoho and forgets it. Invoices already made are untouched |
+| `POST` | `/admin/settings/zoho-books/test` | One real read with what is saved — the chosen organisation's taxes: 200 `{taxes, ready, missing}` (`taxes` a count), clearing `zoho_books_error`. **422** with one sentence in `message`: nothing connected, no organisation saved, Zoho's own refusal, or a saved tax Zoho no longer lists. Throttled 6/min |
 | `POST` | `/admin/settings/tickets/inbound/test` | Connects with what is saved, selects the folder, counts what is unread: 200 with `account`, `folder`, `unseen`; 422 with the server's own words, written to `inbound_mail_error`. Reads only — nothing is flagged, moved or piped. Throttled 6/min |
+
+**The `zoho_books` group is private** (0.134.0): `zoho_books_enabled` (`0`/`1`, off), `zoho_books_dc` (`in` or `com`), `zoho_books_oauth_client_id`, `zoho_books_oauth_client_secret` (secret), `zoho_books_invoice_when` (`dispatched`, the default, or `paid`), `zoho_books_home_state` (a two-letter Indian state code), `zoho_books_organization_id`, `zoho_books_tax_intra`, `zoho_books_tax_inter` (Zoho's ids — digits). The three with a fixed list are offered as `options`; a value outside its list, or an id that is not digits, is a 422 on the row. The token, the account, the connection time and `zoho_books_error` are written by the endpoints above. The connection and its test are `role:admin`; `POST /admin/store/orders/{number}/zoho-invoice` is `role:store_manager`.
 
 **The `tickets` group is the support mailbox and is not public.** Off by
 default (`inbound_mail_enabled`); `inbound_mail_provider` is `imap`, `google`

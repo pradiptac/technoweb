@@ -1768,3 +1768,137 @@ actually sent back.
 
 `ReturnsTest` (22). `scripts/probes/returns.mjs` drives the whole path
 through the real screens.
+
+## Zoho Books invoices (0.134.0)
+
+Optional and off by default. Connected, each order's GST invoice is made in
+the client's own Zoho Books and its PDF is stored where an uploaded invoice
+always was — so the customer's order page, the portal and the console's
+download needed no change. Switched off, or never connected, nothing here
+runs and the invoice is uploaded by hand as before.
+
+**The invoice lives in Zoho; this application keeps a pointer and a copy.**
+`orders.zoho_invoice_id` is the pointer, `invoice_number` / `invoice_date`
+are Zoho's own, and the PDF is `orders/{order_number}/zoho-{id}.pdf` on the
+private disk at `invoice_path`. Numbering, the GST split and the books are
+Zoho's — which is the reason for the integration at all: an invoice
+generated here would be a second numbering series beside the accountant's.
+
+### The connection
+
+`OAuthConnection::zohoBooks()`, a slot of its own (`zoho_books_oauth_*`), on
+a new `OAuthProvider::Zoho`. Zoho's accounts and API hosts differ per data
+centre — `accounts.zoho.in` and `www.zohoapis.in` for India, `.com` for the
+US — so `zoho_books_dc` is read when the consent URL is built and on every
+call; a client registered at one data centre is refused at the other, which
+is the first thing to check when Connect fails. The client is a
+**Server-based Application** from the Zoho API Console. Scopes:
+`ZohoBooks.invoices.CREATE,READ,UPDATE`, `ZohoBooks.contacts.CREATE,READ`,
+`ZohoBooks.settings.READ` — nothing that can delete, and nothing outside
+Books. `access_type=offline` and `prompt=consent`, for the reason Google's
+needs them: no refresh token otherwise.
+
+The callback is `/admin/store/settings/zoho/callback`, checked exactly by
+`CallbackPath::assert()` like every other connection's — a consent started
+for Zoho cannot be finished on another slot's path, or the reverse.
+
+**Three choices only Zoho can list**, read when the settings tab opens: the
+organisation (`GET /organizations`; a single one is chosen automatically on
+connecting) and the two taxes (`GET /settings/taxes`, groups included). They
+are stored as Zoho's ids and checked for shape only — digits. The home state
+is ours: `IndianStates`, Zoho's two-letter codes.
+
+`ZohoSettings::ready()` is the one answer to "will an invoice be made": the
+switch, a connected account, an organisation, a home state and both taxes.
+`missing()` lists what is not there yet, in the order somebody would do it,
+and the settings panel, the test button and a refused manual press all quote
+it.
+
+### When, and exactly once
+
+`ZohoInvoices::consider()` runs from the order's own `updated` hook when
+`status` or `paid_at` changes. `due()` is the rule: with **When dispatched**
+(the default) an order with something to ship is due at `dispatched_at` and
+one with nothing to ship — a licence, a service — at `paid_at`; with **When
+paid**, every order at `paid_at`. Never while the order is waiting for an
+online payment, cancelled or refunded. A cash-on-delivery order under "When
+dispatched" is invoiced at dispatch, unpaid, which is correct: the invoice
+goes in the box.
+
+**One invoice per order, however often it is tried**, held three ways
+because there are three ways to get two:
+
+- `zoho_status` (null → `pending` → `creating` → `created` | `failed` |
+  `skipped`) is claimed with a conditional UPDATE, so the queued job, the
+  five-minute sweeper and a press of the button cannot both be making it. A
+  `creating` claim older than ten minutes was abandoned and may be retaken.
+- Before creating, Zoho is asked for an invoice whose `reference_number` is
+  this order's number, and one that exists is **adopted**. A crash between
+  "Zoho made it" and "we wrote that down" therefore finishes on the next
+  attempt instead of repeating. The id is written to the order the moment
+  Zoho returns it, before the invoice is marked sent or the PDF fetched.
+- An order that already has an uploaded invoice is `skipped`.
+
+`consider()` swallows everything: a dispatch that is saved is not undone
+because an accounts system is down — `Notifier`'s rule. Writes go through
+the query builder (`finish()`), because this runs inside the order's own
+hook and a model save there would re-enter it.
+
+A refusal is retried by `technoware:sync-zoho-invoices` (every five minutes)
+after 5, 30, 120 and 720 minutes — five attempts, then it is a person's.
+`zoho_error` holds Zoho's own words (they name the field), the order's screen
+shows them with **Try again now**, `attention.zoho_failed` puts a tile on the
+store overview, and `?zoho=failed` is the list behind it. A manual press
+ignores the attempt count. A 401/403 also writes `zoho_books_error`, the
+`mail_error` pattern, shown on the settings tab and cleared by a success.
+
+### What the invoice says
+
+- **Prices include GST**, so `is_inclusive_tax: true` and each line's rate is
+  the price the customer saw. A coupon is one `entity_level` discount with
+  `is_discount_before_tax` — how the checkout extracted the GST. Rupees are
+  made from integer paise at the last moment.
+- **One tax per invoice**: the intra-state tax (the CGST+SGST group) when the
+  place of supply is the home state, the inter-state one (IGST) otherwise.
+  Place of supply is the delivery address's state, else the billing one;
+  `IndianStates::code()` reads a name or a code in any case, and an address
+  it cannot place sends no `place_of_supply` and takes the intra-state tax —
+  Zoho then applies the contact's own.
+- **The customer** is found by email (`GET /contacts?email=`) and reused **as
+  it is** — an existing contact's address and GSTIN are the accountant's and
+  are not overwritten. Otherwise one is created from the order: the company
+  as the name when there is one, the GSTIN and `business_gst` when given,
+  `consumer` otherwise. Zoho wants display names unique, so a clash is
+  retried once with the email address appended.
+- **The date** is the day the sale became invoiceable (`dispatched_at` or
+  `paid_at`), never the day a retry happened to succeed.
+- The invoice is **marked sent**, so it is a receivable rather than a draft.
+  Zoho does not email it: the customer gets it from their order.
+- When Zoho's total differs from the order's by more than a rupee — a tax of
+  the wrong rate chosen in settings, usually — the order's history says so.
+  The invoice is still made: hiding the difference would be worse.
+
+### What it does not do
+
+- **Payments are not recorded in Zoho.** A paid order's invoice shows as
+  unpaid there until somebody records the payment in Zoho Books. Deliberate:
+  payment modes, bank accounts and gateway fees are the accountant's to map,
+  and a wrong automatic entry in the books is worse than a missing one.
+- **Refunds, returns and cancellations are not sent**: no credit note is
+  made. An invoiced order that is refunded needs one in Zoho by hand.
+- Orders from before the switch was turned on are not back-filled; the
+  button on an order makes one.
+- One GST rate, the shop's own (`Money::GST_BASIS_POINTS`). There is no
+  per-product tax or HSN code to send.
+
+**Not driven against a real Zoho account.** `ZohoBooksTest` (25) fakes
+Zoho's HTTP: the request shapes are from Zoho's published API and a first
+connection may still surface a field it wants differently — its refusal is
+shown in its own words on the order, which is what that screen is for.
+`scripts/probes/zoho-books.mjs` drives the console side: the settings tab,
+the callback page's three answers, and the order panel in each state.
+
+One trap found in the probe's first screenshot, and it is not about Zoho: the home state has no
+default, and the generic settings select starts on its first option — so the
+tab showed "Andaman and Nicobar Islands" and a save from any tab would have
+stored it. The panel draws that select itself, with a blank first option.

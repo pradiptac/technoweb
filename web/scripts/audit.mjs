@@ -86,7 +86,7 @@ const ADMIN_ROUTES = [
   // to, and that callback is a page nothing links to.
   "/admin/site/settings", "/admin/blog/settings", "/admin/media/settings", "/admin/seo/settings", "/admin/store/settings",
   "/admin/newsletter/settings", "/admin/leads/settings", "/admin/tickets/settings", "/admin/customers/settings", "/admin/chat/settings",
-  "/admin/settings/tickets/callback",
+  "/admin/settings/tickets/callback", "/admin/store/settings/zoho/callback",
   // The store, which is its own catalogue and its own role.
   "/admin/store", "/admin/store?days=7",
   "/admin/store/products", "/admin/store/products/new", "/admin/store/products/import",

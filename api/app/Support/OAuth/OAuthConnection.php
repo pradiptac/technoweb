@@ -89,16 +89,27 @@ final class OAuthConnection
 
         return new self(
             provider: $oauth,
-            scope: match ($oauth) {
-                OAuthProvider::Google => 'https://mail.google.com/ openid email',
-                OAuthProvider::Microsoft => 'https://outlook.office365.com/IMAP.AccessAsUser.All offline_access openid email',
-            },
+            scope: self::mailboxScope($oauth),
             prefix: 'inbound_oauth_',
             slot: 'inbound',
             errorKey: 'inbound_mail_error',
             tenant: $oauth === OAuthProvider::Microsoft ? (string) Setting::get('inbound_oauth_tenant') : null,
             fallbackAccountKeys: ['inbound_mail_address', 'inbound_imap_username'],
         );
+    }
+
+    /**
+     * What reading a mailbox over IMAP asks for. A provider that has no
+     * mailbox to read — Zoho here is Zoho Books — is refused rather than
+     * given a scope that would be granted and then do nothing.
+     */
+    private static function mailboxScope(OAuthProvider $provider): string
+    {
+        return match ($provider) {
+            OAuthProvider::Google => 'https://mail.google.com/ openid email',
+            OAuthProvider::Microsoft => 'https://outlook.office365.com/IMAP.AccessAsUser.All offline_access openid email',
+            OAuthProvider::Zoho => throw new RuntimeException('Zoho does not connect a mailbox.'),
+        };
     }
 
     /**
@@ -118,10 +129,7 @@ final class OAuthConnection
 
         return new self(
             provider: $oauth,
-            scope: match ($oauth) {
-                OAuthProvider::Google => 'https://mail.google.com/ openid email',
-                OAuthProvider::Microsoft => 'https://outlook.office365.com/IMAP.AccessAsUser.All offline_access openid email',
-            },
+            scope: self::mailboxScope($oauth),
             prefix: 'newsletter_oauth_',
             slot: 'newsletter',
             errorKey: 'newsletter_oauth_error',
@@ -174,6 +182,31 @@ final class OAuthConnection
             slot: 'meetings-calendar',
             errorKey: 'meetings_google_error',
             noun: 'Google Calendar',
+        );
+    }
+
+    /**
+     * The company's Zoho Books, where an order's invoice is made (0.134.0,
+     * docs/store.md "Zoho Books invoices").
+     *
+     * Zoho's scopes are comma-separated and per resource and verb: invoices
+     * are created, read back (the PDF, and the look-up that stops a second
+     * one being made) and marked sent; a customer is looked up by address
+     * and created when absent; settings are read for the organisations and
+     * the taxes the screen offers. Nothing is deleted and no payment is
+     * touched. `$dataCentre` is the region the account lives in — its own
+     * client id and secret, the reasoning every slot here gives.
+     */
+    public static function zohoBooks(?string $dataCentre = null): self
+    {
+        return new self(
+            provider: OAuthProvider::Zoho,
+            scope: 'ZohoBooks.invoices.CREATE,ZohoBooks.invoices.READ,ZohoBooks.invoices.UPDATE,ZohoBooks.contacts.CREATE,ZohoBooks.contacts.READ,ZohoBooks.settings.READ',
+            prefix: 'zoho_books_oauth_',
+            slot: 'zoho-books',
+            errorKey: 'zoho_books_error',
+            tenant: $dataCentre ?? (string) Setting::get('zoho_books_dc', 'in'),
+            noun: 'Zoho Books',
         );
     }
 
@@ -260,6 +293,7 @@ final class OAuthConnection
                 match ($this->provider) {
                     OAuthProvider::Google => 'No refresh token came back. Google sends one only on a fresh consent — remove this app under your Google account\'s third-party access and connect again.',
                     OAuthProvider::Microsoft => 'No refresh token came back. Check that offline_access is among the permissions granted to the app registration.',
+                    OAuthProvider::Zoho => 'Zoho did not accept that. Check that the client is a "Server-based Application", that its redirect address is this site\'s, and that the data centre chosen here is the one your Zoho account is in.',
                 },
             ));
         }
@@ -447,7 +481,7 @@ final class OAuthConnection
             }
         }
 
-        return 'the connected mailbox';
+        return $this->noun === 'mailbox' ? 'the connected mailbox' : $this->noun;
     }
 
     /**

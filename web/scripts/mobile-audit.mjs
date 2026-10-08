@@ -151,7 +151,7 @@ const ADMIN_ROUTES = [
   // /admin/events/1/registrations`.
   "/admin/events", "/admin/events/new", "/admin/events/settings",
   "/admin/downloads", "/admin/downloads/new", "/admin/downloads/categories", "/admin/downloads/categories/new",
-  "/admin/settings/tickets/callback",
+  "/admin/settings/tickets/callback", "/admin/store/settings/zoho/callback",
   // The store: its own catalogue, its own role, and the table with the most
   // columns in the console -- which is where the phone layout bites.
   "/admin/store", "/admin/store?days=7",

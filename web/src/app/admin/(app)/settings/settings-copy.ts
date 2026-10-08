@@ -324,6 +324,31 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     hint: "Blank uses the connected account's own calendar. Or a calendar's ID from its settings in Google Calendar.",
     placeholder: "primary",
   },
+  /*
+    Zoho Books invoices (0.134.0, docs/store.md). The organisation and the
+    two taxes are Zoho's own lists, so the connection panel draws them.
+  */
+  zoho_books_enabled: {
+    label: "Create invoices in Zoho Books",
+    hint: "On, each order gets a GST invoice in your Zoho Books and its PDF is attached to the order for the customer. Off, invoices are uploaded by hand as before.",
+  },
+  zoho_books_dc: {
+    label: "Zoho data centre",
+    hint: "Where your Zoho account lives: the address you sign in at. An Indian account is zoho.in.",
+  },
+  zoho_books_oauth_client_id: {
+    label: "Client ID",
+    hint: "From a Server-based Application in the Zoho API Console (api-console.zoho.in), with the redirect address below registered.",
+  },
+  zoho_books_oauth_client_secret: { label: "Client secret" },
+  zoho_books_invoice_when: {
+    label: "Make the invoice",
+    hint: "An order with nothing to ship — a licence, a service — is invoiced when it is paid, whichever is chosen.",
+  },
+  zoho_books_home_state: {
+    label: "Your state (place of business)",
+    hint: "The state your GSTIN is registered in. A sale delivered inside it carries CGST and SGST; one to any other state carries IGST.",
+  },
   lead_intent_words: {
     label: "More buying words",
     hint: "One word or phrase per line, added to the built-in list. Whole words only, so \"PO\" does not match \"port\"; plurals and -ing forms are matched for you.",
@@ -982,6 +1007,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Basket reminders",
     blurb: "Up to two emails to somebody who left something in their basket, the second of which may carry a discount code. The wording is under System → Email templates. The dashboard counts a basket as recovered when it became an order after a reminder.",
   },
+  zoho_books: {
+    title: "Zoho Books",
+    blurb: "Optional. Connect your Zoho Books and each order's GST invoice is made there by itself — when the order is dispatched, or when it is paid — and the PDF is attached to the order for the customer to download. Save the client ID and secret, connect, then choose the organisation, your state and the two taxes.",
+  },
   indexnow: {
     title: "IndexNow",
     blurb: "Tells Bing, Yandex and the other IndexNow engines the moment a page is published, changed or removed, instead of waiting for a crawl — Bing's index is what Copilot and ChatGPT search read. Off until launch: the site's public address is pinned to production on every machine, so a ping from anywhere else would name pages that are not there yet. The key is minted on first use and is public by the protocol's design.",
@@ -1130,6 +1159,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
           "store_returns_enabled", "store_return_instructions",
           "store_price_drop_min_percent", "store_review_requests_enabled", "store_review_request_days", "meta_catalogue_enabled"],
   store_reminders: ["store_cart_reminders_enabled", "store_cart_reminder_1_hours", "store_cart_reminder_2_days", "store_cart_reminder_coupon"],
+  zoho_books: ["zoho_books_enabled", "zoho_books_invoice_when", "zoho_books_oauth_client_id", "zoho_books_oauth_client_secret"],
   leads: ["lead_intent_words"],
   meetings: ["meetings_enabled", "meeting_default_hours", "meeting_slot_step", "meeting_min_notice_hours", "meeting_max_days",
              "meeting_holidays", "meeting_reminders", "meeting_block_google_busy", "meetings_email",
@@ -1169,6 +1199,13 @@ export const HIDDEN = new Set([
   "backup_gdrive_oauth_refresh_token", "backup_gdrive_oauth_account", "backup_gdrive_oauth_connected_at", "backup_ftp_sftp_fingerprint",
   // Meetings: the Google consent and its last refusal, shown by the connection panel.
   "meetings_google_oauth_refresh_token", "meetings_google_oauth_account", "meetings_google_oauth_connected_at", "meetings_google_error",
+  // Zoho Books: the consent and its last refusal — and the organisation and the two taxes, which the
+  // connection panel draws as selects of Zoho's own lists under these same names.
+  "zoho_books_oauth_refresh_token", "zoho_books_oauth_account", "zoho_books_oauth_connected_at", "zoho_books_error",
+  "zoho_books_organization_id", "zoho_books_tax_intra", "zoho_books_tax_inter",
+  // …and the state, which has no default: the generic select would start on its first option and save it.
+  // The data centre is drawn beside it.
+  "zoho_books_home_state", "zoho_books_dc",
 ]);
 
 /**
@@ -1220,7 +1257,7 @@ export type SettingsScreen = {
   lede: string;
   saveLabel: string;
   /** Status reads beyond `getSettings()` that a panel on this screen needs. */
-  needs?: ("mail" | "inbound" | "messaging" | "backups" | "meetings")[];
+  needs?: ("mail" | "inbound" | "messaging" | "backups" | "meetings" | "zoho")[];
   /** The groups drawn, in order. A `label` puts a heading over those tabs. */
   sections: { label?: string; groups: string[] }[];
 };
@@ -1289,9 +1326,10 @@ export const SCREENS: SettingsScreen[] = [
     path: "/admin/store/settings",
     title: "Store settings",
     area: "Store",
-    lede: "Whether the shop is open, what delivery costs and how long it takes, how licences are handed over, the basket reminders, and how the shop takes money.",
+    lede: "Whether the shop is open, what delivery costs and how long it takes, how licences are handed over, the basket reminders, how the shop takes money, and invoices made in Zoho Books.",
     saveLabel: "Save store settings",
-    sections: [{ groups: ["store", "store_reminders", "payments"] }],
+    needs: ["zoho"],
+    sections: [{ groups: ["store", "store_reminders", "payments", "zoho_books"] }],
   },
   {
     path: "/admin/newsletter/settings",

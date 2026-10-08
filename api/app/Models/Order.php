@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\OrderStatus;
 use App\Enums\WebhookEvent;
 use App\Support\References;
+use App\Support\Store\Zoho\ZohoInvoices;
 use App\Support\Webhooks\WebhookPayload;
 use App\Support\Webhooks\Webhooks;
 use Illuminate\Database\Eloquent\Builder;
@@ -56,6 +57,10 @@ class Order extends Model
             'dispatched_at' => 'datetime',
             'completed_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            'zoho_attempts' => 'integer',
+            'zoho_claimed_at' => 'datetime',
+            'zoho_next_attempt_at' => 'datetime',
+            'zoho_synced_at' => 'datetime',
         ];
     }
 
@@ -87,6 +92,13 @@ class Order extends Model
                     'from' => $from instanceof OrderStatus ? $from->value : $from,
                     'to' => $order->status->value,
                 ]));
+            }
+
+            // Zoho Books (0.134.0): an order that has just been dispatched or
+            // paid may now be due its invoice. Asked only on those two
+            // changes, and guarded inside — it can never fail this save.
+            if ($order->wasChanged('status') || $order->wasChanged('paid_at')) {
+                ZohoInvoices::consider($order);
             }
         });
     }

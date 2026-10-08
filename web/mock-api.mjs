@@ -2939,6 +2939,32 @@ createServer(async (req, res) => {
     if (p === '/admin/meetings/google/test' && req.method === 'POST') {
       return json(res, 422, { message: 'Connect a Google account first.', errors: { google: ['Connect a Google account first.'] } });
     }
+    /* Zoho Books (docs/store.md "Zoho Books invoices"): Store → Settings'
+       panel, as an install that has not connected it. */
+    if (p === '/admin/settings/zoho-books' && req.method === 'GET') {
+      return json(res, 200, { data: {
+        enabled: false, ready: false,
+        missing: ['Save the client ID and secret.', 'Connect a Zoho account.', 'Choose the organisation.', 'Choose your state.', 'Choose the two taxes.'],
+        is_connected: false, account: null, connected_at: null, client_configured: false, data_centre: 'in',
+        organization_id: null, organizations: [], taxes: [], error: null,
+        callback_path: '/admin/store/settings/zoho/callback', waiting: 0, failed: 0,
+      } });
+    }
+    if (p === '/admin/settings/zoho-books/authorize' && req.method === 'POST') {
+      return json(res, 422, { message: 'Save the client ID and secret first.', errors: { redirect_uri: ['Save the client ID and secret first.'] } });
+    }
+    if (p === '/admin/settings/zoho-books/callback' && req.method === 'POST') {
+      return json(res, 200, { data: { account: 'Technoware (mock)' } });
+    }
+    if (p === '/admin/settings/zoho-books/disconnect' && req.method === 'POST') {
+      return json(res, 200, { data: { is_connected: false } });
+    }
+    if (p === '/admin/settings/zoho-books/test' && req.method === 'POST') {
+      return json(res, 422, { message: 'Connect a Zoho account first.', errors: { zoho: ['Connect a Zoho account first.'] } });
+    }
+    if (/^\/admin\/store\/orders\/[^/]+\/zoho-invoice$/.test(p) && req.method === 'POST') {
+      return json(res, 422, { message: 'Zoho Books invoices are switched off.' });
+    }
     if (p === '/admin/meetings/customers' && req.method === 'GET') {
       const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
       if (q.length < 2) return json(res, 422, { message: 'The q field must be at least 2 characters.', errors: { q: ['The q field must be at least 2 characters.'] } });
@@ -3920,7 +3946,7 @@ createServer(async (req, res) => {
         orders: { total: 0, paid: 0, pending_payment: 0, cancelled: 0, period: 0, with_physical: 0, with_digital: 0 },
         revenue: { total_paise: 0, period_paise: 0, gst_paise: 0, discount_paise: 0, refunded_paise: 0, average_paise: null, sample: 0 },
         catalogue: { products: 0, published: 0, out_of_stock: 0 },
-        attention: { awaiting_payment: 0, awaiting_dispatch: 0, awaiting_codes: 0, reviews_pending: 1, refund_requested: 0, returns_requested: mockReturns.filter(r => r.status === 'requested').length, out_of_stock: 0, codes_exhausted: 0, failed_payments: 0 },
+        attention: { awaiting_payment: 0, awaiting_dispatch: 0, awaiting_codes: 0, reviews_pending: 1, refund_requested: 0, returns_requested: mockReturns.filter(r => r.status === 'requested').length, zoho_failed: 0, out_of_stock: 0, codes_exhausted: 0, failed_payments: 0 },
         funnel: { product_views: null, paid_orders: 0, views_to_orders: null },
         // Null, not zeros: the mock never reminds anybody about a basket.
         recovered: null,
@@ -4098,6 +4124,27 @@ createServer(async (req, res) => {
           s('rcs_gupshup_bot_id', null, { group: 'messaging' }),
           s('push_fcm_service_account', null, { group: 'messaging', type: 'text', is_secret: true, is_set: true }),
           s('messaging_whatsapp_error', null, { group: 'messaging' }), s('messaging_rcs_error', null, { group: 'messaging' }), s('messaging_push_error', null, { group: 'messaging' }),
+        ],
+        /* Zoho Books (Store -> Settings): off and unconnected. */
+        zoho_books: [
+          s('zoho_books_enabled', '0', { group: 'zoho_books', type: 'boolean' }),
+          s('zoho_books_invoice_when', 'dispatched', { group: 'zoho_books', options: [
+            { value: 'dispatched', label: 'When the order is dispatched', description: 'An order with nothing to ship is invoiced when it is paid.' },
+            { value: 'paid', label: 'When the order is paid', description: 'As soon as the money is confirmed.' },
+          ] }),
+          s('zoho_books_dc', 'in', { group: 'zoho_books', options: [
+            { value: 'in', label: 'India (zoho.in)', description: 'Accounts signed in at zoho.in.' },
+            { value: 'com', label: 'United States (zoho.com)', description: 'Accounts signed in at zoho.com.' },
+          ] }),
+          s('zoho_books_home_state', null, { group: 'zoho_books', options: [
+            { value: 'MH', label: 'Maharashtra', description: '' }, { value: 'WB', label: 'West Bengal', description: '' },
+          ] }),
+          s('zoho_books_oauth_client_id', null, { group: 'zoho_books' }),
+          s('zoho_books_oauth_client_secret', null, { group: 'zoho_books', is_secret: true, is_set: false }),
+          s('zoho_books_organization_id', null, { group: 'zoho_books' }),
+          s('zoho_books_tax_intra', null, { group: 'zoho_books' }), s('zoho_books_tax_inter', null, { group: 'zoho_books' }),
+          s('zoho_books_oauth_account', null, { group: 'zoho_books' }), s('zoho_books_oauth_connected_at', null, { group: 'zoho_books' }),
+          s('zoho_books_error', null, { group: 'zoho_books' }),
         ],
         push: [
           s('push_api_key', 'AIzaMockKey000000000000000000000000000', { group: 'push' }), s('push_project_id', 'technoware-push', { group: 'push' }),

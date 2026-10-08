@@ -198,6 +198,9 @@ class StoreMetrics
             // Returns nobody has answered — `OrderReturn::waiting()`, the
             // scope the returns desk opens on, which is where this links.
             'returns_requested' => OrderReturn::waiting()->count(),
+            // Orders whose Zoho Books invoice was refused and is waiting on a
+            // person — the list `?zoho=failed` opens. Zero while it is off.
+            'zoho_failed' => Order::where('zoho_status', 'failed')->count(),
             /*
              * Failed payments are counted over the window rather than for ever.
              * A card declined last March is not something anybody is going to

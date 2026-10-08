@@ -21,6 +21,35 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.134.0 — 2026-10-08
+
+**Invoices made in Zoho Books by themselves.**
+
+- Connect your **Zoho Books** under Store → Settings → **Zoho Books** and
+  each order's GST invoice is made there for you: when the order is
+  dispatched, or — for an order with nothing to ship, or if you prefer it for
+  every order — when it is paid.
+- The invoice carries the prices the customer paid (GST included), any
+  discount code, and CGST + SGST or IGST according to where the order is
+  delivered. Its number, date and PDF appear on the order, and the customer
+  downloads it from their order page as before.
+- The customer is matched to a Zoho Books contact by email address, or
+  created there if new. An order never gets two invoices, and one you have
+  already uploaded an invoice to is left alone.
+- If Zoho refuses an invoice the site retries over the next day, then shows
+  **Zoho invoices refused** on the store overview. The order shows Zoho's
+  reason and a **Try again now** button. Any order has **Create the Zoho
+  invoice now**.
+- **Off until you set it up**, and uploading invoices by hand works exactly
+  as it did. The manual's Store chapter has the steps (a Server-based
+  Application in the Zoho API Console).
+- **Not done by this release:** payments are not recorded in Zoho Books (an
+  invoice shows as unpaid there until you record it), and no credit note is
+  made for a refund or cancellation.
+- **Not yet tried against a real Zoho Books account.** It is tested against
+  Zoho's published API. Connect a test organisation first and make one
+  invoice before relying on it.
+
 ## 0.133.0 — 2026-10-08
 
 **Customers can sign in and register with Google.**

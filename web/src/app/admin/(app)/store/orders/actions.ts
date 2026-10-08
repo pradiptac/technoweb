@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { rupeesToPaise } from "@/lib/money";
 import { ApiError } from "@/lib/api";
 import {
-  addStoreOrderNote, fulfilStoreOrder, moveStoreOrder, saveStoreOrderInvoice, saveStoreOrderShipping,
+  addStoreOrderNote, createZohoInvoice, fulfilStoreOrder, moveStoreOrder, saveStoreOrderInvoice, saveStoreOrderShipping,
   recordStoreOrderPayment,
   recordStoreOrderRefund,
 } from "@/lib/admin";
@@ -224,6 +224,48 @@ export async function saveInvoiceAction(
   refresh(orderNumber);
 
   return { ok: "Invoice saved. The customer can download it from their order." };
+}
+
+/**
+ * Make this order's Zoho Books invoice now (docs/store.md "Zoho Books
+ * invoices"). The API claims the order first, so two presses make one
+ * invoice; a refusal comes back in Zoho's own words, which name what to fix.
+ */
+export async function createZohoInvoiceAction(
+  _previous: OrderActionState,
+  formData: FormData,
+): Promise<OrderActionState> {
+  const orderNumber = String(formData.get("order_number") ?? "");
+
+  if (!orderNumber) return { error: "Missing order." };
+
+  let result: { status: string; invoice_number: string | null };
+
+  try {
+    result = await createZohoInvoice(orderNumber);
+  } catch (error) {
+    // The refusal is recorded on the order, so the panel must re-read it.
+    refresh(orderNumber);
+
+    return toState(error, "Zoho Books did not answer. Try again shortly.");
+  }
+
+  refresh(orderNumber);
+
+  // Not every answer is an invoice: an uploaded one is left alone, and a
+  // second press while the first is still talking to Zoho makes nothing.
+  if (result.status === "skipped") {
+    return { ok: "This order already has an uploaded invoice, so none was made in Zoho Books." };
+  }
+  if (result.status !== "created") {
+    return { ok: "The invoice is being made now. Reload in a moment." };
+  }
+
+  return {
+    ok: result.invoice_number
+      ? `Invoice ${result.invoice_number} made in Zoho Books and attached to the order.`
+      : "Invoice made in Zoho Books and attached to the order.",
+  };
 }
 
 export async function fulfilOrderAction(
