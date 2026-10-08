@@ -17,6 +17,7 @@ import type {
 import type {
   EventAvailability, EventDetail, EventRegistration, EventRegistrationPayload, EventRegistrationResult, EventSummary,
 } from "@/types/events";
+import type { Download, DownloadCategoryList } from "@/types/downloads";
 
 /**
  * Typed fetch wrapper for the Laravel REST API.
@@ -430,6 +431,17 @@ export const publicApi = {
       revalidate: 120,
       tags: ["events", `event:${slug}`],
     }),
+
+  /*
+   * The downloads centre (docs/downloads.md). The unfiltered list and the
+   * shelves are cached and tagged `downloads`, which every console save
+   * purges; a search is never cached (`cache: false`) — the rule the
+   * catalogue's and the knowledge base's `?q=` follow.
+   */
+  downloads: (query = "", cache = true) =>
+    apiFetch<Paginated<Download>>(`/downloads${query}`, cache ? { revalidate: 300, tags: ["downloads"] } : {}),
+  downloadCategories: () =>
+    apiFetch<DownloadCategoryList>("/download-categories", { revalidate: 300, tags: ["downloads"] }),
 
   caseStudies: () =>
     apiFetch<Collection<CaseStudy>>("/case-studies", { revalidate: 600, tags: ["case-studies"] }),

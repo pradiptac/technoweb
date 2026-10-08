@@ -9,6 +9,8 @@ import {
   IconWrench, IconNewspaper, IconBriefcase, IconShield, IconPlug, IconChat, IconBackup, IconCloud, IconMeeting,
   IconProjector,
 } from "@/components/icons";
+// A chrome glyph, which lives in `icons-ui` and is not re-exported by the map.
+import { IconDownload } from "@/components/icons-ui";
 
 /**
  * The console's sidebar, as data. Rendered by `admin-nav.tsx`, which is a
@@ -303,6 +305,10 @@ export const NAV: NavItem[] = [
       // Saved sections and page templates (docs/page-builder.md "The library").
       { role: "content_manager", href: "/admin/pages/library", label: "Section library", icon: IconBox },
       { role: "content_manager", href: "/admin/faqs", label: "FAQs", icon: IconLifebuoy },
+      // The downloads centre (docs/downloads.md). Its categories are a screen
+      // under it, reached from its header — one row serves both, by the
+      // longest-match rule.
+      { role: "content_manager", href: "/admin/downloads", label: "Downloads", icon: IconDownload },
       { role: "content_manager", href: "/admin/media", label: "Media", icon: IconImage },
       { role: "admin", href: "/admin/media/settings", label: "Media settings", icon: IconSliders },
       // The company profile. `IconShield` rather than `IconCert`, which Case

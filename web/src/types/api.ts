@@ -162,6 +162,8 @@ export type Product = PublicCustomFields & AnswerContent & import("./page-sectio
   image_focuses?: (string | null)[];
   image_blurs?: (string | null)[];
   datasheet_url: string | null;
+  /** Detail only (0.131.0): the downloads centre's files attached to this product. */
+  downloads?: import("./downloads").Download[];
   status: "draft" | "published" | "archived";
   brand: Brand | null;
   category: ProductCategory | null;
@@ -1879,6 +1881,8 @@ export type StoreProduct = PublicCustomFields & AnswerContent & import("./page-s
   image_blurs?: (string | null)[];
   /** Detail only (2026-09-26): YouTube ids and media-library files, after the pictures. */
   videos?: import("./store-merch").ProductVideo[];
+  /** Detail only (0.131.0): the downloads centre's files attached to this product. */
+  downloads?: import("./downloads").Download[];
   price_paise: number;
   /** Only present when it is genuinely higher than the real price. */
   compare_at_paise?: number;

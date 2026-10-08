@@ -7,6 +7,7 @@ import type {
 } from "@/types/api";
 import type { EventAgendaItem, EventSummary } from "@/types/events";
 import { UPCOMING_EVENTS } from "@/components/events/data";
+import type { Download } from "@/types/downloads";
 
 /**
  * `/llms.txt` and `/llms-full.txt` — the site, as an assistant reads it.
@@ -80,13 +81,15 @@ type Site = {
   posts: BlogPost[];
   /** What is coming up (docs/events-contract.md). Past events are left out: an assistant asked "what is on" should not be handed last year. */
   events: EventSummary[];
+  /** The downloads centre's files (docs/downloads.md): named, never addressed — a file is fetched from the page. */
+  downloads: Download[];
   /** Custom content types (docs/custom-content.md) and their first hundred published entries each. */
   custom: { type: ContentTypeSummary; entries: ContentEntry[] }[];
 };
 
 async function load(): Promise<Site> {
   const quiet = <T,>(p: Promise<{ data: T[] }>) => p.then((r) => r.data).catch(() => [] as T[]);
-  const [settings, solutions, services, industries, categories, articles, caseStudies, posts, events] = await Promise.all([
+  const [settings, solutions, services, industries, categories, articles, caseStudies, posts, events, downloads] = await Promise.all([
     getSiteSettings(),
     quiet(publicApi.solutions()),
     quiet(publicApi.services()),
@@ -96,13 +99,14 @@ async function load(): Promise<Site> {
     quiet(publicApi.caseStudies()),
     quiet(publicApi.posts("?per_page=20")),
     quiet(publicApi.events(UPCOMING_EVENTS)),
+    quiet(publicApi.downloads("?per_page=100")),
   ]);
   const types = await quiet(publicApi.contentTypes());
   const custom = await Promise.all(types.map(async (type) => ({
     type,
     entries: await publicApi.contentArchive(type.slug, "?per_page=100").then((r) => r.data).catch(() => [] as ContentEntry[]),
   })));
-  return { settings, solutions, services, industries, categories, articles, caseStudies, posts, events, custom };
+  return { settings, solutions, services, industries, categories, articles, caseStudies, posts, events, downloads, custom };
 }
 
 function head(site: Site): string {
@@ -156,6 +160,19 @@ function index(site: Site): string {
     section("Events", [
       line("All events", "/events", "Seminars, webinars and product demonstrations, with registration."),
       ...site.events.map((x) => line(x.title, `/events/${x.slug}`, eventLine(x))),
+    ]);
+  }
+  // The downloads centre: each file by name, with what it is. Every line
+  // points at the centre — a file has no page of its own, and its address is
+  // handed out by the page, not published.
+  if (site.downloads.length > 0) {
+    section("Downloads", [
+      line("All downloads", "/downloads", "Datasheets, drivers, firmware and guides for the hardware supplied."),
+      ...site.downloads.map((x) => line(
+        x.title,
+        `/downloads?q=${encodeURIComponent(x.title)}`,
+        [x.category?.name, x.version ? `version ${x.version}` : null, x.locked ? "customers only" : null, x.summary].filter(Boolean).join(" — "),
+      )),
     ]);
   }
   for (const { type, entries } of site.custom) {

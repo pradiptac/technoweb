@@ -52,6 +52,9 @@ class ProductResource extends JsonResource
             'related_products' => self::collection($this->whenLoaded('relatedProducts')),
             'related_solutions' => SolutionResource::collection($this->whenLoaded('solutions')),
             'faqs' => FaqResource::collection($this->whenLoaded('faqs')),
+            // The downloads centre's files for this product — loaded by the
+            // detail read alone, so a listing row carries no key.
+            'downloads' => $this->whenLoaded('publishedDownloads', fn () => DownloadResource::forRecord($this->publishedDownloads)),
             // The published blocks, in order, with the heading each renders under.
             'answer_blocks' => $this->publicAnswerBlocks(),
             // What this record is connected to, on the page only (`EntityLinks`).

@@ -8,7 +8,12 @@ use Illuminate\Database\Seeder;
 
 /**
  * The pages the footer already links to. Without these, /privacy, /terms,
- * /downloads, /returns and /shipping 404 on every page of the site.
+ * /returns and /shipping 404 on every page of the site.
+ *
+ * `/downloads` was a fifth until 0.131.0, when that address became the
+ * downloads centre (docs/downloads.md) — a route of the site's own, which a
+ * page seeded here could only sit behind, unreachable. An install that
+ * already has the page is handled by the `RetireDownloadsPage` upgrade step.
  *
  * The copy is a structurally complete starting point, not legal advice — the
  * privacy and terms pages in particular must be reviewed by someone qualified
@@ -70,20 +75,6 @@ class PageSeeder extends Seeder
                     .'<p>Nothing here limits liability that cannot be limited by law. Beyond that, our liability is as set out in your service agreement.</p>'
                     .'<h2>Changes</h2>'
                     .'<p>We may update these terms. Material changes affecting contracted customers are communicated directly rather than only posted here.</p>',
-            ],
-            [
-                'slug' => 'downloads',
-                'title' => 'Downloads',
-                'template' => 'default',
-                'status' => PublishStatus::Published,
-                'published_at' => now(),
-                'body' => '<p>Remote support tools, datasheets and the documentation we are most often asked for.</p>'
-                    .'<h2>Remote support</h2>'
-                    .'<p>When an engineer asks you to start a remote session, they will send you the download link directly and stay on the phone while it connects. We will never call unprompted and ask you to install remote-access software — if that happens, it is not us.</p>'
-                    .'<h2>Datasheets</h2>'
-                    .'<p>Manufacturer datasheets for the hardware we carry are linked from each product page, so you are always reading the current revision rather than a copy that has gone stale here.</p>'
-                    .'<h2>Anything else</h2>'
-                    .'<p>If you need a document you cannot find — a warranty certificate, an asset register, a network diagram from a past project — raise a ticket in the support portal and we will send it across.</p>',
             ],
             /*
              * The two pages Google Merchant Center requires a shop to have,

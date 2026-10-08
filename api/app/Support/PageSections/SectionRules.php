@@ -6,6 +6,7 @@ use App\Enums\PageSectionType;
 use App\Enums\PublishStatus;
 use App\Models\ContentBlock;
 use App\Models\ContentType;
+use App\Models\DownloadCategory;
 use App\Models\Form;
 use App\Models\Gallery;
 use App\Models\Media;
@@ -93,6 +94,9 @@ final class SectionRules
     public const ANCHOR = '/^[a-z][a-z0-9-]{0,47}$/';
 
     public const HERO_LAYOUTS = ['split', 'centered', 'cover'];
+
+    /** Where a downloads section's files come from: typed in (the default, not stored) or the centre. */
+    public const DOWNLOAD_SOURCES = ['custom', 'centre'];
 
     /** The live lists a `cards` section can draw; `SectionPresenter::cards()` reads each. */
     public const CARD_SOURCES = [
@@ -400,13 +404,22 @@ final class SectionRules
                 'limit' => ['nullable', 'integer', 'min:1', 'max:48'],
                 'group' => ['nullable', 'boolean'],
             ],
+            // Its files are typed in here, or — since 0.131.0 — read live
+            // from the downloads centre (`source: centre`), optionally one
+            // shelf of it. Nothing is stored for the typed list's default.
             PageSectionType::Downloads => [
                 'kicker' => ['nullable', 'string', 'max:80'],
                 'heading' => $heading,
                 'lede' => $lede,
-                'items' => ['required', 'array', 'min:1', 'max:20'],
-                'items.*.title' => ['required', 'string', 'max:120'],
-                'items.*.file_path' => ['required', 'string', 'max:255'],
+                'source' => ['nullable', Rule::in(self::DOWNLOAD_SOURCES)],
+                'category_id' => ['nullable', 'integer'],
+                'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+                // A typed list needs its files; a section reading the centre
+                // needs none, and whatever a switched editor left behind is
+                // neither required nor kept (`normalise()` drops it).
+                'items' => ["required_unless:{$at}.source,centre", 'array', 'max:20'],
+                'items.*.title' => ["required_unless:{$at}.source,centre", 'nullable', 'string', 'max:120'],
+                'items.*.file_path' => ["required_unless:{$at}.source,centre", 'nullable', 'string', 'max:255'],
                 'items.*.note' => ['nullable', 'string', 'max:200'],
             ],
             // A wall-clock time, read in the site's timezone.
@@ -570,6 +583,12 @@ final class SectionRules
      * @var array<string, array<string, string>>
      */
     private const TYPE_MESSAGES = [
+        'downloads' => [
+            'items.required_unless' => 'Add at least one file, or list the files from the downloads centre.',
+            'items.*.title.required_unless' => 'Give the file a title.',
+            'items.*.file_path.required_unless' => 'Choose the file from the media library.',
+            'limit.max' => 'A section lists at most 50 downloads.',
+        ],
         'story' => [
             'items.required' => 'A story needs at least two steps.',
             'items.min' => 'A story needs at least two steps.',
@@ -829,6 +848,13 @@ final class SectionRules
                 $itemPictures('photo_path');
                 break;
             case PageSectionType::Downloads:
+                if (($data['source'] ?? null) === 'centre') {
+                    $category = $data['category_id'] ?? null;
+                    if (filled($category) && ! DownloadCategory::query()->whereKey((int) $category)->exists()) {
+                        $validator->errors()->add("{$at}.category_id", 'That download category no longer exists. Choose another.');
+                    }
+                    break;
+                }
                 foreach ((array) ($data['items'] ?? []) as $n => $item) {
                     $path = is_array($item) ? ($item['file_path'] ?? null) : null;
                     if (is_string($path) && $path !== '' && ! self::mediaExists($path)) {
@@ -929,7 +955,7 @@ final class SectionRules
 
             $data = self::keep(is_array($block['data'] ?? null) ? $block['data'] : [], array_keys(self::for($type)));
 
-            foreach (['block_id', 'slider_id', 'gallery_id', 'form_id', 'saved_id', 'limit', 'columns', 'highlight', 'start'] as $int) {
+            foreach (['block_id', 'slider_id', 'gallery_id', 'form_id', 'saved_id', 'category_id', 'limit', 'columns', 'highlight', 'start'] as $int) {
                 if (isset($data[$int]) && is_numeric($data[$int])) {
                     $data[$int] = (int) $data[$int];
                 }
@@ -937,6 +963,16 @@ final class SectionRules
             foreach (['rule', 'call', 'group'] as $bool) {
                 if (isset($data[$bool])) {
                     $data[$bool] = filter_var($data[$bool], FILTER_VALIDATE_BOOLEAN);
+                }
+            }
+            // A downloads section is one kind of list or the other: read
+            // from the centre it keeps no typed files, and typed in it keeps
+            // nothing of the centre's — the default is never stored.
+            if ($type === PageSectionType::Downloads) {
+                if (($data['source'] ?? null) === 'centre') {
+                    unset($data['items']);
+                } else {
+                    unset($data['source'], $data['category_id'], $data['limit']);
                 }
             }
             // A percentage belongs to rings and bars, and is a number.

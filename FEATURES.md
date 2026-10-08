@@ -116,8 +116,8 @@ A full CMS for the people who write, without a developer in the loop.
   a linked record, a list — grouped, attached from the console, validated
   against their own definitions and drawn as a Details section on the page,
   or kept as data for templates.
-- **Custom content types**: new kinds of record — events, downloads,
-  partners — with an address of their own (`/events`), an archive page, a page
+- **Custom content types**: new kinds of record — whitepapers, press releases,
+  partners — with an address of their own (`/partners`), an archive page, a page
   per entry with SEO, FAQs and answer blocks, their own custom fields, and a
   redirect for every address when a type or an entry is renamed. In the
   sitemap, site search, menus, the SEO overview and the website assistant from
@@ -330,6 +330,19 @@ A chatbot that answers from your own pages and never invents.
   registrant can cancel.
 - **Registrations in the console**: status, add by hand, CSV export; every
   registration files a lead.
+
+## 12b. Downloads centre
+
+- **Datasheets, drivers, firmware and guides**, each with a version, a
+  release date and a category, listed on a searchable `/downloads` page.
+- **Attached to products**: a file appears under Downloads on every
+  catalogue and shop product page it belongs to.
+- **Public or customers-only**: a customers-only file is listed with a lock
+  and handed over only after a portal sign-in; the portal has its own list.
+- **Private uploads** for firmware and installers, kept off the public disk
+  and always served as a download, with upload progress in the console.
+- **Download counts** per file, and a builder section that lists the
+  centre's files live.
 
 ## 13. Company profile
 

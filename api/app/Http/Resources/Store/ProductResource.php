@@ -7,6 +7,7 @@ use App\Http\Resources\Concerns\IncludesAnswerContent;
 use App\Http\Resources\Concerns\IncludesCustomFields;
 use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\Concerns\IncludesSections;
+use App\Http\Resources\DownloadResource;
 use App\Http\Resources\SeoResource;
 use App\Models\StoreProduct;
 use App\Support\MediaMeta;
@@ -80,6 +81,10 @@ class ProductResource extends JsonResource
             'services' => $this->whenLoaded('services', fn () => $this->services->map(fn ($s) => [
                 'id' => $s->id, 'title' => $s->title, 'slug' => $s->slug,
             ])->values()),
+
+            // The downloads centre's files for this product (0.131.0) — the
+            // detail read loads them; a card carries no key.
+            'downloads' => $this->whenLoaded('publishedDownloads', fn () => DownloadResource::forRecord($this->publishedDownloads)),
 
             'images' => collect($this->images ?? [])->map(fn ($p) => MediaUrl::for($p))->all(),
             // Parallel to `images`, index for index: a gallery needs the

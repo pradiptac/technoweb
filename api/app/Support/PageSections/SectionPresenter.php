@@ -10,6 +10,7 @@ use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\ContentBlock;
 use App\Models\ContentType;
+use App\Models\Download;
 use App\Models\Entry;
 use App\Models\Event;
 use App\Models\Faq;
@@ -29,6 +30,7 @@ use App\Models\Solution;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
 use App\Models\TeamMember;
+use App\Support\Downloads\DownloadFiles;
 use App\Support\Events\EventText;
 use App\Support\MediaMeta;
 use App\Support\MediaUrl;
@@ -369,6 +371,10 @@ final class SectionPresenter
      */
     private static function downloads(array $data): ?array
     {
+        if (($data['source'] ?? null) === 'centre') {
+            return self::centreDownloads($data);
+        }
+
         $items = array_values(array_filter((array) ($data['items'] ?? []), 'is_array'));
         $rows = Media::query()->whereIn('path', array_filter(array_column($items, 'file_path'), 'is_string'))->get()->keyBy('path');
 
@@ -387,6 +393,51 @@ final class SectionPresenter
             ], fn ($v) => $v !== null);
         }
         $data['items'] = $out;
+
+        return $out === [] ? null : $data;
+    }
+
+    /**
+     * The downloads centre's own files (0.131.0, docs/downloads.md): what is
+     * published now, one shelf of it when the section names one. Each item
+     * carries `download_id` and **no `url`** — a centre file is fetched
+     * through the website's `/api/downloads/{id}`, which counts it and asks
+     * who is reading a customers-only one. Nothing published drops the
+     * section, the rule every live list follows.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    private static function centreDownloads(array $data): ?array
+    {
+        $downloads = Download::query()->published()
+            ->when(filled($data['category_id'] ?? null), fn ($q) => $q->where('downloads.download_category_id', (int) $data['category_id']))
+            ->shelved()
+            ->limit(max(1, min(50, (int) ($data['limit'] ?? 12))))
+            ->get();
+
+        DownloadFiles::prime($downloads);
+
+        $out = [];
+        foreach ($downloads as $download) {
+            $file = DownloadFiles::info($download);
+            if ($file === null) {
+                continue;
+            }
+            $out[] = array_filter([
+                'title' => $download->title,
+                'note' => $download->summary,
+                'version' => $download->version,
+                'released_label' => $download->released_on?->format('j F Y'),
+                'download_id' => $download->id,
+                'locked' => $download->isLocked() ?: null,
+                'size' => $file['size'],
+                'extension' => $file['extension'],
+            ], fn ($v) => $v !== null);
+        }
+
+        $data['items'] = $out;
+        $data['index_path'] = '/downloads';
 
         return $out === [] ? null : $data;
     }

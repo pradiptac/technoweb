@@ -6,6 +6,7 @@ use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\Certification;
 use App\Models\Client;
+use App\Models\Download;
 use App\Models\Event;
 use App\Models\JobOpening;
 use App\Models\TeamMember;
@@ -35,8 +36,8 @@ use App\Models\TeamMember;
  * `web/src/app/(marketing)` and answer 200 with no parameter. A page an editor
  * creates in the CMS is a `page` target and already resolves properly; it must
  * not be duplicated here, or the same page becomes two different things a menu
- * can point at. `/privacy`, `/terms`, `/downloads` and `/gallery` are exactly
- * that case and are deliberately absent.
+ * can point at. `/privacy`, `/terms` and `/gallery` are exactly that case and
+ * are deliberately absent.
  *
  * Two sides of one wire, as ever: this list and the Next route table are
  * hand-written in different languages, and nothing type-checks one against the
@@ -77,6 +78,9 @@ class SiteSection
         'knowledge_base' => ['label' => 'Knowledge base', 'path' => '/knowledge-base'],
         // Seminars, webinars and shows (0.118.0, docs/events.md).
         'events' => ['label' => 'Events', 'path' => '/events'],
+        // The downloads centre (0.131.0, docs/downloads.md). Until then
+        // `/downloads` was a CMS page, which is why it was absent here.
+        'downloads' => ['label' => 'Downloads', 'path' => '/downloads'],
 
         'support' => ['label' => 'Support', 'path' => '/support'],
         'contact' => ['label' => 'Contact', 'path' => '/contact'],
@@ -166,6 +170,7 @@ class SiteSection
             'blog' => BlogPost::published()->exists(),
             // Past or upcoming: a page of what has been on is still a page.
             'events' => Event::published()->exists(),
+            'downloads' => Download::published()->exists(),
             default => true,
         };
     }

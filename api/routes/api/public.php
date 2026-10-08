@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\CompanySuggestionController;
 use App\Http\Controllers\Api\V1\ContentBlockController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\ContentTypeController as PublicContentTypeController;
+use App\Http\Controllers\Api\V1\DownloadController;
 use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\EventRegistrationController;
@@ -547,6 +548,20 @@ Route::get('events/{slug}/availability', [EventController::class, 'availability'
 Route::get('events/{slug}/calendar', [EventController::class, 'calendar'])->name('events.calendar');
 Route::post('events/{slug}/register', [EventRegistrationController::class, 'store'])
     ->middleware('throttle:10,1')->name('events.register');
+
+/*
+ * The downloads centre (0.131.0, docs/downloads.md): the list, its shelves,
+ * and the file. The list never carries a file's address — `{download}/file`
+ * is the one door to the bytes, so it is what counts a download and what
+ * asks who is reading a customers-only one (a portal bearer, read from the
+ * `sanctum` guard by name; the route is public). Held to digits in the
+ * route, so anything else is a 404 before a controller runs.
+ */
+Route::get('downloads', [DownloadController::class, 'index'])->name('downloads.index');
+Route::get('download-categories', [DownloadController::class, 'categories'])->name('download-categories.index');
+Route::get('downloads/{download}/file', [DownloadController::class, 'file'])
+    ->where('download', '[0-9]+')
+    ->middleware('throttle:60,1')->name('downloads.file');
 
 /*
  * Online meetings (2026-09-29, docs/meetings.md). A booking, unlike a visit:

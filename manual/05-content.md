@@ -116,8 +116,8 @@ shortcode itself is mistyped, the page shows the text exactly as you typed it
 ## Pages
 
 **Content → Pages** holds the free-standing pages of the site: About-style
-pages, policy pages (Privacy, Terms, Returns, Shipping), downloads, and any
-page you add. Each page lives at your website address followed by its slug,
+pages, policy pages (Privacy, Terms, Returns, Shipping) and any page you
+add. (Files for visitors to download have their own screen — chapter 26.) Each page lives at your website address followed by its slug,
 for example `/privacy`.
 
 A page has a **template**:
@@ -655,7 +655,7 @@ development work.
 ## Custom content types
 
 **Content → Content types** creates a new kind of record with its own pages —
-"Events", "Downloads", "Partners" — each with its own list page and one page
+"Partners", "Whitepapers", "Press releases" — each with its own list page and one page
 per entry. **Content → Custom content** is where the entries themselves are
 written.
 

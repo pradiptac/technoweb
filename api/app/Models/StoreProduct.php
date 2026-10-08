@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 /**
  * Something the store sells.
@@ -456,6 +457,31 @@ class StoreProduct extends Model implements Answerable, Faqable
             'canonical_url' => rtrim((string) config('app.frontend_url'), '/').'/store/products/'.$this->slug,
             'og_image' => filled($this->images) ? MediaUrl::for($this->images[0]) : null,
         ];
+    }
+
+    /**
+     * The files of the downloads centre attached to this product
+     * (0.131.0, docs/downloads.md).
+     *
+     * @return MorphToMany<Download, $this>
+     */
+    public function downloads(): MorphToMany
+    {
+        return $this->morphToMany(Download::class, 'downloadable');
+    }
+
+    /**
+     * The ones a visitor may be shown, in the order the centre lists them
+     * within a shelf. What the product page loads.
+     *
+     * @return MorphToMany<Download, $this>
+     */
+    public function publishedDownloads(): MorphToMany
+    {
+        return $this->downloads()->published()
+            ->orderBy('downloads.sort_order')
+            ->orderByDesc('downloads.released_on')
+            ->orderBy('downloads.title');
     }
 
     /**

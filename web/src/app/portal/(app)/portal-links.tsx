@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   IconAccessCard, IconBook, IconBox, IconGrid, IconHeadset, IconHeart, IconMeeting, IconTicket, IconWrench,
 } from "@/components/icons";
+import { IconDownload } from "@/components/icons-ui";
 import type { PortalLink } from "./portal-nav";
 
 /**
@@ -24,6 +25,8 @@ export function portalLinks(): PortalLink[] {
     { href: "/portal/visits", label: "My visits", icon: <IconWrench className={glyph} /> },
     // Online meetings (2026-09-29): beside the visits, the other way to talk to an engineer.
     { href: "/portal/meetings", label: "My meetings", icon: <IconMeeting className={glyph} /> },
+    // The files kept for customers (0.131.0, docs/downloads.md).
+    { href: "/portal/downloads", label: "Downloads", icon: <IconDownload className={glyph} /> },
     { href: "/portal/profile", label: "My profile", icon: <IconAccessCard className={glyph} /> },
   ];
 }

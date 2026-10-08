@@ -35,6 +35,7 @@ update. `config/` and `storage/` are yours: an update never touches them.
 | Stuck | [23 — Troubleshooting](23-troubleshooting.md) |
 | Running seminars and webinars | [24 — Events](24-events.md) |
 | Making the site faster with a CDN | [25 — Using a CDN](25-using-a-cdn.md) |
+| Offering datasheets, drivers and firmware | [26 — Downloads](26-downloads.md) |
 
 ## The two addresses
 

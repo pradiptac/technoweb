@@ -1573,9 +1573,6 @@ const cmsPages = [
   { id:2, title:'Terms of service', slug:'terms', template:'default',
     body:'<p>Placeholder terms copy.</p>',
     published_at:'2026-01-04T09:00:00Z', updated_at:'2026-01-04T09:00:00Z', faqs:[], seo:null },
-  { id:3, title:'Downloads', slug:'downloads', template:'default',
-    body:'<p>Datasheets and remote-support tools.</p>',
-    published_at:'2026-01-04T09:00:00Z', updated_at:'2026-01-04T09:00:00Z', faqs:[], seo:null },
   // The two pages Merchant Center requires; the footer links both.
   { id:4, title:'Returns and refunds', slug:'returns', template:'default',
     body:'<p>Placeholder returns copy.</p>',
@@ -1733,6 +1730,68 @@ const messagingPreferences = {
     { channel: 'push', label: 'Browser push', live: true, opted_in: true, devices: 1 },
   ],
 };
+
+/* ---------------- The downloads centre (docs/downloads.md) ----------------
+ *
+ * Three shelves and three files, the shape `SampleDownloadSeeder` leaves: two
+ * public library PDFs and one customers-only private upload. The public rows
+ * never carry a file's address — the site fetches `/downloads/{id}/file`.
+ */
+const downloadCategories = [
+  { id:1, name:'Datasheets', slug:'datasheets', description:'Specifications and dimensions for the hardware we supply.', sort_order:1, is_active:true },
+  { id:2, name:'Drivers and software', slug:'drivers-and-software', description:'Drivers, utilities and management software.', sort_order:2, is_active:true },
+  { id:3, name:'Firmware', slug:'firmware', description:'Firmware images and their release notes.', sort_order:3, is_active:true },
+];
+const downloads = [
+  { id:1, title:'Sample datasheet', summary:'A placeholder datasheet.', version:'Rev. A', released_on:'2026-08-08', access:'public', source:'library',
+    file_path:'media/seed/downloads/sample-datasheet.pdf', file:{ name:'sample-datasheet.pdf', extension:'pdf', size:634, mime:'application/pdf' },
+    status:'published', sort_order:1, download_count:4, download_category_id:1, product_ids:[1], store_product_ids:[1], updated_at:'2026-10-08T06:00:00Z' },
+  { id:2, title:'Sample installation guide', summary:'A placeholder guide.', version:'1.0', released_on:'2026-09-08', access:'public', source:'library',
+    file_path:'media/seed/downloads/sample-installation-guide.pdf', file:{ name:'sample-installation-guide.pdf', extension:'pdf', size:643, mime:'application/pdf' },
+    status:'published', sort_order:1, download_count:1, download_category_id:2, product_ids:[], store_product_ids:[1], updated_at:'2026-10-08T06:00:00Z' },
+  { id:3, title:'Sample firmware release notes', summary:'A placeholder for a customers-only file.', version:'2.4.1', released_on:'2026-09-24', access:'customers', source:'upload',
+    file_path:null, file:{ name:'sample-firmware-release-notes.txt', extension:'txt', size:111, mime:'text/plain' },
+    status:'published', sort_order:1, download_count:0, download_category_id:3, product_ids:[1], store_product_ids:[], updated_at:'2026-10-08T06:00:00Z' },
+];
+const downloadMeta = {
+  accesses: [
+    { value:'public', label:'Everyone', blurb:'Anybody who opens the page can download it.' },
+    { value:'customers', label:'Customers only', blurb:'Listed for everybody, downloadable only by a customer signed in to the portal.' },
+  ],
+  sources: [
+    { value:'library', label:'From the media library', blurb:'A PDF, document or archive already in the library. It has a public address.' },
+    { value:'upload', label:'Uploaded here (private)', blurb:'Kept off the public disk and handed out by the site.' },
+  ],
+  statuses: [{ value:'draft', label:'Draft' }, { value:'published', label:'Published' }, { value:'archived', label:'Archived' }],
+  extensions: ['pdf', 'zip', 'bin', 'img', 'exe', 'msi'],
+  max_upload_kb: 524288,
+};
+const dateLabel = (iso) => (iso ? new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric', timeZone:'UTC' }) : null);
+const downloadShelf = (d) => downloadCategories.find((c) => c.id === d.download_category_id) ?? null;
+const publicDownload = (d) => {
+  const shelf = downloadShelf(d);
+  return {
+    id:d.id, title:d.title, summary:d.summary, version:d.version, released_on:d.released_on, released_label:dateLabel(d.released_on),
+    access:d.access, locked:d.access === 'customers',
+    category: shelf ? { id:shelf.id, name:shelf.name, slug:shelf.slug } : null,
+    file: d.file ? { name:d.file.name, extension:d.file.extension, size:d.file.size } : null,
+    updated_at:d.updated_at,
+  };
+};
+const adminDownload = (d) => {
+  const shelf = downloadShelf(d);
+  return {
+    ...d, access_label: d.access === 'customers' ? 'Customers only' : 'Everyone',
+    source_label: d.source === 'upload' ? 'Uploaded here (private)' : 'From the media library',
+    has_file: Boolean(d.file), file_missing:false,
+    category: shelf ? { id:shelf.id, name:shelf.name, is_active:shelf.is_active } : null,
+    attached_count: d.product_ids.length + d.store_product_ids.length,
+    products: d.product_ids.map((id) => ({ id, name:`Product ${id}` })),
+    store_products: d.store_product_ids.map((id) => ({ id, name:`Shop product ${id}` })),
+    created_at:d.updated_at,
+  };
+};
+const publishedDownloads = () => downloads.filter((d) => d.status === 'published' && d.file && (downloadShelf(d)?.is_active ?? true));
 
 const paginate = (rows) => ({
   data: rows,
@@ -2193,6 +2252,7 @@ const BUILDER_OPTIONS = {
   content_blocks: [], sliders: [], galleries: [], forms: [],
   product_categories: productCategories.map(({ id, name, slug }) => ({ id, name, slug })),
   store_categories: storeCategories.map(({ id, name, slug }) => ({ id, name, slug })),
+  download_categories: downloadCategories.filter((c) => c.is_active).map(({ id, name, slug }) => ({ id, name, slug })),
 };
 const SAMPLE_BUILDER_BLOCKS = [
   { id: '0f6a3c1e-1111-4a8b-9c2d-000000000001', type: 'hero', hidden: false, background: null, data: {
@@ -2961,6 +3021,78 @@ createServer(async (req, res) => {
        status and registration-mode pickers from it and never from a list of
        its own. The export is matched above `{registration}`, the order the
        route file declares them in. */
+    /* The downloads centre's console half (docs/downloads.md). `options` is
+       matched above `{id}`, the order the route file declares them in. */
+    if (p === '/admin/downloads' && req.method === 'GET') {
+      const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+      const status = url.searchParams.get('status');
+      const access = url.searchParams.get('access');
+      const category = url.searchParams.get('category');
+      const rows = downloads.filter((d) =>
+        (!q || `${d.title} ${d.version ?? ''} ${d.file?.name ?? ''}`.toLowerCase().includes(q))
+        && (!status || d.status === status) && (!access || d.access === access)
+        && (!category || (category === 'none' ? d.download_category_id === null : d.download_category_id === Number(category))));
+      const page = paginate(rows.map(adminDownload));
+      return json(res, 200, { ...page, meta: { ...page.meta, ...downloadMeta } });
+    }
+    if (p === '/admin/downloads/options' && req.method === 'GET') {
+      return json(res, 200, { data: {
+        ...downloadMeta,
+        categories: downloadCategories.map(({ id, name, is_active }) => ({ id, name, is_active })),
+        products: [{ id:1, name:'Product 1' }, { id:2, name:'Product 2' }],
+        store_products: [{ id:1, name:'Shop product 1' }],
+      } });
+    }
+    if (p === '/admin/downloads' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      if (!body.title) return json(res, 422, { message:'Give the download a title — what the file is.', errors:{ title:['Give the download a title — what the file is.'] } });
+      const row = { id: Math.max(0, ...downloads.map((d) => d.id)) + 1, summary:null, version:null, released_on:null, access:'public', source:'library',
+        file_path:null, file:null, status:'draft', sort_order:0, download_count:0, download_category_id:null, product_ids:[], store_product_ids:[],
+        updated_at:new Date().toISOString(), ...body };
+      downloads.push(row);
+      return json(res, 201, { data: adminDownload(row), meta: downloadMeta });
+    }
+    const downloadMatch = p.match(/^\/admin\/downloads\/(\d+)$/);
+    if (downloadMatch) {
+      const row = downloads.find((d) => d.id === Number(downloadMatch[1]));
+      if (!row) return json(res, 404, { message:'Not found.' });
+      if (req.method === 'GET') return json(res, 200, { data: adminDownload(row), meta: downloadMeta });
+      if (req.method === 'PATCH') {
+        Object.assign(row, await readJsonBody(req), { updated_at:new Date().toISOString() });
+        return json(res, 200, { data: adminDownload(row), meta: downloadMeta });
+      }
+      if (req.method === 'DELETE') {
+        downloads.splice(downloads.indexOf(row), 1);
+        res.writeHead(204); return res.end();
+      }
+    }
+    if (p === '/admin/download-categories' && req.method === 'GET') {
+      return json(res, 200, paginate(downloadCategories.map((c) => ({
+        ...c, downloads_count: downloads.filter((d) => d.download_category_id === c.id).length, updated_at:'2026-10-08T06:00:00Z',
+      }))));
+    }
+    if (p === '/admin/download-categories' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      if (!body.name) return json(res, 422, { message:'Give the category a name.', errors:{ name:['Give the category a name.'] } });
+      const row = { id: Math.max(0, ...downloadCategories.map((c) => c.id)) + 1, description:null, sort_order:0, is_active:true,
+        slug: String(body.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), ...body };
+      downloadCategories.push(row);
+      return json(res, 201, { data: { ...row, downloads_count:0, updated_at:new Date().toISOString() } });
+    }
+    const downloadCategoryMatch = p.match(/^\/admin\/download-categories\/(\d+)$/);
+    if (downloadCategoryMatch) {
+      const row = downloadCategories.find((c) => c.id === Number(downloadCategoryMatch[1]));
+      if (!row) return json(res, 404, { message:'Not found.' });
+      const shape = () => ({ ...row, downloads_count: downloads.filter((d) => d.download_category_id === row.id).length, updated_at:'2026-10-08T06:00:00Z' });
+      if (req.method === 'GET') return json(res, 200, { data: shape() });
+      if (req.method === 'PATCH') { Object.assign(row, await readJsonBody(req)); return json(res, 200, { data: shape() }); }
+      if (req.method === 'DELETE') {
+        downloads.forEach((d) => { if (d.download_category_id === row.id) d.download_category_id = null; });
+        downloadCategories.splice(downloadCategories.indexOf(row), 1);
+        res.writeHead(204); return res.end();
+      }
+    }
+
     if (p === '/admin/events' && req.method === 'GET') {
       const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
       const status = url.searchParams.get('status');
@@ -5343,6 +5475,37 @@ createServer(async (req, res) => {
       }
       return json(res, 200, { data: registrantView(r, e) });
     }
+  }
+  /* The downloads centre (docs/downloads.md): the list, its shelves, and the
+     file. A customers-only file is a 401 here — the mock holds no customer
+     session on this route — and a library file is answered as an address. */
+  if (p === '/downloads' && req.method === 'GET') {
+    const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+    const category = url.searchParams.get('category');
+    const access = url.searchParams.get('access');
+    const rows = publishedDownloads().filter((d) =>
+      (!q || `${d.title} ${d.summary ?? ''} ${d.version ?? ''}`.toLowerCase().includes(q))
+      && (!category || downloadShelf(d)?.slug === category)
+      && (!['public', 'customers'].includes(access ?? '') || d.access === access))
+      .sort((a, b) => (downloadShelf(a)?.sort_order ?? 99) - (downloadShelf(b)?.sort_order ?? 99));
+    return json(res, 200, paginate(rows.map(publicDownload)));
+  }
+  if (p === '/download-categories' && req.method === 'GET') {
+    const rows = publishedDownloads();
+    return json(res, 200, {
+      data: downloadCategories.filter((c) => c.is_active)
+        .map((c) => ({ id:c.id, name:c.name, slug:c.slug, description:c.description, count: rows.filter((d) => d.download_category_id === c.id).length }))
+        .filter((c) => c.count > 0),
+      meta: { total: rows.length, updated_at: rows.map((d) => d.updated_at).sort().pop() ?? null },
+    });
+  }
+  const downloadFile = p.match(/^\/downloads\/(\d+)\/file$/);
+  if (downloadFile && req.method === 'GET') {
+    const row = publishedDownloads().find((d) => d.id === Number(downloadFile[1]));
+    if (!row) return json(res, 404, { message:'Not found.' });
+    if (row.access === 'customers') return json(res, 401, { message:'Sign in to the customer portal to download this file.', reason:'sign_in_required' });
+    row.download_count += 1;
+    return json(res, 200, { data: { url: `http://127.0.0.1:8899/storage/${row.file_path}` } });
   }
   if (p === '/events' && req.method === 'GET') {
     const past = url.searchParams.get('when') === 'past';

@@ -21,6 +21,44 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.131.0 — 2026-10-08
+
+**A downloads centre: datasheets, drivers and firmware.**
+
+- **Content → Downloads** is new. Add a file with a title, a summary, a
+  version and a release date, and file it under a **category** (Datasheets,
+  Drivers, Firmware — yours to name).
+- Every published file is listed on your website's **Downloads** page
+  (`/downloads`), which visitors can search and filter by category.
+- **Attach a file to products.** Tick the catalogue and shop products it
+  belongs to, and it appears under **Downloads** on each of those pages.
+- **Open to everybody, or customers only.** A customers-only file is still
+  listed, with a lock; downloading it needs a sign-in to the customer
+  portal. Signed-in customers also find these files under **Downloads** in
+  the portal.
+- **Two ways to keep a file.** Choose one from the media library, or upload
+  it to the download itself — kept off the public part of the server, which
+  is what firmware, installers and customers-only files need. A large upload
+  shows its progress.
+- The console counts how often each file is downloaded.
+- The page builder's **Downloads** section can now list files **from the
+  downloads centre**, so a page always shows what is published.
+- The **Downloads** link appears in your menus once a file is published, and
+  search finds files by name.
+- **If you had a page called Downloads:** `/downloads` is now this new page.
+  Your old page was kept as a draft (at `/downloads-page`, under Content →
+  Pages), and menu links to it now point at the new page.
+- **If you made your own content type called "downloads":** its list page is
+  replaced by the new Downloads page; its entries still open. Rename the
+  type to bring its list back.
+- Not included: access per company or per contract, and a history of earlier
+  versions of a file.
+- Fixed: in the customer portal, the **orders, wishlist, visits and
+  meetings** pages each had two main headings, which confuses screen
+  readers. Each now has one.
+- Fixed: on an order's **GST invoice** panel in the console, the "Invoice
+  PDF" label sat on top of the upload box. It now sits above it.
+
 ## 0.130.0 — 2026-10-08
 
 **Sections on the rest of your records.**

@@ -39,7 +39,7 @@ export default async function PortalMeetingPage({ params }: { params: Promise<{ 
       <p className="mb-2 text-13">
         <Link href="/portal/meetings" className="text-brand-ink underline">← Your meetings</Link>
       </p>
-      <h1 className="display-3 mb-4">Meeting <span className="font-mono">{meeting.reference}</span></h1>
+      <h2 className="display-3 mb-4">Meeting <span className="font-mono">{meeting.reference}</span></h2>
 
       <div className="grid max-w-4xl gap-6">
         <Card as="section" interactive={false}>

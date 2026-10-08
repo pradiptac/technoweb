@@ -251,8 +251,9 @@ class DefaultMenu
             ['Submit a ticket', 'section', 'portal_new_ticket'],
             ['Track a ticket', 'section', 'portal_tickets'],
             ['Knowledge base', 'section', 'knowledge_base'],
-            // A CMS page, so it points at the record and follows a slug change.
-            ['Downloads', 'page', 'downloads'],
+            // The downloads centre (0.131.0): one of the site's own pages
+            // now, dropped at render until a download is published.
+            ['Downloads', 'section', 'downloads'],
             ['Contact', 'section', 'contact'],
         ]));
 

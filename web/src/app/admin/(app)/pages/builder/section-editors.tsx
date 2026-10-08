@@ -728,20 +728,43 @@ export function SectionEditor({ type, sectionId, options }: {
         </>
       );
 
-    case "downloads":
+    case "downloads": {
+      // Files typed in here, or the downloads centre's own (0.131.0).
+      const fromCentre = content.source === "centre";
+      const shelves = options.download_categories ?? [];
       return (
         <>
           <Head />
-          <Repeater path={["items"]} label="Files" subject="File" min={1} max={20} blank={() => ({})} row={(p) => (
+          <Choice path={["source"]} label="Which files" fallback="custom"
+            options={[
+              { value: "custom", label: "Files chosen here" },
+              { value: "centre", label: "From the downloads centre" },
+            ]} />
+          {fromCentre ? (
             <>
-              <Text path={[...p, "title"]} label="Title" required placeholder="AMC brochure" />
-              <FilePath path={[...p, "file_path"]} label="File" noun="a file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
-                hint="From the media library's Files tab. Its size and kind are shown beside the button." />
-              <Text path={[...p, "note"]} label="One line about it" placeholder="Four pages, updated October 2026" />
+              <Row>
+                <NumberChoice path={["category_id"]} label="Category" placeholder="Every category"
+                  options={shelves.map((c) => ({ value: String(c.id), label: c.name }))} />
+                <NumberInput path={["limit"]} label="How many, at most" min={1} max={50} hint="Twelve when left blank." />
+              </Row>
+              <p className="-mt-2 mb-4 text-12-5 text-faint">
+                A live list: what is published in the downloads centre now, with a link to all of it. A customers-only
+                file is listed with a lock. <Link href="/admin/downloads" className="font-semibold text-brand-ink underline">Edit the downloads</Link>.
+              </p>
             </>
-          )} />
+          ) : (
+            <Repeater path={["items"]} label="Files" subject="File" min={1} max={20} blank={() => ({})} row={(p) => (
+              <>
+                <Text path={[...p, "title"]} label="Title" required placeholder="AMC brochure" />
+                <FilePath path={[...p, "file_path"]} label="File" noun="a file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
+                  hint="From the media library's Files tab. Its size and kind are shown beside the button." />
+                <Text path={[...p, "note"]} label="One line about it" placeholder="Four pages, updated October 2026" />
+              </>
+            )} />
+          )}
         </>
       );
+    }
 
     case "countdown":
       return (

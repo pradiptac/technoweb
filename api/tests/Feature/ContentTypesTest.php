@@ -100,10 +100,10 @@ class ContentTypesTest extends TestCase
     public function test_an_entry_slug_is_unique_within_its_type_only(): void
     {
         $this->createType()->assertCreated();
-        $this->createType(['name' => 'Download', 'plural' => 'Downloads', 'slug' => 'downloads'])->assertCreated();
+        $this->createType(['name' => 'Whitepaper', 'plural' => 'Whitepapers', 'slug' => 'whitepapers'])->assertCreated();
 
         $this->createEntry('gatherings')->assertCreated()->assertJsonPath('data.slug', 'launch-day');
-        $this->createEntry('downloads')->assertCreated()->assertJsonPath('data.slug', 'launch-day');
+        $this->createEntry('whitepapers')->assertCreated()->assertJsonPath('data.slug', 'launch-day');
 
         // A generated one steps aside within the type.
         $this->createEntry('gatherings')->assertCreated()->assertJsonPath('data.slug', 'launch-day-2');
@@ -116,11 +116,11 @@ class ContentTypesTest extends TestCase
     public function test_an_entry_of_another_type_is_not_found_through_this_one(): void
     {
         $this->createType()->assertCreated();
-        $this->createType(['name' => 'Download', 'plural' => 'Downloads', 'slug' => 'downloads'])->assertCreated();
-        $id = $this->createEntry('downloads')->json('data.id');
+        $this->createType(['name' => 'Whitepaper', 'plural' => 'Whitepapers', 'slug' => 'whitepapers'])->assertCreated();
+        $id = $this->createEntry('whitepapers')->json('data.id');
 
         $this->actingAs($this->staff(), 'sanctum')->getJson("/api/v1/admin/content-types/gatherings/entries/{$id}")->assertNotFound();
-        $this->actingAs($this->staff(), 'sanctum')->getJson("/api/v1/admin/content-types/downloads/entries/{$id}")->assertOk();
+        $this->actingAs($this->staff(), 'sanctum')->getJson("/api/v1/admin/content-types/whitepapers/entries/{$id}")->assertOk();
     }
 
     public function test_renaming_an_entry_leaves_a_301_under_its_type(): void

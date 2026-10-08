@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\V1\Admin\ClientController as AdminClientController;
 use App\Http\Controllers\Api\V1\Admin\ContentBlockController as AdminContentBlockController;
 use App\Http\Controllers\Api\V1\Admin\ContentTypeController;
 use App\Http\Controllers\Api\V1\Admin\CustomFieldGroupController;
+use App\Http\Controllers\Api\V1\Admin\DownloadCategoryController as AdminDownloadCategoryController;
+use App\Http\Controllers\Api\V1\Admin\DownloadController as AdminDownloadController;
 use App\Http\Controllers\Api\V1\Admin\EntryController;
 use App\Http\Controllers\Api\V1\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Api\V1\Admin\FaqController as AdminFaqController;
@@ -336,6 +338,27 @@ Route::middleware('role:content_manager')->group(function () {
     Route::get('service-categories/{service_category:id}', [AdminServiceCategoryController::class, 'show'])->name('service-categories.show');
     Route::patch('service-categories/{service_category:id}', [AdminServiceCategoryController::class, 'update'])->name('service-categories.update');
     Route::delete('service-categories/{service_category:id}', [AdminServiceCategoryController::class, 'destroy'])->name('service-categories.destroy');
+
+    /*
+     * The downloads centre (0.131.0, docs/downloads.md). `options` is
+     * declared above `{download:id}`, or the parameter would bind the
+     * literal "options" and 404 from model binding — the `media/move` trap.
+     * A write may arrive as multipart with the file, on POST with
+     * `_method=PATCH` for an edit. `file` streams a private upload to staff.
+     */
+    Route::get('downloads', [AdminDownloadController::class, 'index'])->name('downloads.index');
+    Route::get('downloads/options', [AdminDownloadController::class, 'options'])->name('downloads.options');
+    Route::post('downloads', [AdminDownloadController::class, 'store'])->name('downloads.store');
+    Route::get('downloads/{download:id}', [AdminDownloadController::class, 'show'])->name('downloads.show');
+    Route::get('downloads/{download:id}/file', [AdminDownloadController::class, 'file'])->name('downloads.file');
+    Route::patch('downloads/{download:id}', [AdminDownloadController::class, 'update'])->name('downloads.update');
+    Route::delete('downloads/{download:id}', [AdminDownloadController::class, 'destroy'])->name('downloads.destroy');
+
+    Route::get('download-categories', [AdminDownloadCategoryController::class, 'index'])->name('download-categories.index');
+    Route::post('download-categories', [AdminDownloadCategoryController::class, 'store'])->name('download-categories.store');
+    Route::get('download-categories/{download_category:id}', [AdminDownloadCategoryController::class, 'show'])->name('download-categories.show');
+    Route::patch('download-categories/{download_category:id}', [AdminDownloadCategoryController::class, 'update'])->name('download-categories.update');
+    Route::delete('download-categories/{download_category:id}', [AdminDownloadCategoryController::class, 'destroy'])->name('download-categories.destroy');
 
     // Owners first: the picker needs it before the form can save.
     Route::get('faq-owners', [AdminFaqController::class, 'owners'])->name('faq-owners.index');

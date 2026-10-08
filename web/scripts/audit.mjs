@@ -132,6 +132,8 @@ const ADMIN_ROUTES = [
   // Events (docs/events.md): the list, the seven-panel form and the settings.
   // An event's edit form and its registrations are DISCOVER entries below.
   "/admin/events", "/admin/events/new", "/admin/events/settings",
+  // The downloads centre (0.131.0): the list, both new forms, the categories.
+  "/admin/downloads", "/admin/downloads/new", "/admin/downloads/categories", "/admin/downloads/categories/new",
   // Custom fields and content types (docs/custom-content.md).
   "/admin/custom-fields", "/admin/custom-fields/new",
   "/admin/content-types", "/admin/content-types/new", "/admin/content",
@@ -188,6 +190,8 @@ const DISCOVER = [
   // the list links to an event's registrations only once it takes any, and
   // the screen (its empty state included) exists for every event.
   { from: "/admin/events", match: /^\/admin\/events\/\d+$/, admin: true },
+  { from: "/admin/downloads", match: /^\/admin\/downloads\/\d+$/, admin: true },
+  { from: "/admin/downloads/categories", match: /^\/admin\/downloads\/categories\/\d+$/, admin: true },
   { from: "/admin/events", match: /^\/admin\/events\/\d+$/, admin: true, suffix: "/registrations" },
   { from: "/admin/blog", match: /^\/admin\/blog\/\d+$/, admin: true },
   { from: "/admin/jobs", match: /^\/admin\/jobs\/\d+$/, admin: true },
@@ -282,6 +286,7 @@ const DEFAULT_ROUTES = [
   // than in `shared.mjs` so `perf.mjs`'s route set is unchanged; an event's
   // own page is a DISCOVER entry above.
   "/events", "/events?when=past",
+  "/downloads",
   ...(haveAdminCredentials ? ADMIN_ROUTES : []),
 ];
 

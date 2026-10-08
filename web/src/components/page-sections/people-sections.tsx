@@ -1,8 +1,11 @@
+import Link from "next/link";
 import { Container } from "@/components/ui/container";
+import { DownloadList, downloadHref, type DownloadRow } from "@/components/downloads/download-list";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { TeamGrid } from "@/components/company/team-grid";
 import { MapEmbed } from "@/components/contact/map-embed";
 import { IconDownload } from "@/components/icons-ui";
+import { formatBytes } from "@/lib/format-bytes";
 import type { SectionRevealAttr } from "@/lib/motion-choices";
 import { cn } from "@/lib/utils";
 import type {
@@ -42,11 +45,47 @@ function size(bytes?: number): string | null {
   return `${(bytes / (1024 * 1024)).toFixed(1).replace(/\.0$/, "")} MB`;
 }
 
-/** One row per file, down one `max-w-3xl` column: its kind, its name, a line about it, its size, and the button. */
+/**
+ * One row per file, down one `max-w-3xl` column: its kind, its name, a line
+ * about it, its size, and the button. Files typed into the section are drawn
+ * here as they always were; a section reading the downloads centre (0.131.0)
+ * draws the centre's own rows, so a file looks the same on a page as it does
+ * on `/downloads`.
+ */
 export function DownloadsSection({ data, reveal }: { data: DownloadsSectionData } & Reveal) {
   const items = data.items ?? [];
   if (!items.length) return null;
   const Title = data.heading ? "h3" : "p";
+
+  if (data.source === "centre") {
+    const rows: DownloadRow[] = items.flatMap((item) => (item.download_id ? [{
+      key: item.download_id,
+      title: item.title,
+      summary: item.note,
+      // The centre's own wording for a size, so a file reads the same here as on `/downloads`.
+      meta: [item.version ? `Version ${item.version}` : null, item.released_label, item.size ? formatBytes(item.size) : null],
+      extension: item.extension,
+      href: downloadHref(item.download_id),
+      locked: item.locked,
+    }] : []));
+    if (!rows.length) return null;
+
+    return (
+      <SectionFrame type="downloads" reveal={reveal}>
+        <Container>
+          <SectionHead kicker={data.kicker} heading={data.heading} lede={data.lede} center />
+          <DownloadList rows={rows} headingLevel={data.heading ? 3 : null} className="mx-auto max-w-3xl" />
+          {data.index_path && (
+            <p className="mx-auto mt-6 max-w-3xl text-center">
+              <Link href={data.index_path} className="text-14 font-semibold text-brand-ink underline-offset-4 hover:underline">
+                All downloads
+              </Link>
+            </p>
+          )}
+        </Container>
+      </SectionFrame>
+    );
+  }
 
   return (
     <SectionFrame type="downloads" reveal={reveal}>

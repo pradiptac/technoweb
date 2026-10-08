@@ -20,6 +20,8 @@ use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\CustomFieldGroup;
 use App\Models\DigitalCode;
+use App\Models\Download;
+use App\Models\DownloadCategory;
 use App\Models\Enquiry;
 use App\Models\Entry;
 use App\Models\Event;
@@ -302,6 +304,10 @@ class AppServiceProvider extends ServiceProvider
             // is bound in an admin route and is the source of a lead.
             'event' => Event::class,
             'event_registration' => EventRegistration::class,
+            // The downloads centre (docs/downloads.md): both are bound in
+            // admin routes, so the activity log can name what was deleted.
+            'download' => Download::class,
+            'download_category' => DownloadCategory::class,
 
             /*
              * The store's own catalogue. `store_product` rather than

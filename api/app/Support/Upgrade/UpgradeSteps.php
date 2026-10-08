@@ -21,6 +21,7 @@ final class UpgradeSteps
         Steps\RebuildStoreSpecs::class,
         Steps\DeriveMeetingPrefix::class,
         Steps\MoveAiToOpenRouter::class,
+        Steps\RetireDownloadsPage::class,
     ];
 
     /** @return list<UpgradeStep> */

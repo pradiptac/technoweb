@@ -81,6 +81,8 @@ const PORTAL_ROUTES = [
   "/portal/visits",
   // Online meetings (docs/meetings.md).
   "/portal/meetings",
+  // The files kept for customers (docs/downloads.md).
+  "/portal/downloads",
   ...(PORTAL_TICKET ? [`/portal/tickets/${PORTAL_TICKET}`] : []),
 ];
 
@@ -148,6 +150,7 @@ const ADMIN_ROUTES = [
   // on the command line: `node scripts/mobile-audit.mjs /admin/events/1
   // /admin/events/1/registrations`.
   "/admin/events", "/admin/events/new", "/admin/events/settings",
+  "/admin/downloads", "/admin/downloads/new", "/admin/downloads/categories", "/admin/downloads/categories/new",
   "/admin/settings/tickets/callback",
   // The store: its own catalogue, its own role, and the table with the most
   // columns in the console -- which is where the phone layout bites.

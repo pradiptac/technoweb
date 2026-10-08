@@ -19,6 +19,7 @@ import { JsonLd, buildMetadata, listingMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ProductGrid } from "@/components/product/product-grid";
 import { CatalogueFilters } from "../catalogue-filters";
+import { DownloadList, downloadRow } from "@/components/downloads/download-list";
 import { publicApi } from "@/lib/api";
 import type { Brand } from "@/types/api";
 import { resolveProductSlug } from "./resolve";
@@ -216,6 +217,14 @@ export default async function ProductOrCategoryPage({
               <div className="rounded-lg border border-line-strong bg-card px-5">
                 <SpecTable specs={specs} />
               </div>
+            </section>
+          )}
+
+          {/* The downloads centre's files for this product (docs/downloads.md): its datasheet, drivers, firmware. */}
+          {(p.downloads?.length ?? 0) > 0 && (
+            <section id="downloads" data-aos="fade-up" className="scroll-mt-24">
+              <h2 className="display-3 mb-5">Downloads</h2>
+              <DownloadList rows={(p.downloads ?? []).map(downloadRow)} className="max-w-4xl" />
             </section>
           )}
 

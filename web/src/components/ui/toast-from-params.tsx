@@ -192,6 +192,17 @@ const OUTCOMES: Record<string, Message> = {
     // fill in as the queue works through it.
     body: "This is the resend's own report. The original campaign's figures are unchanged.",
   },
+  "download-created": { tone: "ok", title: "Download created", body: "Once it is published it is listed on /downloads and on the pages of the products it is attached to." },
+  "download-needs-file": {
+    tone: "info",
+    title: "Saved as a draft",
+    body: "Now add its file here. A download can be published once it has one.",
+  },
+  "download-saved": { tone: "ok", title: "Download saved", body: "The site shows the change on its next load." },
+  "download-deleted": { tone: "ok", title: "Download deleted", body: "It is off the downloads page and off every product page." },
+  "download-category-created": { tone: "ok", title: "Category created", body: "It appears on the downloads page once something published is filed under it." },
+  "download-category-saved": { tone: "ok", title: "Category saved" },
+  "download-category-deleted": { tone: "ok", title: "Category deleted", body: "Its downloads were kept and are now listed without a category." },
   "certification-deleted": {
     tone: "ok",
     title: "Certification deleted",

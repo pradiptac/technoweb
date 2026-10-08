@@ -174,7 +174,7 @@ export function InvoicePanel({ order }: { order: AdminOrder }) {
         </Field>
       </div>
 
-      <Field label="Invoice PDF" htmlFor="invoice"
+      <Field label="Invoice PDF" htmlFor="invoice" variant="above"
         hint={order.has_invoice
           ? "One is attached. Uploading another replaces it — two invoices for one order is a question nobody can answer later."
           : "PDF only, up to 10MB. Stored privately and streamed, never on a public URL."}>

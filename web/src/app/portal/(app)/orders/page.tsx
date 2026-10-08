@@ -38,7 +38,7 @@ export default async function PortalOrdersPage() {
 
   return (
     <>
-      <h1 className="display-3 mb-1">Your orders</h1>
+      <h2 className="display-3 mb-1">Your orders</h2>
       <p className="measure mb-6 text-14 text-muted">
         Everything bought through the shop with this address. An order placed before you had an
         account is still reachable by the link in its confirmation email.

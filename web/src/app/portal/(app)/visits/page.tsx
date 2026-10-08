@@ -28,7 +28,7 @@ export default async function PortalVisitsPage() {
     <>
       <div className="mb-6 flex flex-wrap items-end gap-3">
         <div className="min-w-0">
-          <h1 className="display-3 mb-1">Your visits</h1>
+          <h2 className="display-3 mb-1">Your visits</h2>
           <p className="measure text-14 text-muted">
             Engineer visits you have asked for while signed in. A request made without signing in is
             reachable from the link in its email.

@@ -28,7 +28,7 @@ export default async function PortalMeetingsPage() {
     <>
       <div className="mb-6 flex flex-wrap items-end gap-3">
         <div className="min-w-0">
-          <h1 className="display-3 mb-1">Your meetings</h1>
+          <h2 className="display-3 mb-1">Your meetings</h2>
           <p className="measure text-14 text-muted">
             Video calls you have booked while signed in. A meeting booked without signing in is
             reachable from the link in its email.

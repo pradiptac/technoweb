@@ -35,7 +35,7 @@ export default async function PortalWishlistPage() {
 
   return (
     <>
-      <h1 className="display-3 mb-1">Your wishlist</h1>
+      <h2 className="display-3 mb-1">Your wishlist</h2>
       <p className="measure mb-6 text-14 text-muted">
         Things you have saved in the shop, at today&apos;s prices. We email you once when something here
         is back in stock or its price comes down — never between 9pm and 9am.

@@ -161,6 +161,7 @@ Contents:
   - Look and feel: textures, illustrations, progress, onboarding — `docs/look-and-feel.md`
   - Events — `docs/events.md`
   - CDNs and versioned media URLs — `docs/cdn.md`
+  - The downloads centre — `docs/downloads.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -2962,6 +2963,26 @@ A media CDN setting for files a browser fetches itself, a site that is safe behi
 - Behind a proxying CDN the connecting address is the CDN's: `CLIENT_IP_HEADER` accepts `cf-connecting-ip` and `true-client-ip` beside `x-real-ip` (`lib/client-ip.ts`), safe only while the origin accepts the CDN alone. System → Status reads the request's own headers (`lib/cdn.ts`) and says when a CDN is in front and the setting is not.
 - `scripts/probes/media-cdn.mjs` stands a CDN in with a routed origin; `MediaCdnTest`.
 
+### The downloads centre — `docs/downloads.md`
+
+Datasheets, drivers and firmware by category on `/downloads`, attachable to catalogue and shop products, public or customers-only (0.131.0).
+
+- A download's file is a media-library path (`source: library`) **or** a private upload (`source: upload`, `downloads/<random>.<ext>` on the private disk, owned and deleted by the row). `App\Support\Downloads\DownloadFiles` is the one place that knows where a private file lives.
+- **`customers` access on a library file is refused on write**: a library file has a public URL, so the lock would be on a door with no wall. Customers-only needs an upload.
+- **No file's address is ever in a public response** — a library file's either. Every download goes through the website's `/api/downloads/{id}`, which asks `GET /downloads/{id}/file`: that is what counts the download and what asks who is reading a customers-only one.
+- That API route is public, so the customer is `$request->user('sanctum')` narrowed to a `Customer` who may sign in (and the portal open) — never `$request->user()`. `DownloadsTest` sends a real Bearer header.
+- The count is a query-builder increment (`DownloadFiles::count()`): it must not move `updated_at`, which is `/downloads`' `lastmod`.
+- A link to a file is a plain `<a>`, never `next/link` (a prefetch would be counted); a locked row's link has no `download` attribute and no `target`, because a signed-out visitor is redirected to the sign-in page.
+- A private upload is held to an **extension allowlist** and always answered as `attachment` + `application/octet-stream` + `nosniff`. Firmware cannot be sniffed; private disk + never rendered + staff-only upload is what makes it safe.
+- `Download::scopePublished()` is published **with a file behind it** on a shelf that is not switched off; the request refuses `published` without a file, checked against what the row *will be*.
+- The form posts JSON through its Server Action until it carries a file; then `useUploadForm` sends multipart to `/api/admin/downloads[/{id}]` — `POST` with `_method=PATCH` for an edit, `relations_sent` standing in for "an empty list", and `downloadUploadedAction()` purging afterwards because a route handler cannot `updateTag`.
+- A save purges `downloads`, `menus` and every tag a builder section can sit under (`SHOWS_DOWNLOADS`).
+- A customers-only download is **listed for everybody** with `locked: true`; the list pages are cached and must not differ per visitor.
+- The builder's `downloads` section takes `source: centre` (+ `category_id`, `limit`): items carry `download_id` and no `url`; `custom` is the default and never stored.
+- `/downloads` was a seeded CMS page: `PageSeeder` no longer makes it, `downloads` is in `ReservedSlugs`, and the `RetireDownloadsPage` upgrade step renames an existing page to a draft `downloads-page` **through the query builder** (no 301), turns menu items into `section` items and deletes any redirect *from* `/downloads`. A custom content type with that slug is not moved — its list page is shadowed.
+- `scripts/probes/downloads.mjs` drives the upload, the public page, the sign-in redirect and a customer's fetch. A probe's screenshot passes `caret: "initial"`: Playwright's default sets an inline style on every input, and one taken mid-hydration logs a mismatch that is the probe's own.
+- Portal pages title themselves with `h2`: the portal layout's "Support portal" is the page's one `h1` (orders, wishlist, visits and meetings each had a second until 0.131.0).
+
 ## Conventions
 
 - Never hard-code a hex. If a colour is not in `globals.css`, it does not ship.
@@ -3146,6 +3167,10 @@ badge printing or check-in apps.
     one a draft except `site-audit`, the default closing band, whose words
     are the band's own; the stat samples reuse the hero's invented figures
     and the pricing sample (AMC plans) is invented outright.
+  - The three sample downloads from `SampleDownloadSeeder` (0.131.0, demo
+    only): titled "Sample …", two generated one-line PDFs and one
+    customers-only text file standing in for firmware, attached to the first
+    product and shop product. Delete them before launch.
   - The placeholder hardware and installation services from
     `SampleServiceSeeder` (2026-09-29, demo only), filed under the two
     service categories beside Web services: every word invented — and the

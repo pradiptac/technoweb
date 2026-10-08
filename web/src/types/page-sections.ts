@@ -120,8 +120,22 @@ export type TestimonialItem = Picture<"photo"> & { quote: string; name: string; 
 export type TestimonialsSectionData = Head & { items: TestimonialItem[] };
 /** The team as a live list — the public read carries `members` in `/team`'s shape. */
 export type TeamSectionData = Head & { department?: string; limit?: number; group?: boolean; members?: TeamMember[] };
-/** Each file resolved from the library: its address, size in bytes and extension. */
-export type DownloadsSectionData = Head & { items: { title: string; note?: string; url: string; size?: number; extension?: string }[] };
+/**
+ * Each file resolved for the page: a typed one from the library carries its
+ * `url`; one read from the downloads centre (`source: "centre"`, 0.131.0)
+ * carries `download_id` instead and is fetched through `/api/downloads/{id}`.
+ */
+export type DownloadsSectionData = Head & {
+  source?: "custom" | "centre";
+  category_id?: number;
+  limit?: number;
+  /** Where "All downloads" goes, for a section reading the centre. */
+  index_path?: string;
+  items: {
+    title: string; note?: string; url?: string; size?: number; extension?: string;
+    download_id?: number; locked?: boolean; version?: string; released_label?: string;
+  }[];
+};
 /** `ends_at` is an instant with its offset; `ends_label` the API's words for it. */
 export type CountdownSectionData = Head & {
   heading: string; ends_at: string; ends_label?: string; done_text?: string;
@@ -251,6 +265,8 @@ export type PageBuilderOptions = {
   forms: { id: number; name: string; slug: string }[];
   product_categories: { id: number; name: string; slug: string }[];
   store_categories: { id: number; name: string; slug: string }[];
+  /** The downloads centre's shelves a downloads section may name (0.131.0). Optional for an older API. */
+  download_categories?: { id: number; name: string; slug: string }[];
   /** The section library and the page templates (0.106.0). Optional for an older API. */
   library?: {
     sections: { id: number; name: string; type: string | null }[];

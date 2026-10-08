@@ -6,6 +6,7 @@ use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\Customer;
+use App\Models\Download;
 use App\Models\Entry;
 use App\Models\Event;
 use App\Models\Lead;
@@ -156,6 +157,18 @@ class SearchController extends Controller
                         'label' => $e->title,
                         'sub' => implode(' · ', array_filter([EventText::dateLabel($e), self::label($e->getAttribute('status'))])),
                         'admin_path' => $e->adminPath(),
+                    ]),
+            ];
+
+            // The downloads centre (docs/downloads.md), by title or file name.
+            $groups[] = [
+                'type' => 'download', 'label' => 'Downloads',
+                'items' => Download::where(fn ($w) => $w->where('title', 'like', $like)->orWhere('file_name', 'like', $like))
+                    ->orderBy('title')->limit(self::PER_GROUP)->get()
+                    ->map(fn (Download $d) => [
+                        'label' => $d->title,
+                        'sub' => implode(' · ', array_filter([$d->version, self::label($d->getAttribute('status'))])),
+                        'admin_path' => $d->adminPath(),
                     ]),
             ];
 

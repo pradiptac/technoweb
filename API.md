@@ -314,7 +314,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/knowledge-base/{slug}` | |
 | `POST` | `/knowledge-base/{slug}/helpful` | "Was this helpful?" Throttled 10/min. **204 always** — a draft counts nothing and answers the same, and so does a slug nobody wrote (it used to 404, which made a draft's 204 the tell) |
 | `GET` | `/pages` | Published CMS pages, **without bodies**. For the sitemap |
-| `GET` | `/pages/{slug}` | CMS pages — `/privacy`, `/terms`, `/downloads`. A `builder` page adds `sections` (see "The section page builder") |
+| `GET` | `/pages/{slug}` | CMS pages — `/privacy`, `/terms` and anything an editor adds. A `builder` page adds `sections` (see "The section page builder") |
 | `GET` | `/ticket-categories` | Powers the submit-a-ticket form |
 | `GET` | `/settings` | Site settings. **Whitelisted by group**, see below |
 | `GET` | `/search?q=` | Site-wide search, grouped by type. Min 2 characters, **max 100** (422 above), 5 per group. `%` and `_` match themselves. Throttled 240/min under the `search` key — every visitor reaches it through the one Next server |
@@ -1755,6 +1755,111 @@ Nothing in it reaches the public `/settings` map.
 `technoware:remind-events`, every fifteen minutes, sends `event_reminder`
 once to each confirmed registrant of a published event starting within that
 many hours; somebody confirmed inside the window is not reminded.
+
+## Downloads
+
+The downloads centre (0.131.0): datasheets, drivers and firmware, filed by
+category, attachable to products, public or customers-only. The rules are in
+`docs/downloads.md`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/downloads` | Published downloads that have a file, on a category that is switched on. `?q=` (title, summary, version, file name; `%` and `_` match themselves; at most 100 characters), `?category=<slug>`, `?access=public\|customers` (an unknown value is ignored), `?page=`, `?per_page=` (max 100, default 24). Ordered by category, then `sort_order`, then newest release, then title; uncategorised last. Paginated |
+| `GET` | `/download-categories` | The active categories that hold a published download, in order: `{id, name, slug, description, count}`. Plain collection, 200 when empty. `meta: {total, updated_at}` — every published download, and the newest change among them (null with none) |
+| `GET` | `/downloads/{id}/file` | The file. `{id}` is digits only. Throttled 60/min. See below |
+| `GET` | `/admin/downloads` | `role:content_manager`. `?q=`, `?status=`, `?access=`, `?category=<id>\|none`, `?sort=title\|released\|count\|status\|updated` with `?dir=`, `?per_page=` (max 100, default 25). Newest change first. `meta` adds the form's vocabulary (below) |
+| `GET` | `/admin/downloads/options` | The form's vocabulary plus `categories[{id, name, is_active}]`, `products[{id, name}]` and `store_products[{id, name}]` (up to 500 each). **Declared above `{download:id}`** |
+| `POST` | `/admin/downloads` | **201**. JSON, or `multipart/form-data` with `file` |
+| `GET` | `/admin/downloads/{id}` | The detail shape |
+| `PATCH` | `/admin/downloads/{id}` | JSON; or a multipart `POST` carrying `_method=PATCH`, with `file` |
+| `DELETE` | `/admin/downloads/{id}` | **204**. A private upload is deleted with it; a library file stays in the library |
+| `GET` | `/admin/downloads/{id}/file` | Streams a private upload to staff. 404 for a library download or a missing file |
+| `GET`/`POST` | `/admin/download-categories` | `role:content_manager`. Up to 100, in order, each with `downloads_count` |
+| `GET`/`PATCH`/`DELETE` | `/admin/download-categories/{id}` | Deleting keeps the downloads, uncategorised |
+
+**The public download** is `{id, title, summary, version, released_on,
+released_label, access, locked, category: {id, name, slug} | null, file:
+{name, extension, size} | null, updated_at}`. `released_label` is the API's
+words for the date ("8 October 2026"); `locked` is true for `customers`.
+**It never carries a file's address, a path or `download_count`** — for a
+library file either.
+
+**`GET /downloads/{id}/file` is the only door to a file.** It answers:
+
+- **404** for a draft, an archived download, one with no file, one whose
+  file has gone, one on a switched-off category, and an id nobody has.
+- **401** `{message, reason: "sign_in_required"}` for a customers-only
+  download unless the request carries a portal bearer of a customer who may
+  sign in, while the portal is open. The route is public, so the customer is
+  read with the `sanctum` guard named. A staff token is not a customer.
+  Nothing is counted.
+- **200** `{data: {url}}` for a library file — the file's public address
+  (versioned once edited, on the media CDN when one is on).
+- **200** with the bytes for a private upload: `Content-Disposition:
+  attachment` under the name it was uploaded as, `Content-Type:
+  application/octet-stream`, `X-Content-Type-Options: nosniff`,
+  `Cache-Control: private, no-store`.
+
+Each 200 adds one to the download's count, without changing its
+`updated_at`.
+
+**Writing a download.** `title` (required, 160), `summary` (500),
+`download_category_id`, `version` (40), `released_on` (`Y-m-d`), `access`
+(`public`, `customers`), `source` (`library`, `upload`), `file_path` (a path
+the media library holds), `file` (an upload), `status` (`draft`, `published`,
+`archived`), `sort_order` (0–65535), `product_ids[]` and
+`store_product_ids[]` (each replaced wholesale when sent, left alone when
+absent, at most 200). Defaults on create: `public`, `library`, `draft`.
+
+- `file` must have one of `meta.extensions` and be no larger than
+  `meta.max_upload_kb`; it is stored on the private disk under a random
+  name, its own name kept as a label. Sent with `source: library` it is a
+  422 on `file`.
+- **422 on `access`**: `customers` with `source: library` — a library file
+  has a public address.
+- **422 on `status`**: `published` with no file.
+- Both are checked against what the download will be: a `PATCH` naming one
+  half is compared with the stored other half.
+- `source: upload` clears `file_path`; `source: library` deletes the private
+  upload. A new upload replaces the old one, which is deleted after the save.
+- A multipart body cannot carry an empty list: `relations_sent=1` makes an
+  absent `product_ids` / `store_product_ids` mean none.
+
+**The admin download** adds `access_label`, `source`, `source_label`,
+`file_path` (library only), `file` (with `mime`), `has_file`, `file_missing`
+(it names a file nothing answers for), `status`, `sort_order`,
+`download_count`, `download_category_id`, `category: {id, name, is_active}`,
+`attached_count` and — on the detail shape — `product_ids`,
+`store_product_ids`, `products[{id, name}]`, `store_products[{id, name}]`.
+The private path is never returned.
+
+**The form's vocabulary** rides on the index's `meta`, on `options`, and
+beside every read and write: `accesses[{value, label, blurb}]`,
+`sources[{value, label, blurb}]`, `statuses[{value, label}]`, `extensions[]`
+and `max_upload_kb` — `DOWNLOADS_MAX_UPLOAD_KB` (default 524288) or php.ini's
+ceiling when that is lower.
+
+**A category** is `name` (required, 120), `slug` (lower-case letters, digits
+and single dashes, unique; derived from the name when blank, on create and
+on edit), `description` (500), `sort_order`, `is_active` (default true).
+Switching one off takes its downloads off every public read.
+
+**Where else.** `GET /products/{slug}` and `GET /store/products/{slug}`
+carry `downloads` — the product's published downloads in the public shape,
+by `sort_order`, newest release, title; list rows carry no key. `GET
+/search` gains a group of type `download` (label "Downloads"; each result's
+`path` is `/downloads?q=<title>` and its `kicker` the category);
+`GET /admin/search` gains one for a content manager. `GET /admin/menus`
+offers the section `downloads`, dropped at render until a download is
+published. `downloads` cannot be a CMS page's or a content type's slug.
+`GET /admin/pages/builder` adds `download_categories[{id, name, slug}]`, and
+a builder `downloads` section's `data` takes `source` (`custom`, the default
+and not stored, or `centre`), `category_id` (must exist, 422 on
+`blocks.N.data.category_id`) and `limit` (1–50, default 12): with `centre`,
+`items` is not required and not kept, and the public read carries the
+centre's published downloads as `items[{title, note?, version?,
+released_label?, download_id, locked?, size, extension}]` with `index_path:
+"/downloads"` — no `url` — and drops the section when there are none.
 
 ## The store
 

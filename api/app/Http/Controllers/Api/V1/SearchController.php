@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
+use App\Models\Download;
 use App\Models\Entry;
 use App\Models\Event;
 use App\Models\Industry;
@@ -113,6 +114,7 @@ class SearchController extends Controller
                     ->orWhere('body', 'like', $like)),
                 'title', 'body'),
             $this->events($term),
+            $this->downloads($term),
             $this->entries($like),
         ])->filter(fn (?array $g) => $g !== null)->values();
 
@@ -212,6 +214,23 @@ class SearchController extends Controller
             'excerpt' => $this->trim($e->summary ?: $e->body),
             'path' => $e->publicPath(),
             'kicker' => EventText::dateLabel($e),
+        ]);
+    }
+
+    /**
+     * Files of the downloads centre (docs/downloads.md). A download has no
+     * page of its own, so its result opens the centre searched for it; the
+     * shelf it sits on is the kicker.
+     */
+    private function downloads(string $term): ?array
+    {
+        $query = Download::query()->published()->with('category')->search($term)->shelved();
+
+        return $this->build('download', 'Downloads', '/downloads', $query, fn (Download $d) => [
+            'title' => (string) $d->title,
+            'excerpt' => $this->trim($d->summary),
+            'path' => '/downloads?q='.rawurlencode((string) $d->title),
+            'kicker' => $d->category?->name,
         ]);
     }
 

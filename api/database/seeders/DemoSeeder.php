@@ -43,6 +43,10 @@ class DemoSeeder extends Seeder
             // Three placeholder events — a seminar, a webinar and a trade
             // show — dated from today. Created only while there are none.
             SampleEventSeeder::class,
+            // Three shelves and three placeholder files for the downloads
+            // centre, after the products they are attached to. Created only
+            // while there are none.
+            SampleDownloadSeeder::class,
             // A worked support desk: a portal login, tickets across every
             // status and a couple of enquiries.
             DemoSupportSeeder::class,

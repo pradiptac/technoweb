@@ -13,6 +13,7 @@ use App\Http\Requests\StorePageRequest;
 use App\Http\Requests\UpdatePageRequest;
 use App\Http\Resources\Admin\PageResource;
 use App\Models\ContentBlock;
+use App\Models\DownloadCategory;
 use App\Models\Form;
 use App\Models\Gallery;
 use App\Models\Page;
@@ -205,6 +206,8 @@ class PageController extends Controller
             'forms' => $published(Form::class),
             'product_categories' => ProductCategory::query()->orderBy('name')->get(['id', 'name', 'slug']),
             'store_categories' => StoreCategory::query()->orderBy('name')->get(['id', 'name', 'slug']),
+            // A downloads section reading the centre may name one shelf (0.131.0).
+            'download_categories' => DownloadCategory::query()->active()->ordered()->get(['id', 'name', 'slug']),
         ]]);
     }
 

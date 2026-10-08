@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model implements Answerable, Faqable
@@ -87,6 +88,31 @@ class Product extends Model implements Answerable, Faqable
     public function relatedProducts(): BelongsToMany
     {
         return $this->belongsToMany(self::class, 'product_related', 'product_id', 'related_product_id');
+    }
+
+    /**
+     * The files of the downloads centre attached to this product
+     * (0.131.0, docs/downloads.md).
+     *
+     * @return MorphToMany<Download, $this>
+     */
+    public function downloads(): MorphToMany
+    {
+        return $this->morphToMany(Download::class, 'downloadable');
+    }
+
+    /**
+     * The ones a visitor may be shown, in the order the centre lists them
+     * within a shelf. What the product page loads.
+     *
+     * @return MorphToMany<Download, $this>
+     */
+    public function publishedDownloads(): MorphToMany
+    {
+        return $this->downloads()->published()
+            ->orderBy('downloads.sort_order')
+            ->orderByDesc('downloads.released_on')
+            ->orderBy('downloads.title');
     }
 
     /** @return MorphMany<Faq, $this> */

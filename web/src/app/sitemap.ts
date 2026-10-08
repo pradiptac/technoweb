@@ -110,7 +110,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const [
       solutions, services, industries, categories, products,
       posts, articles, caseStudies, pages, careers,
-      storeProducts, storeCategories, taxonomy, landing, settings, events,
+      storeProducts, storeCategories, taxonomy, landing, settings, events, downloads,
     ] = await Promise.all([
       publicApi.solutions().then((r) => r.data),
       publicApi.services().then((r) => r.data),
@@ -154,6 +154,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         all((q) => publicApi.events(`${q}&when=upcoming`), 50),
         all((q) => publicApi.events(`${q}&when=past`), 50),
       ]).then((lists) => lists.flat()).catch(() => [] as EventSummary[]),
+      // The downloads centre: how many files it holds and when one last
+      // changed. On its own `catch` — a failure leaves the page out, no more.
+      publicApi.downloadCategories().then((r) => r.meta).catch(() => null),
     ]);
 
     /*
@@ -209,6 +212,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         const d = indexDates[e.url.slice(SITE.url.length)];
         return d ? { ...e, lastModified: d } : e;
       }),
+      // The downloads centre (docs/downloads.md), once it holds a file: an
+      // empty one is a page that says "nothing yet", which is not worth a crawl.
+      ...(downloads && downloads.total > 0 ? [entry("/downloads", 0.6, "weekly", when(downloads.updated_at))] : []),
       ...included(solutions).map((s) => entry(`/solutions/${s.slug}`, 0.8, "monthly", when(s.updated_at))),
       ...included(services).map((s) => entry(`/services/${s.slug}`, 0.7, "monthly", when(s.updated_at))),
       ...included(industries).map((i) => entry(`/industries/${i.slug}`, 0.6, "monthly", when(i.updated_at))),
@@ -235,7 +241,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...included(storeProducts).map((p) => entry(`/store/products/${p.slug}`, 0.7, "weekly", when(p.updated_at))),
       ...taxonomy.categories.map((c) => entry(`/blog/category/${c.slug}`, 0.5, "weekly")),
       ...landing.map((l) => entry(l.path, 0.6, "monthly", when(l.updated_at))),
-      // /privacy, /terms, /downloads and anything else an editor publishes.
+      // /privacy, /terms and anything else an editor publishes.
       ...included(otherPages).map((p) => entry(`/${p.slug}`, 0.4, "yearly", when(p.updated_at))),
       ...custom.flatMap(({ type, entries }) => [
         ...(type.archive_enabled ? [entry(type.path, 0.6, "weekly", when(type.updated_at))] : []),

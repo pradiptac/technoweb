@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Prose, SpecTable } from "@/components/ui/prose";
 import { IconCheck } from "@/components/icons";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
+import { DownloadList, downloadRow } from "@/components/downloads/download-list";
 import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { AddToBasket } from "@/components/store/add-to-basket";
@@ -403,6 +404,14 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
             <div className="mt-14">
               <h2 className="display-3 mb-4">Details</h2>
               <Prose html={product.description} />
+            </div>
+          )}
+
+          {/* The downloads centre's files for this product (docs/downloads.md): its datasheet, drivers, firmware. */}
+          {(product.downloads?.length ?? 0) > 0 && (
+            <div id="downloads" className="mt-14 scroll-mt-24">
+              <h2 className="display-3 mb-4">Downloads</h2>
+              <DownloadList rows={(product.downloads ?? []).map(downloadRow)} className="max-w-4xl" />
             </div>
           )}
 
