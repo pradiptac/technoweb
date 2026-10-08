@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { OrderTimeline } from "@/components/store/order-timeline";
 import { Badge } from "@/components/ui/badge";
+import { RETURN_TONE } from "@/components/store/order-returns";
 import { ButtonLink } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { getStoreOrder } from "@/lib/admin";
@@ -78,6 +79,24 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
           */}
           <RecordPaymentPanel order={order} />
           <RecordRefundPanel order={order} />
+
+          {/* What the customer has asked to send back (docs/store.md "Returns"); each is worked on its own screen. */}
+          {(order.returns?.length ?? 0) > 0 && (
+            <Card as="section" interactive={false} padding="md">
+              <h2 className="mb-3 text-15 font-semibold">Returns</h2>
+              <ul className="grid gap-2">
+                {(order.returns ?? []).map((r) => (
+                  <li key={r.reference} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-14">
+                    <Link href={r.admin_path} className="font-mono font-semibold text-brand-ink hover:underline">{r.reference}</Link>
+                    <Badge tone={RETURN_TONE[r.status]}>{r.status_label}</Badge>
+                    <span className="text-13 text-muted">
+                      {r.items_count} item{r.items_count === 1 ? "" : "s"} · {r.reason_label}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
 
           {order.awaiting_codes && <FulfilPanel order={order} />}
 

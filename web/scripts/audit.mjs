@@ -92,6 +92,7 @@ const ADMIN_ROUTES = [
   "/admin/store/products", "/admin/store/products/new", "/admin/store/products/import",
   "/admin/store/categories", "/admin/store/categories/new",
   "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new", "/admin/store/reviews",
+  "/admin/store/returns",
   "/admin/store/reports",
   // The Campaign section. Seven screens behind one sidebar entry, and none
   // of them was in this list or the phone one until the Verification tab was
@@ -264,6 +265,7 @@ const DISCOVER = [
   { from: "/admin/store/products", match: /^\/admin\/store\/products\/\d+$/, admin: true },
   { from: "/admin/store/categories", match: /^\/admin\/store\/categories\/\d+$/, admin: true },
   { from: "/admin/store/orders", match: /^\/admin\/store\/orders\/[A-Z0-9-]+$/, admin: true },
+  { from: "/admin/store/returns", match: /^\/admin\/store\/returns\/[A-Z0-9-]+$/, admin: true },
   { from: "/admin/store/coupons", match: /^\/admin\/store\/coupons\/\d+$/, admin: true },
   // The code inventory hangs off a product, so it is reached the way a person
   // reaches it: open the first product, then its codes.

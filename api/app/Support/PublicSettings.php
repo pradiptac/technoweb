@@ -44,7 +44,7 @@ class PublicSettings
      * because the settings screen reads them from `store` and a migration
      * of the rows would be a second change for the same fact.
      */
-    public const PRIVATE_KEYS = ['activation_procedure', 'activation_pdf_path', 'digital_auto_fulfil'];
+    public const PRIVATE_KEYS = ['activation_procedure', 'activation_pdf_path', 'digital_auto_fulfil', 'store_return_instructions'];
 
     /** The settings pictures that publish a blurred preview: the ones drawn large. */
     private const BLUR_PREFIXES = ['banner_', 'login_image', 'coming_soon_image', 'store_promo_image', 'store_tile_'];

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\CustomerMeetingController;
 use App\Http\Controllers\Api\V1\CustomerOrderController;
 use App\Http\Controllers\Api\V1\CustomerVisitController;
 use App\Http\Controllers\Api\V1\MessagingPreferenceController;
+use App\Http\Controllers\Api\V1\OrderReturnController;
 use App\Http\Controllers\Api\V1\ProductReviewController;
 use App\Http\Controllers\Api\V1\TicketController;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +39,9 @@ Route::middleware(['customer', 'portal'])->group(function () {
      */
     Route::get('my/orders', [CustomerOrderController::class, 'index'])->name('my.orders.index');
     Route::get('my/orders/{orderNumber}', [CustomerOrderController::class, 'show'])->name('my.orders.show');
+    // A return of one of their own orders (docs/store.md "Returns").
+    Route::post('my/orders/{orderNumber}/returns', [OrderReturnController::class, 'storeMine'])
+        ->middleware('throttle:10,1')->name('my.orders.returns.store');
 
     // Their engineer visit requests — `my/` for the `my/orders` reason:
     // `visits/{reference}` is the guest route, authorised by a token.

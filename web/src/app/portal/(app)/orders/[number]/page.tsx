@@ -11,6 +11,8 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { Order } from "@/types/api";
 import { Card } from "@/components/ui/card";
+import { ReturnsSection } from "@/components/store/returns-section";
+import { requestMyReturnAction } from "./actions";
 
 const TONE: Record<string, "resolved" | "open" | "progress" | "closed" | "urgent"> = {
   pending_payment: "open",
@@ -162,6 +164,15 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
           </Card>
         </div>
       </div>
+
+      {/* Returns (docs/store.md "Returns"): what is coming back, and the form while the window is open. */}
+      <ReturnsSection
+        order={order}
+        action={requestMyReturnAction.bind(null, order.order_number)}
+        uploadUrl={`/api/portal/orders/${order.order_number}/returns`}
+        loginPath="/portal/login"
+        className="mt-5"
+      />
     </>
   );
 }

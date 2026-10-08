@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Admin\Store\ProductController as AdminStoreProdu
 use App\Http\Controllers\Api\V1\Admin\Store\ProductImportController as AdminStoreProductImportController;
 use App\Http\Controllers\Api\V1\Admin\Store\PromoController as AdminStorePromoController;
 use App\Http\Controllers\Api\V1\Admin\Store\ReportController as AdminStoreReportController;
+use App\Http\Controllers\Api\V1\Admin\Store\ReturnController as AdminStoreReturnController;
 use App\Http\Controllers\Api\V1\Admin\Store\ReviewController as AdminStoreReviewController;
 use App\Http\Controllers\Api\V1\Admin\Store\StockController as AdminStoreStockController;
 use Illuminate\Support\Facades\Route;
@@ -126,4 +127,22 @@ Route::middleware('role:store_manager')->group(function () {
     Route::post('store/orders/{order}/payments', [AdminStoreOrderController::class, 'recordPayment'])->name('store.orders.payments');
     Route::post('store/orders/{order}/refunds', [AdminStoreOrderController::class, 'recordRefund'])->name('store.orders.refunds');
     Route::post('store/orders/{order}/fulfil', [AdminStoreOrderController::class, 'fulfil'])->name('store.orders.fulfil');
+
+    /*
+     * The returns desk (0.132.0, docs/store.md "Returns"), bound by
+     * reference like an order by its number. No `store` — a return exists
+     * because a customer asked for one — and no `destroy`. Each move is its
+     * own route because each does something besides write the status:
+     * mails the customer, puts stock back, records a refund.
+     */
+    Route::get('store/returns', [AdminStoreReturnController::class, 'index'])->name('store.returns.index');
+    Route::get('store/returns/{order_return}', [AdminStoreReturnController::class, 'show'])->name('store.returns.show');
+    Route::patch('store/returns/{order_return}', [AdminStoreReturnController::class, 'update'])->name('store.returns.update');
+    Route::post('store/returns/{order_return}/approve', [AdminStoreReturnController::class, 'approve'])->name('store.returns.approve');
+    Route::post('store/returns/{order_return}/reject', [AdminStoreReturnController::class, 'reject'])->name('store.returns.reject');
+    Route::post('store/returns/{order_return}/receive', [AdminStoreReturnController::class, 'receive'])->name('store.returns.receive');
+    Route::post('store/returns/{order_return}/refund', [AdminStoreReturnController::class, 'refund'])->name('store.returns.refund');
+    Route::post('store/returns/{order_return}/close', [AdminStoreReturnController::class, 'close'])->name('store.returns.close');
+    Route::get('store/returns/{order_return}/photos/{photo}', [AdminStoreReturnController::class, 'photo'])
+        ->where('photo', '[0-9]+')->name('store.returns.photo');
 });

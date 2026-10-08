@@ -32,6 +32,7 @@ enum WebhookEvent: string
     case MeetingRescheduled = 'meeting.rescheduled';
     case MeetingCancelled = 'meeting.cancelled';
     case EventRegistered = 'event.registered';
+    case ReturnRequested = 'return.requested';
 
     public function label(): string
     {
@@ -52,6 +53,7 @@ enum WebhookEvent: string
             self::MeetingRescheduled => 'An online meeting was moved',
             self::MeetingCancelled => 'An online meeting was cancelled',
             self::EventRegistered => 'Somebody registered for an event',
+            self::ReturnRequested => 'A customer asked to return an order',
         };
     }
 
@@ -75,6 +77,7 @@ enum WebhookEvent: string
             self::MeetingRescheduled => 'A meeting moved to a new time or host, with the time it moved from.',
             self::MeetingCancelled => 'A cancelled meeting, with the reason when the desk gave one.',
             self::EventRegistered => 'A new registration for an event, confirmed or on the waiting list, with the event it is for. Never the manage token or the staff note.',
+            self::ReturnRequested => 'A return request, with the order it is for and the lines coming back. Never the staff note or a photograph.',
         };
     }
 

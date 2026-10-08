@@ -1039,6 +1039,7 @@ class SettingController extends Controller
             'visit_reference_prefix' => ['/^[A-Z][A-Z0-9]{1,5}$/i', 'Two to six letters or digits, starting with a letter — for example SV.'],
             'meeting_reference_prefix' => ['/^[A-Z][A-Z0-9]{1,5}$/i', 'Two to six letters or digits, starting with a letter — for example MT.'],
             'order_number_prefix' => ['/^[A-Z][A-Z0-9]{1,5}$/i', 'Two to six letters or digits, starting with a letter — for example ORD.'],
+            'return_reference_prefix' => ['/^[A-Z][A-Z0-9]{1,5}$/i', 'Two to six letters or digits, starting with a letter — for example RMA.'],
         ];
 
         foreach ($request->input('settings', []) as $i => $row) {

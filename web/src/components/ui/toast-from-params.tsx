@@ -203,6 +203,12 @@ const OUTCOMES: Record<string, Message> = {
   "download-category-created": { tone: "ok", title: "Category created", body: "It appears on the downloads page once something published is filed under it." },
   "download-category-saved": { tone: "ok", title: "Category saved" },
   "download-category-deleted": { tone: "ok", title: "Category deleted", body: "Its downloads were kept and are now listed without a category." },
+  "return-approved": { tone: "ok", title: "Return approved", body: "The customer has been emailed how to send it back." },
+  "return-rejected": { tone: "ok", title: "Return declined", body: "The customer has been emailed your reason. Approve it from this screen if that was a mistake." },
+  "return-received": { tone: "ok", title: "Marked as received", body: "The customer has been told. Anything ticked went back into stock." },
+  "return-refunded": { tone: "ok", title: "Refund recorded", body: "It shows on the order, and the customer has been emailed the amount." },
+  "return-closed": { tone: "ok", title: "Return closed", body: "Nobody was emailed." },
+  "return-note-saved": { tone: "ok", title: "Note saved" },
   "certification-deleted": {
     tone: "ok",
     title: "Certification deleted",

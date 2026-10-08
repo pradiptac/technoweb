@@ -59,6 +59,7 @@ use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterTemplate;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderReturn;
 use App\Models\Page;
 use App\Models\Payment;
 use App\Models\Popup;
@@ -306,6 +307,8 @@ class AppServiceProvider extends ServiceProvider
             'event_registration' => EventRegistration::class,
             // The downloads centre (docs/downloads.md): both are bound in
             // admin routes, so the activity log can name what was deleted.
+            // A return (docs/store.md "Returns"): bound in admin routes.
+            'order_return' => OrderReturn::class,
             'download' => Download::class,
             'download_category' => DownloadCategory::class,
 

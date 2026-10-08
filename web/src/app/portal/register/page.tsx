@@ -11,7 +11,7 @@ import { brandName } from "@/lib/brand";
 import { PortalClosed } from "@/components/portal/portal-closed";
 
 export const metadata = buildMetadata({
-  title: "Create a support account",
+  title: "Create a customer account",
   description: `Register for the ${brandName()} support portal to raise and track tickets.`,
   path: "/portal/register",
   seo: noIndex,
@@ -40,7 +40,7 @@ export default async function RegisterPage() {
     <AuthLayout
       settings={settings}
       width="wide"
-      title="Create a support account"
+      title="Create a customer account"
       lede="Register once, then raise tickets and place store orders without picking up the phone."
       footer={
         /*

@@ -153,7 +153,7 @@ class CheckoutController extends Controller
 
         abort_unless(hash_equals($order->access_token, $token), 404);
 
-        return new OrderResource($order->load(['items', 'payments']));
+        return new OrderResource($order->load(['items', 'payments', 'returns.items.orderItem', 'returns.photos']));
     }
 
     /** @return array<string, string|null> */

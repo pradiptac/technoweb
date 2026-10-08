@@ -4,6 +4,7 @@ namespace App\Http\Resources\Admin\Store;
 
 use App\Enums\PaymentMethod;
 use App\Models\Order;
+use App\Models\OrderReturn;
 use App\Support\Store\DigitalFulfilment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -89,6 +90,20 @@ class OrderResource extends JsonResource
              * waiting for.
              */
             'awaiting_codes' => $this->whenLoaded('items', fn () => DigitalFulfilment::isOutstanding($this->resource)),
+
+            // The order's returns (docs/store.md "Returns"), on the detail
+            // read — keyed on `history`, which only that read loads.
+            'returns' => $this->whenLoaded('history', fn () => OrderReturn::query()
+                ->where('order_id', $this->id)->with('items')->orderByDesc('id')->get()
+                ->map(fn (OrderReturn $r) => [
+                    'reference' => $r->reference,
+                    'status' => $r->status->value,
+                    'status_label' => $r->status->label(),
+                    'reason_label' => $r->reason->label(),
+                    'items_count' => (int) $r->items->sum('quantity'),
+                    'requested_at' => $r->created_at?->toIso8601String(),
+                    'admin_path' => $r->adminPath(),
+                ])->values()),
 
             'placed_at' => $this->placed_at?->toIso8601String(),
             'paid_at' => $this->paid_at?->toIso8601String(),

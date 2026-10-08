@@ -194,6 +194,11 @@ first rupee.
   products on the store dashboard.
 - **Order management**: status lifecycle, dispatch notice on status change,
   tracking, uploaded invoices, internal notes, manual payment recording.
+- **Returns (RMA)**: customers ask to send items back from their order page
+  or the portal, inside your return window, with a reason and photographs;
+  the desk approves or declines, marks goods received — restocking what is
+  fit to sell — and records the refund, with the customer emailed and shown
+  the progress at each step.
 - **Sales dashboard and reports** by day, week or month, with medians rather
   than means and refunds beside revenue rather than netted off it.
 - **Google Merchant Center ready**: `Product` structured data with price,

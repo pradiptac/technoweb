@@ -4,6 +4,7 @@ namespace App\Http\Resources\Store;
 
 use App\Models\Order;
 use App\Support\Store\PaymentOptions;
+use App\Support\Store\Returns\ReturnPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -80,6 +81,16 @@ class OrderResource extends JsonResource
             'completed_at' => $this->completed_at?->toIso8601String(),
 
             'items' => OrderItemResource::collection($this->whenLoaded('items')),
+
+            /*
+             * Returns (0.132.0, docs/store.md "Returns"): what has been asked
+             * to come back, and whether the page may offer the form — how
+             * many of each line are left, until when, and the one sentence
+             * to show when it may not. On the order's own read only; a list
+             * row carries neither key.
+             */
+            'returns' => OrderReturnResource::collection($this->whenLoaded('returns')),
+            'return_policy' => $this->whenLoaded('returns', fn () => ReturnPolicy::describe($this->resource)),
 
             /*
              * The payment attempts, reduced to what a customer can act on: the

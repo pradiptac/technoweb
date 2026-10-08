@@ -139,3 +139,16 @@ export async function rescheduleMyVisit(reference: string, preferred: { date: st
   });
   return res.data;
 }
+
+/** Ask to return lines of one of the customer's own orders (docs/store.md "Returns"). */
+export async function requestMyReturn(
+  orderNumber: string,
+  payload: { reason: string; details: string | null; items: { order_item_id: number; quantity: number }[] },
+): Promise<{ message: string }> {
+  const res = await apiFetch<{ message?: string }>(
+    `/my/orders/${encodeURIComponent(orderNumber)}/returns`,
+    { method: "POST", body: payload, token: await token(), cache: "no-store" },
+  );
+
+  return { message: res.message ?? "We have your return request." };
+}

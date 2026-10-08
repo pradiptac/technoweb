@@ -1651,3 +1651,120 @@ somebody with the list sets one.
 
 The API was not widened: the brand list stays a content manager's. Checked
 by saving the form as that account and reading `brand_id` back unchanged.
+
+## Returns (0.132.0)
+
+A customer asks to send delivered goods back; the desk approves or declines,
+marks the goods received — putting what is fit to sell back in stock — and
+records the refund. Three tables (`order_returns`, `order_return_items`,
+`order_return_photos`), one status enum and one class that moves it.
+
+**A return is a request about lines of one order, never a new kind of
+order.** `order_return_items` points at `order_items` with a quantity, so the
+name, SKU and price a return shows are the order line's own snapshot — a
+product renamed or deleted since still reads as what was bought. The
+reference is `RMA-YYYY-NNNNN` under `return_reference_prefix`
+(`References::returns()`, the ticket prefix's rules), and the console binds
+`{order_return}` by it.
+
+**`ReturnPolicy` is the one answer to "may this come back".** Four things,
+all read from what the shop already records:
+
+- the switch — `store_returns_enabled`, on by default. Off, the order page
+  says to get in touch and the endpoint refuses;
+- the order — dispatched or completed, not cancelled or refunded;
+- the window — `store_return_days` (the setting the Merchant Center feed and
+  the product page already read, so the promise made before the sale is the
+  one kept after it) counted from `completed_at`, or from `dispatched_at`
+  plus the longest transit time while nobody has marked it delivered, to the
+  **end of that day**;
+- the line — shipped (a licence key or a service has nothing to send back)
+  and `returnable` on the order line, less what other returns of the order
+  already hold. A **rejected** return holds nothing, so the customer may ask
+  again; every other status does, a closed one included.
+
+`describe()` is what the customer's order resource carries as
+`return_policy`: `open`, the one sentence to show when it is not, the last
+day in the API's words, and how many of each line are left. The frontend
+works none of it out.
+
+**`ReturnActions` is the only place a return moves.** The request (from the
+order link or the portal — two routes, one method) locks the **order** row,
+so two tabs asking for the same last unit are settled in turn. Each desk
+move locks the **return** row and re-reads its status before `canTransitionTo()`,
+so two presses of "Mark as received" restock once — the control run removing
+that check fails two of `ReturnsTest`'s cases by name. Every move writes a line on the
+**order's** trail, which is where somebody reading the order later looks.
+
+| From | May become |
+|---|---|
+| requested | approved, rejected, closed |
+| approved | received, closed |
+| received | refunded, closed |
+| rejected | approved |
+| refunded, closed | — |
+
+**Receiving is where stock comes back, and only when somebody says so.** The
+desk enters how many of each line arrived and ticks the ones fit to sell;
+a line not ticked is not restocked, because putting stock back is a
+judgement about the condition of what came back. A restock is a
+`StockLedger::record()` with `StockMovementReason::Return` and the return's
+reference as its note, written on the affected row count like every other
+movement, to the variation when the line was one. A product deleted since,
+or one that does not track stock, has no shelf and takes nothing.
+
+**A refund is `ManualRefund`, linked to the return.** Nothing calls a
+gateway; the desk records the amount and the reference of money already sent
+back, and `ManualRefund` keeps its own rules (never more than was paid less
+what has gone back; the amount completing it moves the *order* to
+`refunded`). The form starts on the price of what arrived
+(`suggestedRefundPaise()`), with no share of an order-level discount taken
+off — the refusal names what is left when that is too much. An unpaid order
+(cash on delivery, refused at the door) has nothing to refund: the panel
+says so and the return is closed instead. **Close** is the way out for a
+return that ended some other way, and mails nobody.
+
+**Photographs are the third unauthenticated upload**, after the CV and a
+form's file field, and follow their rules: private disk
+(`returns/{return id}/`), hashed names, extension **and** content checked
+(jpg, png, webp), four at most, 5 MB each, stored last inside the
+transaction so a refused request leaves no file. No address anywhere — the
+customer's resource carries `photos_count` only, and staff read one through
+`GET /admin/store/returns/{reference}/photos/{id}`, always as an attachment.
+Deleting a return (only the order's cascade does) removes its folder through
+the model's `deleting` hook.
+
+**Six emails, one class for the customer's five.** `ReturnStatusChanged($return, $key)`
+is `return_requested`, `return_approved` (with `store_return_instructions`,
+plain text, and the desk's own message), `return_rejected` (the reason),
+`return_goods_received` and `return_refunded` (the amount and reference);
+`ReturnRequestReceived` goes to `support_email`. All through `Notifier`,
+after the commit, all editable under Email templates. The `return.requested`
+webhook carries the admin resource less `staff_note`.
+
+**On the page.** `ReturnsSection` (`components/store/`) is drawn on both the
+guest's order page and the portal's: the order's returns with a `Stepper`,
+then the form inside a closed `<details>` — most people opening an order are
+not returning it. Nothing is drawn for an order that has not left yet. The
+form posts through a Server Action until a photograph is attached, then
+`useUploadForm` sends multipart to a route handler. **The guest's handler
+lives at `/order/{n}/returns`, under the order's own path**, because the
+order's token cookie is scoped to `/order/{n}` and would not be sent to
+`/api/…`; the portal's is `/api/portal/orders/{n}/returns`. One map,
+`RETURN_TONE`, colours the status badge on the customer's page and both
+console screens.
+
+**The console.** Store → Returns (`role:store_manager`) lists what is
+waiting first, oldest first. A return's screen draws a panel per move the
+API's `allowed_next` offers and nothing else; each success redirects with
+`?done=return-…`, because the panel that was pressed is gone by then. The
+store overview's attention strip counts `returns_requested`, and an order's
+own screen lists its returns.
+
+**Not built, on purpose**: return shipping labels or courier pick-up,
+exchanges as a transaction (close the return and place the replacement
+order), store credit, and a restocking fee — the desk types the amount it
+actually sent back.
+
+`ReturnsTest` (22). `scripts/probes/returns.mjs` drives the whole path
+through the real screens.

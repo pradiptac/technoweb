@@ -39,6 +39,8 @@ use App\Notifications\OrderPlaced;
 use App\Notifications\OrderReceived;
 use App\Notifications\RegistrationAttempted;
 use App\Notifications\ResetPassword;
+use App\Notifications\ReturnRequestReceived;
+use App\Notifications\ReturnStatusChanged;
 use App\Notifications\ReviewRequested;
 use App\Notifications\SignInCodeIssued;
 use App\Notifications\TicketAcknowledged;
@@ -433,6 +435,7 @@ class MessageCatalogueEntries
         $number = ['about' => 'The order number.', 'sample' => 'ORD-2026-00117'];
         $customer = ['about' => 'The name on the order.', 'sample' => 'Priya Sharma'];
         $total = ['about' => 'The total, formatted.', 'sample' => '₹1,18,000.10'];
+        $returnRef = ['about' => 'The return\'s reference.', 'sample' => 'RMA-2026-00012'];
 
         return [
             /*
@@ -525,6 +528,152 @@ IFSC HDFC0001234</pre><p>Quote <strong>ORD-2026-00117</strong> as the reference 
                     .'<p>Courier: <strong>{{courier}}</strong> · Tracking: <strong>{{tracking_number}}</strong></p>'
                     .'<p>{{notes}}</p>'
                     .'<p><a href="{{url}}">Track this shipment</a></p>',
+            ],
+
+            /*
+             * Returns (0.132.0, docs/store.md "Returns"): one message to the
+             * desk and five to the customer, one per thing that happens to a
+             * return. The customer's five share one class and one set of
+             * variables — `ReturnStatusChanged` — and differ in their words.
+             */
+            'return_requested' => [
+                'label' => 'Return requested — to the customer',
+                'description' => 'The receipt for a return request: its reference, and that nothing should be sent back until it is approved.',
+                'audience' => self::CUSTOMER,
+                'class' => ReturnStatusChanged::class,
+                'variables' => [
+                    'reference' => $returnRef,
+                    'order_number' => $number,
+                    'customer_name' => $customer,
+                    'items' => self::details('What is coming back, one line each.', '<ul><li>1 × Aruba 2930F 24G</li></ul>'),
+                    'note' => ['about' => 'What the desk wrote to the customer with its decision, or blank.', 'sample' => 'Please include the original box.'],
+                    'instructions' => ['about' => 'How to send goods back, from Store → Settings. Blank when none is set.', 'sample' => 'Send to: Returns, Unit 4, Lakeview Estate.'],
+                    'amount' => ['about' => 'The refund, formatted. Blank until one is recorded.', 'sample' => '₹18,500.00'],
+                    'refund_reference' => ['about' => 'The refund\'s reference, or blank.', 'sample' => 'rfnd_NQ81xK'],
+                    'url' => ['about' => 'The customer\'s own order page.', 'sample' => 'https://www.example.com/order/ORD-2026-00117/open?token=…'],
+                ],
+                'subject' => 'We have your return request {{reference}}',
+                'body' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>We have received your request to return items from order <strong>{{order_number}}</strong>. Its reference is <strong>{{reference}}</strong>.</p>'
+                    .'{{items}}'
+                    .'<p>We will look at it and email you with what happens next. Please do not send anything back until we have approved it.</p>'
+                    .'<p><a href="{{url}}">View your order</a></p>',
+            ],
+
+            'return_received_internal' => [
+                'label' => 'Return requested — to the desk',
+                'description' => 'Sent to the support address when a customer asks to return something, with a link to decide it.',
+                'audience' => self::INTERNAL,
+                'class' => ReturnRequestReceived::class,
+                'variables' => [
+                    'reference' => $returnRef,
+                    'order_number' => $number,
+                    'customer_name' => $customer,
+                    'customer_email' => ['about' => 'Who to reply to.', 'sample' => 'priya@meridianfoods.test'],
+                    'reason' => ['about' => 'Why, from the list the customer chose from.', 'sample' => 'Arrived damaged'],
+                    'items' => self::details('What is coming back, one line each.', '<ul><li>1 × Aruba 2930F 24G</li></ul>'),
+                    'url' => ['about' => 'The return in the console.', 'sample' => 'https://www.example.com/admin/store/returns/RMA-2026-00012'],
+                ],
+                'subject' => 'Return requested: {{reference}} for order {{order_number}}',
+                'body' => '<p>A customer has asked to return something.</p>'
+                    .'<p><strong>{{reference}}</strong> — order {{order_number}}, {{customer_name}} ({{customer_email}}).</p>'
+                    .'<p>Reason: {{reason}}.</p>'
+                    .'{{items}}'
+                    .'<p><a href="{{url}}">Open the return</a></p>',
+            ],
+
+            'return_approved' => [
+                'label' => 'Return approved — to the customer',
+                'description' => 'Sent when the desk accepts a return, with how to send the goods back.',
+                'audience' => self::CUSTOMER,
+                'class' => ReturnStatusChanged::class,
+                'variables' => [
+                    'reference' => $returnRef,
+                    'order_number' => $number,
+                    'customer_name' => $customer,
+                    'items' => self::details('What is coming back, one line each.', '<ul><li>1 × Aruba 2930F 24G</li></ul>'),
+                    'note' => ['about' => 'What the desk wrote to the customer with its decision, or blank.', 'sample' => 'Please include the original box.'],
+                    'instructions' => ['about' => 'How to send goods back, from Store → Settings. Blank when none is set.', 'sample' => 'Send to: Returns, Unit 4, Lakeview Estate.'],
+                    'amount' => ['about' => 'The refund, formatted. Blank until one is recorded.', 'sample' => '₹18,500.00'],
+                    'refund_reference' => ['about' => 'The refund\'s reference, or blank.', 'sample' => 'rfnd_NQ81xK'],
+                    'url' => ['about' => 'The customer\'s own order page.', 'sample' => 'https://www.example.com/order/ORD-2026-00117/open?token=…'],
+                ],
+                'subject' => 'Your return {{reference}} is approved',
+                'body' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>We have approved return <strong>{{reference}}</strong> for order {{order_number}}.</p>'
+                    .'{{items}}'
+                    .'<p>{{instructions}}</p>'
+                    .'<p>{{note}}</p>'
+                    .'<p><a href="{{url}}">View your order</a></p>',
+            ],
+
+            'return_rejected' => [
+                'label' => 'Return not accepted — to the customer',
+                'description' => 'Sent when the desk refuses a return, with the reason it gave.',
+                'audience' => self::CUSTOMER,
+                'class' => ReturnStatusChanged::class,
+                'variables' => [
+                    'reference' => $returnRef,
+                    'order_number' => $number,
+                    'customer_name' => $customer,
+                    'items' => self::details('What is coming back, one line each.', '<ul><li>1 × Aruba 2930F 24G</li></ul>'),
+                    'note' => ['about' => 'What the desk wrote to the customer with its decision, or blank.', 'sample' => 'Please include the original box.'],
+                    'instructions' => ['about' => 'How to send goods back, from Store → Settings. Blank when none is set.', 'sample' => 'Send to: Returns, Unit 4, Lakeview Estate.'],
+                    'amount' => ['about' => 'The refund, formatted. Blank until one is recorded.', 'sample' => '₹18,500.00'],
+                    'refund_reference' => ['about' => 'The refund\'s reference, or blank.', 'sample' => 'rfnd_NQ81xK'],
+                    'url' => ['about' => 'The customer\'s own order page.', 'sample' => 'https://www.example.com/order/ORD-2026-00117/open?token=…'],
+                ],
+                'subject' => 'About your return {{reference}}',
+                'body' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>We have looked at return <strong>{{reference}}</strong> for order {{order_number}}, and we are not able to accept it.</p>'
+                    .'<p>{{note}}</p>'
+                    .'<p><a href="{{url}}">View your order</a></p>',
+            ],
+
+            'return_goods_received' => [
+                'label' => 'Returned items received — to the customer',
+                'description' => 'Sent when the desk marks the returned goods as arrived.',
+                'audience' => self::CUSTOMER,
+                'class' => ReturnStatusChanged::class,
+                'variables' => [
+                    'reference' => $returnRef,
+                    'order_number' => $number,
+                    'customer_name' => $customer,
+                    'items' => self::details('What is coming back, one line each.', '<ul><li>1 × Aruba 2930F 24G</li></ul>'),
+                    'note' => ['about' => 'What the desk wrote to the customer with its decision, or blank.', 'sample' => 'Please include the original box.'],
+                    'instructions' => ['about' => 'How to send goods back, from Store → Settings. Blank when none is set.', 'sample' => 'Send to: Returns, Unit 4, Lakeview Estate.'],
+                    'amount' => ['about' => 'The refund, formatted. Blank until one is recorded.', 'sample' => '₹18,500.00'],
+                    'refund_reference' => ['about' => 'The refund\'s reference, or blank.', 'sample' => 'rfnd_NQ81xK'],
+                    'url' => ['about' => 'The customer\'s own order page.', 'sample' => 'https://www.example.com/order/ORD-2026-00117/open?token=…'],
+                ],
+                'subject' => 'We have received your return {{reference}}',
+                'body' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>The items for return <strong>{{reference}}</strong> have reached us. We will check them and be in touch about the refund.</p>'
+                    .'{{items}}'
+                    .'<p><a href="{{url}}">View your order</a></p>',
+            ],
+
+            'return_refunded' => [
+                'label' => 'Return refunded — to the customer',
+                'description' => 'Sent when a refund is recorded against a return.',
+                'audience' => self::CUSTOMER,
+                'class' => ReturnStatusChanged::class,
+                'variables' => [
+                    'reference' => $returnRef,
+                    'order_number' => $number,
+                    'customer_name' => $customer,
+                    'items' => self::details('What is coming back, one line each.', '<ul><li>1 × Aruba 2930F 24G</li></ul>'),
+                    'note' => ['about' => 'What the desk wrote to the customer with its decision, or blank.', 'sample' => 'Please include the original box.'],
+                    'instructions' => ['about' => 'How to send goods back, from Store → Settings. Blank when none is set.', 'sample' => 'Send to: Returns, Unit 4, Lakeview Estate.'],
+                    'amount' => ['about' => 'The refund, formatted. Blank until one is recorded.', 'sample' => '₹18,500.00'],
+                    'refund_reference' => ['about' => 'The refund\'s reference, or blank.', 'sample' => 'rfnd_NQ81xK'],
+                    'url' => ['about' => 'The customer\'s own order page.', 'sample' => 'https://www.example.com/order/ORD-2026-00117/open?token=…'],
+                ],
+                'subject' => 'Your refund for return {{reference}}',
+                'body' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>We have refunded <strong>{{amount}}</strong> for return {{reference}}.</p>'
+                    .'<p>Reference: {{refund_reference}}. It can take a few working days to show on your statement.</p>'
+                    .'<p><a href="{{url}}">View your order</a></p>',
             ],
 
             'order_received' => [
@@ -718,7 +867,7 @@ IFSC HDFC0001234</pre><p>Quote <strong>ORD-2026-00117</strong> as the reference 
                     'customer_name' => ['about' => 'Who it is for.', 'sample' => 'Neil Basu'],
                     'url' => ['about' => 'The portal sign-in page.', 'sample' => 'https://www.example.com/portal/login'],
                 ],
-                'subject' => 'Your '.MailBrand::name().' support account is active',
+                'subject' => 'Your '.MailBrand::name().' customer account is active',
                 'body' => '<p>You are all set, {{customer_name}}.</p>'
                     .'<p>Your support portal account has been approved. You can sign in and raise a ticket whenever you need us.</p>'
                     .'<p><a href="{{url}}">Sign in to the portal</a></p>'

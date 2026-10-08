@@ -288,7 +288,7 @@ you type, so a typo cannot wipe a trail.
 
 ## Email templates
 
-**System → Email templates** lists every email the site sends — around forty,
+**System → Email templates** lists every email the site sends — over sixty,
 from ticket acknowledgements to order receipts to sign-in codes. For each you
 can:
 

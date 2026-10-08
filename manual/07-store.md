@@ -153,6 +153,72 @@ refunds add up; the one that completes what was paid moves the order to
 - Refunds are reported **beside** revenue, never subtracted from it, so the
   figures match your gateway's reports.
 
+## Returns
+
+Customers can ask to send goods back from their order — from the link in
+their order email, or from **Orders** in the customer portal. You decide each
+one under **Store → Returns**.
+
+**What a customer can return.** The order must have been dispatched, and the
+request must arrive within your return window: the number of days under
+**Store → Settings** (*Return window, in days*), counted from the day you marked the
+order **Completed**. If you never mark it completed, the window is counted
+from dispatch plus your longest delivery time. Licence keys and services
+cannot be returned, and neither can a product you have marked as
+non-returnable. The customer chooses the items and how many, gives a reason,
+and may add up to four photographs.
+
+**Working a return:**
+
+1. **Store → Returns** lists the requests, the ones waiting for you first.
+   The store overview also shows how many are waiting. You are emailed when
+   one arrives (at your support address).
+2. Open it. You see what is coming back, the reason, the customer's words
+   and their photographs (each downloads to your computer).
+3. **Approve** it, or **decline** it with a reason. The customer is emailed
+   either way. An approval email includes your return instructions (see
+   below) and any message you type. A decline can be reversed later with
+   **Approve it after all**.
+4. When the goods arrive, enter how many of each turned up and tick **Put
+   back in stock** for the ones fit to sell again, then press **Mark as
+   received**. Only ticked items go back into stock; the customer is told
+   their return has reached you.
+5. Send the money back through your payment gateway or bank, then **record
+   the refund** here with the amount and its reference. The amount starts on
+   the price of what arrived — change it if you are returning less. The
+   customer is emailed, and the refund appears on the order.
+
+**Close without a refund** ends a return some other way — you sent a
+replacement, or the customer kept the item. Nobody is emailed. Use this too
+for a cash-on-delivery order that was never paid for: there is nothing to
+refund.
+
+The customer follows the return on their order page: *Requested*,
+*Approved*, *Items received*, *Refunded*.
+
+**Settings** (Store → Settings):
+
+- **Let customers ask for a return online** — on by default. Switched off,
+  the order page tells customers to contact you instead.
+- **How to send goods back** — plain text added to every approval email: the
+  address to send to, or that you will arrange a collection. If it is blank,
+  say where to send the goods in your message when you approve.
+- **Return window, in days** — it is the same figure your product
+  pages and Google listing already show.
+
+Return numbers look like `RMA-2026-00001`. An administrator can change the
+prefix under **System → Settings → Reference numbers**.
+
+Things to know:
+
+- Nothing is refunded automatically, and nothing is sent to the gateway.
+- A customer can make more than one return from an order, but never for more
+  than they bought. After a declined request they may ask again.
+- The wording of the five customer emails and the one to your desk is under
+  **System → Email templates**.
+- Return shipping labels, exchanges and store credit are not part of this:
+  for an exchange, close the return and place the replacement order.
+
 ## Products
 
 **Store → Products** holds what you sell. There are three types:

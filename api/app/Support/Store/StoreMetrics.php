@@ -9,6 +9,7 @@ use App\Enums\ProductType;
 use App\Enums\PublishStatus;
 use App\Models\Cart;
 use App\Models\Order;
+use App\Models\OrderReturn;
 use App\Models\ProductReview;
 use App\Models\StoreProduct;
 use App\Models\WishlistItem;
@@ -194,6 +195,9 @@ class StoreMetrics
              */
             'reviews_pending' => ProductReview::waiting()->count(),
             'refund_requested' => Order::where('status', OrderStatus::RefundRequested)->count(),
+            // Returns nobody has answered — `OrderReturn::waiting()`, the
+            // scope the returns desk opens on, which is where this links.
+            'returns_requested' => OrderReturn::waiting()->count(),
             /*
              * Failed payments are counted over the window rather than for ever.
              * A card declined last March is not something anybody is going to

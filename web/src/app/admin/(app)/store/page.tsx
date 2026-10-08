@@ -216,6 +216,8 @@ export default async function StoreDashboardPage({
     /* Reviews nobody has read: the queue opens on exactly these. */
     { key: "reviews", count: attention.reviews_pending ?? 0, label: "reviews waiting to be read", href: "/admin/store/reviews", icon: IconTag, tone: "info" as const },
     { key: "refund", count: attention.refund_requested, label: "refund requested", href: "/admin/store/orders?status=refund_requested", icon: IconTag, tone: "warn" as const },
+    /* Returns nobody has answered: the desk's own `waiting` scope, the list this opens. */
+    { key: "returns", count: attention.returns_requested ?? 0, label: "returns waiting for a decision", href: "/admin/store/returns?status=requested", icon: IconTag, tone: "warn" as const },
     { key: "unpaid", count: attention.awaiting_payment, label: "never paid for", href: "/admin/store/orders?unpaid=1", icon: IconClock, tone: "info" as const },
   ].filter((w) => w.count > 0);
 

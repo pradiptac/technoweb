@@ -2075,6 +2075,9 @@ export type Order = {
   completed_at?: string | null;
   items?: OrderLine[];
   payments?: { status: string; status_label: string; method?: string | null; paid_at?: string | null }[];
+  /** On the order's own read (0.132.0): what has been asked to come back, and whether more may be. */
+  returns?: import("./returns").CustomerReturn[];
+  return_policy?: import("./returns").ReturnPolicy;
   payment_method?: string;
   payment_instructions?: PaymentInstructions | null;
 };
@@ -2167,6 +2170,8 @@ export type StoreDashboard = {
     /** Reviews waiting for a decision. Links to `/admin/store/reviews`. */
     reviews_pending?: number;
     refund_requested: number;
+    /** Returns nobody has answered. Links to `/admin/store/returns?status=requested`. */
+    returns_requested?: number;
     out_of_stock: number;
     codes_exhausted: number;
     failed_payments: number;
@@ -2347,6 +2352,8 @@ export type AdminOrder = {
   shipping_notes?: string | null;
   /** Whether somebody is waiting on a licence key. On the list as well. */
   awaiting_codes?: boolean;
+  /** Detail read only (0.132.0): the order's returns, newest first. */
+  returns?: import("./returns").OrderReturnSummary[];
   placed_at?: string | null;
   paid_at?: string | null;
   dispatched_at?: string | null;

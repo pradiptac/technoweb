@@ -189,6 +189,8 @@ export const NAV: NavItem[] = [
       // the same reason the dashboard at "/admin" carries the flag.
       { role: "store_manager", href: "/admin/store", label: "Overview", icon: IconChart, exact: true },
       { role: "store_manager", href: "/admin/store/orders", label: "Orders", icon: IconTicket },
+      // What customers have asked to send back (docs/store.md "Returns").
+      { role: "store_manager", href: "/admin/store/returns", label: "Returns", icon: IconArrows },
       { role: "store_manager", href: "/admin/store/products", label: "Products", icon: IconBox },
       { role: "store_manager", href: "/admin/store/categories", label: "Categories", icon: IconGrid },
       { role: "store_manager", href: "/admin/store/coupons", label: "Discount codes", icon: IconTag },

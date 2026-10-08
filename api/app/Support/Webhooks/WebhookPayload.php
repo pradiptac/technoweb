@@ -7,6 +7,7 @@ use App\Http\Resources\Admin\LeadResource;
 use App\Http\Resources\Admin\MeetingResource;
 use App\Http\Resources\Admin\NewsletterSubscriberResource;
 use App\Http\Resources\Admin\Store\OrderResource;
+use App\Http\Resources\Admin\Store\OrderReturnResource;
 use App\Http\Resources\Admin\VisitRequestResource;
 use App\Http\Resources\CustomerResource;
 use App\Http\Resources\FormSubmissionResource;
@@ -19,6 +20,7 @@ use App\Models\Lead;
 use App\Models\Meeting;
 use App\Models\NewsletterSubscriber;
 use App\Models\Order;
+use App\Models\OrderReturn;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
 use App\Models\VisitRequest;
@@ -129,6 +131,24 @@ class WebhookPayload
     }
 
     /** @return array<string, mixed> */
+    /**
+     * A return as the desk reads it, less the note written for colleagues.
+     * Photographs are counted and never sent: they are a stranger's upload
+     * on the private disk.
+     *
+     * @return array<string, mixed>
+     */
+    public static function orderReturn(OrderReturn $return): array
+    {
+        self::settled($return, 'status');
+        $return->loadMissing(['order', 'items.orderItem', 'photos', 'decider', 'refundPayment']);
+
+        $data = self::resolve((new OrderReturnResource($return))->detail());
+        unset($data['staff_note']);
+
+        return $data;
+    }
+
     public static function visit(VisitRequest $visit): array
     {
         self::settled($visit, 'status');

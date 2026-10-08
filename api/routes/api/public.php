@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\MeetingController;
 use App\Http\Controllers\Api\V1\MessagingController;
 use App\Http\Controllers\Api\V1\NewsletterController;
 use App\Http\Controllers\Api\V1\OrderCodeController;
+use App\Http\Controllers\Api\V1\OrderReturnController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PopupController;
 use App\Http\Controllers\Api\V1\ProductReviewController;
@@ -203,6 +204,14 @@ Route::post('checkout', [CheckoutController::class, 'store'])
     ->middleware('throttle:10,1')->name('checkout.store');
 Route::get('orders/{orderNumber}', [CheckoutController::class, 'show'])
     ->middleware('throttle:60,1')->name('orders.show');
+/*
+ * A return (0.132.0, docs/store.md "Returns"), asked for by whoever holds
+ * the order's link: the token rides in the body, and a wrong one is the 404
+ * a wrong number is. Multipart when it carries photographs. Throttled hard —
+ * it writes rows and files and mails two people.
+ */
+Route::post('orders/{orderNumber}/returns', [OrderReturnController::class, 'store'])
+    ->middleware('throttle:10,1')->name('orders.returns.store');
 
 /*
  * Payment.

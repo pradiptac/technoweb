@@ -193,6 +193,17 @@ class Order extends Model
         return $this->hasMany(OrderStatusEvent::class)->orderBy('id');
     }
 
+    /**
+     * What the customer has asked to send back, newest first (docs/store.md
+     * "Returns").
+     *
+     * @return HasMany<OrderReturn, $this>
+     */
+    public function returns(): HasMany
+    {
+        return $this->hasMany(OrderReturn::class)->orderByDesc('id');
+    }
+
     /** @return HasMany<OrderNote, $this> */
     public function notes(): HasMany
     {

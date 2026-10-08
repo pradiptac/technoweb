@@ -1793,6 +1793,50 @@ const adminDownload = (d) => {
 };
 const publishedDownloads = () => downloads.filter((d) => d.status === 'published' && d.file && (downloadShelf(d)?.is_active ?? true));
 
+/* ---------------- Returns (docs/store.md "Returns") ---------------- */
+const RETURN_STATUSES = [
+  { value: 'requested', label: 'Requested' }, { value: 'approved', label: 'Approved' },
+  { value: 'rejected', label: 'Not accepted' }, { value: 'received', label: 'Items received' },
+  { value: 'refunded', label: 'Refunded' }, { value: 'closed', label: 'Closed' },
+];
+const RETURN_REASONS = [
+  { value: 'damaged', label: 'Arrived damaged' }, { value: 'faulty', label: 'Faulty or not working' },
+  { value: 'wrong_item', label: 'Wrong item sent' }, { value: 'not_as_described', label: 'Not as described' },
+  { value: 'no_longer_needed', label: 'No longer needed' }, { value: 'other', label: 'Something else' },
+];
+// `ReturnStatus::next()`, restated: the one place the mock decides a move.
+const RETURN_NEXT = {
+  requested: ['approved', 'rejected', 'closed'], approved: ['received', 'closed'],
+  received: ['refunded', 'closed'], rejected: ['approved'], refunded: [], closed: [],
+};
+const mockReturns = [{
+  id: 1, reference: 'RMA-2026-00001', status: 'requested', reason: 'damaged',
+  order_number: 'ORD-2026-00001', customer_name: 'Neil Basu', customer_email: 'neil@example.in', customer_phone: '9876543210',
+  details: 'One corner of the box was crushed and the casing is cracked.', decision_note: null, staff_note: null,
+  items: [{ id: 1, order_item_id: 1, name: 'Sample 24-port switch', variation_name: null, sku: 'SMP-SW-24', unit_price_paise: 1899900, ordered_quantity: 2, quantity: 1, received_quantity: null, restocked_quantity: 0 }],
+  refund_paise: null, refund_reference: null,
+  requested_at: new Date().toISOString(), approved_at: null, rejected_at: null, received_at: null, refunded_at: null, closed_at: null,
+}];
+const adminReturn = (r, detail = false) => ({
+  id: r.id, reference: r.reference, status: r.status,
+  status_label: RETURN_STATUSES.find(s => s.value === r.status).label,
+  is_open: ['requested', 'approved', 'received'].includes(r.status),
+  reason: r.reason, reason_label: RETURN_REASONS.find(x => x.value === r.reason).label,
+  order_number: r.order_number, customer_name: r.customer_name, customer_email: r.customer_email, customer_phone: r.customer_phone,
+  order_paid: true, items_count: r.items.reduce((n, i) => n + i.quantity, 0), photos_count: 0, refund_paise: r.refund_paise,
+  requested_at: r.requested_at, approved_at: r.approved_at, rejected_at: r.rejected_at,
+  received_at: r.received_at, refunded_at: r.refunded_at, closed_at: r.closed_at,
+  admin_path: `/admin/store/returns/${r.reference}`,
+  ...(detail ? {
+    details: r.details, decision_note: r.decision_note, staff_note: r.staff_note, decided_by: null,
+    allowed_next: RETURN_NEXT[r.status].map(v => RETURN_STATUSES.find(s => s.value === v)),
+    items: r.items, photos: [],
+    suggested_refund_paise: r.items.reduce((n, i) => n + (i.received_quantity ?? i.quantity) * i.unit_price_paise, 0),
+    refund_reference: r.refund_reference, return_instructions: '',
+    order: { order_number: r.order_number, status: 'completed', status_label: 'Completed', total_paise: 3799800, payment_method: 'gateway', dispatched_at: r.requested_at, completed_at: r.requested_at },
+  } : {}),
+});
+
 const paginate = (rows) => ({
   data: rows,
   links:{ first:null, last:null, prev:null, next:null },
@@ -3793,6 +3837,48 @@ createServer(async (req, res) => {
       return json(res, 200, { data: rows });
     }
 
+    /* Returns (docs/store.md "Returns"): the desk's list, one return, and its moves. */
+    if (p === '/admin/store/returns' && req.method === 'GET') {
+      const status = url.searchParams.get('status');
+      const rows = mockReturns.filter(r => !status || r.status === status).map(r => adminReturn(r));
+      const page = paginate(rows);
+      return json(res, 200, { ...page, meta: { ...page.meta, statuses: RETURN_STATUSES, reasons: RETURN_REASONS,
+        waiting_count: mockReturns.filter(r => r.status === 'requested').length,
+        open_count: mockReturns.filter(r => ['requested', 'approved', 'received'].includes(r.status)).length } });
+    }
+    {
+      const m = p.match(/^\/admin\/store\/returns\/([A-Z][A-Z0-9]{1,5}-\d{4}-\d{5})(?:\/(approve|reject|receive|refund|close))?$/);
+      const r = m && mockReturns.find(x => x.reference === m[1]);
+      if (m && !r) return json(res, 404, { message: 'Not found.' });
+      if (r && !m[2] && req.method === 'GET') return json(res, 200, { data: adminReturn(r, true) });
+      if (r && !m[2] && req.method === 'PATCH') {
+        r.staff_note = (await readJsonBody(req)).staff_note ?? null;
+        return json(res, 200, { data: adminReturn(r, true) });
+      }
+      if (r && m[2] && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const to = { approve: 'approved', reject: 'rejected', receive: 'received', refund: 'refunded', close: 'closed' }[m[2]];
+        // The enum's own rule: a move the status does not allow is a 422 naming both states.
+        if (!RETURN_NEXT[r.status].includes(to)) {
+          const message = `A return that is ${r.status} cannot become ${to}.`;
+          return json(res, 422, { message, errors: { status: [message] } });
+        }
+        if (to === 'rejected' && !body.note) return json(res, 422, { message: 'Say why, as the customer will read it.', errors: { note: ['Say why, as the customer will read it.'] } });
+        if (to === 'refunded' && !body.reference) return json(res, 422, { message: 'Give the refund\'s reference.', errors: { reference: ['Give the refund\'s reference.'] } });
+        const now = new Date().toISOString();
+        r.status = to;
+        r[{ approved: 'approved_at', rejected: 'rejected_at', received: 'received_at', refunded: 'refunded_at', closed: 'closed_at' }[to]] = now;
+        if (to === 'approved' || to === 'rejected') r.decision_note = body.note ?? null;
+        if (to === 'received') for (const line of r.items) {
+          const sent = (body.items || []).find(i => i.id === line.id);
+          line.received_quantity = sent?.received_quantity ?? line.quantity;
+          line.restocked_quantity = sent?.restock ? line.received_quantity : 0;
+        }
+        if (to === 'refunded') { r.refund_paise = body.amount_paise; r.refund_reference = body.reference; }
+        return json(res, 200, { data: adminReturn(r, true) });
+      }
+    }
+
     /* The review queue: waiting by default, `all` for everything. */
     if (p === '/admin/store/reviews' && req.method === 'GET') {
       const status = url.searchParams.get('status') || 'pending';
@@ -3826,7 +3912,7 @@ createServer(async (req, res) => {
         orders: { total: 0, paid: 0, pending_payment: 0, cancelled: 0, period: 0, with_physical: 0, with_digital: 0 },
         revenue: { total_paise: 0, period_paise: 0, gst_paise: 0, discount_paise: 0, refunded_paise: 0, average_paise: null, sample: 0 },
         catalogue: { products: 0, published: 0, out_of_stock: 0 },
-        attention: { awaiting_payment: 0, awaiting_dispatch: 0, awaiting_codes: 0, reviews_pending: 1, refund_requested: 0, out_of_stock: 0, codes_exhausted: 0, failed_payments: 0 },
+        attention: { awaiting_payment: 0, awaiting_dispatch: 0, awaiting_codes: 0, reviews_pending: 1, refund_requested: 0, returns_requested: mockReturns.filter(r => r.status === 'requested').length, out_of_stock: 0, codes_exhausted: 0, failed_payments: 0 },
         funnel: { product_views: null, paid_orders: 0, views_to_orders: null },
         // Null, not zeros: the mock never reminds anybody about a basket.
         recovered: null,
@@ -4938,6 +5024,16 @@ createServer(async (req, res) => {
         returnable: i.returnable, slug: i.slug,
       })),
       payments: [],
+      // Returns (docs/store.md "Returns"): a mock order is never dispatched,
+      // so the form is not offered and the one sentence says why.
+      returns: [],
+      return_policy: {
+        enabled: true, open: false,
+        message: 'A return can be asked for once the order has been dispatched.',
+        closes_on: null, closes_label: null, days: 7,
+        items: summary.items.map((i) => ({ order_item_id: i.id, returnable: 0 })),
+        reasons: RETURN_REASONS, max_photos: 4, max_photo_kb: 5120,
+      },
     };
 
     orders.set(number, { order, accessToken });
@@ -4968,6 +5064,11 @@ createServer(async (req, res) => {
         name: 'Technoware',
         prefill: { name: held.order.customer_name, email: held.order.customer_email },
       } });
+    }
+
+    if (action === 'returns' && req.method === 'POST') {
+      const message = held.order.return_policy.message;
+      return json(res, 422, { message, errors: { return: [message] } });
     }
 
     if (action === 'verify') {

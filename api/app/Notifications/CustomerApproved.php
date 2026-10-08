@@ -39,7 +39,7 @@ class CustomerApproved extends Notification implements ShouldQueue
         $base = rtrim(config('app.frontend_url'), '/');
 
         return (new MailMessage)
-            ->subject('Your '.MailBrand::name().' support account is active')
+            ->subject('Your '.MailBrand::name().' customer account is active')
             ->greeting('You are all set')
             ->line('Your support portal account has been approved. You can sign in and raise a ticket whenever you need us.')
             ->action('Sign in to the portal', $base.'/portal/login')

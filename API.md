@@ -4518,7 +4518,7 @@ the truth about it.
 
 ### Email templates
 
-Every one of the 40 system emails, editable.
+Every one of the 63 system emails, editable.
 
 | Method | Path | Notes |
 |---|---|---|
@@ -4924,7 +4924,7 @@ decision as the SMTP settings beside it.
 `ticket.created`, `ticket.replied` (a customer-visible message from either
 side — never an internal note), `ticket.status_changed` (adds `from`/`to`),
 `order.placed`, `order.paid` (`paid_at` going from null to set, whoever set
-it), `order.status_changed` (adds `from`/`to`), `customer.registered` (the
+it), `order.status_changed` (adds `from`/`to`), `return.requested` (a customer asking to send items back: the admin return's detail shape less `staff_note`), `customer.registered` (the
 address confirmed), `form.submitted`, `subscriber.joined`, `visit.requested`
 (an engineer visit request, never its token) and `event.registered` (a new
 registration for an event: the admin registration resource less `staff_note`,
@@ -5149,3 +5149,95 @@ published. **`/admin/store/dashboard`** carries `attention.reviews_pending`.
 `review_request` once per order `store_review_request_days` after dispatch
 (or payment, when nothing ships), inside `QuietHours`, while
 `store_review_requests_enabled`; both settings are in the `store` group.
+
+---
+
+## Returns (0.132.0)
+
+A customer asks to send delivered goods back; the desk approves or declines,
+marks them received and records the refund. See `docs/store.md`, "Returns".
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/orders/{number}/returns` | For whoever holds the order's link: `token` (in the query or the body; a wrong one is the same 404 as a wrong number), `reason`, `details?` (plain text, 2000), `items[{order_item_id, quantity}]` (1–50), `photos[]?` (multipart; up to 4, 5 MB each, jpg/png/webp by extension **and** content). Throttled 10/min. **201** `{message, data}` — the customer's return |
+| `POST` | `/my/orders/{number}/returns` | Portal. The same body without `token`; another customer's order is a 404. Throttled 10/min |
+| `GET` | `/admin/store/returns` | `role:store_manager`. `?status=`, `?open=1`, `?reason=`, `?q=` (reference, order number, customer name or email), `?sort=requested\|status\|reference` with `?dir=`, `?per_page=` (max 100). Waiting first, oldest first; then approved and received; then the rest, newest first. `meta.statuses`, `meta.reasons`, `meta.waiting_count`, `meta.open_count` |
+| `GET` | `/admin/store/returns/{reference}` | Bound by **reference** (`RMA-2026-00001`). The detail shape |
+| `PATCH` | `/admin/store/returns/{reference}` | `staff_note` (5000). Never mailed, never on the customer's resource |
+| `POST` | `/admin/store/returns/{reference}/approve` | `note?` (2000) — added to the customer's email with `store_return_instructions` |
+| `POST` | `/admin/store/returns/{reference}/reject` | `note` (required, 2000) — the reason as the customer reads it |
+| `POST` | `/admin/store/returns/{reference}/receive` | `items[{id, received_quantity?, restock?}]`, `id` a **return line's** id. A line not named arrived whole and is not restocked. 422 on `items.{line id}.received_quantity` outside 0…asked |
+| `POST` | `/admin/store/returns/{reference}/refund` | `amount_paise` (≥ 1), `reference` (191), `note?`. Records a `payments` row through the order's own refund rules (422 on `amount_paise` past what is left, or on an unpaid order) and links it to the return. Calls no gateway |
+| `POST` | `/admin/store/returns/{reference}/close` | `note?`. Ends it without a refund; nobody is mailed |
+| `GET` | `/admin/store/returns/{reference}/photos/{id}` | Streams one photograph as an attachment. A photo of another return is a 404 |
+
+**Statuses** are `requested`, `approved`, `rejected`, `received`, `refunded`,
+`closed`. `requested` → `approved`, `rejected` or `closed`; `approved` →
+`received` or `closed`; `received` → `refunded` or `closed`; `rejected` →
+`approved`. A move the status does not allow is a **422 on `status`** naming
+both states. Each move is made under a row lock, so a repeated press does its
+work once.
+
+**Reasons** are `damaged`, `faulty`, `wrong_item`, `not_as_described`,
+`no_longer_needed`, `other`.
+
+**What may come back is decided by the API.** A request is a **422 on
+`return`**, one sentence, when returns are switched off
+(`store_returns_enabled`), the order was cancelled or refunded, it has not
+been dispatched, or the window has closed — `store_return_days` counted from
+`completed_at`, or from `dispatched_at` plus the longest transit time while
+the order is not marked completed, to the end of that day. A line is refused
+on `items.N.order_item_id` (not on this order, or listed twice) or
+`items.N.quantity` ("That item cannot be returned." for a digital, service
+or non-returnable line; "A return has already been asked for all of that
+item."; "Only 1 of that item can be returned."). A line's ceiling is its
+quantity less what the order's other returns hold; a rejected return holds
+nothing.
+
+**The customer's order carries both halves.** `GET /orders/{number}?token=`
+and `GET /my/orders/{number}` add:
+
+- `returns[]` — `reference`, `status`, `status_label`, `reason`,
+  `reason_label`, `details`, `decision_note` (what the desk said),
+  `items[{order_item_id, name, variation_name, quantity}]`, `photos_count`,
+  `refund_paise`, and the six stamps (`requested_at` … `closed_at`). No staff
+  note, no photograph's address, no engineer's name.
+- `return_policy` — `enabled`, `open` (whether the form may be offered now),
+  `message` (the one sentence when it may not; null when it may),
+  `closes_on`, `closes_label` ("13 October 2026"), `days`,
+  `items[{order_item_id, returnable}]`, `reasons[{value, label}]`,
+  `max_photos`, `max_photo_kb`.
+
+**The admin resource**: `id`, `reference`, `status`, `status_label`,
+`is_open`, `reason`, `reason_label`, `order_number`, `customer_name`,
+`customer_email`, `customer_phone`, `order_paid`, `items_count` (units),
+`photos_count`, `refund_paise`, the six stamps and `admin_path`; the detail
+read adds `details`, `decision_note`, `staff_note`, `decided_by`,
+`allowed_next[{value, label}]` (what a move endpoint will accept now),
+`items[{id, order_item_id, name, variation_name, sku, unit_price_paise,
+ordered_quantity, quantity, received_quantity, restocked_quantity}]`,
+`photos[{id, name, size}]`, `suggested_refund_paise` (what arrived, at the
+price each line sold for), `refund_reference`, `return_instructions` and
+`order {order_number, status, status_label, total_paise, payment_method,
+dispatched_at, completed_at}`. `GET /admin/store/orders/{number}` adds
+`returns[{reference, status, status_label, reason_label, items_count,
+requested_at, admin_path}]`, and `GET /admin/store/dashboard` adds
+`attention.returns_requested`.
+
+**Restocking** happens on `receive`, for a line sent `restock: true`, by the
+quantity that arrived: a stock movement with reason `return`
+(`GET /admin/store/stock` lists it; the reason's label is "Customer return") on the
+variation the line was sold as, else the product. Nothing moves for a product
+that no longer exists or does not track stock.
+
+**Settings**: `store_returns_enabled` (boolean, on) and
+`store_return_instructions` (plain text) in the `store` group — the first is
+public, the second is not (`PublicSettings::PRIVATE_KEYS`); and
+`return_reference_prefix` in `references`, held to the other prefixes' shape.
+
+**Side effects.** A request emails the customer (`return_requested`) and
+`support_email` (`return_received_internal`) and emits the `return.requested`
+webhook — the admin detail shape less `staff_note`. `approve`, `reject`,
+`receive` and `refund` each email the customer (`return_approved`,
+`return_rejected`, `return_goods_received`, `return_refunded`); `close`
+emails nobody. Every move writes a line on the order's history.

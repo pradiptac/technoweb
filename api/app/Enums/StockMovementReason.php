@@ -29,12 +29,20 @@ enum StockMovementReason: string
     /** The level a product was created with. */
     case Initial = 'initial';
 
+    /**
+     * Units a customer sent back and the desk put on the shelf again
+     * (0.132.0, docs/store.md "Returns"). Always a positive movement, and
+     * always against the order it came back from.
+     */
+    case Return = 'return';
+
     public function label(): string
     {
         return match ($this) {
             self::Sale => 'Sale',
             self::Adjustment => 'Adjustment',
             self::Initial => 'Opening stock',
+            self::Return => 'Customer return',
         };
     }
 

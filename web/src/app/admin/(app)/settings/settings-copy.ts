@@ -29,6 +29,11 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     hint: "The same for a site-visit request — a new install starts with the initials and a V, so ANV makes ANV-2026-00007. New requests only.",
     placeholder: "ANV",
   },
+  return_reference_prefix: {
+    label: "Return reference prefix",
+    hint: "The same for a return: RMA makes RMA-2026-00007. New returns only.",
+    placeholder: "RMA",
+  },
   order_number_prefix: {
     label: "Order number prefix",
     hint: "The same for a shop order: ORD makes ORD-2026-00118. New orders only.",
@@ -398,6 +403,15 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Return window, in days",
     hint: "Counted from delivery. Shown on every returnable product and declared to Google as the return policy; a product marked non-returnable ignores it.",
     placeholder: "7",
+  },
+  store_returns_enabled: {
+    label: "Let customers ask for a return online",
+    hint: "On, a delivered order's page offers “Return items” until the return window closes, and requests arrive under Store → Returns. Off, customers are told to contact you.",
+  },
+  store_return_instructions: {
+    label: "How to send goods back",
+    hint: "Plain text, added to the email a customer gets when a return is approved — the address to send to, or that you will arrange a collection.",
+    placeholder: "Send to: Returns Desk, …",
   },
   store_cart_reminders_enabled: {
     label: "Send basket reminders",
@@ -1033,7 +1047,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
   backups_ftp: ["backup_ftp_enabled", "backup_ftp_protocol", "backup_ftp_host", "backup_ftp_port", "backup_ftp_username",
                 "backup_ftp_password", "backup_ftp_private_key", "backup_ftp_folder", "backup_ftp_passive"],
   general: ["company_name", "tagline", "logo_path", "favicon_path", "console_notice_seconds"],
-  references: ["ticket_reference_prefix", "visit_reference_prefix", "meeting_reference_prefix", "order_number_prefix"],
+  references: ["ticket_reference_prefix", "visit_reference_prefix", "meeting_reference_prefix", "order_number_prefix", "return_reference_prefix"],
   login: ["login_backdrop", "login_intensity", "login_speed", "login_image_path", "login_message"],
   // `motion_reveal` first: it is the row the form draws the whole picker on.
   motion: ["motion_reveal", "motion_buttons", "motion_cards", "motion_page", "motion_loader", "motion_progress",
@@ -1096,6 +1110,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
   media_cdn: ["media_cdn_enabled", "media_cdn_url"],
   store: ["store_enabled", "digital_auto_fulfil", "activation_procedure", "activation_pdf_path", "store_shipping_paise",
           "store_handling_days", "store_shipping_service", "store_transit_days_min", "store_transit_days_max", "store_return_days",
+          "store_returns_enabled", "store_return_instructions",
           "store_price_drop_min_percent", "store_review_requests_enabled", "store_review_request_days", "meta_catalogue_enabled"],
   store_reminders: ["store_cart_reminders_enabled", "store_cart_reminder_1_hours", "store_cart_reminder_2_days", "store_cart_reminder_coupon"],
   leads: ["lead_intent_words"],

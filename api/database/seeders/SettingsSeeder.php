@@ -33,6 +33,7 @@ class SettingsSeeder extends Seeder
             ['group' => 'references', 'key' => 'visit_reference_prefix', 'value' => 'TV', 'type' => 'string'],
             ['group' => 'references', 'key' => 'meeting_reference_prefix', 'value' => 'MT', 'type' => 'string'],
             ['group' => 'references', 'key' => 'order_number_prefix', 'value' => 'ORD', 'type' => 'string'],
+            ['group' => 'references', 'key' => 'return_reference_prefix', 'value' => 'RMA', 'type' => 'string'],
             // The homepage hero. These were hardcoded in the frontend, which
             // meant the invented figures on the must-not-ship list could only
             // be corrected by a developer. Group 'homepage' is public.
@@ -981,6 +982,14 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * emits `MerchantReturnNotPermitted` and ignores this.
              */
             ['group' => 'store', 'key' => 'store_return_days', 'value' => '7', 'type' => 'string'],
+            /*
+             * Returns (0.132.0, docs/store.md "Returns"). The switch that
+             * puts "Return items" on a delivered order's page — on, because
+             * the window above is already promised on every product page —
+             * and how to send goods back, quoted in the approval email.
+             */
+            ['group' => 'store', 'key' => 'store_returns_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'store', 'key' => 'store_return_instructions', 'value' => null, 'type' => 'text'],
 
             /*
              * Abandoned-basket reminders (2026-09-25): the switch, the two

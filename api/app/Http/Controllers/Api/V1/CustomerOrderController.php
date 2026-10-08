@@ -57,6 +57,9 @@ class CustomerOrderController extends Controller
         $order->load([
             'items.product' => fn ($q) => $q->select('id', 'slug', 'status')->where('status', PublishStatus::Published),
             'payments',
+            // What has been asked to come back, and whether more may be.
+            'returns.items.orderItem',
+            'returns.photos',
         ]);
 
         /*

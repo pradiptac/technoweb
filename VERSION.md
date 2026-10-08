@@ -21,6 +21,43 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.132.0 — 2026-10-08
+
+**Returns: customers ask to send items back, and you work each one to a refund.**
+
+- **A "Returns" section on every delivered order** — on the page a customer
+  reaches from their order email, and under Orders in the customer portal.
+  They choose the items and how many, give a reason, and can add up to four
+  photographs.
+- **Your return window decides who can ask.** It is the *Return window, in days*
+  already under Store → Settings (the figure your product pages show),
+  counted from the day the order was completed. Licence keys, services and
+  products marked non-returnable cannot come back.
+- **Store → Returns** is new: the requests waiting for you first, and a
+  screen for each one with the photographs. **Approve** or **decline** (with
+  a reason), mark the goods **received** — ticking the items that go back
+  into stock — and **record the refund**. The store overview counts what is
+  waiting, and each order lists its returns.
+- **The customer is emailed at every step** and sees the progress on their
+  order: Requested, Approved, Items received, Refunded. You are emailed when
+  a request arrives. All six emails can be reworded under Email templates.
+- Stock that comes back is recorded in the stock report as **Customer return**.
+- Two new settings under Store → Settings: **Let customers ask for a return
+  online** (on) and **How to send goods back**, which is added to every
+  approval email. Return numbers look like `RMA-2026-00001`; the prefix is
+  under Reference numbers.
+- Nothing is refunded automatically: send the money back through your
+  gateway or bank, then record it. A new webhook event, `return.requested`,
+  is available.
+- The registration screen is now headed **Create a customer account**
+  (it said "support account"), and the approval email says "customer
+  account" to match.
+
+For developers: `docs/store.md` "Returns"; `ReturnsTest`;
+`scripts/probes/returns.mjs`. Run `php artisan migrate` and
+`php artisan db:seed --class=SettingsSeeder` on a checkout (the updater does
+both).
+
 ## 0.131.0 — 2026-10-08
 
 **A downloads centre: datasheets, drivers and firmware.**

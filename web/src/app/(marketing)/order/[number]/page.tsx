@@ -10,6 +10,8 @@ import { getOrder } from "@/lib/store";
 import { orderToken } from "@/lib/order-access";
 import { formatPaise } from "@/lib/money";
 import { RevealCode } from "./reveal-code";
+import { ReturnsSection } from "@/components/store/returns-section";
+import { requestReturnAction } from "./actions";
 import { PaymentInstructionsPanel } from "./payment-instructions";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -200,6 +202,19 @@ export default async function OrderPage({
                   </address>
                 </div>
               )}
+
+              {/*
+                Returns (docs/store.md "Returns"): what has been asked to come
+                back, and the form while the order is inside its window. The
+                upload address is under this order's own path, because that
+                is where the cookie holding its token is sent.
+              */}
+              <ReturnsSection
+                order={order}
+                action={requestReturnAction.bind(null, order.order_number)}
+                uploadUrl={`/order/${order.order_number}/returns`}
+                className="mt-4"
+              />
             </div>
 
             <aside className="rounded-lg border border-line-strong bg-card p-5 lg:sticky lg:top-24">
