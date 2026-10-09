@@ -1,5 +1,6 @@
 import "server-only";
 import { clientIpHeaders } from "@/lib/client-ip";
+import { previewRecord, type PreviewKind } from "@/lib/preview-store";
 import type { StoreFacetsResponse } from "@/types/store-merch";
 import type {
   ContentBlock,
@@ -12,12 +13,21 @@ import type {
   SearchResults,
   LandingPageSummary, LandingPage as LandingPageRecord,
   NavNode,
-  StoreProduct, StoreCategory, StoreFeedPage,
+  StoreProduct, StoreCategory, StoreFeedPage, DraftPreview,
 } from "@/types/api";
 import type {
   EventAvailability, EventDetail, EventRegistration, EventRegistrationPayload, EventRegistrationResult, EventSummary,
 } from "@/types/events";
 import type { Download, DownloadCategoryList } from "@/types/downloads";
+
+/**
+ * Nothing in the preview store means an ordinary request, and then this is
+ * just the fetch. See `lib/preview-store.ts`.
+ */
+function previewOr<T>(kind: PreviewKind, key: string, fetcher: () => Promise<Single<T>>): Promise<Single<T>> {
+  const hit = previewRecord<T>(kind, key);
+  return hit ? Promise.resolve({ data: hit }) : fetcher();
+}
 
 /**
  * Typed fetch wrapper for the Laravel REST API.
@@ -175,10 +185,12 @@ export const publicApi = {
       tags: ["landing-pages"],
     }),
   landingPage: (path: string) =>
-    apiFetch<Single<LandingPageRecord>>(`/landing-pages/lookup?path=${encodeURIComponent(path)}`, {
-      revalidate: 600,
-      tags: ["landing-pages", `landing-page:${path}`],
-    }),
+    previewOr<LandingPageRecord>("landing-page", path, () =>
+      apiFetch<Single<LandingPageRecord>>(`/landing-pages/lookup?path=${encodeURIComponent(path)}`, {
+        revalidate: 600,
+        tags: ["landing-pages", `landing-page:${path}`],
+      }),
+    ),
 
   /*
    * `inMenu` asks for the subset the mega menu may show.
@@ -194,7 +206,9 @@ export const publicApi = {
       tags: inMenu ? ["solutions", "menu"] : ["solutions"],
     }),
   solution: (slug: string) =>
-    apiFetch<Single<Solution>>(`/solutions/${slug}`, { revalidate: 300, tags: ["solutions", `solution:${slug}`] }),
+    previewOr<Solution>("solution", slug, () =>
+      apiFetch<Single<Solution>>(`/solutions/${slug}`, { revalidate: 300, tags: ["solutions", `solution:${slug}`] }),
+    ),
 
   services: (inMenu = false) =>
     apiFetch<Collection<Service>>(`/services${inMenu ? "?in_menu=1" : ""}`, {
@@ -202,7 +216,9 @@ export const publicApi = {
       tags: inMenu ? ["services", "menu"] : ["services"],
     }),
   service: (slug: string) =>
-    apiFetch<Single<Service>>(`/services/${slug}`, { revalidate: 600, tags: ["services", `service:${slug}`] }),
+    previewOr<Service>("service", slug, () =>
+      apiFetch<Single<Service>>(`/services/${slug}`, { revalidate: 600, tags: ["services", `service:${slug}`] }),
+    ),
   /**
    * The service categories, active only and in order — the tabs the services
    * are grouped under. Tagged `services`, which every service and category
@@ -233,7 +249,9 @@ export const publicApi = {
       cache ? { revalidate: 300, tags: ["products"] } : {},
     ),
   product: (slug: string) =>
-    apiFetch<Single<Product>>(`/products/${slug}`, { revalidate: 300, tags: ["products", `product:${slug}`] }),
+    previewOr<Product>("product", slug, () =>
+      apiFetch<Single<Product>>(`/products/${slug}`, { revalidate: 300, tags: ["products", `product:${slug}`] }),
+    ),
 
   /*
    * The shop, which is a different list from the catalogue above.
@@ -255,10 +273,12 @@ export const publicApi = {
       cache ? { revalidate: 120, tags: ["store-products"] } : {},
     ),
   storeProduct: (slug: string) =>
-    apiFetch<Single<StoreProduct>>(`/store/products/${slug}`, {
-      revalidate: 120,
-      tags: ["store-products", `store-product:${slug}`],
-    }),
+    previewOr<StoreProduct>("store-product", slug, () =>
+      apiFetch<Single<StoreProduct>>(`/store/products/${slug}`, {
+        revalidate: 120,
+        tags: ["store-products", `store-product:${slug}`],
+      }),
+    ),
   /**
    * The shopping feed, one page at a time. Cached an hour, matching the
    * route that renders it: Merchant Center fetches on a schedule, not on
@@ -410,7 +430,9 @@ export const publicApi = {
   careers: () =>
     apiFetch<Collection<JobOpening>>("/careers", { revalidate: 120, tags: ["careers"] }),
   career: (slug: string) =>
-    apiFetch<Single<JobOpening>>(`/careers/${slug}`, { revalidate: 120, tags: ["careers", `career:${slug}`] }),
+    previewOr<JobOpening>("career", slug, () =>
+      apiFetch<Single<JobOpening>>(`/careers/${slug}`, { revalidate: 120, tags: ["careers", `career:${slug}`] }),
+    ),
 
   /*
    * Events (docs/events-contract.md).
@@ -427,10 +449,12 @@ export const publicApi = {
   events: (query = "") =>
     apiFetch<Paginated<EventSummary>>(`/events${query}`, { revalidate: 120, tags: ["events"] }),
   event: (slug: string) =>
-    apiFetch<Single<EventDetail>>(`/events/${encodeURIComponent(slug)}`, {
-      revalidate: 120,
-      tags: ["events", `event:${slug}`],
-    }),
+    previewOr<EventDetail>("event", slug, () =>
+      apiFetch<Single<EventDetail>>(`/events/${encodeURIComponent(slug)}`, {
+        revalidate: 120,
+        tags: ["events", `event:${slug}`],
+      }),
+    ),
 
   /*
    * The downloads centre (docs/downloads.md). The unfiltered list and the
@@ -446,7 +470,9 @@ export const publicApi = {
   caseStudies: () =>
     apiFetch<Collection<CaseStudy>>("/case-studies", { revalidate: 600, tags: ["case-studies"] }),
   caseStudy: (slug: string) =>
-    apiFetch<Single<CaseStudy>>(`/case-studies/${slug}`, { revalidate: 600, tags: ["case-studies", `case-study:${slug}`] }),
+    previewOr<CaseStudy>("case-study", slug, () =>
+      apiFetch<Single<CaseStudy>>(`/case-studies/${slug}`, { revalidate: 600, tags: ["case-studies", `case-study:${slug}`] }),
+    ),
 
   /**
    * The blog listing.
@@ -492,7 +518,9 @@ export const publicApi = {
       { revalidate: 60, tags: ["blog", `blog-comments:${slug}`] },
     ),
   post: (slug: string) =>
-    apiFetch<Single<BlogPost>>(`/blog/${slug}`, { revalidate: 300, tags: ["blog", `post:${slug}`] }),
+    previewOr<BlogPost>("post", slug, () =>
+      apiFetch<Single<BlogPost>>(`/blog/${slug}`, { revalidate: 300, tags: ["blog", `post:${slug}`] }),
+    ),
 
   knowledgeArticles: (query = "", cache = true) =>
     apiFetch<Paginated<KnowledgeArticle>>(
@@ -500,7 +528,9 @@ export const publicApi = {
       cache ? { revalidate: 300, tags: ["kb"] } : {},
     ),
   knowledgeArticle: (slug: string) =>
-    apiFetch<Single<KnowledgeArticle>>(`/knowledge-base/${slug}`, { revalidate: 300, tags: ["kb", `kb:${slug}`] }),
+    previewOr<KnowledgeArticle>("knowledge-article", slug, () =>
+      apiFetch<Single<KnowledgeArticle>>(`/knowledge-base/${slug}`, { revalidate: 300, tags: ["kb", `kb:${slug}`] }),
+    ),
 
   /**
    * Published pages without their bodies — /privacy, /terms, /downloads and
@@ -511,7 +541,9 @@ export const publicApi = {
   pages: () =>
     apiFetch<Collection<CmsPageSummary>>("/pages", { revalidate: 600, tags: ["pages"] }),
   page: (slug: string) =>
-    apiFetch<Single<CmsPage>>(`/pages/${slug}`, { revalidate: 600, tags: ["pages", `page:${slug}`] }),
+    previewOr<CmsPage>("page", slug, () =>
+      apiFetch<Single<CmsPage>>(`/pages/${slug}`, { revalidate: 600, tags: ["pages", `page:${slug}`] }),
+    ),
 
   /*
    * Custom content types (docs/custom-content.md). Tagged
@@ -529,11 +561,20 @@ export const publicApi = {
       { revalidate: 600, tags: ["content-types", `entries:${type}`] },
     ),
   entry: (type: string, slug: string) =>
-    apiFetch<Single<ContentEntry>>(`/types/${type}/${slug}`, {
-      revalidate: 600,
-      // `entries` is every type's: a library section edited in the console can sit on any entry.
-      tags: ["entries", `entries:${type}`, `entry:${type}:${slug}`],
-    }),
+    previewOr<ContentEntry>("entry", `${type}/${slug}`, () =>
+      apiFetch<Single<ContentEntry>>(`/types/${type}/${slug}`, {
+        revalidate: 600,
+        // `entries` is every type's: a library section edited in the console can sit on any entry.
+        tags: ["entries", `entries:${type}`, `entry:${type}:${slug}`],
+      }),
+    ),
+
+  /**
+   * A draft opened from its share link (0.138.0). Never cached: the link can
+   * be revoked at any moment, and a cached answer would keep a revoked draft
+   * on screen.
+   */
+  preview: (token: string) => apiFetch<DraftPreview>(`/preview/${token}`, { cache: "no-store" }),
 
   /**
    * Site-wide search. Never cached, for the reason spelled out on

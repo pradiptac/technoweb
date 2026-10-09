@@ -1212,6 +1212,11 @@ const eventDate = (ymd, year = true) => {
   const d = new Date(`${ymd}T00:00:00Z`);
   return `${EVENT_WEEKDAYS[d.getUTCDay()]} ${d.getUTCDate()} ${EVENT_MONTHS[d.getUTCMonth()]}${year ? ` ${d.getUTCFullYear()}` : ''}`;
 };
+/* Draft share links (0.138.0): in memory, like everything else here. */
+const PREVIEW_LINKS = [];
+let previewSeq = 0;
+const previewToken = () => [...Array(64)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+
 /** A stored wall clock as the instant it names, with the site's offset. */
 const eventIso = (wall) => (wall ? `${wall}:00+05:30` : null);
 const eventLabels = (e) => {
@@ -3861,6 +3866,44 @@ createServer(async (req, res) => {
       }
     }
 
+    /* Draft share links (0.138.0): read, create (replacing) and revoke, in the real envelope.
+       `path` is a path, never a URL; the token appears nowhere else. */
+    {
+      const PREVIEW_TYPES = ['page', 'blog_post', 'knowledge_article', 'case_study', 'solution', 'service', 'product',
+        'store_product', 'event', 'job_opening', 'entry', 'landing_page'];
+      const previewMeta = { days: [1, 7, 30], default_days: 7 };
+      const previewShape = (l) => ({
+        id: l.id, type: l.type, subject_id: l.subject_id, path: `/preview/${l.token}`, expires_at: l.expires_at,
+        expires_label: new Date(l.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }),
+        is_expired: new Date(l.expires_at) < new Date(), views: l.views, last_viewed_at: l.last_viewed_at, created_by: 'Mock Admin',
+      });
+      if (p === '/admin/preview-links' && req.method === 'GET') {
+        const type = url.searchParams.get('type'); const id = Number(url.searchParams.get('id'));
+        if (!PREVIEW_TYPES.includes(type)) return json(res, 422, { message: 'The selected type is invalid.', errors: { type: ['The selected type is invalid.'] } });
+        const link = PREVIEW_LINKS.find((l) => l.type === type && l.subject_id === id);
+        return json(res, 200, { data: link ? previewShape(link) : null, meta: previewMeta });
+      }
+      if (p === '/admin/preview-links' && req.method === 'POST') {
+        const b = await readJsonBody(req);
+        if (!PREVIEW_TYPES.includes(b.type)) return json(res, 422, { message: 'The selected type is invalid.', errors: { type: ['The selected type is invalid.'] } });
+        const days = Number(b.days ?? 7);
+        if (![1, 7, 30].includes(days)) return json(res, 422, { message: 'The selected days is invalid.', errors: { days: ['The selected days is invalid.'] } });
+        const at = PREVIEW_LINKS.findIndex((l) => l.type === b.type && l.subject_id === Number(b.id));
+        if (at >= 0) PREVIEW_LINKS.splice(at, 1);
+        const link = { id: ++previewSeq, type: b.type, subject_id: Number(b.id), token: previewToken(), views: 0, last_viewed_at: null,
+          expires_at: new Date(Date.now() + days * 86400000).toISOString() };
+        PREVIEW_LINKS.push(link);
+        return json(res, 201, { data: previewShape(link), meta: previewMeta });
+      }
+      const pl = p.match(/^\/admin\/preview-links\/(\d+)$/);
+      if (pl && req.method === 'DELETE') {
+        const at = PREVIEW_LINKS.findIndex((l) => l.id === Number(pl[1]));
+        if (at < 0) return json(res, 404, { message: 'Not found.' });
+        PREVIEW_LINKS.splice(at, 1);
+        res.writeHead(204); return res.end();
+      }
+    }
+
     if (p === '/admin/seo' && req.method === 'GET') {
       const score = { value: 80, band: 'good', passed: 8, checked: 10, failed: [] };
       const rows = solutions.slice(0, 2).map((s) => ({
@@ -5601,6 +5644,24 @@ createServer(async (req, res) => {
           ...answerContent(k2.id === 1 ? KB_ANSWER_BLOCKS : [], [],
             k2.id === 1 ? { services: [{ name: services[2].title, path: `/services/${services[2].slug}` }] } : {}) } })
       : json(res, 404, { message: 'Not found.' });
+  }
+  // A draft opened from its share link (0.138.0): one 404 for every dead token. The mock knows the
+  // kinds it has data for; the record is the public detail read without `schema`/`faq_schema`.
+  {
+    const pv = p.match(/^\/preview\/([a-f0-9]{64})$/);
+    if (pv && req.method === 'GET') {
+      const link = PREVIEW_LINKS.find((l) => l.token === pv[1] && new Date(l.expires_at) > new Date());
+      const source = link && ({ page: cmsPages, solution: solutions, blog_post: posts, case_study: caseStudies, product: products })[link.type];
+      const found = source && source.find((x) => x.id === link.subject_id);
+      if (!found) return json(res, 404, { message: 'Not found.' });
+      link.views += 1; link.last_viewed_at = new Date().toISOString();
+      const record = Object.fromEntries(Object.entries(found).filter(([k]) => !['schema', 'faq_schema', 'blocks'].includes(k)));
+      return json(res, 200, { data: { type: link.type, slug: found.slug ?? null, type_slug: null, path: null,
+        record: { ...record, faqs: found.faqs ?? [], answer_blocks: found.answer_blocks ?? [], entity: found.entity ?? { solutions: [], services: [], industries: [], articles: [], faq_count: 0 } } },
+        meta: { title: found.title ?? found.name, status: 'draft', status_label: 'Draft', published: false,
+          expires_at: link.expires_at,
+          expires_label: new Date(link.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) } });
+    }
   }
   // The 404 page reporting an address (0.137.0): 204 for everything, as the API does.
   if (p === '/not-found' && req.method === 'POST') { res.writeHead(204); return res.end(); }

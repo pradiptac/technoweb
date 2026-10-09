@@ -55,7 +55,12 @@ class EventController extends Controller
 
     public function show(string $slug): EventDetailResource
     {
-        $event = $this->published($slug)->load(['seo', 'faqs']);
+        return $this->present($this->published($slug));
+    }
+
+    public function present(Event $event): EventDetailResource
+    {
+        $event->load(['seo', 'faqs']);
 
         return (new EventDetailResource($event))->withSchema();
     }

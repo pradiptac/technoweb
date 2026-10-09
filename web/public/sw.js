@@ -42,6 +42,7 @@ const NEVER_CACHE = [
   "/admin", "/portal", "/api", "/checkout", "/order", "/store/basket", "/store/notify",
   "/newsletter/unsubscribe", "/visit", "/meeting", "/ticket-survey", "/embed", "/theme-preview", "/push",
   "/events/registration",
+  "/preview",
 ];
 
 const never = (path) => NEVER_CACHE.some((p) => path === p || path.startsWith(`${p}/`) || path.startsWith(`${p}?`));

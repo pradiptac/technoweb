@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
+import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { getJobExperienceLevels, getJobOpening, getJobQualifications, getPageBuilderOptions } from "@/lib/admin";
@@ -38,6 +39,7 @@ export default async function EditJobPage({
     <>
       <PageHeader title={job.title} back={{ href: "/admin/jobs", label: "All vacancies" }}>
         <span className="ml-auto flex flex-wrap items-center gap-2">
+          <PreviewLinkPanel type="job_opening" id={job.id} />
           {job.application_count ? (
             <ButtonLink href={`/admin/applications?job=${job.id}`} variant="secondary" size="sm">
               {job.application_count} application{job.application_count === 1 ? "" : "s"}

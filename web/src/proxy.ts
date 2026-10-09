@@ -91,7 +91,7 @@ const table: { map: Map<string, Target>; comingSoon: boolean; mediaCdn: string |
  */
 const NEVER_CURTAINED = [
   "/admin", "/portal", "/api", "/coming-soon", "/order", "/visit", "/meeting",
-  "/events/registration", "/ticket-survey", "/newsletter", "/store/notify",
+  "/events/registration", "/ticket-survey", "/preview", "/newsletter", "/store/notify",
   "/store/basket/restore", "/embed", "/theme-preview", "/pwa-icon", "/offline", "/indexnow",
 ];
 

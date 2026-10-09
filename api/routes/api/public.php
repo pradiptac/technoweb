@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\V1\OrderCodeController;
 use App\Http\Controllers\Api\V1\OrderReturnController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PopupController;
+use App\Http\Controllers\Api\V1\PreviewController;
 use App\Http\Controllers\Api\V1\ProductReviewController;
 use App\Http\Controllers\Api\V1\RedirectController;
 use App\Http\Controllers\Api\V1\RegistrationController;
@@ -499,6 +500,16 @@ Route::get('redirects/lookup', [RedirectController::class, 'lookup'])->name('red
  */
 Route::get('landing-pages', [LandingPageController::class, 'index'])->name('landing-pages.index');
 Route::get('landing-pages/lookup', [LandingPageController::class, 'lookup'])->name('landing-pages.lookup');
+
+/*
+ * A draft opened from its share link (0.138.0, docs/admin-console.md "Draft
+ * share links"). The token is the credential: 64 lower-case hex characters or
+ * a 404 before any controller runs, and every way a link can be dead (unknown,
+ * expired, revoked, replaced) is the same 404.
+ */
+Route::get('preview/{token}', [PreviewController::class, 'show'])
+    ->where('token', '[a-f0-9]{64}')
+    ->middleware('throttle:30,1')->name('preview.show');
 
 // Write endpoints open to the public are throttled hard.
 /* ---------------------------------------------------------- careers */

@@ -374,6 +374,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/redirects/lookup?path=/blog/old-slug` | 200 with `{data:{to,status}}`, or 404. **Records the hit** — the proxy calls it only on a match |
 | `POST` | `/enquiries` | Contact form. Throttled 10/min, honeypot field |
 | `POST` | `/not-found` | The 404 page reporting an address: `path`, `referrer`. Throttled 30/min, **answers 204 always**, including for a payload it records nothing from. One row per address with a count; never records `/`, `/admin`, `/portal`, `/api`, `/_next`, a path a secret addresses (`/order/`, `/visit/`, `/meeting/`, unsubscribe and the other token pages), scanner noise, static files, or an address an active redirect starts at. See "Admin — SEO and redirects" |
+| `GET` | `/preview/{token}` | A draft opened from its share link (0.138.0). Throttled 30/min; the token is 64 lower-case hex characters or a 404 before any controller runs, and **unknown, expired, revoked and replaced are one 404**. `{data: {type, slug, type_slug, path, record}, meta: {title, status, status_label, published, expires_at, expires_label}}`, `Cache-Control: no-store`. `record` is exactly what the record's public detail endpoint answers as `data` — the same resource and eager loads — without `schema` and `faq_schema`, and with no check that it is published, active or still open. See "Admin — draft share links" |
 | `POST` | `/chat/conversations` | Starts a conversation. Throttled 6/min. Returns the token **once** |
 | `GET` | `/chat/conversations/{token}` | The transcript. Throttled 30/min |
 | `POST` | `/chat/conversations/{token}/messages` | Ask something. Throttled 12/min |
@@ -4808,6 +4809,39 @@ the frontend proxy looks them up by exact match. `hit_count` and `last_hit_at`
 are telemetry it writes, and are read-only here.
 
 ---
+
+## Admin — draft share links
+
+A private link to a draft that anyone holding it can read signed out
+(0.138.0, `docs/admin-console.md` "Draft share links").
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/preview-links?type=&id=` | `{data: <link>\|null, meta: {days: [1, 7, 30], default_days: 7}}`. `type` is a morph alias — `page`, `blog_post`, `knowledge_article`, `case_study`, `solution`, `service`, `product`, `store_product`, `event`, `job_opening`, `entry`, `landing_page`; anything else is a 422 on `type`. An expired link is still returned (`is_expired: true`) |
+| `POST` | `/admin/preview-links` | `type`, `id`, `days` (1, 7 or 30, default 7; anything else is a 422 on `days`). **201** `{data: <link>, meta}`. **Deletes any link the record already had** — one live link per record. An id that is no record of that kind is a 422 on `id` |
+| `DELETE` | `/admin/preview-links/{id}` | **204**. The link stops working at once |
+
+Under `role:content_manager,store_manager,seo_manager`, **narrowed per type
+by the controller**: `content_manager` owns every kind but two, `store_manager`
+owns `store_product` and `seo_manager` owns `landing_page`, and an
+administrator passes every one — the same rule `EnsureUserHasRole` applies. A
+role that owns a different kind is a 403, as is a customer token. The list is
+`App\Support\PreviewLinks`.
+
+**The link** is `{id, type, subject_id, path, expires_at, expires_label,
+is_expired, views, last_viewed_at, created_by}`. `path` is `/preview/<token>` —
+**a path, never a URL**, because `FRONTEND_URL` is the production domain on
+every machine; the console puts the browser's own origin in front. The token
+appears nowhere else in any response and is hidden on the model. `views` is
+counted through the query builder, so `updated_at` does not move.
+
+**The public read is the public read.** Each of the twelve public detail
+controllers' `show()` now ends in a `present…()` method that does the
+relation loading and builds the resource; `GET /preview/{token}` calls the
+same method, so a field added to a detail page is in the preview without
+anybody remembering to. Nothing the public read withholds is sent — an
+event's `online_url`, a download's file address — because it is the same
+resource. A knowledge-base preview is not counted as a view.
 
 ## Admin — the AI SEO assistant (`role:seo_manager`)
 

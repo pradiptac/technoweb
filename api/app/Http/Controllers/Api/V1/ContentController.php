@@ -59,6 +59,16 @@ class ContentController extends Controller
     {
         abort_unless($solution->status?->value === 'published', 404);
 
+        return $this->presentSolution($solution);
+    }
+
+    /**
+     * The detail read, whatever the record's status. `solution()` calls it after
+     * its own published check and so does the draft preview
+     * (`PreviewLinkController`): one body, so the two cannot drift.
+     */
+    public function presentSolution(Solution $solution): JsonResource
+    {
         // `locations` feeds `areaServed` in the structured data. Named here
         // because preventLazyLoading is on outside production, so a relation
         // the resource reads and the controller forgot is a 500, not a query.
@@ -81,6 +91,11 @@ class ContentController extends Controller
     {
         abort_unless($service->status?->value === 'published', 404);
 
+        return $this->presentService($service);
+    }
+
+    public function presentService(Service $service): JsonResource
+    {
         $service->load(['category', 'faqs', 'publishedAnswerBlocks', 'seo', 'locations', 'customValues.field.group']);
         EntityLinks::attach($service);
 
@@ -273,6 +288,11 @@ class ContentController extends Controller
     {
         abort_unless($post->status?->value === 'published', 404);
 
+        return $this->presentPost($post);
+    }
+
+    public function presentPost(BlogPost $post): JsonResource
+    {
         $post->load(['author', 'seo', 'categories', 'faqs', 'publishedAnswerBlocks', 'customValues.field.group']);
         EntityLinks::attach($post);
 
@@ -297,6 +317,11 @@ class ContentController extends Controller
     {
         abort_unless($caseStudy->status?->value === 'published', 404);
 
+        return $this->presentCaseStudy($caseStudy);
+    }
+
+    public function presentCaseStudy(CaseStudy $caseStudy): JsonResource
+    {
         $caseStudy->load(['industry', 'seo', 'customValues.field.group']);
         EntityLinks::attach($caseStudy);
 
@@ -403,6 +428,11 @@ class ContentController extends Controller
     {
         abort_unless($page->status?->value === 'published', 404);
 
+        return $this->presentPage($page);
+    }
+
+    public function presentPage(Page $page): JsonResource
+    {
         $page->load(['faqs', 'publishedAnswerBlocks', 'seo', 'customValues.field.group']);
         EntityLinks::attach($page);
 
@@ -414,6 +444,12 @@ class ContentController extends Controller
         abort_unless($article->status?->value === 'published', 404);
 
         $article->increment('view_count');
+
+        return $this->presentKnowledgeArticle($article);
+    }
+
+    public function presentKnowledgeArticle(KnowledgeArticle $article): JsonResource
+    {
         $article->load(['category', 'faqs', 'publishedAnswerBlocks', 'seo', 'customValues.field.group']);
         EntityLinks::attach($article);
 

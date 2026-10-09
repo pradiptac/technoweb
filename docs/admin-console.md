@@ -948,3 +948,98 @@ the tile list is `flex-1` inside a `flex-col` panel, so if a group ever is
 taller than its neighbour the tiles fill the panel rather than leaving a
 strip. The non-compact tile (the four ticket figures) keeps its line under
 the note, where all four are one row of one height.
+
+## Draft share links (0.138.0)
+
+A client or a colleague without an account cannot read a draft, and reviewing a
+page by screenshot loses everything that makes it a page. **Share preview**, on
+the edit screen of twelve kinds of record (pages, blog posts, knowledge-base
+articles, case studies, solutions, services, catalogue products, shop products,
+events, vacancies, custom content entries and landing pages), makes a private
+link that anyone holding it can open signed out, until it expires or is
+revoked.
+
+**The preview is the public detail read, not a second implementation of it.**
+Each public controller's `show()` used to load its relations and build its
+resource inline; the load-and-build half is now a public `present…()` method
+(`ContentController::presentPage()`, `presentPost()` and the rest,
+`CatalogueController::presentProduct()`, `StoreController::presentProduct()`,
+`EventController::present()`, `CareersController::present()`,
+`ContentTypeController::present()`, `LandingPageController::present()`), which
+`show()` calls after its own published check and `PreviewController` calls
+with none. A field added to a detail resource therefore reaches the preview
+with nobody remembering to, and everything the public read withholds (an
+event's `online_url`, a download's address) is withheld here for the same
+reason. `PreviewLinkTest` compares the preview's keys with the published
+record's for each of the twelve kinds, so a route that stopped using
+`present…()` fails by name. `schema` and `faq_schema` are removed: a preview
+emits no structured data. A knowledge-base preview is not a view (`show()`
+increments before it calls `present…()`).
+
+**`App\Support\PreviewLinks` is the one list**: alias → model → owning role,
+and the `present()` switch. Keys are morph-map aliases (`preview_link` is in
+the map, because the revoke route binds it), and the role is the one that owns
+the record's own screen — `content_manager` for ten kinds, `store_manager` for
+`store_product`, `seo_manager` for `landing_page`. The routes sit behind the
+union of the three and `PreviewLinkController` narrows to the kind's owner, so
+`role:` is not repeated per kind, and an administrator passes every one by the
+same rule `EnsureUserHasRole` applies.
+
+**One live link per record, replaced not added.** Making a link deletes the
+old one in the same transaction, so there is never a moment with none and
+never two. There is no unique index on the record: expiry, not absence, is what
+makes a row dead, and an index would turn "replace" into a conflict to resolve.
+
+**One 404 for every dead token.** Unknown, expired, revoked, replaced and a
+record deleted since all answer the same, the token is held to 64 lower-case
+hex characters by the route, and it is compared with `hash_equals`. The read is
+throttled 30 a minute and answers `Cache-Control: no-store`. A view is counted
+with a query-builder `increment`, so `updated_at` does not move.
+
+**The website renders the real page.** `/preview/[token]` (`force-dynamic`, no
+`generateStaticParams`) asks `publicApi.preview()`, files the record in the
+request's preview store (`lib/preview-store.ts` — a React `cache()`, the
+`forcePreviewTheme` pattern), and renders the detail route's own default
+export with the params it would have had at its own address. The twelve
+`publicApi` detail fetchers ask the store first and answer `{data: record}`
+from it; with an empty store, which is every ordinary request, they are the
+fetches they were. Landing pages are told apart by their stored path
+(`/brands/…` or `/locations/…`), an entry carries its type's slug, and a
+product skips the category lookup in `resolveProductSlug()`. No detail page
+was copied, so a new theme or a new section is previewed for free. `JsonLd`
+renders nothing while the store is filled, which also silences `Breadcrumbs`
+and the careers page's own `JobPosting` — the sitewide Organization block in
+the layout is not controlled by it, because a layout can render before the
+page has filled the store.
+
+**A page a secret addresses.** `/preview` is on every list that names
+`/ticket-survey`: Analytics' `SECRET_PATHS`, the `no-referrer` headers in
+`next.config.ts`, `robots.txt`, `PWA_NEVER_CACHE` in `lib/pwa.ts` **and**
+`NEVER_CACHE` in `public/sw.js` (change both), and the coming-soon curtain's
+`NEVER_CURTAINED` — a client reviewing a draft must reach it before launch.
+The page's metadata is `noindex, nofollow`, and `preview` is a reserved slug.
+`NotFoundHit` already skipped `/preview/`.
+
+**The console.** `components/admin/preview-link-panel.tsx` is a server component
+that reads the link (`getPreviewLink()`: a 403 or a 404 returns null and the
+panel draws nothing, so a content manager looking at a shop product's screen is
+not offered a button that would be refused) and hands it to
+`preview-link-dialog.tsx`, a client island: a `Modal` with one `<Form>` and two
+submit buttons, `intent=create` and `intent=revoke`. It sits in the
+`PageHeader` row — never inside the record's `<Form>`, where a form in a form
+is invalid markup, and never as a child of `<Tabs>`, which reads children by
+position. Three decisions worth knowing: **refusals render inside the dialog**
+(a toast raised behind a top-layer `<dialog>` is inert and unseen); **the
+address is built from the browser's origin** with `useSyncExternalStore`
+(server snapshot empty), because the API sends a path and `FRONTEND_URL` is
+production on every machine; and **the action returns the link as it is now**
+and calls no `revalidatePath`, because re-rendering the edit screen would throw
+away a half-written form (the reason the SEO overview's Recheck gives).
+
+**What the preview found.** `BlogPost::neighbours()` compared `published_at`
+with null for a draft and threw an illegal-operator exception, so a draft post
+had no page at all; it returns no neighbours when the post has no date. It was
+invisible until something rendered a draft.
+
+`scripts/probes/preview-link.mjs` makes a link for the first record of each of
+the twelve lists, opens it signed out at 360 and 1280, and revokes it.

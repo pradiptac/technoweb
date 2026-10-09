@@ -21,6 +21,39 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.138.0 — 2026-10-09
+
+**Share a draft: a private link anyone can open to review it before it is published.**
+
+- **A new "Share preview" button** on the edit screen of a page, blog post,
+  knowledge-base article, case study, solution, service, catalogue product,
+  shop product, event, vacancy, custom content entry and landing page. It opens
+  a small window where you choose how long the link lasts — 1, 7 (the default) or
+  30 days — and press *Create link*. Copy the address and send it to a client or
+  a colleague; they read the page exactly as it will look once published, in
+  your chosen theme, without signing in.
+- **One link per record.** *Make a new link* stops the old one working at once;
+  *Revoke link* stops it without making another. The window shows when the link
+  expires and how many times it has been opened.
+- **It is the real page, not a picture of it.** The preview draws the same
+  page the public sees, from the same data, so a section you add to a page
+  appears in the preview without anything else being done. A banner across the
+  top says it is a draft preview and when the link stops working.
+- **Private by design.** The address is a long random code; search engines are
+  told to ignore it; it is not counted by analytics, sends no referrer and is never
+  stored for offline use. A link that is wrong, expired, revoked or replaced shows
+  the same "page not found". The preview adds no structured data to the page.
+- **Who can share what.** The same people who can edit the record: content
+  managers for pages and the catalogue, store managers for shop products, SEO
+  managers for landing pages. Administrators can share anything.
+- **A draft blog post no longer breaks its own page.** Rendering a post with no
+  publication date asked the database to compare nothing; found by the preview
+  and fixed.
+- **A product with no picture no longer breaks its own page.** A catalogue or
+  shop product saved without a picture or a video answered "something went
+  wrong" instead of its page, published or not, since product videos arrived.
+  It draws the empty picture well again.
+
 ## 0.137.0 — 2026-10-09
 
 **Missing pages: see which addresses visitors could not find.**

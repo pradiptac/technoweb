@@ -145,6 +145,11 @@ class StoreController extends Controller
     {
         abort_unless($storeProduct->status?->value === 'published', 404);
 
+        return $this->presentProduct($storeProduct);
+    }
+
+    public function presentProduct(StoreProduct $storeProduct): JsonResource
+    {
         $storeProduct->load(['category', 'brand', 'variations', 'services', 'faqs', 'publishedAnswerBlocks', 'seo', 'customValues.field.group', 'publishedDownloads.category']);
 
         // What the page lists beside it: up to six others from the same

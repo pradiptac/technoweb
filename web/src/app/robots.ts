@@ -49,6 +49,8 @@ const PRIVATE = [
   // One person's event registration, addressed by the token in its path
   // (docs/events-contract.md). `/events` and every event page stay allowed.
   "/events/registration/",
+  // A draft opened from its share link (docs/admin-console.md): the token is in the path.
+  "/preview/",
 ];
 
 const AI_CRAWLERS = [

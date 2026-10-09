@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
+import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/input";
@@ -55,13 +56,14 @@ export default async function EditCmsPage({
         title="Edit page"
       >
         <Badge tone={statusTone[page.status]}>{page.status_label}</Badge>
+        <PreviewLinkPanel type="page" id={page.id} className="ml-auto" />
         {page.template === "builder" && (
-          <Link href={`/admin/pages/${page.id}/preview`} className="ml-auto py-1 text-13-5 font-semibold text-brand-ink hover:underline">
+          <Link href={`/admin/pages/${page.id}/preview`} className="py-1 text-13-5 font-semibold text-brand-ink hover:underline">
             Preview
           </Link>
         )}
         {page.status === "published" && (
-          <Link href={`/${page.slug}`} className={`${page.template === "builder" ? "" : "ml-auto "}py-1 text-13-5 font-semibold text-brand-ink hover:underline`}>
+          <Link href={`/${page.slug}`} className="py-1 text-13-5 font-semibold text-brand-ink hover:underline">
             View on site ↗
           </Link>
         )}

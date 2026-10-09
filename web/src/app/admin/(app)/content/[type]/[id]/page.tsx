@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
+import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
 import { getEntries, getEntry, getPageBuilderOptions } from "@/lib/admin";
@@ -43,8 +44,9 @@ export default async function EditEntryPage({
       <PageHeader back={{ href: `/admin/content/${slug}`, label: `All ${meta.type.plural.toLowerCase()}` }}
         title={`Edit ${meta.type.name.toLowerCase()}`}>
         <Badge tone={statusTone[entry.status]}>{entry.status_label}</Badge>
+        <PreviewLinkPanel type="entry" id={entry.id} className="ml-auto" />
         {entry.status === "published" && meta.type.is_active && (
-          <Link href={entry.path} className="ml-auto py-1 text-13-5 font-semibold text-brand-ink hover:underline">
+          <Link href={entry.path} className="py-1 text-13-5 font-semibold text-brand-ink hover:underline">
             View on site ↗
           </Link>
         )}

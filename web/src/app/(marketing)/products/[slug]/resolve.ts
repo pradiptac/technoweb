@@ -1,5 +1,6 @@
 import "server-only";
 import { ApiError, publicApi } from "@/lib/api";
+import { previewRecord } from "@/lib/preview-store";
 import type { Paginated, Product, ProductCategory } from "@/types/api";
 
 /**
@@ -29,6 +30,13 @@ export type Resolved =
 const notFound = (e: unknown) => e instanceof ApiError && e.status === 404;
 
 export async function resolveProductSlug(slug: string, query = ""): Promise<Resolved> {
+  // A draft opened from its share link (0.138.0) is a product by definition:
+  // the record is already in hand, and a category that happens to share its
+  // slug must not take the page from it.
+  if (previewRecord<Product>("product", slug)) {
+    return { kind: "product", product: (await publicApi.product(slug)).data };
+  }
+
   const [categoryResult, productResult] = await Promise.allSettled([
     publicApi.productCategory(slug),
     publicApi.product(slug),

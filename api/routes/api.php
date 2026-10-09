@@ -48,6 +48,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             require __DIR__.'/api/admin-my-meetings.php';
             require __DIR__.'/api/admin-seo-manager.php';
             require __DIR__.'/api/admin-content-manager.php';
+            require __DIR__.'/api/admin-preview-links.php';
         });
     });
 });

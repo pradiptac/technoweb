@@ -338,6 +338,48 @@ sections exactly as on a page, then save.
 - Categories do not have a Sections tab: their description is a line in the
   heading, not a body.
 
+## Sharing a draft
+
+Someone who has no account on your site — a client, a colleague, the person who
+wrote the words — cannot open a page that is not published yet. **Share
+preview** gives them a private link that does.
+
+It is on the edit screen of pages, blog posts, knowledge-base articles, case
+studies, solutions, services, products, shop products, events, vacancies,
+custom content entries and landing pages. You see it only for records your role
+may edit: shop products belong to store managers, landing pages to SEO managers,
+and everything else to content managers. Administrators see it everywhere.
+
+1. Open the record and press **Share preview** (next to the status).
+2. Choose how long the link should last — **1 day, 7 days or 30 days** — and
+   press **Create link**.
+3. Press **Copy link** and send the address to whoever should look at it.
+
+Whoever opens the link sees the page as it will look once published, in your
+current theme, with a banner across the top saying it is a draft and when the
+link stops working. They do not need to sign in, and they see the record as it
+is saved *now* — save your changes and they only need to reload.
+
+- **One link per record.** **Make a new link** stops the old one working at
+  once. **Revoke link** stops it without making another.
+- The window shows when the link expires and **how many times it has been
+  opened**.
+- A link that is wrong, expired, revoked or replaced shows the ordinary "page
+  not found".
+- The link is hidden from search engines, is not counted by your analytics and
+  is not kept for offline use. Anyone who has the address can read the page, so
+  send it only to the people who should see it — it is meant for a draft you
+  would be content to show a client, not for anything confidential.
+- The preview does not count as a view of a knowledge-base article, and it
+  shows nothing a visitor could not see on the published page (an event's online
+  join link is never in it).
+- Saving a record does not change its link. Deleting a record leaves its link
+  showing "page not found".
+- A preview is for reading. Buttons that act on a published record — **Add to
+  basket** on a shop product, **Register** on an event, **Apply** on a vacancy —
+  are drawn so the page looks right, and answer with an error until the record
+  is published.
+
 ## The blog
 
 **Blog → Blog** lists your articles. Each post has a title, a slug, an

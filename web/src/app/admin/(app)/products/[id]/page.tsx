@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
+import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
@@ -57,7 +58,8 @@ export default async function EditProductPage({
         title="Edit product"
       >
         <Badge tone={statusTone[product.status]}>{product.status_label ?? product.status}</Badge>
-        <Link href={`/products/${product.slug}`} className="ml-auto py-1 text-13-5 font-semibold text-brand-ink hover:underline">
+        <PreviewLinkPanel type="product" id={product.id} className="ml-auto" />
+        <Link href={`/products/${product.slug}`} className="py-1 text-13-5 font-semibold text-brand-ink hover:underline">
           View on site ↗
         </Link>
       </PageHeader>

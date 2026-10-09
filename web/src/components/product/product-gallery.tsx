@@ -57,7 +57,10 @@ export function ProductGallery({
   const [open, setOpen] = useState(false);
   const clips = store ? videos : [];
   const slots = images.length + clips.length;
-  const onVideo = index >= images.length;
+  // A product with no picture and no video is on neither: with nothing in
+  // `clips`, slot 0 past an empty picture list is not a video, and reading one
+  // there was a 500 on every picture-less product page (found 0.138.0).
+  const onVideo = clips.length > 0 && index >= images.length;
   const shown = onVideo ? undefined : images[index];
   /*
     The shop's hover magnifier: the picture at twice its size inside the

@@ -389,6 +389,11 @@ Built in, measured, and never allowed to guess.
 - **Missing pages**: a list of the addresses visitors asked for that do not
   exist, with how often and where they came from, and a one-press redirect.
   Private links, scanner noise and static files are never listed.
+- **Draft share links**: a private link, valid for 1, 7 or 30 days and
+  revocable, that shows a page, post, product, event, vacancy or any other
+  record as it will be published, without signing in. It renders the real
+  page, carries a "draft preview" banner and is kept out of search, analytics
+  and offline caches.
 - **Sitemap and robots** generated from the data, honouring per-record
   inclusion.
 - **Share images** for every page, generated when no photograph exists.

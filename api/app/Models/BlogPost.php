@@ -93,6 +93,14 @@ class BlogPost extends Model implements Answerable, Faqable
      */
     public function neighbours(): array
     {
+        // A draft has no publication date, so it has no place in the sequence —
+        // and comparing a column with null is an illegal query. Found by the
+        // draft preview (0.138.0): the one way to render a post that is not
+        // published.
+        if ($this->published_at === null) {
+            return ['previous' => null, 'next' => null];
+        }
+
         $columns = ['id', 'title', 'slug', 'published_at'];
 
         $before = static::published()

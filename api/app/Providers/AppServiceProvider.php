@@ -64,6 +64,7 @@ use App\Models\OrderReturn;
 use App\Models\Page;
 use App\Models\Payment;
 use App\Models\Popup;
+use App\Models\PreviewLink;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductReview;
@@ -263,6 +264,8 @@ class AppServiceProvider extends ServiceProvider
             // A missing address (docs/seo.md "Missing pages"): bound in the
             // ignore/restore routes.
             'not_found_hit' => NotFoundHit::class,
+            // Bound in the revoke route (0.138.0, draft share links).
+            'preview_link' => PreviewLink::class,
             // Bound in an admin route (the accept/reject endpoint), so it needs
             // a key whatever it is polymorphic about — MorphMapCoverageTest
             // caught its absence, which is the check working.

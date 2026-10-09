@@ -33,7 +33,7 @@ final class ReservedSlugs
         'about', 'blog', 'brands', 'careers', 'cart', 'case-studies', 'certifications',
         'checkout', 'clients', 'contact', 'industries', 'knowledge-base', 'locations',
         'newsletter', 'order', 'products', 'resources', 'search', 'services', 'solutions',
-        'store', 'support', 'team', 'book-a-visit', 'visit', 'book-a-meeting', 'meeting', 'ticket-survey', 'offline', 'pwa-icon', 'sw.js', 'manifest.webmanifest', 'coming-soon', 'font',
+        'store', 'support', 'team', 'book-a-visit', 'visit', 'book-a-meeting', 'meeting', 'ticket-survey', 'preview', 'offline', 'pwa-icon', 'sw.js', 'manifest.webmanifest', 'coming-soon', 'font',
         // The events module's own pages (0.118.0, docs/events.md). Until
         // then `events` was the example a custom content type was given.
         'events',
@@ -59,7 +59,7 @@ final class ReservedSlugs
     private const OTHER = [
         '_next', 'static', 'public', 'storage', 'assets', 'images', 'media', 'feed',
         'rss', 'well-known', 'login', 'logout', 'register', 'account', 'home', 'index',
-        'preview', 'entries', 'content', 'custom-content',
+        'entries', 'content', 'custom-content',
     ];
 
     /** @return array<int, string> */

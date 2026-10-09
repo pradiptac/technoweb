@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ContentTypeResource;
 use App\Http\Resources\EntryResource;
 use App\Models\ContentType;
+use App\Models\Entry;
 use App\Support\EntityLinks;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -65,6 +66,12 @@ class ContentTypeController extends Controller
         $contentType = ContentType::active()->where('slug', $type)->firstOrFail();
         $entry = $contentType->entries()->published()->where('slug', $slug)->firstOrFail();
 
+        return $this->present($entry, $contentType);
+    }
+
+    /** The detail read, whatever the entry's status; the draft preview calls it too. */
+    public function present(Entry $entry, ContentType $contentType): JsonResource
+    {
         $entry->setRelation('contentType', $contentType);
         $entry->load(['faqs', 'publishedAnswerBlocks', 'seo', 'customValues.field.group']);
         EntityLinks::attach($entry);
