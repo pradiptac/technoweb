@@ -59,7 +59,7 @@ class CatalogueImport
         'sku', 'parent_sku', 'name', 'slug', 'type', 'category', 'brand',
         'price', 'compare_at', 'stock', 'track_stock', 'allow_oversell',
         'gtin', 'mpn', 'condition', 'weight_grams', 'status', 'feed_include',
-        'short_description',
+        'short_description', 'tags',
     ];
 
     /** Refused lines reported per file. The fifty-first says nothing the first fifty did not. */
@@ -112,6 +112,7 @@ class CatalogueImport
             'status' => ['status', 'published', 'visibility'],
             'feed_include' => ['feedinclude', 'infeed', 'googlefeed', 'feed'],
             'short_description' => ['shortdescription', 'summary', 'blurb', 'tagline', 'excerpt'],
+            'tags' => ['tags', 'tag', 'producttags', 'labels'],
         ];
 
         $mapping = [];
@@ -489,6 +490,29 @@ class CatalogueImport
             }
         }
 
+        /*
+         * Shop tags, separated by `;` (a comma is common inside a name). A
+         * blank cell leaves a product's tags alone like every other column;
+         * a filled one replaces them. A name the tags cannot hold is
+         * refused, not trimmed: "Wi-Fi 6E Access Points And Controllers For
+         * Large Estates" cut to 32 characters is a different tag.
+         */
+        if ($cells['tags'] !== null) {
+            $names = array_values(array_filter(array_map('trim', explode(';', $cells['tags'])), fn ($n) => $n !== ''));
+
+            foreach ($names as $name) {
+                if (mb_strlen($name) > Tags::NAME_MAX || Str::slug($name) === '') {
+                    return ['values' => [], 'error' => "\"{$name}\" cannot be a tag — a tag is 1 to ".Tags::NAME_MAX.' characters with at least one letter or number.'];
+                }
+            }
+
+            if (count(Tags::clean($names)) > Tags::MAX_PER_PRODUCT) {
+                return ['values' => [], 'error' => 'A product can carry up to '.Tags::MAX_PER_PRODUCT.' tags.'];
+            }
+
+            $values['tags'] = $names;
+        }
+
         return ['values' => $values, 'error' => null];
     }
 
@@ -537,9 +561,10 @@ class CatalogueImport
             // Everything a product line may set except the two the import
             // uses to find it: a SKU is the key here, and a slug changed by a
             // spreadsheet cell would move a live URL without anybody meaning to.
-            $product->update(array_diff_key($values, array_flip(['sku', 'slug'])));
+            $product->update(array_diff_key($values, array_flip(['sku', 'slug', 'tags'])));
 
             StockLedger::adjusted($product, $stockBefore, $variationsBefore, false, $source);
+            self::tag($product, $values['tags'] ?? null);
 
             return;
         }
@@ -548,10 +573,26 @@ class CatalogueImport
             'type' => ProductType::Physical,
             'status' => PublishStatus::Draft,
             'sku' => $line['sku'],
-            ...$values,
+            ...array_diff_key($values, ['tags' => true]),
         ]);
 
         StockLedger::adjusted($product, 0, [], true, $source);
+        self::tag($product, $values['tags'] ?? null);
+    }
+
+    /**
+     * Tags for a line: the cell's, when it had one; otherwise the automatic
+     * rule, which is a no-op for a product that has tags or was decided.
+     *
+     * @param  array<int, string>|null  $names
+     */
+    private static function tag(StoreProduct $product, ?array $names): void
+    {
+        if ($names !== null) {
+            Tags::sync($product, $names);
+        } else {
+            Tags::autoTag($product);
+        }
     }
 
     /** @return array<string, int> */

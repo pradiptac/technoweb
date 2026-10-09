@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\Store\Tags;
 use Illuminate\Database\Seeder;
 
 /**
@@ -55,5 +56,12 @@ class DemoSeeder extends Seeder
             // status and a couple of enquiries.
             DemoSupportSeeder::class,
         ]);
+
+        // The shop's tag row (0.141.0): tag whatever shop products now exist
+        // by the automatic rule, so a demo install shows the row. Once per
+        // product, and only while the switch is on.
+        if (Tags::autoEnabled()) {
+            Tags::autoTagUntagged();
+        }
     }
 }

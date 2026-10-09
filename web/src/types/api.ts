@@ -1724,6 +1724,10 @@ export type AdminStoreProduct = AdminCustomFields & import("./page-sections").Ad
   type: StoreProductType;
   type_label?: string;
   short_description?: string | null;
+  /** The shop tags (0.141.0), in the Tags screen's order. */
+  tags?: { id: number; name: string; slug: string }[];
+  /** True while the tags are the automatic ones, untouched. */
+  tags_auto?: boolean;
   /** Detail-only, rich text. */
   description?: string | null;
   store_category_id?: number | null;
@@ -1875,6 +1879,8 @@ export type StoreProduct = PublicCustomFields & AnswerContent & import("./page-s
   applications?: string | null;
   /** The services that install or support it. */
   services?: { id: number; title: string; slug: string }[];
+  /** The shop tags switched on for the shop front (0.141.0), in the Tags screen's order. */
+  tags?: import("./store-tags").StoreTagRef[];
   faqs?: Faq[];
   images: string[];
   image_alts: (string | null)[];

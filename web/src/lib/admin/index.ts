@@ -35,6 +35,7 @@ export * from "./seo";
 export * from "./settings";
 export * from "./site";
 export * from "./store";
+export * from "./store-tags";
 export * from "./tickets";
 export * from "./visits";
 export * from "./meetings";

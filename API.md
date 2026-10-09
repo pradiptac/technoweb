@@ -2329,6 +2329,41 @@ with an address, skip the suppression list and a stopped list (leaving the
 line owed), and outside `QuietHours` re-dispatch themselves to its next
 opening. `Messenger::notify()` is called beside each email.
 
+### Shop tags (0.141.0)
+
+The coloured row under the shop's search bar. See `docs/store.md` "Tags".
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/store/tags` | `?category=<slug>`, `?limit=` (1–30, default `store_tags_limit`). `{data: [{name, slug, count}]}` — **visible** tags carried by **published** products (of that category), curated tags first in the Tags screen's order, then the most used. **`{data: []}` in a 200** when there are none or `store_tags_enabled` is off |
+| `GET` | `/store/products` | gains `?tag=<slug>` (a hidden tag still filters), and `?q=` also matches a tag's name |
+
+Product rows and `GET /store/products/{slug}` carry `tags: [{name, slug}]` —
+visible tags only, in the Tags screen's order. The three settings
+(`store_tags_enabled`, `store_tags_limit`, `store_tags_auto`) are the public
+`store_tags` group.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/store/tags` | `role:store_manager`. Every tag: `{id, name, slug, is_visible, sort_order, products_count}` (drafts included in the count), curated first then most used. `meta`: `settings` `{store_tags_enabled, store_tags_limit, store_tags_auto}`, `untagged` (products with no tags the rule has never decided), `max_per_product` (12), `name_max` (32) |
+| `POST` | `/admin/store/tags` | `name`. **201**. 422 on `name` for an empty slug, over 32 characters, or a slug that exists |
+| `PATCH` | `/admin/store/tags/reorder` | `ids[]` — every tag in the order drawn; renumbered 1..n. **Declared above `{id}`** |
+| `PATCH` | `/admin/store/tags/settings` | `settings: [{key, value}]` — the three keys and **no other** (422 by name); the switches `0`/`1`, the limit 4–30 |
+| `POST` | `/admin/store/tags/auto` | Runs the automatic rule over every product with no tags that was never decided. `{data: {tagged, untagged}}`. Throttled 6/min |
+| `PATCH` | `/admin/store/tags/{id}` | `name` (the slug follows it; 422 if another tag has it), `is_visible` |
+| `POST` | `/admin/store/tags/{id}/merge` | `into`. Moves its products onto `into` without duplicates, deletes it. `{data: {moved, into}}` |
+| `DELETE` | `/admin/store/tags/{id}` | **204**. Its products keep everything else |
+| `POST` | `/admin/store/products/tag-suggest` | `name`, `short_description`, `description`, `specifications`, `brand_id`, `store_category_id`, `type`, `current[]`. `{data: {tags[], source: "ai"\|"rules"}}` — the AI assistant when it is on, has a key and the day's cap is not reached, otherwise the rule; anything the AI cannot answer falls back to the rule. Nothing is saved. Throttled 10/min |
+
+`POST`/`PATCH /admin/store/products` take `tags[]` — names, replaced
+wholesale; **absent leaves them alone, `[]` clears them**, and sending the key
+at all stamps `tags_set_at`, so the automatic rule never puts back what was
+removed. At most 12 (422 on `tags`), each 1–32 characters with a letter or
+number (422 on `tags.N`). A product saved without the key and with no tags is
+tagged by the rule, once. The admin product carries `tags: [{id, name, slug}]`
+and `tags_auto` (true while they are the rule's, untouched); the products
+index carries `meta.tags`, every tag's name.
+
 ### Admin — the store (`role:store_manager`)
 
 | Method | Path | Notes |

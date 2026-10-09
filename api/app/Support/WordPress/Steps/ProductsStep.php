@@ -8,6 +8,7 @@ use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
 use App\Support\Store\SpecIndex;
 use App\Support\Store\StockLedger;
+use App\Support\Store\Tags;
 use App\Support\WordPress\AcfValues;
 use App\Support\WordPress\Context;
 use App\Support\WordPress\Outcome;
@@ -137,8 +138,12 @@ class ProductsStep extends Step
             $outcome->warn('Was in more than one category; a product here has one.');
         }
 
-        if (! empty($record['tags'])) {
-            $outcome->warn('Had tags, which the store does not keep.');
+        // Shop tags (0.141.0) come across; only a name a tag cannot be
+        // (over 32 characters, no letter or number) or a thirteenth is named.
+        $tagNames = $this->tagNames($record);
+
+        if (count($tagNames) > count(array_slice(Tags::clean($tagNames), 0, Tags::MAX_PER_PRODUCT))) {
+            $outcome->warn('Had tags the store could not keep (longer than '.Tags::NAME_MAX.' characters, or more than '.Tags::MAX_PER_PRODUCT.').');
         }
 
         if (count((array) ($record['images'] ?? [])) > 12) {
@@ -245,6 +250,10 @@ class ProductsStep extends Step
             ? StockLedger::adjusted($product, 0, [], true, $source)
             : StockLedger::adjusted($product, $stockBefore, $variationsBefore, false, $source);
 
+        // The product's own tags, or the automatic rule for one that had none.
+        $tagNames = $this->tagNames($record);
+        $tagNames !== [] ? Tags::sync($product, $tagNames) : Tags::autoTag($product);
+
         $ctx->map->put('product', $record['id'], $product, $record['permalink'] ?? null);
     }
 
@@ -345,6 +354,27 @@ class ProductsStep extends Step
     }
 
     /** @return array<string, string> attributes that are not variations, as the spec sheet */
+    /**
+     * A WooCommerce product's tag names (`tags: [{id, name, slug}]`), decoded —
+     * WooCommerce sends `Wi-Fi &amp; PoE` for `Wi-Fi & PoE`.
+     *
+     * @return array<int, string>
+     */
+    private function tagNames(array $record): array
+    {
+        $names = [];
+
+        foreach ((array) ($record['tags'] ?? []) as $tag) {
+            $name = is_array($tag) ? ($tag['name'] ?? null) : null;
+
+            if (is_string($name) && trim($name) !== '') {
+                $names[] = html_entity_decode($name, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+        }
+
+        return $names;
+    }
+
     private function specifications(array $record): array
     {
         $specs = [];

@@ -200,6 +200,14 @@ first rupee.
   the account on sign-in — with a once-only back-in-stock email and a
   once-per-drop price-drop email, both held to 9am–9pm, and the most-wished
   products on the store dashboard.
+- **Shop tags**: a row of small coloured pills under the search bar — the
+  once a category is chosen, that category's own — each a filter, the
+  same colour on every page and in every palette. Tags are added on the product
+  form (with a **Suggest tags** button that uses the AI assistant when it is on,
+  and the product's brand, category and key specifications when it is not),
+  are added automatically **once** to a product that has none, and are tidied
+  on **Store → Tags**: hide, reorder, rename, merge two spellings, delete.
+  They travel in the shop's CSV and arrive from WooCommerce.
 - **Order management**: status lifecycle, dispatch notice on status change,
   tracking, uploaded invoices, internal notes, manual payment recording.
 - **Invoices in Zoho Books** (optional): connect your Zoho Books and each

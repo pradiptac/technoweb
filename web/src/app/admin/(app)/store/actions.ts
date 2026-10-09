@@ -78,6 +78,12 @@ function productPayload(formData: FormData): Record<string, unknown> {
     sort_order: sortOrder ? Number(sortOrder) : 0,
     specifications,
     features: jsonListFromFormData<string>(formData, "features"),
+    // Shop tags (0.141.0), as names, replaced wholesale. Sent only when a
+    // person changed the list (`tags_changed`): a form that posted its
+    // untouched, empty list would "decide" every new product's tags and the
+    // automatic rule would never run. Sent even when empty after a change,
+    // which is how a person clears them.
+    ...(formData.get("tags_changed") === "1" ? { tags: jsonListFromFormData<string>(formData, "tags") } : {}),
     images: formData.getAll("images").map(String).filter(Boolean),
     // Up to four, replaced wholesale (2026-09-26). A pasted YouTube link
     // travels as typed; the API keeps the id and refuses anything else.

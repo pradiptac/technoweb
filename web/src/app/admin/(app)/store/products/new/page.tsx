@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
 import { ApiError } from "@/lib/api";
-import { getAnswerBlockKinds, getBrandOptions, getServiceOptions, getStoreCategories, getCustomFieldGroups, getPageBuilderOptionsIfAllowed } from "@/lib/admin";
+import { getAnswerBlockKinds, getBrandOptions, getServiceOptions, getStoreCategories, getCustomFieldGroups, getPageBuilderOptionsIfAllowed, getStoreTagNames } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { StoreProductForm } from "../store-product-form";
@@ -38,7 +38,7 @@ export default async function NewStoreProductPage() {
     <>
       <PageHeader back={{ href: "/admin/store/products", label: "Store products" }} title="New store product" />
 
-      <StoreProductForm brands={brands} categories={categories} services={services} kinds={kinds} fieldGroups={await getCustomFieldGroups("/admin/store/products")} builder={await getPageBuilderOptionsIfAllowed()} />
+      <StoreProductForm brands={brands} categories={categories} services={services} kinds={kinds} fieldGroups={await getCustomFieldGroups("/admin/store/products")} builder={await getPageBuilderOptionsIfAllowed()} tagNames={await getStoreTagNames()} />
     </>
   );
 }

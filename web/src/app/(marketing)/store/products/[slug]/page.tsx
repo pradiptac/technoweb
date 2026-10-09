@@ -25,6 +25,8 @@ import { formatPaise, percentOff } from "@/lib/money";
 import { buildMetadata, JsonLd, SITE } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
 import { videoShelfConfig, videoShelfEnabled } from "@/lib/store-videos";
+import { settingEnabled } from "@/lib/site-settings";
+import { ProductTagChips } from "@/components/store/tag-row";
 import type { StoreCategory, StoreProduct } from "@/types/api";
 import type { VideoShelfRow } from "@/types/store-merch";
 
@@ -326,6 +328,9 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
               {product.short_description && (
                 <p className="text-14-5 leading-[1.6] text-ink-2">{product.short_description}</p>
               )}
+
+              {/* The product's own tags (0.141.0), each opening the shop filtered to it. */}
+              {settingEnabled(settings, "store_tags_enabled") && <ProductTagChips tags={product.tags} category={product.category?.slug} />}
 
               <AddToBasket product={product} />
 

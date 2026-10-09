@@ -36,7 +36,7 @@ class CatalogueExport
     public static function rows(): \Generator
     {
         $products = StoreProduct::query()
-            ->with(['category:id,slug', 'brand:id,slug', 'variations'])
+            ->with(['category:id,slug', 'brand:id,slug', 'variations', 'tags'])
             ->orderBy('sort_order')
             ->orderBy('name')
             ->orderBy('id')
@@ -74,6 +74,8 @@ class CatalogueExport
             $product->status->value,
             $product->feed_include ? '1' : '0',
             (string) ($product->short_description ?? ''),
+            // Shop tags, `;` between them (a comma is common inside a name).
+            $product->tags->pluck('name')->implode('; '),
         ];
     }
 
@@ -104,6 +106,7 @@ class CatalogueExport
             (string) ($variation->mpn ?? ''),
             '',
             $variation->weight_grams === null ? '' : (string) $variation->weight_grams,
+            '',
             '',
             '',
             '',

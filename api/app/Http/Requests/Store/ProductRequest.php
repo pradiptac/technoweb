@@ -12,7 +12,9 @@ use App\Http\Requests\Concerns\ValidatesRecordSections;
 use App\Http\Requests\SeoRules;
 use App\Support\PageSections\SectionRules;
 use App\Support\Store\ProductVideos;
+use App\Support\Store\Tags;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /**
@@ -207,6 +209,20 @@ class ProductRequest extends FormRequest
             // The services that install or support it, replaced wholesale.
             ...CmsFieldRules::ids('service_ids', 'services'),
 
+            /*
+             * Shop tags, as names, replaced wholesale (0.141.0): absent leaves
+             * them alone, `[]` clears them. A name whose slug is empty
+             * ("!!!") is refused here rather than dropped quietly, so the
+             * editor sees which chip did not take.
+             */
+            'tags' => ['sometimes', 'nullable', 'array', 'max:'.Tags::MAX_PER_PRODUCT],
+            'tags.*' => [
+                'string', 'max:'.Tags::NAME_MAX,
+                fn ($attribute, $value, $fail) => is_string($value) && Str::slug($value) === ''
+                    ? $fail('A tag needs at least one letter or number.')
+                    : null,
+            ],
+
             ...CmsFieldRules::faqs(),
             ...CmsFieldRules::answerBlocks(),
             // Builder sections in place of the written body (0.130.0, `RecordSections`).
@@ -229,6 +245,8 @@ class ProductRequest extends FormRequest
             'variations.*.gtin.regex' => 'A GTIN is the barcode number — 8, 12, 13 or 14 digits and nothing else.',
             'variations.*.name.required' => 'Every variation needs a name — what the buyer picks from.',
             'variations.max' => 'A product can carry up to 50 variations.',
+            'tags.max' => 'A product can carry up to '.Tags::MAX_PER_PRODUCT.' tags.',
+            'tags.*.max' => 'A tag can be up to '.Tags::NAME_MAX.' characters.',
             'faqs.*.question.required' => 'Every FAQ needs a question.',
             'faqs.*.answer.required' => 'Every FAQ needs an answer.',
             'answer_blocks.*.kind.required' => 'Every answer block needs a kind.',

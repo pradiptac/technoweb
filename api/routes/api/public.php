@@ -84,6 +84,8 @@ Route::get('store/feed', [StoreController::class, 'feed'])->name('store.feed');
 // Not `*.show`, so the product half of a row is the list shape.
 Route::get('store/videos', [StoreController::class, 'videos'])->name('store.videos.index');
 Route::get('store/products', [StoreController::class, 'products'])->name('store.products.index');
+// The shop front's tag row (0.141.0): visible tags of published products, counted.
+Route::get('store/tags', [StoreController::class, 'tags'])->name('store.tags.index');
 Route::get('store/products/{storeProduct:slug}', [StoreController::class, 'product'])->name('store.products.show');
 Route::get('store/categories', [StoreController::class, 'categories'])->name('store.categories.index');
 Route::get('store/categories/{storeCategory:slug}', [StoreController::class, 'category'])->name('store.categories.show');

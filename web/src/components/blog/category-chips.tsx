@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { tagIndex } from "@/lib/tag-colour";
 import type { BlogCategorySummary } from "@/types/api";
 
 /**
@@ -33,12 +34,11 @@ import type { BlogCategorySummary } from "@/types/api";
  */
 export type ChipVariant = "outline" | "solid";
 
-/** The tag token a slug lands on, 1–12. Stable across renders and pages. */
-export function tagIndex(slug: string): number {
-  let h = 7;
-  for (const ch of slug) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return (h % 12) + 1;
-}
+/*
+  The tag token a slug lands on, 1–12. It lives in `lib/tag-colour.ts` now, so
+  the shop's tags use the same hash; re-exported so nothing else changes.
+*/
+export { tagIndex };
 
 export function CategoryChips({
   categories, limit = 3, variant = "outline", className,

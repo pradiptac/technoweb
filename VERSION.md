@@ -21,6 +21,52 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.141.0 — 2026-10-09
+
+**Shop tags: a row of small coloured pills under the shop's search bar.**
+
+- **The tag row.** On `/store` and on each category page, directly under the
+  search strip: small centred pills, each on its own colour. Pressing one shows
+  only the products that carry it; the chosen one is ringed and pressing it
+  again clears it. The row appears once a category is chosen — on a category
+  page, or `/store?category=…` — with that category's tags; the bare shop
+  front has none. On a phone it is one line
+  that scrolls sideways, so it never pushes the products down. Nothing is drawn
+  when there are no tags or the row is switched off.
+- **A tag is the same colour everywhere**, on every page and every visit, and
+  matches the blog's category colours, so it reads well in light and dark and
+  in every palette.
+- **A product's own tags** appear under its short description, each opening the
+  shop filtered to it. The shop's search also finds a product by its tags.
+- **Tags on the product form.** A Tags field on the Content tab: type a tag and
+  press Enter or a comma, press × to remove one, and the shop's existing tags
+  are offered as you type. **Suggest tags** proposes some to press — from the AI
+  assistant when it is switched on and has a key and a day's allowance left,
+  otherwise from the product's brand, category and key specifications. Nothing
+  is added until you press it.
+- **Tagged automatically, once.** A product with no tags gets some the first
+  time it is saved (or imported): its brand, its category, *Digital* for a
+  licence or download, and the values of the specifications its category offers
+  as filters ("24 Ports"; yes/no values are left out). **Once only** — a tag
+  you remove never comes back. Switch it off with *Tag new products
+  automatically*.
+- **Store → Tags.** The row's three settings, a button that tags every product
+  that has none, a box for a new tag, and the list: each tag in its colour with
+  how many products carry it, a **Shown** switch, order arrows, **Rename**,
+  **Merge into…** (two spellings become one; a product holding both keeps one)
+  and **Delete** (asks first, saying how many products lose it).
+- **Up to 12 tags a product, 32 characters each.** "Wi-Fi 6" and "wi-fi  6"
+  are one tag. A tag that is switched off is still on its products, only left
+  out of the row.
+- **Spreadsheets and WordPress.** The shop export and import have a `tags`
+  column (separated by `;`; a blank cell leaves a product's tags alone).
+  WooCommerce product tags come across as shop tags.
+- Behind it: `App\Support\Store\Tags` is the one implementation;
+  `GET /store/tags`, `?tag=` on `/store/products`, and the Tags screen's own
+  endpoints under `role:store_manager`. See `docs/store.md` "Tags".
+
+---
+
 ## 0.140.0 — 2026-10-09
 
 **Shop the videos: a row of product videos, each with its product under it.**

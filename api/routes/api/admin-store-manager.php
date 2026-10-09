@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Admin\Store\ReportController as AdminStoreReport
 use App\Http\Controllers\Api\V1\Admin\Store\ReturnController as AdminStoreReturnController;
 use App\Http\Controllers\Api\V1\Admin\Store\ReviewController as AdminStoreReviewController;
 use App\Http\Controllers\Api\V1\Admin\Store\StockController as AdminStoreStockController;
+use App\Http\Controllers\Api\V1\Admin\Store\TagController as AdminStoreTagController;
 use App\Http\Controllers\Api\V1\Admin\Store\VideoSettingsController as AdminStoreVideoSettingsController;
 use App\Http\Controllers\Api\V1\Admin\ZohoBooksController;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +37,21 @@ Route::middleware('role:store_manager')->group(function () {
     // (0.140.0) — see VideoSettingsController. Above `store/{anything}` too.
     Route::get('store/videos', [AdminStoreVideoSettingsController::class, 'index'])->name('store.videos');
     Route::patch('store/videos', [AdminStoreVideoSettingsController::class, 'update'])->name('store.videos.update');
+    /*
+     * Shop tags (0.141.0): the Tags screen and the form's Suggest button.
+     * The literal segments — `reorder`, `settings`, `auto`, and `products/
+     * tag-suggest` — come above the parameterised routes, or `{storeTag}`
+     * binds the word and answers 404 from model binding.
+     */
+    Route::get('store/tags', [AdminStoreTagController::class, 'index'])->name('store.tags.index');
+    Route::post('store/tags', [AdminStoreTagController::class, 'store'])->name('store.tags.store');
+    Route::patch('store/tags/reorder', [AdminStoreTagController::class, 'reorder'])->name('store.tags.reorder');
+    Route::patch('store/tags/settings', [AdminStoreTagController::class, 'settings'])->name('store.tags.settings');
+    Route::post('store/tags/auto', [AdminStoreTagController::class, 'auto'])->middleware('throttle:6,1')->name('store.tags.auto');
+    Route::post('store/products/tag-suggest', [AdminStoreTagController::class, 'suggest'])->middleware('throttle:10,1')->name('store.products.tag-suggest');
+    Route::patch('store/tags/{storeTag:id}', [AdminStoreTagController::class, 'update'])->name('store.tags.update');
+    Route::post('store/tags/{storeTag:id}/merge', [AdminStoreTagController::class, 'merge'])->name('store.tags.merge');
+    Route::delete('store/tags/{storeTag:id}', [AdminStoreTagController::class, 'destroy'])->name('store.tags.destroy');
 
     // Above `store/{anything}` for the same reason `media/move` is:
     // Laravel matches in declaration order.

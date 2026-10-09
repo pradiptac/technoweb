@@ -13,11 +13,13 @@ use App\Http\Requests\BulkActionRequest;
 use App\Http\Requests\Store\ProductRequest;
 use App\Http\Resources\Admin\Store\ProductResource;
 use App\Models\StoreProduct;
+use App\Models\StoreTag;
 use App\Support\CustomFields\CustomFields;
 use App\Support\PageSections\RecordSections;
 use App\Support\Store\ProductVideos;
 use App\Support\Store\SpecIndex;
 use App\Support\Store\StockLedger;
+use App\Support\Store\Tags;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -36,7 +38,7 @@ class ProductController extends Controller
     use HandlesBulk;
     use WritesCmsEntities;
 
-    private const RELATIONS = ['variations', 'service_ids', 'faqs', 'answer_blocks'];
+    private const RELATIONS = ['variations', 'service_ids', 'faqs', 'answer_blocks', 'tags'];
 
     /**
      * The people waiting to hear a product is back, as a `withCount`. One
@@ -54,7 +56,7 @@ class ProductController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $products = StoreProduct::query()
-            ->with(['category', 'brand', 'variations'])
+            ->with(['category', 'brand', 'variations', 'tags'])
             ->withCount(self::noticesCount())
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('type'), fn ($q) => $q->where('type', $request->string('type')))
@@ -96,6 +98,8 @@ class ProductController extends Controller
             'answer_block_kinds' => AnswerBlockKind::options(),
             // The custom field groups that apply, for the console's Fields tab.
             'custom_field_groups' => CustomFields::definitions('store_product'),
+            // Every tag's name, for the form's suggestions as you type (0.141.0).
+            'tags' => StoreTag::query()->orderBy('name')->pluck('name')->values()->all(),
         ]]);
     }
 
@@ -124,6 +128,7 @@ class ProductController extends Controller
             $this->saveAnswerContent($product, $variations);
             $this->saveSeo($product, $seo);
             $this->saveCustomFields($product, $custom);
+            $this->saveTags($product, $variations);
 
             // Opening stock, so the ledger's first entry for a product is the
             // level it arrived with rather than a gap that every later report
@@ -132,6 +137,9 @@ class ProductController extends Controller
 
             return $product;
         });
+
+        // Once, after the save is safe: the rule never fails a save (guarded).
+        $this->autoTag($request, $product);
 
         /*
          * `(new Resource(...))->response()`, never `response()->json($resource)`.
@@ -175,9 +183,12 @@ class ProductController extends Controller
             $this->saveAnswerContent($storeProduct, $variations);
             $this->saveSeo($storeProduct, $seo);
             $this->saveCustomFields($storeProduct, $custom);
+            $this->saveTags($storeProduct, $variations);
 
             StockLedger::adjusted($storeProduct, $stockBefore, $variationsBefore);
         });
+
+        $this->autoTag($request, $storeProduct);
 
         return new ProductResource($storeProduct->fresh($this->detailRelations())->loadCount(self::noticesCount()));
     }
@@ -209,7 +220,27 @@ class ProductController extends Controller
     /** @return array<int, string> */
     private function detailRelations(): array
     {
-        return ['category', 'brand', 'variations', 'services', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group'];
+        return ['category', 'brand', 'variations', 'tags', 'services', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group'];
+    }
+
+    /**
+     * Tags are replaced wholesale: a request without the key leaves them alone,
+     * `[]` clears them, and sending the key at all stamps `tags_set_at` so the
+     * automatic rule never puts back what somebody removed.
+     */
+    private function saveTags(StoreProduct $product, array $pulled): void
+    {
+        if (array_key_exists('tags', $pulled)) {
+            Tags::sync($product, $pulled['tags'] ?? []);
+        }
+    }
+
+    /** The automatic rule, for a product whose request did not decide its tags. */
+    private function autoTag(Request $request, StoreProduct $product): void
+    {
+        if (! $request->has('tags')) {
+            Tags::autoTag($product);
+        }
     }
 
     /**

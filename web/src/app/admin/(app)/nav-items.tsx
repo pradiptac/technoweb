@@ -193,6 +193,8 @@ export const NAV: NavItem[] = [
       { role: "store_manager", href: "/admin/store/returns", label: "Returns", icon: IconArrows },
       { role: "store_manager", href: "/admin/store/products", label: "Products", icon: IconBox },
       { role: "store_manager", href: "/admin/store/categories", label: "Categories", icon: IconGrid },
+      // The coloured tag row under the shop's search bar (0.141.0, docs/store.md "Tags").
+      { role: "store_manager", href: "/admin/store/tags", label: "Tags", icon: IconTag },
       { role: "store_manager", href: "/admin/store/coupons", label: "Discount codes", icon: IconTag },
       // Product reviews: the queue opens on what is waiting (docs/store.md, "Reviews").
       { role: "store_manager", href: "/admin/store/reviews", label: "Reviews", icon: IconChat },

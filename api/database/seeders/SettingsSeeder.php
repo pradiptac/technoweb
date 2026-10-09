@@ -1155,6 +1155,16 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'store_videos', 'key' => 'store_videos_order', 'value' => 'newest', 'type' => 'string'],
             ['group' => 'store_videos', 'key' => 'store_videos_show_sku', 'value' => '1', 'type' => 'boolean'],
 
+            /*
+             * The shop's tag row (0.141.0): its own group because it is edited
+             * from Store → Tags by a store manager (`PATCH /admin/store/tags/settings`)
+             * and not from Settings — the promo band's shape. Public: the
+             * website draws the row only while `store_tags_enabled` is on.
+             */
+            ['group' => 'store_tags', 'key' => 'store_tags_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'store_tags', 'key' => 'store_tags_limit', 'value' => '12', 'type' => 'string'],
+            ['group' => 'store_tags', 'key' => 'store_tags_auto', 'value' => '1', 'type' => 'boolean'],
+
             ['group' => 'mail', 'key' => 'smtp_host', 'value' => null, 'type' => 'string'],
             ['group' => 'mail', 'key' => 'smtp_port', 'value' => '587', 'type' => 'string'],
             ['group' => 'mail', 'key' => 'smtp_username', 'value' => null, 'type' => 'string'],

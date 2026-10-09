@@ -591,6 +591,36 @@ const storeReviews = [
 ];
 for (const sp of storeProducts) sp.rating = null;
 storeProducts[0].rating = { average: 4.3, count: 3 };
+
+/*
+ * Shop tags (0.141.0, docs/store.md "Tags"): the vocabulary, which product
+ * carries which, and the public `tags` each product row sends — visible tags
+ * only. `sort_order` 0 is unordered; the row puts curated tags first, then
+ * the most used. Mutated by the Tags screen's mock routes so the probe can
+ * hide, reorder, merge and delete for real.
+ */
+const mockTags = [
+  { id: 1, name: 'Cisco', slug: 'cisco', is_visible: true, sort_order: 0 },
+  { id: 2, name: 'Switches', slug: 'switches', is_visible: true, sort_order: 0 },
+  { id: 3, name: '24 Ports', slug: '24-ports', is_visible: true, sort_order: 0 },
+  { id: 4, name: 'Rack Mount', slug: 'rack-mount', is_visible: true, sort_order: 0 },
+  { id: 5, name: 'Digital', slug: 'digital', is_visible: true, sort_order: 0 },
+  { id: 6, name: 'Wi-Fi 6', slug: 'wi-fi-6', is_visible: true, sort_order: 0 },
+];
+const tagLinks = new Map([[1, [1, 2, 3, 4]], [2, [2]], [3, [5]]]);
+const tagSlugOf = (name) => name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+const tagUse = (tag) => [...tagLinks.values()].filter((ids) => ids.includes(tag.id)).length;
+const tagResource = (t) => ({ id: t.id, name: t.name, slug: t.slug, is_visible: t.is_visible, sort_order: t.sort_order, products_count: tagUse(t) });
+const tagOrder = (a, b) => ((a.sort_order === 0) - (b.sort_order === 0)) || (a.sort_order - b.sort_order) || (tagUse(b) - tagUse(a)) || a.name.localeCompare(b.name);
+const tagSettings = { store_tags_enabled: '1', store_tags_limit: '12', store_tags_auto: '1' };
+function syncProductTags() {
+  for (const sp of storeProducts) {
+    sp.tags = (tagLinks.get(sp.id) ?? [])
+      .map((id) => mockTags.find((t) => t.id === id)).filter((t) => t && t.is_visible)
+      .sort(tagOrder).map(({ name, slug }) => ({ name, slug }));
+  }
+}
+syncProductTags();
 const REVIEW_SORT = {
   featured: (a, b) => (b.is_featured - a.is_featured) || (b.rating - a.rating) || b.published_at.localeCompare(a.published_at),
   newest: (a, b) => b.published_at.localeCompare(a.published_at),
@@ -2432,6 +2462,9 @@ const ADMIN_CMS = [
       ...RECORD_SECTIONS,
       store_category_id: r.category?.id ?? null, category_name: r.category?.name ?? null,
       brand_id: r.brand?.id ?? null, brand_name: r.brand?.name ?? null,
+      // Shop tags (0.141.0): every tag with its id for the form; the first product's are the automatic ones.
+      tags: (tagLinks.get(r.id) ?? []).map((tid) => mockTags.find((t) => t.id === tid)).filter(Boolean).map(({ id, name, slug }) => ({ id, name, slug })),
+      tags_auto: r.id === 1,
       track_stock: true, stock: r.in_stock ? 12 : 0, stock_on_hand: r.in_stock ? 12 : 0, allow_oversell: false,
       condition: 'new', feed_include: true, feed_problem: null, gtin: null, mpn: null, google_product_category: null, weight_grams: null,
       image_urls: [], activation_procedure: null, activation_pdf_path: null, activation_pdf_name: null,
@@ -2909,6 +2942,7 @@ createServer(async (req, res) => {
     // On, with real copy, so the promo banner is exercised under the mock —
     // the real seeder defaults it off, which would leave it permanently
     // unauditable here otherwise.
+    ...tagSettings,
     store_promo_enabled: '1',
     ...Object.fromEntries(Object.entries(mockVideoSettings).filter(([, v]) => v !== '')),
     store_promo_kicker: 'Limited time',
@@ -3885,6 +3919,7 @@ createServer(async (req, res) => {
           page.meta.types = [{ value: 'physical', label: 'Physical', description: 'Shipped.' }, { value: 'digital', label: 'Digital', description: 'A code.' }, { value: 'service', label: 'Service', description: 'Work.' }];
           page.meta.statuses = [{ value: 'draft', label: 'Draft' }, { value: 'published', label: 'Published' }, { value: 'archived', label: 'Archived' }];
           page.meta.conditions = [{ value: 'new', label: 'New' }, { value: 'refurbished', label: 'Refurbished' }, { value: 'used', label: 'Used' }];
+          page.meta.tags = mockTags.map((t) => t.name);
         }
         return json(res, 200, page);
       }
@@ -3907,6 +3942,19 @@ createServer(async (req, res) => {
           const blocks = Array.isArray(body.answer_blocks)
             ? body.answer_blocks.map((b, i) => ({ id: i + 1, question: null, detail: null, status: 'published', ...b, sort_order: i }))
             : entity.detail(r).answer_blocks;
+          // Shop tags (0.141.0): names in, matched or made by slug, as the API does.
+          if (entity.base === '/admin/store/products' && Array.isArray(body.tags)) {
+            const ids = body.tags.slice(0, 12).map((n) => {
+              const slug = tagSlugOf(String(n));
+              if (!slug) return null;
+              let t = mockTags.find((x) => x.slug === slug);
+              if (!t) { t = { id: Math.max(0, ...mockTags.map((x) => x.id)) + 1, name: String(n).trim(), slug, is_visible: true, sort_order: 0 }; mockTags.push(t); }
+              return t.id;
+            }).filter(Boolean);
+            tagLinks.set(r.id, [...new Set(ids)]);
+            syncProductTags();
+            delete body.tags;
+          }
           return json(res, 200, { data: { ...entity.detail(r), ...body, answer_blocks: blocks } });
         }
         return json(res, 200, { data: entity.detail(r) });
@@ -4015,6 +4063,95 @@ createServer(async (req, res) => {
         analytics: { configured: false, days: 28, error: null },
         types: [{ value: 'solution', label: 'Solutions' }],
       } });
+    }
+
+    /* Shop tags (0.141.0): the Tags screen and the product form's Suggest button, in the real envelopes. */
+    if (p === '/admin/store/products/tag-suggest' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const have = new Set((body.current || []).map(tagSlugOf));
+      const tags = ['Cisco', 'Switches', '24 Ports', 'Rack Mount'].filter((n) => !have.has(tagSlugOf(n)));
+      return json(res, 200, { data: { tags, source: 'rules' } });
+    }
+    if (p.startsWith('/admin/store/tags')) {
+      const meta = () => ({
+        settings: { store_tags_enabled: tagSettings.store_tags_enabled === '1', store_tags_limit: Number(tagSettings.store_tags_limit), store_tags_auto: tagSettings.store_tags_auto === '1' },
+        untagged: storeProducts.filter((sp) => (tagLinks.get(sp.id) ?? []).length === 0).length,
+        max_per_product: 12, name_max: 32,
+      });
+      const refuse = (field, message) => json(res, 422, { message, errors: { [field]: [message] } });
+      const id = Number((p.match(/^\/admin\/store\/tags\/(\d+)/) || [])[1]);
+
+      if (p === '/admin/store/tags' && req.method === 'GET') return json(res, 200, { data: [...mockTags].sort(tagOrder).map(tagResource), meta: meta() });
+      if (p === '/admin/store/tags' && req.method === 'POST') {
+        const { name = '' } = await readJsonBody(req);
+        const clean = String(name).replace(/\s+/g, ' ').trim();
+        if (!clean || clean.length > 32 || !tagSlugOf(clean)) return refuse('name', 'A tag needs a name of 1 to 32 characters with a letter or number.');
+        if (mockTags.some((t) => t.slug === tagSlugOf(clean))) return refuse('name', 'There is already a tag with that name.');
+        const tag = { id: Math.max(0, ...mockTags.map((t) => t.id)) + 1, name: clean, slug: tagSlugOf(clean), is_visible: true, sort_order: 0 };
+        mockTags.push(tag);
+        syncProductTags();
+        return json(res, 201, { data: tagResource(tag) });
+      }
+      if (p === '/admin/store/tags/reorder' && req.method === 'PATCH') {
+        const { ids = [] } = await readJsonBody(req);
+        ids.forEach((tid, i) => { const t = mockTags.find((x) => x.id === tid); if (t) t.sort_order = i + 1; });
+        syncProductTags();
+        return json(res, 200, { message: 'Order saved.' });
+      }
+      if (p === '/admin/store/tags/settings' && req.method === 'PATCH') {
+        const { settings = [] } = await readJsonBody(req);
+        for (const { key, value } of settings) {
+          if (!(key in tagSettings)) return refuse('settings', `${key} is not a tag setting.`);
+          tagSettings[key] = String(value);
+        }
+        return json(res, 200, { message: 'Tag settings saved.', meta: meta() });
+      }
+      if (p === '/admin/store/tags/auto' && req.method === 'POST') {
+        let tagged = 0;
+        for (const sp of storeProducts) {
+          if ((tagLinks.get(sp.id) ?? []).length) continue;
+          const wanted = [sp.brand?.name, sp.category?.name].filter(Boolean)
+            .map((n) => mockTags.find((t) => t.name === n)?.id).filter(Boolean);
+          if (wanted.length) { tagLinks.set(sp.id, wanted); tagged++; }
+        }
+        syncProductTags();
+        return json(res, 200, { message: `Tagged ${tagged} products.`, data: { tagged, untagged: meta().untagged } });
+      }
+      const tag = mockTags.find((t) => t.id === id);
+      if (id && !tag) return json(res, 404, { message: 'Not found.' });
+      if (id && /\/merge$/.test(p) && req.method === 'POST') {
+        const { into } = await readJsonBody(req);
+        const target = mockTags.find((t) => t.id === into);
+        if (!target || target.id === tag.id) return refuse('into', 'Choose a different tag to merge into.');
+        let moved = 0;
+        for (const [pid, ids] of tagLinks) {
+          if (!ids.includes(tag.id)) continue;
+          if (!ids.includes(target.id)) { ids.push(target.id); moved++; }
+          tagLinks.set(pid, ids.filter((x) => x !== tag.id));
+        }
+        mockTags.splice(mockTags.indexOf(tag), 1);
+        syncProductTags();
+        return json(res, 200, { message: `Merged into ${target.name}.`, data: { moved, into: tagResource(target) } });
+      }
+      if (id && req.method === 'PATCH') {
+        const body = await readJsonBody(req);
+        if (typeof body.name === 'string') {
+          const clean = body.name.replace(/\s+/g, ' ').trim();
+          if (!clean || clean.length > 32 || !tagSlugOf(clean)) return refuse('name', 'A tag needs a name of 1 to 32 characters with a letter or number.');
+          if (mockTags.some((t) => t.id !== tag.id && t.slug === tagSlugOf(clean))) return refuse('name', 'Another tag already has that name. Use Merge to combine them.');
+          tag.name = clean; tag.slug = tagSlugOf(clean);
+        }
+        if (typeof body.is_visible === 'boolean') tag.is_visible = body.is_visible;
+        syncProductTags();
+        return json(res, 200, { data: tagResource(tag) });
+      }
+      if (id && req.method === 'DELETE') {
+        mockTags.splice(mockTags.indexOf(tag), 1);
+        for (const [pid, ids] of tagLinks) tagLinks.set(pid, ids.filter((x) => x !== tag.id));
+        syncProductTags();
+        res.writeHead(204);
+        return res.end();
+      }
     }
 
     // The promo band's own door: its eight rows and the two tiles' seven each, in the settings row shape.
@@ -5328,13 +5465,31 @@ createServer(async (req, res) => {
   }
 
   /* The store, the cart, and nothing shared with the catalogue above. */
+  // The tag row's chips (0.141.0): visible tags with their counts, curated first then most used; `data: []` in a 200.
+  if (p === '/store/tags') {
+    const cat = url.searchParams.get('category');
+    const limit = Math.min(30, Math.max(1, Number(url.searchParams.get('limit')) || Number(tagSettings.store_tags_limit)));
+    const data = tagSettings.store_tags_enabled !== '1' ? [] : mockTags
+      .filter((t) => t.is_visible)
+      .map((t) => ({ t, count: storeProducts.filter((sp) => (!cat || sp.category?.slug === cat) && (tagLinks.get(sp.id) ?? []).includes(t.id)).length }))
+      .filter(({ count }) => count > 0)
+      .sort((a, b) => ((a.t.sort_order === 0) - (b.t.sort_order === 0)) || (a.t.sort_order - b.t.sort_order) || (b.count - a.count) || a.t.name.localeCompare(b.t.name))
+      .slice(0, limit)
+      .map(({ t, count }) => ({ name: t.name, slug: t.slug, count }));
+    return json(res, 200, { data });
+  }
   if (p === '/store/products') {
     const cat = url.searchParams.get('category');
     const q = (url.searchParams.get('q') || '').toLowerCase();
     const sort = url.searchParams.get('sort');
+    const tag = url.searchParams.get('tag');
     let rows = storeProducts;
     if (cat) rows = rows.filter(x => x.category?.slug === cat);
-    if (q) rows = rows.filter(x => (x.name + ' ' + (x.sku || '') + ' ' + (x.brand?.name || '')).toLowerCase().includes(q));
+    if (tag) {
+      const wanted = mockTags.find((t) => t.slug === tagSlugOf(tag));
+      rows = rows.filter(x => wanted && (tagLinks.get(x.id) ?? []).includes(wanted.id));
+    }
+    if (q) rows = rows.filter(x => (x.name + ' ' + (x.sku || '') + ' ' + (x.brand?.name || '') + ' ' + (tagLinks.get(x.id) ?? []).map((id) => mockTags.find((t) => t.id === id)?.name).join(' ')).toLowerCase().includes(q));
     const specs = specSelection(url.searchParams);
     if (Object.keys(specs).length) rows = rows.filter(x => matchesSpecs(x, specs));
     if (sort === 'name') rows = [...rows].sort((a, b) => a.name.localeCompare(b.name));

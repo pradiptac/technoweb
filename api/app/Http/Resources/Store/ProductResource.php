@@ -106,6 +106,15 @@ class ProductResource extends JsonResource
                 $this->compare_at_paise > $this->price_paise,
                 $this->compare_at_paise,
             ),
+            /*
+             * The shop tags that are switched on for the shop front (0.141.0),
+             * `{name, slug}` each, in the Tags screen's order. A hidden tag is
+             * not sent: the Shown switch decides what the public sees.
+             */
+            'tags' => $this->whenLoaded('tags', fn () => $this->tags
+                ->filter(fn ($t) => $t->is_visible)
+                ->map(fn ($t) => ['name' => $t->name, 'slug' => $t->slug])
+                ->values()),
             'in_stock' => $this->inStock(),
             /*
              * The three-valued answer beside the boolean, so the page can say

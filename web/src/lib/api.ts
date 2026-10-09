@@ -2,6 +2,7 @@ import "server-only";
 import { clientIpHeaders } from "@/lib/client-ip";
 import { previewRecord, type PreviewKind } from "@/lib/preview-store";
 import type { StoreFacetsResponse, VideoShelfRow } from "@/types/store-merch";
+import type { StoreTagChip } from "@/types/store-tags";
 import type {
   ContentBlock,
   BlogPost,
@@ -304,6 +305,19 @@ export const publicApi = {
       revalidate: 120,
       tags: ["store-products", "store-videos"],
     }),
+
+  /**
+   * The tags the shop front's row offers (0.141.0): visible tags of published
+   * products, with their counts — of one category when `category` is given.
+   * `{data: []}` in a 200 when there are none or the row is off. Tagged
+   * `store-products` and `store-tags`: a product save and every Tags-screen
+   * action purge them.
+   */
+  storeTags: (category?: string) =>
+    apiFetch<Collection<StoreTagChip>>(
+      `/store/tags${category ? `?category=${encodeURIComponent(category)}` : ""}`,
+      { revalidate: 300, tags: ["store-products", "store-tags"] },
+    ),
   storeCategories: () =>
     apiFetch<Collection<StoreCategory>>("/store/categories", {
       revalidate: 600,

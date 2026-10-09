@@ -104,6 +104,9 @@ class StoreProduct extends Model implements Answerable, Faqable
             // Written only by `ReviewSummary`; read by every card.
             'rating_average' => 'decimal:1',
             'rating_count' => 'integer',
+            // Stamped the first time tags are decided; see `Tags::autoTag()`.
+            'tags_set_at' => 'datetime',
+            'tags_auto' => 'boolean',
         ];
     }
 
@@ -219,6 +222,19 @@ class StoreProduct extends Model implements Answerable, Faqable
     public function services(): BelongsToMany
     {
         return $this->belongsToMany(Service::class, 'store_product_service')->orderBy('sort_order');
+    }
+
+    /**
+     * The shop tags (0.141.0), in the Tags screen's order. Written only
+     * through `App\Support\Store\Tags`.
+     *
+     * @return BelongsToMany<StoreTag, $this>
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(StoreTag::class, 'store_product_tag')
+            // Curated tags (a sort order above 0) first, the rest by when they were made.
+            ->orderByRaw('store_tags.sort_order = 0')->orderBy('store_tags.sort_order')->orderBy('store_tags.id');
     }
 
     /** @return HasMany<StoreProductVariation, $this> */

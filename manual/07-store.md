@@ -387,6 +387,50 @@ product (as a draft). New variations are never created by import. A blank
 cell leaves that field alone. Stock changes are recorded in the ledger with
 the import's name.
 
+## Tags
+
+Tags are the small coloured pills under the shop's search bar. A shopper
+presses one to see only the products that carry it. The row appears once a
+shopper has chosen a category — on a category page, or after picking one in
+the search bar — and shows that category's own tags; the shop's front page
+has none. A tag is always the same colour, everywhere, so it is easy to recognise.
+
+**On a product.** The product form has a **Tags** field on the Content tab.
+Type a tag and press Enter (or a comma) to add it; press × on a pill to remove
+it. The shop's existing tags are offered as you type, so "Wi-Fi 6" is not
+typed three different ways — and "Wi-Fi 6", "wi-fi 6" and "WIFI 6" are treated
+as one tag anyway. A product holds up to 12 tags of up to 32 characters.
+
+**Suggest tags** proposes some to press. When the AI assistant is switched on
+(Settings → SEO defaults), has a key and has not used up the day's allowance,
+it reads the product and suggests five to eight, reusing the shop's existing
+tags where one fits. Otherwise it suggests the product's brand, its category
+and its key specifications ("24 Ports"). Nothing is added until you press it.
+
+**Automatically.** A product that has no tags gets some the first time it is
+saved or imported — its brand, category, *Digital* for a licence or download,
+and the values of the specifications its category offers as filters. This
+happens **once**: if you remove those tags, they are never put back. Switch it
+off with *Tag new products automatically* on **Store → Tags**.
+
+**Store → Tags** is where they are tidied.
+
+- **The row** — switch the whole row off, set how many tags it shows (4 to 30)
+  and switch the automatic tagging on or off.
+- **Tag untagged products** applies the automatic rule to every product that
+  has none and has never been tagged.
+- **The list** — each tag in its colour with how many products carry it.
+  **Shown** switches a tag off the shop's row (it stays on its products). The
+  arrows put the tags you care about first; the rest follow by how many
+  products carry them. **Rename** changes the name (and so the tag's address).
+  **Merge into…** moves a tag's products onto another and removes it — the way
+  to join two spellings. **Delete** asks first and says how many products
+  lose the tag.
+
+**Spreadsheets.** The shop export and import have a `tags` column, with the
+tags separated by `;`. A blank cell leaves a product's tags as they are. A
+WordPress / WooCommerce import brings each product's tags across.
+
 ## Categories and filters
 
 **Store → Categories** holds the shop's own categories (separate from the

@@ -12,15 +12,18 @@ import { VideoShelf } from "@/components/store/video-shelf";
 import { RecentlyViewed } from "@/components/store/recently-viewed";
 import { StoreHero } from "@/components/store/store-hero";
 import { StoreFilterBar } from "@/components/store/store-filter-bar";
+import { TagRow } from "@/components/store/tag-row";
 import { SpecFilterChips, SpecFilterPanel } from "@/components/store/spec-filter-panel";
 import { SliderFor } from "@/components/ui/slider-for";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { listingMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
+import { settingEnabled } from "@/lib/site-settings";
 import { appendSpecs, hasSpecs, limitSpecs, parseSpecs, specEntries, specParams } from "@/lib/store-specs";
 import { videoShelfConfig, videoShelfEnabled } from "@/lib/store-videos";
 import type { StoreFacet, VideoShelfRow } from "@/types/store-merch";
+import type { StoreTagChip } from "@/types/store-tags";
 import type { Paginated, StoreCategory, StoreProduct } from "@/types/api";
 
 /*
@@ -28,7 +31,7 @@ import type { Paginated, StoreCategory, StoreProduct } from "@/types/api";
   why the index signature is here: they are named by whatever labels a
   category offers.
 */
-type SearchParams = { q?: string; category?: string; sort?: string; page?: string } & Record<string, string | string[] | undefined>;
+type SearchParams = { q?: string; category?: string; sort?: string; page?: string; tag?: string } &Record<string, string | string[] | undefined>;
 
 /** Self-referencing canonical per page; a search or a category facet is `noindex, follow` — see `listingMetadata`. */
 export async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParams> }) {
@@ -40,10 +43,11 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
     path: "/store",
     // A spec filter is a filtered view like a search: `noindex, follow`.
     searchParams: {
-      q: sp.q, category: sp.category, page: sp.page,
+      q: sp.q, category: sp.category, page: sp.page, tag: sp.tag,
       spec: hasSpecs(parseSpecs(sp)) ? "1" : undefined,
     },
-    filters: ["q", "category", "spec"],
+    // A tag is a filtered view too (0.141.0): `noindex, follow`.
+    filters: ["q", "category", "tag", "spec"],
   });
 }
 
@@ -63,6 +67,22 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
  */
 const PER_GRID = 12;
 
+
+/**
+ * The row's tags with the chosen one in it. A tag reached from somewhere else
+ * — a product page's chip — need not be among the shop's most used, and a
+ * filter with no marked chip gives nothing to see and nothing to press again.
+ * Its name comes from a listed product that carries it, so a tag switched off
+ * for the shop, which no product row carries, still adds nothing.
+ */
+function withChosenTag(
+  tags: StoreTagChip[], chosen: string | undefined, listed: Paginated<StoreProduct> | null,
+): StoreTagChip[] {
+  if (!chosen || !listed || tags.some((tag) => tag.slug === chosen)) return tags;
+  const named = listed.data.flatMap((product) => product.tags ?? []).find((tag) => tag.slug === chosen);
+  return named ? [{ ...named, count: listed.meta.total }, ...tags] : tags;
+}
+
 export default async function StorePage({
   searchParams,
 }: {
@@ -73,6 +93,8 @@ export default async function StorePage({
   const query = new URLSearchParams();
   if (sp.q) query.set("q", sp.q);
   if (sp.category) query.set("category", sp.category);
+  // A shop tag's slug (0.141.0). Cacheable — a bounded key space, unlike `q`.
+  if (sp.tag) query.set("tag", sp.tag);
   if (sp.sort) query.set("sort", sp.sort);
   if (sp.page) query.set("page", sp.page);
   /*
@@ -102,9 +124,16 @@ export default async function StorePage({
     asking for the right number is what stops the API building and
     serialising twenty-four products to render twelve.
   */
-  const [heroSlider, settings, latestProducts, videoRows, listing] = await Promise.all([
+  const [heroSlider, settings, tags, latestProducts, videoRows, listing] = await Promise.all([
     publicApi.slider("store-hero").then((r) => r.data).catch(() => null),
     getSiteSettings(),
+    // The tag row's chips (0.141.0): only once a category is chosen — the
+    // client's call, 2026-10-10: the shop front is browsed by category first,
+    // and a dozen tags from every shelf there is noise. A failure draws no row
+    // rather than failing the page.
+    sp.category
+      ? publicApi.storeTags(sp.category).then((r) => r.data).catch(() => [] as StoreTagChip[])
+      : Promise.resolve([] as StoreTagChip[]),
     publicApi.storeProducts(`?sort=newest&per_page=${PER_GRID}`, true)
       .then((r) => r.data.slice(0, PER_GRID))
       .catch(() => [] as StoreProduct[]),
@@ -163,8 +192,9 @@ export default async function StorePage({
     })(),
   ]);
   const { categories, products, failed, facets, specs } = listing;
+  const rowTags = withChosenTag(tags, sp.tag, products);
 
-  const filtered = Boolean(sp.q || sp.category || hasSpecs(specs));
+  const filtered = Boolean(sp.q || sp.category || sp.tag || hasSpecs(specs));
   const panel = facets.length > 0 && sp.category;
   const base = { q: sp.q, category: sp.category ?? "", sort: sp.sort };
 
@@ -266,6 +296,7 @@ export default async function StorePage({
         q={sp.q}
         category={sp.category}
         sort={sp.sort}
+        tag={sp.tag}
         /*
           The `Container` gutter, applied to the strip itself because the strip
           is the sticky element. `mx-auto` beats the base `-mx-1` through
@@ -291,6 +322,18 @@ export default async function StorePage({
         */
         keep={specEntries(specs)}
       />
+
+      {/*
+        The tag row (0.141.0), a **sibling** of the strip directly after it —
+        the strip must stay a direct child of this wrapper to keep sticking,
+        so the row is not inside it and scrolls away with the page. Nothing is
+        drawn with no tags, with the row switched off, or before a category is
+        chosen. This wrapper spans the screen, so the row is given the
+        container's width here.
+      */}
+      {settingEnabled(settings, "store_tags_enabled") && (
+        <TagRow tags={rowTags} active={sp.tag} category={sp.category} q={sp.q} sort={sp.sort} className="mx-auto w-[90%] max-w-[1920px]" />
+      )}
 
       <section className="pb-8 lg:pb-10">
         <Container>
@@ -352,7 +395,7 @@ export default async function StorePage({
                 <Pagination
                   meta={products.meta}
                   basePath="/store"
-                  params={{ q: sp.q, category: sp.category, sort: sp.sort, ...specParams(specs) }}
+                  params={{ q: sp.q, category: sp.category, tag: sp.tag, sort: sp.sort, ...specParams(specs) }}
                   showPerPage={false}
                   numbered
                 />

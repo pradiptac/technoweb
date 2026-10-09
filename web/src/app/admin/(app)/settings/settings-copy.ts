@@ -490,6 +490,10 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   store_videos_limit: { label: "How many videos" },
   store_videos_order: { label: "Order" },
   store_videos_show_sku: { label: "Show the product code" },
+  // The shop's tag row (0.141.0) — edited at /admin/store/tags, not in Settings.
+  store_tags_enabled: { label: "Show the tag row on the shop", hint: "The coloured pills under the search bar on the shop front and the category pages." },
+  store_tags_limit: { label: "Tags shown", hint: "How many tags the row offers, 4 to 30. Ordered by the list below, then by how many products carry them." },
+  store_tags_auto: { label: "Tag new products automatically", hint: "A product with no tags gets some on its first save, from its brand, category and key specifications. Once only: tags you remove never come back." },
   store_promo_enabled: { label: "Show the promo banner" },
   store_promo_kicker: { label: "Kicker", hint: "The short line above the heading — a category, an offer, a season.", placeholder: "Business laptops, in stock" },
   store_promo_heading: { label: "Heading", placeholder: "Save Up To 60%" },
@@ -1452,7 +1456,7 @@ export const SYSTEM_SCREEN = "/admin/settings";
  * than "whatever no screen names", because a group somebody forgot would
  * then be silently standalone with nowhere to be edited.
  */
-export const STANDALONE_GROUPS = new Set(["announcement", "themes", "store_promo", "store_tiles", "store_videos"]);
+export const STANDALONE_GROUPS = new Set(["announcement", "themes", "store_promo", "store_tiles", "store_videos", "store_tags"]);
 
 export function screenAt(path: string): SettingsScreen {
   const screen = SCREENS.find((s) => s.path === path);

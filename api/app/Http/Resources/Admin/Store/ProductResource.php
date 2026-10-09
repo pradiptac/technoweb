@@ -10,6 +10,7 @@ use App\Models\StoreProduct;
 use App\Support\Store\ActivationProcedure;
 use App\Support\Store\ProductFeed;
 use App\Support\Store\ProductVideos;
+use App\Support\Store\Tags;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -139,6 +140,12 @@ class ProductResource extends JsonResource
             'services' => $this->whenLoaded('services', fn () => $this->services->map(fn ($s) => [
                 'id' => $s->id, 'title' => $s->title, 'slug' => $s->slug,
             ])->values()),
+            // The shop tags (0.141.0): the whole list for the form, and whether
+            // they are still the automatic ones, untouched.
+            'tags' => $this->whenLoaded('tags', fn () => $this->tags->map(fn ($t) => [
+                'id' => $t->id, 'name' => $t->name, 'slug' => $t->slug,
+            ])->values()),
+            'tags_auto' => $this->when($this->resource->relationLoaded('tags'), fn () => Tags::isAuto($this->resource)),
             'images' => $this->images ?? [],
             // Resolved for previewing; `images` stays the storable form.
             'image_urls' => collect($this->images ?? [])->map(fn ($p) => asset('storage/'.$p))->all(),

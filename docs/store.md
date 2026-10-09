@@ -2057,3 +2057,111 @@ Demo: `SampleProductVideoSeeder` (create-only, first three published shop
 products, only while none has a video). Tests: `StoreVideosTest`. Probe:
 `web/scripts/probes/store-videos.mjs` (the nothing-before-a-press rule, one at
 a time, the cart button, autoplay and Pause).
+
+## Tags (0.141.0)
+
+A row of small coloured pills under the shop's search bar (2026-10-09, the
+client): collected on the product form, tidied on Store → Tags, and created
+"intelligently" — a product with none is tagged once by a rule, and a button
+asks the AI assistant for more.
+
+**Tables.** `store_tags` (`name` ≤ 32, `slug` unique, `is_visible`,
+`sort_order`) and `store_product_tag` (unique pair, both cascade).
+`store_products.tags_set_at` and `tags_auto` — the second is not in the plan:
+it is what the form's "Added automatically" line is drawn from, and it needs a
+column because "are these the rule's tags, untouched" cannot be worked out
+from the tags alone (the rule's output changes with the catalogue).
+`StoreTag` is in the morph map (the Tags screen binds it).
+
+**`App\Support\Store\Tags` is the one implementation** — the product
+controller, the CSV import, the WordPress step, the seeder and the Tags
+screen's button all call it. `sync()`, `suggestByRules()`, `autoTag()`,
+`autoTagUntagged()`, `merge()`.
+
+- **A slug is the identity.** `Str::slug`, so "Wi-Fi 6", "wi-fi  6" and
+  "WI-FI 6" are one tag; the first spelling seen is kept as its name. A name
+  whose slug is empty (`!!!`) is no tag and is refused on the form (422 on
+  `tags.N`), dropped by the importers. Twelve a product (422 on `tags`),
+  thirty-two characters a name.
+- **The automatic rule runs once.** `tags_set_at` is stamped the first time
+  tags are decided: by a request that sends `tags` (even `[]`) or by the rule
+  applying some. `autoTag()` runs only while it is null, the product has no
+  tags and `store_tags_auto` is on (the Tags screen's button passes `force`: an
+  explicit press ignores the switch, never the stamp). **A product the rule
+  found nothing for is not stamped** — nothing was decided, and the rule may
+  try again once a brand or a category exists. The stamp is written through
+  the query builder, not `save()`, so it fires none of the product's hooks
+  (the spec index, the price-drop watch, IndexNow) and does not move
+  `updated_at`.
+- **The rule's output**: the brand, the category, `Digital` for a licence or
+  a download, and the values of the specifications the category already
+  offers as filters (`filter_specs`, the first four, matched on
+  `SpecIndex::key()` so "ports" finds "Ports") — a bare number takes its label
+  ("24 Ports"), yes/no values are skipped, nothing over 24 characters, six at
+  most.
+- **It never fails a save.** `autoTag()` is guarded and logs at `warning`; the
+  controller calls it after the transaction.
+- **The form does not "decide" by merely being saved.** The product form
+  always draws a Tags field, so a form that posted its untouched, empty list
+  would stamp every new product and the rule would never run. The field posts
+  `tags_changed` (`0`/`1`) beside the list and the Server Action sends `tags`
+  only when it is `1`. Saving the rule's tags exactly as they were keeps them
+  "automatic".
+- **Merge** moves the source's products onto the target with the target's
+  existing rows excluded (a product holding both ends with one row) and
+  deletes the source, in one transaction.
+
+**Public.** `GET /store/tags?category=&limit=` — visible tags carried by
+**published** products (of that category), each with `count`; curated tags
+(`sort_order` above 0) first, then the most used, then name; `{data: []}` in a
+200 when none or when `store_tags_enabled` is off (the `/menus/*` lesson).
+New tags are made with `sort_order` 0, and the Tags screen's arrows place
+*every* tag (1..n), so the row is "the screen's order, then most used" without
+a hand-kept number. `GET /store/products?tag=<slug>` filters (a hidden tag
+still filters — the Shown switch decides what the row offers, not what a link
+finds); `?q=` also matches a tag's name. Rows and the detail carry
+`tags[{name, slug}]`, visible ones only. The website's `publicApi.storeTags()`
+is tagged `store-products` + `store-tags`; the product save and every Tags
+action purge them.
+
+**Settings** are the public `store_tags` group (`store_tags_enabled`,
+`store_tags_limit` 4–30, `store_tags_auto`) in `STANDALONE_GROUPS` — edited on
+Store → Tags through `PATCH /admin/store/tags/settings`, which refuses any
+other key by name (the promo band's door). `PATCH /admin/settings` still
+accepts them for an administrator.
+
+**Suggest** (`POST /admin/store/products/tag-suggest`, `role:store_manager`,
+10/min): `App\Support\Seo\Ai\ProductTags`, the `AltText` shape. It shares the
+SEO assistant's switch, key, model, daily cap and counter. The product's words
+go inside a `---PRODUCT---` fence (marker stripped until none is left), the
+model is shown the shop's existing tag names and told to reuse them, and every
+answer is tidied: one to three words, 24 characters, no currency, `%`, `#` or
+claim word ("best", "cheapest", "50% off"), one per slug, eight at most.
+Anything that cannot be used — off, no key, cap, a silent provider, an answer
+with nothing usable — falls back to the rule, and `source` says which
+answered. Nothing is saved; tags the product already has are not offered.
+
+**Website.** The row is drawn **only once a category is chosen** — on a
+category page, or on `/store?category=…` — never on the bare shop front (the
+client's call, 2026-10-10: the front is browsed by category first). A
+product page's own chips link to `/store?category=<its category>&tag=…`, so
+they land where the row is. `components/store/tag-row.tsx` is a *sibling* of `StoreFilterBar`,
+not part of it — the strip must stay a direct child of the shop wrapper to keep
+sticking. Every chip links to `/store`: the category pages are ISR and must not
+read `searchParams`, so a chip there opens `/store?category=…&tag=…`. The
+colour is `tagIndex(slug)` (`lib/tag-colour.ts`, shared with the blog's
+category chips) into `--color-tag-fill-N` under white — a hash, never random,
+so a tag is one colour on every page and the server's HTML and the browser's
+agree. Phone: one scrolling line (`w-0 min-w-full overflow-x-auto`); `sm`
+and up: centred, wrapping. Chips are 26px (the tap-target floor is 24) at
+12px. A tag-filtered `/store` is `noindex, follow`.
+
+**CSV.** A `tags` column, last, `;`-separated; a blank cell leaves a product's
+tags alone, a filled one replaces them, a name a tag cannot be (over 32
+characters, no letter or number) refuses the line. A line with no tags cell
+goes through the rule. **WordPress**: a WooCommerce product's `tags` come
+across (entities decoded); only a name that cannot be kept is warned about.
+
+`StoreTagsTest` pins all of it; the once-only rule, the published-only count
+and the twelve-tag cap were each control-run. Not built: tags on the marketing
+catalogue, a tag's own landing page, tags as a menu item, tag pictures.

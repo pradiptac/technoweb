@@ -78,6 +78,7 @@ use App\Models\Solution;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
+use App\Models\StoreTag;
 use App\Models\TeamMember;
 use App\Models\Ticket;
 use App\Models\TicketAttachment;
@@ -327,6 +328,8 @@ class AppServiceProvider extends ServiceProvider
              */
             'store_product' => StoreProduct::class,
             'store_category' => StoreCategory::class,
+            // Bound by the Tags screen's PATCH/DELETE (0.141.0).
+            'store_tag' => StoreTag::class,
             'store_product_variation' => StoreProductVariation::class,
             'order' => Order::class,
             'order_item' => OrderItem::class,

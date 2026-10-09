@@ -18,6 +18,7 @@ import { RelationPicker } from "@/components/admin/relation-picker";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { SpecField } from "@/components/admin/spec-field";
 import { StringListField } from "@/components/admin/string-list-field";
+import { TagField } from "@/components/admin/tag-field";
 import { VariationField } from "@/components/admin/variation-field";
 import { VideoField } from "@/components/admin/video-field";
 import { Tabs } from "@/components/admin/tabs";
@@ -47,7 +48,7 @@ const initial: StoreFormState = {};
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
     fields: ["name", "slug", "sku", "type", "short_description", "description",
-             "specifications", "features", "warranty", "applications", "status", "store_category_id", "brand_id",
+             "specifications", "tags", "features", "warranty", "applications", "status", "store_category_id", "brand_id",
              "sort_order", "is_featured"] },
   // Sections in place of the written body (0.130.0) — the choice and the builder.
   SECTIONS_TAB,
@@ -78,8 +79,10 @@ const GROUPS: TabGroup[] = [
 ];
 
 export function StoreProductForm({
-  product, categories, brands, services, saved, kinds, fieldGroups, builder,
+  product, categories, brands, services, saved, kinds, fieldGroups, builder, tagNames = [],
 }: {
+  /** Every tag the shop already has, offered as you type in the Tags field. */
+  tagNames?: string[];
   product?: AdminStoreProduct;
   categories: AdminStoreCategory[];
   brands: PickerOption[];
@@ -190,6 +193,18 @@ export function StoreProductForm({
               defaultValue={product?.description ?? ""} error={err("description")} />
 
             <SpecField defaultValue={product?.specifications ?? {}} error={rowErr("specifications")} />
+
+            {/*
+              Shop tags (0.141.0): the coloured pills under the shop's search
+              bar. A product that has none is tagged automatically on save,
+              once; this field is where a person takes over.
+            */}
+            <TagField
+              defaultValue={(product?.tags ?? []).map((t) => t.name)}
+              suggestions={tagNames}
+              auto={product?.tags_auto ?? false}
+              error={rowErr("tags")}
+            />
 
             <StringListField
               name="features"
