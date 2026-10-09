@@ -21,6 +21,45 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.136.0 — 2026-10-09
+
+**Payments and credit notes go to Zoho Books; the menus open more gently.**
+
+- **Payments.** Each payment recorded on an order — a card payment, cash on
+  delivery, a bank transfer, UPI — is recorded against that order's invoice
+  in Zoho Books, so the invoice shows as paid there without anybody entering
+  it. It does not matter which comes first: a payment waits for its invoice.
+- **Refunds become credit notes.** Each refund recorded on an order makes a
+  credit note against its invoice. A whole refund lists the invoice's own
+  items; a refund from a return lists what came back; any other refund is one
+  line for the amount. The money is shown paid back from the account it went
+  into.
+- **Setting it up.** Store → Settings → Zoho Books has a new switch,
+  *Record payments and refunds in Zoho Books*, and one **account** to choose
+  for each way of paying — where that money is deposited. A way of paying
+  with no account chosen is simply left for you to enter in Zoho. **If Zoho
+  was already connected, disconnect and connect it once more**: recording
+  payments needs a wider permission, and the tab says so until it is done.
+- **On each order**, every payment and refund says where it stands in Zoho
+  Books, with Zoho's own words and **Try again now** if one was refused.
+  Refused ones are counted on the store overview with the refused invoices.
+- If the invoice is already marked paid in Zoho — because somebody entered
+  the payment there by hand — the site does not record it a second time.
+- Gateway fees are not recorded; enter those in Zoho Books.
+- **Menus.** The dropdown menus on the website now fade in and out more
+  slowly (about a third of a second in, a quarter out).
+
+For developers: `App\Support\Store\Zoho\ZohoPayments` mirrors `ZohoInvoices`
+on the `payments` row (`zoho_status`, conditional claim, the same backoff),
+called from `Payment::created` and from the end of invoice creation;
+references `{order}-P{id}` / `{order}-R{id}` are how a retry adopts what an
+earlier attempt made. `ZohoSettings::SCOPE_VERSION` records which consent a
+connection holds. `ZohoPaymentsTest` (17) on the shared `FakesZohoBooks`.
+The dropdown timing is two tokens of its own, `--duration-menu` and
+`--duration-menu-exit`. **Not driven against a real Zoho account.**
+
+---
+
 ## 0.135.0 — 2026-10-08
 
 **On/off settings are small sliding switches.**

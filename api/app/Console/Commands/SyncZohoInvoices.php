@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Support\Store\Zoho\ZohoInvoices;
+use App\Support\Store\Zoho\ZohoPayments;
 use Illuminate\Console\Command;
 
 /**
@@ -27,9 +28,13 @@ class SyncZohoInvoices extends Command
 
     public function handle(): int
     {
-        $worked = ZohoInvoices::sweep(max(1, (int) $this->option('limit')));
+        $limit = max(1, (int) $this->option('limit'));
+        $worked = ZohoInvoices::sweep($limit);
 
-        $this->info($worked === 0 ? 'Nothing waiting.' : "Worked through {$worked} order(s).");
+        // Payments and refunds after the invoices they hang off (0.136.0).
+        $payments = ZohoPayments::sweep($limit);
+
+        $this->info($worked + $payments === 0 ? 'Nothing waiting.' : "Worked through {$worked} order(s) and {$payments} payment(s).");
 
         return self::SUCCESS;
     }

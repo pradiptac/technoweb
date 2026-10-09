@@ -165,7 +165,11 @@ to be an administrator to set it up.
    then appear: choose the tax for **sales inside your state** (usually the
    group named GST18, which splits into CGST and SGST) and for **sales to
    other states** (usually IGST18). Save.
-7. Press **Test the connection**. Then tick **Create invoices in Zoho
+7. Under **Payments and refunds**, choose the Zoho **account** each way of
+   paying goes into — your bank account for transfers and UPI, a cash account
+   for cash on delivery, the clearing account your accountant uses for card
+   payments. Leave one on *Not sent to Zoho* to enter those yourself. Save.
+8. Press **Test the connection**. Then switch on **Create invoices in Zoho
    Books** and save.
 
 The secret is stored encrypted and is never shown again.
@@ -187,6 +191,27 @@ The secret is stored encrypted and is never shown again.
   got to, with **Create the Zoho invoice now** if you want one early or for
   an older order.
 
+### Payments and refunds
+
+- Every payment recorded on an order is recorded against its invoice in Zoho
+  Books, into the account you chose, so the invoice shows as paid there. A
+  card payment usually arrives before the invoice exists; it is recorded the
+  moment the invoice is made.
+- Every refund recorded on an order makes a **credit note** against the
+  invoice. Refunding the whole order lists the invoice's items; a refund from
+  a return lists what came back; any other refund is one line for the
+  amount. The money is shown paid back from the same account.
+- Under **Payments** on the order, each line says where it stands in Zoho
+  Books — *recorded*, a credit note's number, or Zoho's own reason if it was
+  refused, with **Try again now**.
+- If you have already entered a payment in Zoho Books yourself, the site
+  sees that nothing is owed on the invoice and does not record it again.
+- To stop sending payments and keep only the invoices, switch off **Record
+  payments and refunds in Zoho Books**.
+- **Connected Zoho before this version?** The tab shows *Connect Zoho again*:
+  press Disconnect, then Connect Zoho Books, and approve. Recording payments
+  needs a permission the first connection did not ask for.
+
 ### If Zoho refuses an invoice
 
 The site tries again by itself over the next day. After that the store
@@ -196,10 +221,10 @@ reason. Fix it (in Zoho Books or on the order) and press **Try again now**.
 
 ### What it does not do
 
-- **It does not record payments in Zoho Books.** The invoice shows as unpaid
-  there until you record the payment in Zoho Books.
-- **It makes no credit notes.** If you refund or cancel an invoiced order,
-  raise the credit note in Zoho Books.
+- **It does not record gateway fees.** The full amount the customer paid is
+  recorded; enter your payment provider's charges in Zoho Books.
+- **It does not cancel an invoice.** An order cancelled after it was
+  invoiced and never paid still has its invoice in Zoho Books; void it there.
 - It never makes a second invoice for an order, and it leaves alone any
   order you have already uploaded an invoice to.
 - Orders placed before you switched it on are not invoiced automatically.

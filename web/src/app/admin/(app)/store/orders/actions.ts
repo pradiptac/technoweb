@@ -8,6 +8,7 @@ import {
   addStoreOrderNote, createZohoInvoice, fulfilStoreOrder, moveStoreOrder, saveStoreOrderInvoice, saveStoreOrderShipping,
   recordStoreOrderPayment,
   recordStoreOrderRefund,
+  sendZohoPayment,
 } from "@/lib/admin";
 
 export type OrderActionState = { error?: string; ok?: string };
@@ -266,6 +267,43 @@ export async function createZohoInvoiceAction(
       ? `Invoice ${result.invoice_number} made in Zoho Books and attached to the order.`
       : "Invoice made in Zoho Books and attached to the order.",
   };
+}
+
+/**
+ * "Send to Zoho Books" on one payment or refund (0.136.0). Runs in the
+ * request: a payment becomes a customer payment on the order's invoice, a
+ * refund a credit note, and a refusal comes back in Zoho's own words.
+ */
+export async function sendZohoPaymentAction(
+  _previous: OrderActionState,
+  formData: FormData,
+): Promise<OrderActionState> {
+  const orderNumber = String(formData.get("order_number") ?? "");
+  const paymentId = Number(formData.get("payment_id"));
+
+  if (!orderNumber || !Number.isInteger(paymentId) || paymentId < 1) return { error: "Missing payment." };
+
+  let result: { status: string; number: string | null };
+
+  try {
+    result = await sendZohoPayment(orderNumber, paymentId);
+  } catch (error) {
+    // The refusal is recorded on the payment, so the line must re-read it.
+    refresh(orderNumber);
+
+    return toState(error, "Zoho Books did not answer. Try again shortly.");
+  }
+
+  refresh(orderNumber);
+
+  if (result.status === "skipped") {
+    return { ok: "Not recorded: the invoice is already paid in Zoho Books." };
+  }
+  if (result.status !== "sent") {
+    return { ok: "It is being sent now. Reload in a moment." };
+  }
+
+  return { ok: result.number ? `Credit note ${result.number} made in Zoho Books.` : "Recorded in Zoho Books." };
 }
 
 export async function fulfilOrderAction(

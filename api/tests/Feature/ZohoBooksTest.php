@@ -3,23 +3,17 @@
 namespace Tests\Feature;
 
 use App\Enums\OrderStatus;
-use App\Enums\ProductType;
 use App\Enums\Role as RoleEnum;
 use App\Models\Order;
-use App\Models\Role;
 use App\Models\Setting;
-use App\Models\User;
 use App\Support\Store\Zoho\IndianStates;
 use App\Support\Store\Zoho\ZohoInvoices;
 use App\Support\Store\Zoho\ZohoSettings;
-use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
+use Tests\Support\FakesZohoBooks;
 use Tests\TestCase;
 
 /**
@@ -44,139 +38,14 @@ use Tests\TestCase;
  */
 class ZohoBooksTest extends TestCase
 {
+    use FakesZohoBooks;
     use RefreshDatabase;
-
-    private const INTRA = '460000000017001';
-
-    private const INTER = '460000000017002';
-
-    /** @var list<array{method: string, path: string, query: array<string, mixed>, body: array<string, mixed>}> */
-    private array $calls = [];
-
-    /** @var array<string, array{0: array<string, mixed>|string, 1?: int}|\Closure> "METHOD /path" => answer */
-    private array $answers = [];
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->seed(SettingsSeeder::class);
-        $this->travelTo(Carbon::parse('2026-10-08 11:00:00', 'Asia/Kolkata'));
-        Notification::fake();
-        Storage::fake('local');
-
-        Setting::put('zoho_books_enabled', '1');
-        Setting::put('zoho_books_dc', 'in');
-        Setting::put('zoho_books_oauth_client_id', '1000.ABCDEF');
-        Setting::put('zoho_books_oauth_client_secret', 'secret');
-        Setting::put('zoho_books_oauth_refresh_token', '1000.refresh');
-        Setting::put('zoho_books_organization_id', '60001234567');
-        Setting::put('zoho_books_home_state', 'WB');
-        Setting::put('zoho_books_tax_intra', self::INTRA);
-        Setting::put('zoho_books_tax_inter', self::INTER);
-
-        Http::fake(fn (Request $request) => $this->zoho($request));
-    }
-
-    /* ------------------------------------------------------------ the fake */
-
-    private function zoho(Request $request)
-    {
-        $url = parse_url($request->url());
-        parse_str($url['query'] ?? '', $query);
-
-        if (($url['host'] ?? '') === 'accounts.zoho.in') {
-            $this->calls[] = ['method' => 'TOKEN', 'path' => $url['path'], 'query' => [], 'body' => $request->data()];
-
-            return $this->answer('TOKEN', ['access_token' => 'tok-'.count($this->calls), 'expires_in' => 3600, 'refresh_token' => '1000.new-refresh']);
-        }
-
-        $path = Str::after($url['path'] ?? '', '/books/v3');
-        $key = $request->method().' '.$path;
-        $this->calls[] = ['method' => $request->method(), 'path' => $path, 'query' => $query, 'body' => $request->data()];
-
-        return match (true) {
-            $key === 'GET /organizations' => $this->answer($key, ['code' => 0, 'organizations' => [['organization_id' => '60001234567', 'name' => 'Technoware Pvt Ltd']]]),
-            $key === 'GET /settings/taxes' => $this->answer($key, ['code' => 0, 'taxes' => [
-                ['tax_id' => self::INTRA, 'tax_name' => 'GST18', 'tax_percentage' => 18, 'tax_type' => 'tax_group'],
-                ['tax_id' => self::INTER, 'tax_name' => 'IGST18', 'tax_percentage' => 18, 'tax_type' => 'tax', 'tax_specific_type' => 'igst'],
-            ]]),
-            $key === 'GET /contacts' => $this->answer($key, ['code' => 0, 'contacts' => []]),
-            $key === 'POST /contacts' => $this->answer($key, ['code' => 0, 'contact' => ['contact_id' => '7001']]),
-            $key === 'GET /invoices' => $this->answer($key, ['code' => 0, 'invoices' => []]),
-            $key === 'POST /invoices' => $this->answer($key, ['code' => 0, 'invoice' => [
-                'invoice_id' => '9001', 'invoice_number' => 'INV-000123', 'date' => '2026-10-08', 'status' => 'draft',
-                'total' => ((float) array_sum(array_map(fn ($l) => $l['rate'] * $l['quantity'], $request->data()['line_items'] ?? []))) - (float) ($request->data()['discount'] ?? 0),
-            ]]),
-            $key === 'POST /invoices/9001/status/sent' => $this->answer($key, ['code' => 0, 'message' => 'Invoice status has been changed to Sent.']),
-            $key === 'GET /invoices/9001' => $this->answer($key, '%PDF-1.4 the invoice'),
-            default => Http::response(['code' => 5, 'message' => "Invalid URL passed ({$key})"], 404),
-        };
-    }
-
-    private function answer(string $key, array|string $default)
-    {
-        $answer = $this->answers[$key] ?? [$default];
-
-        if ($answer instanceof \Closure) {
-            $answer = $answer();
-        }
-
-        return Http::response($answer[0], $answer[1] ?? 200);
-    }
-
-    /** @return list<array{method: string, path: string, query: array<string, mixed>, body: array<string, mixed>}> */
-    private function called(string $method, string $path): array
-    {
-        return array_values(array_filter($this->calls, fn ($c) => $c['method'] === $method && $c['path'] === $path));
-    }
-
-    /* ------------------------------------------------------------ helpers */
-
-    /** An order that has been placed and not yet paid: one switch (×2), and — unless `digital` — nothing else. */
-    private function order(array $overrides = [], bool $digitalOnly = false): Order
-    {
-        $order = Order::create(array_replace([
-            'status' => OrderStatus::PendingPayment, 'payment_method' => 'gateway',
-            'subtotal_paise' => 2000000, 'discount_paise' => 0, 'taxable_paise' => 1694915, 'gst_paise' => 305085, 'total_paise' => 2000000,
-            'customer_name' => 'Priya Das', 'customer_email' => 'priya@acme.co.in', 'customer_phone' => '9800000000',
-            'billing_address' => ['line1' => '1 Park Street', 'line2' => 'Floor 2', 'city' => 'Kolkata', 'state' => 'West Bengal', 'pin' => '700016'],
-            'shipping_address' => ['line1' => '1 Park Street', 'city' => 'Kolkata', 'state' => 'West Bengal', 'pin' => '700016'],
-            'placed_at' => now(),
-        ], $overrides));
-
-        $order->items()->create($digitalOnly
-            ? ['name' => 'Central licence', 'sku' => 'LIC-1', 'type' => ProductType::Digital, 'quantity' => 2, 'unit_price_paise' => 1000000, 'line_total_paise' => 2000000]
-            : ['name' => 'Aruba 2930F switch', 'variation_name' => '24 port', 'sku' => 'JL253A', 'type' => ProductType::Physical, 'quantity' => 2, 'unit_price_paise' => 1000000, 'line_total_paise' => 2000000]);
-
-        return $order->fresh();
-    }
-
-    private function dispatched(array $overrides = []): Order
-    {
-        $order = $this->order($overrides);
-        $order->moveTo(OrderStatus::Paid);
-        $order->moveTo(OrderStatus::Dispatched);
-
-        return $order->fresh();
-    }
-
-    private function staff(RoleEnum $role): User
-    {
-        $user = User::create([
-            'name' => ucfirst($role->value), 'email' => $role->value.'-'.Str::random(6).'@example.test',
-            'phone' => '9800000001', 'password' => 'password-for-tests', 'is_active' => true,
-        ]);
-        $user->roles()->attach(Role::firstOrCreate(['slug' => $role->value], ['name' => $role->label()]));
-
-        return $user;
-    }
-
-    private function as(RoleEnum $role): static
-    {
-        $this->app['auth']->forgetGuards();
-
-        return $this->withHeader('Authorization', 'Bearer '.$this->staff($role)->createToken('admin')->plainTextToken);
+        $this->setUpZoho();
     }
 
     /* ------------------------------------------------- when, and only once */

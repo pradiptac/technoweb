@@ -13,6 +13,7 @@ import { noIndex } from "@/lib/no-index";
 import {
   FulfilPanel, InvoicePanel, NotePanel, RecordPaymentPanel, RecordRefundPanel, ShippingPanel, StatusPanel,
   ZohoInvoicePanel,
+  ZohoPaymentLine,
 } from "./order-panels";
 import type { AdminOrder } from "@/types/api";
 import { Card } from "@/components/ui/card";
@@ -246,6 +247,8 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
                     )}
 
                     {p.failure_reason && <p className="mt-1 text-12 text-err">{p.failure_reason}</p>}
+
+                    <ZohoPaymentLine orderNumber={order.order_number} payment={p} />
                   </li>
                 ))}
               </ul>

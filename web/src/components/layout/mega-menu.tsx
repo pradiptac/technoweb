@@ -61,7 +61,9 @@ function truncate(text: string, max: number): string {
  * panel whose host is no longer hovered goes at once when another host is.
  *
  * **Every panel arrives by fading in** — a first open and a swap alike, over
- * `--duration-base`, opacity only (the client, 2026-09-27: the instant swap
+ * `--duration-menu` (340ms since 2026-10-09, when the client asked for a
+ * slower fade both ways; it leaves over `--duration-menu-exit`, 240ms),
+ * opacity only (the client, 2026-09-27: the instant swap
  * read as a flicker, and asked for a fade on every menu, the utility bar's
  * included). The 4px rise went with it: a panel that also moves while it
  * fades reads as a jump. Because the panel being left is already gone, a swap
@@ -70,9 +72,9 @@ function truncate(text: string, max: number): string {
  */
 export const PANEL_CLASSES = [
   "panel-drop invisible absolute top-full z-50 pt-2 opacity-0",
-  "transition-[opacity,visibility] duration-(--duration-exit) ease-exit",
-  "group-[:hover:not([data-closed])]:visible group-[:hover:not([data-closed])]:opacity-100 group-[:hover:not([data-closed])]:duration-(--duration-base) group-[:hover:not([data-closed])]:ease-brand",
-  "group-[:focus-within:not([data-closed])]:visible group-[:focus-within:not([data-closed])]:opacity-100 group-[:focus-within:not([data-closed])]:duration-(--duration-base) group-[:focus-within:not([data-closed])]:ease-brand",
+  "transition-[opacity,visibility] duration-(--duration-menu-exit) ease-exit",
+  "group-[:hover:not([data-closed])]:visible group-[:hover:not([data-closed])]:opacity-100 group-[:hover:not([data-closed])]:duration-(--duration-menu) group-[:hover:not([data-closed])]:ease-brand",
+  "group-[:focus-within:not([data-closed])]:visible group-[:focus-within:not([data-closed])]:opacity-100 group-[:focus-within:not([data-closed])]:duration-(--duration-menu) group-[:focus-within:not([data-closed])]:ease-brand",
   // Reduced motion still needs the panel to appear, just without the slide.
   "motion-reduce:transition-none",
 ].join(" ");

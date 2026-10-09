@@ -132,6 +132,10 @@ Route::middleware('role:store_manager')->group(function () {
     // press; connecting the account is the administrator's.
     Route::post('store/orders/{order}/zoho-invoice', [ZohoBooksController::class, 'createForOrder'])
         ->middleware('throttle:20,1')->name('store.orders.zoho-invoice');
+    // Send — or try again to send — one payment or refund on the order to
+    // Zoho Books (0.136.0). The payment is addressed through its order.
+    Route::post('store/orders/{order}/payments/{payment}/zoho', [ZohoBooksController::class, 'sendPayment'])
+        ->whereNumber('payment')->middleware('throttle:20,1')->name('store.orders.payments.zoho');
     Route::post('store/orders/{order}/fulfil', [AdminStoreOrderController::class, 'fulfil'])->name('store.orders.fulfil');
 
     /*

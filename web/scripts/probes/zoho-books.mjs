@@ -9,6 +9,10 @@ import { join } from "node:path";
  *   ORDER_FAILED=<number> ORDER_CREATED=<number> ORDER_PLAIN=<number> add the
  *     order screen: throwaway orders whose `zoho_status` is `failed`,
  *     `created` and null.
+ *   ORDER_PAYMENTS=<number> ORDER_PAYMENT_FAILED=<number> add payments and
+ *     credit notes (0.136.0): a throwaway invoiced order with a payment Zoho
+ *     recorded and a refund that became credit note CN-00012, and one whose
+ *     payment Zoho refused twice in words with nowhere to break.
  *   SHOTS=<dir> saves each screen at 360, 768, 1280 and 1920.
  *
  * **Run it on an install where Zoho Books is not connected** — it checks the
@@ -32,6 +36,12 @@ import { join } from "node:path";
  *     invoice was made shows its number, and one nothing was asked of shows
  *     no Zoho panel at all while Zoho is not set up;
  *   - `?zoho=failed` narrows the orders list to the refused ones;
+ *   - the switch for payments and refunds is on the tab, and — unconnected —
+ *     no deposit account is drawn or posted, so a save cannot blank one;
+ *   - under each payment on an order, where it stands in Zoho Books: recorded,
+ *     a credit note's number, or Zoho's own refusal — wrapped, and with no
+ *     button while Zoho Books is not set up; an order with a refused payment
+ *     is on the `?zoho=failed` list too;
  *   - one `h1`, no horizontal overflow at 360, nothing logged.
  *
  * Signs in and reads; the one thing it presses is Connect, which changes
@@ -42,6 +52,8 @@ const SHOTS = process.env.SHOTS;
 const FAILED = process.env.ORDER_FAILED;
 const CREATED = process.env.ORDER_CREATED;
 const PLAIN = process.env.ORDER_PLAIN;
+const PAYMENTS = process.env.ORDER_PAYMENTS;
+const PAYMENT_FAILED = process.env.ORDER_PAYMENT_FAILED;
 const T = 180000;
 
 const browser = await chromium.launch();
@@ -97,6 +109,13 @@ for (const key of ["zoho_books_enabled", "zoho_books_invoice_when", "zoho_books_
 for (const key of ["zoho_books_oauth_refresh_token", "zoho_books_oauth_account", "zoho_books_oauth_connected_at", "zoho_books_error", "zoho_books_organization_id", "zoho_books_tax_intra", "zoho_books_tax_inter"]) {
   ok(await page.locator(`[name="setting__${key}"]`).count() === 0, `${key} is not posted from an unconnected screen`);
 }
+
+// Payments and credit notes (0.136.0): the switch is the form's; the accounts are Zoho's to list.
+ok(await page.locator('input[role="switch"][id="setting__zoho_books_send_payments"]').count() === 1, "payments and refunds have a switch on the tab");
+for (const key of ["zoho_books_account_gateway", "zoho_books_account_cod", "zoho_books_account_bank_transfer", "zoho_books_account_upi", "zoho_books_scope_version"]) {
+  ok(await page.locator(`[name="setting__${key}"]`).count() === 0, `${key} is not posted from an unconnected screen`);
+}
+ok(await page.getByRole("heading", { name: "Payments and refunds" }).count() === 0, "no deposit accounts are offered until an account is connected");
 
 const state = page.locator('[name="setting__zoho_books_home_state"]');
 const states = await state.locator("option").count();
@@ -167,6 +186,35 @@ if (FAILED && CREATED && PLAIN) {
   ok(await tile.count() >= 1, "the store overview has a tile for refused invoices");
 } else {
   console.log("skip the order screen: set ORDER_FAILED, ORDER_CREATED and ORDER_PLAIN");
+}
+
+/* ---- Payments and credit notes on an order ---- */
+
+if (PAYMENTS && PAYMENT_FAILED) {
+  await go(`/admin/store/orders/${PAYMENTS}`);
+  const lines = page.locator("[data-zoho-payment]");
+  ok(await lines.count() === 2, "each payment on the order says where it stands in Zoho Books");
+  // Newest first on the screen, so found by what they say rather than by position.
+  ok(await lines.filter({ hasText: "recorded against the invoice" }).count() === 1, "the payment is recorded against the invoice");
+  ok(await lines.filter({ hasText: "credit note CN-00012" }).count() === 1, "the refund names its credit note");
+  ok(await lines.getByRole("button").count() === 0, "nothing to press on what Zoho already has");
+  const invoice = page.locator("form", { has: page.getByRole("heading", { name: "Zoho Books invoice" }) });
+  ok((await invoice.innerText()).includes("Payments and refunds on this order are recorded against it there too"), "the invoice panel no longer says to record the payment by hand");
+  await shots("zoho-order-payments");
+
+  await go(`/admin/store/orders/${PAYMENT_FAILED}`);
+  const refusedLine = page.locator('[data-zoho-payment="failed"]');
+  ok(await refusedLine.count() === 1, "a refused payment says so");
+  const said = await refusedLine.innerText();
+  ok(said.includes("refused (2 attempts)") && said.includes("valid deposit account"), "…with the attempts and Zoho's own words");
+  ok(await refusedLine.getByRole("button").count() === 0, "no retry button while Zoho Books is not set up");
+  await shots("zoho-order-payment-failed");
+
+  await go(`/admin/store/orders?zoho=failed`);
+  ok(await page.getByRole("link", { name: PAYMENT_FAILED, exact: true }).count() === 1, "?zoho=failed lists an order with a refused payment");
+  ok(await page.getByRole("link", { name: PAYMENTS, exact: true }).count() === 0, "…and not one whose payments Zoho has");
+} else {
+  console.log("skip payments on an order: set ORDER_PAYMENTS and ORDER_PAYMENT_FAILED");
 }
 
 ok(problems.length === 0, `nothing logged (${problems.length})`);

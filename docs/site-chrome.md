@@ -226,7 +226,7 @@ window and the derived bit under `Carbon::setTestNow()`.
 **Every dropdown fades in (2026-09-27), which reverses the second round
 below.** The client saw the instant swap as the flicker this time and asked
 for a fade on every menu, the utility bar's included: a panel now arrives
-over `--duration-base`, opacity only (the 4px rise went too — a panel that
+over `--duration-menu` (340ms, and out over `--duration-menu-exit`, 240ms — slowed from `base`/`exit`, 200/140ms, at the client's request on 2026-10-09; tokens of their own, so no other state change moved), opacity only (the 4px rise went too — a panel that
 moves while it fades reads as a jump), a first open and a swap alike. The
 panel being left still goes at once by the `:has()` rule, so a swap is one
 panel fading in over nothing, never two over each other. The

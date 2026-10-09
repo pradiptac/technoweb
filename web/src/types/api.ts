@@ -2403,6 +2403,8 @@ export type AdminPayment = {
   failure_reason?: string | null;
   paid_at?: string | null;
   created_at?: string | null;
+  /** Where this row stands in Zoho Books (0.136.0); null when nothing is or could be asked of Zoho for it. */
+  zoho?: import("./zoho").PaymentZohoState | null;
 };
 
 /** One activation code, as the inventory lists it — never including the code. */

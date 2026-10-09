@@ -51,8 +51,8 @@ class OrderController extends Controller
              * the same state, and neither is visible from the status column.
              */
             ->when($request->boolean('unpaid'), fn ($q) => $q->where('status', OrderStatus::PendingPayment))
-            // Orders whose Zoho Books invoice was refused — the dashboard tile's list.
-            ->when($request->input('zoho') === 'failed', fn ($q) => $q->where('zoho_status', 'failed'))
+            // Orders Zoho Books refused an invoice, a payment or a credit note for — the dashboard tile's list.
+            ->when($request->input('zoho') === 'failed', fn ($q) => $q->zohoFailed())
             ->when($request->boolean('open'), fn ($q) => $q->whereNotIn('status', [
                 OrderStatus::Completed->value,
                 OrderStatus::Cancelled->value,

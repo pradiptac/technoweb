@@ -1880,12 +1880,9 @@ ignores the attempt count. A 401/403 also writes `zoho_books_error`, the
 
 ### What it does not do
 
-- **Payments are not recorded in Zoho.** A paid order's invoice shows as
-  unpaid there until somebody records the payment in Zoho Books. Deliberate:
-  payment modes, bank accounts and gateway fees are the accountant's to map,
-  and a wrong automatic entry in the books is worse than a missing one.
-- **Refunds, returns and cancellations are not sent**: no credit note is
-  made. An invoiced order that is refunded needs one in Zoho by hand.
+- **Payments and credit notes were not sent in 0.134.0.** They are since
+  0.136.0 — see "Zoho Books: payments and credit notes" below. Gateway fees
+  still are not.
 - Orders from before the switch was turned on are not back-filled; the
   button on an order makes one.
 - One GST rate, the shop's own (`Money::GST_BASIS_POINTS`). There is no
@@ -1897,6 +1894,90 @@ connection may still surface a field it wants differently — its refusal is
 shown in its own words on the order, which is what that screen is for.
 `scripts/probes/zoho-books.mjs` drives the console side: the settings tab,
 the callback page's three answers, and the order panel in each state.
+
+## Zoho Books: payments and credit notes (0.136.0)
+
+The client, 2026-10-08: "payments and credit notes need to sent to Zoho".
+Every row in `payments` that says money moved is told to Zoho once: a `paid`
+row becomes a **customer payment** applied to the order's invoice, a
+`refunded` row a **credit note** against it.
+
+`App\Support\Store\Zoho\ZohoPayments` is `ZohoInvoices` again on a different
+row, and reads the same way:
+
+- **State is on the payment row** (`2026_10_09_100000`): `zoho_status`
+  (`pending`, `sending`, `sent`, `failed`, `skipped`), `zoho_id` (the
+  customer payment's id, or the credit note's), `zoho_number` (the credit
+  note's number), `zoho_refund_id`, attempts, error, claim and next-attempt
+  times. Claimed by a conditional UPDATE; written through the query builder.
+- **Called from two places.** `Payment::created` → `consider()`, and the end
+  of `ZohoInvoices::create()` → `forOrder()`. A payment needs its order's
+  invoice to exist in Zoho, and a card order is paid before it is dispatched
+  — so the usual case is the payment waiting, unmarked, and following the
+  invoice the moment it is made. `consider()` never throws.
+- **`ZohoSettings::paymentsReady($method)`** is the one answer to "may this be
+  sent": invoices ready, `zoho_books_send_payments` on, the consent current,
+  and an account chosen for the order's way of paying
+  (`zoho_books_account_{gateway,cod,bank_transfer,upi}`). None of it is part
+  of `missing()` — an invoice needs none of it, and `paymentsMissing()` is a
+  separate list the tab shows.
+- **A way of paying with no account is not sent, and not marked.** The row
+  stays null, so choosing the account later sends it: the sweep looks for
+  unmarked rows on invoiced orders, narrowed **in SQL** to the ways of
+  paying that have an account, or rows that can never be sent would fill the
+  window and starve the ones that can.
+- **Once.** The reference Zoho is given — `{order}-P{payment id}` or
+  `{order}-R{payment id}` — is asked for before anything is created, and
+  what Zoho made is written to the row before the next call, so a retry
+  resumes at the step that failed (`test_a_half_finished_credit_note_is_resumed_not_made_again`).
+- **Zoho's books are the truth about Zoho.** What is still owed on the
+  invoice and what of a credit note is unused are read from Zoho each time,
+  never remembered. An invoice with nothing owed means somebody recorded the
+  payment there by hand: the row becomes `skipped` and the order's trail says
+  so, rather than leaving the customer in credit.
+- **A credit note says what it can** (`creditNotePayload()`): the invoice's
+  own lines and discount when the whole order is refunded in one go; the
+  received items when the refund is linked to a return
+  (`order_returns.refund_payment_id`) and they add up to exactly the amount
+  on an undiscounted order; otherwise one line, "Refund — order N", for the
+  amount, taxed as the order was. Never an invented item list.
+- **Then it is used as Zoho's balances say**: set against whatever is still
+  owed on the invoice, and anything beyond that paid back out of the account
+  the money went into (`refundCreditNote`). The usual case — invoice paid,
+  money returned — is all refund; an invoice Zoho never took the payment for
+  is all applied.
+- **The money in before the money out.** A refund first sends any earlier
+  paid row on the order that has not reached Zoho, so the invoice is paid
+  there before a credit note is set against it.
+- **The consent grew**, and `ZohoSettings::SCOPE_VERSION` (2) records which
+  one a connection holds: `customerpayments` and `creditnotes` create/read,
+  and `accountants.READ` for the chart of accounts. The callback stamps
+  `zoho_books_scope_version`; a connection from before it is not asked for
+  payments at all, the tab says "Connect Zoho again", and invoices carry on.
+- **The tab** (`ZohoBooksPanel`) draws one select per way of paying from
+  Zoho's bank, cash and other-current-asset accounts, with a blank first
+  option — the 0.134.0 lesson — and the keys are in `HIDDEN`. Unconnected,
+  none is drawn or posted. `zoho_books_send_payments` is an ordinary boolean
+  row, so it is a switch.
+- **On an order**, `ZohoPaymentLine` under each payment says where it stands,
+  and `POST …/orders/{n}/payments/{id}/zoho` (`role:store_manager`) sends one
+  on request. `Order::scopeZohoFailed()` is the one definition behind
+  `attention.zoho_failed` and `?zoho=failed`: a refused invoice **or** a
+  refused payment or credit note.
+- Retries are the invoice's own schedule, swept by the same
+  `technoware:sync-zoho-invoices`.
+
+Not done, and said to the client: gateway fees are not recorded. Imported
+WooCommerce orders have no Zoho invoice, so nothing of theirs is sent.
+
+**Not driven against a real Zoho account.** `ZohoPaymentsTest` (17) runs on
+`tests/Support/FakesZohoBooks`, the fake both Zoho tests share, which keeps
+the invoice's balance and each credit note's because the code reads them
+back. The two things most likely to need a correction on a first real run are
+Zoho's names for a payment mode (`cash`, `banktransfer`, `creditcard`,
+`others` are sent) and which fields an Indian GST organisation requires on a
+credit note; either refusal arrives in Zoho's own words on the payment's
+line.
 
 One trap found in the probe's first screenshot, and it is not about Zoho: the home state has no
 default, and the generic settings select starts on its first option — so the

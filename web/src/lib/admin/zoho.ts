@@ -5,7 +5,8 @@ import type { ZohoBooksStatus } from "@/types/zoho";
 
 /**
  * Zoho Books (docs/store.md "Zoho Books invoices"): the connection and its
- * test are `role:admin`; making one order's invoice is a store manager's.
+ * test are `role:admin`; making one order's invoice, and sending one of its
+ * payments or refunds (0.136.0), is a store manager's.
  */
 
 export async function getZohoBooksStatus(): Promise<ZohoBooksStatus> {
@@ -48,6 +49,16 @@ export async function testZohoBooks(): Promise<{ taxes: number; ready: boolean; 
 export async function createZohoInvoice(orderNumber: string): Promise<{ status: string; invoice_number: string | null }> {
   const res = await apiFetch<{ data: { status: string; invoice_number: string | null } }>(
     `/admin/store/orders/${encodeURIComponent(orderNumber)}/zoho-invoice`,
+    { method: "POST", token: await token() },
+  );
+
+  return res.data;
+}
+
+/** Send one payment or refund on an order to Zoho Books now. A refusal is a 422 in Zoho's words. */
+export async function sendZohoPayment(orderNumber: string, paymentId: number): Promise<{ status: string; number: string | null }> {
+  const res = await apiFetch<{ data: { status: string; number: string | null } }>(
+    `/admin/store/orders/${encodeURIComponent(orderNumber)}/payments/${paymentId}/zoho`,
     { method: "POST", token: await token() },
   );
 

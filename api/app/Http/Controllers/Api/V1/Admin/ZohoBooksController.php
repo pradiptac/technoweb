@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\PaymentMethod;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Models\Setting;
 use App\Support\OAuth\CallbackPath;
 use App\Support\OAuth\OAuthConnection;
 use App\Support\Store\Zoho\ZohoBooks;
 use App\Support\Store\Zoho\ZohoInvoices;
+use App\Support\Store\Zoho\ZohoPayments;
 use App\Support\Store\Zoho\ZohoRefused;
 use App\Support\Store\Zoho\ZohoSettings;
 use Illuminate\Http\JsonResponse;
@@ -34,11 +37,13 @@ class ZohoBooksController extends Controller
         $connected = ZohoSettings::connected();
         $organizations = [];
         $taxes = [];
+        $accounts = [];
         $readError = null;
 
         if ($connected) {
+            $zoho = new ZohoBooks;
+
             try {
-                $zoho = new ZohoBooks;
                 $organizations = $zoho->organizations();
                 $taxes = ZohoSettings::organizationId() !== '' ? $zoho->taxes() : [];
             } catch (ZohoRefused $e) {
@@ -46,7 +51,19 @@ class ZohoBooksController extends Controller
                 // saved choices stay selected rather than vanishing.
                 $readError = $e->getMessage();
             }
+
+            // Its own try: a consent from before 0.136.0 cannot read the
+            // accounts, and that must not take the taxes off the screen.
+            if ($readError === null && ZohoSettings::organizationId() !== '' && ZohoSettings::scopeCurrent()) {
+                try {
+                    $accounts = $zoho->accounts();
+                } catch (ZohoRefused $e) {
+                    $readError = $e->getMessage();
+                }
+            }
         }
+
+        $offered = array_map(fn (PaymentMethod $m) => $m->value, PaymentMethod::offered());
 
         return response()->json(['data' => [
             'enabled' => ZohoSettings::enabled(),
@@ -64,6 +81,23 @@ class ZohoBooksController extends Controller
             'callback_path' => self::CALLBACK,
             'waiting' => Order::query()->whereIn('zoho_status', ['pending', 'creating'])->count(),
             'failed' => Order::query()->where('zoho_status', 'failed')->count(),
+            // Payments and credit notes (0.136.0).
+            'payments' => [
+                'enabled' => ZohoSettings::sendsPayments(),
+                'reconnect_needed' => $connected && ! ZohoSettings::scopeCurrent(),
+                'accounts' => $accounts,
+                'methods' => array_map(fn (string $method) => [
+                    'value' => $method,
+                    // Short, lower-case, and the words the "still to do" sentences use.
+                    'label' => ZohoSettings::ACCOUNT_METHODS[$method],
+                    'setting' => 'zoho_books_account_'.$method,
+                    'account_id' => ZohoSettings::accountFor($method) ?: null,
+                    'offered' => in_array($method, $offered, true),
+                ], array_keys(ZohoSettings::ACCOUNT_METHODS)),
+                'missing' => ZohoSettings::paymentsMissing($offered),
+                'waiting' => Payment::query()->whereIn('zoho_status', ['pending', 'sending'])->count(),
+                'failed' => Payment::query()->where('zoho_status', 'failed')->count(),
+            ],
         ]]);
     }
 
@@ -116,6 +150,9 @@ class ZohoBooksController extends Controller
         }
 
         Setting::put('zoho_books_oauth_account', mb_substr($account, 0, 190));
+        // Which consent this connection holds: payments and credit notes
+        // need the one asked for since 0.136.0.
+        Setting::put('zoho_books_scope_version', (string) ZohoSettings::SCOPE_VERSION);
 
         return response()->json(['data' => ['account' => $account]]);
     }
@@ -191,6 +228,39 @@ class ZohoBooksController extends Controller
         return response()->json(['data' => [
             'status' => $order->zoho_status,
             'invoice_number' => $order->invoice_number,
+        ]]);
+    }
+
+    /**
+     * "Send to Zoho now" on one payment or refund (0.136.0). Runs in the
+     * request, so whoever pressed it sees the result or Zoho's reason. A
+     * payment addressed through another order is a 404.
+     */
+    public function sendPayment(Request $request, Order $order, int $payment): JsonResponse
+    {
+        $row = $order->payments()->whereKey($payment)->firstOrFail();
+
+        if (! ZohoPayments::sendable($row)) {
+            return response()->json(['message' => 'Only a payment that arrived, or a refund, is sent to Zoho Books.'], 422);
+        }
+
+        if ($row->zoho_status === 'sent') {
+            return response()->json(['message' => 'Zoho Books already has this one.'], 422);
+        }
+
+        if ($refusal = ZohoPayments::refusal($order)) {
+            return response()->json(['message' => $refusal], 422);
+        }
+
+        $row = ZohoPayments::run($row, $request->user());
+
+        if ($row->zoho_status === 'failed') {
+            return response()->json(['message' => (string) $row->zoho_error, 'errors' => ['zoho' => [(string) $row->zoho_error]]], 422);
+        }
+
+        return response()->json(['data' => [
+            'status' => $row->zoho_status,
+            'number' => $row->zoho_number,
         ]]);
     }
 }

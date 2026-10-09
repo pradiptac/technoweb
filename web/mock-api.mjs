@@ -2948,6 +2948,17 @@ createServer(async (req, res) => {
         is_connected: false, account: null, connected_at: null, client_configured: false, data_centre: 'in',
         organization_id: null, organizations: [], taxes: [], error: null,
         callback_path: '/admin/store/settings/zoho/callback', waiting: 0, failed: 0,
+        // Payments and credit notes (0.136.0): nothing to list until an account is connected.
+        payments: {
+          enabled: true, reconnect_needed: false, accounts: [],
+          methods: [
+            { value: 'gateway', label: 'card and online payments', setting: 'zoho_books_account_gateway', account_id: null, offered: false },
+            { value: 'cod', label: 'cash on delivery', setting: 'zoho_books_account_cod', account_id: null, offered: true },
+            { value: 'bank_transfer', label: 'bank transfers', setting: 'zoho_books_account_bank_transfer', account_id: null, offered: true },
+            { value: 'upi', label: 'UPI payments', setting: 'zoho_books_account_upi', account_id: null, offered: true },
+          ],
+          missing: [], waiting: 0, failed: 0,
+        },
       } });
     }
     if (p === '/admin/settings/zoho-books/authorize' && req.method === 'POST') {
@@ -2963,6 +2974,10 @@ createServer(async (req, res) => {
       return json(res, 422, { message: 'Connect a Zoho account first.', errors: { zoho: ['Connect a Zoho account first.'] } });
     }
     if (/^\/admin\/store\/orders\/[^/]+\/zoho-invoice$/.test(p) && req.method === 'POST') {
+      return json(res, 422, { message: 'Zoho Books invoices are switched off.' });
+    }
+    // One payment or refund sent to Zoho Books on request (0.136.0).
+    if (/^\/admin\/store\/orders\/[^/]+\/payments\/\d+\/zoho$/.test(p) && req.method === 'POST') {
       return json(res, 422, { message: 'Zoho Books invoices are switched off.' });
     }
     if (p === '/admin/meetings/customers' && req.method === 'GET') {
@@ -4145,6 +4160,10 @@ createServer(async (req, res) => {
           s('zoho_books_tax_intra', null, { group: 'zoho_books' }), s('zoho_books_tax_inter', null, { group: 'zoho_books' }),
           s('zoho_books_oauth_account', null, { group: 'zoho_books' }), s('zoho_books_oauth_connected_at', null, { group: 'zoho_books' }),
           s('zoho_books_error', null, { group: 'zoho_books' }),
+          s('zoho_books_send_payments', '1', { group: 'zoho_books', type: 'boolean' }),
+          s('zoho_books_account_gateway', null, { group: 'zoho_books' }), s('zoho_books_account_cod', null, { group: 'zoho_books' }),
+          s('zoho_books_account_bank_transfer', null, { group: 'zoho_books' }), s('zoho_books_account_upi', null, { group: 'zoho_books' }),
+          s('zoho_books_scope_version', null, { group: 'zoho_books' }),
         ],
         push: [
           s('push_api_key', 'AIzaMockKey000000000000000000000000000', { group: 'push' }), s('push_project_id', 'technoware-push', { group: 'push' }),

@@ -193,15 +193,19 @@ final class OAuthConnection
      * are created, read back (the PDF, and the look-up that stops a second
      * one being made) and marked sent; a customer is looked up by address
      * and created when absent; settings are read for the organisations and
-     * the taxes the screen offers. Nothing is deleted and no payment is
-     * touched. `$dataCentre` is the region the account lives in — its own
+     * the taxes the screen offers. Since 0.136.0 customer payments and
+     * credit notes are created and read back, and the chart of accounts is
+     * read for the deposit accounts the screen offers — `ZohoSettings::
+     * SCOPE_VERSION` says which consent a connection was made under. Nothing
+     * is deleted. `$dataCentre` is the region the account lives in — its own
      * client id and secret, the reasoning every slot here gives.
      */
     public static function zohoBooks(?string $dataCentre = null): self
     {
         return new self(
             provider: OAuthProvider::Zoho,
-            scope: 'ZohoBooks.invoices.CREATE,ZohoBooks.invoices.READ,ZohoBooks.invoices.UPDATE,ZohoBooks.contacts.CREATE,ZohoBooks.contacts.READ,ZohoBooks.settings.READ',
+            scope: 'ZohoBooks.invoices.CREATE,ZohoBooks.invoices.READ,ZohoBooks.invoices.UPDATE,ZohoBooks.contacts.CREATE,ZohoBooks.contacts.READ,ZohoBooks.settings.READ'
+                .',ZohoBooks.customerpayments.CREATE,ZohoBooks.customerpayments.READ,ZohoBooks.creditnotes.CREATE,ZohoBooks.creditnotes.READ,ZohoBooks.creditnotes.UPDATE,ZohoBooks.accountants.READ',
             prefix: 'zoho_books_oauth_',
             slot: 'zoho-books',
             errorKey: 'zoho_books_error',

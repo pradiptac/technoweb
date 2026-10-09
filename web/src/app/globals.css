@@ -345,6 +345,14 @@
      flick rather than a stroke). Arriving only; the underline retracts at
      `slow`, because leaving is shorter than arriving. */
   --duration-draw: 600ms;
+  /* A dropdown menu opening and closing (the client, 2026-10-09: "increase
+     menu dropdown fade in fade out timing"). Until then a panel arrived at
+     `base` and left at `exit` — 200ms and 140ms, a reaction's timing, which
+     on a sheet the width of the header read as a blink. A pair of its own
+     rather than a change to `base` and `exit`, which time every other state
+     change on the site; leaving is still the shorter of the two. */
+  --duration-menu: 340ms;
+  --duration-menu-exit: 240ms;
   /* Velora's shimmer-button sweep (`components/velora/shimmer-button.tsx`);
      the keyframe is beside the other guarded ones further down. */
   --animate-shimmer: shimmer 2.5s linear infinite;

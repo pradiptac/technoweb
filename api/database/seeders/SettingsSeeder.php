@@ -417,6 +417,14 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'zoho_books', 'key' => 'zoho_books_tax_inter', 'value' => null, 'type' => 'string'],
             ['group' => 'zoho_books', 'key' => 'zoho_books_invoice_when', 'value' => 'dispatched', 'type' => 'string'],
             ['group' => 'zoho_books', 'key' => 'zoho_books_error', 'value' => null, 'type' => 'string'],
+            // Payments and credit notes (0.136.0): on unless switched off, one
+            // deposit account per way of paying, and which consent is held.
+            ['group' => 'zoho_books', 'key' => 'zoho_books_send_payments', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_account_gateway', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_account_cod', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_account_bank_transfer', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_account_upi', 'value' => null, 'type' => 'string'],
+            ['group' => 'zoho_books', 'key' => 'zoho_books_scope_version', 'value' => null, 'type' => 'string'],
 
             /*
              * Comments, site-wide.

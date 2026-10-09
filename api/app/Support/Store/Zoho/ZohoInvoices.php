@@ -207,13 +207,7 @@ final class ZohoInvoices
             'date' => self::invoiceDate($order)->toDateString(),
             'is_inclusive_tax' => true,
             'gst_treatment' => filled($order->gstin) ? 'business_gst' : 'consumer',
-            'line_items' => $order->items->map(fn (OrderItem $item) => array_filter([
-                'name' => Str::limit($item->name.(filled($item->variation_name) ? " — {$item->variation_name}" : ''), 200, ''),
-                'description' => filled($item->sku) ? "SKU {$item->sku}" : null,
-                'rate' => self::rupees((int) $item->unit_price_paise),
-                'quantity' => (int) $item->quantity,
-                'tax_id' => $tax,
-            ], fn ($value) => $value !== null))->values()->all(),
+            'line_items' => $order->items->map(fn (OrderItem $item) => self::line($item, (int) $item->quantity, $tax))->values()->all(),
             'notes' => "Order {$order->order_number}",
         ];
 
@@ -225,13 +219,36 @@ final class ZohoInvoices
             $payload['place_of_supply'] = $place;
         }
 
-        if ((int) $order->discount_paise > 0) {
-            $payload['discount'] = self::rupees((int) $order->discount_paise);
-            $payload['discount_type'] = 'entity_level';
-            $payload['is_discount_before_tax'] = true;
-        }
+        return $payload + self::discount($order);
+    }
 
-        return $payload;
+    /**
+     * One line of a document, at the price the customer saw. Shared with the
+     * credit note (`ZohoPayments`), which lists the same things going back.
+     *
+     * @return array<string, mixed>
+     */
+    public static function line(OrderItem $item, int $quantity, string $tax): array
+    {
+        return array_filter([
+            'name' => Str::limit($item->name.(filled($item->variation_name) ? " — {$item->variation_name}" : ''), 200, ''),
+            'description' => filled($item->sku) ? "SKU {$item->sku}" : null,
+            'rate' => self::rupees((int) $item->unit_price_paise),
+            'quantity' => $quantity,
+            'tax_id' => $tax,
+        ], fn ($value) => $value !== null);
+    }
+
+    /**
+     * A coupon, as the order-level discount before tax it was at checkout.
+     *
+     * @return array<string, mixed>
+     */
+    public static function discount(Order $order): array
+    {
+        return (int) $order->discount_paise > 0
+            ? ['discount' => self::rupees((int) $order->discount_paise), 'discount_type' => 'entity_level', 'is_discount_before_tax' => true]
+            : [];
     }
 
     /**
@@ -346,6 +363,9 @@ final class ZohoInvoices
         }
 
         self::trail($order, $note, $actor);
+
+        // Money already recorded on this order was waiting for its invoice.
+        ZohoPayments::forOrder($order);
     }
 
     /** Zoho wants a customer's display name to be unique; two people can share one. */
@@ -401,7 +421,7 @@ final class ZohoInvoices
         $order->forceFill($attributes)->syncOriginal();
     }
 
-    private static function trail(Order $order, string $note, ?User $actor = null): void
+    public static function trail(Order $order, string $note, ?User $actor = null): void
     {
         $order->history()->create([
             'to_status' => $order->status->value,
@@ -440,7 +460,7 @@ final class ZohoInvoices
     }
 
     /** Paise as the decimal Zoho takes. Two places, always exact: paise are integers. */
-    private static function rupees(int $paise): float
+    public static function rupees(int $paise): float
     {
         return round($paise / 100, 2);
     }

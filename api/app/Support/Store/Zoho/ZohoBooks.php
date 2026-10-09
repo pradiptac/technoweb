@@ -133,6 +133,137 @@ final class ZohoBooks
         return $bytes;
     }
 
+    /* ------------------------------------ payments and credit notes (0.136.0) */
+
+    /**
+     * One invoice as Zoho holds it now: who it is billed to and what is
+     * still owed on it — the two things a payment needs and this application
+     * does not keep.
+     *
+     * @return array<string, mixed>
+     */
+    public function invoice(string $invoiceId): array
+    {
+        $invoice = $this->json('get', "/invoices/{$invoiceId}")['invoice'] ?? null;
+
+        if (! is_array($invoice) || blank($invoice['customer_id'] ?? null)) {
+            throw new ZohoRefused('Zoho Books did not return that invoice.');
+        }
+
+        return $invoice;
+    }
+
+    /**
+     * The accounts money can be put into or paid out of: bank, cash, and the
+     * current-asset accounts a gateway's clearing balance is usually kept in.
+     *
+     * @return list<array{id: string, name: string, type: string}>
+     */
+    public function accounts(): array
+    {
+        $body = $this->json('get', '/chartofaccounts', ['filter_by' => 'AccountType.Active', 'per_page' => 200]);
+
+        $accounts = array_filter(
+            (array) ($body['chartofaccounts'] ?? []),
+            fn ($a) => is_array($a) && in_array($a['account_type'] ?? '', ['bank', 'cash', 'other_current_asset'], true),
+        );
+
+        return array_values(array_map(
+            fn (array $a) => ['id' => (string) ($a['account_id'] ?? ''), 'name' => (string) ($a['account_name'] ?? ''), 'type' => (string) $a['account_type']],
+            $accounts,
+        ));
+    }
+
+    /** The customer payment already carrying this reference, or null — asked before recording one. */
+    public function findPayment(string $reference): ?string
+    {
+        $body = $this->json('get', '/customerpayments', ['reference_number' => $reference, 'per_page' => 1]);
+        $payment = $body['customerpayments'][0] ?? null;
+
+        return is_array($payment) && ($payment['reference_number'] ?? null) === $reference && filled($payment['payment_id'] ?? null)
+            ? (string) $payment['payment_id']
+            : null;
+    }
+
+    /** @param  array<string, mixed>  $payload */
+    public function createPayment(array $payload): string
+    {
+        $id = $this->json('post', '/customerpayments', json: $payload)['payment']['payment_id'] ?? null;
+
+        if (blank($id)) {
+            throw new ZohoRefused('Zoho Books did not return the payment it was asked to record.');
+        }
+
+        return (string) $id;
+    }
+
+    /**
+     * The credit note already carrying this reference, or null.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findCreditNote(string $reference): ?array
+    {
+        $body = $this->json('get', '/creditnotes', ['reference_number' => $reference, 'per_page' => 1]);
+        $note = $body['creditnotes'][0] ?? null;
+
+        return is_array($note) && ($note['reference_number'] ?? null) === $reference && filled($note['creditnote_id'] ?? null) ? $note : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    public function createCreditNote(array $payload): array
+    {
+        $note = $this->json('post', '/creditnotes', json: $payload)['creditnote'] ?? null;
+
+        if (! is_array($note) || blank($note['creditnote_id'] ?? null)) {
+            throw new ZohoRefused('Zoho Books did not return the credit note it was asked to create.');
+        }
+
+        return $note;
+    }
+
+    /**
+     * A credit note as it stands: its number and what of it is still unused.
+     *
+     * @return array<string, mixed>
+     */
+    public function creditNote(string $creditNoteId): array
+    {
+        $note = $this->json('get', "/creditnotes/{$creditNoteId}")['creditnote'] ?? null;
+
+        if (! is_array($note)) {
+            throw new ZohoRefused('Zoho Books did not return that credit note.');
+        }
+
+        return $note;
+    }
+
+    /** Set some of a credit note against what is still owed on an invoice. */
+    public function applyCreditNote(string $creditNoteId, string $invoiceId, float $amount): void
+    {
+        $this->json('post', "/creditnotes/{$creditNoteId}/invoices", json: [
+            'invoices' => [['invoice_id' => $invoiceId, 'amount_applied' => $amount]],
+        ]);
+    }
+
+    /**
+     * Money paid back out against a credit note.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function refundCreditNote(string $creditNoteId, array $payload): string
+    {
+        $body = $this->json('post', "/creditnotes/{$creditNoteId}/refunds", json: $payload);
+        $id = $body['creditnote_refund']['creditnote_refund_id'] ?? null;
+
+        // Zoho has recorded it either way; without an id there is nothing to
+        // keep, and the credit note's own balance is what a retry reads.
+        return filled($id) ? (string) $id : '';
+    }
+
     /**
      * @param  array<string, mixed>  $query
      * @param  array<string, mixed>|null  $json

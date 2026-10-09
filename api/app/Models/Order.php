@@ -155,6 +155,17 @@ class Order extends Model
     }
 
     /**
+     * Orders Zoho Books refused something for: the invoice, or — since
+     * 0.136.0 — a payment or a credit note. The dashboard's tile and the
+     * list it opens (`?zoho=failed`) are this one scope.
+     */
+    public function scopeZohoFailed(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $q) => $q->where('zoho_status', 'failed')
+            ->orWhereHas('payments', fn (Builder $p) => $p->where('zoho_status', 'failed')));
+    }
+
+    /**
      * Where the customer reads this order.
      *
      * On the model because three notifications need it and two had already

@@ -12,8 +12,9 @@ import { connectZohoBooksAction, disconnectZohoBooksAction, testZohoBooksAction,
 
 /**
  * Under the Zoho Books fields on Store → Settings (docs/store.md "Zoho Books
- * invoices"): the account, the three choices only Zoho can offer — the
- * organisation and the two taxes — a test, and where things stand.
+ * invoices"): the account, the choices only Zoho can offer — the
+ * organisation, the two taxes and, since 0.136.0, the account each way of
+ * paying is deposited into — a test, and where things stand.
  *
  * The three selects are named `setting__<key>`, so they save through the
  * same action as every field above them; their options are Zoho's own lists,
@@ -45,6 +46,7 @@ export function ZohoBooksPanel({ status, rows }: { status?: ZohoBooksStatus; row
 
   const organization = saved("zoho_books_organization_id");
   const taxLabel = (t: ZohoBooksStatus["taxes"][number]) => `${t.name} (${t.percentage}%)`;
+  const payments = status.payments;
 
   return (
     <div className="mt-2 grid min-w-0 gap-5 border-t border-line pt-4 sm:col-span-2">
@@ -159,6 +161,74 @@ export function ZohoBooksPanel({ status, rows }: { status?: ZohoBooksStatus; row
         </div>
       )}
 
+      {/*
+        Payments and credit notes (0.136.0): one Zoho account per way of
+        paying — where that money is deposited, and where a refund is paid
+        back from. Drawn here for the reason the taxes are: the choices are
+        Zoho's own list, and each select needs a blank first option ("not
+        sent") rather than the generic select's habit of starting on the
+        first account and saving it. Unconnected, or before an organisation
+        is saved, there is nothing to list and nothing is posted.
+      */}
+      {status.is_connected && payments && (
+        <section className="grid min-w-0 gap-3 border-t border-line pt-4" aria-labelledby="zoho-payments-heading">
+          <div>
+            <h3 id="zoho-payments-heading" className="text-14 font-semibold">Payments and refunds</h3>
+            <p className="measure mt-1 text-12-5 text-muted">
+              Each payment recorded on an order is recorded against its invoice in Zoho Books, and each refund becomes a
+              credit note there. Choose the Zoho account each way of paying is deposited into; a refund is paid back from
+              the same one. A way of paying with no account chosen is left for you to enter in Zoho.
+            </p>
+          </div>
+
+          {payments.reconnect_needed && (
+            <Alert tone="warn" title="Connect Zoho again" dismissible={false}>
+              This account was connected before the site recorded payments in Zoho Books. Disconnect and connect it again
+              above to grant that; invoices carry on being made in the meantime.
+            </Alert>
+          )}
+
+          {!payments.reconnect_needed && (payments.accounts.length > 0 || payments.methods.some((m) => m.account_id) ? (
+            <div className="grid min-w-0 gap-x-5 sm:grid-cols-2">
+              {payments.methods.map((m) => (
+                <Field
+                  key={m.value}
+                  label={`Account for ${m.label}`}
+                  htmlFor={`setting__${m.setting}`}
+                  variant="float-static"
+                  hint={m.offered ? undefined : "Not offered at the checkout now."}
+                >
+                  <Select id={`setting__${m.setting}`} name={`setting__${m.setting}`} defaultValue={m.account_id ?? ""}>
+                    <option value="">Not sent to Zoho</option>
+                    {payments.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    {m.account_id && !payments.accounts.some((a) => a.id === m.account_id) && (
+                      <option value={m.account_id}>The one saved — not listed by Zoho now</option>
+                    )}
+                  </Select>
+                </Field>
+              ))}
+            </div>
+          ) : (
+            <p className="text-13 text-muted">Choose the organisation above and save: its bank and cash accounts are then listed here.</p>
+          ))}
+
+          {payments.enabled && !payments.reconnect_needed && payments.missing.length > 0 && (
+            <p className="measure text-12-5 text-muted">Still to do for payments: {payments.missing.join(" ")}</p>
+          )}
+
+          {(payments.waiting > 0 || payments.failed > 0) && (
+            <p className="text-12-5 text-muted">
+              {payments.waiting > 0 && `${payments.waiting} waiting to be sent. `}
+              {payments.failed > 0 && (
+                <Link href="/admin/store/orders?zoho=failed" className="font-semibold text-brand-ink underline">
+                  {payments.failed} refused by Zoho — open {payments.failed === 1 ? "the order" : "the orders"}
+                </Link>
+              )}
+            </p>
+          )}
+        </section>
+      )}
+
       <div className="grid gap-3">
         {status.ready ? (
           <Alert tone="ok" title="Invoices are being made" dismissible={false}>
@@ -195,9 +265,8 @@ export function ZohoBooksPanel({ status, rows }: { status?: ZohoBooksStatus; row
         </div>
 
         <p className="measure text-12-5 text-muted">
-          An invoice is made as <span className="font-semibold">sent</span>, with prices that include GST. Payments are
-          not recorded in Zoho — record each one there, or it shows as unpaid. An order that already has an uploaded
-          invoice is left alone.
+          An invoice is made as <span className="font-semibold">sent</span>, with prices that include GST. An order that
+          already has an uploaded invoice is left alone. Gateway fees are not recorded: enter those in Zoho Books.
         </p>
       </div>
     </div>

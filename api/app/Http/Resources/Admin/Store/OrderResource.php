@@ -3,10 +3,12 @@
 namespace App\Http\Resources\Admin\Store;
 
 use App\Enums\PaymentMethod;
+use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Models\OrderReturn;
 use App\Support\Store\DigitalFulfilment;
 use App\Support\Store\Zoho\ZohoInvoices;
+use App\Support\Store\Zoho\ZohoPayments;
 use App\Support\Store\Zoho\ZohoSettings;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -31,6 +33,9 @@ class OrderResource extends JsonResource
     public function toArray(Request $request): array
     {
         $detail = $request->routeIs('*.show', '*.update', '*.status', '*.shipping', '*.fulfil');
+        // Why this order's payments cannot be sent to Zoho Books now, or
+        // null: asked once here, read for every row below.
+        $zohoRefusal = $this->relationLoaded('payments') ? ZohoPayments::refusal($this->resource) : null;
 
         return [
             'id' => $this->id,
@@ -146,6 +151,19 @@ class OrderResource extends JsonResource
                 'failure_reason' => $p->failure_reason,
                 'paid_at' => $p->paid_at?->toIso8601String(),
                 'created_at' => $p->created_at?->toIso8601String(),
+                // Where this row stands in Zoho Books (0.136.0): a payment
+                // that arrived is a customer payment there, a refund a credit
+                // note. Null for a row that is neither, and while nothing
+                // was ever asked of Zoho for it and it could not be now.
+                'zoho' => ! ZohoPayments::sendable($p) || ($p->zoho_status === null && $zohoRefusal !== null) ? null : [
+                    'kind' => $p->status === PaymentStatus::Refunded ? 'credit_note' : 'payment',
+                    'status' => $p->zoho_status,
+                    'number' => $p->zoho_number,
+                    'error' => $p->zoho_error,
+                    'attempts' => (int) $p->zoho_attempts,
+                    'synced_at' => $p->zoho_synced_at?->toIso8601String(),
+                    'can_send' => $zohoRefusal === null && ! in_array($p->zoho_status, ['sent', 'sending'], true),
+                ],
             ])),
 
             'history' => $this->whenLoaded('history', fn () => $this->history->map(fn ($h) => [

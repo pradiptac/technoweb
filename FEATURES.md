@@ -197,7 +197,9 @@ first rupee.
 - **Invoices in Zoho Books** (optional): connect your Zoho Books and each
   order's GST invoice is made there by itself — when dispatched, or when
   paid — with CGST/SGST or IGST chosen from the delivery state, and the PDF
-  attached to the order for the customer. Refusals are retried and then
+  attached to the order for the customer. Payments are recorded against the
+  invoice and refunds become credit notes, each into the account you choose
+  for that way of paying. Refusals are retried and then
   shown on the store overview.
 - **Returns (RMA)**: customers ask to send items back from their order page
   or the portal, inside your return window, with a reason and photographs;

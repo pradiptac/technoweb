@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import {
   addNoteAction, createZohoInvoiceAction, fulfilOrderAction, moveOrderAction, recordPaymentAction, recordRefundAction, saveInvoiceAction,
-  saveShippingAction,
+  saveShippingAction, sendZohoPaymentAction,
   type OrderActionState,
 } from "../actions";
 import { paiseToRupeeInput } from "@/lib/money";
-import type { AdminOrder } from "@/types/api";
+import type { AdminOrder, AdminPayment } from "@/types/api";
 import { formatDate } from "@/lib/dates";
 
 const initial: OrderActionState = {};
@@ -229,8 +229,10 @@ export function ZohoInvoicePanel({ order }: { order: AdminOrder }) {
         {zoho.status === "created" && (
           <>
             Invoice <strong className="font-mono">{order.invoice_number ?? "—"}</strong> was made in Zoho Books
-            {zoho.synced_at && ` on ${formatDate(zoho.synced_at, "dateTime")}`} and its PDF is attached to this order.
-            Record the payment against it in Zoho Books — that is not done from here.
+            {zoho.synced_at && ` on ${formatDate(zoho.synced_at, "dateTime")}`} and its PDF is attached to this order.{" "}
+            {order.payments?.some((p) => p.zoho)
+              ? "Payments and refunds on this order are recorded against it there too — each says where it stands under Payments."
+              : "Record the payment against it in Zoho Books — that is not being done from here."}
           </>
         )}
         {zoho.status === "pending" && "Queued. The invoice is made within a few minutes."}
@@ -268,6 +270,56 @@ export function ZohoInvoicePanel({ order }: { order: AdminOrder }) {
       {zoho.can_create && !((zoho.status === null || zoho.status === "skipped") && order.has_invoice) && (
         <Button type="submit" size="sm" pending={pending}>
           {pending ? "Asking Zoho Books…" : failed ? "Try again now" : "Create the Zoho invoice now"}
+        </Button>
+      )}
+    </Form>
+  );
+}
+
+/**
+ * Under one payment or refund in the order's Payments list: where it stands
+ * in Zoho Books (0.136.0, docs/store.md "Zoho Books: payments and credit
+ * notes"). A payment that arrived is a customer payment on the order's
+ * invoice there; a refund is a credit note.
+ *
+ * Renders nothing when the API sends no `zoho` for the row — a failed card
+ * attempt, or an install where payments are not sent. The button is drawn
+ * only when the API says a press would be taken, and a refusal is Zoho's own
+ * words, wrapped (`anywhere`, the invoice panel's reason) because they can
+ * carry an identifier with nowhere to break.
+ */
+export function ZohoPaymentLine({ orderNumber, payment }: { orderNumber: string; payment: AdminPayment }) {
+  const [state, formAction, pending] = useActionState(sendZohoPaymentAction, initial);
+  const zoho = payment.zoho;
+
+  if (!zoho) return null;
+
+  const note = zoho.kind === "credit_note";
+  const failed = zoho.status === "failed";
+
+  return (
+    <Form action={formAction} state={state} className="mt-1.5 min-w-0 text-12" data-zoho-payment={zoho.status ?? "none"}>
+      <input type="hidden" name="order_number" value={orderNumber} />
+      <input type="hidden" name="payment_id" value={payment.id} />
+
+      <p className={failed ? "text-err [overflow-wrap:anywhere]" : "text-muted [overflow-wrap:anywhere]"}>
+        <span className="font-semibold">Zoho Books:</span>{" "}
+        {zoho.status === "sent" && (note
+          ? <>credit note <span className="font-mono">{zoho.number ?? "made"}</span>{zoho.synced_at && `, ${formatDate(zoho.synced_at, "dateTime")}`}.</>
+          : <>recorded against the invoice{zoho.synced_at && `, ${formatDate(zoho.synced_at, "dateTime")}`}.</>)}
+        {(zoho.status === "pending" || zoho.status === "sending") && (note ? "the credit note is being made." : "being recorded.")}
+        {zoho.status === "skipped" && "not recorded — the invoice was already paid there."}
+        {zoho.status === null && (note ? "no credit note made yet." : "not recorded yet.")}
+        {failed && !state.error && <>{note ? "the credit note was refused" : "refused"}{zoho.attempts > 1 ? ` (${zoho.attempts} attempts)` : ""}. {zoho.error}</>}
+        {failed && state.error && (note ? "the credit note was refused." : "refused.")}
+      </p>
+
+      {state.error && <p className="mt-1 text-err [overflow-wrap:anywhere]">{state.error}</p>}
+      {state.ok && !state.error && <p className="mt-1 text-ok">{state.ok}</p>}
+
+      {zoho.can_send && (
+        <Button type="submit" size="sm" variant="secondary" pending={pending} className="mt-1.5">
+          {pending ? "Asking Zoho Books…" : failed ? "Try again now" : note ? "Make the credit note now" : "Send to Zoho Books now"}
         </Button>
       )}
     </Form>
