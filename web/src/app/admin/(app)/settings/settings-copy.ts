@@ -405,7 +405,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   },
   store_shipping_paise: {
     label: "Delivery charge, in paise",
-    hint: "0 means free delivery. The same figure is shown on every product page, declared in the Google shopping feed and written into each product's Offer markup — three places, one number, so they cannot disagree.",
+    hint: "The flat charge, added to any order that ships something. 0 means free delivery. In flat mode the same figure is shown on every product page, declared in the Google shopping feed and written into each product's Offer markup. Zones, weight slabs and the choice between them are under Store → Shipping.",
     placeholder: "0",
   },
   store_handling_days: {
@@ -1209,6 +1209,9 @@ export const FIELD_ORDER: Record<string, string[]> = {
  * "correct"; the Verification screen is where they are read.
  */
 export const HIDDEN = new Set([
+  // Delivery charges: the mode and the default weight are written from /admin/store/shipping,
+  // which refuses "zones" until a default zone with a slab exists (0.142.0).
+  "store_shipping_mode", "store_default_weight_grams",
   "newsletter_verify_error", "newsletter_verify_last_run", "gsc_error", "ga4_error", "inbound_mail_error", "inbound_mail_last_run",
   // The consent a mailbox scan spends, written by the import screen and forgotten by the job.
   // Written by a refused send or test and cleared by a success; the messaging panel shows them.

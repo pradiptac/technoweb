@@ -39,6 +39,48 @@ class Fulfilment
         return self::shippingPaise() === 0;
     }
 
+    public const MODE_FLAT = 'flat';
+
+    public const MODE_ZONES = 'zones';
+
+    /**
+     * How a delivery charge is worked out (0.142.0): `flat` charges
+     * `store_shipping_paise` on any order that ships, `zones` quotes it from
+     * the delivery state and the basket's weight.
+     *
+     * `zones` is honoured only while a default zone with a rate exists. The
+     * console refuses to save it otherwise and refuses to delete the zone it
+     * leans on, so this is a belt over braces: a stored `zones` with nothing
+     * to quote from reads as `flat` rather than as free delivery by accident.
+     */
+    public static function shippingMode(): string
+    {
+        if (Setting::get('store_shipping_mode', self::MODE_FLAT) === self::MODE_ZONES && ShippingQuote::zonesReady()) {
+            return self::MODE_ZONES;
+        }
+
+        return self::MODE_FLAT;
+    }
+
+    public static function usesZones(): bool
+    {
+        return self::shippingMode() === self::MODE_ZONES;
+    }
+
+    /**
+     * What a product with no weight of its own weighs, in grams.
+     *
+     * Floored at one: zero is how a product says "unset", and a default of
+     * zero would make an unweighed basket weigh nothing and ride the
+     * cheapest slab for free.
+     */
+    public static function defaultWeightGrams(): int
+    {
+        $grams = (int) Setting::get('store_default_weight_grams', 500);
+
+        return $grams > 0 ? $grams : 500;
+    }
+
     /**
      * Working days between the money arriving and the parcel leaving.
      *

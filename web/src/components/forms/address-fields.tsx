@@ -1,7 +1,7 @@
 "use client";
 
 import { PincodeAutofill } from "@/components/forms/pincode-autofill";
-import { Field, Input } from "@/components/ui/input";
+import { Field, Input, Select } from "@/components/ui/input";
 import type { StoredAddress } from "@/types/api";
 
 /**
@@ -27,6 +27,7 @@ export function AddressFields({
   defaults,
   err,
   required = true,
+  stateOptions = null,
 }: {
   prefix?: string;
   errorPrefix?: string;
@@ -44,6 +45,14 @@ export function AddressFields({
    * never does.
    */
   required?: boolean;
+  /**
+   * The states a delivery address may be in (0.142.0). Given, the state is a
+   * list of exactly those names instead of free text: when delivery is
+   * charged by zone, a misspelling would otherwise dodge a dear or an
+   * undelivered zone. The PIN code still fills it, and the list is the API's
+   * own, so nothing here knows a state.
+   */
+  stateOptions?: string[] | null;
 }) {
   const name = (field: string) => `${prefix}${field}`;
   const error = (field: string) => err(`${errorPrefix}.${field}`);
@@ -90,10 +99,21 @@ export function AddressFields({
       />
 
       <div className={pair}>
-        <Field label="State" htmlFor={name("state")} error={error("state")}>
-          <Input id={name("state")} name={name("state")} autoComplete={auto("address-level1")} required={required}
-            defaultValue={defaults?.state ?? ""} aria-invalid={Boolean(error("state"))} />
-        </Field>
+        {stateOptions ? (
+          <Field label="State" htmlFor={name("state")} variant="float-static" error={error("state")}>
+            <Select id={name("state")} name={name("state")} autoComplete={auto("address-level1")} required={required}
+              defaultValue={stateOptions.includes(defaults?.state ?? "") ? (defaults?.state ?? "") : ""}
+              aria-invalid={Boolean(error("state"))}>
+              <option value="">Choose a state</option>
+              {stateOptions.map((state) => <option key={state} value={state}>{state}</option>)}
+            </Select>
+          </Field>
+        ) : (
+          <Field label="State" htmlFor={name("state")} error={error("state")}>
+            <Input id={name("state")} name={name("state")} autoComplete={auto("address-level1")} required={required}
+              defaultValue={defaults?.state ?? ""} aria-invalid={Boolean(error("state"))} />
+          </Field>
+        )}
 
         <Field label="City" htmlFor={name("city")} error={error("city")}>
           <Input id={name("city")} name={name("city")} autoComplete={auto("address-level2")} required={required}

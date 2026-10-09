@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\Admin\Store\PromoController as AdminStorePromoCo
 use App\Http\Controllers\Api\V1\Admin\Store\ReportController as AdminStoreReportController;
 use App\Http\Controllers\Api\V1\Admin\Store\ReturnController as AdminStoreReturnController;
 use App\Http\Controllers\Api\V1\Admin\Store\ReviewController as AdminStoreReviewController;
+use App\Http\Controllers\Api\V1\Admin\Store\ShippingController as AdminStoreShippingController;
 use App\Http\Controllers\Api\V1\Admin\Store\StockController as AdminStoreStockController;
 use App\Http\Controllers\Api\V1\Admin\Store\TagController as AdminStoreTagController;
 use App\Http\Controllers\Api\V1\Admin\Store\VideoSettingsController as AdminStoreVideoSettingsController;
@@ -52,6 +53,17 @@ Route::middleware('role:store_manager')->group(function () {
     Route::patch('store/tags/{storeTag:id}', [AdminStoreTagController::class, 'update'])->name('store.tags.update');
     Route::post('store/tags/{storeTag:id}/merge', [AdminStoreTagController::class, 'merge'])->name('store.tags.merge');
     Route::delete('store/tags/{storeTag:id}', [AdminStoreTagController::class, 'destroy'])->name('store.tags.destroy');
+    /*
+     * Delivery charges (0.142.0): the mode, the flat charge, the default
+     * weight, and the zones with their weight slabs. `store/shipping/settings`
+     * and the zone routes are declared as a set above `store/{anything}`.
+     */
+    Route::get('store/shipping', [AdminStoreShippingController::class, 'index'])->name('store.shipping');
+    Route::put('store/shipping/settings', [AdminStoreShippingController::class, 'updateSettings'])->name('store.shipping.settings');
+    Route::post('store/shipping/zones', [AdminStoreShippingController::class, 'store'])->name('store.shipping.zones.store');
+    Route::patch('store/shipping/zones/{zone}', [AdminStoreShippingController::class, 'update'])->name('store.shipping.zones.update');
+    Route::delete('store/shipping/zones/{zone}', [AdminStoreShippingController::class, 'destroy'])->name('store.shipping.zones.destroy');
+    Route::post('store/shipping/zones/{zone}/move', [AdminStoreShippingController::class, 'move'])->name('store.shipping.zones.move');
 
     // Above `store/{anything}` for the same reason `media/move` is:
     // Laravel matches in declaration order.

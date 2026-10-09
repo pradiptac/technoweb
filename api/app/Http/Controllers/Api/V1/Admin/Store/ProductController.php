@@ -75,6 +75,9 @@ class ProductController extends Controller
             // Products that carry a video (0.140.0) — the scope the "shop the
             // videos" shelf and Store → Product videos' count both read.
             ->when($request->boolean('video'), fn ($q) => $q->withVideos())
+            // Physical products weighed at the shop's default because nobody
+            // entered a weight (0.142.0) — the shipping screen's count.
+            ->when($request->boolean('no_weight'), fn ($q) => $q->withoutWeight())
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = $request->string('q')->value();
                 $q->where(fn ($w) => $w->where('name', 'like', "%{$term}%")
@@ -314,6 +317,17 @@ class ProductController extends Controller
                 : null;
 
             if ($existing !== null) {
+                /*
+                 * A weight the editor did not send is a weight left alone
+                 * (0.142.0). The variations editor never posted one, so
+                 * every save wrote null over whatever was set — which a
+                 * delivery quote now reads. Sending the key, even blank,
+                 * still changes it.
+                 */
+                if (! array_key_exists('weight_grams', $row)) {
+                    unset($attributes['weight_grams']);
+                }
+
                 $existing->update($attributes);
                 $kept[] = $existing->id;
 

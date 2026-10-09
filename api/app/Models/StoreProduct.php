@@ -197,6 +197,21 @@ class StoreProduct extends Model implements Answerable, Faqable
         return $query->whereNotNull('videos')->whereRaw('JSON_LENGTH(videos) > 0');
     }
 
+    /**
+     * Physical products whose weight nobody entered (0.142.0).
+     *
+     * They are weighed at the shop's default in a delivery quote, so a basket
+     * of them rides a guess. A product counts as weighed when it has a weight
+     * of its own or any of its options does; the shipping screen's count and
+     * the products list's `?no_weight=1` are this one scope.
+     */
+    public function scopeWithoutWeight(Builder $query): Builder
+    {
+        return $query->where('type', ProductType::Physical)
+            ->where(fn (Builder $q) => $q->whereNull('weight_grams')->orWhere('weight_grams', '<=', 0))
+            ->whereDoesntHave('variations', fn (Builder $v) => $v->where('weight_grams', '>', 0));
+    }
+
     /** @return BelongsTo<StoreCategory, $this> */
     public function category(): BelongsTo
     {

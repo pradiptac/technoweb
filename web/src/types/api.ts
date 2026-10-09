@@ -1949,12 +1949,17 @@ export type StoreFeedItem = {
   identifier_exists?: "no";
   google_product_category?: string;
   product_type?: string;
-  shipping_price: string;
-  shipping_country: string;
+  /**
+   * The shipping block — absent in zones mode (0.142.0): the charge then depends
+   * on the destination and the weight, so no single figure is declared here and
+   * the rules are set in Merchant Center instead.
+   */
+  shipping_price?: string;
+  shipping_country?: string;
   /** The named service and its transit window, from the `store` settings. */
-  shipping_service: string;
-  min_transit_time: number;
-  max_transit_time: number;
+  shipping_service?: string;
+  min_transit_time?: number;
+  max_transit_time?: number;
   shipping_weight?: string;
   min_handling_time: number;
   max_handling_time: number;
@@ -2012,6 +2017,24 @@ export type CartSummary = {
   coupon_code?: string | null;
   /** "10% off" or "₹500 off", worded by the API so two places cannot disagree. */
   coupon_label?: string | null;
+  /**
+   * What delivery costs (0.142.0). `flat` charges one figure on any order
+   * that ships; `zones` quotes it from the delivery state and the basket's
+   * weight. Null `shipping_paise` means zones mode with no state chosen yet —
+   * "Worked out at checkout" — and the total does not include it.
+   */
+  shipping_mode?: "flat" | "zones";
+  shipping_paise?: number | null;
+  /** The API's own words: "Free", "₹60", "Worked out at checkout", or null when nothing ships. */
+  shipping_label?: string | null;
+  shipping_zone?: string | null;
+  shipping_weight_grams?: number | null;
+  /** The two-letter code the basket was last quoted for. */
+  shipping_state?: string | null;
+  shipping_deliverable?: boolean;
+  /** Zones mode only: the states a delivery address can be in, by name. */
+  shipping_states?: string[] | null;
+  /** Includes delivery once it is known. */
   total_paise: number;
   taxable_paise: number;
   /** Extracted from the total, never added to it. */
@@ -2056,6 +2079,10 @@ export type Order = {
   status_label: string;
   subtotal_paise: number;
   discount_paise: number;
+  /** Delivery as it was charged (0.142.0); 0 for an order that never had it. */
+  shipping_paise?: number;
+  /** The zone's name as it was when the order was placed. */
+  shipping_zone?: string | null;
   taxable_paise: number;
   gst_paise: number;
   total_paise: number;
@@ -2257,6 +2284,8 @@ export type StoreReport = {
     units: number;
     subtotal_paise: number;
     discount_paise: number;
+    /** Delivery charged in the range (0.142.0), part of the total and not of the goods. */
+    delivery_paise?: number;
     taxable_paise: number;
     gst_paise: number;
     total_paise: number;
@@ -2343,6 +2372,10 @@ export type AdminOrder = {
   customer_id?: number | null;
   subtotal_paise: number;
   discount_paise: number;
+  /** Delivery as it was charged (0.142.0), the zone's name then, and the weight it came from. */
+  shipping_paise?: number;
+  shipping_zone?: string | null;
+  shipping_weight_grams?: number | null;
   taxable_paise: number;
   gst_paise: number;
   total_paise: number;

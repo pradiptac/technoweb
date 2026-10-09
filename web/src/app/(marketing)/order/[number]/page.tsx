@@ -9,6 +9,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { getOrder } from "@/lib/store";
 import { orderToken } from "@/lib/order-access";
 import { formatPaise } from "@/lib/money";
+import { DeliveryRow } from "@/components/store/delivery-row";
 import { RevealCode } from "./reveal-code";
 import { ReturnsSection } from "@/components/store/returns-section";
 import { requestReturnAction } from "./actions";
@@ -232,6 +233,8 @@ export default async function OrderPage({
                     <dd className="tabular-nums text-ok">−{formatPaise(order.discount_paise)}</dd>
                   </div>
                 )}
+
+                <DeliveryRow paise={order.shipping_paise} zone={order.shipping_zone} />
 
                 <div className="flex justify-between gap-4 border-t border-line pt-2 text-17 font-semibold">
                   <dt>Total</dt>

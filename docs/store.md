@@ -2165,3 +2165,154 @@ across (entities decoded); only a name that cannot be kept is warned about.
 `StoreTagsTest` pins all of it; the once-only rule, the published-only count
 and the twelve-tag cap were each control-run. Not built: tags on the marketing
 catalogue, a tag's own landing page, tags as a menu item, tag pictures.
+
+## Delivery charges and shipping zones (0.142.0)
+
+**The behaviour change, first: the charge shown is now the charge taken.**
+`store_shipping_paise` was displayed on every product page, declared in the
+feed and written into the Offer markup — and read by nothing that built a
+total. `Basket` never added it, `Checkout` never charged it and `orders` had
+no column for it. A shop left at 0 (the seed, and every install so far) is
+byte-for-byte what it was; a shop that had typed a figure starts charging it
+with the first basket after the update. The existing cart, checkout, feed,
+Zoho and report tests pass untouched in flat mode at 0.
+
+**Two modes**, `store_shipping_mode` (`store` group, public): `flat` — the
+setting is added to any order that ships something — and `zones`. Both are
+written from `/admin/store/shipping` (`role:store_manager`), not the settings
+strip (`HIDDEN`); `PATCH /admin/settings` and `PUT /admin/store/shipping/settings`
+both refuse `zones` until `ShippingQuote::zonesReady()` — exactly one active
+default zone that delivers and has a slab. `Fulfilment::shippingMode()` reads
+a stored `zones` with nothing to quote from as `flat` rather than as free
+delivery, and every zone write ends with `afterWrite()`, which rolls the
+transaction back if zones mode is on and the arrangement could no longer
+quote (deleting the default zone, taking its slabs, un-marking it).
+`store_default_weight_grams` (500) stands in for a weight nobody entered.
+
+**Tables.** `shipping_zones` (name, `states` as a list of two-letter codes,
+`delivers`, `free_above_paise`, `extra_per_kg_paise`, `is_default`,
+`sort_order`, `is_active`) and `shipping_rates` (`up_to_grams`,
+`charge_paise`, unique per zone). `carts.ship_state` and `orders.shipping_paise`
+(default 0), `shipping_zone` (the zone's *name* as it was), `shipping_weight_grams`.
+`shipping_zone` is in the morph map. Rules, all the controller's, all judged on
+what the zone *will be* after the write: one default zone; a state in at most
+one **active** non-default zone; a zone that delivers needs a slab and an
+`extra_per_kg_paise` (0 is an answer); no two slabs end at one weight; a
+non-default zone needs a state; the default is always on, always delivers and
+holds no states; a zone that does not deliver holds no slabs.
+
+**`ShippingQuote::for(lines, ?stateCode, payablePaise)`** is the only place a
+delivery figure is worked out. Weight is Σ quantity × (variation weight, else
+product weight, else the default) over **physical lines only** — zero means
+unset at either level. The first slab whose limit is **at or above** the
+weight applies (1000 g belongs to "up to 1000 g"); above the top slab it is
+that slab's charge plus `extra_per_kg_paise` per *started* kilogram of the
+excess, in integers. `free_above_paise` is judged `>=` on **subtotal less
+discount**: a code that drags a basket under the line should not leave it
+free, and a basket exactly on the line is free. A state belongs to the first
+active non-default zone listing it, else the default. A deliverable zone with
+no slabs cannot quote and reads as undeliverable (the console cannot save
+one; this keeps a database edit from becoming free delivery). Flat mode
+charges the setting on a basket that ships; a basket with nothing physical
+has no delivery and no destination question in either mode.
+
+**GST.** Delivery is **GST-inclusive like every other figure**, and the tax is
+extracted over the whole total: `total = (subtotal − discount) + delivery`,
+`taxable = Money::taxable(total)`, `gst = Money::gst(total)`, stored once on
+the order as before. The catalogue has one rate (`Money::GST_BASIS_POINTS`), so
+delivery at 18% is identical to a composite supply taxed at the principal
+rate; if a multi-rate catalogue ever arrives, delivery follows the principal
+supply and this is the place to revisit. Coupons never touch delivery.
+
+**The destination.** `PATCH /cart/destination {state}` (name or code; blank
+clears; anything else is a 422 on `state` — a misspelling must never select
+the cheaper zone) saves `carts.ship_state` through a no-timestamps save, so a
+form field does not reset the idle clock the reminders read. The basket
+summary gains `shipping_mode`, `shipping_paise` (**null** in zones mode until
+a state is known — "Worked out at checkout", and left out of the total),
+`shipping_label`, `shipping_zone`, `shipping_weight_grams`, `shipping_state`,
+`shipping_deliverable` and — in zones mode only — `shipping_states`, the
+API's own list of names for the form's select. `total_paise` includes
+delivery once it is known. **The basket strip and the reminder emails quote
+subtotal less discount, never `total_paise`**: a half-typed destination is not
+a figure to email (`CartReminder::summary()` and `CartReminders::send()` read
+`subtotal_paise - discount_paise`).
+
+**The checkout re-quotes under its lock and the request supplies nothing.**
+`Checkout::quoteDelivery()` weighs the rows it just locked and reads the state
+of the block actually used for delivery (`shipping_address` when "deliver
+somewhere else" is ticked, else `address`). In zones mode: an unresolved state
+is a 422 on `{block}.state` (free text is refused — the form is a select, and
+the server does not trust it); a zone that does not deliver is a 422 on the
+same key with a sentence naming the state; and a destination that differs
+from `carts.ship_state` throws `DestinationChanged`, which `place()` catches
+**outside** the transaction (a save made inside it would roll back with the
+refusal), saves the new state and answers 422 on `shipping` with the new
+figure and total, so nobody confirms a total they did not see. Delivery is
+added **before** the cash-on-delivery ceiling is judged. The order snapshots
+`shipping_paise`, `shipping_zone` (the name) and `shipping_weight_grams`;
+nothing downstream re-quotes — gateways, `Settlement`, `ManualPayment`,
+`ManualRefund`, returns and the reports read `total_paise` and follow.
+
+**Where it shows.** A Delivery row on the basket, the checkout (`data-delivery-row`,
+re-quoted by `saveCartDestinationAction` as the state changes — typed,
+chosen, or set by the PIN lookup, which dispatches `input`), the public order
+page, the portal's and the console's (`DeliveryRow`, drawn only when the order
+was charged or priced from a zone, so an old order reads as it did), the
+order emails (`OrderMail::delivery()`, also omitted at a zero flat charge),
+the sales CSV (a `Delivery (INR)` column) and `SalesReport` (`delivery_paise`,
+its own figure). The customer's order resource carries `shipping_paise` and
+`shipping_zone` and **not** the weight; the console's carries all three.
+
+**Zoho.** `ZohoInvoices::lines()` appends a "Delivery — <zone>" line at the
+charge with the goods' tax, omitted at 0, so the invoice's total still equals
+the order's; the whole-refund credit note lists it too. A partial refund or a
+return whose lines add up exactly stays what it was (delivery is not
+refunded by a return unless the refund says so).
+
+**Feed and markup.** In zones mode `ProductFeed::shippingBlock()` leaves out
+`shipping_price`, `shipping_country`, `shipping_service` and the transit
+times, and `StructuredData::storeProduct` omits `shippingDetails` — a single
+figure would be a price the landing page does not charge, the mismatch that
+suspends Merchant Center accounts. Handling time stays. **Set shipping rules in
+Merchant Center itself** (the manual says so); the product page and the trust
+strip say delivery is worked out at checkout. `feed.xml` draws `<g:shipping>`
+only when the row has a price.
+
+**The console.** `/admin/store/shipping` (Store → Shipping): the mode, the flat
+charge, the default weight, the count of physical products with no weight
+(`StoreProduct::scopeWithoutWeight()`, also `?no_weight=1` on the products
+list — a product counts as weighed when it or any option has a weight), and
+the zones as cards with a dialog (a `Modal`, refusals drawn inside it because a
+toast behind an open `<dialog>` is inert). States already held by another
+active zone are shown with whose they are and cannot be ticked. A save of the
+mode or the flat charge purges `settings` and `store-products`: the product
+page's wording and the cached JSON-LD both change with the mode.
+
+**Fixes carried.** `ProductController::saveVariations()` no longer writes null
+over a variation's weight when the key is absent (the editor never posted it;
+it does now, and sends blank as null). The PIN directory files Telangana under
+Andhra Pradesh and Ladakh under Jammu & Kashmir; `lib/pincode.ts` re-files
+`500–509` and `194` and spells six old names (Pondicherry, Chattisgarh,
+`Dadra & Nagar Haveli`, `Daman & Diu`, `Jammu & Kashmir`, `Andaman & Nicobar
+Islands`) as the shop's own state list does, because in zones mode the state is
+a select of those names and an option must match. `PincodeAutofill` fills a
+`<select>` only with an option of exactly that value. `IndianStates` moved to
+`App\Support`; `App\Support\Store\Zoho\IndianStates` remains as a subclass so the
+old import still resolves.
+
+**Not changed, on purpose.** Orders imported from WooCommerce keep delivery as
+a service line (their total is history and is never re-quoted). The basket
+strip and the reminders are untouched. Handling time and the transit window are
+still one pair of settings, whatever the zone. There is no per-product shipping
+class and no courier rate lookup — Shiprocket is a later release.
+
+**Tests.** `ShippingZonesTest` — slab edges, quantity × weight and the
+fallbacks, mixed and digital-only baskets, a 100% coupon, `free_above` after a
+discount, an undelivered zone on both address modes, an unresolved state, the
+COD ceiling crossed only by delivery, a stale and a never-quoted destination,
+a request that tries to supply the charge, the gateway asked for the total,
+the sales CSV and report, the order email, the Zoho line and credit note, the
+reminder total, the zones-mode feed and markup, and every console rule.
+`scripts/probes/shipping-zones.mjs` drives the checkout at 360 and 1280 and
+puts everything back.

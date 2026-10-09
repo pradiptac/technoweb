@@ -7,7 +7,7 @@ import {
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
   IconClock, IconHeadset, IconMegaphone, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
   IconWrench, IconNewspaper, IconBriefcase, IconShield, IconPlug, IconChat, IconBackup, IconCloud, IconMeeting,
-  IconProjector, IconSearch,
+  IconProjector, IconSearch, IconTruck,
 } from "@/components/icons";
 // A chrome glyph, which lives in `icons-ui` and is not re-exported by the map.
 import { IconDownload } from "@/components/icons-ui";
@@ -205,6 +205,8 @@ export const NAV: NavItem[] = [
       // "Shop the videos" (0.140.0): where the row of product videos shows and
       // whether it plays by itself — the promo band's shape, a row beside it.
       { role: "store_manager", href: "/admin/store/videos", label: "Product videos", icon: IconCamera },
+      // How delivery is charged: a flat figure, or zones and weight slabs (docs/store.md "Delivery charges and shipping zones").
+      { role: "store_manager", href: "/admin/store/shipping", label: "Shipping", icon: IconTruck },
       { role: "store_manager", href: "/admin/store/stock", label: "Stock", icon: IconBox },
       { role: "store_manager", href: "/admin/store/reports", label: "Reports", icon: IconSearchChart },
       { role: "admin", href: "/admin/store/settings", label: "Settings", icon: IconSliders },

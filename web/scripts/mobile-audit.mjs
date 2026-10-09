@@ -120,7 +120,7 @@ const ADMIN_ROUTES = [
   "/admin/custom-fields", "/admin/custom-fields/new",
   "/admin/content-types", "/admin/content-types/new", "/admin/content",
   "/admin/landing-pages", "/admin/landing-pages/opportunities", "/admin/locations",
-  "/admin/redirects/new", "/admin/users", "/admin/users/new", "/admin/settings", "/admin/info-bar", "/admin/store/promo", "/admin/store/videos", "/admin/store/tags", "/admin/themes", "/theme-preview/classic", "/theme-preview/classic/specimen",
+  "/admin/redirects/new", "/admin/users", "/admin/users/new", "/admin/settings", "/admin/info-bar", "/admin/store/promo", "/admin/store/videos", "/admin/store/tags", "/admin/store/shipping", "/admin/themes", "/theme-preview/classic", "/theme-preview/classic/specimen",
   // Outgoing webhooks: the form's event grid is two columns of cards from
   // `sm` and one below it, and the delivery log is a table with data-labels.
   "/admin/webhooks", "/admin/webhooks/new",

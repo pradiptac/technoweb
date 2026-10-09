@@ -286,7 +286,8 @@ final class ZohoPayments
         }
 
         if ($amount === (int) $order->total_paise) {
-            $payload['line_items'] = $order->items->map(fn ($item) => ZohoInvoices::line($item, (int) $item->quantity, $tax))->values()->all();
+            // The whole refund lists everything the invoice did — delivery included.
+            $payload['line_items'] = ZohoInvoices::lines($order, $tax);
 
             return $payload + ZohoInvoices::discount($order);
         }

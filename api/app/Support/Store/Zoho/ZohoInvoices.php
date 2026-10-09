@@ -7,6 +7,7 @@ use App\Jobs\CreateZohoInvoice;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\User;
+use App\Support\IndianStates;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -207,7 +208,7 @@ final class ZohoInvoices
             'date' => self::invoiceDate($order)->toDateString(),
             'is_inclusive_tax' => true,
             'gst_treatment' => filled($order->gstin) ? 'business_gst' : 'consumer',
-            'line_items' => $order->items->map(fn (OrderItem $item) => self::line($item, (int) $item->quantity, $tax))->values()->all(),
+            'line_items' => self::lines($order, $tax),
             'notes' => "Order {$order->order_number}",
         ];
 
@@ -220,6 +221,33 @@ final class ZohoInvoices
         }
 
         return $payload + self::discount($order);
+    }
+
+    /**
+     * Every line of the order as a document lists it: the items, then — when
+     * delivery was charged (0.142.0) — a "Delivery" line at the charge, with
+     * the same tax as the goods. Omitted at zero, so an install on a free or
+     * unchanged flat charge sends exactly the lines it always did, and the
+     * document still adds up to what was taken.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function lines(Order $order, string $tax): array
+    {
+        $order->loadMissing('items');
+
+        $lines = $order->items->map(fn (OrderItem $item) => self::line($item, (int) $item->quantity, $tax))->values()->all();
+
+        if ((int) $order->shipping_paise > 0) {
+            $lines[] = [
+                'name' => Str::limit('Delivery'.(filled($order->shipping_zone) ? " — {$order->shipping_zone}" : ''), 200, ''),
+                'rate' => self::rupees((int) $order->shipping_paise),
+                'quantity' => 1,
+                'tax_id' => $tax,
+            ];
+        }
+
+        return $lines;
     }
 
     /**

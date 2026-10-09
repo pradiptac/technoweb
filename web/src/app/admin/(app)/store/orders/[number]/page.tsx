@@ -8,6 +8,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { getStoreOrder } from "@/lib/admin";
 import { formatPaise } from "@/lib/money";
+import { DeliveryRow } from "@/components/store/delivery-row";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import {
@@ -168,6 +169,8 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
                   <dd className="tabular-nums text-ok">−{formatPaise(order.discount_paise)}</dd>
                 </div>
               )}
+
+              <DeliveryRow paise={order.shipping_paise} zone={order.shipping_zone} />
 
               <div className="flex justify-between gap-4 border-t border-line pt-2 font-semibold">
                 <dt>Total</dt>

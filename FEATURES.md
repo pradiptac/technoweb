@@ -188,6 +188,13 @@ first rupee.
   person who placed the order, and only until it is paid.
 - **Webhook-settled payments** that are idempotent under retries, verified over
   the raw body, and never fail an order because stock ran short after payment.
+- **Delivery charges** — one flat figure, or **zones**: groups of states, each
+  with rates by weight slab, a charge for every extra kilogram, optional free
+  delivery above a basket value and states you do not deliver to, with a
+  default "Rest of India". The figure on the basket and the checkout is the
+  figure charged, worked out on the server from the delivery state and the
+  weight; it appears on the order, its emails, the sales report and the Zoho
+  invoice.
 - **Coupons** — percentage or fixed, minimum spend, per-customer limits keyed
   on the address so signing out is not a loophole.
 - **Digital licence delivery**: codes encrypted at rest, assigned atomically,

@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty";
 import { IconBox, IconCart } from "@/components/icons";
 import { getCart } from "@/lib/cart";
 import { formatPaise } from "@/lib/money";
+import { cn } from "@/lib/utils";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { clearCartAction } from "@/components/store/actions";
@@ -172,6 +173,19 @@ export default async function CartPage({ searchParams }: { searchParams: Promise
                     <div className="flex justify-between gap-4">
                       <dt className="text-muted">Discount</dt>
                       <dd className="tabular-nums text-ok">−{formatPaise(cart!.discount_paise)}</dd>
+                    </div>
+                  )}
+
+                  {/* Delivery (0.142.0): the API's words — "Free", a figure, or "Worked out at checkout". */}
+                  {cart!.has_shippable && cart!.shipping_label && (
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-muted">Delivery{cart!.shipping_zone ? ` (${cart!.shipping_zone})` : ""}</dt>
+                      <dd className={cn(
+                        "text-right tabular-nums",
+                        cart!.shipping_deliverable === false ? "text-err" : cart!.shipping_paise == null ? "text-muted" : cart!.shipping_paise === 0 ? "text-ok" : "",
+                      )}>
+                        {cart!.shipping_label}
+                      </dd>
                     </div>
                   )}
 

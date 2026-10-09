@@ -25,7 +25,7 @@ export const metadata = buildMetadata({ title: "Store products", path: "/admin/s
 const statusTone = { draft: "closed", published: "resolved", archived: "closed" } as const;
 
 type SearchParams = {
-  q?: string; status?: PublishStatus; type?: string; out_of_stock?: string; notices?: string;
+  q?: string; status?: PublishStatus; type?: string; out_of_stock?: string; notices?: string; no_weight?: string;
   page?: string; per_page?: string;
 };
 
@@ -46,6 +46,7 @@ export default async function StoreProductsPage({
       type: params.type,
       out_of_stock: params.out_of_stock === "1",
       notices: params.notices === "1",
+      no_weight: params.no_weight === "1",
       page: Number(params.page) || 1,
       per_page: Number(params.per_page) || undefined,
     });
@@ -58,7 +59,7 @@ export default async function StoreProductsPage({
   }
 
   const products = result.data;
-  const filtered = Boolean(params.q || params.status || params.type || params.out_of_stock || params.notices);
+  const filtered = Boolean(params.q || params.status || params.type || params.out_of_stock || params.notices || params.no_weight);
   // Whether the Meta feed answers; the public settings, cached like the site's.
   const metaEnabled = await getSiteSettings()
     .then((settings) => settingEnabled(settings, "meta_catalogue_enabled", true))
@@ -123,6 +124,14 @@ export default async function StoreProductsPage({
           <Select id="notices" name="notices" defaultValue={params.notices ?? ""}>
             <option value="">Any</option>
             <option value="1">Someone waiting</option>
+          </Select>
+        </FilterField>
+
+        {/* Physical products weighed at the shop's default because nobody entered a weight (0.142.0). */}
+        <FilterField label="Weight" htmlFor="no_weight">
+          <Select id="no_weight" name="no_weight" defaultValue={params.no_weight ?? ""}>
+            <option value="">Any</option>
+            <option value="1">No weight entered</option>
           </Select>
         </FilterField>
 
@@ -240,7 +249,7 @@ export default async function StoreProductsPage({
       <Pagination
         meta={result.meta}
         basePath="/admin/store/products"
-        params={{ q: params.q, status: params.status, type: params.type, out_of_stock: params.out_of_stock, notices: params.notices, per_page: params.per_page }}
+        params={{ q: params.q, status: params.status, type: params.type, out_of_stock: params.out_of_stock, notices: params.notices, no_weight: params.no_weight, per_page: params.per_page }}
       />
     </>
   );

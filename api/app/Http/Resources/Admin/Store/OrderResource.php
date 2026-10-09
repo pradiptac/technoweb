@@ -66,6 +66,11 @@ class OrderResource extends JsonResource
 
             'subtotal_paise' => $this->subtotal_paise,
             'discount_paise' => $this->discount_paise,
+            // Delivery as it was charged (0.142.0): the figure, the zone's name
+            // as it was then and the weight it was worked out from.
+            'shipping_paise' => (int) $this->shipping_paise,
+            'shipping_zone' => $this->shipping_zone,
+            'shipping_weight_grams' => $this->shipping_weight_grams,
             'taxable_paise' => $this->taxable_paise,
             'gst_paise' => $this->gst_paise,
             'total_paise' => $this->total_paise,

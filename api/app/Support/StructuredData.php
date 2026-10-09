@@ -266,7 +266,10 @@ class StructuredData
                     default => 'OutOfStock',
                 },
                 'itemCondition' => ($product->condition ?? ProductCondition::New)->schemaUrl(),
-                'shippingDetails' => self::shippingDetails(),
+                // Absent in zones mode: the charge depends on where it goes and
+                // what it weighs, and one figure here would be a price the
+                // page does not charge (0.142.0).
+                'shippingDetails' => Fulfilment::usesZones() ? null : self::shippingDetails(),
                 'hasMerchantReturnPolicy' => self::returnPolicy($product),
                 'seller' => self::publisher(),
             ],

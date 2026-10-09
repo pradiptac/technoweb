@@ -162,9 +162,13 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
 
   const shippingPaise = Math.max(0, parseInt(settings.store_shipping_paise ?? "0", 10) || 0);
   const returnDays = Math.max(1, parseInt(settings.store_return_days ?? "7", 10) || 7);
-  const delivery = shippingPaise === 0
-    ? "Free delivery across India, tracked end to end."
-    : `Delivery ${formatPaise(shippingPaise)} across India, tracked end to end.`;
+  // In zones mode the charge depends on where it goes and what it weighs, so the
+  // page says so rather than quoting one figure (0.142.0, docs/store.md).
+  const delivery = settings.store_shipping_mode === "zones"
+    ? "Delivery is worked out at checkout from your state and the weight, and tracked end to end."
+    : shippingPaise === 0
+      ? "Free delivery across India, tracked end to end."
+      : `Delivery ${formatPaise(shippingPaise)} across India, tracked end to end.`;
 
   return (
     <>

@@ -25,7 +25,7 @@ export type StoreProductIndex = Paginated<AdminStoreProduct> & {
 
 export type StoreProductQueryParams = {
   status?: string; type?: string; q?: string; category?: string;
-  out_of_stock?: boolean; notices?: boolean; page?: number; per_page?: number;
+  out_of_stock?: boolean; notices?: boolean; no_weight?: boolean; page?: number; per_page?: number;
 };
 
 export async function getStoreProductList(params: StoreProductQueryParams = {}) {
@@ -36,6 +36,7 @@ export async function getStoreProductList(params: StoreProductQueryParams = {}) 
   if (params.category) query.set("category", params.category);
   if (params.out_of_stock) query.set("out_of_stock", "1");
   if (params.notices) query.set("notices", "1");
+  if (params.no_weight) query.set("no_weight", "1");
   if (params.page) query.set("page", String(params.page));
   if (params.per_page) query.set("per_page", String(params.per_page));
   const qs = query.toString();
@@ -220,6 +221,79 @@ export async function getStoreVideos(): Promise<{ rows: SettingRow[]; productsWi
 
 export async function saveStoreVideos(settings: { key: string; value: string }[]): Promise<void> {
   await apiFetch<void>("/admin/store/videos", { method: "PATCH", body: { settings }, token: await token() });
+}
+
+/* -------------------------------------------- delivery charges (0.142.0) */
+
+/** One weight slab: up to this many grams costs this much. */
+export type ShippingRate = { up_to_grams: number; charge_paise: number };
+
+export type ShippingZone = {
+  id: number;
+  name: string;
+  /** Two-letter state codes. The API holds the list; this only carries them. */
+  states: string[];
+  delivers: boolean;
+  free_above_paise: number | null;
+  extra_per_kg_paise: number | null;
+  is_default: boolean;
+  is_active: boolean;
+  sort_order: number;
+  rates: ShippingRate[];
+};
+
+export type ShippingScreenData = {
+  /** What the shop is doing now — `flat` when zones is stored but nothing can be quoted from. */
+  mode: "flat" | "zones";
+  stored_mode: string;
+  flat_paise: number;
+  default_weight_grams: number;
+  zones_ready: boolean;
+  /** Why zones cannot be chosen yet, in a sentence; empty when it can. */
+  zones_missing: string;
+  zones: ShippingZone[];
+  /** Every state and union territory the API knows, by code. */
+  states: { value: string; label: string }[];
+  products_without_weight: number;
+};
+
+/** The shipping screen: mode, flat charge, default weight, the zones and the states they are made of. */
+export async function getShipping(): Promise<ShippingScreenData> {
+  const res = await apiFetch<{ data: ShippingScreenData }>("/admin/store/shipping", { token: await token() });
+  return res.data;
+}
+
+export async function saveShippingSettings(
+  body: { mode?: string; flat_paise?: number; default_weight_grams?: number },
+): Promise<ShippingScreenData> {
+  const res = await apiFetch<{ data: ShippingScreenData }>("/admin/store/shipping/settings", {
+    method: "PUT", body, token: await token(),
+  });
+  return res.data;
+}
+
+export async function createShippingZone(body: Record<string, unknown>): Promise<ShippingZone> {
+  const res = await apiFetch<{ data: ShippingZone }>("/admin/store/shipping/zones", {
+    method: "POST", body, token: await token(),
+  });
+  return res.data;
+}
+
+export async function updateShippingZone(id: number, body: Record<string, unknown>): Promise<ShippingZone> {
+  const res = await apiFetch<{ data: ShippingZone }>(`/admin/store/shipping/zones/${id}`, {
+    method: "PATCH", body, token: await token(),
+  });
+  return res.data;
+}
+
+export async function deleteShippingZone(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/store/shipping/zones/${id}`, { method: "DELETE", token: await token() });
+}
+
+export async function moveShippingZone(id: number, direction: "up" | "down"): Promise<void> {
+  await apiFetch<void>(`/admin/store/shipping/zones/${id}/move`, {
+    method: "POST", body: { direction }, token: await token(),
+  });
 }
 
 export async function getStoreDashboard(days?: number): Promise<StoreDashboard> {

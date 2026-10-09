@@ -19,6 +19,7 @@ Everything is under **Store** in the sidebar:
 | Discount codes | Coupons |
 | Reviews | Customer reviews waiting to be approved |
 | Promo banners | The promotion band and two tiles on the shop's front page |
+| Shipping | What delivery costs: one flat figure, or zones and weight slabs |
 | Stock | What came in and what went out |
 | Reports | What sold between two dates, with CSV downloads |
 | Settings | Opening the shop, delivery, returns, reminders, payments (administrators) |
@@ -30,7 +31,9 @@ An administrator does this once.
 1. Open **Store → Settings**.
 2. On the **Store** tab, set **Store open** to 1. A closed shop still shows
    its products but refuses the basket.
-3. Enter the **delivery charge** (in paise — 0 for free delivery), the
+3. Enter the **delivery charge** (in paise — 0 for free delivery; it is charged
+   on every order that ships, and **Store → Shipping** can replace it with
+   zones and weights), the
    **handling time**, the **delivery time** from and to (working days), the
    **delivery service name** and the **return window**. These same figures are
    shown on every product page, on the shipping page and in the Google
@@ -550,6 +553,74 @@ Reminders go out only during the promotional hours set under Messaging, never
 to an address that has unsubscribed, and each carries an unsubscribe link.
 The Overview shows how many reminded baskets became orders. The wording of the
 emails is under **System → Email templates**.
+
+## Shipping: what delivery costs
+
+*Store manager and Administrator.* Open **Store → Shipping**.
+
+**The charge a customer sees is the charge they pay.** It is added to any order
+that has something to ship — a basket of licences and downloads has no delivery
+— and it appears as a **Delivery** row on the basket, the checkout, the order
+page, the order emails, the sales CSV and, if you use Zoho Books, as a line on
+the invoice. A discount code never reduces it, and for cash on delivery it
+counts toward the maximum order value. If you ever typed a delivery charge in
+Store → Settings, it is charged from the first basket after the update; at 0
+nothing has changed.
+
+### One flat charge
+
+The default. One figure, on every order that ships; 0 for free delivery.
+
+### By zone and weight
+
+Switch to **By zone and weight** when delivery should cost more for a heavy
+basket or a far-off state.
+
+1. **Make the default zone first** — **Add a zone**, tick *This is the default
+   zone*, name it "Rest of India". It answers for every state no other zone
+   claims, always delivers, and cannot be switched off. "By zone and weight"
+   cannot be chosen until it exists and has at least one **weight slab**.
+2. **Add the weight slabs**: each is a weight limit in grams and the charge up
+   to it. The first slab whose limit is at or above the basket's weight sets
+   the charge, so a basket of exactly 1000 g belongs to the "up to 1000 g" slab.
+   Above the last slab the charge is that slab's plus the amount you give **per
+   extra kilogram** for every kilogram started. Type 0 if there is no extra.
+3. **Add other zones** — "East", "Metro cities" — by ticking their states. A
+   state can be in only one switched-on zone; the dialog shows whose it is. Give
+   a zone **free delivery from** a basket value if you like: it is judged on the
+   goods *after* any discount code.
+4. A zone can be one you **do not deliver to**. A customer whose address is
+   there is told so at the checkout and cannot place the order.
+
+Order the zones with the arrows. Deleting a zone does not change an order
+already placed: each order keeps the figure it was charged and the zone's name
+as it was.
+
+### Weights
+
+A basket weighs the total of its physical lines: quantity × the option's weight,
+or the product's, or the **default weight** you set on this screen (500 g) for a
+product with none. The screen counts the shop products that have no weight;
+**Show them** opens the product list filtered to those. Enter a weight (in
+grams) on the product's Shopping tab, and per option in the variations
+editor — leave an option's blank to use the product's.
+
+### At the checkout
+
+When delivery is charged by zone, **State** is a list. The PIN code still
+fills it. The Delivery row reads "Worked out at checkout" until a state is
+chosen and then shows the figure; the total includes it. If the address is
+changed after the figure was shown, the order is refused once with the new
+total, so nobody pays an amount they did not see.
+
+### Google Merchant Center
+
+With delivery charged by zone, the product feed (`/store/feed.xml`) and the
+product pages' structured data **state no delivery price** — it depends on where
+the parcel goes, and a single figure would not match what the checkout
+charges. Set your shipping rules **in Merchant Center itself** (Shipping and
+returns → Shipping), using the same zones and rates. With a flat charge the
+feed carries it as before.
 
 ## Feeds for Google and Meta
 

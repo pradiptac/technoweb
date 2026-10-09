@@ -2216,6 +2216,7 @@ whatever status it has.
 | `POST` | `/cart/coupon` | Applies a discount code. Throttled 15/min. An off, expired or not-yet-started code is answered exactly like an unknown one ("That code is not recognised.") |
 | `DELETE` | `/cart/coupon` | Takes it off |
 | `PATCH` | `/cart/contact` | `email`, `phone` — what the checkout has typed, saved on blur before any order exists. Each optional and written only when sent; a blank clears it. `phone` is held to the checkout's mobile rule. Throttled 20/min. Answers the basket |
+| `PATCH` | `/cart/destination` | `state` (required key; a name or a two-letter code, blank or null clears it) — where the checkout says the basket is going, saved on `carts.ship_state` so delivery can be quoted. A string that is no Indian state is a 422 on `state`. Does not move the basket's idle clock. Throttled 60/min. Answers the basket (0.142.0, "Delivery charges") |
 | `GET` | `/cart/restore/{token}` | A basket reminder's link: `{data: {token}}`, the basket's own cart token, for the frontend to put in the cookie. **404** for an unknown token and for a basket that has already become an order. Throttled 30/min |
 | `POST` | `/orders/{number}/items/{item}/reveal` | Hands over an activation code. Throttled 20/min |
 | `GET` | `/my/orders` | The signed-in customer's orders |
@@ -5356,6 +5357,68 @@ published. **`/admin/store/dashboard`** carries `attention.reviews_pending`.
 `review_request` once per order `store_review_request_days` after dispatch
 (or payment, when nothing ships), inside `QuietHours`, while
 `store_review_requests_enabled`; both settings are in the `store` group.
+
+---
+
+## Delivery charges (0.142.0)
+
+**The charge shown is now the charge taken.** `store_shipping_paise` had been
+displayed and declared and added to nothing; it is now added to any order that
+ships something. See `docs/store.md` "Delivery charges and shipping zones".
+
+**The basket** (every `GET /cart` and every write that answers it) gains:
+`shipping_mode` (`flat`/`zones`), `shipping_paise` (an integer — **null** in
+zones mode until a state is known; 0 for a basket with nothing to ship),
+`shipping_label` (`"Free"`, `"₹60"`, `"Worked out at checkout"`, `"We do not
+deliver to Goa yet"`, or null when nothing ships), `shipping_zone` (the zone's
+name), `shipping_weight_grams`, `shipping_state` (the code it was quoted for),
+`shipping_deliverable` and `shipping_states` (zones mode only: every state name
+the delivery address may hold). `total_paise` includes delivery once it is
+known, and `taxable_paise`/`gst_paise` are extracted from it. **Nothing about
+delivery is ever read from a request.**
+
+**`POST /checkout`** adds the delivery to the total (before the cash-on-delivery
+ceiling is judged) and snapshots `shipping_paise`, `shipping_zone` and
+`shipping_weight_grams` on the order. In zones mode it adds three 422s: on
+`address.state` (or `shipping_address.state` when "deliver somewhere else" is
+used) for a state that is no known state or a zone that is not delivered to,
+and on `shipping` — with the new delivery and total in the sentence — when the
+address's state is not the one `PATCH /cart/destination` last saved. The
+destination is saved before that last refusal is answered, so the next attempt
+is taken at the quoted figure.
+
+**The order** (`GET /orders/{n}?token=`, `/my/orders`) carries `shipping_paise`
+and `shipping_zone`; the admin order also `shipping_weight_grams`. The sales
+report's `totals` gain `delivery_paise` and the orders CSV a `Delivery (INR)`
+column. A webhook's order carries the admin shape.
+
+**Public settings** (`/settings`, `store` group) gain `store_shipping_mode` and
+`store_default_weight_grams`. In zones mode `/store/feed` items carry no
+`shipping_price`, `shipping_country`, `shipping_service`, `min_transit_time` or
+`max_transit_time`, and a product's `schema.offers` no `shippingDetails`.
+
+### Admin — shipping (`role:store_manager`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/store/shipping` | `{mode, stored_mode, flat_paise, default_weight_grams, zones_ready, zones_missing, zones[], states[{value,label}], products_without_weight}`. `mode` is what the shop is doing (a stored `zones` with nothing to quote from reads `flat`) |
+| `PUT` | `/admin/store/shipping/settings` | `mode` (`flat`/`zones`), `flat_paise` (0–100,000,000), `default_weight_grams` (1–1,000,000), each optional. `zones` is a 422 on `mode` until exactly one active default zone that delivers and has a slab exists. `PATCH /admin/settings` refuses it the same way |
+| `POST` | `/admin/store/shipping/zones` | **201**. `name`, `is_default`, `delivers`, `is_active`, `states[]` (codes or names), `free_above_paise`, `extra_per_kg_paise`, `rates[{up_to_grams, charge_paise}]` (replaced wholesale, at most 20) |
+| `PATCH` | `/admin/store/shipping/zones/{id}` | The same, each optional, judged against what the zone will be |
+| `DELETE` | `/admin/store/shipping/zones/{id}` | Answers the screen's data |
+| `POST` | `/admin/store/shipping/zones/{id}/move` | `direction` of `up` or `down` |
+
+**Zone rules** (422s keyed on the field): one default zone (`is_default`); a
+state in at most one active non-default zone (`states`); a zone that delivers
+needs at least one slab (`rates`), no two ending at one weight
+(`rates.N.up_to_grams`), and `extra_per_kg_paise` (`extra_per_kg_paise`, 0 is
+an answer); a non-default zone needs a state; the default zone is always on,
+always delivers and holds no states; a zone that does not deliver holds no
+slabs or prices. Whatever the write, **if zones mode is on and the arrangement
+could no longer quote, it is a 422 on `zone` and nothing is saved.**
+`GET /admin/store/products?no_weight=1` lists the physical products with no
+weight on themselves or any option. A variation's `weight_grams` is left alone
+when a product `PATCH` does not name it (it used to be written null).
 
 ---
 

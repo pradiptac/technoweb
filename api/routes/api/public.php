@@ -190,6 +190,10 @@ Route::delete('cart/coupon', [CartController::class, 'removeCoupon'])
  */
 Route::patch('cart/contact', [CartController::class, 'contact'])
     ->middleware('throttle:20,1')->name('cart.contact');
+// Where the checkout says this is going, so delivery can be quoted for it
+// (0.142.0). Saved as the user types, so a little looser than the contact.
+Route::patch('cart/destination', [CartController::class, 'destination'])
+    ->middleware('throttle:60,1')->name('cart.destination');
 Route::get('cart/restore/{token}', [CartController::class, 'restore'])
     ->middleware('throttle:30,1')->name('cart.restore');
 

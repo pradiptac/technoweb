@@ -25,6 +25,12 @@ type Row = {
   options: [string, string][];
   price: string;
   stock: string;
+  /**
+   * Grams, as typed. Blank means "this row weighs what the product weighs" —
+   * a delivery quote reads the row's weight first (0.142.0). It used to be
+   * neither shown nor sent, and every save wrote null over a stored weight.
+   */
+  weight: string;
   /** Sell this row when the shelf is empty. Off unless somebody says otherwise. */
   allow_oversell: boolean;
   is_active: boolean;
@@ -78,6 +84,7 @@ export function VariationField({
       options: Object.entries(v.options ?? {}) as [string, string][],
       price: paiseToRupeeInput(v.price_paise),
       stock: String(v.stock ?? 0),
+      weight: v.weight_grams ? String(v.weight_grams) : "",
       allow_oversell: v.allow_oversell ?? false,
       is_active: v.is_active,
     })),
@@ -142,6 +149,9 @@ export function VariationField({
       ),
       price_paise: rupeesToPaise(r.price),
       stock: Number(r.stock) || 0,
+      // Always sent, blank as null: this editor now shows the weight, so what
+      // it says is what is stored (an unsent key is the API's "leave it").
+      weight_grams: Number(r.weight) > 0 ? Math.round(Number(r.weight)) : null,
       allow_oversell: r.allow_oversell,
       is_active: r.is_active,
     }));
@@ -274,6 +284,19 @@ export function VariationField({
               />
             </div>
 
+            {/* Blank weighs what the product weighs; delivery is charged by weight in zones mode. */}
+            <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr]">
+              <Input
+                aria-label={`Variation ${i + 1} weight in grams`}
+                type="number"
+                min={0}
+                inputMode="numeric"
+                placeholder="Weight in grams — blank uses the product's"
+                value={row.weight}
+                onChange={(e) => set(i, { weight: e.target.value })}
+              />
+            </div>
+
             {row.options.length > 0 && (
               <ul className="mt-2 grid gap-2">
                 {row.options.map(([key, value], o) => (
@@ -324,7 +347,7 @@ export function VariationField({
           className="mt-3.5"
           onClick={() => {
             const next: Row[] = [...rows, {
-              name: "", sku: "", gtin: "", mpn: "", options: [], price: "", stock: "0",
+              name: "", sku: "", gtin: "", mpn: "", options: [], price: "", stock: "0", weight: "",
               allow_oversell: false, is_active: true,
             }];
             setRows(next);

@@ -649,6 +649,89 @@ const carts = new Map();
    token is ever minted — `GET /cart/restore/{token}` answers 404. */
 const cartContacts = new Map();
 
+/* Delivery charges (0.142.0, docs/store.md "Delivery charges and shipping
+   zones"): the same arithmetic as App\Support\Store\ShippingQuote, over a
+   small in-memory arrangement the console screen edits. `flat` at 0 is the
+   default, so every existing route reads exactly as before. */
+const INDIAN_STATES = [
+  ['AN', 'Andaman and Nicobar Islands'], ['AP', 'Andhra Pradesh'], ['AR', 'Arunachal Pradesh'], ['AS', 'Assam'], ['BR', 'Bihar'],
+  ['CH', 'Chandigarh'], ['CG', 'Chhattisgarh'], ['DN', 'Dadra and Nagar Haveli and Daman and Diu'], ['DL', 'Delhi'], ['GA', 'Goa'],
+  ['GJ', 'Gujarat'], ['HR', 'Haryana'], ['HP', 'Himachal Pradesh'], ['JK', 'Jammu and Kashmir'], ['JH', 'Jharkhand'], ['KA', 'Karnataka'],
+  ['KL', 'Kerala'], ['LA', 'Ladakh'], ['LD', 'Lakshadweep'], ['MP', 'Madhya Pradesh'], ['MH', 'Maharashtra'], ['MN', 'Manipur'],
+  ['ML', 'Meghalaya'], ['MZ', 'Mizoram'], ['NL', 'Nagaland'], ['OD', 'Odisha'], ['PY', 'Puducherry'], ['PB', 'Punjab'], ['RJ', 'Rajasthan'],
+  ['SK', 'Sikkim'], ['TN', 'Tamil Nadu'], ['TS', 'Telangana'], ['TR', 'Tripura'], ['UP', 'Uttar Pradesh'], ['UK', 'Uttarakhand'], ['WB', 'West Bengal'],
+];
+const stateCode = (value) => {
+  const key = String(value ?? '').toLowerCase().replace(/[^a-z]/g, '');
+  if (!key) return null;
+  return INDIAN_STATES.find(([code, name]) => code.toLowerCase() === key || name.toLowerCase().replace(/[^a-z]/g, '') === key)?.[0] ?? null;
+};
+const stateName = (code) => INDIAN_STATES.find(([c]) => c === code)?.[1] ?? code;
+
+const shipping = {
+  mode: 'flat', flat_paise: 0, default_weight_grams: 500, seq: 3,
+  zones: [
+    { id: 1, name: 'Rest of India', states: [], delivers: true, free_above_paise: null, extra_per_kg_paise: 5000, is_default: true, is_active: true, sort_order: 0,
+      rates: [{ up_to_grams: 500, charge_paise: 6000 }, { up_to_grams: 1000, charge_paise: 9000 }, { up_to_grams: 2000, charge_paise: 14000 }] },
+    { id: 2, name: 'East', states: ['WB', 'OD'], delivers: true, free_above_paise: 1000000, extra_per_kg_paise: 3000, is_default: false, is_active: true, sort_order: 1,
+      rates: [{ up_to_grams: 1000, charge_paise: 4000 }] },
+  ],
+};
+const zonesReady = () => {
+  const d = shipping.zones.filter((z) => z.is_default && z.is_active);
+  return d.length === 1 && d[0].delivers && d[0].rates.length > 0;
+};
+const effectiveMode = () => (shipping.mode === 'zones' && zonesReady() ? 'zones' : 'flat');
+const cartDestinations = new Map();
+
+const shippingScreen = () => ({
+  mode: effectiveMode(), stored_mode: shipping.mode, flat_paise: shipping.flat_paise,
+  default_weight_grams: shipping.default_weight_grams, zones_ready: zonesReady(),
+  zones_missing: zonesReady() ? '' : 'There is no default zone yet.',
+  zones: shipping.zones, states: INDIAN_STATES.map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)),
+  products_without_weight: storeProducts.filter((x) => (x.type ?? 'physical') === 'physical' && !x.weight_grams).length,
+});
+
+/* A zone as it will be after a write: the body over the stored one. */
+const zoneFrom = (body, zone = {}) => {
+  const isDefault = body.is_default ?? zone.is_default ?? false;
+  const delivers = isDefault ? true : (body.delivers ?? zone.delivers ?? true);
+  return {
+    name: body.name ?? zone.name ?? 'Zone',
+    states: isDefault ? [] : (body.states ?? zone.states ?? []).map((s) => stateCode(s)).filter(Boolean),
+    delivers,
+    free_above_paise: delivers ? (body.free_above_paise ?? zone.free_above_paise ?? null) : null,
+    extra_per_kg_paise: delivers ? (body.extra_per_kg_paise ?? zone.extra_per_kg_paise ?? null) : null,
+    is_default: isDefault,
+    is_active: isDefault ? true : (body.is_active ?? zone.is_active ?? true),
+    rates: delivers ? (body.rates ?? zone.rates ?? []) : [],
+  };
+};
+
+const quoteDelivery = (shippedLines, code, payable) => {
+  const weight = shippedLines.reduce((n, l) => n + l.quantity * l.weight, 0);
+  const ships = shippedLines.length > 0;
+  const mode = effectiveMode();
+  if (!ships) return { mode, ships, charge: 0, zone: null, weight: 0, deliverable: true, known: true, code };
+  if (mode === 'flat') return { mode, ships, charge: shipping.flat_paise, zone: null, weight, deliverable: true, known: true, code };
+  if (!code) return { mode, ships, charge: 0, zone: null, weight, deliverable: true, known: false, code: null };
+  const zones = shipping.zones.filter((z) => z.is_active);
+  const zone = zones.find((z) => !z.is_default && z.states.includes(code)) ?? zones.find((z) => z.is_default);
+  if (!zone || !zone.delivers) return { mode, ships, charge: 0, zone: zone?.name ?? null, weight, deliverable: false, known: true, code };
+  if (zone.free_above_paise !== null && payable >= zone.free_above_paise) return { mode, ships, charge: 0, zone: zone.name, weight, deliverable: true, known: true, code };
+  const rates = [...zone.rates].sort((a, b) => a.up_to_grams - b.up_to_grams);
+  const slab = rates.find((r) => weight <= r.up_to_grams);
+  const top = rates[rates.length - 1];
+  const charge = slab ? slab.charge_paise : top.charge_paise + Math.ceil((weight - top.up_to_grams) / 1000) * (zone.extra_per_kg_paise ?? 0);
+  return { mode, ships, charge, zone: zone.name, weight, deliverable: true, known: true, code };
+};
+const quoteLabel = (q) => {
+  if (!q.ships) return null;
+  if (!q.known) return 'Worked out at checkout';
+  if (!q.deliverable) return `We do not deliver to ${stateName(q.code)} yet`;
+  return q.charge === 0 ? 'Free' : `₹${(q.charge / 100).toLocaleString('en-IN')}`;
+};
+
 const cartFor = (token) => {
   const key = token && carts.has(token) ? token : `mock-cart-${carts.size + 1}`;
   if (!carts.has(key)) carts.set(key, []);
@@ -740,13 +823,34 @@ const summarise = (token, lines) => {
   });
 
   const subtotal = items.reduce((n, i) => n + i.line_total_paise, 0);
-  const taxable = Math.floor((subtotal * 10000 + 5900) / 11800);
+
+  // Delivery (0.142.0): quoted from the destination the checkout last saved.
+  const quote = quoteDelivery(
+    items.filter((i) => i.shipped).map((i) => {
+      const product = storeProducts.find((x) => x.id === i.product_id);
+      const variation = product?.variations?.find((v) => v.id === i.variation_id);
+      return { quantity: i.quantity, weight: variation?.weight_grams || product?.weight_grams || shipping.default_weight_grams };
+    }),
+    cartDestinations.get(token) ?? null,
+    subtotal,
+  );
+  const total = subtotal + (quote.ships && quote.known && quote.deliverable ? quote.charge : 0);
+  const taxable = Math.floor((total * 10000 + 5900) / 11800);
 
   return {
     token, items,
     item_count: items.reduce((n, i) => n + i.quantity, 0),
-    subtotal_paise: subtotal, discount_paise: 0, total_paise: subtotal,
-    taxable_paise: taxable, gst_paise: subtotal - taxable, gst_rate: '18%',
+    subtotal_paise: subtotal, discount_paise: 0,
+    shipping_mode: quote.mode,
+    shipping_paise: quote.ships && !quote.known ? null : (quote.ships && quote.deliverable ? quote.charge : 0),
+    shipping_label: quoteLabel(quote),
+    shipping_zone: quote.zone,
+    shipping_weight_grams: quote.ships ? quote.weight : null,
+    shipping_state: quote.code,
+    shipping_deliverable: quote.deliverable,
+    shipping_states: quote.mode === 'zones' && quote.ships ? INDIAN_STATES.map(([, name]) => name).sort() : null,
+    total_paise: total,
+    taxable_paise: taxable, gst_paise: total - taxable, gst_rate: '18%',
     has_shippable: items.some((i) => i.shipped),
     problems: items.map((i) => i.problem).filter(Boolean),
     contact: { email: null, phone: null, ...(cartContacts.get(token) ?? {}), reminders: false },
@@ -2918,6 +3022,9 @@ createServer(async (req, res) => {
     stats_size: 'medium', chatbot_animation: 'burst', chatbot_background: '',
     reviews_kicker: 'Reviews', reviews_heading: 'What our customers say',
     store_shipping_service: 'Standard Shipping', store_transit_days_min: '3', store_transit_days_max: '7',
+    // Delivery charges (0.142.0), live so the screen's changes reach the product page and trust strip.
+    store_shipping_mode: shipping.mode, store_shipping_paise: String(shipping.flat_paise),
+    store_default_weight_grams: String(shipping.default_weight_grams),
     // The announcement bar, live, as a gradient ticker with a link: the
     // hardest shape it takes, so every audit against the mock grades it.
     announcement_enabled: '1', announcement_live: '1',
@@ -4197,6 +4304,57 @@ createServer(async (req, res) => {
       return json(res, 200, { ...(req.method === 'PATCH' ? { message: 'Product videos saved.' } : {}), data: rows, meta: { products_with_video: Object.keys(MOCK_VIDEOS).length } });
     }
 
+    /* Delivery charges (0.142.0): the shipping screen's data, its settings and its zones. The
+       rules are the API's (one default zone, a state in one active zone, a slab to quote
+       from); the mock keeps the ones the screen's states and the audit can meet. */
+    if (p === '/admin/store/shipping' && req.method === 'GET') {
+      return json(res, 200, { data: shippingScreen() });
+    }
+    if (p === '/admin/store/shipping/settings' && req.method === 'PUT') {
+      const body = await readJsonBody(req);
+      if (body.mode === 'zones' && !zonesReady()) {
+        return json(res, 422, { message: 'Zones need a default zone.', errors: { mode: ['Zones need a default zone — "Rest of India" — that delivers and has at least one weight slab.'] } });
+      }
+      if (body.mode) shipping.mode = body.mode;
+      if (body.flat_paise !== undefined) shipping.flat_paise = body.flat_paise;
+      if (body.default_weight_grams !== undefined) shipping.default_weight_grams = body.default_weight_grams;
+      return json(res, 200, { message: 'Delivery settings saved.', data: shippingScreen() });
+    }
+    if (p === '/admin/store/shipping/zones' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const zone = { id: ++shipping.seq, sort_order: shipping.zones.length, ...zoneFrom(body) };
+      shipping.zones.push(zone);
+      return json(res, 201, { data: zone });
+    }
+    {
+      const zm = p.match(/^\/admin\/store\/shipping\/zones\/(\d+)(\/move)?$/);
+      if (zm) {
+        const zone = shipping.zones.find((z) => z.id === Number(zm[1]));
+        if (!zone) return json(res, 404, { message: 'Not found.' });
+        if (zm[2] && req.method === 'POST') {
+          const body = await readJsonBody(req);
+          const at = shipping.zones.indexOf(zone);
+          const to = body.direction === 'up' ? at - 1 : at + 1;
+          if (to >= 0 && to < shipping.zones.length) {
+            [shipping.zones[at], shipping.zones[to]] = [shipping.zones[to], shipping.zones[at]];
+            shipping.zones.forEach((z, i) => { z.sort_order = i; });
+          }
+          return json(res, 200, { data: shippingScreen() });
+        }
+        if (req.method === 'PATCH') {
+          Object.assign(zone, zoneFrom(await readJsonBody(req), zone));
+          return json(res, 200, { data: zone });
+        }
+        if (req.method === 'DELETE') {
+          if (zone.is_default && shipping.mode === 'zones') {
+            return json(res, 422, { message: 'Customers are being charged by zone.', errors: { zone: ['Customers are being charged by zone, which needs a default zone. Switch to a flat charge first, then change it.'] } });
+          }
+          shipping.zones.splice(shipping.zones.indexOf(zone), 1);
+          return json(res, 200, { message: 'Zone deleted.', data: shippingScreen() });
+        }
+      }
+    }
+
     /* Returns (docs/store.md "Returns"): the desk's list, one return, and its moves. */
     if (p === '/admin/store/returns' && req.method === 'GET') {
       const status = url.searchParams.get('status');
@@ -5375,6 +5533,33 @@ createServer(async (req, res) => {
       });
     }
 
+    // Delivery, quoted again from the address in use (0.142.0) — never from the request.
+    let delivery = { charge: 0, zone: null, weight: null };
+    if (shipped && summary.shipping_mode === 'zones') {
+      const block = body?.shipping_same === false ? 'shipping_address' : 'address';
+      const code = stateCode((body?.shipping_same === false ? body?.shipping_address : body?.address)?.state);
+      if (!code) {
+        return json(res, 422, { message: 'Choose your state from the list so delivery can be worked out.', errors: { [`${block}.state`]: ['Choose your state from the list so delivery can be worked out.'] } });
+      }
+      const quoted = quoteDelivery(
+        [{ quantity: 1, weight: summary.shipping_weight_grams ?? 0 }],
+        code, summary.subtotal_paise - summary.discount_paise,
+      );
+      if (!quoted.deliverable) {
+        return json(res, 422, { message: 'We do not deliver there yet.', errors: { [`${block}.state`]: [`We do not deliver to ${stateName(code)} yet. Please use another delivery address, or contact us.`] } });
+      }
+      if (cartDestinations.get(token) !== code) {
+        cartDestinations.set(token, code);
+        const message = `Delivery to ${stateName(code)} is ${quoted.charge === 0 ? 'free' : quoteLabel(quoted)}, so your total is now ₹${((summary.subtotal_paise + quoted.charge) / 100).toLocaleString('en-IN')}. Please check it and place your order again.`;
+        return json(res, 422, { message, errors: { shipping: [message] } });
+      }
+      delivery = { charge: quoted.charge, zone: quoted.zone, weight: quoted.weight };
+    } else if (shipped) {
+      delivery = { charge: summary.shipping_paise ?? 0, zone: null, weight: summary.shipping_weight_grams };
+    }
+    const orderTotal = summary.subtotal_paise + delivery.charge;
+    const orderTaxable = Math.floor((orderTotal * 10000 + 5900) / 11800);
+
     orderSeq += 1;
     const number = `ORD-2026-${String(orderSeq).padStart(5, '0')}`;
     // 64 hex characters, the shape `bin2hex(random_bytes(32))` gives and the
@@ -5387,9 +5572,11 @@ createServer(async (req, res) => {
       status_label: 'Pending payment',
       subtotal_paise: summary.subtotal_paise,
       discount_paise: 0,
-      taxable_paise: summary.taxable_paise,
-      gst_paise: summary.gst_paise,
-      total_paise: summary.total_paise,
+      shipping_paise: delivery.charge,
+      shipping_zone: delivery.zone,
+      taxable_paise: orderTaxable,
+      gst_paise: orderTotal - orderTaxable,
+      total_paise: orderTotal,
       customer_name: body?.name ?? 'Someone',
       customer_email: body?.email ?? 'someone@example.test',
       customer_phone: body?.phone ?? null,
@@ -5625,6 +5812,16 @@ createServer(async (req, res) => {
       if ('email' in body) current.email = body.email ? String(body.email).trim().toLowerCase() : null;
       if ('phone' in body) current.phone = phone || null;
       cartContacts.set(token, current);
+      return json(res, 200, { data: summarise(token, lines) });
+    }
+    // Where the checkout says this is going (0.142.0): a name or a code, blank to clear.
+    if (p === '/cart/destination' && req.method === 'PATCH') {
+      const body = await readJsonBody(req);
+      const code = body.state ? stateCode(body.state) : null;
+      if (body.state && !code) {
+        return json(res, 422, { message: 'Choose your state from the list.', errors: { state: ['Choose your state from the list.'] } });
+      }
+      if (code) cartDestinations.set(token, code); else cartDestinations.delete(token);
       return json(res, 200, { data: summarise(token, lines) });
     }
     if (p.startsWith('/cart/restore/') && req.method === 'GET') {

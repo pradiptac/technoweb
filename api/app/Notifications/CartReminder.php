@@ -122,7 +122,10 @@ class CartReminder extends Notification implements ShouldQueue
         return [
             'items' => $summary['items'],
             'item_count' => $summary['item_count'],
-            'total_paise' => $summary['total_paise'],
+            // Goods less discount, never the basket's total: that one carries
+            // a delivery charge quoted for whatever destination was last typed
+            // (0.142.0), and a half-typed address is not a figure to email.
+            'total_paise' => $summary['subtotal_paise'] - $summary['discount_paise'],
         ];
     }
 

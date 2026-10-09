@@ -21,11 +21,65 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.142.0 — 2026-10-09
+
+**The delivery charge shown is now the delivery charge taken. Delivery can be
+charged by zone and weight.**
+
+- **A change to agree to.** Until now the shop *displayed* a delivery charge
+  (Settings → Store → "Delivery charge", on every product page and in the
+  Google feed) and never added it to anything: no basket, order, payment or
+  invoice included it. From this version the charge is added to any order that
+  ships something. A shop whose charge is 0 — the default, and what every
+  install had — is unchanged to the paisa. A shop that had typed a figure there
+  will, from the first basket after the update, charge it.
+- **One flat charge, or zones and weight slabs.** Under **Store → Shipping**
+  choose how delivery is charged. *Flat* is the single figure above. *By zone*
+  is groups of states, each with rates by weight: "up to 500 g ₹60, up to 1 kg
+  ₹90…", an amount for every started kilogram above the top slab, and optional
+  free delivery from a basket value. A **default zone** — "Rest of India" —
+  answers for every state no other zone claims, and a zone can be one you do
+  not deliver to. "By zone" cannot be chosen until a default zone with a rate
+  exists, and the zone it stands on cannot be deleted from under it.
+- **Weight.** A basket weighs the sum of its physical lines — quantity × the
+  option's weight, else the product's, else the shop's default (500 g, set on
+  the same screen). The screen counts the shop products that have no weight and
+  links to them (**Products → Weight → No weight entered**). The variations
+  editor now shows a weight per option; before, it silently wiped one on every
+  save.
+- **The customer sees it, and it is worked out on the server.** A Delivery row
+  appears on the basket, the checkout, the order page, the portal's, the
+  console's order, the order emails, the sales CSV and the sales report (as its
+  own figure), and on the Zoho Books invoice as a "Delivery" line. In zones
+  mode the checkout's state is a list of states (the PIN code still fills it),
+  and the figure updates as it changes. Coupons never discount delivery, free
+  delivery is judged on the goods after the discount, and delivery counts toward
+  the cash-on-delivery limit. An address in a zone you do not deliver to is
+  refused with a sentence saying so. If the address changes after the basket
+  was priced, the order is refused once with the new total, so nobody pays a
+  figure they did not see.
+- **Google.** In zones mode the shopping feed and the product markup state no
+  delivery price (it depends on where the parcel goes); set shipping rules in
+  Merchant Center. Product pages and the trust strip say delivery is worked out
+  at checkout.
+- **Two PIN-code fixes.** Telangana and Ladakh addresses were filed under Andhra
+  Pradesh and Jammu & Kashmir; they are their own states now, and the directory's
+  old spellings (Pondicherry, Chattisgarh…) match the shop's state list.
+- Not changed: orders imported from WooCommerce keep delivery as a service line;
+  basket reminders quote the goods, not a half-typed destination.
+- Developers: `App\Support\Store\ShippingQuote`, tables `shipping_zones` and
+  `shipping_rates`, `orders.shipping_*` and `carts.ship_state`;
+  `PATCH /cart/destination`; `/admin/store/shipping`; `IndianStates` moved to
+  `App\Support`. Run `php artisan migrate` and the settings seeder.
+  `ShippingZonesTest`, `scripts/probes/shipping-zones.mjs`.
+
+---
+
 ## 0.141.0 — 2026-10-09
 
 **Shop tags: a row of small coloured pills under the shop's search bar.**
 
-- **The tag row.** On `/store` and on each category page, directly under the
+- **The tag row.** Once a category is chosen, directly under the
   search strip: small centred pills, each on its own colour. Pressing one shows
   only the products that carry it; the chosen one is ringed and pressing it
   again clears it. The row appears once a category is chosen — on a category

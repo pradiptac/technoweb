@@ -5,6 +5,7 @@ namespace App\Support\Store;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Coupon;
+use App\Support\IndianStates;
 use App\Support\MediaUrl;
 use App\Support\Money;
 
@@ -35,6 +36,14 @@ class Basket
      *     discount_paise: int,
      *     coupon_code: ?string,
      *     coupon_label: ?string,
+     *     shipping_mode: string,
+     *     shipping_paise: ?int,
+     *     shipping_label: ?string,
+     *     shipping_zone: ?string,
+     *     shipping_weight_grams: ?int,
+     *     shipping_state: ?string,
+     *     shipping_deliverable: bool,
+     *     shipping_states: ?array<int, string>,
      *     total_paise: int,
      *     taxable_paise: int,
      *     gst_paise: int,
@@ -53,6 +62,7 @@ class Basket
         $count = 0;
         $problems = [];
         $shippable = false;
+        $quoteLines = [];
 
         foreach ($cart->items as $item) {
             $line = self::line($item);
@@ -62,6 +72,11 @@ class Basket
             }
 
             $items[] = $line;
+            $quoteLines[] = [
+                'shipped' => $line['shipped'],
+                'quantity' => $line['quantity'],
+                'weight_grams' => ShippingQuote::unitWeight($item->product, $item->variation),
+            ];
             $subtotal += $line['line_total_paise'];
             $count += $line['quantity'];
 
@@ -109,7 +124,20 @@ class Basket
         // Clamped rather than trusted, whichever way it arrived: a negative
         // total is a refund nobody authorised.
         $discount = max(0, min($discount, $subtotal));
-        $total = $subtotal - $discount;
+
+        /*
+         * Delivery (0.142.0), quoted from the destination the checkout last
+         * saved (`PATCH /cart/destination`) and judged on the goods after the
+         * discount. In zones mode with no state known it is unknown, not
+         * free: it is left out of the total and the label says so, and the
+         * checkout will not take the order until a state is chosen.
+         *
+         * The basket strip and the reminder emails read `subtotal_paise` less
+         * `discount_paise`, never this total: a half-typed destination is
+         * not a figure to put in an email.
+         */
+        $quote = ShippingQuote::for($quoteLines, $cart->ship_state, $subtotal - $discount);
+        $total = $subtotal - $discount + $quote->addPaise();
 
         return [
             /*
@@ -129,6 +157,23 @@ class Basket
             'discount_paise' => $discount,
             'coupon_code' => $coupon?->code,
             'coupon_label' => $coupon?->label(),
+            'shipping_mode' => $quote->mode,
+            'shipping_paise' => $quote->ships && ! $quote->known ? null : $quote->addPaise(),
+            'shipping_label' => $quote->label(),
+            'shipping_zone' => $quote->zone,
+            'shipping_weight_grams' => $quote->ships ? $quote->weightGrams : null,
+            'shipping_state' => $quote->stateCode,
+            'shipping_deliverable' => $quote->deliverable,
+            /*
+             * In zones mode the delivery state is chosen from a list rather
+             * than typed — free text would let a misspelling dodge a dear or
+             * undelivered zone — and the list is the API's own, sent with the
+             * basket the checkout is already reading. Names, because the
+             * address stores a name; null when there is nothing to choose.
+             */
+            'shipping_states' => $quote->mode === Fulfilment::MODE_ZONES && $quote->ships
+                ? array_column(IndianStates::options(), 'label')
+                : null,
             'total_paise' => $total,
             'taxable_paise' => Money::taxable($total),
             'gst_paise' => Money::gst($total),

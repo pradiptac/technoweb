@@ -28,6 +28,8 @@ use App\Support\Messaging\Providers\GoogleRbm;
 use App\Support\Net\PublicHost;
 use App\Support\Seo\GoogleServiceAccount;
 use App\Support\Store\CartReminders;
+use App\Support\Store\Fulfilment;
+use App\Support\Store\ShippingQuote;
 use App\Support\Store\Zoho\ZohoSettings;
 use App\Support\ThemeOptions;
 use App\Support\UploadLimits;
@@ -432,6 +434,7 @@ class SettingController extends Controller
         $this->validateAnnouncement($request, $existing);
         $this->validateMessaging($request, $existing);
         $this->validateVisits($request);
+        $this->validateShipping($request);
         BackupSettings::validate((array) $request->input('settings', []), $existing);
 
         /*
@@ -1156,6 +1159,36 @@ class SettingController extends Controller
      * refused with the reason rather than saved and quietly read as the
      * default (2026-09-26, docs/visits.md).
      */
+    /**
+     * How delivery is charged (0.142.0). `zones` is refused here as it is on
+     * the shipping screen until a default zone with a weight slab exists: this
+     * endpoint would otherwise be a way round the one check that stops
+     * customers being quoted from nothing.
+     */
+    private function validateShipping(Request $request): void
+    {
+        foreach ($request->input('settings', []) as $i => $row) {
+            $key = (string) ($row['key'] ?? '');
+            $value = $row['value'] ?? null;
+
+            if ($key === 'store_shipping_mode' && filled($value)) {
+                if (! in_array($value, [Fulfilment::MODE_FLAT, Fulfilment::MODE_ZONES], true)) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'Delivery is charged flat or by zone.']);
+                }
+
+                if ($value === Fulfilment::MODE_ZONES && ! ShippingQuote::zonesReady()) {
+                    throw ValidationException::withMessages([
+                        "settings.{$i}.value" => 'Zones need a default zone that delivers and has a weight slab. Set them up under Store → Shipping first.',
+                    ]);
+                }
+            }
+
+            if ($key === 'store_default_weight_grams' && filled($value) && (! ctype_digit((string) $value) || (int) $value < 1)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'The default weight is a whole number of grams, at least 1.']);
+            }
+        }
+    }
+
     private function validateVisits(Request $request): void
     {
         foreach ($request->input('settings', []) as $i => $row) {

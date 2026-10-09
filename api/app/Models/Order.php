@@ -28,6 +28,8 @@ class Order extends Model
     protected $fillable = [
         'order_number', 'customer_id', 'status', 'payment_method',
         'subtotal_paise', 'discount_paise', 'taxable_paise', 'gst_paise', 'total_paise',
+        // Delivery (0.142.0): what was charged, the zone's name and the weight it came from.
+        'shipping_paise', 'shipping_zone', 'shipping_weight_grams',
         'coupon_id', 'coupon_code',
         'customer_name', 'customer_email', 'customer_phone', 'customer_note',
         'billing_address', 'shipping_address',
@@ -37,12 +39,24 @@ class Order extends Model
         'access_token', 'placed_at', 'paid_at', 'dispatched_at', 'completed_at', 'cancelled_at',
     ];
 
+    /**
+     * In-memory defaults matching the columns, so an order made without a
+     * delivery charge (an import, a test) reads the same unsaved and saved.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'shipping_paise' => 0,
+    ];
+
     protected function casts(): array
     {
         return [
             'status' => OrderStatus::class,
             'subtotal_paise' => 'integer',
             'discount_paise' => 'integer',
+            'shipping_paise' => 'integer',
+            'shipping_weight_grams' => 'integer',
             'taxable_paise' => 'integer',
             'gst_paise' => 'integer',
             'total_paise' => 'integer',

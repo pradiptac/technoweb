@@ -16,6 +16,7 @@ use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
 use App\Notifications\OrderPlaced;
 use App\Support\Address;
+use App\Support\IndianStates;
 use App\Support\Messaging\OrderMessages;
 use App\Support\Money;
 use App\Support\Notifier;
@@ -49,6 +50,28 @@ class Checkout
      * @throws ValidationException when the basket cannot be sold as it stands
      */
     public static function place(Cart $cart, array $details): Order
+    {
+        try {
+            return self::placeInTransaction($cart, $details);
+        } catch (DestinationChanged $changed) {
+            /*
+             * The address on the form is not the one delivery was quoted for.
+             *
+             * Saved **outside** the transaction that refused — a rollback would
+             * take the save with it — and through the query builder, so the
+             * idle clock the reminders read does not move. The refusal carries
+             * the new figure: nobody confirms a total they did not see.
+             */
+            Cart::whereKey($cart->id)->toBase()->update(['ship_state' => $changed->stateCode]);
+
+            throw ValidationException::withMessages(['shipping' => $changed->getMessage()]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $details
+     */
+    private static function placeInTransaction(Cart $cart, array $details): Order
     {
         return DB::transaction(function () use ($cart, $details) {
             $cart->load(['items.product', 'items.variation']);
@@ -88,6 +111,7 @@ class Checkout
                     ->keyBy('id');
 
             $lines = [];
+            $quoteLines = [];
             $subtotal = 0;
             $problems = [];
 
@@ -157,6 +181,13 @@ class Checkout
                 ];
 
                 $subtotal += $unit * $item->quantity;
+
+                // Weighed from the rows just locked, like the price.
+                $quoteLines[] = [
+                    'shipped' => (bool) $product->type->isShipped(),
+                    'quantity' => $item->quantity,
+                    'weight_grams' => ShippingQuote::unitWeight($product, $variation),
+                ];
             }
 
             /*
@@ -199,7 +230,21 @@ class Checkout
                 $coupon = null;
             }
 
-            $total = max(0, $subtotal - $discount);
+            $goods = max(0, $subtotal - $discount);
+
+            /*
+             * Delivery, quoted again from the address the order is going to.
+             *
+             * Nothing the browser sent is a charge: the figure is worked out
+             * here, from the locked rows' weights and the real address, and
+             * added **before** the cash-on-delivery ceiling is judged — a
+             * ceiling checked against the goods alone would let delivery push
+             * a COD order over it. Coupons never touched it; `free_above` is
+             * judged on the goods after the discount.
+             */
+            $quote = self::quoteDelivery($cart, $quoteLines, $goods, $details);
+
+            $total = $goods + $quote->addPaise();
 
             self::guardCodCeiling($method, $total);
 
@@ -222,6 +267,11 @@ class Checkout
                 'payment_method' => $method->value,
                 'subtotal_paise' => $subtotal,
                 'discount_paise' => $discount,
+                // Snapshotted: the charge, the zone's name as it was, and the
+                // weight it was worked out from. Nothing downstream re-quotes.
+                'shipping_paise' => $quote->addPaise(),
+                'shipping_zone' => $quote->ships ? $quote->zone : null,
+                'shipping_weight_grams' => $quote->ships ? $quote->weightGrams : null,
                 'coupon_id' => $coupon?->id,
                 // Copied, not joined: a coupon renamed or deleted afterwards
                 // must not change what this order says was applied.
@@ -415,6 +465,59 @@ class Checkout
                     .'. This order comes to '.Money::format($total).', so please choose another way to pay.',
             ]);
         }
+    }
+
+    /**
+     * What delivering this basket costs, from the address it is going to.
+     *
+     * In flat mode that is the setting and no address is read. In zones mode
+     * the state of the block actually used for delivery — `shipping_address`
+     * when the buyer ticked "deliver somewhere else", else the billing
+     * `address` — must be a state we know (free text would let a misspelling
+     * dodge a dear or undelivered zone), the zone must deliver there, and it
+     * must be the destination the basket was last quoted for, or the buyer
+     * would be confirming a total they never saw.
+     *
+     * @param  array<int, array{shipped: bool, quantity: int, weight_grams: int}>  $quoteLines
+     * @param  array<string, mixed>  $details
+     *
+     * @throws ValidationException
+     * @throws DestinationChanged
+     */
+    private static function quoteDelivery(Cart $cart, array $quoteLines, int $goods, array $details): ShippingQuote
+    {
+        $ships = collect($quoteLines)->contains('shipped', true);
+
+        if (! $ships || ! Fulfilment::usesZones()) {
+            return ShippingQuote::for($quoteLines, null, $goods);
+        }
+
+        $block = filled($details['shipping_address'] ?? null) ? 'shipping_address' : 'address';
+        $address = $details['shipping_address'] ?? $details['billing_address'] ?? [];
+        $code = IndianStates::code($address['state'] ?? null);
+
+        if ($code === null) {
+            throw ValidationException::withMessages([
+                "{$block}.state" => 'Choose your state from the list so delivery can be worked out.',
+            ]);
+        }
+
+        $quote = ShippingQuote::for($quoteLines, $code, $goods);
+
+        if (! $quote->deliverable) {
+            throw ValidationException::withMessages([
+                "{$block}.state" => 'We do not deliver to '.IndianStates::name($code).' yet. Please use another delivery address, or contact us.',
+            ]);
+        }
+
+        if ($cart->ship_state !== $code) {
+            throw new DestinationChanged($code, 'Delivery to '.IndianStates::name($code).' is '
+                .($quote->chargePaise === 0 ? 'free' : Money::format($quote->chargePaise))
+                .', so your total is now '.Money::format($goods + $quote->addPaise())
+                .'. Please check it and place your order again.');
+        }
+
+        return $quote;
     }
 
     private static function shippingAddress(array $lines, array $details): ?array

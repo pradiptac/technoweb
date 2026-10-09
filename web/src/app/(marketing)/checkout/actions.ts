@@ -6,6 +6,7 @@ import { getToken } from "@/lib/auth";
 import { cartToken, clearCartToken } from "@/lib/cart";
 import { placeOrder } from "@/lib/store";
 import { rememberOrderToken } from "@/lib/order-access";
+import type { CartSummary, Single } from "@/types/api";
 
 export type CheckoutState = { error?: string; fieldErrors?: Record<string, string[]> };
 
@@ -63,6 +64,42 @@ export async function saveCartContactAction(contact: { email?: string; phone?: s
     });
   } catch {
     // Deliberately silent — see above.
+  }
+}
+
+/**
+ * Tell the basket where this is going, and get back what it costs to get
+ * there (0.142.0).
+ *
+ * The checkout form calls it as the delivery state changes — typed, chosen,
+ * or filled in by the PIN code — and replaces the summary it is drawing with
+ * the answer, so the Delivery row and the total are the API's own figures and
+ * never a sum made in the browser. The destination is a quote, not a
+ * commitment: the order is quoted again from the real address when it is
+ * placed.
+ *
+ * Returns null when the basket could not be quoted (no cookie, a state the API
+ * does not know, the API down) and the form keeps what it was showing; the
+ * order's own validation words the problem properly if it is still there at
+ * "Place order". Never throws.
+ */
+export async function saveCartDestinationAction(state: string): Promise<CartSummary | null> {
+  const token = await cartToken();
+
+  if (!token) return null;
+
+  try {
+    const res = await apiFetch<Single<CartSummary>>("/cart/destination", {
+      method: "PATCH",
+      body: { state: state.trim() === "" ? null : state.trim() },
+      headers: { "X-Cart-Token": token },
+      token: await getToken(),
+      cache: "no-store",
+    });
+
+    return res.data;
+  } catch {
+    return null;
   }
 }
 

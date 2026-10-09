@@ -1009,6 +1009,16 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * is the promise already on the page rather than an invented figure.
              */
             ['group' => 'store', 'key' => 'store_shipping_paise', 'value' => '0', 'type' => 'string'],
+            /*
+             * Delivery charges (0.142.0, docs/store.md "Delivery charges and
+             * shipping zones"). `flat` charges `store_shipping_paise` on any
+             * order that ships; `zones` quotes it from the delivery state and
+             * the basket's weight. Both are written from /admin/store/shipping
+             * (the mode only once a default zone with a rate exists), not from
+             * the settings strip. 500g stands in for a product with no weight.
+             */
+            ['group' => 'store', 'key' => 'store_shipping_mode', 'value' => 'flat', 'type' => 'string'],
+            ['group' => 'store', 'key' => 'store_default_weight_grams', 'value' => '500', 'type' => 'string'],
             ['group' => 'store', 'key' => 'store_handling_days', 'value' => '2', 'type' => 'string'],
             // The named service and its transit window, for Merchant Center's
             // shipping block and the shipping page (2026-09-17: "Standard

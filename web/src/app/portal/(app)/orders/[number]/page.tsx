@@ -7,6 +7,7 @@ import { Alert } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import { getMyOrder } from "@/lib/portal";
 import { formatPaise } from "@/lib/money";
+import { DeliveryRow } from "@/components/store/delivery-row";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { Order } from "@/types/api";
@@ -115,6 +116,8 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
                   <dd className="tabular-nums text-ok">−{formatPaise(order.discount_paise)}</dd>
                 </div>
               )}
+
+              <DeliveryRow paise={order.shipping_paise} zone={order.shipping_zone} />
 
               <div className="flex justify-between gap-4 border-t border-line pt-2 text-[16px] font-semibold">
                 <dt>Total</dt>

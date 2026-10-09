@@ -73,6 +73,7 @@ use App\Models\SavedSection;
 use App\Models\SeoSuggestion;
 use App\Models\Service;
 use App\Models\ServiceCategory;
+use App\Models\ShippingZone;
 use App\Models\Slider;
 use App\Models\Solution;
 use App\Models\StoreCategory;
@@ -333,6 +334,9 @@ class AppServiceProvider extends ServiceProvider
             'store_product_variation' => StoreProductVariation::class,
             'order' => Order::class,
             'order_item' => OrderItem::class,
+            // Bound by the shipping screen's routes, so the activity log can
+            // name the zone a change was aimed at (0.142.0).
+            'shipping_zone' => ShippingZone::class,
             'payment' => Payment::class,
             'digital_code' => DigitalCode::class,
             // Bound by the review queue's PATCH and DELETE, so the activity
