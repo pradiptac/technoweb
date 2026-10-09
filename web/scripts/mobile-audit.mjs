@@ -96,7 +96,7 @@ const ADMIN_ROUTES = [
   "/admin/knowledge-base", "/admin/case-studies", "/admin/pages", "/admin/pages/library", "/admin/faqs",
   "/admin/faqs/new", "/admin/media", "/admin/products", "/admin/products/new",
   "/admin/product-categories", "/admin/brands", "/admin/solutions",
-  "/admin/services", "/admin/industries", "/admin/seo", "/admin/redirects",
+  "/admin/services", "/admin/industries", "/admin/seo", "/admin/redirects", "/admin/not-found",
   "/admin/service-categories", "/admin/service-categories/new",
   // The popup list and its form. The form is the one that matters here: a
   // section checklist plus a targeting summary is a lot of small controls in

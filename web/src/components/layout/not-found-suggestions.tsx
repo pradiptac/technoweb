@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { reportNotFound } from "@/lib/report-not-found";
 
 type Suggestion = { title: string; path: string; label: string };
 type Group = { label: string; items: { title: string; path: string }[] };
@@ -19,7 +20,8 @@ type Group = { label: string; items: { title: string; path: string }[] };
  * nothing.
  *
  * A client island because only the browser knows the address: a not-found
- * boundary is given no params.
+ * boundary is given no params. For the same reason it is also where the address
+ * is reported to the "Missing pages" list (0.137.0).
  */
 function termFrom(pathname: string): string {
   const last = pathname.split("/").filter(Boolean).pop() ?? "";
@@ -42,6 +44,11 @@ function termFrom(pathname: string): string {
 export function NotFoundSuggestions() {
   const pathname = usePathname();
   const [found, setFound] = useState<Suggestion[]>([]);
+
+  // Once per address. The API decides what is worth keeping.
+  useEffect(() => {
+    reportNotFound(pathname ?? "");
+  }, [pathname]);
 
   useEffect(() => {
     const term = termFrom(pathname ?? "");

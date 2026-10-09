@@ -21,6 +21,46 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.137.0 — 2026-10-09
+
+**Missing pages: see which addresses visitors could not find.**
+
+- **A new screen, SEO → Missing pages.** Whenever a visitor lands on the "page
+  not found" screen, the address they asked for is added to a list, with how
+  many times it was asked for, when it was last asked for, and the page that
+  linked to it. The ones asked for most come first.
+- **Turn one into a redirect in a press.** *Make a redirect* opens the new
+  redirect form with that address already filled in; you only choose where it
+  should go. A redirect takes up to a minute to start working, and the address
+  leaves the list by itself once it does. If you later switch that redirect off,
+  the address comes back.
+- **Ignore the ones that are not worth it.** *Ignore* moves an address to the
+  *Ignored* view, where it stays even if it keeps being asked for. *Stop
+  ignoring* brings it back.
+- **What is not listed.** Console and portal addresses, pages that are reached by
+  a private link (orders, visits, meetings, unsubscribe links and the like),
+  the things automated scanners ask every website for (`wp-login.php`, `.env`
+  and so on) and missing images, scripts and other files. Addresses nobody has
+  asked for in 90 days are deleted.
+- **Redirect destinations are checked.** A redirect can now only go to a page on
+  this site or a full `http://` / `https://` address; `javascript:` and
+  `//other-site` forms are refused with a message.
+
+For developers: `not_found_hits` (unique `path_hash`) and `App\Models\NotFoundHit`,
+whose `report()` is an upsert that never throws and holds the never-recorded
+rules; `live()` is "not ignored and no active redirect starts here", a
+subquery, so a row leaves the list through the redirect table rather than a
+flag. The browser reports it (`lib/report-not-found.ts`, from
+`NotFoundSuggestions`, through `/api/not-found` to the public `POST /not-found`,
+204 always, 30 a minute); the console side is `GET /admin/not-found` and
+`POST /admin/not-found/{hit}/ignore|restore`, `role:seo_manager`.
+`technoware:prune-not-found` runs daily at 03:40. `StoreRedirectRequest` holds
+`to_path` to `LinkPattern::PAGE_RULE`, and no longer rewrites `//host` or
+`javascript:x` into a path before checking it. `NotFoundMonitorTest` (56);
+probe `scripts/probes/not-found-monitor.mjs`.
+
+---
+
 ## 0.136.0 — 2026-10-09
 
 **Payments and credit notes go to Zoho Books; the menus open more gently.**

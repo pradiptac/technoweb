@@ -373,6 +373,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/redirects` | Every active redirect as `{from,to,status}` rows, plus `meta.coming_soon` (boolean — the `coming_soon_enabled` setting, which the proxy acts on) and `meta.media_cdn` (the media CDN's origin while it is switched on, else null). `Cache-Control: max-age=60`. What the frontend proxy holds in memory |
 | `GET` | `/redirects/lookup?path=/blog/old-slug` | 200 with `{data:{to,status}}`, or 404. **Records the hit** — the proxy calls it only on a match |
 | `POST` | `/enquiries` | Contact form. Throttled 10/min, honeypot field |
+| `POST` | `/not-found` | The 404 page reporting an address: `path`, `referrer`. Throttled 30/min, **answers 204 always**, including for a payload it records nothing from. One row per address with a count; never records `/`, `/admin`, `/portal`, `/api`, `/_next`, a path a secret addresses (`/order/`, `/visit/`, `/meeting/`, unsubscribe and the other token pages), scanner noise, static files, or an address an active redirect starts at. See "Admin — SEO and redirects" |
 | `POST` | `/chat/conversations` | Starts a conversation. Throttled 6/min. Returns the token **once** |
 | `GET` | `/chat/conversations/{token}` | The transcript. Throttled 30/min |
 | `POST` | `/chat/conversations/{token}/messages` | Ask something. Throttled 12/min |
@@ -4679,6 +4680,13 @@ Their admin detail reads carry `faqs`; their public detail reads carry
 | `GET` | `/admin/redirects` | `?q=`, `?source=automatic\|manual`, `?active=` |
 | `POST` | `/admin/redirects` | `from_path`, `to_path`, `status_code`, `is_active` |
 | `GET`/`PATCH`/`DELETE` | `/admin/redirects/{id}` | |
+| `GET` | `/admin/not-found` | Missing pages (0.137.0): addresses visitors asked for that do not exist, `{id, path, hits, referrer, first_seen_at, last_seen_at, ignored_at, redirect_path}`. The waiting list by default; `?ignored=1` lists the ignored instead. `?q=` (a LIKE on the path; `%` and `_` match themselves), `?sort=hits\|last_seen` with `?dir=` (default: most asked for, then most recent), `?page=`, `?per_page=` (max 100, default 50). `meta.live`, `meta.ignored`, `meta.retention_days` (90) |
+| `POST` | `/admin/not-found/{hit}/ignore` | "Not worth a redirect". Idempotent; answers the row. The address stays ignored while it goes on being asked for |
+| `POST` | `/admin/not-found/{hit}/restore` | Undoes it |
+
+**An address leaves the waiting list when a redirect starts at it, and nothing else marks it handled.** `live` is "not ignored and no active redirect has this `from_path`", so making a redirect clears the row, switching that redirect off brings it back, and there is no write for "done". `redirect_path` is a console path (`/admin/redirects/new?from=%2Fold`), never a URL. Rows age out ninety days after the address was last asked for (`technoware:prune-not-found`).
+
+**`to_path` on a redirect is checked.** `POST`/`PATCH /admin/redirects` hold the destination to a path on this site or an `http(s)://` URL (`LinkPattern::PAGE_RULE`); `javascript:`, `//host`, `/\host`, `data:` and `mailto:` are a 422 on `to_path`. It was never checked before, so `javascript:` saved.
 
 **Every row carries `ai_pending`** — suggestions on that record nobody has decided on — and `?ai=pending` filters to the records holding one: the review queue a bulk run produces. `meta.ai` is the assistant's state (the same block `seo/ai/suggestions` sends), so the overview can offer "Draft for these N" only when the assistant is on and has a key; `meta.ai.usage` is what each model produced in the last ninety days and how much of it was accepted — `acceptance` is applied over decided and **null while nothing has been decided**, never zero.
 

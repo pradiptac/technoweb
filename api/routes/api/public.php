@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\V1\LandingPageController;
 use App\Http\Controllers\Api\V1\MeetingController;
 use App\Http\Controllers\Api\V1\MessagingController;
 use App\Http\Controllers\Api\V1\NewsletterController;
+use App\Http\Controllers\Api\V1\NotFoundController;
 use App\Http\Controllers\Api\V1\OrderCodeController;
 use App\Http\Controllers\Api\V1\OrderReturnController;
 use App\Http\Controllers\Api\V1\PaymentController;
@@ -469,6 +470,15 @@ Route::post('messaging/push/unsubscribe', [MessagingController::class, 'unsubscr
  */
 Route::post('client-errors', [ClientErrorController::class, 'store'])
     ->middleware('throttle:20,1')->name('client-errors.store');
+
+/*
+ * The 404 page reporting what it was asked for (0.137.0, docs/seo.md "Missing
+ * pages"). Public for the reason above, answers 204 to everything, and the
+ * model decides what is never recorded. Thirty a minute per visitor: a person
+ * following dead links is a handful, a crawler is the thing being bounded.
+ */
+Route::post('not-found', [NotFoundController::class, 'store'])
+    ->middleware('throttle:30,1')->name('not-found.store');
 
 Route::get('settings', [ContentController::class, 'settings'])->name('settings.index');
 

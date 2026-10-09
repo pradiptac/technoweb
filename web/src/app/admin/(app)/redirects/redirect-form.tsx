@@ -14,7 +14,7 @@ import { formatDate } from "@/lib/dates";
 
 const initial: RedirectFormState = {};
 
-export function RedirectForm({ record, saved }: { record?: AdminRedirect; saved?: boolean }) {
+export function RedirectForm({ record, saved, initialFrom }: { record?: AdminRedirect; saved?: boolean; initialFrom?: string }) {
   const editing = Boolean(record);
   const [state, formAction, pending] = useActionState(
     editing ? updateRedirectAction : createRedirectAction, initial,
@@ -40,7 +40,7 @@ export function RedirectForm({ record, saved }: { record?: AdminRedirect; saved?
         <div className="min-w-0">
           <Field label="Redirect from" htmlFor="from_path" error={err("from_path")}
             hint="A path on this site, starting with a slash. Saved without a trailing slash.">
-            <Input id="from_path" name="from_path" defaultValue={record?.from_path}
+            <Input id="from_path" name="from_path" defaultValue={record?.from_path ?? initialFrom}
               placeholder="/old-page" required className="font-mono text-14"
               aria-invalid={Boolean(err("from_path"))} />
           </Field>

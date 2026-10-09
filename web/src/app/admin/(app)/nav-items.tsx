@@ -7,7 +7,7 @@ import {
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
   IconClock, IconHeadset, IconMegaphone, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
   IconWrench, IconNewspaper, IconBriefcase, IconShield, IconPlug, IconChat, IconBackup, IconCloud, IconMeeting,
-  IconProjector,
+  IconProjector, IconSearch,
 } from "@/components/icons";
 // A chrome glyph, which lives in `icons-ui` and is not re-exported by the map.
 import { IconDownload } from "@/components/icons-ui";
@@ -463,6 +463,7 @@ export const NAV: NavItem[] = [
       { role: "seo_manager", href: "/admin/landing-pages", label: "Landing pages", icon: IconLayers },
       { role: "seo_manager", href: "/admin/locations", label: "Places", icon: IconGlobe },
       { role: "seo_manager", href: "/admin/redirects", label: "Redirects", icon: IconArrows },
+      { role: "seo_manager", href: "/admin/not-found", label: "Missing pages", icon: IconSearch },
       { role: "admin", href: "/admin/seo/settings", label: "Settings", icon: IconSliders },
     ],
   },

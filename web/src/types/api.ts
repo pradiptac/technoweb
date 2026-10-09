@@ -3578,6 +3578,24 @@ export type ClientErrorRow = {
   resolved_at: string | null;
 };
 
+/**
+ * An address visitors asked for that does not exist (0.137.0, "Missing pages").
+ * One row per distinct address, with how often it was asked for.
+ */
+export type NotFoundHitRow = {
+  id: number;
+  /** The address as asked for: a path, no host and no query string. */
+  path: string;
+  hits: number;
+  /** The last page that linked here, origin and path only. */
+  referrer: string | null;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+  ignored_at: string | null;
+  /** A console path that opens the redirect form with this address filled in. */
+  redirect_path: string;
+};
+
 export type NewsletterWebhookMeta = {
   /** Whether a shared secret exists. Never the secret itself. */
   secret_set: boolean;

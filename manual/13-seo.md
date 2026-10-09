@@ -115,6 +115,40 @@ off rather than deleting it if you are unsure.
 - Common policy addresses (`/refund-policy`, `/terms-and-conditions` and the
   like) are already redirected to your policy pages.
 
+## Missing pages
+
+**SEO → Missing pages** lists the addresses visitors asked for that do not
+exist on your site — an old link in a brochure, a page that moved before this
+website was built, a mistyped address on another website. Each shows how many
+times it was asked for, when it was last asked for, and the page the visitor
+came from, with the most-asked-for first. It fills itself; there is nothing to
+set up.
+
+- **Make a redirect** opens the new-redirect form with the address already in
+  *Redirect from*. Choose where it should go (a page on your site, such as
+  `/about`, or a full address), choose the type (usually 301) and save. The
+  address leaves this list by itself — and if you later switch that redirect
+  off, it comes back. A redirect can take **up to a minute** to start working.
+- **Ignore** is for an address that is not worth a redirect — one nobody linked
+  to, or an obvious typo. It moves to the **Ignored** view (use **Show**) and
+  stays there even if it keeps being asked for. **Stop ignoring** brings it
+  back.
+- The **Came from** column is the page that linked to the dead address. When
+  it is a page on another website, asking that site to fix the link is often
+  better than a redirect; when it is blank, the visitor typed or pasted the
+  address.
+- **Search** finds an address by any part of it.
+
+Before making a redirect, open the address in a new tab and check it really
+shows "page not found". The list is what visitors' browsers reported, and a
+redirect made from a page that does exist replaces that page.
+
+Not listed, on purpose: the console and portal, pages reached by a private link
+(orders, visits, meetings, unsubscribe links), the files and addresses that
+automated scanners try on every website (`wp-login.php`, `.env`, and so on),
+and missing images, scripts and other files. Addresses nobody has asked for in
+90 days are deleted.
+
 ## The AI SEO assistant
 
 An optional assistant that **suggests** titles, descriptions, keywords, FAQs,

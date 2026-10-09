@@ -61,6 +61,10 @@ Schedule::command('technoware:remind-abandoned-carts')
  */
 Schedule::command('technoware:prune-client-errors')->dailyAt('03:35');
 
+// Addresses nobody has asked for in ninety days; ages on `last_seen_at` for the
+// same reason as the line above (0.137.0, docs/seo.md "Missing pages").
+Schedule::command('technoware:prune-not-found')->dailyAt('03:40');
+
 /*
  * The inbound email ledger, which is what stops a redelivered message
  * opening a second ticket. Six months, so a row outlives any plausible

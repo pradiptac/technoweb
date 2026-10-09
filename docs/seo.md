@@ -360,3 +360,102 @@ carries the two organisation strings. The mock also serves one pixel for
 every `/storage/` path, because `images.remotePatterns` admits nothing else
 on an asset origin and a fixture image that 404s comes out of `/_next/image`
 as a 4xx the audit fails on.
+
+## Missing pages: the 404 monitor (0.137.0)
+
+A list in the console (SEO → Missing pages, `role:seo_manager`) of the
+addresses visitors asked for that do not exist, with how often, so an SEO
+manager can turn one into a redirect in a press. Until it existed a redirect
+was written only for a slug this CMS itself changed; a page that moved before
+the site existed, a mistyped link in a brochure and an old address another
+website still points at all 404ed in silence — the one kind of lost ranking
+nothing in the console could show.
+
+**The browser reports it, because nothing else can.** A not-found boundary is
+given no params, and the proxy that sees every request cannot know, when it
+forwards one, that the page behind it will 404. `NotFoundSuggestions` is already
+the one client island on the 404 page that knows the address (it reads
+`usePathname()` to search for it), so it calls `reportNotFound()`
+(`lib/report-not-found.ts`) from an effect keyed on the pathname, once per
+address per page load. That posts `{path, referrer: document.referrer}` to the
+website's own `/api/not-found` route handler, which forwards to the public
+`POST /not-found` with the visitor's address in `X-Forwarded-For`. It answers
+**204 to everything** — the caller is a 404 page — and is throttled at 30 a
+minute. `document.referrer` is the other half of what the list needs (who is
+sending people to a dead link), and no server-side check still has it once the
+request has been routed.
+
+**One row per address, not per request.** `not_found_hits` is keyed on a unique
+`path_hash` (a `char(64)` sha256; a 512-character path cannot carry a unique
+index on utf8mb4), and `NotFoundHit::report()` is an upsert on it, not a
+read-then-write: a crawler hitting one dead URL in a burst is the normal case,
+and the read-then-write version races exactly there. A repeat adds one to
+`hits` and moves `last_seen_at`; `first_seen_at` and `ignored_at` are left
+alone. A newer referrer replaces the old one only when one was sent. The table
+is bounded by the number of *distinct* dead addresses.
+
+**What is never recorded, and why.** `report()` never throws and drops, before
+any query:
+
+- `/` and an empty path — there is nothing to redirect;
+- anything under `/admin`, `/portal`, `/api`, `/_next` — those are the
+  console, the portal and the API answering for themselves;
+- a path a secret addresses — `/order/`, `/visit/`, `/meeting/`,
+  `/events/registration/`, `/ticket-survey/`, `/preview/`,
+  `/newsletter/unsubscribe/`, `/store/notify/cancel/`, `/store/wishlist/stop/`,
+  `/store/basket/restore/`. The path *is* the credential, so storing a 404 on one
+  would copy a working-looking token into a list read on another screen;
+- scanner noise (`.php`, `.env`, `.git`, `/wp-`, `/cgi-bin`, `.asp`, `.jsp`) and
+  static-file extensions (`.js .css .map .png .jpg .jpeg .gif .svg .ico .webp
+  .woff .woff2 .txt .xml .json`) — none was ever a page of this site, and they
+  would bury the addresses worth a redirect under a hundred guesses at
+  `wp-login.php`;
+- a path that already has an **active** row in `redirects` (this one is one
+  query, after the cheap checks).
+
+Only the path is kept: `parse_url(…, PATH)`, a leading slash, no trailing one,
+cut at 512; the query string and any host are dropped (an absolute URL stored
+here would be a link somebody else chose, read on an admin screen). A referrer
+is kept only if it is http(s), as origin + path with the query string dropped —
+a query on a referrer is somebody else's session.
+
+**A row leaves the list through a scope, not a flag.** `NotFoundHit::live()` is
+"not ignored **and** no active redirect has this `from_path`", a `whereNotExists`
+subquery. Making a redirect for an address takes it off the list by itself,
+deactivating that redirect puts it back, and nothing has to be ticked. A second
+"handled" column would be a second answer to the question the redirect table
+the proxy actually reads already answers, free to disagree with it. "Ignore" is
+the only write, and it is a timestamp rather than a delete: a deleted row's
+address would climb straight back on its next request, where an ignored one
+stays ignored while it goes on counting.
+
+**Making the redirect.** The row's `redirect_path` is
+`/admin/redirects/new?from=<path>` — a console path, never a URL, so the browser
+supplies the origin. The new-redirect page reads `from` once as the starting
+value of "Redirect from", and only when it starts with `/` and not `//`. A
+redirect takes up to a minute to start working (the proxy holds the table for
+60 seconds).
+
+**The list is what browsers reported, not what the server proved.** The report
+is an unauthenticated POST, so anybody can put an address on it — one that
+exists included — and the API cannot cheaply ask the website whether a path
+renders. That is bounded (the throttle, one row per address, the prune) and
+nothing on the list is acted on by itself, but a redirect made *from* a page
+that exists takes that page over, because the proxy answers before the page
+does. The manual tells whoever works the list to open an address first.
+
+**`to_path` is now checked.** The redirect request never held the destination to
+anything, so `javascript:alert(1)` saved. It is held to `LinkPattern::PAGE_RULE`
+(a path on this site or an http(s) URL), the rule a form's `redirect_url` has.
+`normalise()` also had to stop running the destination through `parse_url(PATH)`
+for anything that is not a path: it turned `//evil.test` into `/evil.test` and
+`javascript:alert(1)` into `/alert(1)`, which then passed the rule. Such a value
+is now left exactly as typed so the rule refuses it.
+
+**Retention is fixed at ninety days**, `technoware:prune-not-found` daily at
+03:40, on `last_seen_at` (an address first asked for a year ago and again this
+morning is current). An ignored row ages out on the same clock.
+
+`NotFoundMonitorTest` pins every rule above;
+`scripts/probes/not-found-monitor.mjs` drives the whole loop in a browser and
+removes the redirect it made.

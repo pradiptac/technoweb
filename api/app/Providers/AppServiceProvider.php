@@ -57,6 +57,7 @@ use App\Models\NewsletterSequence;
 use App\Models\NewsletterSequenceEnrolment;
 use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterTemplate;
+use App\Models\NotFoundHit;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderReturn;
@@ -259,6 +260,9 @@ class AppServiceProvider extends ServiceProvider
             'media' => Media::class,
             'media_folder' => MediaFolder::class,
             'redirect' => Redirect::class,
+            // A missing address (docs/seo.md "Missing pages"): bound in the
+            // ignore/restore routes.
+            'not_found_hit' => NotFoundHit::class,
             // Bound in an admin route (the accept/reject endpoint), so it needs
             // a key whatever it is polymorphic about — MorphMapCoverageTest
             // caught its absence, which is the check working.

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\LandingPageController as AdminLandingPageController;
 use App\Http\Controllers\Api\V1\Admin\LocationController as AdminLocationController;
+use App\Http\Controllers\Api\V1\Admin\NotFoundHitController as AdminNotFoundHitController;
 use App\Http\Controllers\Api\V1\Admin\RedirectController as AdminRedirectController;
 use App\Http\Controllers\Api\V1\Admin\SeoAiController;
 use App\Http\Controllers\Api\V1\Admin\SeoController;
@@ -63,6 +64,18 @@ Route::middleware('role:seo_manager')->group(function () {
     Route::get('redirects/{redirect:id}', [AdminRedirectController::class, 'show'])->name('redirects.show');
     Route::patch('redirects/{redirect:id}', [AdminRedirectController::class, 'update'])->name('redirects.update');
     Route::delete('redirects/{redirect:id}', [AdminRedirectController::class, 'destroy'])->name('redirects.destroy');
+
+    /*
+     * Missing pages (0.137.0): addresses visitors asked for that do not exist,
+     * the worklist the redirect table above is the answer to. An address
+     * leaves it by itself once a redirect starts there; `ignore` is for the
+     * ones not worth one.
+     */
+    Route::get('not-found', [AdminNotFoundHitController::class, 'index'])->name('not-found.index');
+    Route::post('not-found/{hit}/ignore', [AdminNotFoundHitController::class, 'ignore'])
+        ->whereNumber('hit')->name('not-found.ignore');
+    Route::post('not-found/{hit}/restore', [AdminNotFoundHitController::class, 'restore'])
+        ->whereNumber('hit')->name('not-found.restore');
 
     /*
      * Landing pages and the places they can be about.

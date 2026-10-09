@@ -3832,6 +3832,35 @@ createServer(async (req, res) => {
       }
     }
 
+    /* Missing pages (0.137.0): the 404 monitor. Two addresses and the ignore/restore posts,
+       in the real envelope; `redirect_path` is the console route the API sends. */
+    {
+      const hit = (id, path, hits, referrer, ignored) => ({
+        id, path, hits, referrer, first_seen_at: '2026-10-01T09:00:00+05:30', last_seen_at: '2026-10-08T17:30:00+05:30',
+        ignored_at: ignored ? '2026-10-08T18:00:00+05:30' : null, redirect_path: `/admin/redirects/new?from=${encodeURIComponent(path)}`,
+      });
+      const NOT_FOUND = [
+        hit(1, '/products/old-switch-model', 14, 'https://example.org/links/hardware', false),
+        hit(2, '/brochure-2019', 3, null, false),
+        hit(3, '/careers/old-opening', 1, null, true),
+      ];
+      if (p === '/admin/not-found' && req.method === 'GET') {
+        const ignored = url.searchParams.get('ignored') === '1';
+        const q = (url.searchParams.get('q') || '').toLowerCase();
+        const rows = NOT_FOUND.filter((r) => Boolean(r.ignored_at) === ignored && r.path.toLowerCase().includes(q));
+        const page = paginate(rows);
+        return json(res, 200, { ...page, meta: { ...page.meta, live: NOT_FOUND.filter((r) => !r.ignored_at).length,
+          ignored: NOT_FOUND.filter((r) => r.ignored_at).length, retention_days: 90 } });
+      }
+      const nf = p.match(/^\/admin\/not-found\/(\d+)\/(ignore|restore)$/);
+      if (nf && req.method === 'POST') {
+        const row = NOT_FOUND.find((r) => r.id === Number(nf[1]));
+        if (!row) return json(res, 404, { message: 'Not found.' });
+        row.ignored_at = nf[2] === 'ignore' ? '2026-10-09T10:00:00+05:30' : null;
+        return json(res, 200, { data: row });
+      }
+    }
+
     if (p === '/admin/seo' && req.method === 'GET') {
       const score = { value: 80, band: 'good', passed: 8, checked: 10, failed: [] };
       const rows = solutions.slice(0, 2).map((s) => ({
@@ -5573,6 +5602,8 @@ createServer(async (req, res) => {
             k2.id === 1 ? { services: [{ name: services[2].title, path: `/services/${services[2].slug}` }] } : {}) } })
       : json(res, 404, { message: 'Not found.' });
   }
+  // The 404 page reporting an address (0.137.0): 204 for everything, as the API does.
+  if (p === '/not-found' && req.method === 'POST') { res.writeHead(204); return res.end(); }
   if (p === '/enquiries' && req.method === 'POST') return json(res, 201, { message: 'Thanks', data: { id: 1 } });
   // Online meetings (docs/meetings-contract.md): the options, the slots in
   // both forms, a booking, and the guest link scoped by its token.

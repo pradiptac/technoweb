@@ -386,6 +386,9 @@ Built in, measured, and never allowed to guess.
   FAQs, breadcrumbs, places, job postings and the organisation — with nothing
   invented and `<` escaped at the sink.
 - **Automatic 301s** whenever a slug changes, plus a manual redirect table.
+- **Missing pages**: a list of the addresses visitors asked for that do not
+  exist, with how often and where they came from, and a one-press redirect.
+  Private links, scanner noise and static files are never listed.
 - **Sitemap and robots** generated from the data, honouring per-record
   inclusion.
 - **Share images** for every page, generated when no photograph exists.
