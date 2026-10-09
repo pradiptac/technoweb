@@ -56,6 +56,7 @@ export function blankData(type: PageSectionType): Record<string, unknown> {
     case "story": return { heading: "", items: [{}, {}] };
     case "flow": return { heading: "", items: [{}, {}] };
     case "subnav": return { label: "On this page" };
+    case "product_videos": return { heading: "Shop the videos", limit: 8 };
     default: return {};
   }
 }
@@ -803,6 +804,31 @@ export function SectionEditor({ type, sectionId, options }: {
             with that section&rsquo;s heading. To add a section to the menu, open it, go to Style and give it an Anchor.
             The menu needs at least two, stays at the top of the screen as the page scrolls, and takes no background or
             style of its own.
+          </p>
+        </>
+      );
+
+    case "product_videos":
+      // The shop's "shop the videos" row (0.140.0): a live list of the videos on shop products.
+      return (
+        <>
+          <Head />
+          <Row>
+            <NumberChoice path={["category_id"]} label="Shop category" placeholder="Every category"
+              options={(options.store_categories ?? []).map((c) => ({ value: String(c.id), label: c.name }))} />
+            <NumberInput path={["limit"]} label="How many" min={1} max={24} hint="Up to twenty-four." />
+          </Row>
+          <Choice path={["shape"]} label="Shape of the video" fallback=""
+            options={[
+              { value: "", label: "As set in Store → Product videos" },
+              { value: "portrait", label: "Portrait (9:16)" },
+              { value: "square", label: "Square (1:1)" },
+              { value: "landscape", label: "Landscape (16:9)" },
+            ]} />
+          <p className="-mt-2 mb-4 text-12-5 text-faint">
+            A live list: the videos on shop products, each with its product under it and an Add to basket button — drawn
+            nothing when no product has a video. A video is added on the product&rsquo;s Media tab; whether it plays on a
+            press or by itself is set in <Link href="/admin/store/videos" className="font-semibold text-brand-ink underline">Store → Product videos</Link>.
           </p>
         </>
       );

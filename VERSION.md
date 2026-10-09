@@ -21,6 +21,41 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.140.0 — 2026-10-09
+
+**Shop the videos: a row of product videos, each with its product under it.**
+
+- **A row of vertical videos** on the shop front, after Top Picks. Each tile is
+  a video with the product beneath it — picture, name, code, price and an Add
+  to basket button — and the video's title under that. Pressing the video plays
+  it; pressing the name goes to the product. The videos are the ones already on
+  each product's Media tab; there is no second list, and a YouTube Shorts link
+  works.
+- **A small "Watch" row on each product page**: that product's own videos
+  first, then other products' (one switch turns the second part off).
+- **The homepage and the page builder** can carry it too: a "Product videos"
+  section on the Themes screen (off until switched on), and a section in the
+  page builder for the whole shop or one category.
+- **Store → Product videos** is the new screen: a switch for each place, the
+  heading, shape, how many, order, and whether to show the product code. It
+  says how many products have a video.
+- **Plays on a press by default.** Nothing is requested from YouTube until a
+  visitor presses play, and only one tile plays at a time. A switch turns on
+  silent playback while a tile is on screen — at most four at once, with a Pause
+  button, never for visitors who asked for less motion or are saving data, and
+  only after the cookie banner is accepted where one is in use.
+- **An install that already has product videos gains the row** on the shop
+  front and the product pages. One switch each on the new screen turns it off.
+- **Demo installs** get a placeholder video on their first three shop products
+  (listed under what to delete before launch).
+- **The top bar's email address has an envelope icon**, as the phone number has
+  its own.
+- **The Enterprise theme's top-bar dropdown has rounded corners** (it was
+  square on purpose, to match that theme's cards); the open tab is marked with
+  a brand bar on its edge.
+
+---
+
 ## 0.139.0 — 2026-10-09
 
 **Tick several rows and publish, archive or delete them in one go.**

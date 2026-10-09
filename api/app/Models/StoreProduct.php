@@ -179,6 +179,21 @@ class StoreProduct extends Model implements Answerable, Faqable
         return $query->where('status', PublishStatus::Published);
     }
 
+    /**
+     * Products that carry at least one video (0.140.0). The column is stored
+     * as null when a form clears the list (`ProductVideos::normalise()`), but
+     * an empty array is not impossible from older writes, so the test is the
+     * JSON's length and not a null check alone. The one definition the
+     * "shop the videos" shelf and the console's `?video=1` filter share.
+     *
+     * @param  Builder<StoreProduct>  $query
+     * @return Builder<StoreProduct>
+     */
+    public function scopeWithVideos(Builder $query): Builder
+    {
+        return $query->whereNotNull('videos')->whereRaw('JSON_LENGTH(videos) > 0');
+    }
+
     /** @return BelongsTo<StoreCategory, $this> */
     public function category(): BelongsTo
     {

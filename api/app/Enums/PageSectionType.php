@@ -81,6 +81,13 @@ enum PageSectionType: string
      */
     case Subnav = 'subnav';
     /**
+     * The shop's "shop the videos" row (0.140.0): a live list of the products
+     * that carry a video, a tile each with the product under it. Stores a
+     * heading, an optional shop category, a count and a shape; the tiles are
+     * `VideoShelf`'s, resolved when the page is read.
+     */
+    case ProductVideos = 'product_videos';
+    /**
      * One of the active theme's own homepage sections (2026-10-06, 0.113.0):
      * the hero, the solutions, the partner strip… — stored as the section's
      * id, drawn by the theme that is active when the page renders, so it
@@ -128,6 +135,7 @@ enum PageSectionType: string
             self::Story => 'Scroll story',
             self::Flow => 'Diagram',
             self::Subnav => 'In-page menu',
+            self::ProductVideos => 'Product videos',
             self::ThemeSection => 'From the theme',
             self::Saved => 'Saved section',
         };
@@ -171,6 +179,7 @@ enum PageSectionType: string
             self::Map => 'A Google map, loaded only when somebody presses it, with the address beside it.',
             self::Story => 'Two to six steps that scroll past a picture held in place, the picture changing with each step — a product tour, a process, a project told in stages.',
             self::Flow => 'A row of connected steps — a network, a process, how data moves — whose connecting lines draw themselves as the page scrolls.',
+            self::ProductVideos => 'A row of the shop’s product videos, each with its product under it — picture, name, price and an Add to basket button. Whole shop or one category; it follows the videos on the products.',
             self::ThemeSection => 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.',
             self::Subnav => 'A strip of links to the sections of this page, which stays at the top of the screen as it scrolls. '
                 .'It lists every section you have given an anchor to (Style → Anchor), in page order.',

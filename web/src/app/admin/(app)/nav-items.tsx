@@ -200,6 +200,9 @@ export const NAV: NavItem[] = [
       // endpoint of their own, so the person running a promotion does not
       // need Settings — which they cannot open. The info bar's shape.
       { role: "store_manager", href: "/admin/store/promo", label: "Promo banners", icon: IconMegaphone },
+      // "Shop the videos" (0.140.0): where the row of product videos shows and
+      // whether it plays by itself — the promo band's shape, a row beside it.
+      { role: "store_manager", href: "/admin/store/videos", label: "Product videos", icon: IconCamera },
       { role: "store_manager", href: "/admin/store/stock", label: "Stock", icon: IconBox },
       { role: "store_manager", href: "/admin/store/reports", label: "Reports", icon: IconSearchChart },
       { role: "admin", href: "/admin/store/settings", label: "Settings", icon: IconSliders },
@@ -751,6 +754,14 @@ const PALETTE_SECTIONS: { label: string; href: string; group: string; keywords: 
     href: "/admin/system/status#scheduler",
     group: "System · System status",
     keywords: "cron crontab cronjob scheduler schedule:run schedule:work scheduled task task scheduler background jobs queue",
+  },
+  // Asked for as "video", "youtube" and "shorts" (0.140.0): the screen is
+  // called Product videos, and the words people type for it are these.
+  {
+    label: "Shop the videos (YouTube, Shorts)",
+    href: "/admin/store/videos",
+    group: "Store · Product videos",
+    keywords: "video videos youtube shorts reel clip autoplay watch shop the videos",
   },
 ];
 

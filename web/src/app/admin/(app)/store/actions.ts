@@ -8,7 +8,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import {
   analyseStoreImport, createStoreCategory, createStoreProduct, deleteStoreCategory, deleteStoreProduct, runStoreImport,
-  saveStorePromo, updateStoreCategory, updateStoreProduct,
+  saveStorePromo, saveStoreVideos, updateStoreCategory, updateStoreProduct,
 } from "@/lib/admin";
 import { customFieldsFromFormData, jsonListFromFormData, sectionsFromFormData, seoFromFormData, str } from "@/lib/admin-form";
 import { rupeesToPaise } from "@/lib/money";
@@ -123,6 +123,7 @@ export async function createStoreProductAction(_p: StoreFormState, formData: For
   }
 
   updateTag("store-products");
+  updateTag("store-videos");
   revalidatePath("/admin/store/products");
   redirect(`/admin/store/products/${id}?saved=1`);
 }
@@ -139,6 +140,7 @@ export async function updateStoreProductAction(_p: StoreFormState, formData: For
   }
 
   updateTag("store-products");
+  updateTag("store-videos");
   revalidatePath("/admin/store/products");
   revalidatePath(`/admin/store/products/${id}`);
   redirect(`/admin/store/products/${id}?saved=1`);
@@ -153,6 +155,7 @@ export async function deleteStoreProductAction(formData: FormData) {
   const deleted = await deleteStoreProduct(id).then(() => true, () => false);
   if (!deleted) redirect("/admin/store/products?done=not-deleted");
   updateTag("store-products");
+  updateTag("store-videos");
   revalidatePath("/admin/store/products");
   redirect("/admin/store/products?done=store-product-deleted");
 }
@@ -314,12 +317,55 @@ export async function savePromoAction(_prev: PromoFormState, formData: FormData)
   return { ok: true };
 }
 
+export type VideosFormState = { error?: string; ok?: boolean };
+
+/**
+ * "Shop the videos" — Store → Product videos (0.140.0). The promo band's save
+ * again: every control is a `setting__*` input and `PATCH /admin/store/videos`
+ * refuses any key outside the eleven by name.
+ *
+ * Purges `settings` (the public map every placement reads its switches and
+ * look from) and `store-videos` (the tiles themselves, which the setting
+ * `store_videos_order` and `_limit` shape), so the shop front, a product page
+ * and the homepage pick the change up on their next request.
+ */
+export async function saveVideosAction(_prev: VideosFormState, formData: FormData): Promise<VideosFormState> {
+  const settings = [...formData.entries()]
+    .filter(([name]) => name.startsWith("setting__"))
+    .map(([name, value]) => ({
+      key: name.replace("setting__", ""),
+      value: typeof value === "string" ? value.trim() : "",
+    }));
+
+  if (settings.length === 0) return { error: "Nothing to save." };
+
+  try {
+    await saveStoreVideos(settings);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 401) redirect("/admin/login");
+      if (error.status === 403) return { error: "Only a store manager or an administrator can change the product videos." };
+      if (error.status === 422) {
+        const first = Object.values(error.errors ?? {}).flat()[0];
+        return { error: typeof first === "string" ? first : "Some values were rejected. Check the fields and try again." };
+      }
+    }
+    return { error: "We could not save the product videos. Try again shortly." };
+  }
+
+  revalidatePath("/admin/store/videos");
+  updateTag("settings");
+  updateTag("store-videos");
+
+  return { ok: true };
+}
+
 /** The ticked rows of the list: publish, draft, archive or delete — see `lib/admin/bulk.ts`. */
 export async function bulkStoreProductsAction(_prev: BulkState, formData: FormData): Promise<BulkState> {
   return runBulkAction(formData, {
     path: "store/products",
     noun: ["product", "products"],
-    tags: ["store-products"],
+    tags: ["store-products", "store-videos"],
     paths: ["/admin/store/products"],
   });
 }

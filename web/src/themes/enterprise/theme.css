@@ -46,22 +46,27 @@
 }
 
 /*
-  The utility bar's panel, corporate: near-square corners, a 3px brand rule
-  along the top, the open tab underlined in the brand. Stamped by
-  `TopBarPanel`, whose shape follows `menu_style` (2026-09-17).
+  The utility bar's panel, corporate: a 3px brand rule along the top and the
+  open tab marked in the brand. Stamped by `TopBarPanel`, whose shape follows
+  `menu_style` (2026-09-17).
+
+  Rounded since 2026-10-09, at the client's request: the box was 2px-cornered
+  to match this theme's cards, and under a rounded search field it read as a
+  clipped rectangle rather than as a style. The open tab keeps the panel's
+  own fill and takes a brand bar on its leading edge in the tabbed sheet —
+  the old underline was drawn for square tabs and bent on rounded ones.
 */
 [data-theme="enterprise"] [data-panel="topbar"] {
-  border-radius: 2px;
+  border-radius: 14px;
   border-top: 3px solid var(--color-brand-500);
   box-shadow: 0 12px 32px rgba(0, 0, 0, .28);
 }
 [data-theme="enterprise"] [data-panel="topbar"] li > a,
 [data-theme="enterprise"] [data-panel="topbar"] li > button {
-  border-radius: 2px;
+  border-radius: 8px;
 }
-[data-theme="enterprise"] [data-panel="topbar"] [aria-current="true"] {
-  background: transparent;
-  box-shadow: inset 0 -2px 0 var(--color-brand-400);
+[data-theme="enterprise"] [data-panel="topbar"][data-topbar-style="mega"] [aria-current="true"] {
+  box-shadow: inset 3px 0 0 var(--color-brand-400);
 }
 
 /*

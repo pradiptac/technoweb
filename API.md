@@ -5272,6 +5272,25 @@ launch, which is content and configuration rather than code.
 
 ---
 
+## Shop the videos (0.140.0)
+
+See `docs/store.md`, "Product videos row".
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/store/videos` | Public. `{data: [{id, video, product}]}`. `?limit=` (1–24, default the `store_videos_limit` setting), `?category=<slug>`, `?order=newest\|featured` (default the setting), `?product=<slug>` and `?others=0`. Published products with at least one video only; **one tile per product** (its first video) except the `?product=` head, where that product's own videos come first, each a tile (`id` is `{product id}-{n}`), then its category-mates, then the rest, the product never twice. `others=0` returns only the head. An unknown value falls back rather than 422. The `video` is `{kind, youtube_id}` or `{kind, url}` (a file's public URL, never its path) with `title`, `poster_url` and `poster_alt` when set; `product` is the shop's list shape (the `GET /store/products` row — no stock count). Not throttled, like the shop's other lists |
+| `GET` | `/admin/store/videos` | `role:store_manager`. The eleven `store_videos_*` rows in the settings row shape (`options` on the shape and the order); `meta.products_with_video` |
+| `PATCH` | `/admin/store/videos` | `settings: [{key, value}]`. A key outside the eleven is a 422 on `settings.N.key`; a switch is `0`/`1`; `store_videos_shape` is `portrait`, `square` or `landscape`; `store_videos_order` is `newest` or `featured`; `store_videos_limit` is 4–24; the heading is at most 80 characters and the line 200 (both may be blank). Answers `{message, data, meta}` |
+
+`GET /admin/store/products?video=1` lists the products that carry a video. The
+page builder takes a section type `product_videos` (`category_id`, a shop
+category that must exist; `limit` 1–24; `shape`); the public read gives it
+`items` (the same tiles) and drops the section when there are none. The
+`store_videos` group is public: `GET /settings` carries the switches and the
+look.
+
+---
+
 ## Store reviews (2026-09-26)
 
 See `docs/store.md`, "Reviews". The public and portal routes are listed under

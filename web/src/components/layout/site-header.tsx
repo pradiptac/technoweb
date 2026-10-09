@@ -5,7 +5,7 @@ import { useCallback, useRef, useState } from "react";
 import { Container } from "@/components/ui/container";
 import { ButtonLink } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
-import { IconChevronDown, IconMenu, IconPhone } from "@/components/icons-ui";
+import { IconChevronDown, IconMail, IconMenu, IconPhone } from "@/components/icons-ui";
 import { contact, mainNav } from "@/content/site";
 import type { NavLink, TopBarLink } from "@/lib/navigation";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
@@ -97,7 +97,8 @@ export function SiteHeader({
               </a>
             ) : null}
             {email ? (
-              <a href={`mailto:${email}`} className="hidden whitespace-nowrap py-1.5 hover:text-topbar-ink lg:inline-flex lg:items-center">
+              <a href={`mailto:${email}`} className="hidden whitespace-nowrap py-1.5 hover:text-topbar-ink lg:inline-flex lg:items-center lg:gap-1.5">
+                <IconMail className="size-[13px]" />
                 {email}
               </a>
             ) : null}

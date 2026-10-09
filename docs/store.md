@@ -1983,3 +1983,77 @@ One trap found in the probe's first screenshot, and it is not about Zoho: the ho
 default, and the generic settings select starts on its first option — so the
 tab showed "Andaman and Nicobar Islands" and a save from any tab would have
 stored it. The panel draws that select itself, with a blank first option.
+
+## Product videos row (0.140.0)
+
+"Shop the videos": the videos already on shop products (`store_products.videos`,
+up to four each, a YouTube link or a library file — `ProductVideos`) drawn as a
+scroll-snap row of tiles, each a video well with the product under it (picture,
+name, SKU, price, the cart button) and the video's title beneath. There is no
+second list of videos.
+
+**One definition of the list.** `App\Support\Store\VideoShelf` feeds both
+`GET /store/videos` and the page builder's `product_videos` section
+(`SectionPresenter::productVideos()`), so the shop front, the homepage, a
+builder page and a product page cannot disagree. Published products only
+(the tail query as well as the head — a draft's video is in neither); a row is
+`{id, video, product}` where `product` is the shop's *list* `ProductResource`
+(resolved against a bare request, because a builder page's route is
+`pages.show` and would read as a detail view) — so no stock count, no
+description, and the video carries a file's public URL but never its path.
+`?limit=` (1–24, default `store_videos_limit`), `?category=<slug>`,
+`?order=newest|featured`, `?product=<slug>`: that product's own videos first,
+each its own tile, then its category-mates, then the rest — one tile per
+product, and the product itself excluded from the tail. `?others=0` returns
+only the head: the website sends it when `store_videos_product_others` is off,
+so the setting is read once, there.
+
+**Settings.** Public group `store_videos` (eleven rows, `SettingsSeeder`),
+edited at Store → Product videos (`/admin/store/videos`) through
+`PATCH /admin/store/videos` (`VideoSettingsController`, `role:store_manager`):
+the promo band's door — any key outside `KEYS` is refused by name, switches are
+`0`/`1`, shape and order are held to `VideoShelf::SHAPES`/`ORDERS` (sent as
+`options`), the count is 4–24, the heading 80 and the line 200 characters.
+`meta.products_with_video` says what the shelf will draw from. The shop front
+and the product page ship **on**; a shelf with no rows renders nothing at all,
+so an install without product videos is unchanged and one with them gains the
+row (one switch each turns it off). The homepage ships off and the autoplay
+switch ships off.
+
+**Playing.** The default is a facade: the poster (the video's, else the
+product's first picture, else a panel this site draws) and `PlayDisc`; a press
+mounts the `youtube-nocookie.com` iframe (`YouTubeFrame` in
+`product-video.tsx`, shared with the gallery's player) or a `<video>`. Nothing
+is requested from any YouTube host before that press and **never
+`i.ytimg.com`** (not in `img-src`, and the privacy rule). One tile plays at a
+time — "which tile is active" is a module-level store read with
+`useSyncExternalStore`, so a second shelf on the page shares it. Autoplay
+(`store_videos_autoplay`) mounts a muted, looping, control-less player in a
+tile at least 60% on screen, at most four, and unmounts it on leaving; it is
+off under reduced motion and Save-Data (`navigator.connection.saveData`), and
+where the cookie banner is in use (`cookie_consent_enabled` and an analytics id
+— the layout's own condition, `videoShelfConfig().consentGated`) it waits for
+`useConsent() === "granted"`, because it contacts YouTube without a press. A
+visible **Pause videos** button unmounts every autoplaying player; a press on a
+tile gives it the full player with sound. No YouTube script API: iframes only.
+
+**Placements.** The shop front (`/store`, after Top Picks and before the promo
+band); the product page's small "Watch" row (`size="small"`, top of the left
+column's second row) — which stays ISR-cached because its read is
+`publicApi.storeVideos()`, a cached fetch tagged `store-products` and
+`store-videos`, and autoplay/consent are decided in the browser; the homepage
+(`videos` in `HOME_SECTIONS`, entered through `homeBlockSections()` via
+`blocks.videos`, so all twelve themes have it with no template changed); and
+the builder's "Product videos" section (`category_id`, `limit`, `shape`).
+`CompactAdd` takes `inline` for the tile's strip — the same code as the card's
+corner button. Shop product save/delete/bulk actions and the settings action
+`updateTag("store-videos")`.
+
+**Why a tile's picture is not YouTube's thumbnail:** fetching it is a request
+to a Google host before any press. Give the video a poster (a tall 9:16 one
+looks best); without one the product's first picture stands in.
+
+Demo: `SampleProductVideoSeeder` (create-only, first three published shop
+products, only while none has a video). Tests: `StoreVideosTest`. Probe:
+`web/scripts/probes/store-videos.mjs` (the nothing-before-a-press rule, one at
+a time, the cart button, autoplay and Pause).

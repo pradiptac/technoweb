@@ -15,6 +15,7 @@ use App\Models\SavedSection;
 use App\Models\Slider;
 use App\Models\StoreCategory;
 use App\Support\Blocks\BlockRules;
+use App\Support\Store\VideoShelf;
 use App\Support\ThemeOptions;
 use App\Support\YouTube;
 use Illuminate\Database\Eloquent\Model;
@@ -477,6 +478,16 @@ final class SectionRules
             PageSectionType::Subnav => [
                 'label' => ['nullable', 'string', 'max:40'],
             ],
+            // The shop's product videos as a live list (0.140.0): which
+            // shelf, how many, what shape. `VideoShelf` reads the rest.
+            PageSectionType::ProductVideos => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'category_id' => ['nullable', 'integer'],
+                'limit' => ['nullable', 'integer', 'min:1', 'max:24'],
+                'shape' => ['nullable', Rule::in(VideoShelf::SHAPES)],
+            ],
             // One of the active theme's homepage sections, by id. Checked for
             // the shape of an id only, the rule `site_theme` and the section
             // order follow: the list is the frontend's (`HOME_SECTIONS`), and
@@ -887,6 +898,12 @@ final class SectionRules
                 break;
             case PageSectionType::Cards:
                 self::checkCategory($validator, $data, $at);
+                break;
+            case PageSectionType::ProductVideos:
+                $category = $data['category_id'] ?? null;
+                if (filled($category) && ! StoreCategory::query()->whereKey((int) $category)->exists()) {
+                    $validator->errors()->add("{$at}.category_id", 'That shop category no longer exists. Choose another.');
+                }
                 break;
             case PageSectionType::Saved:
                 $id = $data['saved_id'] ?? null;

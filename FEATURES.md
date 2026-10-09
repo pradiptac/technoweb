@@ -166,6 +166,14 @@ first rupee.
 
 - **Separate shop catalogue** from the marketing one: what is sold is
   maintained apart from what is advertised, with no accidental Buy button.
+- **Shop the videos**: the YouTube (or Shorts) and library videos on shop
+  products become a row of vertical tiles with the product under each —
+  picture, name, code, price and an Add to basket button. On the shop front, a
+  small "Watch" row on each product page, optionally the homepage and a page
+  builder section. Plays on a press by default (nothing is requested from
+  YouTube before it); optionally plays silently while on screen, with a Pause
+  button, never under reduced motion, and only after the cookie banner is
+  accepted.
 - **Physical, digital and service products**, with variations (a 24-port and a
   48-port are two prices and two stock levels), compare-at pricing and
   featured placement.

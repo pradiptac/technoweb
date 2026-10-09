@@ -47,6 +47,10 @@ class DemoSeeder extends Seeder
             // centre, after the products they are attached to. Created only
             // while there are none.
             SampleDownloadSeeder::class,
+            // One placeholder YouTube video on each of the first three shop
+            // products, for the "shop the videos" row. Created only while no
+            // shop product carries a video.
+            SampleProductVideoSeeder::class,
             // A worked support desk: a portal login, tickets across every
             // status and a couple of enquiries.
             DemoSupportSeeder::class,

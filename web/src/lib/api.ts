@@ -1,7 +1,7 @@
 import "server-only";
 import { clientIpHeaders } from "@/lib/client-ip";
 import { previewRecord, type PreviewKind } from "@/lib/preview-store";
-import type { StoreFacetsResponse } from "@/types/store-merch";
+import type { StoreFacetsResponse, VideoShelfRow } from "@/types/store-merch";
 import type {
   ContentBlock,
   BlogPost,
@@ -289,6 +289,20 @@ export const publicApi = {
     apiFetch<StoreFeedPage>(`/store/feed?page=${page}&per_page=200`, {
       revalidate: 3600,
       tags: ["store-products"],
+    }),
+  /**
+   * "Shop the videos" (0.140.0): the products that carry a video, a tile
+   * each. `query` is `?limit=…&product=<slug>&others=0…` and is built by the
+   * caller from settings and a slug, never from a visitor's input — so it is
+   * cached, under `store-products` (a price or a stock change) and
+   * `store-videos` (a product's videos or the settings changing), which the
+   * product and settings save actions purge. A cached fetch is what lets the
+   * ISR product page carry the row: no cookie, no header, no `no-store`.
+   */
+  storeVideos: (query = "") =>
+    apiFetch<Collection<VideoShelfRow>>(`/store/videos${query}`, {
+      revalidate: 120,
+      tags: ["store-products", "store-videos"],
     }),
   storeCategories: () =>
     apiFetch<Collection<StoreCategory>>("/store/categories", {

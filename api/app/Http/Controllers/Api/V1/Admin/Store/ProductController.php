@@ -70,6 +70,9 @@ class ProductController extends Controller
              * the dashboard's figure read, so the tile and the list agree.
              */
             ->when($request->boolean('notices'), fn ($q) => $q->whereHas('stockNotices', fn ($n) => $n->waiting()))
+            // Products that carry a video (0.140.0) — the scope the "shop the
+            // videos" shelf and Store → Product videos' count both read.
+            ->when($request->boolean('video'), fn ($q) => $q->withVideos())
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = $request->string('q')->value();
                 $q->where(fn ($w) => $w->where('name', 'like', "%{$term}%")

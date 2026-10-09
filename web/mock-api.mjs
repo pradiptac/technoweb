@@ -543,6 +543,42 @@ const storeProducts = [
 ];
 
 /*
+ * "Shop the videos" (0.140.0). Two products carry a video — the first a YouTube
+ * id with an uploaded-poster-less facade, the third another — and
+ * `storeVideoRows()` is the mock's `VideoShelf`: one tile per product, its
+ * own videos first on `?product=`, category-mates then the rest after them,
+ * `others=0` its own only. The product half is the list row the cards use;
+ * a row never carries a stock count or a file path.
+ */
+const MOCK_VIDEOS = {
+  1: [
+    { kind: 'youtube', youtube_id: 'dQw4w9WgXcQ', title: 'Unboxing and first set-up', poster_url: null, poster_alt: null },
+    { kind: 'youtube', youtube_id: 'aqz-KE-bpKQ', title: 'Racking it in a 1U space', poster_url: null, poster_alt: null },
+  ],
+  3: [{ kind: 'youtube', youtube_id: 'aqz-KE-bpKQ', title: 'Activating your licence', poster_url: null, poster_alt: null }],
+};
+const mockVideoSettings = {
+  store_videos_shop_enabled: '1', store_videos_product_enabled: '1', store_videos_product_others: '1', store_videos_home_enabled: '0',
+  store_videos_heading: 'Shop the videos', store_videos_lede: '', store_videos_autoplay: '0', store_videos_shape: 'portrait',
+  store_videos_limit: '12', store_videos_order: 'newest', store_videos_show_sku: '1',
+};
+function storeVideoRows({ limit = 12, category = null, categoryId = null, product = null, others = true } = {}) {
+  const rowFor = (sp, n) => ({ id: `${sp.id}-${n}`, video: MOCK_VIDEOS[sp.id][n], product: sp });
+  const rows = [];
+  const head = product ? storeProducts.find((x) => x.slug === product && MOCK_VIDEOS[x.id]) : null;
+  if (head) MOCK_VIDEOS[head.id].forEach((_, n) => rows.push(rowFor(head, n)));
+  if (!head || others) {
+    const tail = storeProducts
+      .filter((x) => MOCK_VIDEOS[x.id] && x !== head)
+      .filter((x) => !category || x.category?.slug === category)
+      .filter((x) => !categoryId || x.category?.id === categoryId)
+      .sort((a, b) => (head ? Number(b.category?.id === head.category?.id) - Number(a.category?.id === head.category?.id) : 0) || b.id - a.id);
+    tail.forEach((sp) => rows.push(rowFor(sp, 0)));
+  }
+  return rows.slice(0, Math.max(1, Math.min(24, limit)));
+}
+
+/*
  * Store reviews (docs/store.md, "Reviews"): three published on the first
  * product, and one waiting in the console's queue. `rating` is the summary
  * the API keeps on the product — null until something is published.
@@ -2209,6 +2245,7 @@ const SECTION_TYPES = [
   { value: 'story', label: 'Scroll story', blurb: 'Steps that scroll past a picture held in place, the picture changing with each step — a product tour, a process, a project told in stages.' },
   { value: 'flow', label: 'Diagram', blurb: 'A row of connected steps — a network, a process, how data moves — whose connecting lines draw themselves as the page scrolls.' },
   { value: 'subnav', label: 'In-page menu', blurb: 'A strip of links to the sections of this page, which stays at the top of the screen as it scrolls. It lists every section you have given an anchor to (Style → Anchor), in page order.' },
+  { value: 'product_videos', label: 'Product videos', blurb: 'A row of the shop’s product videos, each with its product under it — picture, name, price and an Add to basket button. Whole shop or one category; it follows the videos on the products.' },
   { value: 'theme_section', label: 'From the theme', blurb: 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.' },
 ];
 /* The AI page builder's refusal while the AI SEO assistant is off (0.116.0) — the API's sentence. */
@@ -2348,13 +2385,19 @@ function presentSections(blocks) {
         video: rest.layout === 'cover' ? url(video_path) : null,
       } };
     }
+    /* The shop's product videos (0.140.0): the tiles `VideoShelf` builds; none drops the section, as the API does. */
+    if (b.type === 'product_videos') {
+      const { category_id, limit, ...rest } = b.data ?? {};
+      const items = storeVideoRows({ limit: limit || 8, categoryId: category_id ?? null });
+      return items.length ? { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, style: b.style ?? null, data: { ...rest, items } } : null;
+    }
     if (b.type !== 'cards') return { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, data: b.data };
     const items = solutions.slice(0, b.data.limit || 6).map((s) => ({
       title: s.title, summary: s.summary ?? null, path: `/solutions/${s.slug}`,
       image: null, image_alt: null, image_focus: null, icon: s.icon ?? null, kicker: null, meta: null,
     }));
     return { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, data: { ...b.data, items, index_path: '/solutions' } };
-  });
+  }).filter(Boolean);
 }
 cmsPages.push({ id: 6, title: 'Sample builder page', slug: 'sample-builder-page', template: 'builder', body: null,
   published_at: '2026-09-26T09:00:00Z', updated_at: '2026-09-26T09:00:00Z', faqs: [], seo: null,
@@ -2867,6 +2910,7 @@ createServer(async (req, res) => {
     // the real seeder defaults it off, which would leave it permanently
     // unauditable here otherwise.
     store_promo_enabled: '1',
+    ...Object.fromEntries(Object.entries(mockVideoSettings).filter(([, v]) => v !== '')),
     store_promo_kicker: 'Limited time',
     store_promo_heading: 'Save up to 15% on networking hardware',
     store_promo_price_text: 'From ₹2,199',
@@ -3813,6 +3857,8 @@ createServer(async (req, res) => {
         /* `/admin/services?category=<id|none>` and `/admin/service-categories?active=0|1`. */
         const cat = entity.base === '/admin/services' ? url.searchParams.get('category') : null;
         if (cat) rows = rows.filter((r) => (cat === 'none' ? !r.category : r.category?.id === Number(cat)));
+        /* `/admin/store/products?video=1`: products that carry a video (0.140.0). */
+        if (entity.base === '/admin/store/products' && url.searchParams.get('video') === '1') rows = rows.filter((r) => MOCK_VIDEOS[r.id]);
         const active = entity.base === '/admin/service-categories' ? url.searchParams.get('active') : null;
         if (active === '0' || active === '1') rows = rows.filter((r) => r.is_active === (active === '1'));
         /* `?sort=title|category|status|order|updated&dir=` on services; uncategorised last when ascending by category. */
@@ -3986,6 +4032,32 @@ createServer(async (req, res) => {
       ];
       if (req.method === 'PATCH') return json(res, 200, { message: 'Promo banner saved.', data: rows });
       return json(res, 200, { data: rows });
+    }
+
+    /* "Shop the videos": the eleven rows in the settings row shape, the shape and order with their options, and the count of products that carry a video. */
+    if (p === '/admin/store/videos') {
+      if (req.method === 'PATCH') {
+        for (const { key, value } of (await readJsonBody(req)).settings ?? []) {
+          if (!(key in mockVideoSettings)) return json(res, 422, { message: 'The given data was invalid.', errors: { 'settings.0.key': ['The selected setting is invalid.'] } });
+          mockVideoSettings[key] = value ?? '';
+        }
+      }
+      const options = {
+        store_videos_shape: [
+          { value: 'portrait', label: 'Portrait (9:16)', description: 'Tall, like a phone video or a YouTube Short. About five to a row.' },
+          { value: 'square', label: 'Square (1:1)', description: 'Even all round.' },
+          { value: 'landscape', label: 'Landscape (16:9)', description: 'Wide, like a normal YouTube video. About three to a row.' },
+        ],
+        store_videos_order: [
+          { value: 'newest', label: 'Newest products first', description: 'The most recently added product with a video leads.' },
+          { value: 'featured', label: 'Featured first', description: 'Products ticked as featured lead, then the shop\'s own order.' },
+        ],
+      };
+      const rows = Object.entries(mockVideoSettings).map(([key, value]) => ({
+        key, value: value === '' ? null : value, type: /enabled|autoplay|show_sku|others/.test(key) ? 'boolean' : 'string',
+        is_secret: false, is_set: value !== '', url: null, options: options[key] ?? null,
+      }));
+      return json(res, 200, { ...(req.method === 'PATCH' ? { message: 'Product videos saved.' } : {}), data: rows, meta: { products_with_video: Object.keys(MOCK_VIDEOS).length } });
     }
 
     /* Returns (docs/store.md "Returns"): the desk's list, one return, and its moves. */
@@ -5270,6 +5342,15 @@ createServer(async (req, res) => {
     if (sort === 'price-high') rows = [...rows].sort((a, b) => b.price_paise - a.price_paise);
     if (sort === 'newest') rows = [...rows].slice().reverse();
     return json(res, 200, paginate(rows));
+  }
+  /* "Shop the videos": `?limit=`, `?category=`, `?product=` and `?others=0` — the API's `VideoShelf`. */
+  if (p === '/store/videos') {
+    return json(res, 200, { data: storeVideoRows({
+      limit: Number(url.searchParams.get('limit')) || 12,
+      category: url.searchParams.get('category') || null,
+      product: url.searchParams.get('product') || null,
+      others: url.searchParams.get('others') !== '0',
+    }) });
   }
   if (p === '/store/feed') {
     const rows = storeFeedRows();

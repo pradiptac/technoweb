@@ -205,6 +205,23 @@ export async function saveStorePromo(settings: { key: string; value: string }[])
   await apiFetch<void>("/admin/store/promo", { method: "PATCH", body: { settings }, token: await token() });
 }
 
+/**
+ * "Shop the videos" (0.140.0): the eleven `store_videos_*` rows, in the
+ * settings screen's own row shape, through `/admin/store/videos` so a store
+ * manager can set them without being handed the rest of the table. `meta`
+ * is how many shop products carry a video — what the shelf will draw from.
+ */
+export async function getStoreVideos(): Promise<{ rows: SettingRow[]; productsWithVideo: number }> {
+  const res = await apiFetch<{ data: SettingRow[]; meta: { products_with_video: number } }>(
+    "/admin/store/videos", { token: await token() },
+  );
+  return { rows: res.data, productsWithVideo: res.meta.products_with_video };
+}
+
+export async function saveStoreVideos(settings: { key: string; value: string }[]): Promise<void> {
+  await apiFetch<void>("/admin/store/videos", { method: "PATCH", body: { settings }, token: await token() });
+}
+
 export async function getStoreDashboard(days?: number): Promise<StoreDashboard> {
   const res = await apiFetch<{ data: StoreDashboard }>(
     `/admin/store/dashboard${days ? `?days=${days}` : ""}`, { token: await token() },

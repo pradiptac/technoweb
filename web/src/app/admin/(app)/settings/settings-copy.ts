@@ -479,6 +479,17 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Meta catalogue feed",
     hint: "On publishes /meta-catalogue.xml and /meta-catalogue.csv for Facebook, Instagram and WhatsApp Business (Commerce Manager); off answers both with not found. The same products and prices as the Google feed.",
   },
+  store_videos_shop_enabled: { label: "On the shop front" },
+  store_videos_product_enabled: { label: "On each product page" },
+  store_videos_product_others: { label: "Fill a product's row with other products' videos" },
+  store_videos_home_enabled: { label: "On the homepage" },
+  store_videos_heading: { label: "Heading", placeholder: "Shop the videos" },
+  store_videos_lede: { label: "Line under the heading", hint: "Optional. Leave blank for none." },
+  store_videos_autoplay: { label: "Play silently when on screen" },
+  store_videos_shape: { label: "Shape of the video" },
+  store_videos_limit: { label: "How many videos" },
+  store_videos_order: { label: "Order" },
+  store_videos_show_sku: { label: "Show the product code" },
   store_promo_enabled: { label: "Show the promo banner" },
   store_promo_kicker: { label: "Kicker", hint: "The short line above the heading — a category, an offer, a season.", placeholder: "Business laptops, in stock" },
   store_promo_heading: { label: "Heading", placeholder: "Save Up To 60%" },
@@ -1441,7 +1452,7 @@ export const SYSTEM_SCREEN = "/admin/settings";
  * than "whatever no screen names", because a group somebody forgot would
  * then be silently standalone with nowhere to be edited.
  */
-export const STANDALONE_GROUPS = new Set(["announcement", "themes", "store_promo", "store_tiles"]);
+export const STANDALONE_GROUPS = new Set(["announcement", "themes", "store_promo", "store_tiles", "store_videos"]);
 
 export function screenAt(path: string): SettingsScreen {
   const screen = SCREENS.find((s) => s.path === path);

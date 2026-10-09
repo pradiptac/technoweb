@@ -32,6 +32,8 @@ export type PageSectionType =
   | "flow"
   /** An in-page menu (0.126.0): links to the page's own anchored sections, worked out by the API. */
   | "subnav"
+  /** The shop's "shop the videos" row (0.140.0): a live list, resolved by the API through `VideoShelf`. */
+  | "product_videos"
   /** A library section placed linked (0.106.0): stored as `{saved_id}`, drawn as the library's section. */
   | "saved";
 
@@ -169,6 +171,18 @@ export type StorySectionData = {
 /** An in-page menu (0.126.0). `items` is derived on the public read; a stored section holds only `label`. */
 export type SubnavSectionData = { label?: string | null; items?: { anchor: string; label: string }[] };
 
+/**
+ * "Product videos" (0.140.0): the stored fields are the heading, an optional
+ * shop category, a count and a shape; the API adds `items` — the tiles
+ * `GET /store/videos` answers — and drops the section when there are none.
+ * A shape left out is the Store → Product videos setting's.
+ */
+export type ProductVideosSectionData = {
+  kicker?: string | null; heading?: string | null; lede?: string | null;
+  shape?: import("./store-merch").VideoShape | null;
+  items: import("./store-merch").VideoShelfRow[];
+};
+
 export type FlowItem = { icon?: string | null; title: string; note?: string | null };
 export type FlowSectionData = {
   kicker?: string | null; heading?: string | null; lede?: string | null;
@@ -237,7 +251,8 @@ export type PageSection =
   | Of<"theme_section", ThemeSectionData>
   | Of<"story", StorySectionData>
   | Of<"flow", FlowSectionData>
-  | Of<"subnav", SubnavSectionData>;
+  | Of<"subnav", SubnavSectionData>
+  | Of<"product_videos", ProductVideosSectionData>;
 
 /** A section as stored and edited: paths and ids, and whatever the type's fields are. */
 export type StoredSection = {

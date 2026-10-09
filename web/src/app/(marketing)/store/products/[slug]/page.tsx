@@ -15,6 +15,7 @@ import { WishlistHeart } from "@/components/store/wishlist-heart";
 import { StoreFilterBar } from "@/components/store/store-filter-bar";
 import { StoreProductCard } from "@/components/store/product-card";
 import { ProductGallery } from "@/components/product/product-gallery";
+import { VideoShelf } from "@/components/store/video-shelf";
 import { RecentlyViewed, RememberProduct } from "@/components/store/recently-viewed";
 import { ShareLinks } from "@/components/ui/share-links";
 import { ReviewsSection } from "@/components/store/reviews/reviews-section";
@@ -23,7 +24,9 @@ import { publicApi } from "@/lib/api";
 import { formatPaise, percentOff } from "@/lib/money";
 import { buildMetadata, JsonLd, SITE } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
+import { videoShelfConfig, videoShelfEnabled } from "@/lib/store-videos";
 import type { StoreCategory, StoreProduct } from "@/types/api";
+import type { VideoShelfRow } from "@/types/store-merch";
 
 async function load(slug: string): Promise<StoreProduct | null> {
   try {
@@ -86,7 +89,7 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
     cannot make three different promises; they used to be a sentence in
     `content/site.ts` the API could not see.
   */
-  const [categories, shelf, newest, settings, firstReviews] = await Promise.all([
+  const [categories, shelf, newest, settings, firstReviews, watchRows] = await Promise.all([
     publicApi.storeCategories().then((r) => r.data).catch(() => [] as StoreCategory[]),
     product.category
       ? publicApi.storeProducts(`?category=${product.category.slug}&per_page=6`).then((r) => r.data).catch(() => [] as StoreProduct[])
@@ -95,6 +98,22 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
     getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>),
     // The first page of reviews, cached under `store-reviews:<slug>`; a failure draws the section empty rather than failing the page.
     reviewPage(product.slug).catch(() => null),
+    /*
+      The small "Watch" row (0.140.0): this product's own videos first, then —
+      unless the shop's "fill with other products' videos" setting is off —
+      others. **A cached, tagged fetch** (`store-videos`): this page is ISR,
+      so no cookie, header or `no-store` may be read in its render; whether
+      autoplay is allowed is decided in the browser. `others=0` is sent
+      from here so the setting is read once, on this side. A failure, or an
+      API that predates the row, is a page without it.
+    */
+    getSiteSettings()
+      .then((s) => videoShelfEnabled.product(s)
+        ? publicApi.storeVideos(
+          `?product=${encodeURIComponent(slug)}&limit=${Math.min(8, videoShelfConfig(s).limit)}${videoShelfEnabled.productOthers(s) ? "" : "&others=0"}`,
+        ).then((r) => r.data)
+        : ([] as VideoShelfRow[]))
+      .catch(() => [] as VideoShelfRow[]),
   ]);
   const seen = new Set<number>([product.id]);
   const alsoLike = [...shelf, ...newest].filter((p) => !seen.has(p.id) && seen.add(p.id)).slice(0, 4);
@@ -379,6 +398,21 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
             the extra width it appeared to have.
           */}
           <div className="min-w-0">
+          {/*
+            "Watch" (0.140.0): the product's videos and, after them, other
+            products' — under the gallery on a desktop, after the buy panel on
+            a phone. Small tiles, no lede; nothing at all when there is
+            nothing to watch.
+          */}
+          <VideoShelf
+            rows={watchRows}
+            config={videoShelfConfig(settings)}
+            heading="Watch"
+            size="small"
+            contained={false}
+            className="mt-14"
+          />
+
           {product.features && product.features.length > 0 && (
             <div className="mt-14">
               <h2 className="display-3 mb-4">What you get</h2>

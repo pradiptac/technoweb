@@ -448,6 +448,33 @@ Settings:
 Button links can be a path on your site (`/store/categories/laptops`) or a
 full address.
 
+## Product videos
+
+**Store → Product videos** controls the "Shop the videos" row: vertical
+videos, each with its product under it (picture, name, code, price and an Add
+to basket button) and the video's title beneath.
+
+The videos themselves are the ones on each product's **Media** tab — up to
+four, a YouTube link (a Shorts link works) or an MP4/WebM from the library.
+Give a tall poster for the best look; without one the tile shows the product's
+first picture. The row draws only when a product has a video, so nothing
+changes until you add one. The screen tells you how many products have one.
+
+- **Where it shows** — the shop front, a small *Watch* row on each product page
+  (that product's own videos first, then other products' unless you switch
+  that off), and the homepage. Each place has its own switch. A page builder
+  page can also carry it: add a *Product videos* section.
+- **How it reads and looks** — the heading, an optional line under it, the
+  shape (portrait, square or landscape), how many (4 to 24), the order, and
+  whether the product code is shown.
+- **Playing** — by default a video shows a picture and a play button and
+  nothing is loaded from YouTube until someone presses it; only one plays at a
+  time. *Play silently when on screen* starts muted, looping videos by itself
+  (at most four at once, with a *Pause videos* button). That contacts YouTube
+  without a press, so where the cookie banner is in use it waits until the
+  visitor accepts, and it never plays for visitors who asked for less motion
+  or are saving data. Pressing a tile plays it with sound.
+
 ## Wishlists
 
 Visitors press the heart on a product to save it — guests in their browser,

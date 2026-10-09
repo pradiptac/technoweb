@@ -40,20 +40,10 @@ export function ProductVideoPlayer({ video, name }: { video: ProductVideo; name:
     );
   }
 
-  if (video.kind !== "youtube" || !video.youtube_id || !/^[A-Za-z0-9_-]{11}$/.test(video.youtube_id)) return null;
+  if (video.kind !== "youtube" || !video.youtube_id || !YOUTUBE_ID.test(video.youtube_id)) return null;
 
   if (playing) {
-    return (
-      <iframe
-        // Built from an id the API validated and this line re-checks — nothing
-        // an editor typed reaches this attribute.
-        src={`https://www.youtube-nocookie.com/embed/${video.youtube_id}?autoplay=1&rel=0`}
-        title={label}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        className="absolute inset-0 size-full border-0 bg-dark"
-      />
-    );
+    return <YouTubeFrame id={video.youtube_id} title={label} />;
   }
 
   return (
@@ -80,6 +70,40 @@ export function ProductVideoPlayer({ video, name }: { video: ProductVideo; name:
         Play the video{video.title ? `: ${video.title}` : ""}. It loads from YouTube, which sets its own cookies.
       </span>
     </button>
+  );
+}
+
+/** A YouTube video id: eleven characters of the URL-safe alphabet. The API validates it; every embed here re-checks. */
+export const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
+
+/**
+ * The privacy-enhanced embed, mounted only after a press (or, on the "shop
+ * the videos" shelf with autoplay on, after the visitor's consent and with
+ * the video on screen). `youtube-nocookie.com` and no script API — an
+ * iframe and nothing else, so the CSP's `frame-src` is the whole of the
+ * allowance.
+ *
+ * `quiet` is the shelf's silent loop: muted, looping (YouTube loops only a
+ * playlist, so the id is its own), no controls, inline on a phone. The
+ * default is what a press asks for: sound, controls, play now. The `src` is
+ * built from an id this line re-checks — nothing an editor typed reaches it.
+ */
+export function YouTubeFrame({ id, title, quiet = false }: { id: string; title: string; quiet?: boolean }) {
+  if (!YOUTUBE_ID.test(id)) return null;
+
+  const query = quiet
+    ? `autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&playsinline=1&rel=0`
+    : "autoplay=1&rel=0";
+
+  return (
+    <iframe
+      src={`https://www.youtube-nocookie.com/embed/${id}?${query}`}
+      title={title}
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowFullScreen={!quiet}
+      tabIndex={quiet ? -1 : undefined}
+      className={`absolute inset-0 size-full border-0 bg-dark ${quiet ? "pointer-events-none" : ""}`}
+    />
   );
 }
 

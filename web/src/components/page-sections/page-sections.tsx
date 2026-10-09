@@ -13,7 +13,7 @@ import {
   DividerSection, FeaturesSection, MediaTextSection, RichTextSection, TestimonialSection, VideoSection,
 } from "./content-sections";
 import {
-  CardsSection, ContentBlockSection, FaqSection, FormSection, GallerySection, LogosSection, SliderSection,
+  CardsSection, ContentBlockSection, FaqSection, FormSection, GallerySection, LogosSection, ProductVideosSection, SliderSection,
 } from "./embed-sections";
 import {
   BeforeAfterSection, ChecklistSection, ComparisonSection, CtaSection, StatsSection, StepsSection, TabsSection,
@@ -207,6 +207,7 @@ function renderSection(
     case "story": return <StorySection data={section.data} eager={eager} reveal={reveal} id={`story-${section.id.slice(0, 8)}`} />;
     case "flow": return <FlowSection data={section.data} reveal={reveal} />;
     case "subnav": return <SubnavSection data={section.data} />;
+    case "product_videos": return <ProductVideosSection data={section.data} reveal={reveal} />;
     // The active theme's own homepage section, arriving as `HomeSection` would
     // have it arrive: still unless the editor chose a reveal, and never the
     // hero, which opens a page (the homepage's rule, `section-bg.tsx`).

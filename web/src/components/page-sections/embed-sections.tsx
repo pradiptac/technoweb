@@ -11,9 +11,14 @@ import { IconTile, hueForIcon } from "@/components/ui/icon-tile";
 import { SliderFor } from "@/components/ui/slider-for";
 import { publicApi } from "@/lib/api";
 import type { SectionRevealAttr } from "@/lib/motion-choices";
+import { VideoShelfTiles } from "@/components/store/video-shelf-tiles";
+import { getSiteSettings } from "@/lib/settings";
+import type { SiteSettings } from "@/lib/site-settings";
+import { videoShelfConfig } from "@/lib/store-videos";
 import type {
   CardsSectionData, ContentBlockSectionData, EmbedSectionData, FaqSectionData, LogosSectionData,
 } from "@/types/api";
+import type { ProductVideosSectionData } from "@/types/page-sections";
 import { SectionFrame, SectionHead } from "./section-parts";
 import { blurProps } from "@/lib/blur";
 
@@ -77,6 +82,34 @@ export function CardsSection({ data, eager, reveal }: { data: CardsSectionData; 
         {data.index_path && (
           <p className="mt-8"><ArrowLink href={data.index_path}>See them all</ArrowLink></p>
         )}
+      </Container>
+    </SectionFrame>
+  );
+}
+
+/**
+ * The shop's "shop the videos" row as a builder section (0.140.0). The API
+ * resolved `items` through `VideoShelf` — the list the shop front and the
+ * homepage draw — and dropped the section when there were none. The look
+ * (autoplay, SKU, consent) is Store → Product videos', read here from the
+ * cached settings; the section's own `shape` wins over the setting's.
+ */
+export async function ProductVideosSection({ data, reveal }: { data: ProductVideosSectionData; reveal?: SectionRevealAttr | null }) {
+  const settings = await getSiteSettings().catch(() => ({}) as SiteSettings);
+  const config = videoShelfConfig(settings);
+
+  return (
+    <SectionFrame type="product_videos" reveal={reveal}>
+      <Container>
+        <SectionHead kicker={data.kicker} heading={data.heading} lede={data.lede} />
+        <VideoShelfTiles
+          rows={data.items}
+          shape={data.shape ?? config.shape}
+          autoplay={config.autoplay}
+          showSku={config.showSku}
+          consentGated={config.consentGated}
+          titleAs={data.heading ? "h3" : "p"}
+        />
       </Container>
     </SectionFrame>
   );

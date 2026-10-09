@@ -179,6 +179,9 @@ export const HOME_SECTIONS: readonly { id: string; label: string }[] = [
   { id: "stats_block", label: "Stat bar (block)" },
   { id: "stack", label: "Technology stack (block)" },
   { id: "pricing", label: "Pricing (block)" },
+  // The shop's "shop the videos" row (0.140.0): drawn only when Store →
+  // Product videos has the homepage switched on and a product has a video.
+  { id: "videos", label: "Product videos (shop)" },
   { id: "cta", label: "Closing band" },
 ];
 

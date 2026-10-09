@@ -1130,6 +1130,31 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'store_tiles', 'key' => 'store_tile_2_cta_href', 'value' => '/store', 'type' => 'string'],
             ['group' => 'store_tiles', 'key' => 'store_tile_2_image_path', 'value' => null, 'type' => 'string'],
 
+            /*
+             * "Shop the videos" (0.140.0): the shelf of products that carry a
+             * video, on the shop front, the product page, optionally the
+             * homepage and a builder section. A group of its own, edited from
+             * Store → Product videos by a store manager through
+             * `PATCH /admin/store/videos` — the promo band's shape; the
+             * settings strip leaves the group out. Public: the website reads
+             * the switches and the look by key.
+             *
+             * Autoplay ships off — it contacts YouTube without a press. The
+             * shop front and the product page ship on: a shelf draws only when
+             * a product has a video, so an install with none is unchanged.
+             */
+            ['group' => 'store_videos', 'key' => 'store_videos_shop_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'store_videos', 'key' => 'store_videos_product_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'store_videos', 'key' => 'store_videos_product_others', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'store_videos', 'key' => 'store_videos_home_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'store_videos', 'key' => 'store_videos_heading', 'value' => 'Shop the videos', 'type' => 'string'],
+            ['group' => 'store_videos', 'key' => 'store_videos_lede', 'value' => null, 'type' => 'string'],
+            ['group' => 'store_videos', 'key' => 'store_videos_autoplay', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'store_videos', 'key' => 'store_videos_shape', 'value' => 'portrait', 'type' => 'string'],
+            ['group' => 'store_videos', 'key' => 'store_videos_limit', 'value' => '12', 'type' => 'string'],
+            ['group' => 'store_videos', 'key' => 'store_videos_order', 'value' => 'newest', 'type' => 'string'],
+            ['group' => 'store_videos', 'key' => 'store_videos_show_sku', 'value' => '1', 'type' => 'boolean'],
+
             ['group' => 'mail', 'key' => 'smtp_host', 'value' => null, 'type' => 'string'],
             ['group' => 'mail', 'key' => 'smtp_port', 'value' => '587', 'type' => 'string'],
             ['group' => 'mail', 'key' => 'smtp_username', 'value' => null, 'type' => 'string'],

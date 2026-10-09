@@ -35,6 +35,7 @@ use App\Support\Events\EventText;
 use App\Support\MediaMeta;
 use App\Support\MediaUrl;
 use App\Support\Money;
+use App\Support\Store\VideoShelf;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -262,6 +263,7 @@ final class SectionPresenter
             PageSectionType::BeforeAfter => self::picture(self::picture($data, 'before'), 'after'),
             PageSectionType::Team => self::team($data),
             PageSectionType::Downloads => self::downloads($data),
+            PageSectionType::ProductVideos => self::productVideos($data),
             PageSectionType::Countdown => self::countdown($data),
             default => $data,
         };
@@ -440,6 +442,34 @@ final class SectionPresenter
         $data['index_path'] = '/downloads';
 
         return $out === [] ? null : $data;
+    }
+
+    /**
+     * The shop's "shop the videos" row (0.140.0): the tiles `VideoShelf`
+     * builds — the very list `GET /store/videos` answers — for the shelf the
+     * section names (the whole shop, or one category). Nothing to show drops
+     * the section, the rule every live list follows. The default count and
+     * order are the section's own: it stores a limit, and the order is the
+     * setting's.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    private static function productVideos(array $data): ?array
+    {
+        $items = VideoShelf::presented([
+            'limit' => max(1, min(VideoShelf::MAX_LIMIT, (int) ($data['limit'] ?? 8))),
+            'category_id' => filled($data['category_id'] ?? null) ? (int) $data['category_id'] : null,
+        ]);
+
+        if ($items === []) {
+            return null;
+        }
+
+        unset($data['category_id'], $data['limit']);
+        $data['items'] = $items;
+
+        return $data;
     }
 
     /**

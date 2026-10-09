@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Admin\Store\ReportController as AdminStoreReport
 use App\Http\Controllers\Api\V1\Admin\Store\ReturnController as AdminStoreReturnController;
 use App\Http\Controllers\Api\V1\Admin\Store\ReviewController as AdminStoreReviewController;
 use App\Http\Controllers\Api\V1\Admin\Store\StockController as AdminStoreStockController;
+use App\Http\Controllers\Api\V1\Admin\Store\VideoSettingsController as AdminStoreVideoSettingsController;
 use App\Http\Controllers\Api\V1\Admin\ZohoBooksController;
 use Illuminate\Support\Facades\Route;
 
@@ -30,6 +31,11 @@ Route::middleware('role:store_manager')->group(function () {
     // and no other key — see PromoController. Above `store/{anything}` too.
     Route::get('store/promo', [AdminStorePromoController::class, 'index'])->name('store.promo');
     Route::patch('store/promo', [AdminStorePromoController::class, 'update'])->name('store.promo.update');
+
+    // "Shop the videos": the eleven `store_videos_*` rows and no other key
+    // (0.140.0) — see VideoSettingsController. Above `store/{anything}` too.
+    Route::get('store/videos', [AdminStoreVideoSettingsController::class, 'index'])->name('store.videos');
+    Route::patch('store/videos', [AdminStoreVideoSettingsController::class, 'update'])->name('store.videos.update');
 
     // Above `store/{anything}` for the same reason `media/move` is:
     // Laravel matches in declaration order.

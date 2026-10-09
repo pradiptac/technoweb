@@ -8,6 +8,7 @@ import { CategoryRail } from "@/components/store/category-rail";
 import { PromoBanner } from "@/components/store/promo-banner";
 import { PromoTiles } from "@/components/store/promo-tiles";
 import { TrustStrip } from "@/components/store/trust-strip";
+import { VideoShelf } from "@/components/store/video-shelf";
 import { RecentlyViewed } from "@/components/store/recently-viewed";
 import { StoreHero } from "@/components/store/store-hero";
 import { StoreFilterBar } from "@/components/store/store-filter-bar";
@@ -18,7 +19,8 @@ import { isPrerendering } from "@/lib/build-phase";
 import { listingMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
 import { appendSpecs, hasSpecs, limitSpecs, parseSpecs, specEntries, specParams } from "@/lib/store-specs";
-import type { StoreFacet } from "@/types/store-merch";
+import { videoShelfConfig, videoShelfEnabled } from "@/lib/store-videos";
+import type { StoreFacet, VideoShelfRow } from "@/types/store-merch";
 import type { Paginated, StoreCategory, StoreProduct } from "@/types/api";
 
 /*
@@ -100,12 +102,24 @@ export default async function StorePage({
     asking for the right number is what stops the API building and
     serialising twenty-four products to render twelve.
   */
-  const [heroSlider, settings, latestProducts, listing] = await Promise.all([
+  const [heroSlider, settings, latestProducts, videoRows, listing] = await Promise.all([
     publicApi.slider("store-hero").then((r) => r.data).catch(() => null),
     getSiteSettings(),
     publicApi.storeProducts(`?sort=newest&per_page=${PER_GRID}`, true)
       .then((r) => r.data.slice(0, PER_GRID))
       .catch(() => [] as StoreProduct[]),
+    /*
+      "Shop the videos" (0.140.0): asked only when the shop front's switch is
+      on, with the count the setting names, cached and tagged
+      (`store-videos`). Like the slider and the latest strip it degrades on
+      its own — no videos, or an API that predates them, is a page without
+      the row, never a failed one.
+    */
+    getSiteSettings()
+      .then((s) => videoShelfEnabled.shop(s)
+        ? publicApi.storeVideos(`?limit=${videoShelfConfig(s).limit}`).then((r) => r.data)
+        : ([] as VideoShelfRow[]))
+      .catch(() => [] as VideoShelfRow[]),
     (async (): Promise<{
       categories: StoreCategory[]; products: Paginated<StoreProduct> | null; failed: boolean;
       facets: StoreFacet[]; specs: Record<string, string[]>;
@@ -349,6 +363,15 @@ export default async function StorePage({
           )}
         </Container>
       </section>
+
+      {/*
+        "Shop the videos", after "Top Picks" and before the promo band
+        (0.140.0). Nothing at all when no product has a video or the switch
+        is off — see `VideoShelf`. The grid section above ended in
+        `pb-8 lg:pb-10`, the same trim the promo band's neighbours use, so
+        the shelf adds its own bottom and not a second top.
+      */}
+      <VideoShelf rows={videoRows} config={videoShelfConfig(settings)} className="pb-8 lg:pb-10" />
 
       <PromoBanner settings={settings} />
 

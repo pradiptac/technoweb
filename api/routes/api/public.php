@@ -80,6 +80,9 @@ Route::get('brands', [CatalogueController::class, 'brands'])->name('brands.index
  * `media/move` rule is cheap to keep and free to break.
  */
 Route::get('store/feed', [StoreController::class, 'feed'])->name('store.feed');
+// "Shop the videos" (0.140.0): the products that carry a video, a tile each.
+// Not `*.show`, so the product half of a row is the list shape.
+Route::get('store/videos', [StoreController::class, 'videos'])->name('store.videos.index');
 Route::get('store/products', [StoreController::class, 'products'])->name('store.products.index');
 Route::get('store/products/{storeProduct:slug}', [StoreController::class, 'product'])->name('store.products.show');
 Route::get('store/categories', [StoreController::class, 'categories'])->name('store.categories.index');

@@ -11,6 +11,7 @@ use App\Models\StoreProduct;
 use App\Support\EntityLinks;
 use App\Support\Store\ProductFeed;
 use App\Support\Store\SpecFilter;
+use App\Support\Store\VideoShelf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -86,6 +87,33 @@ class StoreController extends Controller
             ->withQueryString();
 
         return ProductResource::collection($products);
+    }
+
+    /**
+     * "Shop the videos" (0.140.0): published products that carry a video, a
+     * tile each — `{id, video, product}` with `product` the list resource the
+     * cards use. Built by `VideoShelf`, which the page builder's section reads
+     * too, so the two cannot disagree. `?limit=` (1–24, else the setting),
+     * `?category=<slug>`, `?order=newest|featured`, and `?product=<slug>`:
+     * that product's own videos first, then others — unless `?others=0`,
+     * which the website sends when the shop's "fill the row with others"
+     * setting is off (read once, there, rather than twice).
+     *
+     * An unknown query value falls back rather than answering 422 — the
+     * catalogue's rule for a mangled bookmark. A product that does not exist
+     * or has no video simply contributes no head.
+     */
+    public function videos(Request $request): JsonResponse
+    {
+        $rows = VideoShelf::presented([
+            'limit' => $request->filled('limit') ? $request->integer('limit') : null,
+            'category' => $request->filled('category') ? $request->string('category')->value() : null,
+            'product' => $request->filled('product') ? $request->string('product')->value() : null,
+            'order' => $request->filled('order') ? $request->string('order')->value() : null,
+            'others' => $request->has('others') ? $request->boolean('others') : true,
+        ]);
+
+        return response()->json(['data' => $rows]);
     }
 
     /**
