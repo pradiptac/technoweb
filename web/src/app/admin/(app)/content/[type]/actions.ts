@@ -1,6 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { runBulkAction } from "@/lib/admin/bulk";
+import type { BulkState } from "@/types/bulk";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import { createEntry, deleteEntry, updateEntry, type EntryPayload } from "@/lib/admin";
@@ -98,8 +100,28 @@ export async function deleteEntryAction(formData: FormData) {
   const id = Number(formData.get("id"));
   if (!type || !id) return;
 
-  await deleteEntry(type, id).catch(() => null);
+  // Only a delete the API accepted may purge anything: a refusal used to
+  // purge the caches and report "deleted".
+  const deleted = await deleteEntry(type, id).then(() => true, () => false);
+  if (!deleted) redirect(`/admin/content/${type}?done=not-deleted`);
   tag(type, [str(formData, "previous_slug")]);
   revalidatePath(`/admin/content/${type}`);
   redirect(`/admin/content/${type}?done=entry-deleted`);
+}
+
+/**
+ * The ticked entries of a type: publish, draft, archive or delete — see
+ * `lib/admin/bulk.ts`. The type's slug rides in a hidden field, and the tags
+ * are the ones every entry save purges.
+ */
+export async function bulkEntriesAction(_prev: BulkState, formData: FormData): Promise<BulkState> {
+  const type = str(formData, "type");
+  if (!type) return { error: "Missing content type." };
+
+  return runBulkAction(formData, {
+    path: `content-types/${type}/entries`,
+    noun: ["entry", "entries"],
+    tags: [`entries:${type}`, "content-types", "menu"],
+    paths: [`/admin/content/${type}`],
+  });
 }

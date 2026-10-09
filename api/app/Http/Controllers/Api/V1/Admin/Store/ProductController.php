@@ -6,8 +6,10 @@ use App\Enums\AnswerBlockKind;
 use App\Enums\ProductCondition;
 use App\Enums\ProductType;
 use App\Enums\PublishStatus;
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkActionRequest;
 use App\Http\Requests\Store\ProductRequest;
 use App\Http\Resources\Admin\Store\ProductResource;
 use App\Models\StoreProduct;
@@ -31,6 +33,7 @@ use Illuminate\Support\Facades\DB;
  */
 class ProductController extends Controller
 {
+    use HandlesBulk;
     use WritesCmsEntities;
 
     private const RELATIONS = ['variations', 'service_ids', 'faqs', 'answer_blocks'];
@@ -178,14 +181,26 @@ class ProductController extends Controller
 
     public function destroy(StoreProduct $storeProduct): JsonResponse
     {
+        $this->remove($storeProduct);
+
+        return response()->json(null, 204);
+    }
+
+    /** `POST /admin/store/products/bulk` — publish, draft, archive or delete the ticked shop products. */
+    public function bulk(BulkActionRequest $request): JsonResponse
+    {
+        return $this->runBulk($request, StoreProduct::query(), $this->remove(...));
+    }
+
+    /** What deleting a shop product does, for `destroy()` and the bulk path alike. */
+    private function remove(StoreProduct $storeProduct): void
+    {
         DB::transaction(function () use ($storeProduct) {
             // Polymorphic rows have nothing to cascade them; the pivot does.
             $storeProduct->faqs()->delete();
             $storeProduct->answerBlocks()->delete();
             $storeProduct->delete();
         });
-
-        return response()->json(null, 204);
     }
 
     /** @return array<int, string> */

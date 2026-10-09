@@ -1,5 +1,8 @@
 "use server";
 
+import { runBulkAction } from "@/lib/admin/bulk";
+import type { BulkState } from "@/types/bulk";
+
 import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
@@ -146,7 +149,9 @@ export async function deleteStoreProductAction(formData: FormData) {
 
   if (!id) return;
 
-  await deleteStoreProduct(id).catch(() => null);
+  // Only a delete the API accepted may purge anything.
+  const deleted = await deleteStoreProduct(id).then(() => true, () => false);
+  if (!deleted) redirect("/admin/store/products?done=not-deleted");
   updateTag("store-products");
   revalidatePath("/admin/store/products");
   redirect("/admin/store/products?done=store-product-deleted");
@@ -260,7 +265,9 @@ export async function deleteStoreCategoryAction(formData: FormData) {
 
   if (!id) return;
 
-  await deleteStoreCategory(id).catch(() => null);
+  // Only a delete the API accepted may purge anything.
+  const deleted = await deleteStoreCategory(id).then(() => true, () => false);
+  if (!deleted) redirect("/admin/store/categories?done=not-deleted");
   updateTag("store-categories");
   updateTag("store-products");
   revalidatePath("/admin/store/categories");
@@ -305,4 +312,24 @@ export async function savePromoAction(_prev: PromoFormState, formData: FormData)
   updateTag("settings");
 
   return { ok: true };
+}
+
+/** The ticked rows of the list: publish, draft, archive or delete — see `lib/admin/bulk.ts`. */
+export async function bulkStoreProductsAction(_prev: BulkState, formData: FormData): Promise<BulkState> {
+  return runBulkAction(formData, {
+    path: "store/products",
+    noun: ["product", "products"],
+    tags: ["store-products"],
+    paths: ["/admin/store/products"],
+  });
+}
+
+/** The ticked rows of the list: publish, draft, archive or delete — see `lib/admin/bulk.ts`. */
+export async function bulkStoreCategoriesAction(_prev: BulkState, formData: FormData): Promise<BulkState> {
+  return runBulkAction(formData, {
+    path: "store/categories",
+    noun: ["category", "categories"],
+    tags: ["store-categories", "store-products"],
+    paths: ["/admin/store/categories"],
+  });
 }

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\AnswerBlockKind;
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkActionRequest;
 use App\Http\Requests\StoreSolutionRequest;
 use App\Http\Requests\UpdateSolutionRequest;
 use App\Http\Resources\Admin\SolutionResource;
@@ -26,6 +28,7 @@ use Illuminate\Support\Facades\DB;
  */
 class SolutionController extends Controller
 {
+    use HandlesBulk;
     use WritesCmsEntities;
 
     /** Relation keys that must be stripped before mass assignment. */
@@ -102,6 +105,20 @@ class SolutionController extends Controller
 
     public function destroy(Solution $solution): JsonResponse
     {
+        $this->remove($solution);
+
+        return response()->json(['message' => 'Solution deleted.']);
+    }
+
+    /** `POST /admin/solutions/bulk` — publish, draft, archive or delete the ticked solutions. */
+    public function bulk(BulkActionRequest $request): JsonResponse
+    {
+        return $this->runBulk($request, Solution::query(), $this->remove(...));
+    }
+
+    /** What deleting a solution does, for `destroy()` and the bulk path alike. */
+    private function remove(Solution $solution): void
+    {
         DB::transaction(function () use ($solution) {
             // Pivot rows and the polymorphic FAQ/SEO rows have nothing to
             // cascade them, so clear them explicitly.
@@ -112,8 +129,6 @@ class SolutionController extends Controller
             $solution->seo()->delete();
             $solution->delete();
         });
-
-        return response()->json(['message' => 'Solution deleted.']);
     }
 
     /**

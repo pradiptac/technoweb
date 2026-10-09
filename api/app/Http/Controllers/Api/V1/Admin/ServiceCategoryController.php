@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkDeleteRequest;
 use App\Http\Requests\ServiceCategoryRequest;
 use App\Http\Resources\Admin\ServiceCategoryResource;
 use App\Models\ServiceCategory;
@@ -20,6 +22,8 @@ use Illuminate\Http\Response;
  */
 class ServiceCategoryController extends Controller
 {
+    use HandlesBulk;
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $categories = ServiceCategory::query()
@@ -72,8 +76,20 @@ class ServiceCategoryController extends Controller
      */
     public function destroy(ServiceCategory $serviceCategory): Response
     {
-        $serviceCategory->delete();
+        $this->remove($serviceCategory);
 
         return response()->noContent();
+    }
+
+    /** `POST /admin/service-categories/bulk` — delete the ticked categories. A service category has no status, so delete is the only action. */
+    public function bulk(BulkDeleteRequest $request): JsonResponse
+    {
+        return $this->runBulk($request, ServiceCategory::query(), $this->remove(...));
+    }
+
+    /** What deleting a service category does, for `destroy()` and the bulk path alike. */
+    private function remove(ServiceCategory $serviceCategory): void
+    {
+        $serviceCategory->delete();
     }
 }

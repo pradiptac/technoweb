@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkDownloadsAction } from "./actions";
 
 import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-header";
 import { SortTh } from "@/components/admin/sort-th";
@@ -105,10 +107,13 @@ export default async function AdminDownloadsPage({ searchParams }: { searchParam
             : "Add a datasheet from the media library, or upload a driver or a firmware image. The Downloads link appears in the site's menus once one is published."}
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="downloads" ids={result.data.map((d) => d.id)} noun={{ one: "download", many: "downloads" }} action={bulkDownloadsAction} deleteNote="A file uploaded here goes with its download." />
         <div className="overflow-x-auto">
           <table className="admin-table w-full min-w-[900px] text-13-5">
             <thead>
               <tr className="border-b border-line-strong text-left text-11-5 uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="downloads" ids={result.data.map((d) => d.id)} noun="download" /></th>
                 <SortTh sortKey="title" label="Download" basePath="/admin/downloads" params={sorting} sort={params.sort} dir={params.dir} />
                 <th className="py-2.5 font-semibold">Category</th>
                 <th className="py-2.5 font-semibold">File</th>
@@ -120,6 +125,7 @@ export default async function AdminDownloadsPage({ searchParams }: { searchParam
             <tbody>
               {result.data.map((d) => (
                 <tr key={d.id} className="border-b border-line last:border-b-0">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="downloads" id={d.id} label={d.title} /></td>
                   <td data-label="Download" className="py-2.5">
                     <Link href={`/admin/downloads/${d.id}`} className="font-semibold text-brand-ink hover:underline">
                       {d.title}
@@ -153,6 +159,7 @@ export default async function AdminDownloadsPage({ searchParams }: { searchParam
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination meta={result.meta} basePath="/admin/downloads" params={sorting} />

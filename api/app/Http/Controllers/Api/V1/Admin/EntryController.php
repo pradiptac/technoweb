@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\AnswerBlockKind;
 use App\Enums\PublishStatus;
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Concerns\WritesAnswerContent;
 use App\Http\Controllers\Concerns\WritesCustomFields;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkActionRequest;
 use App\Http\Requests\EntryRequest;
 use App\Http\Resources\Admin\ContentTypeResource;
 use App\Http\Resources\Admin\EntryResource;
@@ -14,6 +16,7 @@ use App\Models\ContentType;
 use App\Models\Entry;
 use App\Support\CustomFields\CustomFields;
 use App\Support\PageSections\RecordSections;
+use App\Support\PublishStamp;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -35,7 +38,7 @@ class EntryController extends Controller
 {
     // Not `WritesCmsEntities`: its helpers take a bare `Model`, and an entry
     // is typed here instead — the two it needs are written against `Entry`.
-    use WritesAnswerContent, WritesCustomFields;
+    use HandlesBulk, WritesAnswerContent, WritesCustomFields;
 
     private const DETAIL = ['contentType', 'faqs', 'answerBlocks', 'seo', 'customValues.field.group'];
 
@@ -155,18 +158,29 @@ class EntryController extends Controller
      */
     private function publishedAt(array $attributes, ?Entry $existing = null): array
     {
-        $status = $attributes['status'] ?? $existing?->status->value;
-
-        if ($status === PublishStatus::Published->value
-            && empty($attributes['published_at'])
-            && $existing?->published_at === null) {
-            $attributes['published_at'] = now();
-        }
-
-        return $attributes;
+        return PublishStamp::apply($attributes, $existing);
     }
 
     public function destroy(ContentType $contentType, Entry $entry): JsonResponse
+    {
+        $this->remove($entry);
+
+        return response()->json(['message' => 'Entry deleted.']);
+    }
+
+    /**
+     * `POST /admin/content-types/{type}/entries/bulk` — publish, draft,
+     * archive or delete the ticked entries **of this type**; another type's
+     * entry id is simply absent from the answer, as the scoped routes make it
+     * a 404.
+     */
+    public function bulk(BulkActionRequest $request, ContentType $contentType): JsonResponse
+    {
+        return $this->runBulk($request, Entry::query()->where('content_type_id', $contentType->id), $this->remove(...));
+    }
+
+    /** What deleting an entry does, for `destroy()` and the bulk path alike. */
+    private function remove(Entry $entry): void
     {
         DB::transaction(function () use ($entry) {
             // Polymorphic rows have nothing to cascade them.
@@ -175,7 +189,5 @@ class EntryController extends Controller
             $entry->answerBlocks()->delete();
             $entry->delete();
         });
-
-        return response()->json(['message' => 'Entry deleted.']);
     }
 }

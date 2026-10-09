@@ -93,6 +93,7 @@ Route::middleware('role:seo_manager')->group(function () {
     Route::get('landing-pages/opportunities', [AdminLandingPageController::class, 'opportunities'])->name('landing-pages.opportunities');
     Route::get('landing-pages', [AdminLandingPageController::class, 'index'])->name('landing-pages.index');
     Route::post('landing-pages', [AdminLandingPageController::class, 'store'])->name('landing-pages.store');
+    Route::post('landing-pages/bulk', [AdminLandingPageController::class, 'bulk'])->middleware('throttle:30,1')->name('landing-pages.bulk');
     Route::get('landing-pages/{landing_page:id}', [AdminLandingPageController::class, 'show'])->name('landing-pages.show');
     Route::patch('landing-pages/{landing_page:id}', [AdminLandingPageController::class, 'update'])->name('landing-pages.update');
     Route::delete('landing-pages/{landing_page:id}', [AdminLandingPageController::class, 'destroy'])->name('landing-pages.destroy');

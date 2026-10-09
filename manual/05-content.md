@@ -71,6 +71,38 @@ shares the same controls.
 - On a desktop screen the list's header row stays in view as you scroll,
   when the whole table fits across the screen.
 
+### Doing something to several rows at once
+
+Blog posts, knowledge-base articles, case studies, solutions, services,
+pages, catalogue products, shop products, events, vacancies, downloads, custom
+content entries and landing pages have a **tick box on every row**. The tick
+box in the header row ticks every row on the page you are looking at.
+
+As soon as one row is ticked, a bar appears above the list saying how many are
+selected. Its buttons:
+
+- **Publish** puts the ticked rows on the site.
+- **Move to draft** takes them off the site and keeps them as drafts.
+- **Archive** takes them off the site and files them away.
+- **Delete** removes them for good. It asks you to confirm and tells you how
+  many; press **Cancel** to change your mind.
+- **Select none** clears the ticks.
+
+Industries, brands, product categories, shop categories and service categories
+have no draft or published state, so their bar only has **Delete**.
+
+Each row is handled on its own, exactly as if you had opened it and pressed
+Save. If one cannot be moved — a landing page that does not yet meet the
+publishing checks, a download with no file, an online event with no join link,
+an event that already has people registered (archive it instead of deleting
+it) — it is left as it was, and the bar lists it with the reason until you
+close the list. The others still go through. A message at the corner says how
+many were done.
+
+The ticks clear after every action, and when you move to another page or change
+a filter. You can act on up to 100 rows at a time. Deleting several rows at once
+is recorded in the activity log with the number deleted.
+
 ## The editor
 
 Body text on pages, posts, articles and similar records is written in a

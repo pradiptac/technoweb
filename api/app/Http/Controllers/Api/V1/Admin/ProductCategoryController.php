@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\AnswerBlockKind;
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkDeleteRequest;
 use App\Http\Requests\StoreProductCategoryRequest;
 use App\Http\Requests\UpdateProductCategoryRequest;
 use App\Http\Resources\Admin\ProductCategoryResource;
@@ -24,6 +26,7 @@ use Illuminate\Support\Facades\DB;
  */
 class ProductCategoryController extends Controller
 {
+    use HandlesBulk;
     use WritesCmsEntities;
 
     public function index(Request $request): AnonymousResourceCollection
@@ -96,6 +99,20 @@ class ProductCategoryController extends Controller
 
     public function destroy(ProductCategory $productCategory): JsonResponse
     {
+        $this->remove($productCategory);
+
+        return response()->json(['message' => 'Category deleted.']);
+    }
+
+    /** `POST /admin/product-categories/bulk` — delete the ticked categories. A category has no status, so delete is the only action. */
+    public function bulk(BulkDeleteRequest $request): JsonResponse
+    {
+        return $this->runBulk($request, ProductCategory::query(), $this->remove(...));
+    }
+
+    /** What deleting a category does, for `destroy()` and the bulk path alike. */
+    private function remove(ProductCategory $productCategory): void
+    {
         DB::transaction(function () use ($productCategory) {
             // Children are promoted to this category's own parent rather than
             // being orphaned at the root. The FK is nullOnDelete, which would
@@ -108,7 +125,5 @@ class ProductCategoryController extends Controller
             $productCategory->answerBlocks()->delete();
             $productCategory->delete();
         });
-
-        return response()->json(['message' => 'Category deleted.']);
     }
 }

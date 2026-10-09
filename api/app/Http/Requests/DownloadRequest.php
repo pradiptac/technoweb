@@ -112,10 +112,9 @@ class DownloadRequest extends FormRequest
                 $v->errors()->add('access', 'A file from the media library has a public address, so it cannot be limited to customers. Upload the file here instead.');
             }
 
-            if ($status === PublishStatus::Published->value && ! $hasFile) {
-                $v->errors()->add('status', $source === DownloadSource::Upload->value
-                    ? 'Upload the file before publishing this download.'
-                    : 'Choose the file before publishing this download.');
+            if ($status === PublishStatus::Published->value
+                && $refusal = DownloadFiles::publishRefusal(DownloadSource::from($source), $hasFile)) {
+                $v->errors()->add('status', $refusal);
             }
         });
     }

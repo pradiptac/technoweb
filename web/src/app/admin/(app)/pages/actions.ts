@@ -1,5 +1,8 @@
 "use server";
 
+import { runBulkAction } from "@/lib/admin/bulk";
+import type { BulkState } from "@/types/bulk";
+
 import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
@@ -98,4 +101,14 @@ export async function deletePageAction(formData: FormData) {
   // was a path of the caller's choosing, and the page's own fetch is
   // tagged "pages" — which the line above already purged.
   redirect("/admin/pages?deleted=1");
+}
+
+/** The ticked rows of the list: publish, draft, archive or delete — see `lib/admin/bulk.ts`. */
+export async function bulkPagesAction(_prev: BulkState, formData: FormData): Promise<BulkState> {
+  return runBulkAction(formData, {
+    path: "pages",
+    noun: ["page", "pages"],
+    tags: ["pages"],
+    paths: ["/admin/pages"],
+  });
 }

@@ -21,6 +21,39 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.139.0 — 2026-10-09
+
+**Tick several rows and publish, archive or delete them in one go.**
+
+- **Tick boxes on the content lists.** Blog posts, knowledge-base articles,
+  case studies, solutions, services, pages, catalogue products, events,
+  vacancies, shop products, downloads, custom content entries and landing
+  pages each have a tick box on every row and one in the header that ticks the
+  whole page. Once anything is ticked a bar appears above the list: **Publish**,
+  **Move to draft**, **Archive** and **Delete**.
+- **Delete-only lists.** Industries, brands, product categories, shop
+  categories and service categories have no draft or published state, so their
+  bar offers only **Delete**.
+- **Delete asks first**, naming how many, and can be cancelled.
+- **A row that cannot be moved is left alone, and you are told why.** Each row
+  is handled on its own, exactly as if you had edited it: a landing page that
+  has not earned publishing, a download with no file, an online event with no
+  join link, or an event people have registered for is skipped with the reason
+  shown in the bar until you close it, and the rest still go through.
+- **Nothing is skipped silently and nothing half-happens.** A message says how
+  many were done; the ticks clear afterwards, and also when you change page or
+  filter, so you never act on rows you can no longer see.
+- **Deleting several at once is written to the activity log** with how many.
+- **The title column still cannot be hidden** in Table view: the tick column
+  sits in front of it, and the ticket queue — which already had one — had been
+  offering its title column to hide.
+- **Catalogue products sit four to a row** from a 1280px screen and five on a
+  wide one (three before), on `/products`, each category's listing and the
+  landing pages, so more of the range is in view and the pictures are smaller.
+- **A failed delete no longer says "deleted".** Deleting a custom content entry,
+  a vacancy, a shop product or a shop category when the server refused it used
+  to refresh the site and report success. It now reports that nothing was deleted.
+
 ## 0.138.0 — 2026-10-09
 
 **Share a draft: a private link anyone can open to review it before it is published.**

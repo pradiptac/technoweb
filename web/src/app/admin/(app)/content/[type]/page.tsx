@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkEntriesAction } from "./actions";
 import { notFound } from "next/navigation";
 import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -75,10 +77,13 @@ export default async function EntriesPage({
         <EmptyState icon={<IconPen />} title={`No ${type.plural.toLowerCase()} yet`}
           action={<ButtonLink href={`${base}/new`} size="sm">New {type.name.toLowerCase()}</ButtonLink>} />
       ) : (
+        <>
+          <BulkBar scope="entries" ids={result.data.map((e) => e.id)} noun={{ one: type.name.toLowerCase(), many: type.plural.toLowerCase() }} action={bulkEntriesAction} hidden={{ type: type.slug }} />
         <div className="overflow-x-auto">
           <table className="admin-table w-full min-w-[620px] text-13-5">
             <thead>
               <tr className="border-b border-line-strong text-left text-11-5 uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="entries" ids={result.data.map((e) => e.id)} noun="entry" /></th>
                 <th className="py-2.5 font-semibold">Title</th>
                 <th className="py-2.5 font-semibold">Address</th>
                 <th className="py-2.5 font-semibold">Published</th>
@@ -88,6 +93,7 @@ export default async function EntriesPage({
             <tbody>
               {result.data.map((e) => (
                 <tr key={e.id} className="border-b border-line last:border-b-0">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="entries" id={e.id} label={e.title} /></td>
                   <td data-label="Title" className="py-2.5">
                     <Link href={`${base}/${e.id}`} className="font-semibold text-brand-ink hover:underline">{e.title}</Link>
                   </td>
@@ -105,6 +111,7 @@ export default async function EntriesPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination meta={result.meta} basePath={base} params={{ q: sp.q, status: sp.status, per_page: sp.per_page }} />

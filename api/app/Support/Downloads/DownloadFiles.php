@@ -100,6 +100,33 @@ class DownloadFiles
         }
     }
 
+    /**
+     * The sentence for why a download cannot be published without a file, or
+     * null when it can — the one definition. `DownloadRequest` asks it about
+     * what an edit will make the download; the bulk "Publish" (0.139.0) asks it
+     * about the download as stored, via `storedFileRefusal()`.
+     */
+    public static function publishRefusal(DownloadSource $source, bool $hasFile): ?string
+    {
+        if ($hasFile) {
+            return null;
+        }
+
+        return $source === DownloadSource::Upload
+            ? 'Upload the file before publishing this download.'
+            : 'Choose the file before publishing this download.';
+    }
+
+    /** `publishRefusal()` for the download as it is stored. */
+    public static function storedFileRefusal(Download $download): ?string
+    {
+        $hasFile = $download->source === DownloadSource::Upload
+            ? filled($download->private_path)
+            : filled($download->file_path);
+
+        return self::publishRefusal($download->source, $hasFile);
+    }
+
     public static function exists(Download $download): bool
     {
         return filled($download->private_path) && Storage::disk(self::DISK)->exists((string) $download->private_path);

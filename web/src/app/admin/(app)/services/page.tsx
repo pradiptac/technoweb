@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkServicesAction } from "./actions";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { SortTh } from "@/components/admin/sort-th";
@@ -103,10 +105,13 @@ export default async function AdminServicesPage({
             : "Web, hardware and installation services — each filed under a service category."}
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="services" ids={services.map((s) => s.id)} noun={{ one: "service", many: "services" }} action={bulkServicesAction} />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[680px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="services" ids={services.map((s) => s.id)} noun="service" /></th>
                 <SortTh sortKey="title" label="Service" {...sortable} />
                 <SortTh sortKey="category" label="Category" {...sortable} />
                 <SortTh sortKey="status" label="Status" {...sortable} />
@@ -116,6 +121,7 @@ export default async function AdminServicesPage({
             <tbody>
               {services.map((s) => (
                 <tr key={s.id} className="border-b border-line last:border-b-0 align-top">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="services" id={s.id} label={s.title} /></td>
                   <td data-label="Service" className="px-3 py-2">
                     <div className="flex items-start gap-2.5">
                       <RowIcon name={s.icon} />
@@ -135,6 +141,7 @@ export default async function AdminServicesPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination meta={result.meta} basePath="/admin/services" params={listParams} />

@@ -1,5 +1,8 @@
 "use server";
 
+import { runBulkAction } from "@/lib/admin/bulk";
+import type { BulkState } from "@/types/bulk";
+
 import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
@@ -95,4 +98,14 @@ export async function deleteIndustryAction(formData: FormData) {
   updateTag("menu");
   revalidatePath("/admin/industries");
   redirect("/admin/industries?deleted=1");
+}
+
+/** The ticked rows of the list: publish, draft, archive or delete — see `lib/admin/bulk.ts`. */
+export async function bulkIndustriesAction(_prev: BulkState, formData: FormData): Promise<BulkState> {
+  return runBulkAction(formData, {
+    path: "industries",
+    noun: ["industry", "industries"],
+    tags: ["industries", "menu"],
+    paths: ["/admin/industries"],
+  });
 }

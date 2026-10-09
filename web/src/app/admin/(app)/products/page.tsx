@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkProductsAction } from "./actions";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { SortTh } from "@/components/admin/sort-th";
 import Image from "next/image";
@@ -90,10 +92,13 @@ export default async function AdminProductsPage({
             : "The hardware catalogue. Each product gets its own page under /products."}
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="products" ids={products.map((p) => p.id)} noun={{ one: "product", many: "products" }} action={bulkProductsAction} />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[820px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="products" ids={products.map((p) => p.id)} noun="product" /></th>
                 <SortTh sortKey="name" label="Product" {...sortable} />
                 <th scope="col" className="px-3 py-1.5">Brand</th>
                 <th scope="col" className="px-3 py-1.5">Category</th>
@@ -103,6 +108,7 @@ export default async function AdminProductsPage({
             <tbody>
               {products.map((p) => (
                 <tr key={p.id} className="border-b border-line last:border-b-0 align-top">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="products" id={p.id} label={p.name} /></td>
                   <td data-label="Product" className="px-3 py-2">
                     <div className="flex items-start gap-2.5">
                       {/*
@@ -135,6 +141,7 @@ export default async function AdminProductsPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination meta={result.meta} basePath="/admin/products" params={listParams} />

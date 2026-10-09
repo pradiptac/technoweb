@@ -7,6 +7,7 @@ use App\Enums\PublishStatus;
 use App\Models\LandingPage;
 use App\Models\Product;
 use App\Models\Setting;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * What a generated page has to be before it is allowed to exist publicly.
@@ -117,6 +118,63 @@ class LandingPageQuality
             'failures' => $failures,
             'checks' => $checks,
         ];
+    }
+
+    /**
+     * The page as it *would be* once `$changes` were applied, judged before
+     * anything is saved.
+     *
+     * Filling an unsaved copy rather than judging the stored row is the whole
+     * point: an editor who has just pasted an introduction is asking whether
+     * *this* passes, and grading what is still in the database would answer a
+     * question nobody asked. `exists` and the id carry over so the cap check
+     * can tell an edit of a live page from a request for a new slot, and so
+     * the uniqueness checks do not compare the page against itself.
+     *
+     * Shared by the form request (an edit) and the bulk "Publish" (the stored
+     * page with a new status), so the two cannot disagree about what is being
+     * judged.
+     *
+     * @param  array<string, mixed>  $changes
+     */
+    public static function candidate(?LandingPage $stored, array $changes): LandingPage
+    {
+        $page = ($stored ?? new LandingPage)->replicate();
+        $page->setRawAttributes(array_merge(($stored ?? $page)->getAttributes(), $changes));
+
+        if ($stored !== null) {
+            $page->exists = true;
+            $page->id = $stored->id;
+            $page->setRelations($stored->getRelations());
+        }
+
+        return $page;
+    }
+
+    /**
+     * Every other page with an introduction — what a candidate's uniqueness
+     * is judged against.
+     *
+     * @return Collection<int, LandingPage>
+     */
+    public static function others(LandingPage $page): Collection
+    {
+        return LandingPage::query()->whereKeyNot((int) $page->id)
+            ->whereNotNull('intro')->get(['id', 'title', 'intro']);
+    }
+
+    /**
+     * The reasons a **stored** page may not be published as it stands — the
+     * bulk "Publish" asks this; an edit asks `reasons()` of its own candidate.
+     * Empty when it may.
+     *
+     * @return list<string>
+     */
+    public static function publishReasons(LandingPage $stored): array
+    {
+        $candidate = self::candidate($stored, ['status' => PublishStatus::Published->value]);
+
+        return array_values(self::reasons($candidate, self::others($stored)));
     }
 
     /** Convenience for the form request, which only needs the sentences. */

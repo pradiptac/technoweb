@@ -103,9 +103,13 @@ export function TableView() {
   }, [found]);
   const hidden = useMemo(() => parseHidden(raw), [raw]);
 
+  // The identity column is the first one with a heading: a list with a row
+  // tick (0.139.0) starts with an unheaded column holding it, and the title
+  // beside that is still the row's identity, never offered.
+  const identity = labels.findIndex((label) => label !== "");
   const offered = labels
     .map((label, index) => ({ label, index }))
-    .filter(({ label, index }) => index > 0 && label !== "" && !NEVER.test(label));
+    .filter(({ label, index }) => index > identity && label !== "" && !NEVER.test(label));
   const off = offered.filter(({ label }) => hidden.includes(label));
 
   // Nothing to adjust on a screen with no table.

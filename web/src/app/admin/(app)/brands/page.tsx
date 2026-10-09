@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkBrandsAction } from "./actions";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import Image from "next/image";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -71,10 +73,13 @@ export default async function AdminBrandsPage({
             : "Manufacturers you supply. They become filter options on the product listing."}
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="brands" ids={brands.map((b) => b.id)} noun={{ one: "brand", many: "brands" }} actions={["delete"]} action={bulkBrandsAction} deleteNote="Their products stay, unbranded." />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[680px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="brands" ids={brands.map((b) => b.id)} noun="brand" /></th>
                 <th scope="col" className="px-3 py-1.5">Brand</th>
                 <th scope="col" className="px-3 py-1.5">Products</th>
                 <th scope="col" className="px-3 py-1.5">Order</th>
@@ -83,6 +88,7 @@ export default async function AdminBrandsPage({
             <tbody>
               {brands.map((b) => (
                 <tr key={b.id} className="border-b border-line last:border-b-0 align-top">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="brands" id={b.id} label={b.name} /></td>
                   <td data-label="Brand" className="px-3 py-2">
                     <div className="flex items-start gap-2.5">
                       {/*
@@ -112,6 +118,7 @@ export default async function AdminBrandsPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination meta={result.meta} basePath="/admin/brands" params={{ q: params.q, per_page: params.per_page }} />

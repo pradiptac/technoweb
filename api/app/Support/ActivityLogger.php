@@ -187,6 +187,13 @@ class ActivityLogger
             return true;
         }
 
+        // A bulk delete is a DELETE said another way. `HandlesBulk` sets the
+        // count of what it actually deleted, so a batch in which everything
+        // was refused leaves no line, and a status change (an edit) none.
+        if ((int) $request->attributes->get('bulk_deleted', 0) > 0) {
+            return true;
+        }
+
         // A new record. `store` is the route's own name, so this covers an
         // entity nobody has written yet.
         if (self::actionOf($request) === 'store') {
@@ -218,6 +225,12 @@ class ActivityLogger
 
     private static function actionOf(Request $request): string
     {
+        // A bulk delete reads as "deleted" on the activity screen, like the
+        // single one; the count is in the context.
+        if ((int) $request->attributes->get('bulk_deleted', 0) > 0) {
+            return 'destroy';
+        }
+
         $name = $request->route()?->getName();
 
         if ($name) {
@@ -316,6 +329,12 @@ class ActivityLogger
             if ($keys) {
                 $context['settings'] = array_slice($keys, 0, 40);
             }
+        }
+
+        // A bulk delete: the action and how many, never the ids or the rows.
+        if ((int) $request->attributes->get('bulk_deleted', 0) > 0) {
+            $context['action'] = 'delete';
+            $context['count'] = (int) $request->attributes->get('bulk_deleted');
         }
 
         foreach (self::CONTEXT_ALLOWLIST as $key) {

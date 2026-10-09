@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\V1\Admin\Store;
 
 use App\Enums\AnswerBlockKind;
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkDeleteRequest;
 use App\Http\Requests\Store\CategoryRequest;
 use App\Http\Resources\Admin\Store\CategoryResource;
 use App\Models\StoreCategory;
@@ -15,6 +17,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class CategoryController extends Controller
 {
+    use HandlesBulk;
     use WritesCmsEntities;
 
     public function index(Request $request): AnonymousResourceCollection
@@ -99,10 +102,22 @@ class CategoryController extends Controller
      */
     public function destroy(StoreCategory $storeCategory): JsonResponse
     {
+        $this->remove($storeCategory);
+
+        return response()->json(null, 204);
+    }
+
+    /** `POST /admin/store/categories/bulk` — delete the ticked categories. A shop category has no status (only an on/off switch), so delete is the only action. */
+    public function bulk(BulkDeleteRequest $request): JsonResponse
+    {
+        return $this->runBulk($request, StoreCategory::query(), $this->remove(...));
+    }
+
+    /** What deleting a shop category does, for `destroy()` and the bulk path alike. */
+    private function remove(StoreCategory $storeCategory): void
+    {
         $storeCategory->faqs()->delete();
         $storeCategory->answerBlocks()->delete();
         $storeCategory->delete();
-
-        return response()->json(null, 204);
     }
 }

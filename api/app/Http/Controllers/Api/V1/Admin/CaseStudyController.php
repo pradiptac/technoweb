@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkActionRequest;
 use App\Http\Requests\StoreCaseStudyRequest;
 use App\Http\Requests\UpdateCaseStudyRequest;
 use App\Http\Resources\Admin\CaseStudyResource;
@@ -24,6 +26,7 @@ use Illuminate\Support\Facades\DB;
  */
 class CaseStudyController extends Controller
 {
+    use HandlesBulk;
     use WritesCmsEntities;
 
     public function index(Request $request): AnonymousResourceCollection
@@ -94,11 +97,23 @@ class CaseStudyController extends Controller
 
     public function destroy(CaseStudy $caseStudy): JsonResponse
     {
+        $this->remove($caseStudy);
+
+        return response()->json(['message' => 'Case study deleted.']);
+    }
+
+    /** `POST /admin/case-studies/bulk` — publish, draft, archive or delete the ticked case studies. */
+    public function bulk(BulkActionRequest $request): JsonResponse
+    {
+        return $this->runBulk($request, CaseStudy::query(), $this->remove(...));
+    }
+
+    /** What deleting a case study does, for `destroy()` and the bulk path alike. */
+    private function remove(CaseStudy $caseStudy): void
+    {
         DB::transaction(function () use ($caseStudy) {
             $caseStudy->seo()->delete();
             $caseStudy->delete();
         });
-
-        return response()->json(['message' => 'Case study deleted.']);
     }
 }

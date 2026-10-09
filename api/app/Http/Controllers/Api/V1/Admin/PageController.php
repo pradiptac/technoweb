@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Enums\AnswerBlockKind;
 use App\Enums\PageSectionType;
 use App\Enums\PublishStatus;
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkActionRequest;
 use App\Http\Requests\PreviewPageSectionsRequest;
 use App\Http\Requests\SectionsFromBodyRequest;
 use App\Http\Requests\StorePageRequest;
@@ -42,6 +44,7 @@ use Illuminate\Validation\Rule;
  */
 class PageController extends Controller
 {
+    use HandlesBulk;
     use WritesCmsEntities;
 
     public function index(Request $request): AnonymousResourceCollection
@@ -296,13 +299,25 @@ class PageController extends Controller
 
     public function destroy(Page $page): JsonResponse
     {
+        $this->remove($page);
+
+        return response()->json(['message' => 'Page deleted.']);
+    }
+
+    /** `POST /admin/pages/bulk` — publish, draft, archive or delete the ticked pages. */
+    public function bulk(BulkActionRequest $request): JsonResponse
+    {
+        return $this->runBulk($request, Page::query(), $this->remove(...));
+    }
+
+    /** What deleting a page does, for `destroy()` and the bulk path alike. */
+    private function remove(Page $page): void
+    {
         DB::transaction(function () use ($page) {
             $page->seo()->delete();
             $page->faqs()->delete();
             $page->answerBlocks()->delete();
             $page->delete();
         });
-
-        return response()->json(['message' => 'Page deleted.']);
     }
 }

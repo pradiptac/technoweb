@@ -434,6 +434,12 @@ Built in, measured, and never allowed to guess.
 - **Activity log** by rule, not by list: every deletion, every creation, and
   everything under staff, customers, settings and sign-in — append-only,
   credential-free, pruned only by age.
+- **Bulk actions on the content lists**: tick rows (or a whole page) and
+  publish, move to draft, archive or delete them in one go — thirteen lists
+  with all four, five reference lists (industries, brands, the categories)
+  with delete only. Each row is handled on its own with the rules of its edit
+  screen, a row that cannot move stays put with the reason shown, and a bulk
+  delete is written to the activity log.
 - **Client-side error reporting** grouped by fingerprint, re-opening itself
   if a fix does not hold.
 - **Your own fonts**: upload the company's typeface and set headlines and

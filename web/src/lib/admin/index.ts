@@ -14,6 +14,7 @@ import "server-only";
 export * from "./accounts";
 export * from "./aeo";
 export * from "./blog";
+export * from "./bulk";
 export * from "./careers";
 export * from "./case-studies";
 export * from "./catalogue";

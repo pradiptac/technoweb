@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkIndustriesAction } from "./actions";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert } from "@/components/ui/input";
@@ -73,10 +75,13 @@ export default async function AdminIndustriesPage({
             : "Sectors the site speaks to. Case studies and solutions both reference them."}
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="industries" ids={industries.map((i) => i.id)} noun={{ one: "industry", many: "industries" }} actions={["delete"]} action={bulkIndustriesAction} deleteNote="Case studies stay, with no sector." />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[680px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="industries" ids={industries.map((i) => i.id)} noun="industry" /></th>
                 <th scope="col" className="px-3 py-1.5">Industry</th>
                 <th scope="col" className="px-3 py-1.5">Case studies</th>
                 <th scope="col" className="px-3 py-1.5">Order</th>
@@ -85,6 +90,7 @@ export default async function AdminIndustriesPage({
             <tbody>
               {industries.map((i) => (
                 <tr key={i.id} className="border-b border-line last:border-b-0 align-top">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="industries" id={i.id} label={i.name} /></td>
                   <td data-label="Industry" className="px-3 py-2">
                     <div className="flex items-start gap-2.5">
                       <RowIcon name={i.icon} />
@@ -103,6 +109,7 @@ export default async function AdminIndustriesPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination meta={result.meta} basePath="/admin/industries" params={{ q: params.q, per_page: params.per_page }} />

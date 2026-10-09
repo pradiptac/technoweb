@@ -105,10 +105,8 @@ class LandingPageRequest extends FormRequest
             }
 
             $page = $this->candidate();
-            $others = LandingPage::query()->whereKeyNot($page->id ?? 0)
-                ->whereNotNull('intro')->get(['id', 'title', 'intro']);
 
-            foreach (LandingPageQuality::reasons($page, $others) as $reason) {
+            foreach (LandingPageQuality::reasons($page, LandingPageQuality::others($page)) as $reason) {
                 $validator->errors()->add('status', $reason);
             }
         });
@@ -125,23 +123,13 @@ class LandingPageRequest extends FormRequest
      */
     private function candidate(): LandingPage
     {
-        $page = $this->existing() ?? new LandingPage;
-        $page = $page->replicate()->setRawAttributes(array_merge(
-            $page->getAttributes(),
-            array_intersect_key($this->validated(), array_flip([
-                'kind', 'brand_id', 'product_category_id', 'solution_id', 'service_id',
-                'location_id', 'title', 'heading', 'intro', 'body', 'status',
-            ])),
-        ));
-
-        // `exists` and the id carry over so the cap check can tell an edit of a
-        // live page from a request for a new slot, and so the uniqueness checks
-        // do not compare the page against itself.
-        if ($stored = $this->existing()) {
-            $page->exists = true;
-            $page->id = $stored->id;
-            $page->setRelations($stored->getRelations());
-        }
+        // Built by `LandingPageQuality::candidate()`, which the bulk
+        // "Publish" builds its own through: one answer to what is judged.
+        $stored = $this->existing();
+        $page = LandingPageQuality::candidate($stored, array_intersect_key($this->validated(), array_flip([
+            'kind', 'brand_id', 'product_category_id', 'solution_id', 'service_id',
+            'location_id', 'title', 'heading', 'intro', 'body', 'status',
+        ])));
 
         // An override typed in this request beats the stored one when the gate
         // measures the metadata, for the same reason as the intro.

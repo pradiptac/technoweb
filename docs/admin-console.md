@@ -1043,3 +1043,60 @@ invisible until something rendered a draft.
 
 `scripts/probes/preview-link.mjs` makes a link for the first record of each of
 the twelve lists, opens it signed out at 360 and 1280, and revokes it.
+
+## Bulk actions (0.139.0)
+
+Tick boxes on the console's content lists and a bar over the ticked rows: **Publish**,
+**Move to draft**, **Archive**, **Delete**. Thirteen lists have all four (blog posts,
+knowledge articles, case studies, solutions, services, pages, catalogue products, shop
+products, events, vacancies, downloads, custom content entries, landing pages); five
+have no `status` and are delete-only (industries, brands, product categories, shop
+categories, service categories — a shop category has an on/off switch, not a status).
+
+**One route per list, 200 always.** `POST /admin/{list}/bulk` with `{ids: [1..100], action}`,
+declared above the list's `{id}` route in its role file and under the same role as its CRUD
+(entries: `/admin/content-types/{type-slug}/entries/bulk`, scoped to the type). It answers
+`{updated: [ids], refused: [{id, title, message}]}` whatever happened; an id that does not exist
+is in neither list. The body is `BulkActionRequest`, or `BulkDeleteRequest` (publish/draft/archive
+are a 422 on `action`) for a list without a status.
+
+**Each record is handled alone, through the single-record path.** `HandlesBulk::runBulk()` loads
+the ticked rows and takes them one at a time, each in its own transaction. A delete calls the
+controller's private `remove()`, which `destroy()` calls too; a status change is the model's
+ordinary `update()`. Never a mass `update()` or `delete()`: those skip model events, and the events
+are the work — a product's slug released, a category's children promoted to its parent, a redirect
+written, an IndexNow ping, a download's private file removed, `published_at` stamped. Asking for
+the status a record already has changes nothing and is not judged again.
+
+**A refusal is a sentence on that record, not a failed batch.** An `HttpException` or a
+`ValidationException` becomes `refused[].message` (the first message) and the batch goes on. Where
+a rule lived only in a FormRequest it was extracted so both paths read one definition:
+the event join link in `App\Support\Events\PublishCheck`, the download "a file first" rule in
+`DownloadFiles::publishRefusal()`, the landing page gate through `LandingPageQuality::candidate()`
+and `publishReasons()` (the request builds its candidate through the same method), and "publishing
+without a date means now" in `App\Support\PublishStamp` (`WritesCmsEntities` and the entries
+controller delegate to it). The delete refusal is `destroy()`'s own: an event with registrations.
+
+**The activity log.** A DELETE is recorded by rule; a POST named `bulk` is not, so `runBulk()`
+sets the count it deleted on the application's request (a form request is a copy, its attributes go
+nowhere) and `ActivityLogger` records action `destroy` with context `{action: delete, count}` —
+no ids, no titles. A status change, and a delete in which everything was refused, write nothing.
+
+**The console.** `components/admin/row-selection.tsx` is the one client module: a module-level
+store read with `useSyncExternalStore` and **keyed by a `scope` string per list**, so ticks on the
+blog never show on the tickets; `RowTick`, `TickAll` (indeterminate when part of a page is ticked)
+and `BulkBar`. The ticket queue and the review queue used to carry a private copy each and now share
+the store (their own bars keep their own controls). The bar is sticky, wraps, asks for confirmation
+on Delete in a real `<dialog>` that says how many, shows a toast for the count, lists the refusals in
+place (`title — message`) until dismissed, and clears the selection after any finished action and when
+the page's rows change. Each list page has a first column with an **unheaded** `<th>` holding `TickAll`
+and a `<td data-label="Select">` with the row's tick; `TableView` takes the first column **that has a
+heading** as the row's identity, so the title stays un-hideable. Each list's Server Action is a few
+lines over `runBulkAction()` (`lib/admin/bulk.ts`): `updateTag` for the tags that list's own saves
+purge, and `revalidatePath` of the list, **only when `updated` is not empty**.
+
+**Pre-existing, fixed on the way.** The delete actions for custom content entries, vacancies, shop
+products and shop categories purged and reported "deleted" whatever the API answered; they now follow
+the rule the twelve other lists do (refusal → `?done=not-deleted`, purge nothing).
+
+`scripts/probes/bulk-actions.mjs` drives it on throwaway blog posts at 1280 and 360.

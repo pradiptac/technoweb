@@ -41,7 +41,10 @@ export function ProductGrid({
 
   return (
     <>
-      <ul className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+      {/* Four to a row from 1280px and five from 1536px (the client, 2026-10-09):
+          at three, a card on a wide screen was 565px across and two products
+          filled the first screen with their pictures alone. */}
+      <ul className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {items.map((p, i) => (
           <li key={p.id} className="relative" data-aos="fade-up" data-aos-delay={STAGGER[i % STAGGER.length]}>
             {/* Over the tile's corner from the <li>, never inside the link:
@@ -85,11 +88,11 @@ export function ProductGrid({
                        photo is a real gap, not a decorative image. */
                     alt={p.image_alts?.[0] ?? ""}
                     fill
-                    sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 50vw"
+                    sizes="(min-width: 1536px) 20vw, (min-width: 1280px) 25vw, (min-width: 768px) 33vw, 50vw"
                     // The first row is above the fold under every theme, and under
                     // one whose hero has no banner (Datacenter) a picture there is
                     // the LCP: eager, never `priority`, the case-study grid's rule.
-                    loading={i < 3 ? "eager" : undefined}
+                    loading={i < 5 ? "eager" : undefined}
                     className="object-cover"
                     style={focalStyle(p.image_focuses?.[0])} {...blurProps(p.image_blurs?.[0])}
                   />

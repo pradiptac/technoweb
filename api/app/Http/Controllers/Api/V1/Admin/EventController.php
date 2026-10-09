@@ -6,8 +6,10 @@ use App\Enums\EventFormat;
 use App\Enums\EventRegistrationMode;
 use App\Enums\EventRegistrationStatus;
 use App\Enums\PublishStatus;
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Concerns\WritesAnswerContent;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkActionRequest;
 use App\Http\Requests\StoreEventRequest;
 use App\Http\Requests\UpdateEventRequest;
 use App\Http\Resources\Admin\EventResource;
@@ -15,6 +17,7 @@ use App\Models\Event;
 use App\Support\Events\EventActions;
 use App\Support\Events\EventCounts;
 use App\Support\Events\EventText;
+use App\Support\Events\PublishCheck;
 use App\Support\ListSort;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -40,6 +43,7 @@ class EventController extends Controller
     // `saveFaqs()`, typed on `Faqable`. Not `WritesCmsEntities`: an event has
     // no `published_at` for it to stamp, and its SEO row is written below
     // against the model itself rather than a bare `Model`.
+    use HandlesBulk;
     use WritesAnswerContent;
 
     /** The columns a header may sort by — `ListSort`'s allowlist. */
@@ -142,6 +146,35 @@ class EventController extends Controller
      */
     public function destroy(Event $event): JsonResponse
     {
+        $this->remove($event);
+
+        return response()->json(['message' => 'Event deleted.']);
+    }
+
+    /**
+     * `POST /admin/events/bulk` — publish, draft, archive or delete the ticked
+     * events. Publishing is refused, per event, by the same join-link rule an
+     * edit is held to; deleting by the registrations rule `destroy()` has.
+     */
+    public function bulk(BulkActionRequest $request): JsonResponse
+    {
+        return $this->runBulk(
+            $request,
+            Event::query(),
+            $this->remove(...),
+            function (Event $event, PublishStatus $status) {
+                $refusal = PublishCheck::joinLinkRefusal($status, $event->format, $event->registration_mode, $event->online_url);
+
+                if ($refusal !== null) {
+                    throw ValidationException::withMessages(['online_url' => $refusal]);
+                }
+            },
+        );
+    }
+
+    /** What deleting an event does, for `destroy()` and the bulk path alike. */
+    private function remove(Event $event): void
+    {
         if ($event->registrations()->exists()) {
             throw ValidationException::withMessages([
                 'event' => 'People have registered for this event, so it cannot be deleted. Archive it instead.',
@@ -154,8 +187,6 @@ class EventController extends Controller
             $event->faqs()->delete();
             $event->delete();
         });
-
-        return response()->json(['message' => 'Event deleted.']);
     }
 
     /**

@@ -1,5 +1,8 @@
 "use server";
 
+import { runBulkAction } from "@/lib/admin/bulk";
+import type { BulkState } from "@/types/bulk";
+
 import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
@@ -337,4 +340,14 @@ export async function deleteRegistrationAction(formData: FormData): Promise<void
 
   if (done === "event-registration-deleted") refreshRegistrations(eventId);
   redirect(`/admin/events/${eventId}/registrations?${query}`);
+}
+
+/** The ticked rows of the list: publish, draft, archive or delete — see `lib/admin/bulk.ts`. */
+export async function bulkEventsAction(_prev: BulkState, formData: FormData): Promise<BulkState> {
+  return runBulkAction(formData, {
+    path: "events",
+    noun: ["event", "events"],
+    tags: ["events"],
+    paths: ["/admin/events"],
+  });
 }

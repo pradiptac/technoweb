@@ -59,12 +59,14 @@ Route::middleware('role:store_manager')->group(function () {
 
     Route::get('store/categories', [AdminStoreCategoryController::class, 'index'])->name('store.categories.index');
     Route::post('store/categories', [AdminStoreCategoryController::class, 'store'])->name('store.categories.store');
+    Route::post('store/categories/bulk', [AdminStoreCategoryController::class, 'bulk'])->middleware('throttle:30,1')->name('store.categories.bulk');
     Route::get('store/categories/{storeCategory:id}', [AdminStoreCategoryController::class, 'show'])->name('store.categories.show');
     Route::patch('store/categories/{storeCategory:id}', [AdminStoreCategoryController::class, 'update'])->name('store.categories.update');
     Route::delete('store/categories/{storeCategory:id}', [AdminStoreCategoryController::class, 'destroy'])->name('store.categories.destroy');
 
     Route::get('store/products', [AdminStoreProductController::class, 'index'])->name('store.products.index');
     Route::post('store/products', [AdminStoreProductController::class, 'store'])->name('store.products.store');
+    Route::post('store/products/bulk', [AdminStoreProductController::class, 'bulk'])->middleware('throttle:30,1')->name('store.products.bulk');
 
     /*
      * The catalogue as a spreadsheet, both ways. Declared above

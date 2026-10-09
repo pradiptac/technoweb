@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\AnswerBlockKind;
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkActionRequest;
 use App\Http\Requests\StoreKnowledgeArticleRequest;
 use App\Http\Requests\UpdateKnowledgeArticleRequest;
 use App\Http\Resources\Admin\KnowledgeArticleResource;
@@ -23,6 +25,7 @@ use Illuminate\Support\Facades\DB;
  */
 class KnowledgeArticleController extends Controller
 {
+    use HandlesBulk;
     use WritesCmsEntities;
 
     public function index(Request $request): AnonymousResourceCollection
@@ -111,13 +114,25 @@ class KnowledgeArticleController extends Controller
 
     public function destroy(KnowledgeArticle $knowledgeArticle): JsonResponse
     {
+        $this->remove($knowledgeArticle);
+
+        return response()->json(['message' => 'Article deleted.']);
+    }
+
+    /** `POST /admin/knowledge-articles/bulk` — publish, draft, archive or delete the ticked articles. */
+    public function bulk(BulkActionRequest $request): JsonResponse
+    {
+        return $this->runBulk($request, KnowledgeArticle::query(), $this->remove(...));
+    }
+
+    /** What deleting an article does, for `destroy()` and the bulk path alike. */
+    private function remove(KnowledgeArticle $knowledgeArticle): void
+    {
         DB::transaction(function () use ($knowledgeArticle) {
             $knowledgeArticle->seo()->delete();
             $knowledgeArticle->faqs()->delete();
             $knowledgeArticle->answerBlocks()->delete();
             $knowledgeArticle->delete();
         });
-
-        return response()->json(['message' => 'Article deleted.']);
     }
 }

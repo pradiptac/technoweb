@@ -1,5 +1,8 @@
 "use server";
 
+import { runBulkAction } from "@/lib/admin/bulk";
+import type { BulkState } from "@/types/bulk";
+
 import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
@@ -101,4 +104,14 @@ export async function deletePostAction(formData: FormData) {
   updateTag("blog");
   revalidatePath("/admin/blog");
   redirect("/admin/blog?deleted=1");
+}
+
+/** The ticked rows of the list: publish, draft, archive or delete — see `lib/admin/bulk.ts`. */
+export async function bulkPostsAction(_prev: BulkState, formData: FormData): Promise<BulkState> {
+  return runBulkAction(formData, {
+    path: "blog-posts",
+    noun: ["post", "posts"],
+    tags: ["blog"],
+    paths: ["/admin/blog"],
+  });
 }

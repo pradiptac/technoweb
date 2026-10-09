@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkStoreProductsAction } from "../actions";
 import Image from "next/image";
 import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -137,10 +139,13 @@ export default async function StoreProductsPage({
             : "Add what you sell. Each product gets its own page under /store/products."}
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="store-products" ids={products.map((p) => p.id)} noun={{ one: "product", many: "products" }} action={bulkStoreProductsAction} />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[820px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="store-products" ids={products.map((p) => p.id)} noun="product" /></th>
                 <th scope="col" className="px-3 py-1.5">Product</th>
                 <th scope="col" className="px-3 py-1.5">Type</th>
                 <th scope="col" className="px-3 py-1.5">Price</th>
@@ -152,6 +157,7 @@ export default async function StoreProductsPage({
             <tbody>
               {products.map((p) => (
                 <tr key={p.id} className="border-b border-line last:border-b-0 align-top">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="store-products" id={p.id} label={p.name} /></td>
                   <td data-label="Product" className="px-3 py-2">
                     <div className="flex items-start gap-2.5">
                       <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded border border-line-strong bg-surface">
@@ -228,6 +234,7 @@ export default async function StoreProductsPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination

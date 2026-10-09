@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkEventsAction } from "./actions";
 import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-header";
 import { SortTh } from "@/components/admin/sort-th";
 import { Badge } from "@/components/ui/badge";
@@ -121,10 +123,13 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
             : "An event is a draft until you publish it. Published, it appears on the Events page and, if you switch registration on, starts taking names."}
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="events" ids={events.map((event) => event.id)} noun={{ one: "event", many: "events" }} action={bulkEventsAction} deleteNote="An event people have registered for is kept: archive it instead." />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[960px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="events" ids={events.map((event) => event.id)} noun="event" /></th>
                 <SortTh sortKey="title" label="Event" basePath="/admin/events" params={pageParams} sort={params.sort} dir={params.dir} />
                 <SortTh sortKey="starts" label="When" basePath="/admin/events" params={pageParams} sort={params.sort} dir={params.dir} />
                 <th scope="col" className="px-3 py-1.5">Format</th>
@@ -140,6 +145,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
 
                 return (
                   <tr key={event.id} className="border-b border-line last:border-b-0 align-top">
+                    <td data-label="Select" className="px-3 py-2"><RowTick scope="events" id={event.id} label={event.title} /></td>
                     <td data-label="Event" className="px-3 py-2 md:max-w-[40ch]">
                       <Link href={`/admin/events/${event.id}`} className="text-13-5 font-medium text-ink hover:underline">
                         {event.title}
@@ -196,6 +202,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination meta={result.meta} basePath="/admin/events" params={pageParams} />

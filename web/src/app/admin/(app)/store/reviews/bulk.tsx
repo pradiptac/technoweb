@@ -1,56 +1,24 @@
 "use client";
 
-import { useActionState, useEffect, useSyncExternalStore } from "react";
+import { useActionState, useEffect } from "react";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { RowTick, TickAll, clearSelection, useSelection } from "@/components/admin/row-selection";
 import { moderateReviewsAction, type ReviewActionState } from "./actions";
 
 /*
- * The selection, as the ticket queue keeps it: a module-level store read with
- * `useSyncExternalStore`, because the table is server-rendered and each
- * row's tick and the bar above are separate client islands with no common
- * client parent. The snapshot is replaced, never mutated, so React can
- * compare it by identity.
+ * The selection is the console's shared store (`components/admin/row-selection`),
+ * keyed by this list's scope.
  */
-let selected: ReadonlySet<number> = new Set();
-const listeners = new Set<() => void>();
-const emit = () => listeners.forEach((l) => l());
-const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
-const snapshot = () => selected;
-const EMPTY: ReadonlySet<number> = new Set();
-const serverSnapshot = () => EMPTY;
-
-function set(next: Set<number>) { selected = next; emit(); }
-function toggle(id: number) {
-  const next = new Set(selected);
-  if (next.has(id)) next.delete(id); else next.add(id);
-  set(next);
-}
-function clear() { if (selected.size) set(new Set()); }
-function useSelected() { return useSyncExternalStore(subscribe, snapshot, serverSnapshot); }
+const SCOPE = "reviews";
 
 export function ReviewTick({ id, label }: { id: number; label: string }) {
-  const on = useSelected().has(id);
-  return (
-    <input type="checkbox" checked={on} onChange={() => toggle(id)} aria-label={`Select the review by ${label}`} className="size-4 accent-brand-600" />
-  );
+  return <RowTick scope={SCOPE} id={id} label={`the review by ${label}`} />;
 }
 
 export function ReviewTickAll({ ids }: { ids: number[] }) {
-  const current = useSelected();
-  const all = ids.length > 0 && ids.every((id) => current.has(id));
-  const some = !all && ids.some((id) => current.has(id));
-  return (
-    <input
-      type="checkbox"
-      checked={all}
-      ref={(el) => { if (el) el.indeterminate = some; }}
-      onChange={() => set(all ? new Set() : new Set(ids))}
-      aria-label={all ? "Select none" : "Select every review on this page"}
-      className="size-4 accent-brand-600"
-    />
-  );
+  return <TickAll scope={SCOPE} ids={ids} noun="review" />;
 }
 
 const initial: ReviewActionState = {};
@@ -71,17 +39,17 @@ const ACTIONS = [
  * was on.
  */
 export function ReviewBulkBar({ ids }: { ids: number[] }) {
-  const current = useSelected();
+  const current = useSelection(SCOPE);
   const toast = useToast();
   const [state, action, pending] = useActionState(moderateReviewsAction, initial);
 
   const pageKey = ids.join(",");
-  useEffect(() => { clear(); }, [pageKey]);
+  useEffect(() => { clearSelection(SCOPE); }, [pageKey]);
 
   useEffect(() => {
     if (state.ok) {
       toast({ tone: "ok", title: state.ok });
-      clear();
+      clearSelection(SCOPE);
     } else if (state.error) {
       toast({ tone: "err", title: state.error });
     }
@@ -95,7 +63,7 @@ export function ReviewBulkBar({ ids }: { ids: number[] }) {
       <Form action={action} state={state} className="flex flex-wrap items-center gap-2">
         {[...current].map((id) => <input key={id} type="hidden" name="ids" value={id} />)}
         <span className="text-13 font-semibold text-brand-ink">{count} review{count === 1 ? "" : "s"} selected</span>
-        <button type="button" onClick={clear} className="rounded px-2 py-1 text-12-5 font-medium text-brand-ink underline-offset-2 hover:underline">
+        <button type="button" onClick={() => clearSelection(SCOPE)} className="rounded px-2 py-1 text-12-5 font-medium text-brand-ink underline-offset-2 hover:underline">
           Select none
         </button>
         <div className="ml-auto flex flex-wrap items-center gap-2">

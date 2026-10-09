@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkJobsAction } from "./actions";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
@@ -94,10 +96,13 @@ export default async function AdminJobsPage({
             : "Post one and it appears on /careers as soon as it is published."}
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="jobs" ids={jobs.map((job) => job.id)} noun={{ one: "vacancy", many: "vacancies" }} action={bulkJobsAction} deleteNote="The applications each vacancy received are kept." />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[820px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="jobs" ids={jobs.map((job) => job.id)} noun="vacancy" /></th>
                 <th scope="col" className="px-3 py-1.5">Role</th>
                 <th scope="col" className="px-3 py-1.5">Team</th>
                 <th scope="col" className="px-3 py-1.5">Status</th>
@@ -108,6 +113,7 @@ export default async function AdminJobsPage({
             <tbody>
               {jobs.map((job) => (
                 <tr key={job.id} className="border-b border-line last:border-b-0 align-top">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="jobs" id={job.id} label={job.title} /></td>
                   <td data-label="Role" className="px-3 py-2">
                     <Link href={`/admin/jobs/${job.id}`} className="block hover:underline">
                       <span className="text-13-5 font-medium text-ink">{job.title}</span>
@@ -154,6 +160,7 @@ export default async function AdminJobsPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination

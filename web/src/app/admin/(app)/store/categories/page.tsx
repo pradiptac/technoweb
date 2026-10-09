@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkStoreCategoriesAction } from "../actions";
 import { PageHeader } from "@/components/admin/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
@@ -47,10 +49,13 @@ export default async function StoreCategoriesPage() {
           requirement.
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="store-categories" ids={categories.map((c) => c.id)} noun={{ one: "category", many: "categories" }} actions={["delete"]} action={bulkStoreCategoriesAction} deleteNote="Their products stay, uncategorised." />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[620px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="store-categories" ids={categories.map((c) => c.id)} noun="category" /></th>
                 <th scope="col" className="px-3 py-1.5">Category</th>
                 <th scope="col" className="px-3 py-1.5">Products</th>
                 <th scope="col" className="px-3 py-1.5">Shown</th>
@@ -59,6 +64,7 @@ export default async function StoreCategoriesPage() {
             <tbody>
               {categories.map((c) => (
                 <tr key={c.id} className="border-b border-line last:border-b-0">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="store-categories" id={c.id} label={c.name} /></td>
                   <td data-label="Category" className="px-3 py-2">
                     <Link href={`/admin/store/categories/${c.id}`} className="font-medium hover:underline">
                       {c.name}
@@ -76,6 +82,7 @@ export default async function StoreCategoriesPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </>
   );

@@ -10,6 +10,7 @@ use App\Http\Requests\Concerns\SanitisesRichText;
 use App\Models\Event;
 use App\Support\Events\EventSettings;
 use App\Support\Events\EventText;
+use App\Support\Events\PublishCheck;
 use App\Support\PageSections\RecordSections;
 use App\Support\PageSections\SectionRules;
 use Illuminate\Foundation\Http\FormRequest;
@@ -194,14 +195,9 @@ class StoreEventRequest extends FormRequest
                 $v->errors()->add('external_url', 'Where do people register? Add the link to the sign-up page.');
             }
 
-            // The join link is what a registrant is sent. Publishing an
-            // online event that registers here without one would confirm
-            // people into a webinar they have no way to open.
-            if ($status === PublishStatus::Published
-                && $format->isOnline()
-                && $mode === EventRegistrationMode::Open
-                && blank($this->settled('online_url', $existing?->online_url))) {
-                $v->errors()->add('online_url', 'Add the join link before publishing — it is what people who register are sent.');
+            // The join link — one definition, shared with the bulk "Publish".
+            if ($refusal = PublishCheck::joinLinkRefusal($status, $format, $mode, $this->settled('online_url', $existing?->online_url))) {
+                $v->errors()->add('online_url', $refusal);
             }
 
             $capacity = $this->settled('capacity', $existing?->capacity);

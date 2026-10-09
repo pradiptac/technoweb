@@ -54,6 +54,7 @@ Route::middleware('role:content_manager')->group(function () {
      */
     Route::get('events', [AdminEventController::class, 'index'])->name('events.index');
     Route::post('events', [AdminEventController::class, 'store'])->name('events.store');
+    Route::post('events/bulk', [AdminEventController::class, 'bulk'])->middleware('throttle:30,1')->name('events.bulk');
     Route::get('events/{event:id}', [AdminEventController::class, 'show'])->name('events.show');
     Route::patch('events/{event:id}', [AdminEventController::class, 'update'])->name('events.update');
     Route::delete('events/{event:id}', [AdminEventController::class, 'destroy'])->name('events.destroy');
@@ -71,6 +72,7 @@ Route::middleware('role:content_manager')->group(function () {
      */
     Route::get('job-openings', [JobOpeningController::class, 'index'])->name('job-openings.index');
     Route::post('job-openings', [JobOpeningController::class, 'store'])->name('job-openings.store');
+    Route::post('job-openings/bulk', [JobOpeningController::class, 'bulk'])->middleware('throttle:30,1')->name('job-openings.bulk');
     Route::get('job-openings/{job_opening:id}', [JobOpeningController::class, 'show'])->name('job-openings.show');
     Route::patch('job-openings/{job_opening:id}', [JobOpeningController::class, 'update'])->name('job-openings.update');
     Route::delete('job-openings/{job_opening:id}', [JobOpeningController::class, 'destroy'])->name('job-openings.destroy');
@@ -88,6 +90,7 @@ Route::middleware('role:content_manager')->group(function () {
     // slug it is addressed by.
     Route::get('blog-posts', [AdminBlogPostController::class, 'index'])->name('blog-posts.index');
     Route::post('blog-posts', [AdminBlogPostController::class, 'store'])->name('blog-posts.store');
+    Route::post('blog-posts/bulk', [AdminBlogPostController::class, 'bulk'])->middleware('throttle:30,1')->name('blog-posts.bulk');
     Route::get('blog-posts/{blog_post:id}', [AdminBlogPostController::class, 'show'])->name('blog-posts.show');
     Route::patch('blog-posts/{blog_post:id}', [AdminBlogPostController::class, 'update'])->name('blog-posts.update');
     Route::delete('blog-posts/{blog_post:id}', [AdminBlogPostController::class, 'destroy'])->name('blog-posts.destroy');
@@ -119,17 +122,20 @@ Route::middleware('role:content_manager')->group(function () {
     // One endpoint per resource — the same call made for industries.
     Route::get('products', [AdminProductController::class, 'index'])->name('products.index');
     Route::post('products', [AdminProductController::class, 'store'])->name('products.store');
+    Route::post('products/bulk', [AdminProductController::class, 'bulk'])->middleware('throttle:30,1')->name('products.bulk');
     Route::get('products/{product:id}', [AdminProductController::class, 'show'])->name('products.show');
     Route::patch('products/{product:id}', [AdminProductController::class, 'update'])->name('products.update');
     Route::delete('products/{product:id}', [AdminProductController::class, 'destroy'])->name('products.destroy');
 
     Route::get('solutions', [AdminSolutionController::class, 'index'])->name('solutions.index');
     Route::post('solutions', [AdminSolutionController::class, 'store'])->name('solutions.store');
+    Route::post('solutions/bulk', [AdminSolutionController::class, 'bulk'])->middleware('throttle:30,1')->name('solutions.bulk');
     Route::get('solutions/{solution:id}', [AdminSolutionController::class, 'show'])->name('solutions.show');
     Route::patch('solutions/{solution:id}', [AdminSolutionController::class, 'update'])->name('solutions.update');
     Route::delete('solutions/{solution:id}', [AdminSolutionController::class, 'destroy'])->name('solutions.destroy');
     Route::get('case-studies', [AdminCaseStudyController::class, 'index'])->name('case-studies.index');
     Route::post('case-studies', [AdminCaseStudyController::class, 'store'])->name('case-studies.store');
+    Route::post('case-studies/bulk', [AdminCaseStudyController::class, 'bulk'])->middleware('throttle:30,1')->name('case-studies.bulk');
     Route::get('case-studies/{case_study:id}', [AdminCaseStudyController::class, 'show'])->name('case-studies.show');
     Route::patch('case-studies/{case_study:id}', [AdminCaseStudyController::class, 'update'])->name('case-studies.update');
     Route::delete('case-studies/{case_study:id}', [AdminCaseStudyController::class, 'destroy'])->name('case-studies.destroy');
@@ -138,24 +144,28 @@ Route::middleware('role:content_manager')->group(function () {
         ->name('knowledge-categories.index');
     Route::get('knowledge-articles', [AdminKnowledgeArticleController::class, 'index'])->name('knowledge-articles.index');
     Route::post('knowledge-articles', [AdminKnowledgeArticleController::class, 'store'])->name('knowledge-articles.store');
+    Route::post('knowledge-articles/bulk', [AdminKnowledgeArticleController::class, 'bulk'])->middleware('throttle:30,1')->name('knowledge-articles.bulk');
     Route::get('knowledge-articles/{knowledge_article:id}', [AdminKnowledgeArticleController::class, 'show'])->name('knowledge-articles.show');
     Route::patch('knowledge-articles/{knowledge_article:id}', [AdminKnowledgeArticleController::class, 'update'])->name('knowledge-articles.update');
     Route::delete('knowledge-articles/{knowledge_article:id}', [AdminKnowledgeArticleController::class, 'destroy'])->name('knowledge-articles.destroy');
 
     Route::get('services', [AdminServiceController::class, 'index'])->name('services.index');
     Route::post('services', [AdminServiceController::class, 'store'])->name('services.store');
+    Route::post('services/bulk', [AdminServiceController::class, 'bulk'])->middleware('throttle:30,1')->name('services.bulk');
     Route::get('services/{service:id}', [AdminServiceController::class, 'show'])->name('services.show');
     Route::patch('services/{service:id}', [AdminServiceController::class, 'update'])->name('services.update');
     Route::delete('services/{service:id}', [AdminServiceController::class, 'destroy'])->name('services.destroy');
 
     Route::get('industries', [AdminIndustryController::class, 'index'])->name('industries.index');
     Route::post('industries', [AdminIndustryController::class, 'store'])->name('industries.store');
+    Route::post('industries/bulk', [AdminIndustryController::class, 'bulk'])->middleware('throttle:30,1')->name('industries.bulk');
     Route::get('industries/{industry:id}', [AdminIndustryController::class, 'show'])->name('industries.show');
     Route::patch('industries/{industry:id}', [AdminIndustryController::class, 'update'])->name('industries.update');
     Route::delete('industries/{industry:id}', [AdminIndustryController::class, 'destroy'])->name('industries.destroy');
 
     Route::get('pages', [AdminPageController::class, 'index'])->name('pages.index');
     Route::post('pages', [AdminPageController::class, 'store'])->name('pages.store');
+    Route::post('pages/bulk', [AdminPageController::class, 'bulk'])->middleware('throttle:30,1')->name('pages.bulk');
     // The section builder (2026-09-26): its pickers, and the unsaved-draft
     // preview. Declared above `pages/{page:id}`, or the id binding reads
     // "builder" as a page and 404s.
@@ -179,6 +189,7 @@ Route::middleware('role:content_manager')->group(function () {
 
     Route::get('brands', [AdminBrandController::class, 'index'])->name('brands.index');
     Route::post('brands', [AdminBrandController::class, 'store'])->name('brands.store');
+    Route::post('brands/bulk', [AdminBrandController::class, 'bulk'])->middleware('throttle:30,1')->name('brands.bulk');
     Route::get('brands/{brand:id}', [AdminBrandController::class, 'show'])->name('brands.show');
     Route::patch('brands/{brand:id}', [AdminBrandController::class, 'update'])->name('brands.update');
     Route::delete('brands/{brand:id}', [AdminBrandController::class, 'destroy'])->name('brands.destroy');
@@ -318,6 +329,7 @@ Route::middleware('role:content_manager')->group(function () {
     Route::scopeBindings()->group(function () {
         Route::get('content-types/{content_type:slug}/entries', [EntryController::class, 'index'])->name('entries.index');
         Route::post('content-types/{content_type:slug}/entries', [EntryController::class, 'store'])->name('entries.store');
+        Route::post('content-types/{content_type:slug}/entries/bulk', [EntryController::class, 'bulk'])->middleware('throttle:30,1')->name('entries.bulk');
         Route::get('content-types/{content_type:slug}/entries/{entry:id}', [EntryController::class, 'show'])->name('entries.show');
         Route::patch('content-types/{content_type:slug}/entries/{entry:id}', [EntryController::class, 'update'])->name('entries.update');
         Route::delete('content-types/{content_type:slug}/entries/{entry:id}', [EntryController::class, 'destroy'])->name('entries.destroy');
@@ -327,6 +339,7 @@ Route::middleware('role:content_manager')->group(function () {
     // category select — one endpoint per resource, as with industries.
     Route::get('product-categories', [AdminProductCategoryController::class, 'index'])->name('product-categories.index');
     Route::post('product-categories', [AdminProductCategoryController::class, 'store'])->name('product-categories.store');
+    Route::post('product-categories/bulk', [AdminProductCategoryController::class, 'bulk'])->middleware('throttle:30,1')->name('product-categories.bulk');
     Route::get('product-categories/{product_category:id}', [AdminProductCategoryController::class, 'show'])->name('product-categories.show');
     Route::patch('product-categories/{product_category:id}', [AdminProductCategoryController::class, 'update'])->name('product-categories.update');
     Route::delete('product-categories/{product_category:id}', [AdminProductCategoryController::class, 'destroy'])->name('product-categories.destroy');
@@ -335,6 +348,7 @@ Route::middleware('role:content_manager')->group(function () {
     // doubles as the service form's category select.
     Route::get('service-categories', [AdminServiceCategoryController::class, 'index'])->name('service-categories.index');
     Route::post('service-categories', [AdminServiceCategoryController::class, 'store'])->name('service-categories.store');
+    Route::post('service-categories/bulk', [AdminServiceCategoryController::class, 'bulk'])->middleware('throttle:30,1')->name('service-categories.bulk');
     Route::get('service-categories/{service_category:id}', [AdminServiceCategoryController::class, 'show'])->name('service-categories.show');
     Route::patch('service-categories/{service_category:id}', [AdminServiceCategoryController::class, 'update'])->name('service-categories.update');
     Route::delete('service-categories/{service_category:id}', [AdminServiceCategoryController::class, 'destroy'])->name('service-categories.destroy');
@@ -349,6 +363,7 @@ Route::middleware('role:content_manager')->group(function () {
     Route::get('downloads', [AdminDownloadController::class, 'index'])->name('downloads.index');
     Route::get('downloads/options', [AdminDownloadController::class, 'options'])->name('downloads.options');
     Route::post('downloads', [AdminDownloadController::class, 'store'])->name('downloads.store');
+    Route::post('downloads/bulk', [AdminDownloadController::class, 'bulk'])->middleware('throttle:30,1')->name('downloads.bulk');
     Route::get('downloads/{download:id}', [AdminDownloadController::class, 'show'])->name('downloads.show');
     Route::get('downloads/{download:id}/file', [AdminDownloadController::class, 'file'])->name('downloads.file');
     Route::patch('downloads/{download:id}', [AdminDownloadController::class, 'update'])->name('downloads.update');

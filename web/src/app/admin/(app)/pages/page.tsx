@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkPagesAction } from "./actions";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -118,10 +120,13 @@ export default async function AdminPagesPage({
             : "Standalone pages like privacy, terms and downloads live here. Each one is served at /its-slug."}
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="pages" ids={pages.map((p) => p.id)} noun={{ one: "page", many: "pages" }} action={bulkPagesAction} />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[620px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="pages" ids={pages.map((p) => p.id)} noun="page" /></th>
                 <th scope="col" className="px-3 py-1.5">Page</th>
                 <th scope="col" className="px-3 py-1.5">Status</th>
                 <th scope="col" className="px-3 py-1.5">URL</th>
@@ -130,6 +135,7 @@ export default async function AdminPagesPage({
             <tbody>
               {pages.map((p) => (
                 <tr key={p.id} className="border-b border-line last:border-b-0 align-top">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="pages" id={p.id} label={p.title} /></td>
                   <td data-label="Page" className="px-3 py-2">
                     <Link href={`/admin/pages/${p.id}`} className="block hover:underline">
                       <p className="text-13-5 font-medium text-ink">{p.title}</p>
@@ -150,6 +156,7 @@ export default async function AdminPagesPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination meta={result.meta} basePath="/admin/pages" params={{ status: params.status, q: params.q, per_page: params.per_page }} />

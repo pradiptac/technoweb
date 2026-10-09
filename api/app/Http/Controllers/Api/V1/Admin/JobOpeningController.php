@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkActionRequest;
 use App\Http\Requests\StoreJobOpeningRequest;
 use App\Http\Requests\UpdateJobOpeningRequest;
 use App\Http\Resources\Admin\AdminJobOpeningResource;
@@ -13,6 +15,8 @@ use Illuminate\Http\Request;
 /** Vacancies. Bound by id, not slug — the edit form changes the slug. */
 class JobOpeningController extends Controller
 {
+    use HandlesBulk;
+
     public function index(Request $request): JsonResponse
     {
         $openings = JobOpening::query()
@@ -54,12 +58,24 @@ class JobOpeningController extends Controller
 
     public function destroy(JobOpening $job_opening): JsonResponse
     {
+        $this->remove($job_opening);
+
+        return response()->json(['message' => 'Vacancy deleted. The applications it received were kept.']);
+    }
+
+    /** `POST /admin/job-openings/bulk` — publish, draft, archive or delete the ticked vacancies. */
+    public function bulk(BulkActionRequest $request): JsonResponse
+    {
+        return $this->runBulk($request, JobOpening::query(), $this->remove(...));
+    }
+
+    /** What deleting a vacancy does, for `destroy()` and the bulk path alike. */
+    private function remove(JobOpening $job_opening): void
+    {
         // Applications survive: `job_opening_id` is nullOnDelete and the title
         // is copied onto each one. Closing a role must not destroy the record
         // of who applied to it.
         $job_opening->delete();
-
-        return response()->json(['message' => 'Vacancy deleted. The applications it received were kept.']);
     }
 
     /**

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\AnswerBlockKind;
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkActionRequest;
 use App\Http\Requests\StoreServiceRequest;
 use App\Http\Requests\UpdateServiceRequest;
 use App\Http\Resources\Admin\ServiceResource;
@@ -23,6 +25,7 @@ use Illuminate\Support\Facades\DB;
 /** Web-service CRUD. Behind auth:sanctum + role:content_manager. */
 class ServiceController extends Controller
 {
+    use HandlesBulk;
     use WritesCmsEntities;
 
     /**
@@ -125,13 +128,25 @@ class ServiceController extends Controller
 
     public function destroy(Service $service): JsonResponse
     {
+        $this->remove($service);
+
+        return response()->json(['message' => 'Service deleted.']);
+    }
+
+    /** `POST /admin/services/bulk` — publish, draft, archive or delete the ticked services. */
+    public function bulk(BulkActionRequest $request): JsonResponse
+    {
+        return $this->runBulk($request, Service::query(), $this->remove(...));
+    }
+
+    /** What deleting a service does, for `destroy()` and the bulk path alike. */
+    private function remove(Service $service): void
+    {
         DB::transaction(function () use ($service) {
             $service->faqs()->delete();
             $service->answerBlocks()->delete();
             $service->seo()->delete();
             $service->delete();
         });
-
-        return response()->json(['message' => 'Service deleted.']);
     }
 }

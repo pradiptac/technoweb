@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Concerns;
 
-use App\Enums\PublishStatus;
+use App\Support\PublishStamp;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -55,18 +55,7 @@ trait WritesCmsEntities
      */
     protected function withPublishedAt(array $attributes, ?Model $existing = null): array
     {
-        $status = $attributes['status'] ?? $existing?->status?->value;
-
-        $becomingPublished = $status instanceof PublishStatus
-            ? $status === PublishStatus::Published
-            : $status === PublishStatus::Published->value;
-
-        if ($becomingPublished
-            && empty($attributes['published_at'])
-            && $existing?->published_at === null) {
-            $attributes['published_at'] = now();
-        }
-
-        return $attributes;
+        // The rule itself is `PublishStamp`, shared with the bulk actions.
+        return PublishStamp::apply($attributes, $existing);
     }
 }

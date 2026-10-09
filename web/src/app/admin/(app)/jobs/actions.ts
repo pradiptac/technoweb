@@ -1,5 +1,8 @@
 "use server";
 
+import { runBulkAction } from "@/lib/admin/bulk";
+import type { BulkState } from "@/types/bulk";
+
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { updateTag } from "next/cache";
@@ -113,7 +116,10 @@ export async function updateJobAction(_prev: JobState, formData: FormData): Prom
 
 export async function deleteJobAction(formData: FormData): Promise<void> {
   const id = Number(formData.get("id"));
-  await deleteJobOpening(id);
+  // Only a delete the API accepted may purge anything: a refusal used to
+  // throw to the error boundary instead of saying so.
+  const deleted = await deleteJobOpening(id).then(() => true, () => false);
+  if (!deleted) redirect("/admin/jobs?done=not-deleted");
   refresh();
   redirect("/admin/jobs?done=vacancy-deleted");
 }
@@ -176,4 +182,14 @@ export async function saveLevelAction(_prev: ReferenceState, formData: FormData)
 
 export async function deleteLevelAction(_prev: ReferenceState, formData: FormData): Promise<ReferenceState> {
   return reference(() => deleteJobExperienceLevel(Number(formData.get("id"))), "Level deleted.");
+}
+
+/** The ticked rows of the list: publish, draft, archive or delete — see `lib/admin/bulk.ts`. */
+export async function bulkJobsAction(_prev: BulkState, formData: FormData): Promise<BulkState> {
+  return runBulkAction(formData, {
+    path: "job-openings",
+    noun: ["vacancy", "vacancies"],
+    tags: ["careers"],
+    paths: ["/admin/jobs"],
+  });
 }

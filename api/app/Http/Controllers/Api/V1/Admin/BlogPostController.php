@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\AnswerBlockKind;
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkActionRequest;
 use App\Http\Requests\StoreBlogPostRequest;
 use App\Http\Requests\UpdateBlogPostRequest;
 use App\Http\Resources\Admin\BlogPostResource;
@@ -23,6 +25,7 @@ use Illuminate\Support\Facades\DB;
  */
 class BlogPostController extends Controller
 {
+    use HandlesBulk;
     use WritesCmsEntities;
 
     public function index(Request $request): AnonymousResourceCollection
@@ -135,6 +138,20 @@ class BlogPostController extends Controller
 
     public function destroy(BlogPost $blogPost): JsonResponse
     {
+        $this->remove($blogPost);
+
+        return response()->json(['message' => 'Post deleted.']);
+    }
+
+    /** `POST /admin/blog-posts/bulk` — publish, draft, archive or delete the ticked posts. */
+    public function bulk(BulkActionRequest $request): JsonResponse
+    {
+        return $this->runBulk($request, BlogPost::query(), $this->remove(...));
+    }
+
+    /** What deleting a post does, for `destroy()` and the bulk path alike. */
+    private function remove(BlogPost $blogPost): void
+    {
         // The SEO row is polymorphic, so nothing cascades it for us.
         DB::transaction(function () use ($blogPost) {
             $blogPost->seo()->delete();
@@ -142,7 +159,5 @@ class BlogPostController extends Controller
             $blogPost->answerBlocks()->delete();
             $blogPost->delete();
         });
-
-        return response()->json(['message' => 'Post deleted.']);
     }
 }

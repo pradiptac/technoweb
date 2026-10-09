@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Enums\DownloadAccess;
 use App\Enums\DownloadSource;
 use App\Enums\PublishStatus;
+use App\Http\Controllers\Api\V1\Admin\Concerns\HandlesBulk;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkActionRequest;
 use App\Http\Requests\DownloadRequest;
 use App\Http\Resources\Admin\DownloadResource;
 use App\Models\Download;
@@ -21,6 +23,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -35,6 +38,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class DownloadController extends Controller
 {
+    use HandlesBulk;
+
     /** The columns a header may sort by — `ListSort`'s allowlist. */
     private const SORTS = [
         'title' => 'title',
@@ -105,11 +110,36 @@ class DownloadController extends Controller
 
     public function destroy(Download $download): JsonResponse
     {
+        $this->remove($download);
+
+        return response()->json(null, 204);
+    }
+
+    /**
+     * `POST /admin/downloads/bulk` — publish, draft, archive or delete the
+     * ticked downloads. Publishing is refused, per download, by the same
+     * "a file first" rule an edit is held to.
+     */
+    public function bulk(BulkActionRequest $request): JsonResponse
+    {
+        return $this->runBulk(
+            $request,
+            Download::query(),
+            $this->remove(...),
+            function (Download $download, PublishStatus $status) {
+                if ($status === PublishStatus::Published && $refusal = DownloadFiles::storedFileRefusal($download)) {
+                    throw ValidationException::withMessages(['status' => $refusal]);
+                }
+            },
+        );
+    }
+
+    /** What deleting a download does, for `destroy()` and the bulk path alike. */
+    private function remove(Download $download): void
+    {
         // The model's `deleted` hook removes a private upload; a library
         // file stays in the library.
         $download->delete();
-
-        return response()->json(null, 204);
     }
 
     /** Streams a private upload to staff — the console's way to check what was uploaded. */

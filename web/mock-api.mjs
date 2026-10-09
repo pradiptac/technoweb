@@ -2917,6 +2917,36 @@ createServer(async (req, res) => {
 
     if (p === '/admin/auth/me') return json(res, 200, { data: staff });
 
+    /* Bulk actions on the content lists (0.139.0). `POST /admin/{list}/bulk` takes
+       `{ids, action}` and answers 200 always with `{updated, refused}`; a list with no
+       status (brands, the categories, industries) is delete-only and a 422 on `action`
+       for anything else. The mock keeps no per-record state, so it follows the shape and
+       the edges and nothing more: an id of 1000 or more "no longer exists" (absent from
+       both lists), and one of 900 to 999 is refused in words — which is what lets the
+       bar's in-place refusal list be driven. */
+    {
+      const bulk = p.match(/^\/admin\/(blog-posts|knowledge-articles|case-studies|solutions|services|pages|products|events|job-openings|downloads|landing-pages|store\/products|content-types\/[a-z0-9-]+\/entries|industries|brands|product-categories|service-categories|store\/categories)\/bulk$/);
+      if (bulk && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const deleteOnly = /^(industries|brands|product-categories|service-categories|store\/categories)$/.test(bulk[1]);
+        const actions = deleteOnly ? ['delete'] : ['publish', 'draft', 'archive', 'delete'];
+        const ids = Array.isArray(body.ids) ? body.ids : [];
+        if (ids.length < 1) return json(res, 422, { message: 'Tick at least one row.', errors: { ids: ['Tick at least one row.'] } });
+        if (ids.length > 100) return json(res, 422, { message: 'Act on up to 100 rows at a time.', errors: { ids: ['Act on up to 100 rows at a time.'] } });
+        if (!actions.includes(body.action)) {
+          return json(res, 422, { message: 'That action is not available on this list.', errors: { action: ['That action is not available on this list.'] } });
+        }
+        const live = ids.filter((id) => Number(id) < 1000);
+        return json(res, 200, {
+          updated: live.filter((id) => Number(id) < 900),
+          refused: live.filter((id) => Number(id) >= 900).map((id) => ({
+            id, title: `Sample record ${id}`,
+            message: body.action === 'delete' ? 'Something still depends on this, so it was not deleted.' : 'It is not ready to publish yet.',
+          })),
+        });
+      }
+    }
+
     /* Leads. `meta` is the contract that matters: the console builds its
        status, band and owner selects from it rather than listing them in
        TypeScript, so a mock that omitted them would render a screen with

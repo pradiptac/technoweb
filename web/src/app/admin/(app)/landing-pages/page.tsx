@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkLandingPagesAction } from "./actions";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert, Select } from "@/components/ui/input";
@@ -104,10 +106,13 @@ export default async function LandingPagesPage({ searchParams }: { searchParams:
           every combination it could produce, and deliberately so.
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="landing-pages" ids={rows.map((row) => row.id)} noun={{ one: "landing page", many: "landing pages" }} action={bulkLandingPagesAction} deleteNote="Publishing runs the same checks as the edit screen; a page that has not earned it is left as a draft." />
         <div className="overflow-x-auto">
           <table className="admin-table w-full min-w-[820px] border-collapse text-13-5">
             <thead>
               <tr className="border-b border-line-strong text-left text-11-5 uppercase tracking-wide text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="landing-pages" ids={rows.map((row) => row.id)} noun="landing page" /></th>
                 <th className="py-2.5 pr-3 font-semibold">Page</th>
                 <th className="py-2.5 pr-3 font-semibold">Kind</th>
                 <th className="py-2.5 pr-3 font-semibold">Status</th>
@@ -117,6 +122,7 @@ export default async function LandingPagesPage({ searchParams }: { searchParams:
             <tbody>
               {rows.map((row: AdminLandingPage) => (
                 <tr key={row.id} className="border-b border-line align-top">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="landing-pages" id={row.id} label={row.title} /></td>
                   <td className="py-3 pr-3" data-label="Page">
                     <Link href={`/admin/landing-pages/${row.id}`} className="font-medium text-ink hover:text-brand-ink hover:underline">
                       {row.title}
@@ -154,6 +160,7 @@ export default async function LandingPagesPage({ searchParams }: { searchParams:
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination meta={result.meta} basePath="/admin/landing-pages" params={{ q: params.q, status: params.status, kind: params.kind }} />

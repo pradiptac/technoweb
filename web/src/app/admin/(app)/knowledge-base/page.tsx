@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BulkBar, RowTick, TickAll } from "@/components/admin/row-selection";
+import { bulkArticlesAction } from "./actions";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -116,10 +118,13 @@ export default async function AdminKnowledgeBasePage({
             : "A good knowledge base deflects tickets — every article here is one someone does not have to raise."}
         </EmptyState>
       ) : (
+        <>
+          <BulkBar scope="knowledge-base" ids={articles.map((a) => a.id)} noun={{ one: "article", many: "articles" }} action={bulkArticlesAction} />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[800px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope="knowledge-base" ids={articles.map((a) => a.id)} noun="article" /></th>
                 <th scope="col" className="px-3 py-1.5">Article</th>
                 <th scope="col" className="px-3 py-1.5">Status</th>
                 <th scope="col" className="px-3 py-1.5">Category</th>
@@ -130,6 +135,7 @@ export default async function AdminKnowledgeBasePage({
             <tbody>
               {articles.map((a) => (
                 <tr key={a.id} className="border-b border-line last:border-b-0 align-top">
+                  <td data-label="Select" className="px-3 py-2"><RowTick scope="knowledge-base" id={a.id} label={a.title} /></td>
                   <td data-label="Article" className="px-3 py-2">
                     <Link href={`/admin/knowledge-base/${a.id}`} className="block hover:underline">
                       <p className="max-w-[44ch] text-13-5 font-medium text-ink">{a.title}</p>
@@ -148,6 +154,7 @@ export default async function AdminKnowledgeBasePage({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination meta={result.meta} basePath="/admin/knowledge-base" params={paginationParams} />

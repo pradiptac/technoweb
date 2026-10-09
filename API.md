@@ -4810,6 +4810,51 @@ are telemetry it writes, and are read-only here.
 
 ---
 
+---
+
+## Admin — bulk actions on the content lists
+
+Tick several rows, do one thing to them (0.139.0, `docs/admin-console.md` "Bulk actions").
+
+| Method | Path | Role |
+|---|---|---|
+| `POST` | `/admin/blog-posts/bulk`, `/admin/knowledge-articles/bulk`, `/admin/case-studies/bulk`, `/admin/solutions/bulk`, `/admin/services/bulk`, `/admin/pages/bulk`, `/admin/products/bulk`, `/admin/events/bulk`, `/admin/job-openings/bulk`, `/admin/downloads/bulk`, `/admin/content-types/{type-slug}/entries/bulk` | `content_manager` |
+| `POST` | `/admin/store/products/bulk` | `store_manager` |
+| `POST` | `/admin/landing-pages/bulk` | `seo_manager` |
+| `POST` | `/admin/industries/bulk`, `/admin/brands/bulk`, `/admin/product-categories/bulk`, `/admin/service-categories/bulk` | `content_manager`, delete only |
+| `POST` | `/admin/store/categories/bulk` | `store_manager`, delete only |
+
+Body: `{ids: [1..100 integers, none twice], action: "publish" | "draft" | "archive" | "delete"}`.
+Throttled 30/min per route. Each route is declared above its list's `{id}` route.
+
+**It answers 200 always:** `{updated: [ids], refused: [{id, title, message}]}`, the shape of
+`POST /admin/tickets/bulk`. An id that does not exist (or, for entries, belongs to another content
+type) is in neither list. Anything the request itself gets wrong is a 422: no ids, more than a
+hundred, an id twice or not an integer (`ids`, `ids.N`), an unknown action (`action`).
+
+**A list without a status is delete-only.** Industries, brands, product categories, service
+categories and shop categories have no `status` (a shop category has `is_active`), so `publish`,
+`draft` and `archive` are a 422 on `action` there.
+
+**Each record is handled on its own, in its own transaction, by the code the single-record path
+uses** — `destroy()` and an ordinary `update()` — never a mass `UPDATE` or `DELETE`, so every model
+hook fires: a deleted product's slug is released (`<slug>-deleted-<id>`), a deleted category's children
+move up to its parent, `published_at` is stamped on publish (an existing date is kept), a deleted
+download's private file goes with it. Asking for the status a record already has is counted as updated
+and changes nothing.
+
+**A record that may not move is refused in the words the edit screen uses**, and the rest go through:
+a landing page that fails `LandingPageQuality` (the gate's sentences, joined), a download with no file
+("Choose the file before publishing this download." / "Upload the file …"), an online event that
+registers here with no join link ("Add the join link before publishing …"), an event that has
+registrations on delete ("People have registered for this event, so it cannot be deleted. Archive it
+instead."). `title` is the record's `title` or `name`.
+
+**A bulk delete is written to the activity log** — action `destroy`, context `{action: delete, count}`
+(no ids, no titles), only when at least one record was deleted. A status change is not logged.
+
+---
+
 ## Admin — draft share links
 
 A private link to a draft that anyone holding it can read signed out
