@@ -11,7 +11,10 @@ use App\Models\OrderReturnPhoto;
 use App\Support\ListSort;
 use App\Support\Store\Returns\ReturnActions;
 use App\Support\Store\Returns\ReturnPhotos;
+use App\Support\Store\Returns\ReturnPickups;
+use App\Support\Store\Shipping\ShiprocketRefused;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -144,6 +147,48 @@ class ReturnController extends Controller
         $data = $request->validate(['note' => ['nullable', 'string', 'max:2000']]);
 
         return $this->resource(ReturnActions::close($orderReturn, $request->user(), $data['note'] ?? null));
+    }
+
+    /** Couriers and prices for collecting the goods (0.159.0). A quote: nothing is booked. */
+    public function pickupRates(OrderReturn $orderReturn): JsonResponse
+    {
+        try {
+            $quote = ReturnPickups::rates($orderReturn);
+        } catch (ShiprocketRefused $e) {
+            return $this->refused($e);
+        }
+
+        return response()->json(['data' => $quote['couriers'], 'meta' => array_diff_key($quote, ['couriers' => 1])]);
+    }
+
+    /** Book the courier's pickup from the customer — or carry a half-made booking on. */
+    public function pickupBook(Request $request, OrderReturn $orderReturn): JsonResource|JsonResponse
+    {
+        $data = $request->validate(['courier_id' => ['nullable', 'integer', 'min:1']]);
+
+        try {
+            $return = ReturnPickups::book($orderReturn, $request->user(), $data['courier_id'] ?? null);
+        } catch (ShiprocketRefused $e) {
+            return $this->refused($e);
+        }
+
+        return $this->resource($return);
+    }
+
+    public function pickupCancel(Request $request, OrderReturn $orderReturn): JsonResource|JsonResponse
+    {
+        try {
+            $return = ReturnPickups::cancel($orderReturn, $request->user());
+        } catch (ShiprocketRefused $e) {
+            return $this->refused($e);
+        }
+
+        return $this->resource($return);
+    }
+
+    private function refused(ShiprocketRefused $e): JsonResponse
+    {
+        return response()->json(['message' => $e->getMessage(), 'errors' => ['pickup' => [$e->getMessage()]]], 422);
     }
 
     /** One photograph, streamed. A photo of another return is a 404. */

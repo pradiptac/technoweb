@@ -10,6 +10,7 @@ use App\Support\ListSort;
 use App\Support\Store\DigitalFulfilment;
 use App\Support\Store\Payments\ManualPayment;
 use App\Support\Store\Payments\ManualRefund;
+use App\Support\Store\Shipping\CourierSettings;
 use App\Support\Store\Shipping\DispatchNotice;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -78,6 +79,8 @@ class OrderController extends Controller
             // Counted over the whole table, not the page: it is a headline
             // figure, and a count of what happens to be on screen is not one.
             'pending_payment' => Order::where('status', OrderStatus::PendingPayment)->count(),
+            // Ticks and "Make a manifest" are drawn only while Shiprocket is on (0.159.0).
+            'courier_active' => CourierSettings::active(),
         ]]);
     }
 

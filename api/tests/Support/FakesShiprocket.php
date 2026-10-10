@@ -91,13 +91,25 @@ trait FakesShiprocket
 
         return match (true) {
             $key === 'GET /settings/company/pickup' => $this->srAnswer($key, ['data' => ['shipping_address' => [
-                ['id' => 4984500, 'pickup_location' => 'Warehouse', 'address' => '12 Industrial Road', 'address_2' => '', 'city' => 'Kolkata', 'state' => 'West Bengal', 'pin_code' => '700001', 'phone_verified' => 1],
+                ['id' => 4984500, 'pickup_location' => 'Warehouse', 'address' => '12 Industrial Road', 'address_2' => '', 'city' => 'Kolkata', 'state' => 'West Bengal', 'pin_code' => '700001', 'phone_verified' => 1,
+                    'name' => 'Stores Desk', 'phone' => '9830000001', 'email' => 'stores@technoware.test'],
                 ['id' => 4984501, 'pickup_location' => 'Showroom', 'address' => '4 Park Street', 'city' => 'Kolkata', 'state' => 'West Bengal', 'pin_code' => '700016', 'phone_verified' => 1],
             ], 'allow_more' => 'true']]),
             $key === 'POST /orders/create/adhoc' => $this->srAnswer($key, ['order_id' => 16161616, 'shipment_id' => 15151515, 'status' => 'NEW', 'status_code' => 1, 'awb_code' => null]),
-            $key === 'POST /courier/assign/awb' => $this->srAnswer($key, ['awb_assign_status' => 1, 'response' => ['data' => [
-                'courier_company_id' => 43, 'awb_code' => '321055706540', 'order_id' => 16161616, 'shipment_id' => 15151515, 'courier_name' => 'Delhivery Surface',
-            ]]]),
+            $key === 'POST /courier/assign/awb' => $this->srAnswer($key, ['awb_assign_status' => 1, 'response' => ['data' => ! empty($request->data()['is_return'])
+                ? ['courier_company_id' => 43, 'awb_code' => '999000111222', 'order_id' => 17171717, 'shipment_id' => 18181818, 'courier_name' => 'Delhivery Reverse']
+                : ['courier_company_id' => 43, 'awb_code' => '321055706540', 'order_id' => 16161616, 'shipment_id' => 15151515, 'courier_name' => 'Delhivery Surface'],
+            ]]),
+            $key === 'POST /orders/create/return' => $this->srAnswer($key, ['order_id' => 17171717, 'shipment_id' => 18181818, 'status' => 'RETURN PENDING', 'status_code' => 21]),
+            $key === 'GET /courier/serviceability/' => $this->srAnswer($key, ['status' => 200, 'currency' => 'INR', 'data' => [
+                'recommended_courier_company_id' => 43,
+                'available_courier_companies' => [
+                    ['courier_company_id' => 43, 'courier_name' => 'Delhivery Surface', 'rate' => 54, 'cod_charges' => 0, 'etd' => 'Oct 16, 2026', 'estimated_delivery_days' => '4', 'rating' => 4.9],
+                    ['courier_company_id' => 10, 'courier_name' => 'Delhivery Air', 'rate' => 112.5, 'cod_charges' => 35.1, 'etd' => 'Oct 14, 2026', 'estimated_delivery_days' => '2', 'rating' => 4.4],
+                ],
+            ]]),
+            $key === 'POST /manifests/generate' => $this->srAnswer($key, ['status' => 1, 'manifest_url' => 'https://manifests.example.test/MANIFEST-3051.pdf']),
+            $key === 'POST /manifests/print' => $this->srAnswer($key, ['manifest_url' => 'https://manifests.example.test/MANIFEST-3051-print.pdf']),
             $key === 'POST /courier/generate/pickup' => $this->srAnswer($key, ['pickup_status' => 1, 'response' => ['pickup_scheduled_date' => '2026-10-13 12:00:00', 'data' => 'Pickup is confirmed by Delhivery Surface For AWB :- 321055706540']]),
             $key === 'POST /courier/generate/label' => $this->srAnswer($key, ['label_created' => 1, 'label_url' => 'https://labels.example.test/shipping-label-15151515.pdf', 'response' => 'Label has been created and uploaded successfully!', 'not_created' => []]),
             $key === 'POST /orders/cancel/shipment/awbs' => $this->srAnswer($key, ['message' => 'Bulk Shipment cancellation is in progress. Please wait for some time.']),

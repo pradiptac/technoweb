@@ -150,6 +150,8 @@ export type OrderIndex = Paginated<AdminOrder> & {
     statuses: { value: string; label: string }[];
     /** Counted over the whole table, not the page. */
     pending_payment: number;
+    /** Shiprocket is switched on and set up: the list offers ticks and a bulk manifest (0.159.0). */
+    courier_active?: boolean;
   };
 };
 

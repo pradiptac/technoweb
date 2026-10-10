@@ -6,10 +6,12 @@ import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import {
   approveReturn, closeReturn, receiveReturn, refundReturn, rejectReturn, saveReturnNote,
+  getReturnPickupRates, runReturnPickup,
 } from "@/lib/admin";
+import type { RatesState } from "@/components/admin/courier-rates";
 import { rupeesToPaise } from "@/lib/money";
 
-export type ReturnActionState = { error?: string; fieldErrors?: Record<string, string[]> };
+export type ReturnActionState = { error?: string; ok?: string; fieldErrors?: Record<string, string[]> };
 
 /*
  * Every move redirects with `?done=`, never returns success into its own
@@ -126,4 +128,51 @@ export async function saveReturnNoteAction(reference: string, _prev: ReturnActio
 
   refresh(reference);
   redirect(`/admin/store/returns/${reference}?done=return-note-saved`);
+}
+
+/*
+ * The courier pickup (0.159.0, docs/store.md "Return pickups"). Unlike the
+ * moves above, its panel stays on screen afterwards, so a success is
+ * returned into it. A refusal is Shiprocket's own sentence, which names the
+ * thing to fix; it is also written on the return, so the page re-reads.
+ */
+
+function pickupFail(error: unknown): ReturnActionState {
+  if (error instanceof ApiError) {
+    if (error.status === 401) redirect("/admin/login");
+    if (error.status === 403) return { error: "Your account cannot work the returns desk." };
+    if (error.message) return { error: error.message };
+  }
+
+  return { error: "Shiprocket did not answer. Try again shortly." };
+}
+
+export async function returnPickupRatesAction(reference: string): Promise<RatesState> {
+  try {
+    const quote = await getReturnPickupRates(reference);
+
+    return { couriers: quote.data, cod: false };
+  } catch (error) {
+    return { error: pickupFail(error).error };
+  }
+}
+
+export async function returnPickupAction(reference: string, _prev: ReturnActionState, formData: FormData): Promise<ReturnActionState> {
+  const action = text(formData, "action");
+
+  if (action !== "book" && action !== "cancel") return { error: "Missing action." };
+
+  const courier = text(formData, "courier_id");
+
+  try {
+    await runReturnPickup(reference, action, action === "book" && /^\d+$/.test(courier) ? { courier_id: Number(courier) } : {});
+  } catch (error) {
+    refresh(reference);
+
+    return pickupFail(error);
+  }
+
+  refresh(reference);
+
+  return { ok: action === "book" ? "The pickup is booked with Shiprocket." : "The pickup was cancelled with Shiprocket." };
 }

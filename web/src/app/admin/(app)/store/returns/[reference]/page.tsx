@@ -14,7 +14,7 @@ import { formatBytes } from "@/lib/format-bytes";
 import { formatPaise } from "@/lib/money";
 import { requireScreen } from "@/lib/admin-screen";
 import type { AdminReturn } from "@/types/returns";
-import { ClosePanel, DecisionPanel, ReceivePanel, RefundPanel, StaffNotePanel } from "./return-panels";
+import { ClosePanel, DecisionPanel, PickupPanel, ReceivePanel, RefundPanel, StaffNotePanel } from "./return-panels";
 
 export const metadata = buildMetadata({ title: "Return", path: "/admin/store/returns", seo: noIndex });
 
@@ -107,6 +107,7 @@ export default async function AdminReturnPage({ params }: { params: Promise<{ re
           )}
 
           <DecisionPanel r={r} />
+          <PickupPanel r={r} />
           <ReceivePanel r={r} />
           <RefundPanel r={r} />
           <ClosePanel r={r} />

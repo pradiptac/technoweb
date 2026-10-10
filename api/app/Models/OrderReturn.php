@@ -50,6 +50,13 @@ class OrderReturn extends Model
             'received_at' => 'datetime',
             'refunded_at' => 'datetime',
             'closed_at' => 'datetime',
+            // The courier pickup (0.159.0, docs/store.md "Return pickups").
+            'pickup_attempts' => 'integer',
+            'pickup_claimed_at' => 'datetime',
+            'pickup_status_id' => 'integer',
+            'pickup_status_at' => 'datetime',
+            'pickup_requested_at' => 'datetime',
+            'pickup_checked_at' => 'datetime',
         ];
     }
 

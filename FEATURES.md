@@ -257,6 +257,10 @@ first rupee.
   The courier's status comes back by itself — a pickup dispatches the order and
   emails the customer, a delivery completes it and starts the returns window — a
   parcel coming back is flagged for you, and the customer sees the live status.
+  You can also ask for couriers and their prices before booking and choose one,
+  make a manifest for a parcel or for many ticked orders at once, and have a
+  courier collect an approved return from the customer — its status shown on the
+  return, while marking the goods received stays yours.
   Not yet tried against a real Shiprocket account.
 - **Invoices in Zoho Books** (optional): connect your Zoho Books and each
   order's GST invoice is made there by itself — when dispatched, or when

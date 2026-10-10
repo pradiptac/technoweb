@@ -97,6 +97,8 @@ export type AdminReturn = {
   refund_reference?: string | null;
   /** Store → Settings: how to send goods back, quoted in the approval email. */
   return_instructions?: string;
+  /** The courier's pickup from the customer (0.159.0); null/absent while Shiprocket is off and nothing was booked. */
+  pickup?: import("./courier").ReturnPickup | null;
   order?: {
     order_number: string;
     status: string;

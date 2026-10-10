@@ -144,7 +144,8 @@ class WebhookPayload
         $return->loadMissing(['order', 'items.orderItem', 'photos', 'decider', 'refundPayment']);
 
         $data = self::resolve((new OrderReturnResource($return))->detail());
-        unset($data['staff_note']);
+        // The courier booking is the desk's: Shiprocket's ids and its refusals are not an integration's business.
+        unset($data['staff_note'], $data['pickup']);
 
         return $data;
     }

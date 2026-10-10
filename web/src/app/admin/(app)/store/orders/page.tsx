@@ -7,6 +7,8 @@ import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge, orderStatusTone } from "@/components/ui/badge";
 import { IconBox } from "@/components/icons";
+import { RowTick, TickAll } from "@/components/admin/row-selection";
+import { ManifestBar, ORDERS_SCOPE } from "./manifest-bar";
 import { getStoreOrders } from "@/lib/admin";
 import { formatPaise } from "@/lib/money";
 import { buildMetadata } from "@/lib/seo";
@@ -59,6 +61,8 @@ export default async function StoreOrdersPage({
   }
 
   const orders = result.data;
+  // Ticks and the manifest bar only where Shiprocket is on (0.159.0): elsewhere they would be a column that does nothing.
+  const courierActive = result.meta.courier_active === true;
   const zohoFailed = params.zoho === "failed";
   const shipmentTrouble = params.shipment === "problem";
   const filtered = Boolean(params.q || params.status || params.open || params.unpaid || zohoFailed || shipmentTrouble);
@@ -133,6 +137,8 @@ export default async function StoreOrdersPage({
         </p>
       )}
 
+      {courierActive && orders.length > 0 && <ManifestBar orders={orders.map((o) => ({ id: o.id, number: o.order_number }))} />}
+
       {orders.length === 0 ? (
         <EmptyState icon={<IconBox />} title={filtered ? "Nothing matches those filters" : "No orders yet"}>
           {filtered ? "Try a different term, or clear the filters." : "Orders placed in the shop appear here."}
@@ -142,6 +148,9 @@ export default async function StoreOrdersPage({
           <table className="admin-table w-full min-w-[820px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                {courierActive && (
+                  <th scope="col" className="w-8 px-3 py-1.5"><TickAll scope={ORDERS_SCOPE} ids={orders.map((o) => o.id)} noun="order" /></th>
+                )}
                 <th scope="col" className="px-3 py-1.5">Order</th>
                 <SortTh sortKey="customer" label="Customer" {...sortable} />
                 <SortTh sortKey="total" label="Total" {...sortable} />
@@ -152,6 +161,9 @@ export default async function StoreOrdersPage({
             <tbody>
               {orders.map((o) => (
                 <tr key={o.id} className="border-b border-line last:border-b-0 align-top">
+                  {courierActive && (
+                    <td data-label="Select" className="px-3 py-2"><RowTick scope={ORDERS_SCOPE} id={o.id} label={o.order_number} /></td>
+                  )}
                   <td data-label="Order" className="px-3 py-2">
                     <Link href={`/admin/store/orders/${o.order_number}`} className="font-mono text-12-5 font-medium hover:underline">
                       {o.order_number}

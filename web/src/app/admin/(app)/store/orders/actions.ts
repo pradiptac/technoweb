@@ -9,8 +9,9 @@ import {
   recordStoreOrderPayment,
   recordStoreOrderRefund,
   sendZohoPayment,
-  runShipmentAction, type ShipmentAction,
+  runShipmentAction, getShipmentRates, makeManifest, type ShipmentAction,
 } from "@/lib/admin";
+import type { RatesState } from "@/components/admin/courier-rates";
 
 export type OrderActionState = { error?: string; ok?: string };
 
@@ -350,6 +351,7 @@ const SHIPMENT_DONE: Record<ShipmentAction, string> = {
   label: "The label is ready.",
   cancel: "The shipment was cancelled with Shiprocket.",
   track: "Asked Shiprocket where it is.",
+  manifest: "The manifest is ready.",
 };
 
 /**
@@ -372,6 +374,10 @@ export async function shipmentAction(
   if (!orderNumber || !(action in SHIPMENT_DONE)) return { error: "Missing order." };
 
   const body: Record<string, unknown> = {};
+
+  // The courier chosen from a quote; nothing chosen is Shiprocket's own default.
+  const courier = String(formData.get("courier_id") ?? "");
+  if ((action === "book" || action === "assign") && /^\d+$/.test(courier)) body.courier_id = Number(courier);
 
   if (action === "book") {
     const grams = kilogramsToGrams(String(formData.get("weight_kg") ?? ""));
@@ -399,6 +405,40 @@ export async function shipmentAction(
   refresh(orderNumber);
 
   return { ok: SHIPMENT_DONE[action] };
+}
+
+/** Couriers and prices for the parcel (0.159.0). A quote only; the weight is as typed on the form, else the order's. */
+export async function shipmentRatesAction(orderNumber: string, weightKg: string): Promise<RatesState> {
+  const grams = weightKg.trim() === "" ? undefined : kilogramsToGrams(weightKg);
+
+  if (grams === null) return { error: "Enter the parcel's weight in kilograms, for example 1.5." };
+
+  try {
+    const quote = await getShipmentRates(orderNumber, grams);
+
+    return { couriers: quote.data, cod: quote.meta.cod };
+  } catch (error) {
+    return { error: toState(error, "Shiprocket did not answer. Try again shortly.").error };
+  }
+}
+
+export type ManifestState = { error?: string; url?: string; included?: string[]; refused?: { number: string; message: string }[] };
+
+/** One manifest for the ticked orders (0.159.0): the ready ones are on it, the rest come back with the reason. */
+export async function manifestOrdersAction(_previous: ManifestState, formData: FormData): Promise<ManifestState> {
+  const numbers = formData.getAll("numbers").map(String).filter(Boolean);
+
+  if (numbers.length === 0) return { error: "Tick the orders first." };
+
+  try {
+    const made = await makeManifest(numbers);
+
+    revalidatePath("/admin/store/orders");
+
+    return made;
+  } catch (error) {
+    return { error: toState(error, "Shiprocket did not answer. Try again shortly.").error };
+  }
 }
 
 /** "1.5" → 1500, on the digits: no float between the text and the grams. */

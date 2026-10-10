@@ -6,6 +6,8 @@ use App\Enums\ReturnStatus;
 use App\Models\OrderReturn;
 use App\Support\Store\Returns\ReturnActions;
 use App\Support\Store\Returns\ReturnMail;
+use App\Support\Store\Returns\ReturnPickups;
+use App\Support\Store\Shipping\CourierSettings;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -31,6 +33,47 @@ class OrderReturnResource extends JsonResource
         $this->detail = true;
 
         return $this;
+    }
+
+    /**
+     * The courier collecting it (0.159.0, docs/store.md "Return pickups").
+     * Every `can_*` is the answer the API will give to the press. Null while
+     * Shiprocket is off and nothing was ever booked.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function pickup(): ?array
+    {
+        $return = $this->resource;
+        $active = CourierSettings::active();
+
+        if (! $active && $return->pickup_booking === null) {
+            return null;
+        }
+
+        return [
+            'active' => $active,
+            'booking' => $return->pickup_booking,
+            'attempts' => (int) $return->pickup_attempts,
+            'shiprocket_order_id' => $return->pickup_sr_order_id,
+            'shipment_id' => $return->pickup_shipment_id,
+            'awb' => $return->pickup_awb,
+            'courier' => $return->pickup_courier,
+            'requested_at' => $return->pickup_requested_at?->toIso8601String(),
+            'status_id' => $return->pickup_status_id,
+            'status' => $return->pickup_status,
+            'status_at' => $return->pickup_status_at?->toIso8601String(),
+            'error' => $return->pickup_error,
+            'can_book' => ReturnPickups::canBook($return),
+            // True when the order is made and only the courier or the pickup request is outstanding.
+            'resume' => ReturnPickups::incomplete($return),
+            'can_rates' => $active && ReturnPickups::refusalToBook($return) === null && ! ReturnPickups::incomplete($return) && $return->pickup_booking !== 'created',
+            'can_cancel' => ReturnPickups::canCancel($return),
+            // Why not, in words — only worth saying for an approved return that cannot be booked.
+            'book_refusal' => $active && $return->status === ReturnStatus::Approved && ! ReturnPickups::canBook($return) && $return->pickup_booking !== 'created'
+                ? ReturnPickups::refusalToBook($return)
+                : null,
+        ];
     }
 
     public function toArray(Request $request): array
@@ -90,6 +133,7 @@ class OrderReturnResource extends JsonResource
                 'suggested_refund_paise' => ReturnActions::suggestedRefundPaise($this->resource),
                 'refund_reference' => $this->refundPayment?->reference,
                 'return_instructions' => ReturnMail::instructions(),
+                'pickup' => $this->pickup(),
                 'order' => $order === null ? null : [
                     'order_number' => $order->order_number,
                     'status' => $order->status->value,

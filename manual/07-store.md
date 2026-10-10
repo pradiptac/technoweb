@@ -310,8 +310,10 @@ Things to know:
   than they bought. After a declined request they may ask again.
 - The wording of the five customer emails and the one to your desk is under
   **System → Email templates**.
-- Return shipping labels, exchanges and store credit are not part of this:
-  for an exchange, close the return and place the replacement order.
+- Exchanges and store credit are not part of this: for an exchange, close the
+  return and place the replacement order. If you book parcels with Shiprocket,
+  an approved return can also have a courier collect it — see *Courier pickup
+  for a return* below.
 
 ## Products
 
@@ -642,6 +644,38 @@ it becomes. The order's history gets a line, the Store overview shows *parcels
 coming back or cancelled*, and **Orders** can be filtered to them. A parcel that
 came back can be booked again.
 
+### Quotes and manifests
+
+- **See couriers and prices** (on a parcel that has no courier yet) asks
+  Shiprocket which couriers can take it and what each would charge, with the
+  delivery days, the rating and Shiprocket's own recommendation. Choose one and
+  press **Book** (or **Assign a courier**) to use it; leave *Shiprocket's
+  default* chosen to let your account's default decide, as before. This is for
+  your choice of courier — the delivery charge a customer pays is still the one
+  from **Store → Shipping**.
+- **Make the manifest** appears once a courier is assigned *and* the pickup is
+  requested: it is the sheet the courier's driver signs. **Open the manifest**
+  shows it. On **Store → Orders**, tick several orders and press **Make a
+  manifest** for one sheet covering all of them; any that are not ready are
+  listed with the reason, and the rest are on the sheet. (The tick boxes appear
+  only when Shiprocket is switched on.)
+
+### Courier pickup for a return
+
+On an **approved** return the **Courier pickup** panel asks Shiprocket to
+collect the goods from the customer's delivery address and bring them back to
+your pickup location. Press **See couriers and prices** if you want to choose,
+then **Book the pickup**. The panel shows the courier, the tracking number and
+the courier's own status as it changes. If the courier or the pickup request is
+refused, the panel keeps the booking and says why; press **Carry on booking**
+once it is fixed — a second order is not made. **Cancel the pickup** cancels it
+at Shiprocket (it refuses once the courier is out for pickup).
+
+The courier's status never changes the return itself: when the goods have
+actually reached you and you have looked at them, you still press **Mark as
+received**. Like everything on Shiprocket, a booking here acts on your real
+account.
+
 ### Things to check on the first real order
 
 The site has been built from Shiprocket's published documentation and has not
@@ -655,6 +689,9 @@ been tried against an account yet. On your first parcel look in Shiprocket for:
 - **The weight and size**, and the pickup address.
 - That the first *picked up* message from Shiprocket really moves the order to
   Dispatched (if not, check the webhook address and token).
+- On the first **return pickup**: that the customer's address is the pickup and
+  your pickup location the destination, and that the courier was asked to
+  collect (some accounts also want it confirmed in Shiprocket's panel).
 
 If a booking is refused, the panel and the order show Shiprocket's own words, and
 the settings screen shows the last refusal.

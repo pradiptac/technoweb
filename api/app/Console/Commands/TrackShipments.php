@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Enums\OrderStatus;
 use App\Models\Order;
+use App\Support\Store\Returns\ReturnPickups;
 use App\Support\Store\Shipping\CourierSettings;
 use App\Support\Store\Shipping\ShipmentStatus;
 use App\Support\Store\Shipping\Shiprocket;
@@ -26,7 +27,8 @@ use Illuminate\Console\Command;
  * written to `shiprocket_error` by the client and the run stops, because a
  * refused sign-in would be refused for every remaining parcel too. A parcel
  * is stamped as checked *before* it is asked about, so one that always
- * fails cannot hold the front of the queue for ever. It does nothing at all
+ * fails cannot hold the front of the queue for ever. Open return pickups
+ * (0.159.0) are asked about after the forward parcels, the same way. It does nothing at all
  * while the provider is manual, or the sign-in is not saved.
  */
 class TrackShipments extends Command
@@ -60,6 +62,8 @@ class TrackShipments extends Command
         $client = new Shiprocket;
         $changed = 0;
 
+        $stopped = false;
+
         foreach ($orders as $order) {
             $order->forceFill(['shipment_checked_at' => now()])->save();
 
@@ -67,6 +71,7 @@ class TrackShipments extends Command
                 $scan = $client->track((string) $order->tracking_number);
             } catch (ShiprocketRefused $e) {
                 $this->warn("Stopped: {$e->getMessage()}");
+                $stopped = true;
 
                 break;
             }
@@ -76,7 +81,36 @@ class TrackShipments extends Command
             }
         }
 
-        $this->info($orders->isEmpty() ? 'Nothing to track.' : "Asked about {$orders->count()} parcel(s); {$changed} moved.");
+        $asked = $orders->count();
+
+        // Open return pickups too (0.159.0), unless a refusal above already stopped the run.
+        if (! $stopped) {
+            $returns = ReturnPickups::trackable()
+                ->orderByRaw('pickup_checked_at is not null')
+                ->orderBy('pickup_checked_at')
+                ->limit($limit)
+                ->get();
+
+            foreach ($returns as $return) {
+                $return->forceFill(['pickup_checked_at' => now()])->save();
+
+                try {
+                    $scan = $client->track((string) $return->pickup_awb);
+                } catch (ShiprocketRefused $e) {
+                    $this->warn("Stopped: {$e->getMessage()}");
+
+                    break;
+                }
+
+                $asked++;
+
+                if ($scan !== null && ReturnPickups::apply($return, $scan['status_id']) === 'applied') {
+                    $changed++;
+                }
+            }
+        }
+
+        $this->info($asked === 0 ? 'Nothing to track.' : "Asked about {$asked} parcel(s); {$changed} moved.");
 
         return self::SUCCESS;
     }

@@ -16,7 +16,7 @@ use RuntimeException;
  */
 final class ShiprocketRefused extends RuntimeException
 {
-    public function __construct(string $message, public readonly int $status = 0, public readonly bool $unknown = false)
+    public function __construct(string $message, public readonly int $status = 0, public readonly bool $unknown = false, public readonly array $body = [])
     {
         parent::__construct($message);
     }

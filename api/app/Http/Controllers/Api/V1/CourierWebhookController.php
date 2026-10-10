@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\OrderReturn;
+use App\Support\Store\Returns\ReturnPickups;
 use App\Support\Store\Shipping\CourierSettings;
 use App\Support\Store\Shipping\ShipmentStatus;
 use Illuminate\Http\JsonResponse;
@@ -59,14 +61,22 @@ class CourierWebhookController extends Controller
             return;
         }
 
-        // The return leg's own scans are a different parcel going the other way.
-        if ((int) $request->input('is_return', 0) === 1) {
-            return;
-        }
-
         $id = $request->input('shipment_status_id');
 
         if (! is_numeric($id)) {
+            return;
+        }
+
+        // A return pickup's scans are a different parcel going the other way
+        // (0.159.0): they update that pickup's status and nothing else — the
+        // return's own status and the order are never touched by a scan.
+        if ((int) $request->input('is_return', 0) === 1) {
+            $return = $this->findReturn($request);
+
+            if ($return !== null) {
+                ReturnPickups::apply($return, (int) $id);
+            }
+
             return;
         }
 
@@ -77,6 +87,26 @@ class CourierWebhookController extends Controller
         }
 
         ShipmentStatus::apply($order, (int) $id, $this->deliveredAt($request));
+    }
+
+    private function findReturn(Request $request): ?OrderReturn
+    {
+        $base = OrderReturn::query()->where('pickup_booking', 'created');
+        $sr = $request->input('sr_order_id');
+
+        if (is_scalar($sr) && (string) $sr !== '') {
+            $return = (clone $base)->where('pickup_sr_order_id', (string) $sr)->first();
+
+            if ($return !== null) {
+                return $return;
+            }
+        }
+
+        $awb = $request->input('awb');
+
+        return is_scalar($awb) && (string) $awb !== ''
+            ? (clone $base)->where('pickup_awb', (string) $awb)->first()
+            : null;
     }
 
     private function find(Request $request): ?Order

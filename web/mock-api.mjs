@@ -2013,6 +2013,8 @@ const adminReturn = (r, detail = false) => ({
     items: r.items, photos: [],
     suggested_refund_paise: r.items.reduce((n, i) => n + (i.received_quantity ?? i.quantity) * i.unit_price_paise, 0),
     refund_reference: r.refund_reference, return_instructions: '',
+    // Null while Shiprocket is off and nothing was ever booked (0.159.0).
+    pickup: null,
     order: { order_number: r.order_number, status: 'completed', status_label: 'Completed', total_paise: 3799800, payment_method: 'gateway', dispatched_at: r.requested_at, completed_at: r.requested_at },
   } : {}),
 });
@@ -3435,8 +3437,15 @@ createServer(async (req, res) => {
     if (p === '/admin/settings/shiprocket/test' && req.method === 'POST') {
       return json(res, 422, { message: "Save the API user's email and password first." });
     }
-    if (/^\/admin\/store\/orders\/[^/]+\/shipment\/(book|assign|pickup|label|cancel|track)$/.test(p) && req.method === 'POST') {
+    if (/^\/admin\/store\/orders\/[^/]+\/shipment\/(book|assign|pickup|label|cancel|track|rates|manifest)$/.test(p) && req.method === 'POST') {
       return json(res, 422, { message: 'Parcels are not booked with a courier platform on this site.', errors: { shipment: ['Parcels are not booked with a courier platform on this site.'] } });
+    }
+    // Manifests and return pickups (0.159.0): the provider is manual here, so every press is a refusal.
+    if (p === '/admin/store/orders/manifest' && req.method === 'POST') {
+      return json(res, 422, { message: 'Shiprocket is not switched on.', errors: { shipment: ['Shiprocket is not switched on.'] } });
+    }
+    if (/^\/admin\/store\/returns\/[^/]+\/pickup\/(rates|book|cancel)$/.test(p) && req.method === 'POST') {
+      return json(res, 422, { message: 'Return pickups are booked with Shiprocket, which is not switched on.', errors: { pickup: ['Return pickups are booked with Shiprocket, which is not switched on.'] } });
     }
     // One payment or refund sent to Zoho Books on request (0.136.0).
     if (/^\/admin\/store\/orders\/[^/]+\/payments\/\d+\/zoho$/.test(p) && req.method === 'POST') {

@@ -21,6 +21,48 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.159.0 — 2026-10-10
+
+**Shiprocket: courier quotes, manifests, and the courier collecting a return.**
+
+- **Couriers and prices.** On a parcel with no courier yet, "See couriers and
+  prices" asks Shiprocket's serviceability for the pickup location's PIN to the
+  delivery PIN and lists each courier with its charge, delivery days, rating and
+  Shiprocket's recommendation; the choice goes with Book or Assign as
+  `courier_id`. Money is turned into paise through a two-place string, never
+  multiplied. A quote for the desk only: the checkout's delivery charge is still
+  the zones'.
+- **Manifests.** `POST /manifests/generate` then `/manifests/print`, only after
+  a courier is assigned and a pickup requested; "already generated" (a 400 that
+  lists the shipments) is success. The PDF's address is kept on the order
+  (`shipment_manifest_url`). One order from its panel, or many from the orders
+  list: tick them and "Make a manifest" gives one sheet for the ready ones and
+  names the rest with the reason (`POST /admin/store/orders/manifest`).
+- **Return pickups.** An approved return can have the courier collect it:
+  `ReturnPickups::book()` creates Shiprocket's return order (`pickup_*` the
+  customer, `shipping_*` your pickup location), assigns the AWB with
+  `is_return: 1` and requests the pickup, behind a conditional claim so a
+  double press makes one order, and carrying on from the step that failed.
+  Scans with `is_return: 1` (the webhook, and `technoware:track-shipments`)
+  update the pickup's status only — never the return's own status (Receive
+  stays a person's tick) and never the order. The customer's return shows the
+  courier's label.
+- **API**: `POST …/shipment/rates`, `…/shipment/manifest`,
+  `/admin/store/orders/manifest`, `/admin/store/returns/{ref}/pickup/{rates,
+  book,cancel}`; the order's `shipment` block gains `manifest_url`,
+  `manifest_at`, `can_manifest`, `can_rates`; the return gains `pickup`;
+  `meta.courier_active` on the orders list. The mock refuses them all (the
+  provider is manual there).
+- Needs `php artisan migrate` (two columns on `orders`, thirteen on
+  `order_returns`). `ShiprocketMoreTest` (27 tests) on a faked Shiprocket;
+  `scripts/probes/shiprocket-more.mjs` presses no button that reaches the real
+  one. **Not driven against a real account** — the unverified assumptions are
+  listed in `docs/store.md`.
+- The two migrations are timestamped `2026_10_15_120000` and `…130000`: the
+  branch had `…100000`, the same moment as 0.157.0's tag columns.
+
+---
+
 ## 0.158.0 — 2026-10-10
 
 **Custom code: paste a vendor's snippet into a page, safely.**

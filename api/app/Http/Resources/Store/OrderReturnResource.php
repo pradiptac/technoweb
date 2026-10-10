@@ -35,6 +35,8 @@ class OrderReturnResource extends JsonResource
                 'quantity' => (int) $line->quantity,
             ])->values(),
             'photos_count' => $this->photos->count(),
+            // The courier's own words for where the pickup is — a label and nothing else (0.159.0).
+            'pickup_status' => $this->pickup_booking === 'created' ? $this->pickup_status : null,
             'refund_paise' => $this->refund_paise,
             'requested_at' => $this->created_at?->toIso8601String(),
             'approved_at' => $this->approved_at?->toIso8601String(),

@@ -67,6 +67,9 @@ class OrderResource extends JsonResource
             'has_courier' => $order->shipment_awb_at !== null,
             'pickup_requested_at' => $order->shipment_pickup_at?->toIso8601String(),
             'label_url' => $order->shipment_label_url,
+            // The manifest (0.159.0): the PDF the driver signs, once an AWB and a pickup exist.
+            'manifest_url' => $order->shipment_manifest_url,
+            'manifest_at' => $order->shipment_manifest_at?->toIso8601String(),
             'status_id' => $order->shipment_status_id,
             'status' => $order->shipment_status,
             'status_at' => $order->shipment_status_at?->toIso8601String(),
@@ -79,6 +82,9 @@ class OrderResource extends JsonResource
             'book_refusal' => $canBook || ! $rebook ? null : $refusal,
             'can_assign' => $active && $live && $order->shipment_awb_at === null,
             'can_pickup' => $active && $live && $order->shipment_awb_at !== null && $order->shipment_pickup_at === null && $order->delivered_at === null,
+            'can_manifest' => $active && Shipments::refusalToManifest($order) === null,
+            // A quote is for a parcel not yet given a courier (0.159.0): before booking, or after a booking that lacks one.
+            'can_rates' => $active && $refusal === null && ($rebook || ($live && $order->shipment_awb_at === null)),
             'can_label' => $active && $live && $order->shipment_awb_at !== null,
             'can_cancel' => $active && $live && $order->delivered_at === null && $order->shipment_problem !== 'cancelled',
             'can_track' => $active && $live && filled($order->tracking_number),

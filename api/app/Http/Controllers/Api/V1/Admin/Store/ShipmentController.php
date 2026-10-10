@@ -16,7 +16,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /**
  * Booking an order's parcel from its page (0.143.0, docs/store.md
  * "Shiprocket"): book, assign the courier, ask for a pickup, make the label,
- * cancel, and ask where it is now.
+ * cancel, and ask where it is now — and, since 0.159.0, quote the couriers
+ * and make the manifest.
  *
  * `role:store_manager`, on the order's own routes â€” a press on an order, the
  * rule the Zoho invoice button follows. The connection is the
@@ -87,13 +88,67 @@ class ShipmentController extends Controller
         });
     }
 
+    /** Couriers and what each would charge for this parcel (0.159.0). A quote: nothing is booked. */
+    public function rates(Request $request, Order $order): JsonResponse
+    {
+        $data = $request->validate(['weight_grams' => ['nullable', 'integer', 'min:1', 'max:1000000']]);
+
+        try {
+            $quote = Shipments::rates($order, $data['weight_grams'] ?? null);
+        } catch (ShiprocketRefused $e) {
+            return $this->refused($e);
+        }
+
+        return response()->json(['data' => $quote['couriers'], 'meta' => array_diff_key($quote, ['couriers' => 1])]);
+    }
+
+    /** The manifest for one order's parcel (0.159.0). */
+    public function manifest(Request $request, Order $order): JsonResource|JsonResponse
+    {
+        return $this->run($order, function () use ($request, $order) {
+            Shipments::manifest([$order], $request->user());
+
+            return $order;
+        });
+    }
+
+    /**
+     * One manifest for many orders (0.159.0): the ones that are ready are on
+     * it, the rest come back with the reason. Declared above `{order}`.
+     */
+    public function manifestMany(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'numbers' => ['required', 'array', 'min:1', 'max:50'],
+            'numbers.*' => ['required', 'string', 'max:40', 'distinct'],
+        ]);
+
+        $orders = Order::query()->whereIn('order_number', $data['numbers'])->get();
+        $missing = array_values(array_diff($data['numbers'], $orders->pluck('order_number')->all()));
+
+        try {
+            $made = Shipments::manifest($orders, $request->user());
+        } catch (ShiprocketRefused $e) {
+            return response()->json(['message' => $e->getMessage(), 'errors' => ['shipment' => [$e->getMessage()]]], 422);
+        }
+
+        $made['refused'] = array_merge($made['refused'], array_map(fn ($n) => ['number' => $n, 'message' => 'No such order.'], $missing));
+
+        return response()->json($made);
+    }
+
+    private function refused(ShiprocketRefused $e): JsonResponse
+    {
+        return response()->json(['message' => $e->getMessage(), 'errors' => ['shipment' => [$e->getMessage()]]], 422);
+    }
+
     /** @param  \Closure(): Order  $action */
     private function run(Order $order, \Closure $action): JsonResource|JsonResponse
     {
         try {
             $done = $action();
         } catch (ShiprocketRefused $e) {
-            return response()->json(['message' => $e->getMessage(), 'errors' => ['shipment' => [$e->getMessage()]]], 422);
+            return $this->refused($e);
         }
 
         return new OrderResource($done->fresh()->load(['items', 'payments', 'history', 'notes']));

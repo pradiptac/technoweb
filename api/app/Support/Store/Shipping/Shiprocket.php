@@ -3,6 +3,7 @@
 namespace App\Support\Store\Shipping;
 
 use App\Models\Setting;
+use App\Support\Money;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
@@ -12,7 +13,8 @@ use Illuminate\Support\Facades\Http;
  * The Shiprocket API, as far as this application uses it (0.143.0,
  * docs/store.md "Shiprocket"): sign in, list the pickup locations, create an
  * order, assign the courier and its AWB, request pickup, make the label,
- * track a shipment and cancel one.
+ * track a shipment and cancel one — and, since 0.159.0, quote couriers,
+ * make manifests and create the courier pickup of a return.
  *
  * Laravel's HTTP client and nothing else — no SDK, the rule every other
  * integration here follows — so every call is one line `Http::fake()` can
@@ -70,7 +72,7 @@ final class Shiprocket
      * Prove the sign-in and read the pickup locations: the only two calls the
      * "Test the connection" button makes, both read-only.
      *
-     * @return list<array{name: string, address: string, city: string, state: string, pin: string, verified: bool}>
+     * @return list<array{name: string, address: string, city: string, state: string, pin: string, verified: bool, contact: string, phone: string, email: string}>
      */
     public function pickupLocations(): array
     {
@@ -90,10 +92,89 @@ final class Shiprocket
                 'city' => (string) ($a['city'] ?? ''),
                 'state' => (string) ($a['state'] ?? ''),
                 'pin' => (string) ($a['pin_code'] ?? ''),
+                // The seller's side of a return pickup (0.159.0): who the courier hands the parcel back to.
+                'contact' => (string) ($a['name'] ?? ''),
+                'phone' => (string) ($a['phone'] ?? ''),
+                'email' => (string) ($a['email'] ?? ''),
                 // unverified against a real account: whether an unverified location can be booked from.
                 'verified' => (int) ($a['phone_verified'] ?? 1) === 1,
             ], array_filter($rows, fn ($a) => is_array($a) && filled($a['pickup_location'] ?? null))));
         });
+    }
+
+    /**
+     * One pickup location by its nickname — the PIN a quote starts from and
+     * the seller a return goes back to. The list is cached for five minutes:
+     * it changes when somebody edits the account, not between two clicks.
+     *
+     * @return array{name: string, address: string, city: string, state: string, pin: string, verified: bool, contact: string, phone: string, email: string}
+     */
+    public function pickupLocation(string $name): array
+    {
+        $key = 'shiprocket.locations.'.sha1(strtolower(CourierSettings::email()));
+        $all = Cache::remember($key, now()->addMinutes(5), fn () => $this->pickupLocations());
+
+        foreach ($all as $location) {
+            if ($location['name'] === $name) {
+                return $location;
+            }
+        }
+
+        throw new ShiprocketRefused("Shiprocket has no pickup location called \"{$name}\".");
+    }
+
+    /**
+     * Which couriers can take a parcel between two PINs, and at what price
+     * (0.159.0): a read-only quote, nothing is booked. Money arrives in
+     * rupees and leaves as paise through a two-place string.
+     *
+     * @return list<array{courier_id: int, name: string, rate_paise: int, cod_charges_paise: int, etd: string|null, days: int|null, rating: float|null, recommended: bool}>
+     */
+    public function serviceability(string $pickupPin, string $deliveryPin, int $grams, bool $cod, ?int $declaredRupees = null, bool $isReturn = false): array
+    {
+        return $this->guard(function () use ($pickupPin, $deliveryPin, $grams, $cod, $declaredRupees, $isReturn): array {
+            $query = [
+                'pickup_postcode' => preg_replace('/\D/', '', $pickupPin),
+                'delivery_postcode' => preg_replace('/\D/', '', $deliveryPin),
+                'weight' => Shipments::kg($grams),
+                'cod' => $cod ? 1 : 0,
+            ];
+
+            if ($declaredRupees !== null) {
+                $query['declared_value'] = max(1, $declaredRupees);
+            }
+
+            if ($isReturn) {
+                $query['is_return'] = 1;
+            }
+
+            $body = $this->send('get', '/courier/serviceability/', query: $query)->json();
+            $rows = $body['data']['available_courier_companies'] ?? null;
+
+            // A 200 with `status: 404` is caught in send(); an empty or missing list is "nobody can take it".
+            if (! is_array($rows) || $rows === []) {
+                throw new ShiprocketRefused($this->words($body, 'No courier can take a parcel between those two PINs.'));
+            }
+
+            $recommended = (int) ($body['data']['recommended_courier_company_id'] ?? 0);
+
+            return array_values(array_map(fn (array $c) => [
+                'courier_id' => (int) $c['courier_company_id'],
+                'name' => (string) ($c['courier_name'] ?? ''),
+                'rate_paise' => self::paise($c['rate'] ?? 0),
+                'cod_charges_paise' => self::paise($c['cod_charges'] ?? 0),
+                'etd' => filled($c['etd'] ?? null) ? (string) $c['etd'] : null,
+                'days' => is_numeric($c['estimated_delivery_days'] ?? null) ? (int) $c['estimated_delivery_days'] : null,
+                'rating' => is_numeric($c['rating'] ?? null) ? round((float) $c['rating'], 1) : null,
+                'recommended' => $recommended > 0 && (int) $c['courier_company_id'] === $recommended,
+            ], array_filter($rows, fn ($c) => is_array($c) && isset($c['courier_company_id']))));
+        });
+    }
+
+    /** Rupees as Shiprocket writes them (54, 54.5, "54.50") to paise, through a two-place string. */
+    private static function paise(mixed $rupees): int
+    {
+        return Money::fromRupeeString(is_numeric($rupees) ? sprintf('%.2F', (float) $rupees) : null) ?? 0;
     }
 
     /**
@@ -120,15 +201,96 @@ final class Shiprocket
     }
 
     /**
+     * Create the return order (0.159.0): `pickup_*` is the customer the
+     * courier collects from, `shipping_*` the seller it goes back to. Once
+     * per claim, like `createOrder()`.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array{order_id: string, shipment_id: string}
+     */
+    public function createReturnOrder(array $payload): array
+    {
+        return $this->guard(function () use ($payload): array {
+            $body = $this->send('post', '/orders/create/return', json: $payload)->json();
+
+            if (blank($body['order_id'] ?? null) || blank($body['shipment_id'] ?? null)) {
+                throw new ShiprocketRefused($this->words($body, 'Shiprocket did not return the return order it was asked to create.'));
+            }
+
+            return ['order_id' => (string) $body['order_id'], 'shipment_id' => (string) $body['shipment_id']];
+        });
+    }
+
+    /**
+     * Generate the manifest for shipments that have an AWB and a pickup. A
+     * 400 "already generated" lists the ones that are — the state wanted, so
+     * success — and any not on the list are generated by a second call. The
+     * PDF address comes from `printManifest()`, the same for both outcomes.
+     *
+     * @param  list<int|string>  $shipmentIds
+     */
+    public function generateManifest(array $shipmentIds): void
+    {
+        $this->guard(function () use ($shipmentIds): void {
+            $ids = array_map('intval', $shipmentIds);
+
+            try {
+                $body = $this->send('post', '/manifests/generate', json: ['shipment_id' => $ids])->json();
+            } catch (ShiprocketRefused $e) {
+                $done = array_map('intval', (array) ($e->body['already_manifested_shipment_ids'] ?? []));
+
+                if ($e->status !== 400 || $done === []) {
+                    throw $e;
+                }
+
+                $left = array_values(array_diff($ids, $done));
+
+                if ($left !== []) {
+                    $this->generateManifest($left);
+                }
+
+                return;
+            }
+
+            // unverified against a real account: a 200 with an empty URL is the documented "missing or invalid data".
+            if (blank($body['manifest_url'] ?? null)) {
+                throw new ShiprocketRefused($this->words($body, 'Shiprocket did not make the manifest.'));
+            }
+        });
+    }
+
+    /**
+     * The manifest PDF for these Shiprocket orders (their order ids, not shipment ids).
+     *
+     * @param  list<int|string>  $srOrderIds
+     */
+    public function printManifest(array $srOrderIds): string
+    {
+        return $this->guard(function () use ($srOrderIds): string {
+            $body = $this->send('post', '/manifests/print', json: ['order_ids' => array_map('intval', $srOrderIds)])->json();
+            $url = $body['manifest_url'] ?? null;
+
+            if (blank($url)) {
+                throw new ShiprocketRefused($this->words($body, 'Shiprocket did not return the manifest.'));
+            }
+
+            return (string) $url;
+        });
+    }
+
+    /**
      * Assign a courier and its AWB. With no `$courierId` Shiprocket picks
      * the account's default courier.
      *
      * @return array{awb: string, courier: string}
      */
-    public function assignAwb(string $shipmentId, ?int $courierId = null): array
+    public function assignAwb(string $shipmentId, ?int $courierId = null, bool $isReturn = false): array
     {
-        return $this->guard(function () use ($shipmentId, $courierId): array {
-            $json = ['shipment_id' => (int) $shipmentId] + ($courierId !== null ? ['courier_id' => $courierId] : []);
+        return $this->guard(function () use ($shipmentId, $courierId, $isReturn): array {
+            $json = ['shipment_id' => (int) $shipmentId]
+                + ($courierId !== null ? ['courier_id' => $courierId] : [])
+                // Required by Shiprocket for the return leg.
+                + ($isReturn ? ['is_return' => 1] : []);
             $body = $this->send('post', '/courier/assign/awb', json: $json)->json();
 
             $data = $body['response']['data'] ?? [];
@@ -286,6 +448,7 @@ final class Shiprocket
                 $response->status(),
                 // A server fault says nothing about whether the request was acted on.
                 $response->serverError(),
+                is_array($response->json()) ? $response->json() : [],
             );
         }
 

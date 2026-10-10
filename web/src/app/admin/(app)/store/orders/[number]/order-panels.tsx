@@ -9,9 +9,10 @@ import { Button, ButtonAnchor } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import {
   addNoteAction, createZohoInvoiceAction, fulfilOrderAction, moveOrderAction, recordPaymentAction, recordRefundAction, saveInvoiceAction,
-  saveShippingAction, sendZohoPaymentAction, shipmentAction,
+  saveShippingAction, sendZohoPaymentAction, shipmentAction, shipmentRatesAction,
   type OrderActionState,
 } from "../actions";
+import { CourierRates } from "@/components/admin/courier-rates";
 import { paiseToRupeeInput } from "@/lib/money";
 import type { AdminOrder, AdminPayment } from "@/types/api";
 import { formatDate } from "@/lib/dates";
@@ -244,6 +245,14 @@ export function CourierPanel({ order }: { order: AdminOrder }) {
         </div>
       )}
 
+      {/* A quote before booking, or after a booking that lacks a courier; the choice rides with the press below. */}
+      {shipment.can_rates && (
+        <CourierRates
+          load={(weightKg) => shipmentRatesAction(order.order_number, weightKg)}
+          weightFieldId={shipment.can_book && shipment.defaults ? "courier_weight_kg" : undefined}
+        />
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
         {shipment.can_book && (
           <Button size="sm" {...press("book")}>
@@ -261,6 +270,12 @@ export function CourierPanel({ order }: { order: AdminOrder }) {
         )}
         {shipment.can_pickup && (
           <Button size="sm" variant="secondary" {...press("pickup")}>{pending && pressed === "pickup" ? "Asking…" : "Request pickup"}</Button>
+        )}
+        {shipment.can_manifest && !shipment.manifest_url && (
+          <Button size="sm" variant="secondary" {...press("manifest")}>{pending && pressed === "manifest" ? "Making…" : "Make the manifest"}</Button>
+        )}
+        {shipment.manifest_url && (
+          <ButtonAnchor href={shipment.manifest_url} target="_blank" rel="noopener noreferrer" variant="secondary" size="sm">Open the manifest</ButtonAnchor>
         )}
         {shipment.can_track && (
           <Button size="sm" variant="ghost" {...press("track")}>{pending && pressed === "track" ? "Asking…" : "Where is it now?"}</Button>

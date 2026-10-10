@@ -182,6 +182,13 @@ Route::middleware('role:store_manager')->group(function () {
      * Each acts on the real account, so each is throttled; the connection
      * itself is the administrator's.
      */
+    // One manifest for many parcels (0.159.0), above the {order} routes it shares a prefix with.
+    Route::post('store/orders/manifest', [AdminStoreShipmentController::class, 'manifestMany'])
+        ->middleware('throttle:10,1')->name('store.orders.manifest');
+    Route::post('store/orders/{order}/shipment/rates', [AdminStoreShipmentController::class, 'rates'])
+        ->middleware('throttle:30,1')->name('store.orders.shipment.rates');
+    Route::post('store/orders/{order}/shipment/manifest', [AdminStoreShipmentController::class, 'manifest'])
+        ->middleware('throttle:20,1')->name('store.orders.shipment.manifest');
     Route::post('store/orders/{order}/shipment/book', [AdminStoreShipmentController::class, 'book'])
         ->middleware('throttle:20,1')->name('store.orders.shipment.book');
     Route::post('store/orders/{order}/shipment/assign', [AdminStoreShipmentController::class, 'assign'])
@@ -210,6 +217,13 @@ Route::middleware('role:store_manager')->group(function () {
     Route::post('store/returns/{order_return}/receive', [AdminStoreReturnController::class, 'receive'])->name('store.returns.receive');
     Route::post('store/returns/{order_return}/refund', [AdminStoreReturnController::class, 'refund'])->name('store.returns.refund');
     Route::post('store/returns/{order_return}/close', [AdminStoreReturnController::class, 'close'])->name('store.returns.close');
+    // The courier collecting it from the customer (0.159.0, docs/store.md "Return pickups").
+    Route::post('store/returns/{order_return}/pickup/rates', [AdminStoreReturnController::class, 'pickupRates'])
+        ->middleware('throttle:30,1')->name('store.returns.pickup.rates');
+    Route::post('store/returns/{order_return}/pickup/book', [AdminStoreReturnController::class, 'pickupBook'])
+        ->middleware('throttle:20,1')->name('store.returns.pickup.book');
+    Route::post('store/returns/{order_return}/pickup/cancel', [AdminStoreReturnController::class, 'pickupCancel'])
+        ->middleware('throttle:20,1')->name('store.returns.pickup.cancel');
     Route::get('store/returns/{order_return}/photos/{photo}', [AdminStoreReturnController::class, 'photo'])
         ->where('photo', '[0-9]+')->name('store.returns.photo');
 });

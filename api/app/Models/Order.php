@@ -81,6 +81,7 @@ class Order extends Model
             'shipment_status_id' => 'integer',
             'shipment_status_at' => 'datetime',
             'shipment_checked_at' => 'datetime',
+            'shipment_manifest_at' => 'datetime',
             'zoho_attempts' => 'integer',
             'zoho_claimed_at' => 'datetime',
             'zoho_next_attempt_at' => 'datetime',

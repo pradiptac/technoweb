@@ -2054,6 +2054,9 @@ acts on the live account.**
 | `POST` | `…/shipment/label` | Makes the label; `shipment.label_url` |
 | `POST` | `…/shipment/cancel` | Cancels the AWB and the order at Shiprocket and clears the courier and tracking from the order |
 | `POST` | `…/shipment/track` | Asks Shiprocket where it is now, through the same path the webhook uses |
+| `POST` | `…/shipment/rates` | 0.159.0, `role:store_manager`, 30/min. `weight_grams?`. A **quote**, books nothing: couriers from the pickup location's PIN to the delivery PIN. `{data: [{courier_id, name, rate_paise, cod_charges_paise, etd, days, rating, recommended}], meta: {weight_grams, pickup_pin, delivery_pin, cod}}`. 422 in Shiprocket's words (including its 200-with-`status: 404`). The checkout's delivery charge does not read it; the chosen `courier_id` goes to `book` or `assign` |
+| `POST` | `…/shipment/manifest` | 0.159.0, 20/min. Generates then prints the manifest for this parcel and stores its PDF address on the order. 422 unless a courier is assigned **and** the pickup requested. "Already generated" is success. Answers the order |
+| `POST` | `/admin/store/orders/manifest` | 0.159.0, `role:store_manager`, 10/min. `numbers[]` (1–50 order numbers). One manifest for the ready parcels: 200 `{url, included[], refused[{number, message}]}`; 422 when none is ready or Shiprocket refuses. **Declared above the `{order}` routes** |
 
 The admin order's detail read carries `delivered_at` and `shipment`: `null`
 while the provider is manual and nothing was booked, else `{provider, active,
@@ -2061,7 +2064,9 @@ booking (creating|created|failed|cancelled), attempts, shiprocket_order_id,
 shipment_id, has_courier, pickup_requested_at, label_url, status_id, status,
 status_at, problem (returning|returned|cancelled), error, checked_at,
 delivered_at, can_book, book_refusal, can_assign, can_pickup, can_label,
-can_cancel, can_track, defaults{weight_grams,length,breadth,height}|null}`.
+can_cancel, can_track, defaults{weight_grams,length,breadth,height}|null}`; since
+0.159.0 it also has `manifest_url`, `manifest_at`, `can_manifest` and `can_rates`.
+`GET /admin/store/orders` adds `meta.courier_active` (Shiprocket is on).
 Every `can_*` is the answer the API will give to the press.
 `GET /admin/store/orders?shipment=problem` lists parcels the courier is bringing
 back or cancelled; `/admin/store/dashboard` adds `attention.shipments_in_trouble`.
@@ -5323,7 +5328,7 @@ decision as the SMTP settings beside it.
 `ticket.created`, `ticket.replied` (a customer-visible message from either
 side — never an internal note), `ticket.status_changed` (adds `from`/`to`),
 `order.placed`, `order.paid` (`paid_at` going from null to set, whoever set
-it), `order.status_changed` (adds `from`/`to`), `return.requested` (a customer asking to send items back: the admin return's detail shape less `staff_note`), `customer.registered` (the
+it), `order.status_changed` (adds `from`/`to`), `return.requested` (a customer asking to send items back: the admin return's detail shape less `staff_note` and `pickup`), `customer.registered` (the
 address confirmed), `form.submitted`, `subscriber.joined`, `visit.requested`
 (an engineer visit request, never its token) and `event.registered` (a new
 registration for an event: the admin registration resource less `staff_note`,
@@ -5649,6 +5654,9 @@ marks them received and records the refund. See `docs/store.md`, "Returns".
 | `POST` | `/admin/store/returns/{reference}/receive` | `items[{id, received_quantity?, restock?}]`, `id` a **return line's** id. A line not named arrived whole and is not restocked. 422 on `items.{line id}.received_quantity` outside 0…asked |
 | `POST` | `/admin/store/returns/{reference}/refund` | `amount_paise` (≥ 1), `reference` (191), `note?`. Records a `payments` row through the order's own refund rules (422 on `amount_paise` past what is left, or on an unpaid order) and links it to the return. Calls no gateway |
 | `POST` | `/admin/store/returns/{reference}/close` | `note?`. Ends it without a refund; nobody is mailed |
+| `POST` | `/admin/store/returns/{reference}/pickup/rates` | 0.159.0, 30/min. A quote for the courier collecting it: customer's PIN to the pickup location's, `is_return=1`. The shape of `…/shipment/rates`. 422 unless Shiprocket is on and the return is approved |
+| `POST` | `/admin/store/returns/{reference}/pickup/book` | 0.159.0, 20/min. `courier_id?`. Approved returns only. Creates the return order at Shiprocket (`pickup_*` the customer, `shipping_*` the seller), assigns the AWB with `is_return: 1`, requests the pickup. **Booked once** (a conditional claim; reference `{RMA}`, then `{RMA}-{n}`); a refusal at the AWB or pickup step is kept on `pickup.error` and the same press carries on from there without a second order. 422 in Shiprocket's words. Answers the return |
+| `POST` | `/admin/store/returns/{reference}/pickup/cancel` | 0.159.0, 20/min. Cancels the AWB and the order at Shiprocket and frees the return to be booked again. Answers the return |
 | `GET` | `/admin/store/returns/{reference}/photos/{id}` | Streams one photograph as an attachment. A photo of another return is a 404 |
 
 **Statuses** are `requested`, `approved`, `rejected`, `received`, `refunded`,
@@ -5678,7 +5686,8 @@ nothing.
 and `GET /my/orders/{number}` add:
 
 - `returns[]` — `reference`, `status`, `status_label`, `reason`,
-  `reason_label`, `details`, `decision_note` (what the desk said),
+  `reason_label`, `details`, `decision_note` (what the desk said), `pickup_status`
+  (0.159.0: the courier's label for where its collection has got to, else null),
   `items[{order_item_id, name, variation_name, quantity}]`, `photos_count`,
   `refund_paise`, and the six stamps (`requested_at` … `closed_at`). No staff
   note, no photograph's address, no engineer's name.
@@ -5697,7 +5706,12 @@ read adds `details`, `decision_note`, `staff_note`, `decided_by`,
 `items[{id, order_item_id, name, variation_name, sku, unit_price_paise,
 ordered_quantity, quantity, received_quantity, restocked_quantity}]`,
 `photos[{id, name, size}]`, `suggested_refund_paise` (what arrived, at the
-price each line sold for), `refund_reference`, `return_instructions` and
+price each line sold for), `refund_reference`, `return_instructions`, `pickup`
+(0.159.0: null while Shiprocket is off and nothing was booked, else `{active,
+booking (creating|created|failed|cancelled), attempts, shiprocket_order_id,
+shipment_id, awb, courier, requested_at, status_id, status, status_at, error,
+can_book, resume, can_rates, can_cancel, book_refusal}` — `status` is the
+courier's own word and **never moves the return's status**) and
 `order {order_number, status, status_label, total_paise, payment_method,
 dispatched_at, completed_at}`. `GET /admin/store/orders/{number}` adds
 `returns[{reference, status, status_label, reason_label, items_count,
@@ -5717,7 +5731,7 @@ public, the second is not (`PublicSettings::PRIVATE_KEYS`); and
 
 **Side effects.** A request emails the customer (`return_requested`) and
 `support_email` (`return_received_internal`) and emits the `return.requested`
-webhook — the admin detail shape less `staff_note`. `approve`, `reject`,
+webhook — the admin detail shape less `staff_note` and `pickup`. `approve`, `reject`,
 `receive` and `refund` each email the customer (`return_approved`,
 `return_rejected`, `return_goods_received`, `return_refunded`); `close`
 emails nobody. Every move writes a line on the order's history.

@@ -124,6 +124,111 @@ final class Shipments
     }
 
     /**
+     * Couriers and prices for this order's parcel (0.159.0): a quote only,
+     * from the chosen pickup location to the delivery PIN. The checkout's
+     * charge is the zones' and does not read this; it is the desk's choice of
+     * courier. The declared value is the goods' worth in whole rupees.
+     *
+     * @return array{couriers: list<array<string, mixed>>, weight_grams: int, pickup_pin: string, delivery_pin: string, cod: bool}
+     */
+    public static function rates(Order $order, ?int $grams = null): array
+    {
+        if ($why = self::refusalToBook($order)) {
+            throw new ShiprocketRefused($why);
+        }
+
+        $client = new Shiprocket;
+        $from = $client->pickupLocation(CourierSettings::pickupLocation())['pin'];
+        $to = (string) (self::address($order)['pin'] ?? '');
+        $grams = $grams !== null && $grams > 0 ? $grams : self::weightGrams($order);
+        $cod = $order->paid_at === null;
+
+        if (preg_replace('/\D/', '', $to) === '' || preg_replace('/\D/', '', $from) === '') {
+            throw new ShiprocketRefused('A quote needs the delivery address\'s PIN code and the pickup location\'s.');
+        }
+
+        return [
+            'couriers' => $client->serviceability($from, $to, $grams, $cod, intdiv((int) $order->total_paise, 100)),
+            'weight_grams' => $grams,
+            'pickup_pin' => $from,
+            'delivery_pin' => $to,
+            'cod' => $cod,
+        ];
+    }
+
+    /** Why this order's parcel cannot be put on a manifest yet, or null: an AWB and a requested pickup come first. */
+    public static function refusalToManifest(Order $order): ?string
+    {
+        if (! CourierSettings::active()) {
+            return 'Shiprocket is not switched on.';
+        }
+
+        if ($order->shipment_booking !== 'created' || blank($order->shipment_id)) {
+            return 'This order is not booked with Shiprocket yet.';
+        }
+
+        if ($order->shipment_awb_at === null) {
+            return 'Assign a courier before making the manifest.';
+        }
+
+        if ($order->shipment_pickup_at === null) {
+            return 'Request the pickup before making the manifest.';
+        }
+
+        return $order->delivered_at !== null ? 'This parcel has been delivered.' : null;
+    }
+
+    /**
+     * One manifest for the parcels that are ready, and the ones that are not
+     * with the reason. The PDF's address is stored on each order included.
+     * Re-running for an order already manifested is the same call — Shiprocket
+     * answers "already generated" and the address is fetched again.
+     *
+     * @param  iterable<Order>  $orders
+     * @return array{url: string, included: list<string>, refused: list<array{number: string, message: string}>}
+     */
+    public static function manifest(iterable $orders, ?User $actor = null): array
+    {
+        $ready = [];
+        $refused = [];
+
+        foreach ($orders as $order) {
+            $order = $order->fresh(['items']) ?? $order;
+            $why = self::refusalToManifest($order);
+
+            $why === null ? $ready[] = $order : $refused[] = ['number' => $order->order_number, 'message' => $why];
+        }
+
+        if ($ready === []) {
+            throw new ShiprocketRefused($refused[0]['message'] ?? 'There is nothing to put on a manifest.');
+        }
+
+        $client = new Shiprocket;
+
+        try {
+            $client->generateManifest(array_map(fn (Order $o) => $o->shipment_id, $ready));
+            $url = $client->printManifest(array_map(fn (Order $o) => $o->shipment_order_id, $ready));
+        } catch (ShiprocketRefused $e) {
+            foreach ($ready as $order) {
+                $order->forceFill(['shipment_error' => Str::limit($e->getMessage(), 500, '')])->save();
+            }
+
+            throw $e;
+        }
+
+        foreach ($ready as $order) {
+            $order->forceFill([
+                'shipment_manifest_url' => Str::limit($url, 500, ''),
+                'shipment_manifest_at' => now(),
+                'shipment_error' => null,
+            ])->save();
+            self::trail($order, 'Manifest made.', $actor);
+        }
+
+        return ['url' => $url, 'included' => array_map(fn (Order $o) => $o->order_number, $ready), 'refused' => $refused];
+    }
+
+    /**
      * The body of Shiprocket's create-order call.
      *
      * @param  array{weight_grams?: int|null, length?: int|float|null, breadth?: int|float|null, height?: int|float|null}  $parcel
@@ -436,7 +541,7 @@ final class Shipments
     }
 
     /** The address the parcel goes to: the delivery address, else the billing one. @return array<string, mixed>|null */
-    private static function address(Order $order): ?array
+    public static function address(Order $order): ?array
     {
         foreach ([$order->shipping_address, $order->billing_address] as $candidate) {
             if (is_array($candidate) && ! Address::isBlank($candidate)) {
