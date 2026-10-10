@@ -767,6 +767,12 @@ const PALETTE_SECTIONS: { label: string; href: string; group: string; keywords: 
     group: "Store · Product videos",
     keywords: "video videos youtube shorts reel clip autoplay watch shop the videos",
   },
+  {
+    label: "Speed suggestions",
+    href: "/admin/system/status#speed",
+    group: "System · System status",
+    keywords: "speed slow slower performance fast faster opcache cache caching optimise optimize lag loading",
+  },
 ];
 
 /**

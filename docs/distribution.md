@@ -336,6 +336,75 @@ Measured on the development machine (Windows, Laragon): the card printed
 schedule:run`, "Checked just now: PHP 8.3.30". The Plesk and cPanel paths
 are the unit test's word, not a measurement.
 
+## Speed suggestions (0.144.0)
+
+System → Status carries a **Speed** card (anchor `#speed`, a row in the
+command palette): what on this install is slowing the site down, how much it
+matters, and where to change it — each answered from the server that is
+answering, in the `SchedulerSetup` manner: where the host will not let us look
+the state is `unknown` ("could not check"), never a guess.
+
+**The API half**, `App\Support\System\SpeedChecks::run()`, rides on
+`GET /admin/system/status` as `speed`:
+
+```
+speed: { measured: {boot_ms, db_ms, website_ms},
+         summary:  {good, attention, unknown},
+         checks:   [{key, group, impact, state, label, detail, fix, snippet}] }
+```
+
+`group` is `server`, `app` or `content`; `impact` `high`, `medium` or `low`;
+`state` `good`, `attention`, `unknown` or `info` (a fact, nothing to fix — not
+counted in the summary). `detail` says what was found with the figure, `fix`
+where to change it, `snippet` is an optional generic line to copy (never this
+server's own `.env` or a path).
+
+**Every check is wrapped.** A probe that throws becomes `unknown` with a
+sentence that does not repeat the exception: a host that disables
+`opcache_get_status` or `proc_open` must cost one row, not the screen. A check
+that does not apply returns nothing and is left out (OPcache's memory while
+OPcache is off). `run()` takes a third argument, extra checks, which is the
+seam the test uses to prove it.
+
+The checks, in the order they are listed: `opcache` (installed? on for this
+SAPI? hit rate), `opcache_memory` (cache full, under 10% free, or within 90%
+of its file slots), `opcache_timestamps` (`validate_timestamps=1` is `info`,
+**never** a must-fix: the updater does not restart PHP, so recommending 0
+would leave an updated site running old code), `xdebug`, `optimize`
+(configuration and routes cached; `info` on a `local` install), `debug`,
+`cache_store` (`database` and `array` need attention, `file`/`redis`/
+`memcached` are good), `queue` (`sync` is mail sent while the visitor waits;
+otherwise `QueueHealth::delivering()`), `log_level`, `autoloader` (the class
+map holds 1,500 or more classes), `database` (median of three `select 1`:
+≤ 5 ms good, ≤ 25 ms info), `realpath_cache`, `php_version`, `media_cdn`,
+`large_images` (library images over 1.5 MB or wider than 2560 px, trashed ones
+and SVG ignored, the three largest named), `third_party` (GA4, Tag Manager,
+Meta Pixel, the reviews embed and `body_code`: `info`, attention at four) and
+`splash`. Every threshold is a constant on the class with its reason beside
+it. `app.env` is read from **config**, not the container, so a test can set it.
+
+**Measured figures.** `boot_ms` is the time since `LARAVEL_START` when the
+status controller starts (null where the entry point did not define it — a
+test run); `db_ms` the median above; `website_ms` the timing of the
+controller's existing website health call, null when the website did not
+answer, since a timeout measures the timeout. No new network call is made.
+
+**The website half** (`web/src/lib/speed.ts`, `server-only`) adds the two
+checks only the Next server can answer: `next_build` (`next dev` is
+attention, any other non-production `NODE_ENV` is `info`, production is good)
+and `cdn_in_front` (from `lib/cdn.ts`: detected is good, none is `info`).
+`withWebsiteChecks()` merges them in and counts the summary again, so the
+card's arithmetic holds for what it draws. The card (`speed-card.tsx`) is a
+server component: Needs attention (high impact first), Could not check, Good
+(folded), For information; its snippets are the scheduler card's `Command`.
+`scripts/probes/speed-status.mjs` checks the summary against the rows, a fix
+sentence on every attention row, the copy button and overflow at 360 and 1280.
+
+**What it will not say.** Nothing recommends full-page caching of `/admin`,
+and `opcache.validate_timestamps=0` is offered only as an option with its
+cost. The `database` and `queue` rows measure the server answering, not the
+customer's hosting plan.
+
 ## Known limits
 
 - **Hosting.** cPanel needs "Setup Node.js App" (CloudLinux/Passenger) and

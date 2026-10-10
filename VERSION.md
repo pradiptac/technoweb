@@ -21,6 +21,33 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.144.0 — 2026-10-10
+
+**System → Status says what is slowing the site down, and how to fix it.**
+
+- **A Speed card.** Seventeen checks answered from the server itself, high
+  impact first: OPcache (installed, on, hit rate, memory, file slots), the
+  Xdebug debugger, whether configuration and routes are cached, debug mode,
+  where the cache is kept, whether mail waits for the visitor or the
+  scheduler, the log level, the class loader, how long the database takes to
+  answer, PHP's file-location memory, the PHP version, the media CDN, oversized
+  library pictures (counted, with the three largest named), third-party scripts
+  and the first-visit splash. The website adds two of its own: whether it is a
+  production build and whether a CDN is in front.
+- **Plain words, a figure and a fix.** Each row says what was found with the
+  number ("OPcache is switched off, so PHP reads the whole application on every
+  request"), how much it matters, where to change it (Plesk or cPanel where the
+  panel is known) and, where it helps, a line to copy.
+- **Honest where it cannot look.** A host that disables a PHP function gets
+  "Could not check" for that row, never an error page. A fact with nothing to fix
+  is "For information" and is not counted against the site.
+- **Three measured figures** — how long PHP took to reach the page, one database
+  question, and the website's answer — and a summary line such as "9 of 14
+  checks are good — 3 need attention".
+- Ctrl+K finds it with "speed", "slow" or "opcache".
+
+---
+
 ## 0.143.0 — 2026-10-10
 
 **Parcels can be booked with Shiprocket from the order page, and the courier's

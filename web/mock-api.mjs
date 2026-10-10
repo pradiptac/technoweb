@@ -5211,6 +5211,33 @@ createServer(async (req, res) => {
         },
         disk: { free: null, total: null },
         website: { reachable: true, version: '0.128.0', api: true, url: 'http://127.0.0.1:3000', error: null },
+        // The speed suggestions (App\Support\System\SpeedChecks): one of each state, in the API's order.
+        speed: {
+          measured: { boot_ms: 142, db_ms: 0.4, website_ms: 38 },
+          summary: { good: 4, attention: 3, unknown: 1 },
+          checks: [
+            { key: 'opcache', group: 'server', impact: 'high', state: 'attention', label: 'OPcache is switched on',
+              detail: 'OPcache is switched off, so PHP reads and compiles the whole application again on every single request.',
+              fix: 'Switch it on in the PHP settings for this domain (Plesk: Websites & Domains → PHP Settings), then save.', snippet: 'opcache.enable=1' },
+            { key: 'xdebug', group: 'server', impact: 'high', state: 'good', label: 'The Xdebug debugger is off',
+              detail: 'The Xdebug debugger is not loaded.', fix: '', snippet: null },
+            { key: 'optimize', group: 'app', impact: 'high', state: 'attention', label: 'Configuration and routes are cached',
+              detail: 'The application has not prepared the configuration and the routes, so it reads and works them out again on every request.',
+              fix: 'Run this once from the API folder — the Apply step of any update on System → Updates does it for you too.', snippet: 'php artisan optimize' },
+            { key: 'debug', group: 'app', impact: 'high', state: 'good', label: 'Debug mode is off', detail: 'Debug mode is off.', fix: '', snippet: null },
+            { key: 'cache_store', group: 'app', impact: 'medium', state: 'attention', label: 'The cache is kept in files or memory',
+              detail: 'The cache is kept in the database, so every setting read is a database question on every page.',
+              fix: 'Keep it in files instead, in the API’s environment file (.env); the queue worker and the website share the same folder.', snippet: 'CACHE_STORE=file' },
+            { key: 'queue', group: 'app', impact: 'medium', state: 'good', label: 'Mail and background jobs are not made to wait',
+              detail: 'Mail and background jobs are picked up by the scheduler, away from the visitor.', fix: '', snippet: null },
+            { key: 'realpath_cache', group: 'server', impact: 'low', state: 'unknown', label: 'PHP remembers where its files are',
+              detail: 'This could not be checked on this server.', fix: 'The hosting does not let the website look at this. Ask your host, or leave it.', snippet: null },
+            { key: 'php_version', group: 'server', impact: 'low', state: 'info', label: 'PHP version',
+              detail: 'This server runs PHP 8.3.0. PHP 8.4 is a little faster.', fix: 'If your host offers PHP 8.4 for this domain, you can choose it in the hosting panel.', snippet: null },
+            { key: 'media_cdn', group: 'content', impact: 'medium', state: 'good', label: 'A CDN serves videos and documents',
+              detail: 'Videos, documents and vector logos are served from your CDN.', fix: '', snippet: null },
+          ],
+        },
       } });
     }
     if (p === '/admin/users') return json(res, 200, { data: staffList });

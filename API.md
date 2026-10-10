@@ -1119,7 +1119,7 @@ other API route answers **503** with `{message, updating: true}` and
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/system/status` | `version` `{version, commit, built_at}` (from `api/version.json`, else `web/src/lib/version.ts`), `code_schema`, `database_schema`, `installed` (`config/install.json`, null on a checkout), `php` `{version, checks[{key,label,ok,required,detail}], max_execution_time, memory_limit}`, `scheduler` (`{known, last_run_seconds, running, setup}` — `setup`, 0.128.0, is the scheduler's command worked out for this server: `os`, `panel` (`plesk`, `cpanel` or null), `php` (the command-line PHP's path, or `php` when none was found), `php_checked` (true when running it answered a `cli` PHP new enough; false when it ran and was wrong or would not run; **null** when this host will not let a web request start a program), `php_version`, `artisan`, `user` (who owns the code, when readable), `command` (for a control panel's command box), `cron` (the whole crontab line; null on Windows), `work` (`schedule:work`, for a terminal left open), `windows_task` (a `schtasks` line; null elsewhere), `dev` (true on a checkout)), `disk` `{free,total}`, `website` `{reachable, version, api, url, error}` — the website's own `/api/health`, asked from here (`WEB_INTERNAL_URL`, else `FRONTEND_URL`) |
+| `GET` | `/admin/system/status` | `version` `{version, commit, built_at}` (from `api/version.json`, else `web/src/lib/version.ts`), `code_schema`, `database_schema`, `installed` (`config/install.json`, null on a checkout), `php` `{version, checks[{key,label,ok,required,detail}], max_execution_time, memory_limit}`, `scheduler` (`{known, last_run_seconds, running, setup}` — `setup`, 0.128.0, is the scheduler's command worked out for this server: `os`, `panel` (`plesk`, `cpanel` or null), `php` (the command-line PHP's path, or `php` when none was found), `php_checked` (true when running it answered a `cli` PHP new enough; false when it ran and was wrong or would not run; **null** when this host will not let a web request start a program), `php_version`, `artisan`, `user` (who owns the code, when readable), `command` (for a control panel's command box), `cron` (the whole crontab line; null on Windows), `work` (`schedule:work`, for a terminal left open), `windows_task` (a `schtasks` line; null elsewhere), `dev` (true on a checkout)), `disk` `{free,total}`, `website` `{reachable, version, api, url, error}` — the website's own `/api/health`, asked from here (`WEB_INTERNAL_URL`, else `FRONTEND_URL`), and `speed` (see below) |
 | `GET` | `/admin/system/updates` | `installed`, `updatable` (false on a checkout), `packages_dir`, `packages[]` `{file, size, version, built_at, signed, refusal, same_version, changes_database, new_migrations, changelog[]}` — the zips in `updates/`, newest first, each read and signature-checked, the changelog newer than what is installed — `run` (the run file, or null), `history[]` (newest first, 20), `rollback` `{from, to, database}` or null, `chunk_bytes` |
 | `POST` | `/admin/system/updates/upload` | multipart `name` (`*.zip`), `index`, `total` (≤ 2000), `chunk` (≤ `chunk_bytes`, 1.5 MB). Appended to `<name>.part`; `index` 0 starts again; the last renames it into place. Throttled 600/min |
 | `POST` | `/admin/system/updates/apply` | `file`. Starts a run at `preflight`: 422 on `update` with a sentence when the zip is unsigned or altered, a test build, older than installed, installed is below its `min_from`, PHP is too old, a run is already going, or a backup or restore is in flight. Recorded in the activity log (`update_started`). Throttled 6/min |
@@ -1129,6 +1129,34 @@ other API route answers **503** with `{message, updating: true}` and
 | `POST` | `/admin/system/updates/rollback` | The `.prev` folders back and, when the update ran migrations, its `pre_update` safety copy restored. 422 with nothing to go back to, or while a step runs. Activity `update_rolled_back`. Throttled 6/min |
 | `POST` | `/admin/system/updates/abandon` | Forgets a run that stopped before the swap (the unpacked folders deleted, the site reopened). 422 once the application was replaced |
 | `DELETE` | `/admin/system/updates/packages/{file}` | A zip in `updates/`. 204 |
+
+**The `speed` block on `GET /admin/system/status`** (`App\Support\System\SpeedChecks`,
+`docs/distribution.md` "Speed suggestions"): what on this install slows the
+site down, answered from the server that is answering.
+
+```
+speed: {
+  measured: { boot_ms: int|null, db_ms: float|null, website_ms: int|null },
+  summary:  { good: int, attention: int, unknown: int },
+  checks:   [ { key, group, impact, state, label, detail, fix, snippet } ]
+}
+```
+
+`group` is `server`, `app` or `content`; `impact` `high`, `medium` or `low`;
+`state` `good`, `attention`, `unknown` (this host would not let us look — never
+a guess) or `info` (a fact, nothing to fix; **not** in `summary`). `label` is at
+most 60 characters, `detail` says what was found with the figure, `fix` where to
+change it (empty when there is nothing to do), `snippet` a generic line to copy
+or null — never this server's own `.env` or a path. Checks are listed high
+impact first; one that does not apply (OPcache's memory while OPcache is off,
+the splash while it is off) is absent. A check whose probe throws is `unknown`.
+`boot_ms` is null where the entry point did not define `LARAVEL_START`,
+`website_ms` where the website did not answer. No network call is made beyond the
+website health call the endpoint already makes. Keys today: `opcache`,
+`opcache_memory`, `opcache_timestamps`, `xdebug`, `optimize`, `debug`,
+`cache_store`, `queue`, `log_level`, `autoloader`, `database`, `realpath_cache`,
+`php_version`, `media_cdn`, `large_images`, `third_party`, `splash`; the website
+adds `next_build` and `cdn_in_front` itself.
 
 **The run file, not a table.** `storage/app/private/update/run.json` holds a
 run: the database is migrated and the code replaced mid-run, and the file is

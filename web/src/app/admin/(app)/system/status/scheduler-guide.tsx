@@ -92,7 +92,7 @@ const TITLE: Record<Kind, string> = {
   windows: "On Windows",
 };
 
-function Command({ text }: { text: string }) {
+export function Command({ text }: { text: string }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <pre className="w-0 min-w-full flex-1 overflow-x-auto rounded border border-line-strong bg-surface px-2.5 py-2 font-mono text-12 text-ink sm:min-w-0">

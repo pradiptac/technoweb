@@ -12,7 +12,9 @@ import { noIndex } from "@/lib/no-index";
 import { buildMetadata } from "@/lib/seo";
 import { APP_VERSION } from "@/lib/version";
 import type { SystemStatus } from "@/types/system";
+import { websiteSpeedChecks, withWebsiteChecks } from "@/lib/speed";
 import { SchedulerGuide } from "./scheduler-guide";
+import { SpeedCard } from "./speed-card";
 
 export const metadata = buildMetadata({ title: "System status", path: "/admin/system/status", seo: noIndex });
 
@@ -42,6 +44,8 @@ export default async function SystemStatusPage() {
   const incoming = await headers();
   const cdn = cdnInFront((name) => incoming.get(name));
   const ipHeader = clientIpSetting();
+  // The API's findings, with the two only this server can answer added.
+  const speed = status.speed ? withWebsiteChecks(status.speed, websiteSpeedChecks(cdn)) : null;
 
   return (
     <>
@@ -111,6 +115,8 @@ export default async function SystemStatusPage() {
               </p>
             )}
         </Card>
+
+        {speed && <SpeedCard report={speed} />}
 
         <Card interactive={false} padding="sm" as="section" className="min-w-0">
           <h2 className="mb-3 text-15 font-semibold">CDN</h2>

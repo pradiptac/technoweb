@@ -43,6 +43,34 @@ If none of these works, ask your host: *"What is the path to PHP 8.3's CLI
 binary for cron jobs?"* After saving the cron job, the status screen shows the
 scheduler as running within a minute.
 
+## The site feels slow
+
+Open **System → System status** and look at the **Speed** card. It checks the
+things on your own server that make a site slow, and tells you in plain words
+what it found, how much it matters (**High**, **Medium** or **Low impact**) and
+exactly what to change.
+
+- **Needs attention** lists the things worth fixing, most important first.
+  Each one has a **What to do** sentence, and often a line to copy — a setting
+  for the hosting panel's PHP settings, a line for the `.env` file, or a
+  command to run once.
+- **Could not check** are things your host does not let the site look at. They
+  are not faults. Ask your host if the site is slow and nothing else explains
+  it.
+- **Good** (folded away) is what is already fine. **For information** is a fact
+  with nothing to fix, such as an optional CDN.
+
+At the top, three small figures show how long PHP took to reach the page, how
+long the database takes to answer one question, and how long the website took
+to answer the server. A database that needs more than about 25 ms per question
+is usually on another machine.
+
+The most common finding by far is **OPcache switched off**: it is a single
+setting in the PHP settings for your domain (Plesk: *Websites & Domains → PHP
+Settings*; cPanel: *Select PHP Version → Options*), and it typically makes the
+whole site several times faster. After you change a setting, reload the
+screen to see the check again.
+
 ## The website shows an error page or "could not load"
 
 - **System → System status → The website.**

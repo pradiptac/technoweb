@@ -513,6 +513,11 @@ Built in, measured, and never allowed to guess.
   regression, a heading jump, a horizontal overflow, a console error or a CSP
   violation.
 - **A mock API** so the frontend builds and CI runs without the backend.
+- **Speed suggestions** on System → Status: a Speed card that checks this
+  server's PHP, caching, queue, database and content for what slows the site
+  down and says, in plain words, how much each matters and exactly how to fix
+  it — with a line to copy where there is one, and an honest "could not check"
+  where the host does not let the site look.
 - **Versioned**, with a changelog line for every number the console shows.
 - **No secrets in the repository**, no third-party runtime dependency that
   can change under a customer's data, and no library where a vendored file

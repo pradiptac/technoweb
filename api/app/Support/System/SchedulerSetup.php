@@ -158,7 +158,7 @@ final class SchedulerSetup
     }
 
     /** The control panel this server runs, where it can be told; the steps differ by it. */
-    private static function panel(string $binary): ?string
+    public static function panel(string $binary): ?string
     {
         $unix = str_replace('\\', '/', $binary);
 
