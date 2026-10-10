@@ -30,6 +30,7 @@ import {
   createStoreProductAction, deleteStoreProductAction, updateStoreProductAction, type StoreFormState,
 } from "../actions";
 import type { CustomFieldGroupDefinition, AdminStoreCategory, AdminStoreProduct, AnswerBlockKindOption, PageBuilderOptions, PickerOption } from "@/types/api";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: StoreFormState = {};
 
@@ -279,12 +280,8 @@ export function StoreProductForm({
               <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={product?.sort_order ?? 0} />
             </Field>
 
-            <Field label="Featured" htmlFor="is_featured" hint="Featured products lead the shop." variant="float-static">
-              <Select id="is_featured" name="is_featured" defaultValue={product?.is_featured ? "1" : "0"}>
-                <option value="0">No</option>
-                <option value="1">Yes</option>
-              </Select>
-            </Field>
+            <RecordSwitch className="mb-[18px]" name="is_featured" defaultChecked={product?.is_featured ?? false} label="Featured"
+              hint="Featured products lead the shop." />
           </aside>
         </div>
 
@@ -345,14 +342,8 @@ export function StoreProductForm({
           </div>
 
           <aside className="grid content-start gap-0">
-            <Field label="Count stock" htmlFor="track_stock" variant="float-static"
-              hint="Off for anything that cannot run out — a service, or a licence bought to order.">
-              <Select id="track_stock" name="track_stock" value={trackStock ? "1" : "0"}
-                onChange={(e) => setTrackStock(e.target.value === "1")}>
-                <option value="1">Yes</option>
-                <option value="0">No</option>
-              </Select>
-            </Field>
+            <RecordSwitch className="mb-[18px]" name="track_stock" checked={trackStock} onChange={setTrackStock} label="Count stock"
+              hint="Off for anything that cannot run out — a service, or a licence bought to order." />
 
             {/*
               Rendered disabled with the reason rather than hidden, the pattern
@@ -403,23 +394,12 @@ export function StoreProductForm({
               field beside it.
             */}
             {trackStock && variations.count === 0 && (
-              <Field label="Back-orders" htmlFor="allow_oversell" variant="float-static"
-                hint="Take orders when the shelf is empty. Stock goes below zero, which is what the shop owes.">
-                <Select id="allow_oversell" name="allow_oversell"
-                  defaultValue={product?.allow_oversell ? "1" : "0"}>
-                  <option value="0">Refuse when out of stock</option>
-                  <option value="1">Allow overselling</option>
-                </Select>
-              </Field>
+              <RecordSwitch className="mb-[18px]" name="allow_oversell" defaultChecked={product?.allow_oversell ?? false} label="Back-orders"
+                hint="Take orders when the shelf is empty. Stock goes below zero, which is what the shop owes." />
             )}
 
-            <Field label="Returnable" htmlFor="returnable" variant="float-static"
-              hint="“This product is non-returnable” is shown on the page, in the cart and at the checkout — before anybody pays.">
-              <Select id="returnable" name="returnable" defaultValue={product?.returnable === false ? "0" : "1"}>
-                <option value="1">Yes</option>
-                <option value="0">No — non-returnable</option>
-              </Select>
-            </Field>
+            <RecordSwitch className="mb-[18px]" name="returnable" defaultChecked={product?.returnable !== false} label="Returnable"
+              hint="“This product is non-returnable” is shown on the page, in the cart and at the checkout — before anybody pays." />
           </aside>
         </div>
 
@@ -482,13 +462,8 @@ export function StoreProductForm({
               </Select>
             </Field>
 
-            <Field label="In the shopping feed" htmlFor="feed_include" variant="float-static"
-              hint="Being on sale here and being advertised on Google are separate decisions. Turn this off to clear a Merchant Center disapproval without taking the product off sale.">
-              <Select id="feed_include" name="feed_include" defaultValue={product?.feed_include === false ? "0" : "1"}>
-                <option value="1">Yes</option>
-                <option value="0">No — sold here only</option>
-              </Select>
-            </Field>
+            <RecordSwitch className="mb-[18px]" name="feed_include" defaultChecked={product?.feed_include !== false} label="In the shopping feed"
+              hint="Being on sale here and being advertised on Google are separate decisions. Turn this off to clear a Merchant Center disapproval without taking the product off sale." />
           </aside>
         </div>
 

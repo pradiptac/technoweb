@@ -11,6 +11,7 @@ import { FormActions } from "@/components/admin/form-actions";
 import { createPopupAction, updatePopupAction, type PopupState } from "./actions";
 import type { PopupMeta } from "@/lib/admin";
 import type { AdminPopup } from "@/types/api";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: PopupState = {};
 
@@ -146,14 +147,8 @@ export function PopupForm({ popup, meta }: { popup?: AdminPopup; meta: PopupMeta
         </Field>
       </div>
 
-      <label className="mb-6 flex items-center gap-2.5 text-13-5">
-        <input
-          type="checkbox" name="link_new_tab" className="size-4 accent-brand-600"
-          defaultChecked={popup?.link_new_tab ?? false}
-        />
-        Open the link in a new tab
-        <span className="text-muted">— for anything that leaves this site.</span>
-      </label>
+      <RecordSwitch className="mb-6" name="link_new_tab" defaultChecked={popup?.link_new_tab ?? false} label="Open the link in a new tab"
+        hint="For anything that leaves this site." />
 
       {/* ------------------------------------------------------- targeting */}
 

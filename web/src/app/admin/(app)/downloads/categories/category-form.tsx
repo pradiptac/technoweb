@@ -11,6 +11,7 @@ import type { AdminDownloadCategory } from "@/types/downloads";
 import {
   createDownloadCategoryAction, updateDownloadCategoryAction, type DownloadState,
 } from "../actions";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: DownloadState = {};
 
@@ -56,15 +57,8 @@ export function DownloadCategoryForm({ category }: { category?: AdminDownloadCat
           <Input id="sort_order" name="sort_order" type="number" min={0} max={65535} defaultValue={category?.sort_order ?? 0} className="w-28" />
         </Field>
 
-        <label className="mb-[18px] flex items-start gap-2.5 text-14">
-          <input type="checkbox" name="is_active" value="1" defaultChecked={category?.is_active ?? true} className="mt-1" />
-          <span>
-            <span className="font-semibold">Shown on the site</span>
-            <span className="block text-12-5 text-muted">
-              Switched off, the category and every download in it come off the downloads page. The files are kept.
-            </span>
-          </span>
-        </label>
+        <RecordSwitch className="mb-[18px]" name="is_active" defaultChecked={category?.is_active ?? true} label="Shown on the site"
+          hint="Switched off, the category and every download in it come off the downloads page. The files are kept." />
       </div>
 
       <FormActions>

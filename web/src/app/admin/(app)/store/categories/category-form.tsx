@@ -6,7 +6,7 @@ import { FormDraft } from "@/components/admin/form-draft";
 import { useActionState } from "react";
 import { FormActions } from "@/components/admin/form-actions";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
+import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
 import { FaqField } from "@/components/admin/faq-field";
 import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
@@ -19,6 +19,7 @@ import {
   createStoreCategoryAction, deleteStoreCategoryAction, updateStoreCategoryAction, type StoreFormState,
 } from "../actions";
 import type { AdminStoreCategory, AnswerBlockKindOption } from "@/types/api";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: StoreFormState = {};
 
@@ -135,13 +136,8 @@ export function StoreCategoryForm({ category, kinds }: { category?: AdminStoreCa
           </div>
 
           <aside className="grid content-start gap-0">
-            <Field label="Shown in the shop" htmlFor="is_active" variant="float-static"
-              hint="A category with nothing published in it is hidden regardless — an empty filter reads as “they do not sell this”.">
-              <Select id="is_active" name="is_active" defaultValue={category?.is_active === false ? "0" : "1"}>
-                <option value="1">Yes</option>
-                <option value="0">No</option>
-              </Select>
-            </Field>
+            <RecordSwitch className="mb-[18px]" name="is_active" defaultChecked={category?.is_active !== false} label="Shown in the shop"
+              hint="A category with nothing published in it is hidden regardless — an empty filter reads as “they do not sell this”." />
 
             <Field label="Sort order" htmlFor="sort_order" error={err("sort_order")}
               hint="Lower numbers come first.">

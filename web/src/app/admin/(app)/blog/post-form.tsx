@@ -20,6 +20,7 @@ import { CoverField } from "@/components/admin/cover-field";
 import { RelationPicker } from "@/components/admin/relation-picker";
 import { createPostAction, updatePostAction, deletePostAction, type PostFormState } from "./actions";
 import type { CustomFieldGroupDefinition, AdminBlogPost, StaffUser, AnswerBlockKindOption, PageBuilderOptions } from "@/types/api";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: PostFormState = {};
 
@@ -147,21 +148,11 @@ export function PostForm({
               </Select>
             </Field>
 
-            <Field label="Featured" htmlFor="is_featured" error={err("is_featured")} variant="float-static"
-              hint="Featured posts fill the lead area at the top of the blog.">
-              <Select id="is_featured" name="is_featured" defaultValue={post?.is_featured ? "1" : "0"}>
-                <option value="0">No</option>
-                <option value="1">Yes</option>
-              </Select>
-            </Field>
+            <RecordSwitch className="mb-[18px]" name="is_featured" defaultChecked={post?.is_featured ?? false} label="Featured"
+              hint="Featured posts fill the lead area at the top of the blog." />
 
-            <Field label="Comments on this post" htmlFor="comments_enabled" error={err("comments_enabled")} variant="float-static"
-              hint="Readers can comment only while comments are also switched on in Blog → Settings.">
-              <Select id="comments_enabled" name="comments_enabled" defaultValue={post?.comments_enabled === false ? "0" : "1"}>
-                <option value="1">Open</option>
-                <option value="0">Closed</option>
-              </Select>
-            </Field>
+            <RecordSwitch className="mb-[18px]" name="comments_enabled" defaultChecked={post?.comments_enabled !== false} label="Comments open on this post"
+              hint="Readers can comment only while comments are also switched on in Blog → Settings." />
 
             <RelationPicker
               name="category_ids"

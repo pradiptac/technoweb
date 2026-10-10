@@ -25,6 +25,7 @@ import {
   createProductAction, updateProductAction, deleteProductAction, type ProductFormState,
 } from "./actions";
 import type { CustomFieldGroupDefinition, AdminProduct, PickerOption, AnswerBlockKindOption, PageBuilderOptions } from "@/types/api";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: ProductFormState = {};
 
@@ -193,14 +194,8 @@ export function ProductForm({
               </Select>
             </Field>
 
-            <Field label="Featured" htmlFor="is_featured" hint="Featured products lead the catalogue." variant="float-static">
-              <Select
-                id="is_featured" name="is_featured" defaultValue={product?.is_featured ? "1" : "0"}
-              >
-                <option value="0">No</option>
-                <option value="1">Yes</option>
-              </Select>
-            </Field>
+            <RecordSwitch className="mb-[18px]" name="is_featured" defaultChecked={product?.is_featured ?? false} label="Featured"
+              hint="Featured products lead the catalogue." />
           </aside>
         </div>
 

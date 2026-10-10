@@ -11,6 +11,7 @@ import {
 } from "./actions";
 import type { AdminRedirect } from "@/types/api";
 import { formatDate } from "@/lib/dates";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: RedirectFormState = {};
 
@@ -66,15 +67,8 @@ export function RedirectForm({ record, saved, initialFrom }: { record?: AdminRed
             </Select>
           </Field>
 
-          <Field label="Active" htmlFor="is_active"
-            hint="Turn off to stop the redirect without losing the row." variant="float-static">
-            <Select
-              id="is_active" name="is_active" defaultValue={record?.is_active === false ? "0" : "1"}
-            >
-              <option value="1">Yes</option>
-              <option value="0">No</option>
-            </Select>
-          </Field>
+          <RecordSwitch className="mb-[18px]" name="is_active" defaultChecked={record?.is_active !== false} label="Active"
+            hint="Turn off to stop the redirect without losing the row." />
 
           {editing && (
             <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-12-5 leading-[1.5] text-muted">

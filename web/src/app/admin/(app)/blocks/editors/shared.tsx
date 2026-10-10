@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { CoverField } from "@/components/admin/cover-field";
 import { MediaBrowser } from "@/components/admin/media-browser";
 import { ReorderButtons } from "@/components/admin/reorder-buttons";
@@ -152,8 +153,8 @@ export function Toggle({ path, label, hint }: { path: Path; label: string; hint?
   const id = idFor(path, idPrefix);
   return (
     <div className="mb-[18px]">
-      <label htmlFor={id} className="inline-flex min-h-6 cursor-pointer items-center gap-2 text-13-5">
-        <input id={id} type="checkbox" className="size-4 accent-brand-600" checked={getIn(content, path) === true} onChange={(e) => set(path, e.target.checked)} />
+      <label htmlFor={id} className="inline-flex min-h-6 cursor-pointer items-center gap-2.5 text-13-5">
+        <Switch id={id} checked={getIn(content, path) === true} onChange={(e) => set(path, e.target.checked)} />
         {label}
       </label>
       {hint && <p className="mt-1 text-12-5 text-faint">{hint}</p>}

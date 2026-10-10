@@ -23,6 +23,7 @@ import {
   createServiceAction, updateServiceAction, deleteServiceAction, type ServiceFormState,
 } from "./actions";
 import type { CustomFieldGroupDefinition, AdminService, AnswerBlockKindOption, PageBuilderOptions } from "@/types/api";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: ServiceFormState = {};
 
@@ -154,17 +155,8 @@ export function ServiceForm({
               this decides whether the mega menu points at it. A catalogue outgrows a
               navigation long before it outgrows itself.
             */}
-            <label className="mb-[18px] flex items-start gap-2 text-13-5">
-              <input type="checkbox" name="show_in_menu" value="1" className="mt-0.5"
-                defaultChecked={service?.show_in_menu ?? true} />
-              <span>
-                Show in the main menu
-                <span className="mt-0.5 block text-12-5 text-faint">
-                  Unticked, it stays published and listed on the services index &mdash; it just drops out
-                  of the header navigation.
-                </span>
-              </span>
-            </label>
+            <RecordSwitch className="mb-[18px]" name="show_in_menu" defaultChecked={service?.show_in_menu ?? true} label="Show in the main menu"
+              hint="Switched off, it stays published and listed on the services index and just drops out of the header navigation." />
           </aside>
         </div>
 

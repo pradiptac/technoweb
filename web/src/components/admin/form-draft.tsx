@@ -15,6 +15,8 @@ const EVERY_MS = 10_000;
 function storable(el: Element): el is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
   if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement)) return false;
   if (el instanceof HTMLInputElement && (el.type === "file" || el.type === "password")) return false;
+  // RecordSwitch's hidden "0" is the off-answer, not a value to restore.
+  if (el instanceof HTMLInputElement && "switchOff" in el.dataset) return false;
   return Boolean(el.name);
 }
 

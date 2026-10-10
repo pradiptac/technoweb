@@ -5,7 +5,7 @@ import { Form } from "@/components/ui/form";
 import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Input, Textarea, Select } from "@/components/ui/input";
+import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
 import { AeoGeoPanel } from "@/components/admin/aeo-geo-panel";
 import { AnswerBlocksField } from "@/components/admin/answer-blocks-field";
@@ -16,6 +16,7 @@ import {
   createBrandAction, updateBrandAction, deleteBrandAction, type BrandFormState,
 } from "./actions";
 import type { AdminBrand, AnswerBlockKindOption } from "@/types/api";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: BrandFormState = {};
 
@@ -98,16 +99,8 @@ export function BrandForm({
             <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={brand?.sort_order ?? 0} />
           </Field>
 
-          <Field label="Featured" htmlFor="is_featured"
-            hint="Featured brands lead the filter list." variant="float-static">
-            <Select
-              id="is_featured" name="is_featured"
-              defaultValue={brand?.is_featured ? "1" : "0"}
-            >
-              <option value="0">No</option>
-              <option value="1">Yes</option>
-            </Select>
-          </Field>
+          <RecordSwitch className="mb-[18px]" name="is_featured" defaultChecked={brand?.is_featured ?? false} label="Featured"
+            hint="Featured brands lead the filter list." />
 
           <Field label="Partner tier" htmlFor="partner_tier" error={err("partner_tier")}
             hint="“Gold Partner”, “Authorised Reseller”. Filled in, the logo and this line appear on the Certifications page under “Authorised partner”. Blank means no claim.">

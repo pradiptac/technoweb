@@ -1374,6 +1374,19 @@ for the current state underneath; `scripts/probes/setting-switch.mjs` fails
 on an Off/On `<select>` or a bare tick box posting a `setting__` key on any
 screen `settings-copy.ts` declares.
 
+**A boolean on a record form is a `RecordSwitch`** (`components/admin/record-switch.tsx`,
+0.152.0): the same `Switch`, with a **named, uncontrolled** checkbox (`value="1"`)
+followed by a hidden `0` of the same name, so `FormData.get()` — which returns the
+first entry — says `1` when on and `0` when off, every action keeps reading
+`=== "1"`, and `<Form>`'s restore and `FormDraft`'s (both match a named checkbox by
+name and value) work with no code of their own; the hidden `0` carries
+`data-switch-off` so `FormDraft` leaves it out. `SettingSwitch`'s unnamed box over
+a controlled hidden input would not survive a draft restore, which is why this is
+not a copy of it. A Yes/No `<Select>` or a bare tick box for a boolean on a record
+form is a mistake; a switch that drives something else on the form takes
+`checked`/`onChange` (the shop product's Count stock). A list of tick boxes, a
+bulk-select tick and a repeater row's compact tick stay tick boxes.
+
 **Admin form buttons go in `FormActions`.** It pins the row to the bottom of
 the viewport while the form is taller than the screen — on a populated product
 the buttons sat below the editor and two repeaters — and warns before a
@@ -3174,8 +3187,7 @@ how far four recent features go, and none of these is to be added:
 required"). Not to be built unless the client asks: Microsoft sign-in, and
 Google sign-in for staff (customers' Google sign-in, 0.133.0, stays); a
 custom code section in the page builder; a header and footer builder; a
-template builder; and on/off switches in place of the tick boxes on record
-forms (the settings screens keep theirs, 0.135.0).
+template builder.
 
 ---
 

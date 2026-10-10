@@ -1100,3 +1100,44 @@ products and shop categories purged and reported "deleted" whatever the API answ
 the rule the twelve other lists do (refusal → `?done=not-deleted`, purge nothing).
 
 `scripts/probes/bulk-actions.mjs` drives it on throwaway blog posts at 1280 and 360.
+
+## Switches on record forms (0.152.0)
+
+Every boolean on a record form is the small sliding switch the settings screens
+got in 0.135.0. Before, a record form spent three styles on the same question: a
+tick box (`is_active`, `show_in_menu`), a Yes/No `<Select>` (`is_featured`,
+`comments_enabled`, `allow_oversell`, `feed_include`, `returnable`, `track_stock`,
+`is_active` on staff, webhooks, redirects, coupons and shop categories) and the
+block editors' `Toggle`.
+
+`RecordSwitch` (`components/admin/record-switch.tsx`) is a labelled `Switch` with a
+hint line, posting `1` or `0` under the field's own name. The checkbox is named,
+uncontrolled and `value="1"`; a hidden `0` of the same name follows it. Because
+`FormData.get()` returns the first entry, every Server Action keeps reading
+`=== "1"` (or `!== "0"`), and "off" is a real answer instead of a missing key.
+The checkbox being named is what makes it work inside the rest of the form
+machinery with nothing special: `<Form>` puts it back after a refused save (it
+snapshots a checkbox by name and value), `FormDraft` snapshots and restores it
+the same way, and `buildFormTabs` charges a 422 on the field to the tab that
+lists the name. The hidden `0` is skipped by `<Form>` (hidden inputs are set by
+code) and by `FormDraft` (`data-switch-off`). A switch that drives something else
+on the form (the shop product's Count stock, which hides Back-orders) is
+controlled with `checked`/`onChange`; the block editors' `Toggle` draws a plain
+`Switch` bound to its path in the content object.
+
+Left as tick boxes: the bulk-select ticks in tables, grids of choices that are a
+list rather than a yes/no (roles, groups, sections, qualifications), a repeater
+row's compact tick (field `required`, a menu item's "new tab", a variation's
+oversell), and one-press options on an action (`force`, `notify`,
+`notify_registrants`).
+
+**Fixed on the way.** The shop product form's Back-orders choice was never read
+by its action, so it could not be saved from the console; the action now sends
+`allow_oversell` whenever the control was drawn (a product counting stock with no
+variations). A client's Featured box posted `on` and its action read `"on"`, and
+a popup's "Open in a new tab" the same; both are `1` now, like the rest.
+
+`scripts/probes/record-switch.mjs` opens a handful of the forms, checks each
+boolean is a `role="switch"` with its hidden `0` and no Yes/No select remains,
+and round-trips a throwaway redirect's Active on and off (including a refused
+save keeping the typed state).

@@ -64,6 +64,8 @@ function productPayload(formData: FormData): Record<string, unknown> {
     track_stock: formData.get("track_stock") === "1",
     stock: Number(str(formData, "stock") ?? 0) || 0,
     returnable: formData.get("returnable") === "1",
+    // Only when the control was drawn (stock counted, no variations): absent leaves the column alone.
+    ...(formData.has("allow_oversell") ? { allow_oversell: formData.get("allow_oversell") === "1" } : {}),
     // The Shopping tab. Blank identifiers are sent as null rather than "",
     // so a cleared field clears the column instead of storing an empty
     // string the feed would then have to treat as absent.

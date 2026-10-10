@@ -13,6 +13,7 @@ import { CtaEditor } from "./editors/cta-editor";
 import { StatsEditor } from "./editors/stats-editor";
 import { PricingEditor } from "./editors/pricing-editor";
 import { StackEditor } from "./editors/stack-editor";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 /**
  * Creating and editing a content block.
@@ -110,10 +111,8 @@ export function BlockForm({ type, meta, block, brands, action }: {
 
       {type === "cta" && (
         <div className="-mt-4 mb-8">
-          <label htmlFor="is_default" className="inline-flex min-h-6 cursor-pointer items-center gap-2 text-13-5">
-            <input id="is_default" type="checkbox" name="is_default" value="1" className="size-4 accent-brand-600" defaultChecked={block?.is_default ?? false} />
-            Use as the site default — the closing band at the foot of every page
-          </label>
+          <RecordSwitch className="mb-8 -mt-4" name="is_default" defaultChecked={block?.is_default ?? false} label="Use as the site default"
+            hint="The closing band at the foot of every page. Only a published banner can be the default, and only one at a time. Pages with their own heading keep it; they take the buttons and layout from here." />
           <p className="mt-1 text-12-5 text-faint">
             Only a published banner can be the default, and only one at a time. Pages with their own heading keep it; they take the buttons and layout from here.
           </p>

@@ -21,6 +21,23 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.152.0 — 2026-10-10
+
+**Every on/off choice on a record form is the sliding switch.**
+
+- The Yes/No dropdowns and tick boxes on record forms (Featured, Show in the
+  main menu, Active, Returnable, Count stock, In the shopping feed, comments
+  on a post, an embedded form, a slider's autoplay and the rest — thirty-odd
+  across brands, blog, clients, events, locations, redirects, staff,
+  webhooks, coupons, content types, the shop and more) are now the same small
+  switch the settings screens use. What the form saves is unchanged.
+- The block editors' on/off options draw the switch too.
+- **Fixed on the way:** a shop product's **Back-orders** choice was never saved
+  from its form; it is now. A client's **Featured** and a popup's **Open in a
+  new tab** are read as the other switches are.
+
+---
+
 ## 0.151.0 — 2026-10-10
 
 **A new install loads the sample content unless told not to.**
@@ -2914,6 +2931,9 @@ prefetch payload, and every upload path on a throttled connection.
 
 The homepage certifications row carries `patterns/dot-halftone.svg` as a faded
 backdrop, the treatment the "Why Technoware" section already gives its waves.
+
+---
+
 ## 0.40.3 — 2026-09-12
 
 Client logos larger again — the "Trusted by" strip's slots are 224×80
@@ -2923,6 +2943,9 @@ both sides: the cards and the homepage row draw it in a portrait well and
 crop to fit, the form asks for a scan of the certificate rather than a
 badge, and the seeder's placeholder is `PlaceholderImage::portrait()` —
 the three seeded files were regenerated in place.
+
+---
+
 ## 0.40.2 — 2026-09-12
 
 The homepage strips read larger: marquee slots are 160×56 rather than
@@ -2931,12 +2954,18 @@ certification cards' badges 112px. And the client marquee no longer shows
 empty track on a wide screen — each copy of the list is repeated until it is
 wider than any viewport (18 slots), so `-50%` is seamless with six logos as
 it always was with twenty-six brands; the duration scales with the copy.
+
+---
+
 ## 0.40.1 — 2026-09-12
 
 A slider's words can animate in. "Text animation" beside Transition on the
 slider form — None (the default, and what every slider did before), Fade in,
 Rise, Slide in, Zoom — plays the heading, the caption and the button a beat
 apart each time a slide becomes current, and is still under reduced motion.
+
+---
+
 ## 0.40.0 — 2026-09-12
 
 Three modules for the company profile, all under Content in the console:
@@ -2956,6 +2985,9 @@ Three modules for the company profile, all under Content in the console:
 Index pages only — no slugs, no per-record SEO. In the footer's Company
 column, the sitemap, and the menu/popup section lists. Seeded as
 placeholders, create-only.
+
+---
+
 ## 0.39.3 — 2026-09-12
 
 A staff mobile number is mandatory everywhere, not only on the form. The
@@ -2965,6 +2997,9 @@ every account without one, `/admin/auth/me` carries the number, and Your
 account says whether one is on file and who to ask. `StaffPhoneTest` pins
 the rule and the one exception: an edit that does not mention the number
 does not have to backfill a row from before the column.
+
+---
+
 ## 0.39.2 — 2026-09-12
 
 The gallery's filter pills draw a frame on hover: two corner brackets grow
@@ -2972,12 +3007,18 @@ from the top-left and bottom-right until they outline the whole pill, and
 shrink back on leave. Keyboard focus does the same. `.bracket-hover` in
 `globals.css`, reusable on any control with corners — the pills went from
 `rounded-full` to `rounded-md` for it, since a bracket needs a corner.
+
+---
+
 ## 0.39.1 — 2026-09-12
 
 A gallery tile leans in on hover — the picture scales to 1.08 over half a
 second, a wash comes over it and a magnifier on a solid dark disc rises into
 the middle; keyboard focus does the same. It was a 4% scale that measured
 1.037 mid-flight and read as nothing. The caption stays under the picture.
+
+---
+
 ## 0.39.0 — 2026-09-12
 
 The shop's search box suggests as you type — up to six matching products
@@ -2998,6 +3039,9 @@ hovered or focused, crossfading every 1.1s, with dots saying which is
 showing; the extra images are fetched on the first hover, not with the grid.
 
 Fixed: "Basket is empty" wrapped to three lines once the strip was tight.
+
+---
+
 ## 0.38.2 — 2026-09-12
 
 Every card on the blog — the hero's side rows, the list rows, the sidebar

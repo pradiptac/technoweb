@@ -23,9 +23,9 @@ Ctrl + S, a draft kept in your browser, and a redirect written automatically
 when you change a slug.
 
 **Show in the main menu.** Solutions, services, industries and product
-categories each have a *Show in the main menu* tick. Being published and being in the header's mega
-menu are separate decisions: untick it to keep a record on the site but out of
-the navigation. New records are ticked by default.
+categories each have a *Show in the main menu* switch. Being published and being in the header's mega
+menu are separate decisions: switch it off to keep a record on the site but out of
+the navigation. New records have it on by default.
 
 **Icons.** Solutions, services, industries and categories carry an icon,
 chosen from a picker of the site's own icon set. Icons are coloured

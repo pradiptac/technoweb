@@ -9,6 +9,7 @@ import { SlideRepeater } from "./slide-repeater";
 import { createSliderAction, updateSliderAction, type SliderState } from "./actions";
 import type { SlideCaptionPositionOption, SliderTransitionOption } from "@/lib/admin";
 import type { Slider } from "@/types/api";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: SliderState = {};
 
@@ -133,11 +134,8 @@ export function SliderForm({
         )}
       </div>
 
-      <label className="mb-6 flex items-center gap-2.5 text-13-5">
-        <input type="checkbox" name="autoplay" value="1" defaultChecked={slider?.autoplay ?? true} className="size-4 accent-brand-600" />
-        Advance slides automatically
-        <span className="text-muted">— ignored for anyone who has asked for reduced motion.</span>
-      </label>
+      <RecordSwitch className="mb-6" name="autoplay" defaultChecked={slider?.autoplay ?? true} label="Advance slides automatically"
+        hint="Ignored for anyone who has asked for reduced motion." />
 
       {/* The whole point of the feature, so it is on the form rather than in
           documentation nobody opens. */}

@@ -9,6 +9,7 @@ import { GalleryEditors } from "./gallery-editors";
 import { createGalleryAction, updateGalleryAction, type GalleryState } from "./actions";
 import type { GalleryTransitionOption } from "@/lib/admin";
 import type { Gallery } from "@/types/api";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: GalleryState = {};
 
@@ -143,14 +144,8 @@ export function GalleryForm({
         </Field>
       </div>
 
-      <label className="mb-6 flex flex-wrap items-center gap-2.5 text-13-5">
-        <input type="checkbox" name="autoplay" value="1" defaultChecked={gallery?.autoplay ?? false} className="size-4 accent-brand-600" />
-        Start the slideshow automatically when a picture is opened
-        <span className="text-muted">
-          — the arrows work either way, and this is ignored for anyone who has
-          asked for reduced motion.
-        </span>
-      </label>
+      <RecordSwitch className="mb-6" name="autoplay" defaultChecked={gallery?.autoplay ?? false} label="Start the slideshow automatically when a picture is opened"
+        hint="The arrows work either way, and this is ignored for anyone who has asked for reduced motion." />
 
       {/* The whole point of the feature, so it is on the form rather than in
           documentation nobody opens. */}

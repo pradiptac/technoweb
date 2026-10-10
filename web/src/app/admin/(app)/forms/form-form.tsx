@@ -13,6 +13,7 @@ import { createFormAction, updateFormAction, type FormState } from "./actions";
 import { buildHtmlSnippet } from "./embed-html";
 import { kindsFrom, needsFrame } from "./form-kinds";
 import type { AdminForm, FormMeta } from "@/lib/admin";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: FormState = {};
 
@@ -163,23 +164,8 @@ export function FormForm({
           <div className="mb-6 rounded-lg border border-line-strong bg-surface p-4">
             <p className="text-13 font-semibold">Put this form on another website</p>
 
-            <label className="mt-2 flex items-start gap-2 text-13">
-              <input
-                type="checkbox"
-                name="embed_enabled"
-                value="1"
-                defaultChecked={form?.embed_enabled ?? false}
-                className="mt-0.5 size-4 shrink-0"
-              />
-              <span>
-                Allow this form to be embedded elsewhere
-                <span className="mt-0.5 block text-muted">
-                  Off by default. Until this is ticked and saved, the address below answers 404 —
-                  which is what keeps a form built for one page of this site from appearing on
-                  somebody else&rsquo;s.
-                </span>
-              </span>
-            </label>
+            <RecordSwitch className="mt-2" name="embed_enabled" defaultChecked={form?.embed_enabled ?? false} label="Allow this form to be embedded elsewhere"
+              hint="Off by default. Until this is switched on and saved, the address below answers 404 - which is what keeps a form built for one page of this site from appearing on somebody else's." />
             {err("embed_enabled") && <p className="mt-1.5 text-12-5 text-err">{err("embed_enabled")}</p>}
 
             <p className="mt-3 text-13 text-muted">

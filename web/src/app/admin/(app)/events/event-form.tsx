@@ -19,6 +19,7 @@ import type { PageBuilderOptions } from "@/types/api";
 import { createEventAction, deleteEventAction, updateEventAction, type EventFormState } from "./actions";
 import { AgendaField, SpeakersField } from "./programme-fields";
 import { SeatMeter } from "./seat-meter";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: EventFormState = {};
 
@@ -191,13 +192,8 @@ export function EventForm({ event, meta, builder }: {
               </Select>
             </Field>
 
-            <Field label="Featured" htmlFor="is_featured" error={err("is_featured")} variant="float-static"
-              hint="A featured event leads the Events page while it is still to come.">
-              <Select id="is_featured" name="is_featured" defaultValue={event?.is_featured ? "1" : "0"}>
-                <option value="0">No</option>
-                <option value="1">Yes</option>
-              </Select>
-            </Field>
+            <RecordSwitch className="mb-[18px]" name="is_featured" defaultChecked={event?.is_featured ?? false} label="Featured"
+              hint="A featured event leads the Events page while it is still to come." />
 
             {editing && (
               <p className="text-12-5 text-muted">
@@ -342,18 +338,8 @@ export function EventForm({ event, meta, builder }: {
               </Field>
             </div>
 
-            <label className="mb-[18px] flex items-start gap-2.5 text-13-5">
-              <input type="checkbox" name="waitlist_enabled" value="1" defaultChecked={event?.waitlist_enabled ?? false}
-                className="mt-0.5 size-4 shrink-0 accent-brand-600" />
-              <span>
-                Keep a waiting list once it is full
-                <span className="mt-0.5 block text-12-5 text-muted">
-                  With a capacity set, people who register after the last seat has gone are told they are waiting, and
-                  are confirmed and emailed — oldest first — as places open. Off, a full event simply refuses.
-                </span>
-                {err("waitlist_enabled") && <span className="mt-1 block text-12-5 text-err">{err("waitlist_enabled")}</span>}
-              </span>
-            </label>
+            <RecordSwitch className="mb-[18px]" name="waitlist_enabled" defaultChecked={event?.waitlist_enabled ?? false} label="Keep a waiting list once it is full"
+              hint="With a capacity set, people who register after the last seat has gone are told they are waiting, and are confirmed and emailed - oldest first - as places open. Off, a full event simply refuses." />
 
             <Field label="Registration closes" htmlFor="registration_closes_at" error={err("registration_closes_at")}
               hint={`Optional, in ${zone}, and not after the start. Blank keeps it open until the event starts.`}>

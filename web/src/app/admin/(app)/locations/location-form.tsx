@@ -10,6 +10,7 @@ import {
   createLocationAction, updateLocationAction, deleteLocationAction, type LocationFormState,
 } from "./actions";
 import type { AdminLocation } from "@/types/api";
+import { RecordSwitch } from "@/components/admin/record-switch";
 
 const initial: LocationFormState = {};
 
@@ -179,17 +180,8 @@ export function LocationForm({ record, saved, blocked, parents, services, soluti
               defaultValue={record?.sort_order ?? 0} />
           </Field>
 
-          <label className="mt-2 flex items-start gap-2.5 text-13-5">
-            <input type="checkbox" name="is_active" value="1" defaultChecked={record?.is_active ?? true}
-              className="mt-0.5 size-4 shrink-0" />
-            <span>
-              <span className="font-medium text-ink">We work here</span>
-              <span className="mt-0.5 block text-12-5 text-muted">
-                Switch off when you stop covering a place. Existing pages stay put
-                until you deal with them — nothing is deleted behind your back.
-              </span>
-            </span>
-          </label>
+          <RecordSwitch className="mt-2" name="is_active" defaultChecked={record?.is_active ?? true} label="We work here"
+            hint="Switch off when you stop covering a place. Existing pages stay put until you deal with them - nothing is deleted behind your back." />
 
           {editing && (record!.landing_page_count ?? 0) > 0 && (
             <p className="measure mt-4 text-12-5 text-muted">
