@@ -248,6 +248,22 @@ Things worth knowing about the builder:
   heading. The menu appears once at least two sections have an anchor, and
   a hidden section is left out of it.
 
+#### Different on a phone, a tablet and a computer
+
+Open a section's **Style** to set a **Minimum height** (the section is at
+least that tall, with its content in the middle; **Full screen** fills the
+visible window below the site header) and a **Heading colour** (Brand,
+Secondary or Accent — a readable shade of your theme colour, matched to the
+section's background; a hero, a call to action and your theme's own sections
+keep their colours). Below them, **Different on phone / tablet / computer**
+lets one screen differ: choose the screen, then change the space above, the
+space below, the alignment or the height there. **Same as other screens**
+means "do what the settings above say". *Normal* is the section's usual
+spacing — use it when you want one screen to go back to normal while another
+is changed. The live preview shows each screen when you switch it. A section
+with a shaped edge does not offer *None* or *S* for the space on that side,
+because the edge needs the room.
+
 ### Drafting a page with AI
 
 On **Content → Pages**, **Draft with AI** writes a first version of a builder

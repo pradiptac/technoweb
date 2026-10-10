@@ -211,9 +211,23 @@ export type SectionStyle = {
   /** A shaped edge where the section's ground meets its neighbour (0.126.0). Only with a background of its own. */
   edge_top?: SectionEdge;
   edge_bottom?: SectionEdge;
+  /** A least height, a step on a fixed scale (0.146.0). */
+  min_h?: SectionMinHeight;
+  /** The heading's ink: one of the three coloured inks (0.146.0). Ignored on a band of fixed colour. */
+  heading_color?: "brand" | "secondary" | "accent";
+  /** Per-device overrides (0.146.0). A missing key inherits the base; `m` is the section's normal rhythm. */
+  responsive?: Partial<Record<SectionDevice, SectionDeviceStyle>>;
 };
 
 export type SectionEdge = "wave" | "slant" | "curve" | "peak";
+export type SectionDevice = "phone" | "tablet" | "desktop";
+export type SectionMinHeight = "s" | "m" | "l" | "screen";
+export type SectionDeviceStyle = {
+  pad_top?: "none" | "s" | "m" | "l" | "xl";
+  pad_bottom?: "none" | "s" | "m" | "l" | "xl";
+  align?: "start" | "center" | "end";
+  min_h?: "none" | SectionMinHeight;
+};
 
 /** `reveal` is an id from `SECTION_REVEALS` (lib/motion-choices.ts), or null for the section's own default. */
 type Of<T extends PageSectionType, D> = { id: string; type: T; background: SectionBackground | null; reveal?: string | null; style?: SectionStyle | null; data: D };
@@ -295,6 +309,8 @@ export type PageBuilderOptions = {
    * and the length the save holds it to. The API's, read off its own rules.
    */
   inline_fields?: Record<string, { path: string; max: number }[]>;
+  /** The Design tab (0.146.0): the section types whose heading colour the site ignores. Optional for an older API. */
+  style_options?: { heading_color_except: string[] };
   /**
    * Sections on records other than pages (0.129.0): the two things a record's
    * body area may show, and the section types it cannot hold — the API's

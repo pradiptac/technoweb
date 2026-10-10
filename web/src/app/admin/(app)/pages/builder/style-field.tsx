@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Field, Input } from "@/components/ui/input";
-import type { SectionStyle } from "@/types/page-sections";
+import type { SectionDevice, SectionDeviceStyle, SectionStyle } from "@/types/page-sections";
 
 /**
  * A section's style (2026-10-05, `SectionStyle`): how it sits on the page,
@@ -17,7 +18,7 @@ import type { SectionStyle } from "@/types/page-sections";
  * `aria-pressed` buttons in a labelled group, each 32px tall — the console's
  * dense scale, still clear of the 24px tap-target floor.
  */
-type Key = "pad_top" | "pad_bottom" | "width" | "align" | "heading" | "headline" | "scroll" | "edge_top" | "edge_bottom";
+type Key = "pad_top" | "pad_bottom" | "width" | "align" | "heading" | "heading_color" | "min_h" | "headline" | "scroll" | "edge_top" | "edge_bottom";
 
 /** The four shapes an edge can take (0.126.0). */
 const EDGES: [string, string][] = [["default", "Straight"], ["wave", "Wave"], ["slant", "Slant"], ["curve", "Curve"], ["peak", "Peak"]];
@@ -31,6 +32,16 @@ const CHOICES: Record<Key, { label: string; options: [string, string][]; hint?: 
   width: { label: "Content width", options: [["default", "Full"], ["medium", "Medium"], ["narrow", "Narrow"]], hint: "Narrow suits a block of text; the screen's edge is never passed." },
   align: { label: "Heading and text", options: [["default", "Left"], ["center", "Centred"]] },
   heading: { label: "Heading size", options: [["default", "Default"], ["s", "Smaller"], ["l", "Larger"]] },
+  heading_color: {
+    label: "Heading colour",
+    options: [["default", "Default"], ["brand", "Brand"], ["secondary", "Secondary"], ["accent", "Accent"]],
+    hint: "A readable shade of the theme colour, matched to this section’s background.",
+  },
+  min_h: {
+    label: "Minimum height",
+    options: [["default", "Default"], ["s", "S"], ["m", "M"], ["l", "L"], ["screen", "Full screen"]],
+    hint: "At least this tall, with the content centred. Full screen is the visible window less the site header.",
+  },
   headline: {
     label: "Heading arrives",
     options: [["default", "Default"], ["rise", "Words rise"], ["wipe", "Wipe in"], ["shimmer", "Shimmer"]],
@@ -55,12 +66,31 @@ const CHOICES: Record<Key, { label: string; options: [string, string][]; hint?: 
 
 const DEVICES: [NonNullable<SectionStyle["show_on"]>[number], string][] = [["phone", "Phones"], ["tablet", "Tablets"], ["desktop", "Computers"]];
 
-export function StyleField({ value, onChange, idPrefix, errors }: {
+/**
+ * What a device may say differently (0.146.0, `SectionRules::RESPONSIVE`). No
+ * "Default" step: a row with nothing pressed inherits the base, and "Same as
+ * other screens" says so. `m` is the section’s normal rhythm and is stored.
+ */
+type DeviceKey = keyof SectionDeviceStyle;
+const PADS: [string, string][] = [["none", "None"], ["s", "S"], ["m", "Normal"], ["l", "L"], ["xl", "XL"]];
+const DEVICE_ROWS: { key: DeviceKey; label: string; options: [string, string][] }[] = [
+  { key: "pad_top", label: "Space above", options: PADS },
+  { key: "pad_bottom", label: "Space below", options: PADS },
+  { key: "align", label: "Heading and text", options: [["start", "Left"], ["center", "Centred"], ["end", "Right"]] },
+  { key: "min_h", label: "Minimum height", options: [["none", "None"], ["s", "S"], ["m", "M"], ["l", "L"], ["screen", "Full screen"]] },
+];
+const DEVICE_LABEL: Record<SectionDevice, string> = { phone: "Phone", tablet: "Tablet", desktop: "Computer" };
+
+export function StyleField({ value, onChange, idPrefix, errors, sectionType, headingColorExcept = [] }: {
   value: SectionStyle | null | undefined;
   onChange: (next: SectionStyle | null) => void;
   idPrefix: string;
-  /** Laravel's messages for `blocks.N.style.*`, keyed by the part after `style.`. */
+  /** Laravel's messages for `blocks.N.style.*`, keyed by the part after `style.` (a per-device one keeps its dotted path). */
   errors: Record<string, string | undefined>;
+  /** The section's type, to know whether its heading colour is honoured. */
+  sectionType?: string;
+  /** The API's `style_options.heading_color_except`: types on a band of fixed colour. */
+  headingColorExcept?: string[];
 }) {
   const style: SectionStyle = value ?? {};
   const set = (patch: Partial<Record<keyof SectionStyle, unknown>>) => {
@@ -71,6 +101,28 @@ export function StyleField({ value, onChange, idPrefix, errors }: {
     onChange(Object.keys(next).length ? (next as SectionStyle) : null);
   };
   const shown = style.show_on ?? ["phone", "tablet", "desktop"];
+
+  // Per-device overrides (0.146.0). Written apart from `set()`, which strips
+  // "default" and would eat `m`; this removes an emptied device and an emptied
+  // `responsive`, so the section stores nothing it does not need.
+  const [open, setOpen] = useState(false);
+  const [device, setDevice] = useState<SectionDevice>("phone");
+  const responsive = style.responsive ?? {};
+  const overridden = (Object.keys(responsive) as SectionDevice[]).filter((d) => Object.keys(responsive[d] ?? {}).length > 0);
+  const deviceErrors = Object.keys(errors).filter((k) => k.startsWith("responsive."));
+  const isOpen = open || deviceErrors.length > 0;
+  const setDeviceValue = (d: SectionDevice, key: DeviceKey, v: string | undefined) => {
+    const nextDevice: Record<string, unknown> = { ...(responsive[d] ?? {}) };
+    if (v === undefined) delete nextDevice[key];
+    else nextDevice[key] = v;
+    const nextResponsive: Record<string, unknown> = { ...responsive };
+    if (Object.keys(nextDevice).length) nextResponsive[d] = nextDevice;
+    else delete nextResponsive[d];
+    set({ responsive: Object.keys(nextResponsive).length ? nextResponsive : undefined });
+  };
+  // A shaped edge is cut into the room the section's padding leaves it, so a device may not take that room away.
+  const edgeFor = (key: DeviceKey) => (key === "pad_top" ? style.edge_top : key === "pad_bottom" ? style.edge_bottom : undefined);
+  const noHeadingColor = sectionType !== undefined && headingColorExcept.includes(sectionType);
 
   return (
     <fieldset className="mt-2 rounded-lg border border-line bg-surface p-4">
@@ -102,9 +154,10 @@ export function StyleField({ value, onChange, idPrefix, errors }: {
                       key={v}
                       type="button"
                       aria-pressed={current === v}
+                      disabled={key === "heading_color" && noHeadingColor}
                       onClick={() => set({ [key]: v })}
                       className={cn(
-                        "min-h-8 rounded-md border px-2.5 text-12-5 font-semibold transition-colors duration-(--duration-fast)",
+                        "min-h-8 rounded-md border px-2.5 text-12-5 font-semibold transition-colors duration-(--duration-fast) disabled:cursor-not-allowed disabled:opacity-50",
                         current === v ? "border-brand-500 bg-brand-50 text-brand-ink" : "border-line-strong bg-card text-muted hover:text-ink",
                       )}
                     >
@@ -112,7 +165,9 @@ export function StyleField({ value, onChange, idPrefix, errors }: {
                     </button>
                   ))}
                 </div>
-                {c.hint && <p className="mt-1 text-12 text-faint">{c.hint}</p>}
+                {key === "heading_color" && noHeadingColor
+                  ? <p className="mt-1 text-12 text-faint">This kind of section keeps its own heading colour.</p>
+                  : c.hint && <p className="mt-1 text-12 text-faint">{c.hint}</p>}
                 {errors[key] && <p className="mt-1 text-12-5 text-err">{errors[key]}</p>}
               </div>
             );
@@ -142,6 +197,90 @@ export function StyleField({ value, onChange, idPrefix, errors }: {
               })}
             </div>
             {errors.show_on && <p className="mt-1 text-12-5 text-err">{errors.show_on}</p>}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-md border border-line">
+        <button
+          type="button"
+          aria-expanded={isOpen}
+          aria-controls={`${idPrefix}-st-devices`}
+          onClick={() => setOpen(!isOpen)}
+          className="flex min-h-9 w-full items-center gap-2 rounded-md px-3 text-left text-12-5 font-semibold text-ink-2 hover:text-ink"
+        >
+          <span aria-hidden className={cn("inline-block transition-[rotate] duration-(--duration-fast)", isOpen && "rotate-90")}>▸</span>
+          <span>Different on phone / tablet / computer</span>
+          {overridden.length > 0 && (
+            <span className="ml-auto rounded-full bg-brand-50 px-2 py-0.5 text-12 text-brand-ink">{overridden.length === 1 ? "1 screen" : `${overridden.length} screens`}</span>
+          )}
+        </button>
+
+        <div id={`${idPrefix}-st-devices`} hidden={!isOpen} className="border-t border-line p-3">
+          <p className="mb-2 text-12 text-faint">Spacing, alignment and height can change by screen. Anything left on “Same as other screens” follows the settings above.</p>
+          <div role="group" aria-label="Screen to edit" className="mb-3 flex flex-wrap gap-1">
+            {(Object.keys(DEVICE_LABEL) as SectionDevice[]).map((d) => {
+              const count = Object.keys(responsive[d] ?? {}).length;
+              const bad = deviceErrors.some((k) => k.startsWith(`responsive.${d}.`));
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  aria-pressed={device === d}
+                  onClick={() => setDevice(d)}
+                  className={cn(
+                    "min-h-8 rounded-md border px-2.5 text-12-5 font-semibold transition-colors duration-(--duration-fast)",
+                    device === d ? "border-brand-500 bg-brand-50 text-brand-ink" : "border-line-strong bg-card text-muted hover:text-ink",
+                    bad && "border-err text-err",
+                  )}
+                >
+                  {DEVICE_LABEL[d]}{count > 0 ? ` · ${count}` : ""}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {DEVICE_ROWS.map((row) => {
+              const current = responsive[device]?.[row.key] as string | undefined;
+              const edge = edgeFor(row.key);
+              const err = errors[`responsive.${device}.${row.key}`];
+              return (
+                <div key={row.key} role="group" aria-labelledby={`${idPrefix}-st-${device}-${row.key}`} className="min-w-0">
+                  <p id={`${idPrefix}-st-${device}-${row.key}`} className="mb-1 text-12-5 font-semibold text-ink-2">{row.label}</p>
+                  <div className="flex flex-wrap gap-1">
+                    <button
+                      type="button"
+                      aria-pressed={current === undefined}
+                      onClick={() => setDeviceValue(device, row.key, undefined)}
+                      className={cn(
+                        "min-h-8 rounded-md border px-2.5 text-12-5 font-semibold transition-colors duration-(--duration-fast)",
+                        current === undefined ? "border-brand-500 bg-brand-50 text-brand-ink" : "border-line-strong bg-card text-muted hover:text-ink",
+                      )}
+                    >
+                      Same as other screens
+                    </button>
+                    {row.options.map(([v, label]) => (
+                      <button
+                        key={v}
+                        type="button"
+                        aria-pressed={current === v}
+                        disabled={!!edge && (v === "none" || v === "s")}
+                        onClick={() => setDeviceValue(device, row.key, v)}
+                        className={cn(
+                          "min-h-8 rounded-md border px-2.5 text-12-5 font-semibold transition-colors duration-(--duration-fast) disabled:cursor-not-allowed disabled:opacity-50",
+                          current === v ? "border-brand-500 bg-brand-50 text-brand-ink" : "border-line-strong bg-card text-muted hover:text-ink",
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {edge && <p className="mt-1 text-12 text-faint">A shaped edge needs room, so None and S are not offered here.</p>}
+                  {err && <p className="mt-1 text-12-5 text-err">{err}</p>}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

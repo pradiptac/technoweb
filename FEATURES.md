@@ -103,6 +103,9 @@ A full CMS for the people who write, without a developer in the loop.
   A page and each item in the section library keep a history: the last thirty
   saved versions, each to look at as the site would draw it or to put back —
   into the form, to be saved or left.
+  A section can be given a minimum height and a heading colour, and its
+  spacing, alignment and height can differ on phones, tablets and computers —
+  chosen from fixed steps, so the page keeps passing its readability checks.
 - **FAQs** managed in one place and attached to any solution, service, product
   or page — rendered on the page and as `FAQPage` structured data.
 - **Rich-text editor** with the full toolbar — headings, colour, tables,

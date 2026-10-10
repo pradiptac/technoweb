@@ -140,11 +140,39 @@ function StyledSection({ style, children }: { style?: SectionStyle | null; child
       data-heading={style.heading}
       data-headline={style.headline}
       data-scroll={style.scroll}
+      data-min-h={style.min_h}
+      data-heading-color={style.heading_color}
+      data-r={responsiveTokens(style.responsive)}
       className={hide || undefined}
     >
       {children}
     </div>
   );
+}
+
+/**
+ * A section's per-device overrides (0.146.0) as one space-separated token list
+ * for `[data-r~="…"]` — `pt-p-s` is "padding-top, phone, small" — so a device's
+ * rule is a media query in globals.css over a fixed vocabulary and no number or
+ * class name is ever built from stored text. Only the API's choices reach it
+ * (`SectionRules::RESPONSIVE`); an unstyled or non-responsive section returns
+ * undefined and React omits the attribute, leaving its markup unchanged.
+ */
+const RESPONSIVE_KEYS = [["pad_top", "pt"], ["pad_bottom", "pb"], ["align", "al"], ["min_h", "mh"]] as const;
+const DEVICE_CODES = [["phone", "p"], ["tablet", "t"], ["desktop", "d"]] as const;
+
+function responsiveTokens(responsive: SectionStyle["responsive"]): string | undefined {
+  if (!responsive) return undefined;
+  const tokens: string[] = [];
+  for (const [device, d] of DEVICE_CODES) {
+    const given = responsive[device];
+    if (!given) continue;
+    for (const [key, k] of RESPONSIVE_KEYS) {
+      const value = given[key];
+      if (typeof value === "string" && /^[a-z]+$/.test(value)) tokens.push(`${k}-${d}-${value}`);
+    }
+  }
+  return tokens.length ? tokens.join(" ") : undefined;
 }
 
 /**

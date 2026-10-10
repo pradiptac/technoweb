@@ -2408,6 +2408,8 @@ const BUILDER_OPTIONS = {
     { value: 'split', label: 'Split', blurb: 'The words on one side, the picture framed on the other.' },
     { value: 'cover', label: 'Cover', blurb: 'The picture fills the band under a dark overlay.' },
   ],
+  // The Design tab (0.146.0): the types whose heading colour the site ignores (SectionRules::HEADING_COLOR_EXCEPT).
+  style_options: { heading_color_except: ['hero', 'cta', 'theme_section', 'subnav'] },
   // The assistant on a section (0.127.0): off in the mock, as the page draft is.
   ai_section: {
     available: false, reason: AI_DRAFT_OFF,

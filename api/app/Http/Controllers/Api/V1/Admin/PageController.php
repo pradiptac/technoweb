@@ -193,6 +193,10 @@ class PageController extends Controller
             // The assistant on a section (0.127.0): whether it can be asked,
             // on which types, and what it can do.
             'ai_section' => SectionDraft::options(),
+            // The Design tab (0.146.0): the section types whose heading colour
+            // the website ignores, so the console disables that row for them
+            // without listing types of its own.
+            'style_options' => ['heading_color_except' => SectionRules::HEADING_COLOR_EXCEPT],
             // Edit on the page (0.128.0): the plain-text fields of each type
             // the live preview lets an editor change in place, and their
             // lengths — read from the save's rules.

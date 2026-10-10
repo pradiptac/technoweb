@@ -86,7 +86,35 @@ final class SectionRules
         // ignores it otherwise, and a top edge on the page's first section.
         'edge_top' => ['default', 'wave', 'slant', 'curve', 'peak'],
         'edge_bottom' => ['default', 'wave', 'slant', 'curve', 'peak'],
+        // A least height (0.146.0): a step on a fixed scale, `screen` being the
+        // visible window less the site header. Vertical only.
+        'min_h' => ['default', 's', 'm', 'l', 'screen'],
+        // The heading's ink (0.146.0): one of the three coloured inks, which
+        // the section's ground re-derives to pass AA — never a colour.
+        'heading_color' => ['default', 'brand', 'secondary', 'accent'],
     ];
+
+    /**
+     * What a device may override (0.146.0, `style.responsive.{device}.{key}`).
+     * Unlike `STYLE` there is no "default" step: a missing key inherits the
+     * base, and `m` — the section's normal rhythm — is a real, stored step
+     * here, because an override needs a way to say "normal" that differs from
+     * "no override". Whatever an override says is stored, even when it equals
+     * the base.
+     */
+    public const RESPONSIVE = [
+        'pad_top' => ['none', 's', 'm', 'l', 'xl'],
+        'pad_bottom' => ['none', 's', 'm', 'l', 'xl'],
+        'align' => ['start', 'center', 'end'],
+        'min_h' => ['none', 's', 'm', 'l', 'screen'],
+    ];
+
+    /**
+     * Section types whose heading sits on a band of fixed colour. A heading
+     * colour on one is stored and ignored by the website; the console reads
+     * this list (`style_options.heading_color_except`) to disable the row.
+     */
+    public const HEADING_COLOR_EXCEPT = ['hero', 'cta', 'theme_section', 'subnav'];
 
     /** Where a section may be shown; all three is the default. */
     public const DEVICES = ['phone', 'tablet', 'desktop'];
@@ -170,11 +198,23 @@ final class SectionRules
             "{$prefix}.*.style.scroll" => ['nullable', Rule::in(self::STYLE['scroll'])],
             "{$prefix}.*.style.edge_top" => ['nullable', Rule::in(self::STYLE['edge_top'])],
             "{$prefix}.*.style.edge_bottom" => ['nullable', Rule::in(self::STYLE['edge_bottom'])],
+            "{$prefix}.*.style.min_h" => ['nullable', Rule::in(self::STYLE['min_h'])],
+            "{$prefix}.*.style.heading_color" => ['nullable', Rule::in(self::STYLE['heading_color'])],
+            "{$prefix}.*.style.responsive" => ['nullable', 'array'],
             "{$prefix}.*.style.anchor" => ['nullable', 'string', 'regex:'.self::ANCHOR],
             "{$prefix}.*.style.show_on" => ['nullable', 'array', 'min:1'],
             "{$prefix}.*.style.show_on.*" => ['string', Rule::in(self::DEVICES)],
             "{$prefix}.*.data" => ['present', 'array'],
         ];
+
+        // The per-device overrides, generated so a device or a key cannot be
+        // forgotten in one place (0.146.0).
+        foreach (self::DEVICES as $device) {
+            $rules["{$prefix}.*.style.responsive.{$device}"] = ['nullable', 'array'];
+            foreach (self::RESPONSIVE as $key => $choices) {
+                $rules["{$prefix}.*.style.responsive.{$device}.{$key}"] = ['nullable', Rule::in($choices)];
+            }
+        }
 
         if (! is_array($blocks)) {
             return $rules;
@@ -1066,6 +1106,28 @@ final class SectionRules
             $devices = array_values(array_intersect(self::DEVICES, $style['show_on']));
             if ($devices !== [] && count($devices) < count(self::DEVICES)) {
                 $out['show_on'] = $devices;
+            }
+        }
+        if (is_array($style['responsive'] ?? null)) {
+            $responsive = [];
+            foreach (self::DEVICES as $device) {
+                $given = $style['responsive'][$device] ?? null;
+                if (! is_array($given)) {
+                    continue;
+                }
+                $kept = [];
+                foreach (self::RESPONSIVE as $key => $choices) {
+                    $value = $given[$key] ?? null;
+                    if (is_string($value) && in_array($value, $choices, true)) {
+                        $kept[$key] = $value;
+                    }
+                }
+                if ($kept !== []) {
+                    $responsive[$device] = $kept;
+                }
+            }
+            if ($responsive !== []) {
+                $out['responsive'] = $responsive;
             }
         }
 

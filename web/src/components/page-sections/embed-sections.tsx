@@ -128,7 +128,9 @@ export async function SliderSection({ data, reveal }: { data: EmbedSectionData; 
     <SectionFrame type="slider" reveal={reveal}>
       <Container>
         <SectionHead heading={data.heading} />
-        <SliderFor slider={slider} aspect="aspect-[16/9]" />
+        {/* Inside the container (90%, at most 1920px), never the whole screen: at the
+            default "100vw" the browser fetched a wider picture than it draws. */}
+        <SliderFor slider={slider} aspect="aspect-[16/9]" sizes="(min-width: 2134px) 1920px, 90vw" />
       </Container>
     </SectionFrame>
   );

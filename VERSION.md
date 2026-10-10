@@ -21,6 +21,30 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.146.0 — 2026-10-10
+
+**A section can be a different shape on a phone, a tablet and a computer.**
+
+- **Per-device design.** A builder section's Style panel gains a
+  "Different on phone / tablet / computer" disclosure: space above, space
+  below, alignment and minimum height can each be set for one screen, with
+  "Same as other screens" for the rest. Stored as `style.responsive`, drawn by
+  one media-query rule per choice in `globals.css`, every value a step on the
+  existing scale times the site's spacing setting.
+- **Minimum height and heading colour.** A section can be at least small,
+  medium, large or full-screen tall (content centred), and its heading can take
+  the brand, secondary or accent ink — the same readable inks the section's
+  background already derives, never a colour of its own. A hero, a call to
+  action and a theme's own sections keep theirs.
+- Not built, by decision: section borders, radius, shadow and margin, and
+  per-device heading size or column counts.
+- API: `SectionRules` `min_h`, `heading_color`, `responsive` and
+  `style_options.heading_color_except` on `GET /admin/pages/builder`; tests in
+  `SectionStyleResponsiveTest`; the probe `section-style.mjs` reads computed
+  padding and height at three widths.
+
+---
+
 ## 0.145.0 — 2026-10-10
 
 **Pages and the section library remember their last thirty versions.**

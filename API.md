@@ -1446,6 +1446,19 @@ shape only (`^[a-z][a-z0-9-]{0,15}$`, the list is the frontend's
 `SECTION_REVEALS`), 422 on `blocks.N.reveal` otherwise; `default` and a blank
 are stored as null, and both the admin and the public reads carry it.
 
+**Since 0.146.0.** `style` also takes `min_h` (`default`, `s`, `m`, `l`,
+`screen`), `heading_color` (`default`, `brand`, `secondary`, `accent`) and
+`responsive`: an object keyed `phone`, `tablet`, `desktop`, each holding any of
+`pad_top`, `pad_bottom` (`none`, `s`, `m`, `l`, `xl`), `align` (`start`, `center`,
+`end`) and `min_h` (`none`, `s`, `m`, `l`, `screen`) — a value outside its list is a
+422 on `blocks.N.style.responsive.<device>.<key>`. A missing key inherits the
+base; `m` is a real step here and an override is stored even when it equals the
+base; an unknown device is ignored, and an empty device or an empty
+`responsive` is not stored. `GET /admin/pages/builder` adds `style_options:
+{heading_color_except: [...]}` — the section types whose heading colour the
+website ignores (`hero`, `cta`, `theme_section`, `subnav`). Every door that takes
+`blocks` (pages, records, the library, the preview) validates the same keys.
+
 **Since 0.126.0.** `style` takes `edge_top` and `edge_bottom`, each one of
 `wave`, `slant`, `curve`, `peak` (422 on `blocks.N.style.edge_top` otherwise;
 `default`, the straight edge, is not stored). A `background` — on a section

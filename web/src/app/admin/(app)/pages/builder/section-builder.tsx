@@ -839,10 +839,16 @@ function SectionCard({
             value={section.style}
             onChange={(style) => patch(section.id, (s) => ({ ...s, style }))}
             idPrefix={idPrefix}
+            sectionType={section.type}
+            headingColorExcept={options.style_options?.heading_color_except ?? []}
             errors={Object.fromEntries(
               Object.entries(errors)
                 .filter(([k]) => k.startsWith(`${prefix}.style.`))
-                .map(([k, v]) => [k.slice(`${prefix}.style.`.length).split(".")[0], v[0]]),
+                .map(([k, v]) => {
+                  // A per-device error keeps its dotted path (responsive.phone.pad_top); the rest are keyed by their first part.
+                  const rest = k.slice(`${prefix}.style.`.length);
+                  return [rest.startsWith("responsive.") ? rest : rest.split(".")[0], v[0]];
+                }),
             )}
           />
           </>)}
