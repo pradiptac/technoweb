@@ -49,21 +49,7 @@ final class LayoutPresenter
         $ids = [];
         foreach ($rows as $row) {
             foreach ((array) ($row['columns'] ?? []) as $column) {
-                foreach ((array) (is_array($column) ? ($column['widgets'] ?? []) : []) as $widget) {
-                    if (! is_array($widget)) {
-                        continue;
-                    }
-                    foreach (['image_path', 'poster_path', 'video_path'] as $key) {
-                        if (is_string($widget[$key] ?? null) && $widget[$key] !== '') {
-                            $paths[] = $widget[$key];
-                        }
-                    }
-                    foreach (self::RECORDS as $type => $key) {
-                        if (($widget['type'] ?? null) === $type && is_numeric($widget[$key] ?? null)) {
-                            $ids[$type][] = (int) $widget[$key];
-                        }
-                    }
-                }
+                self::collect(is_array($column) ? ($column['widgets'] ?? []) : [], $paths, $ids);
             }
         }
         $present = $paths === [] ? [] : Media::query()->whereIn('path', array_unique($paths))->pluck('path')->flip()->all();
@@ -83,7 +69,7 @@ final class LayoutPresenter
             foreach (array_values(array_filter((array) ($row['columns'] ?? []), 'is_array')) as $column) {
                 $widgets = [];
                 foreach (array_values(array_filter((array) ($column['widgets'] ?? []), 'is_array')) as $widget) {
-                    if (($shown = self::widget($widget, $present, $slugs)) !== null) {
+                    if (($shown = self::widget($widget, $present, $slugs, 0)) !== null) {
                         $widgets[] = $shown;
                     }
                 }
@@ -104,14 +90,56 @@ final class LayoutPresenter
     }
 
     /**
+     * Every library path and record id in a list of widgets, a container's
+     * slots included (one level, as stored).
+     *
+     * @param  array<int, string>  $paths
+     * @param  array<string, array<int, int>>  $ids
+     */
+    private static function collect(mixed $widgets, array &$paths, array &$ids, int $depth = 0): void
+    {
+        foreach ((array) $widgets as $widget) {
+            if (! is_array($widget)) {
+                continue;
+            }
+            foreach (['image_path', 'poster_path', 'video_path'] as $key) {
+                if (is_string($widget[$key] ?? null) && $widget[$key] !== '') {
+                    $paths[] = $widget[$key];
+                }
+            }
+            foreach (self::RECORDS as $type => $key) {
+                if (($widget['type'] ?? null) === $type && is_numeric($widget[$key] ?? null)) {
+                    $ids[$type][] = (int) $widget[$key];
+                }
+            }
+            if ($depth === 0) {
+                foreach ((array) ($widget['slots'] ?? []) as $slot) {
+                    if (is_array($slot)) {
+                        self::collect($slot['widgets'] ?? [], $paths, $ids, 1);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * @param  array<string, mixed>  $widget
      * @param  array<string, int>  $present  library paths that exist, as keys
      * @param  array<string, array<int, string>>  $slugs  the published records named, by kind then id
      * @return array<string, mixed>|null
      */
-    private static function widget(array $widget, array $present, array $slugs = []): ?array
+    private static function widget(array $widget, array $present, array $slugs, int $depth): ?array
     {
-        switch ($widget['type'] ?? null) {
+        $type = $widget['type'] ?? null;
+        $spec = is_string($type) ? (LayoutRules::widgets()[$type] ?? null) : null;
+        if ($spec !== null && isset($spec['container'])) {
+            return $depth === 0 ? self::container($widget, $spec['container'], $present, $slugs) : null;
+        }
+        if ($depth > 0 && ! in_array($type, LayoutRules::childTypes(), true)) {
+            return null;
+        }
+
+        switch ($type) {
             case 'image':
                 $path = $widget['image_path'] ?? null;
                 if (! is_string($path) || ! array_key_exists($path, $present)) {
@@ -156,6 +184,34 @@ final class LayoutPresenter
             default:
                 return null;
         }
+    }
+
+    /**
+     * A container: its slots presented, a slot with nothing left in it dropped
+     * and the container with them when none is left.
+     *
+     * @param  array<string, mixed>  $widget
+     * @param  array<string, mixed>  $box  the widget type's `container` description
+     * @param  array<string, int>  $present
+     * @param  array<string, array<int, string>>  $slugs
+     * @return array<string, mixed>|null
+     */
+    private static function container(array $widget, array $box, array $present, array $slugs): ?array
+    {
+        $slots = [];
+        foreach (array_values(array_filter((array) ($widget[$box['key']] ?? []), 'is_array')) as $slot) {
+            $children = [];
+            foreach (array_values(array_filter((array) ($slot['widgets'] ?? []), 'is_array')) as $child) {
+                if (($shown = self::widget($child, $present, $slugs, 1)) !== null) {
+                    $children[] = $shown;
+                }
+            }
+            if ($children !== []) {
+                $slots[] = [...$slot, 'widgets' => $children];
+            }
+        }
+
+        return $slots === [] ? null : [...$widget, $box['key'] => $slots];
     }
 
     /**

@@ -2417,6 +2417,7 @@ const lf = {
 /* 0.149.0: the video widget's conditional fields and the record pickers, as LayoutRules sends them. */
 const lrec = (key, label, record, single) => ({ key, kind: 'ref', label, record, required: true, single });
 const LAYOUT_ALIGN = lf.choice('align', 'Align', 'inherit', { inherit: 'Same as the box', start: 'Left', center: 'Centre', end: 'Right' });
+const LAYOUT_CHILD_TYPES = ['heading', 'text', 'button', 'image', 'spacer', 'divider', 'icon_box', 'accordion', 'list', 'video'];
 const LAYOUT_OPTIONS = {
   widgets: [
     { value: 'heading', label: 'Heading', blurb: 'A title. The size is how big it looks; which level it is on the page is worked out for you.', fields: [
@@ -2451,6 +2452,21 @@ const LAYOUT_OPTIONS = {
       { key: 'poster_path', kind: 'path', label: 'Cover picture (optional)', max: 255, required: false },
       lf.choice('ratio', 'Shape', '16:9', { '16:9': 'Wide, 16 : 9', '4:3': '4 : 3', '1:1': 'Square', '9:16': 'Tall, 9 : 16' }),
       lf.text('caption', 'Caption (optional)', 200)] },
+    /* 0.154.0: the four containers, as LayoutRules::widgets() describes them; child_types is every widget but a container and the embeds. */
+    { value: 'box', label: 'Box', blurb: 'A framed area holding other widgets: a card, a raised card or a tinted panel.', fields: [
+      lf.choice('surface', 'Look', 'card', { card: 'Card', raised: 'Raised card', tint: 'Tinted panel' }),
+      lf.choice('pad', 'Space inside', 'm', { s: 'Small', m: 'Medium', l: 'Large' }), LAYOUT_ALIGN],
+      container: { key: 'slots', label: 'Contents', min: 1, max: 1, fields: [], child_types: LAYOUT_CHILD_TYPES } },
+    { value: 'tabs', label: 'Tabs', blurb: 'Two to six tabs, each holding its own widgets. Every tab is on the page for search engines; one shows at a time.', fields: [],
+      container: { key: 'slots', label: 'Tab', min: 2, max: 6, fields: [lf.text('label', 'Tab name', 40, true)], child_types: LAYOUT_CHILD_TYPES } },
+    { value: 'panels', label: 'Panels that open', blurb: 'Up to eight panels that open and close, each holding its own widgets.', fields: [],
+      container: { key: 'slots', label: 'Panel', min: 1, max: 8, fields: [lf.text('title', 'Panel title', 120, true), lf.bool('open', 'Open when the page loads')], child_types: LAYOUT_CHILD_TYPES } },
+    { value: 'inner_row', label: 'Columns inside', blurb: 'Two to four columns side by side inside this column, each holding its own widgets.', fields: [
+      lf.choice('split', 'Split', 'equal', { equal: 'Equal', wide_first: 'First wider', wide_last: 'Second wider' }, 'Only for a row of two columns.'),
+      lf.choice('gap', 'Space between', 'm', { s: 'Small', m: 'Medium', l: 'Large' }),
+      lf.choice('valign', 'Columns line up', 'stretch', { stretch: 'Equal height', top: 'Top', center: 'Middle', bottom: 'Bottom' }, 'Equal height makes boxes in a row the same height.'),
+      lf.choice('stack_from', 'Stack below', 'md', { md: 'Tablet width', lg: 'Laptop width' }, 'Below this width the columns sit one above the other.')],
+      container: { key: 'slots', label: 'Column', min: 2, max: 4, fields: [], child_types: LAYOUT_CHILD_TYPES } },
     { value: 'form', label: 'Form', blurb: 'One of your published forms, drawn in the column.', fields: [lrec('form_id', 'Form', 'form', false)] },
     { value: 'slider', label: 'Slider', blurb: 'One of your published sliders. A layout section holds one slider.', fields: [lrec('slider_id', 'Slider', 'slider', true)] },
     { value: 'gallery', label: 'Gallery', blurb: 'One of your published galleries. A layout section holds one gallery.', fields: [lrec('gallery_id', 'Gallery', 'gallery', true)] },
@@ -2598,6 +2614,20 @@ const SAMPLE_BUILDER_BLOCKS = [
       { id: 'rowaaa03', columns: [
         { widgets: [{ id: 'wid00009', type: 'video', youtube: 'aqz-KE-bpKQ', caption: 'Big Buck Bunny, © Blender Foundation, CC BY 3.0 — a placeholder.' }] },
       ] },
+      /* 0.154.0: a tabs container and a panels container, the two the probe switches and opens. */
+      { id: 'rowaaa04', columns: [
+        { widgets: [{ id: 'wid00010', type: 'tabs', slots: [
+          { id: 'slotaa01', label: 'Hardware', widgets: [
+            { id: 'wid00011', type: 'heading', text: 'Racks, switches and cabling', size: 's' },
+            { id: 'wid00012', type: 'text', html: '<p>What we supply and fit.</p>' },
+          ] },
+          { id: 'slotaa02', label: 'Support', widgets: [{ id: 'wid00013', type: 'list', items: [{ text: 'Four-hour response' }, { text: 'Yearly review' }], marker: 'dot' }] },
+        ] }] },
+        { widgets: [{ id: 'wid00014', type: 'panels', slots: [
+          { id: 'slotaa03', title: 'Is it quick?', open: true, widgets: [{ id: 'wid00015', type: 'text', html: '<p>Usually a day.</p>' }] },
+          { id: 'slotaa04', title: 'Is it tidy?', widgets: [{ id: 'wid00016', type: 'button', label: 'See our work', href: '/case-studies' }] },
+        ] }] },
+      ] },
     ] } },
   { id: '0f6a3c1e-1111-4a8b-9c2d-000000000010', type: 'rich_text', hidden: true, background: null, data: { heading: 'Hidden', body: '<p>Not drawn.</p>' } },
 ];
@@ -2631,7 +2661,13 @@ function presentSections(blocks) {
       const url = (p) => `http://127.0.0.1:8899/storage/${p}`;
       /* 0.149.0: a form, slider or gallery is its current slug, gone once unpublished; a file video is a URL. */
       const records = { form: ['form_id', forms], slider: ['slider_id', sliders], gallery: ['gallery_id', galleries] };
-      const widget = (w) => {
+      const widget = (w, depth = 0) => {
+        /* 0.154.0: a container's slots, one level; a slot with nothing left goes, and the container with the last. */
+        if (w.slots) {
+          if (depth > 0) return null;
+          const slots = w.slots.map((sl) => ({ ...sl, widgets: (sl.widgets ?? []).map((c) => widget(c, 1)).filter(Boolean) })).filter((sl) => sl.widgets.length);
+          return slots.length ? { ...w, slots } : null;
+        }
         if (records[w.type]) {
           const [key, list] = records[w.type];
           const { [key]: id, ...rest } = w;

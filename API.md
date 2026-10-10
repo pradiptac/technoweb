@@ -1487,6 +1487,24 @@ title or kicker, else the anchor in words) — and is **left out of
 `sections` when fewer than two sections qualify**. A background or style
 sent on a `subnav` is stored and not drawn.
 
+**Container widgets in a layout (0.154.0).** Four more widget types hold other
+widgets, one level deep: `box` (`surface` of `card` (default) `raised` `tint`,
+`pad` s/m/l, `align`; exactly one slot), `tabs` (2–6 slots), `panels` (1–8
+slots) and `inner_row` (2–4 slots; `split`, `gap`, `valign`, `stack_from` as a
+row's). The children are `slots: [{id, widgets: […]}]`, a slot adding
+`label` (≤ 40, required) on `tabs`, `title` (≤ 120, required) and `open` on
+`panels`; a slot holds at most 8 widgets, each `{id, type, …}` of any type
+**except** `box`, `tabs`, `panels`, `inner_row`, `form`, `slider` and `gallery` — a
+422 on the child's `…widgets.N.slots.S.widgets.M.type`. Slot ids follow the
+widget id rule and are unique across the section. Children count toward the 40
+widgets and 150,000 characters. Errors are keyed at the nested path
+(`…slots.1.widgets.0.html`, `…slots.1.label`, `…slots` for a count outside
+`min`/`max`); a split on other than two slots is a 422 on the widget's
+`split`. A text child's `html` is sanitised by every door. On the public read
+a slot with nothing left in it is dropped, and a container with no slot left.
+`GET /admin/pages/builder`'s `layout.widgets[]` gains `container: {key, label,
+min, max, fields[], child_types[]}` for these four.
+
 **`layout` — "Custom layout" (0.147.0)** stores `{kicker?, heading?, lede?,
 rows}`: 1–8 rows `{id, split?, gap?, valign?, stack_from?, reverse_stacked?,
 columns}`, each of 1–4 columns `{surface?, pad?, align?, valign?, widgets}`, each
@@ -1502,7 +1520,8 @@ record, refused on the widget's own id field if it is missing or a draft, and at
 most one slider and one gallery to a section — `icon_box` (`icon`, `title`, `body`, `href`,
 `link_label`, `layout`), `accordion` (`items` 1–12 `{question, answer}`) and `list`
 (`items` 1–12 `{text, icon?}`, `marker`). Ids (rows and widgets) match
-`^[a-z0-9]{6,12}$` and are unique within the section. No widget holds another.
+`^[a-z0-9]{6,12}$` and are unique within the section — a container's slots and
+children included. Only a container holds widgets (0.154.0, below).
 A 422 is keyed at the nested path, `blocks.0.data.rows.1.columns.0.widgets.2.href`.
 Refused: more than 8 rows, 4 columns or 8 widgets in a column (on the list's own
 key), more than 40 widgets or 150,000 characters (on `rows`), a split on other

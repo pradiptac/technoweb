@@ -320,7 +320,7 @@ class LayoutSectionTest extends TestCase
 
         $this->assertContains('layout', collect($res->json('data.section_types'))->pluck('value')->all());
         $this->assertSame(
-            ['heading', 'text', 'button', 'image', 'spacer', 'divider', 'icon_box', 'accordion', 'list', 'video', 'form', 'slider', 'gallery'],
+            ['heading', 'text', 'button', 'image', 'spacer', 'divider', 'icon_box', 'accordion', 'list', 'video', 'box', 'tabs', 'panels', 'inner_row', 'form', 'slider', 'gallery'],
             collect($res->json('data.layout.widgets'))->pluck('value')->all(),
         );
         $res->assertJsonPath('data.layout.limits.rows', 8)
@@ -569,5 +569,208 @@ class LayoutSectionTest extends TestCase
         $this->assertSame('slider', $widgets->firstWhere('value', 'slider')['fields'][0]['record']);
         $this->assertTrue($widgets->firstWhere('value', 'gallery')['fields'][0]['single']);
         $this->assertFalse($widgets->firstWhere('value', 'form')['fields'][0]['single']);
+    }
+    // ------------------------------------------------- container widgets (0.154.0)
+
+    /** @param  list<array<string, mixed>>  $widgets @return array<string, mixed> */
+    private static function slot(array $widgets, array $fields = []): array
+    {
+        return ['id' => self::id(), ...$fields, 'widgets' => $widgets];
+    }
+
+    /** @param  list<array<string, mixed>>  $slots @return array<string, mixed> */
+    private static function container(string $type, array $slots, array $fields = []): array
+    {
+        return self::widget($type, [...$fields, 'slots' => $slots]);
+    }
+
+    /** One tabs container and one panels container, in two columns. @return array<string, mixed> */
+    private function containers(): array
+    {
+        return self::section([self::row([
+            self::column([self::container('tabs', [
+                self::slot([self::widget('heading', ['text' => 'Hardware']), self::widget('text', ['html' => '<p>Racks.</p>'])], ['label' => 'Hardware']),
+                self::slot([self::widget('list', ['items' => [['text' => 'One']]])], ['label' => 'Services']),
+            ])]),
+            self::column([self::container('panels', [
+                self::slot([self::widget('text', ['html' => '<p>Yes.</p>'])], ['title' => 'Is it quick?', 'open' => true]),
+                self::slot([self::widget('button', ['label' => 'Ask', 'href' => '/contact'])], ['title' => 'More?']),
+            ])]),
+        ])]);
+    }
+
+    public function test_a_container_is_stored_and_presented_with_its_children(): void
+    {
+        $block = $this->containers();
+        // Defaults and strays are not stored.
+        $block['data']['rows'][0]['columns'][1]['widgets'][0]['slots'][1]['open'] = false;
+        $block['data']['rows'][0]['columns'][0]['widgets'][0]['slots'][0]['widgets'][0]['href'] = '/stray';
+
+        $created = $this->create([$block])->assertCreated();
+        $tabs = $created->json('data.blocks.0.data.rows.0.columns.0.widgets.0');
+        $panels = $created->json('data.blocks.0.data.rows.0.columns.1.widgets.0');
+
+        $this->assertSame(['id', 'type', 'slots'], array_keys($tabs));
+        $this->assertSame(['id', 'label', 'widgets'], array_keys($tabs['slots'][0]));
+        $this->assertSame(['id', 'type', 'text'], array_keys($tabs['slots'][0]['widgets'][0]));
+        $this->assertSame(['id', 'title', 'open', 'widgets'], array_keys($panels['slots'][0]));
+        $this->assertSame(['id', 'title', 'widgets'], array_keys($panels['slots'][1]));
+
+        $shown = $this->getJson('/api/v1/pages/laid-out')->assertOk()->json('data.sections.0.data.rows.0.columns.0.widgets.0');
+        $this->assertSame('tabs', $shown['type']);
+        $this->assertSame(['Hardware', 'Services'], array_column($shown['slots'], 'label'));
+        $this->assertSame('Hardware', $shown['slots'][0]['widgets'][0]['text']);
+    }
+
+    public function test_inner_row_and_box_keep_only_their_own_settings(): void
+    {
+        $three = self::container('inner_row', [self::slot([self::widget('divider')]), self::slot([self::widget('spacer')]), self::slot([self::widget('divider')])], ['split' => 'wide_first', 'gap' => 'm', 'stack_from' => 'lg']);
+        $box = self::container('box', [self::slot([self::widget('heading', ['text' => 'Boxed'])])], ['surface' => 'card', 'pad' => 'l']);
+        $block = self::section([self::row([self::column([$three, $box])])]);
+
+        // Three columns cannot take a split.
+        $this->create([$block])->assertUnprocessable()->assertJsonValidationErrors('blocks.0.data.rows.0.columns.0.widgets.0.split');
+
+        unset($block['data']['rows'][0]['columns'][0]['widgets'][0]['split']);
+        $saved = $this->create([$block])->assertCreated()->json('data.blocks.0.data.rows.0.columns.0.widgets');
+        $this->assertSame(['id', 'type', 'stack_from', 'slots'], array_keys($saved[0]));
+        $this->assertSame(['id', 'type', 'pad', 'slots'], array_keys($saved[1]));
+    }
+
+    public function test_a_container_inside_a_container_and_the_embeds_are_refused_on_the_childs_type(): void
+    {
+        [$form, $slider, $gallery] = $this->records();
+        foreach ([
+            self::container('tabs', [self::slot([self::widget('text', ['html' => '<p>x</p>'])], ['label' => 'A']), self::slot([], ['label' => 'B'])]),
+            self::widget('form', ['form_id' => $form->id]),
+            self::widget('slider', ['slider_id' => $slider->id]),
+            self::widget('gallery', ['gallery_id' => $gallery->id]),
+        ] as $child) {
+            $block = self::section([self::row([self::column([
+                self::container('box', [self::slot([self::widget('divider'), $child])]),
+            ])])]);
+
+            $key = 'blocks.0.data.rows.0.columns.0.widgets.0.slots.0.widgets.1.type';
+            $res = $this->create([$block])->assertUnprocessable();
+            $res->assertJsonValidationErrors($key);
+            $this->assertStringContainsString('cannot hold another', $res->json('errors')[$key][0]);
+        }
+    }
+
+    public function test_slot_counts_are_held_to_the_containers_limits(): void
+    {
+        $tabs = fn (int $n) => self::section([self::row([self::column([self::container('tabs', array_map(
+            fn ($i) => self::slot([self::widget('divider')], ['label' => "Tab {$i}"]), range(1, $n),
+        ))])])]);
+
+        $this->create([$tabs(1)])->assertUnprocessable()->assertJsonValidationErrors('blocks.0.data.rows.0.columns.0.widgets.0.slots');
+        $this->create([$tabs(7)])->assertUnprocessable()->assertJsonValidationErrors('blocks.0.data.rows.0.columns.0.widgets.0.slots');
+        $this->create([$tabs(2)])->assertCreated();
+        $this->create([$tabs(6)])->assertCreated();
+
+        // A tab needs a name; a slot holds at most eight widgets.
+        $unnamed = self::section([self::row([self::column([self::container('tabs', [self::slot([], ['label' => 'A']), self::slot([], [])])])])]);
+        $this->create([$unnamed])->assertUnprocessable()->assertJsonValidationErrors('blocks.0.data.rows.0.columns.0.widgets.0.slots.1.label');
+        $nine = self::section([self::row([self::column([self::container('box', [self::slot(array_map(fn () => self::widget('divider'), range(1, 9)))])])])]);
+        $this->create([$nine])->assertUnprocessable()->assertJsonValidationErrors('blocks.0.data.rows.0.columns.0.widgets.0.slots.0.widgets');
+    }
+
+    public function test_children_count_toward_the_widget_total(): void
+    {
+        // Four boxes of eight children make 36 widgets with the boxes; the second column adds the rest.
+        $boxes = fn () => array_map(fn () => self::container('box', [self::slot(array_map(fn () => self::widget('divider'), range(1, 8)))]), range(1, 4));
+        $row = fn (int $extra) => self::row([self::column($boxes()), self::column(array_map(fn () => self::widget('divider'), range(1, $extra)))]);
+
+        $this->create([self::section([$row(4)])])->assertCreated(); // 4 + 32 + 4 = 40
+        $this->create([self::section([$row(5)])])->assertUnprocessable()->assertJsonValidationErrors('blocks.0.data.rows');
+    }
+
+    public function test_ids_are_unique_across_children_and_slots(): void
+    {
+        $block = self::section([self::row([self::column([
+            self::widget('divider', ['id' => 'dup00001']),
+            self::container('box', [self::slot([self::widget('divider', ['id' => 'dup00001'])])]),
+        ])])]);
+        $this->create([$block])->assertUnprocessable()->assertJsonValidationErrors('blocks.0.data.rows.0.columns.0.widgets.1.slots.0.widgets.0.id');
+
+        $slotDup = self::section([self::row([self::column([
+            self::container('box', [self::slot([self::widget('divider')], ['id' => 'slotdup1'])]),
+            self::container('box', [self::slot([self::widget('divider')], ['id' => 'slotdup1'])]),
+        ])])]);
+        $this->create([$slotDup])->assertUnprocessable()->assertJsonValidationErrors('blocks.0.data.rows.0.columns.0.widgets.1.slots.0.id');
+    }
+
+    public function test_the_walk_into_slots_is_capped(): void
+    {
+        $slots = array_map(fn () => self::slot([self::widget('divider')], ['label' => 'T']), range(1, 5000));
+        $slots['*'] = self::slot([self::widget('divider')], ['label' => 'T']);
+        $block = self::section([self::row([self::column([self::container('tabs', $slots)])])]);
+
+        $rules = LayoutRules::rules($block['data'], 'blocks.0.data');
+        $this->assertLessThan(120, count($rules));
+        $this->assertStringNotContainsString('*', implode(',', array_keys($rules)));
+
+        $this->create([$block])->assertUnprocessable()->assertJsonValidationErrors('blocks.0.data.rows.0.columns.0.widgets.0.slots');
+    }
+
+    public function test_text_in_a_child_is_sanitised_on_every_door(): void
+    {
+        $block = self::section([self::row([self::column([self::container('box', [self::slot([
+            self::widget('text', ['html' => '<p onclick="x()">Hi</p><script>alert(1)</script>']),
+        ])])])])]);
+        $at = fn (array $d) => $d['rows'][0]['columns'][0]['widgets'][0]['slots'][0]['widgets'][0]['html'];
+        $clean = function (string $html) {
+            $this->assertStringNotContainsString('<script', $html);
+            $this->assertStringNotContainsString('onclick', $html);
+            $this->assertStringContainsString('Hi', $html);
+        };
+
+        $clean($at($this->create([$block])->assertCreated()->json('data.blocks.0.data')));
+        $clean($at($this->actingAs($this->user(), 'sanctum')->postJson('/api/v1/admin/pages/preview', ['blocks' => [$block]])->assertOk()->json('data.sections.0.data')));
+
+        $saved = $this->actingAs($this->user(), 'sanctum')->postJson('/api/v1/admin/saved-sections', [
+            'kind' => 'section', 'name' => 'Boxed', 'blocks' => [$block],
+        ])->assertCreated();
+        $clean($at(SavedSection::query()->findOrFail($saved->json('data.id'))->blocks[0]['data']));
+    }
+
+    public function test_an_emptied_slot_is_dropped_from_the_public_read(): void
+    {
+        $this->media('media/gone.jpg');
+        $block = self::section([self::row([self::column([
+            self::container('tabs', [
+                self::slot([self::widget('image', ['image_path' => 'media/gone.jpg'])], ['label' => 'Pictures']),
+                self::slot([self::widget('divider')], ['label' => 'Rule']),
+            ]),
+            self::widget('heading', ['text' => 'Stays']),
+        ])])]);
+        $this->create([$block])->assertCreated();
+
+        Media::query()->where('path', 'media/gone.jpg')->forceDelete();
+        MediaMeta::forget();
+        $widgets = $this->getJson('/api/v1/pages/laid-out')->assertOk()->json('data.sections.0.data.rows.0.columns.0.widgets');
+        $this->assertSame(['Rule'], array_column($widgets[0]['slots'], 'label'));
+    }
+
+    public function test_the_builder_options_describe_the_containers(): void
+    {
+        $widgets = collect($this->actingAs($this->user(), 'sanctum')->getJson('/api/v1/admin/pages/builder')->assertOk()->json('data.layout.widgets'));
+        $tabs = $widgets->firstWhere('value', 'tabs')['container'];
+
+        $this->assertSame(['slots', 2, 6], [$tabs['key'], $tabs['min'], $tabs['max']]);
+        $this->assertSame('label', $tabs['fields'][0]['key']);
+        $this->assertNotContains('tabs', $tabs['child_types']);
+        $this->assertNotContains('form', $tabs['child_types']);
+        $this->assertContains('text', $tabs['child_types']);
+        $this->assertArrayNotHasKey('container', $widgets->firstWhere('value', 'text'));
+    }
+
+    public function test_a_container_survives_a_second_save(): void
+    {
+        $created = $this->create([$this->containers()])->assertCreated();
+        $page = Page::query()->findOrFail($created->json('data.id'));
+
+        $this->actingAs($this->user(), 'sanctum')->patchJson("/api/v1/admin/pages/{$page->id}", ['blocks' => $page->blocks])->assertOk();
+        $this->assertEquals($page->blocks, Page::query()->findOrFail($page->id)->blocks);
     }
 }

@@ -11,6 +11,7 @@ import { blurProps } from "@/lib/blur";
 import { focalStyle } from "@/lib/focal";
 import { cn } from "@/lib/utils";
 import type { LayoutAlign, LayoutWidget } from "@/types/api";
+import { ContainerWidget } from "./container-widgets";
 import { EmbedWidget } from "./embed-widgets";
 
 /**
@@ -52,7 +53,15 @@ function hide(showOn: LayoutWidget["show_on"]): string | undefined {
   return cn(!showOn.includes("phone") && "max-sm:hidden", !showOn.includes("tablet") && "sm:max-lg:hidden", !showOn.includes("desktop") && "lg:hidden") || undefined;
 }
 
-export function Widget({ widget, plan = FALLBACK_PLAN, columnAlign = "inherit" }: { widget: LayoutWidget; plan?: WidgetPlan; columnAlign?: LayoutAlign }) {
+export function Widget({
+  widget, plan = FALLBACK_PLAN, columnAlign = "inherit", plans,
+}: {
+  widget: LayoutWidget;
+  plan?: WidgetPlan;
+  columnAlign?: LayoutAlign;
+  /** Every widget's plan, for a container to hand on to the widgets it holds. */
+  plans?: Map<string, WidgetPlan>;
+}) {
   const gone = hide(widget.show_on);
 
   switch (widget.type) {
@@ -155,6 +164,12 @@ export function Widget({ widget, plan = FALLBACK_PLAN, columnAlign = "inherit" }
     case "slider":
     case "gallery":
       return <EmbedWidget widget={widget} plan={plan} hidden={gone} />;
+
+    case "box":
+    case "tabs":
+    case "panels":
+    case "inner_row":
+      return <ContainerWidget widget={widget} plans={plans ?? new Map()} columnAlign={columnAlign} />;
 
     case "spacer":
       return <div data-widget="spacer" aria-hidden className={cn("shrink-0", SPACER[widget.size ?? "m"] ?? SPACER.m, gone)} />;

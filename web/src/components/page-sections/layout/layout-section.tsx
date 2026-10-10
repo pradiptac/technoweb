@@ -1,6 +1,6 @@
 import { Container } from "@/components/ui/container";
 import type { SectionRevealAttr } from "@/lib/motion-choices";
-import type { LayoutSectionData } from "@/types/api";
+import type { LayoutSectionData, LayoutWidget } from "@/types/api";
 import { SectionFrame, SectionHead } from "../section-parts";
 import { LayoutRow } from "./layout-row";
 import type { WidgetPlan } from "./widgets";
@@ -16,7 +16,9 @@ import type { WidgetPlan } from "./widgets";
  * with no heading of its own the first heading widget is the `h2` and the rest
  * `h3`. An icon box's title is a heading only once an `h2` has come before it
  * — a lone `h3` straight under the page's `h1` is the jump the audit fails —
- * and a plain paragraph until then.
+ * and a plain paragraph until then. A container's children (0.154.0) are
+ * walked in document order too, so a heading in a tab follows the same rule; a
+ * tab's or a panel's own name is a button or a summary, never a heading.
  *
  * The first picture is the only one that loads eagerly (the page's first two
  * sections are above the fold), and the section's reveal is the only motion
@@ -27,20 +29,28 @@ export function LayoutSection({ data, eager, reveal }: { data: LayoutSectionData
   let h2Seen = Boolean(data.heading);
   let pictureSeen = false;
 
+  // One widget's plan, then its slots' (a container holds ordinary widgets, one level).
+  const visit = (widget: LayoutWidget, columns: number) => {
+    const plan: WidgetPlan = { level: 3, titleIsHeading: h2Seen, eager: false, columns };
+    if (widget.type === "heading") {
+      plan.level = h2Seen ? 3 : 2;
+      h2Seen = true;
+    }
+    if (widget.type === "image" && !pictureSeen) {
+      plan.eager = eager;
+      pictureSeen = true;
+    }
+    plans.set(widget.id, plan);
+    if ("slots" in widget) {
+      // Columns inside a column share its width; a box, tab or panel has all of it.
+      const per = widget.type === "inner_row" ? widget.slots.length : 1;
+      for (const slot of widget.slots) for (const child of slot.widgets) visit(child, columns * per);
+    }
+  };
+
   for (const row of data.rows) {
     for (const column of row.columns) {
-      for (const widget of column.widgets) {
-        const plan: WidgetPlan = { level: 3, titleIsHeading: h2Seen, eager: false, columns: row.columns.length };
-        if (widget.type === "heading") {
-          plan.level = h2Seen ? 3 : 2;
-          h2Seen = true;
-        }
-        if (widget.type === "image" && !pictureSeen) {
-          plan.eager = eager;
-          pictureSeen = true;
-        }
-        plans.set(widget.id, plan);
-      }
+      for (const widget of column.widgets) visit(widget, row.columns.length);
     }
   }
 

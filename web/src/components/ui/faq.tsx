@@ -10,7 +10,7 @@ import type { Faq } from "@/types/api";
  * blocks in `components/content/answer-blocks.tsx`, so a page's FAQs and
  * its question blocks are one control rather than two accordions that drift.
  */
-export type QuestionItem = { key: string | number; question: string; answer: ReactNode };
+export type QuestionItem = { key: string | number; question: string; answer: ReactNode; open?: boolean };
 
 export function QuestionAccordion({ items, className }: { items: QuestionItem[]; className?: string }) {
   if (!items.length) return null;
@@ -18,7 +18,7 @@ export function QuestionAccordion({ items, className }: { items: QuestionItem[];
   return (
     <div className={cn("divide-y divide-line overflow-hidden rounded-lg border border-line-strong bg-card", className)}>
       {items.map((it) => (
-        <details key={it.key} className="group">
+        <details key={it.key} className="group" open={it.open || undefined}>
           <summary className="flex cursor-pointer list-none items-center gap-4 px-5 py-4.5 text-15-5 font-semibold transition-colors hover:bg-brand-50 [&::-webkit-details-marker]:hidden">
             {it.question}
             <svg

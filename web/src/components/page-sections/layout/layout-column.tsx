@@ -27,7 +27,7 @@ export function LayoutColumn({ column, plans }: { column: Column; plans: Map<str
     TEXT_ALIGN[column.align ?? "inherit"] ?? "",
   );
   const widgets = column.widgets.map((widget) => (
-    <Widget key={widget.id} widget={widget} plan={plans.get(widget.id)} columnAlign={column.align ?? "inherit"} />
+    <Widget key={widget.id} widget={widget} plan={plans.get(widget.id)} plans={plans} columnAlign={column.align ?? "inherit"} />
   ));
 
   if (column.surface === "card" || column.surface === "raised") {

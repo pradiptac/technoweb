@@ -203,10 +203,9 @@ each `{id, split, gap, valign, stack_from, reverse_stacked, columns[]}`; a
 column `{surface, pad, align, valign, widgets[]}`; a widget
 `{id, type, show_on?, …its own fields}`. Nine widgets (thirteen since 0.149.0, below) — `heading`, `text`
 (rich), `button`, `image`, `spacer`, `divider`, `icon_box`, `accordion`,
-`list` — and **no nesting**: no widget holds another and a layout has no layout
-widget, so the editor is not a tree editor, the 320px rule stays provable and a
-heading's level needs no context. A bigger composition is several layout
-sections, which the stack already provides. Limits: 8 rows, 1–4 columns, 8
+`list` — and, until 0.154.0, **no nesting**: that kept the editor from being a
+tree editor, the 320px rule provable and a heading's level free of context. Four
+container widgets lift it **one level** (below) and no further. Limits: 8 rows, 1–4 columns, 8
 widgets a column, 40 widgets and 150,000 characters a section, a text widget
 20,000.
 
@@ -331,6 +330,71 @@ Reordering is arrows and a "Move to" select (any column in the section), no
 drag. A card with an error under it opens by itself (`anyErr` on the block
 context).
 
+**Container widgets (0.154.0).** The client asked for tabs and boxes inside a
+column, so four widgets hold other widgets: `box` (a card, a raised card or a
+brand-tinted card; `pad` s/m/l, `align`; exactly one slot), `tabs` (2–6 slots,
+each `label` ≤ 40), `panels` (1–8 slots, each `title` ≤ 120 and `open`) and
+`inner_row` (2–4 slots, with a row's `split`, `gap`, `valign` and `stack_from`).
+They share one structure: `slots: [{id, …the slot's fields, widgets: []}]`. In
+`LayoutRules::widgets()` that is a `container` entry beside `fields` —
+`{key: 'slots', label, min, max, fields}` — and `options()` sends it with
+`child_types`, so TypeScript lists no container, slot field or limit.
+
+- **A child is any widget except a container, a form, a slider or a gallery.**
+  `LayoutRules::childTypes()` is that list; a slot's `type` rule is `Rule::in`
+  it, so the refusal lands on the child's own `type` (`…slots.0.widgets.1.type`)
+  with a sentence. The embeds stay out because a slider and a gallery carry
+  their own autoplay and Pause control and a form's steps would nest a
+  `<form>` inside a tab that is `hidden`; a container in a container is the tree
+  editor the client agreed not to have. A slot holds at most 8 widgets.
+- **The walk recurses exactly once and is capped the same way.** `widgetRules()`
+  takes a depth; at 1 it neither reads nor recurses into `slots`, and a refused
+  type gets no field rules. `check()` (`checkList()`) and `normalise()` do the
+  same, and `slice()` still bounds every list by its limit (a container's slot
+  list by the widget's `max`), integer keys only — a 5,000-slot payload gives
+  fewer than 120 rules and a `*` key is no wildcard.
+- **Children count.** Every child adds to the 40-widget total; characters are
+  counted per node (a container's own fields and slot names, then each child's)
+  so nothing is counted twice; ids are unique across rows, widgets, slots and
+  children (the 422 lands on the second use).
+- **Rich text**: `SectionRules::RICH_TEXT` gains
+  `blocks.*.data.rows.*.columns.*.widgets.*.slots.*.widgets.*.html`; every request
+  already spreads the constant, so the page save, the preview and the library
+  all sanitise a text widget in a tab (`SanitisesRichText::cleanAt()` walks any
+  number of `*`).
+- **Defaults are not stored**: a box's `surface: card`, `pad: m`, a panel
+  `open: false`, an inner row's equal split; a split on other than two columns
+  is a 422 on the widget's `split` and dropped on normalise.
+- **`LayoutPresenter`** collects paths and ids from the slots too (one lookup
+  for the whole section), presents each child with the column rules, drops a
+  slot with nothing left in it, and a container with no slot left.
+- **Website** (`container-widgets.tsx`, `container-tabs.tsx`,
+  `layout-grid.ts`): a box is `Card` (`interactive={false}`, raised adds
+  `shadow-3`, tint is the card washed with the brand colour — never an
+  outline-only surface); tabs are a client island of buttons whose panes are
+  server-rendered and passed in, every pane in the markup and the inactive ones
+  `hidden` (the `tabs` section's WAI-ARIA behaviour; its island is bound to
+  that section's data, so this is a sibling rather than a reuse); panels are the
+  FAQ's `<details>` (`QuestionAccordion` gained an `open` flag) so
+  `::details-content` motion applies; an inner row uses the same literal grid
+  tables as a row (moved to `layout-grid.ts`). Every cell is `min-w-0`.
+  **A tab's or panel's name is a button or a summary, never a heading**;
+  `LayoutSection`'s plan walks children in document order, so a heading in a tab
+  takes the same `h2`/`h3` as one in a column and an icon box's title is a
+  heading only after an `h2`. `show_on` hides a container and each child
+  independently.
+- **Console**: a container's open card draws its slots (`SlotsEditor`); each
+  slot has its own fields and a `WidgetList` — the component a column uses,
+  limited to `child_types` — with ReorderButtons, Duplicate, Remove and "Move
+  to". "Move to" lists every column and every slot (a container is offered
+  columns only). Lists are written by key (`updateList`): a column by
+  position, a slot **by its id**, so taking a widget out of the list ahead of a
+  container and into that container's slot lands correctly. Slots add/remove
+  only where the API's `min` and `max` differ; new slots are named "Tab 1",
+  "Panel 2" so a fresh container saves. Slot ids are minted like widget ids and
+  are fresh on duplicate. Summernote still mounts only for an open text widget
+  keyed on its id and `epoch`.
+
 **Not offered**: the AI section assistant (`SectionDraft::SCHEMA` has no
 `layout`), the AI page draft (`PageDraft::TYPES` is closed), WordPress import
 (recognisers target fixed types), inline editing of widget text (only the head is
@@ -340,7 +404,16 @@ widget, drag across columns. A record's body area may hold a layout
 (`RecordSections` excludes only `hero` and `theme_section`), and the library
 saves, links and delete-guards one unchanged. No preset uses it.
 
-Tests: `tests/Feature/LayoutSectionTest.php` — (0.149.0: each of the four new
+Tests: `tests/Feature/LayoutSectionTest.php` — (0.154.0: a container stores and
+presents with its children and only its own keys; an inner row's split on three
+columns and a box's strays; a container, form, slider or gallery in a slot is a
+422 on the child's `type`; slot minimums, maximums, an unnamed tab, a ninth
+child; the 41st widget counting children; a duplicate id across a child and a slot;
+the capped walk; a text child sanitised through a page save, a preview and a
+library save; an emptied slot dropped on read; the options' `container`
+description. Controls: remove the depth check from `widgetRules()` and the
+nested-container test fails; stop counting children in `checkList()` and the
+41st-widget test fails.) (0.149.0: each of the four new
 widgets saves and presents; a lookalike YouTube host, a non-video file, a missing
 file and a missing link are 422s at the widget's own field; an unpublished,
 deleted or absent form, slider or gallery likewise; a second slider or gallery; a

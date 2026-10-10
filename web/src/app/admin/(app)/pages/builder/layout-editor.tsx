@@ -39,6 +39,14 @@ import {
  * **Summernote is mounted only for an open text widget**, keyed on the
  * widget's id and the builder's `epoch`; fifteen editors on one form would be
  * slow and cluttered.
+ *
+ * **Containers (0.154.0)** — a box, tabs, panels or columns inside a column —
+ * draw their `slots` (`SlotsEditor`), and each slot is a `WidgetList`, the
+ * very component a column uses, limited to the API's `child_types`. A list is
+ * written by key (`updateList`): a column by position, a slot by its id, so a
+ * move that first takes a widget out of the list ahead of a container still
+ * lands in the container. "Move to" lists every column and every slot a
+ * widget may go to; a container is offered columns only.
  */
 
 /** The published records a form, slider or gallery widget can choose between (`GET /admin/pages/builder`). */
@@ -55,6 +63,10 @@ const RECORD_LISTS = {
 type Widget = { id: string; type: string; show_on?: string[]; [key: string]: unknown };
 type Column = { widgets?: Widget[]; [key: string]: unknown };
 type LayoutRow = { id: string; columns?: Column[]; [key: string]: unknown };
+/** One tab, panel or column of a container widget (0.154.0); it holds ordinary widgets. */
+type Slot = { id: string; widgets?: Widget[]; [key: string]: unknown };
+/** A place a widget can be sent: a column, or a container's slot (`slot`), by the key `updateList` reads. */
+type Target = { value: string; label: string; slot: boolean };
 
 const ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -79,7 +91,7 @@ export function blankLayout(): Record<string, unknown> {
 export function layoutSummary(data: Record<string, unknown>): string {
   const rows = Array.isArray(data.rows) ? (data.rows as LayoutRow[]) : [];
   if (!rows.length || !Array.isArray(rows[0]?.columns)) return "";
-  const widgets = rows.reduce((n, r) => n + (r.columns ?? []).reduce((m, c) => m + (c.widgets?.length ?? 0), 0), 0);
+  const widgets = countWidgets(rows);
   return `${rows.length} row${rows.length === 1 ? "" : "s"}, ${widgets} widget${widgets === 1 ? "" : "s"}`;
 }
 
@@ -96,6 +108,8 @@ type Ctx = {
   options: EditorOptions;
   widgets: number;
   taken: () => Set<string>;
+  /** Every column and slot, for a widget's "Move to". */
+  targets: Target[];
 };
 const LayoutCtx = createContext<Ctx | null>(null);
 function useLayout(): Ctx {
@@ -106,12 +120,63 @@ function useLayout(): Ctx {
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
+/** A copy of a widget with its id — and a container's slot and child ids — replaced, so the section's ids stay unique. */
+function freshWidget(widget: Widget, taken: Set<string>): Widget {
+  const copy = clone(widget);
+  copy.id = mintId(taken);
+  if (Array.isArray(copy.slots)) {
+    for (const slot of copy.slots as Slot[]) {
+      slot.id = mintId(taken);
+      for (const child of slot.widgets ?? []) child.id = mintId(taken);
+    }
+  }
+  return copy;
+}
+
 /** A copy of a row with every row and widget id replaced, so the section's ids stay unique. */
 function freshRow(row: LayoutRow, taken: Set<string>): LayoutRow {
   const copy = clone(row);
   copy.id = mintId(taken);
-  for (const column of copy.columns ?? []) for (const widget of column.widgets ?? []) widget.id = mintId(taken);
+  for (const column of copy.columns ?? []) column.widgets = (column.widgets ?? []).map((widget) => freshWidget(widget, taken));
   return copy;
+}
+
+/** Widgets in the section, a container's children counted as the API counts them. */
+function countWidgets(rows: LayoutRow[]): number {
+  let n = 0;
+  for (const r of rows) {
+    for (const c of r.columns ?? []) {
+      for (const w of c.widgets ?? []) {
+        n += 1;
+        if (Array.isArray(w.slots)) for (const slot of w.slots as Slot[]) n += slot.widgets?.length ?? 0;
+      }
+    }
+  }
+  return n;
+}
+
+const columnKey = (row: number, column: number) => `c:${row}.${column}`;
+const slotKey = (id: string) => `s:${id}`;
+
+/**
+ * The rows with one list of widgets replaced: a column's (`c:row.column`) or
+ * a container slot's (`s:<slot id>`). A slot is found by its id, not its
+ * position, so a write that first removes a widget from the list before it
+ * still lands in the right place.
+ */
+function updateList(rows: LayoutRow[], key: string, fn: (list: Widget[]) => Widget[]): LayoutRow[] {
+  return rows.map((row, i) => ({
+    ...row,
+    columns: (row.columns ?? []).map((column, j) => {
+      if (key === columnKey(i, j)) return { ...column, widgets: fn(column.widgets ?? []) };
+      return {
+        ...column,
+        widgets: (column.widgets ?? []).map((w) => (!Array.isArray(w.slots)
+          ? w
+          : { ...w, slots: (w.slots as Slot[]).map((slot) => (key === slotKey(slot.id) ? { ...slot, widgets: fn(slot.widgets ?? []) } : slot)) })),
+      };
+    }),
+  }));
 }
 
 function swap<T>(list: T[], from: number, delta: -1 | 1): T[] {
@@ -131,15 +196,34 @@ export function LayoutEditor({ sectionId, options }: { sectionId: string; option
   }
 
   const rows = Array.isArray(content.rows) ? (content.rows as unknown as LayoutRow[]) : [];
-  const widgetCount = rows.reduce((n, r) => n + (r.columns ?? []).reduce((m, c) => m + (c.widgets?.length ?? 0), 0), 0);
+  const widgetCount = countWidgets(rows);
   const ids = () => {
     const taken = new Set<string>();
     for (const r of rows) {
       taken.add(r.id);
-      for (const c of r.columns ?? []) for (const w of c.widgets ?? []) taken.add(w.id);
+      for (const c of r.columns ?? []) {
+        for (const w of c.widgets ?? []) {
+          taken.add(w.id);
+          if (Array.isArray(w.slots)) for (const slot of w.slots as Slot[]) { taken.add(slot.id); for (const child of slot.widgets ?? []) taken.add(child.id); }
+        }
+      }
     }
     return taken;
   };
+  // Every column, and every slot of every container, as a place to send a widget.
+  const targets: Target[] = rows.flatMap((r, i) => (r.columns ?? []).flatMap((c, j) => {
+    const where = `Row ${i + 1}, column ${j + 1}`;
+    const inside = (c.widgets ?? []).flatMap((w) => {
+      const info = spec.widgets.find((x) => x.value === w.type);
+      if (!info?.container || !Array.isArray(w.slots)) return [];
+      return (w.slots as Slot[]).map((slot, n) => ({
+        value: slotKey(slot.id),
+        label: `${where} › ${info.label}: ${String(slot.label ?? slot.title ?? "") || `${info.container!.label} ${n + 1}`}`,
+        slot: true,
+      }));
+    });
+    return [{ value: columnKey(i, j), label: where, slot: false }, ...inside];
+  }));
   // A structural change is an undo step of its own (`setStep`), never merged with typing.
   const write = (next: LayoutRow[]) => (setStep ?? set)(["rows"], next as unknown as Json);
 
@@ -154,6 +238,7 @@ export function LayoutEditor({ sectionId, options }: { sectionId: string; option
     options,
     widgets: widgetCount,
     taken: ids,
+    targets,
   };
 
   const addRow = (columns: number) => {
@@ -287,45 +372,10 @@ function RowCard({ row, index }: { row: LayoutRow; index: number }) {
 }
 
 function ColumnCard({ column, row, index }: { column: Column; row: number; index: number }) {
-  const { spec, rows, write, taken, widgets: total } = useLayout();
+  const { spec, write, rows } = useLayout();
   const path: Path = ["rows", row, "columns", index];
-  const widgets = column.widgets ?? [];
   const surface = typeof column.surface === "string" ? column.surface : "none";
   const fields = spec.column.filter((f) => (f.key === "pad" ? surface !== "none" : true));
-
-  const replaceWidgets = (next: Widget[]) => {
-    const nextRows = rows.map((r, i) => (i !== row ? r : { ...r, columns: (r.columns ?? []).map((c, j) => (j === index ? { ...c, widgets: next } : c)) }));
-    write(nextRows);
-  };
-
-  const add = (spec: LayoutWidgetSpec) => {
-    const blank: Widget = { id: mintId(taken()), type: spec.value };
-    if (spec.list) blank[spec.list.key] = Array.from({ length: spec.list.min }, () => ({}));
-    replaceWidgets([...widgets, blank]);
-  };
-
-  const canAdd = widgets.length < spec.limits.widgets_per_column && total < spec.limits.widgets;
-
-  // A slider or a gallery carries its own autoplay and Pause control, so a section holds one of each: no second to add or copy.
-  const singles = new Set(spec.widgets.filter((w) => w.fields.some((f) => f.single)).map((w) => w.value));
-  const placed = new Set(rows.flatMap((r) => (r.columns ?? []).flatMap((c) => (c.widgets ?? []).map((w) => w.type))));
-
-  // Every column in the section, as a place to send a widget.
-  const targets = rows.flatMap((r, i) => (r.columns ?? []).map((_, j) => ({ value: `${i}.${j}`, label: `Row ${i + 1}, column ${j + 1}` })));
-  const moveTo = (w: number, target: string) => {
-    const [tr, tc] = target.split(".").map(Number);
-    if (tr === row && tc === index) return;
-    const widget = widgets[w];
-    const nextRows = rows.map((r, i) => ({
-      ...r,
-      columns: (r.columns ?? []).map((c, j) => {
-        if (i === row && j === index) return { ...c, widgets: widgets.filter((_, k) => k !== w) };
-        if (i === tr && j === tc) return { ...c, widgets: [...(c.widgets ?? []), widget] };
-        return c;
-      }),
-    }));
-    write(nextRows);
-  };
 
   return (
     <div data-layout-col-card className="min-w-0 rounded-lg border border-line bg-surface p-3">
@@ -333,40 +383,173 @@ function ColumnCard({ column, row, index }: { column: Column; row: number; index
       <div className="grid gap-x-3 sm:grid-cols-2">
         {fields.map((f) => <SettingChoice key={f.key} field={f} path={[...path, f.key]} />)}
       </div>
+      <WidgetList
+        listKey={columnKey(row, index)}
+        base={[...path, "widgets"]}
+        widgets={column.widgets ?? []}
+        allowed={null}
+        subject={`column ${index + 1}`}
+        onChange={(next) => write(updateList(rows, columnKey(row, index), () => next))}
+      />
+    </div>
+  );
+}
 
+/**
+ * One list of widgets and the buttons that add to it: a column's (every kind
+ * may go in) or a container slot's (`allowed` is the API's `child_types` — no
+ * container, form, slider or gallery). The same component draws both, so a
+ * slot has every control a column has: add, move, move to, duplicate, remove.
+ */
+function WidgetList({ listKey, base, widgets, allowed, subject, onChange }: {
+  listKey: string;
+  base: Path;
+  widgets: Widget[];
+  allowed: string[] | null;
+  subject: string;
+  onChange: (next: Widget[]) => void;
+}) {
+  const { spec, rows, write, taken, widgets: total, targets } = useLayout();
+
+  const add = (kind: LayoutWidgetSpec) => {
+    const ids = taken();
+    const blank: Widget = { id: mintId(ids), type: kind.value };
+    if (kind.list) blank[kind.list.key] = Array.from({ length: kind.list.min }, () => ({}));
+    if (kind.container) blank[kind.container.key] = blankSlots(kind.container, ids);
+    onChange([...widgets, blank]);
+  };
+
+  const canAdd = widgets.length < spec.limits.widgets_per_column && total < spec.limits.widgets;
+  const offered = allowed ? spec.widgets.filter((w) => allowed.includes(w.value)) : spec.widgets;
+
+  // A slider or a gallery carries its own autoplay and Pause control, so a section holds one of each: no second to add or copy.
+  const singles = new Set(spec.widgets.filter((w) => w.fields.some((f) => f.single)).map((w) => w.value));
+  const placed = new Set(rows.flatMap((r) => (r.columns ?? []).flatMap((c) => (c.widgets ?? []).map((w) => w.type))));
+
+  const moveTo = (id: string, target: string) => {
+    if (target === listKey) return;
+    const widget = widgets.find((w) => w.id === id);
+    if (!widget) return;
+    // Out of this list, into the target — one write, the target found by id after the removal.
+    write(updateList(updateList(rows, listKey, (list) => list.filter((w) => w.id !== id)), target, (list) => [...list, widget]));
+  };
+
+  return (
+    <>
       <ol className="grid gap-2">
         {widgets.map((widget, w) => (
           <WidgetCard
             key={widget.id}
             widget={widget}
-            path={[...path, "widgets", w]}
+            path={[...base, w]}
             index={w}
             count={widgets.length}
-            targets={targets}
-            here={`${row}.${index}`}
-            onMove={(d) => replaceWidgets(swap(widgets, w, d))}
-            onRemove={() => replaceWidgets(widgets.filter((_, k) => k !== w))}
-            onDuplicate={canAdd && !singles.has(widget.type) ? () => { const copy = clone(widget); copy.id = mintId(taken()); const next = [...widgets]; next.splice(w + 1, 0, copy); replaceWidgets(next); } : undefined}
-            onMoveTo={(target) => moveTo(w, target)}
+            targets={targets.filter((t) => !t.slot || childTypes(spec).includes(widget.type))}
+            here={listKey}
+            onMove={(d) => onChange(swap(widgets, w, d))}
+            onRemove={() => onChange(widgets.filter((_, k) => k !== w))}
+            onDuplicate={canAdd && !singles.has(widget.type) ? () => { const copy = freshWidget(widget, taken()); const next = [...widgets]; next.splice(w + 1, 0, copy); onChange(next); } : undefined}
+            onMoveTo={(target) => moveTo(widget.id, target)}
           />
         ))}
       </ol>
       {widgets.length === 0 && <p className="mb-2 text-12-5 text-faint">Nothing here yet.</p>}
 
-      <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label={`Add a widget to column ${index + 1}`}>
-        {spec.widgets.map((w) => (
+      <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label={`Add a widget to ${subject}`}>
+        {offered.map((w) => (
           <Button key={w.value} type="button" size="sm" variant="secondary" disabled={!canAdd || (singles.has(w.value) && placed.has(w.value))} onClick={() => add(w)} title={singles.has(w.value) && placed.has(w.value) ? `A layout section holds one ${w.label.toLowerCase()}.` : w.blurb}>
             + {w.label}
           </Button>
         ))}
       </div>
-      {!canAdd && <p className="mt-1.5 text-12-5 text-faint">A column holds {spec.limits.widgets_per_column} widgets and a layout {spec.limits.widgets}.</p>}
+      {!canAdd && <p className="mt-1.5 text-12-5 text-faint">A column or slot holds {spec.limits.widgets_per_column} widgets and a layout {spec.limits.widgets}.</p>}
+    </>
+  );
+}
+
+/** The widget types a container's slot may hold, from the API. */
+function childTypes(spec: LayoutOptions): string[] {
+  return spec.widgets.find((w) => w.container)?.container?.child_types ?? [];
+}
+
+/** A new container's slots, each with the required text fields it needs to save ("Tab 1", "Panel 2"). */
+function blankSlots(box: NonNullable<LayoutWidgetSpec["container"]>, taken: Set<string>): Slot[] {
+  return Array.from({ length: box.min }, (_, n) => slotWith(box, taken, n));
+}
+
+function slotWith(box: NonNullable<LayoutWidgetSpec["container"]>, taken: Set<string>, n: number): Slot {
+  const slot: Slot = { id: mintId(taken), widgets: [] };
+  for (const f of box.fields) if (f.kind === "text" && f.required) slot[f.key] = `${box.label} ${n + 1}`;
+  return slot;
+}
+
+/**
+ * A container's slots — the tabs, panels or columns it holds — each with its
+ * own name and its own widget list. Add and remove only where the API's
+ * `min`/`max` differ (a box has exactly one slot).
+ */
+function SlotsEditor({ widget, info, path }: { widget: Widget; info: LayoutWidgetSpec; path: Path }) {
+  const { rows, write, taken } = useLayout();
+  const box = info.container!;
+  const slots = (Array.isArray(widget[box.key]) ? widget[box.key] : []) as Slot[];
+  const fixed = box.min === box.max;
+
+  const replace = (next: Slot[]) =>
+    write(rows.map((r) => ({
+      ...r,
+      columns: (r.columns ?? []).map((c) => ({ ...c, widgets: (c.widgets ?? []).map((x) => (x.id === widget.id ? { ...x, [box.key]: next } : x)) })),
+    })));
+
+  return (
+    <div className="mt-1">
+      {slots.map((slot, s) => {
+        const slotPath: Path = [...path, box.key, s];
+        return (
+          <div key={slot.id} data-layout-slot={slot.id} className="mb-3 min-w-0 rounded-lg border border-line bg-surface p-3">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <p className="min-w-0 flex-1 text-12 font-semibold uppercase tracking-[.06em] text-faint">
+                {box.label} {s + 1}
+              </p>
+              {!fixed && (
+                <ReorderButtons
+                  index={s}
+                  count={slots.length}
+                  subject={`${box.label.toLowerCase()} ${s + 1}`}
+                  onMove={(d) => replace(swap(slots, s, d))}
+                  onRemove={slots.length > box.min ? () => replace(slots.filter((_, k) => k !== s)) : undefined}
+                  dense
+                />
+              )}
+            </div>
+            {box.fields.map((f) => (
+              <FieldInput key={f.key} field={f} path={[...slotPath, f.key]} widgetId={slot.id} />
+            ))}
+            <WidgetList
+              listKey={slotKey(slot.id)}
+              base={[...slotPath, "widgets"]}
+              widgets={slot.widgets ?? []}
+              allowed={box.child_types}
+              subject={`${box.label.toLowerCase()} ${s + 1}`}
+              onChange={(next) => write(updateList(rows, slotKey(slot.id), () => next))}
+            />
+          </div>
+        );
+      })}
+      {!fixed && (
+        <Button type="button" size="sm" variant="secondary" disabled={slots.length >= box.max} onClick={() => replace([...slots, slotWith(box, taken(), slots.length)])}>
+          + Add {box.label.toLowerCase()}
+        </Button>
+      )}
     </div>
   );
 }
 
 /** A widget's own words, as the collapsed card's reminder of it. */
 function snippet(widget: Widget): string {
+  if (Array.isArray(widget.slots)) {
+    const names = (widget.slots as Slot[]).map((slot) => String(slot.label ?? slot.title ?? "")).filter(Boolean);
+    if (names.length) return names.join(", ");
+  }
   for (const key of ["text", "label", "title", "caption"]) {
     const v = widget[key];
     if (typeof v === "string" && v.trim()) return v.trim();
@@ -381,7 +564,7 @@ function WidgetCard({ widget, path, index, count, targets, here, onMove, onRemov
   path: Path;
   index: number;
   count: number;
-  targets: { value: string; label: string }[];
+  targets: Target[];
   here: string;
   onMove: (delta: -1 | 1) => void;
   onRemove: () => void;
@@ -420,6 +603,7 @@ function WidgetCard({ widget, path, index, count, targets, here, onMove, onRemov
       {open && info && (
         <div className="border-t border-line p-3">
           <WidgetFields widget={widget} info={info} path={path} />
+          {info.container && <SlotsEditor widget={widget} info={info} path={path} />}
           <DevicesField path={[...path, "show_on"]} />
           {targets.length > 1 && (
             <Field label="Move to" htmlFor={moveId} variant="float-static">

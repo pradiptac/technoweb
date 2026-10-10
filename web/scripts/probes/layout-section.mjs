@@ -30,6 +30,14 @@ import { chromium } from "playwright";
  * privacy-enhanced frame appears. The form, slider and gallery widgets need
  * published records, so the API tests cover those.
  *
+ * 0.154.0 adds a fourth row holding a Tabs container with two tabs: the
+ * console offers each tab the widgets a column has **except** another
+ * container and the three embeds, a Heading goes in the first tab and a Text
+ * (typed into Summernote) in the second, and a widget's "Move to" lists the
+ * tabs. On the public page both panels are in the markup, the second
+ * `hidden`; pressing the second tab shows its text and hides the first
+ * panel; and at 360 nothing overflows.
+ *
  * Carries no credential. Not run by the author of the release: written
  * against the markup, so a locator that has drifted fails here first.
  */
@@ -157,6 +165,35 @@ try {
   await videoCard.getByLabel("Where it is").selectOption("youtube");
   await videoCard.getByLabel("YouTube link").fill("https://www.youtube.com/watch?v=aqz-KE-bpKQ");
   await videoCard.getByLabel("Caption (optional)").fill("Probe video caption");
+
+  // ---- a tabs container (0.154.0) -------------------------------------------------
+  await card.getByRole("button", { name: "1 column", exact: true }).click();
+  const tabsRow = card.locator("[data-layout-row-card]").nth(3);
+  await tabsRow.getByRole("button", { name: "+ Tabs", exact: true }).click();
+  const tabsCard = tabsRow.locator('[data-layout-widget-card="tabs"]').first();
+  await tabsCard.locator("button[aria-expanded]").first().click();
+  const slots = tabsCard.locator("[data-layout-slot]");
+  ok(await slots.count() === 2, "new tabs start with two tabs");
+  ok(
+    (await slots.first().getByRole("button", { name: "+ Heading", exact: true }).count()) === 1
+      && (await slots.first().getByRole("button", { name: /^\+ (Tabs|Box|Panels that open|Columns inside|Form|Slider|Gallery)$/ }).count()) === 0,
+    "a tab offers the ordinary widgets and no container, form, slider or gallery",
+  );
+  await slots.nth(0).getByLabel("Tab name").fill("Probe hardware");
+  await slots.nth(1).getByLabel("Tab name").fill("Probe support");
+  await slots.nth(0).getByRole("button", { name: "+ Heading", exact: true }).click();
+  await slots.nth(1).getByRole("button", { name: "+ Text", exact: true }).click();
+  const tabHeading = slots.nth(0).locator('[data-layout-widget-card="heading"]').first();
+  await tabHeading.locator("button[aria-expanded]").first().click();
+  await tabHeading.getByLabel("Heading", { exact: true }).fill("Probe tab heading");
+  ok((await tabHeading.getByLabel("Move to").locator("option", { hasText: "Probe support" }).count()) === 1, "a widget in a tab can be moved to the other tab");
+  const tabText = slots.nth(1).locator('[data-layout-widget-card="text"]').first();
+  await tabText.locator("button[aria-expanded]").first().click();
+  const tabEditable = tabText.locator(".note-editable");
+  await tabEditable.waitFor({ timeout: 60000 });
+  await tabEditable.click();
+  await page.keyboard.type("Probe text in the second tab.");
+  await page.waitForTimeout(400);
   if (SHOTS) await card.screenshot({ path: `${SHOTS}/layout-editor.png` });
 
   await Promise.all([
@@ -169,7 +206,7 @@ try {
   // ---- the public page ----------------------------------------------------------
   const site = await context.newPage();
   listen(site, "site");
-  for (const width of [320, 390, 768, 1024, 1280]) {
+  for (const width of [320, 360, 390, 768, 1024, 1280]) {
     await site.setViewportSize({ width, height: 900 });
     await site.goto(`${BASE}/${slug}`, { waitUntil: "load", timeout: T });
     await site.waitForSelector("html[data-aos-ready]", { timeout: T });
@@ -231,6 +268,21 @@ try {
       await video.locator('iframe[src*="youtube-nocookie.com"]').waitFor({ timeout: 15000 });
       ok(true, "pressing play mounts the youtube-nocookie frame");
       site.off("request", watch);
+    }
+    if (width === 1280 || width === 360) {
+      // Both panes are in the markup, the second hidden; the second tab shows its text and hides the first pane.
+      const tabs = site.locator('[data-widget="tabs"]').first();
+      await tabs.scrollIntoViewIfNeeded();
+      ok(await tabs.locator('[role="tab"]').count() === 2 && await tabs.locator('[role="tabpanel"]').count() === 2, `${width}px: both tabs and both panes are in the markup`);
+      ok(await tabs.locator('[role="tabpanel"]').nth(1).isHidden() && await tabs.locator('[role="tabpanel"]').nth(0).isVisible(), `${width}px: the first pane shows, the second is hidden`);
+      await tabs.getByRole("tab", { name: "Probe support" }).click();
+      ok(
+        await tabs.locator('[role="tabpanel"]').nth(0).isHidden()
+          && (await tabs.locator('[role="tabpanel"]').nth(1).innerText()).includes("Probe text in the second tab."),
+        `${width}px: pressing the second tab shows its text`,
+      );
+      const over = await site.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      ok(over <= 0, `${width}px: nothing overflows with the tabs open (${over})`);
     }
     if (SHOTS && (width === 390 || width === 1280)) await site.screenshot({ path: `${SHOTS}/layout-${width}.png`, fullPage: true });
   }

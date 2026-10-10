@@ -288,6 +288,13 @@ layout**. It is a section made of **rows**; each row has one to four
 - **Video** — a YouTube link or a video file from the media library, with an
   optional cover picture, a shape and a caption. Nothing is loaded from YouTube
   until a visitor presses play.
+- **Box**, **Tabs**, **Panels that open** and **Columns inside** — widgets that
+  hold other widgets. A box is a card around a few widgets; tabs show one set
+  of widgets at a time (two to six tabs); panels open and close like the
+  questions list (each can start open); columns inside split a column into
+  two to four side by side. Each tab, panel or column has its own **+ Heading**,
+  **+ Text** and so on. They go one level deep: a tab cannot hold tabs, and a
+  form, slider or gallery stays in a column of its own.
 - **Form**, **Slider** and **Gallery** — pick one of your published ones from
   the list. A layout section holds one slider and one gallery (each has its own
   Pause button); a form can be used more than once. If you unpublish or delete
@@ -303,7 +310,8 @@ How to use it:
    than below.
 3. In each column press **+ Heading**, **+ Text** and so on. Open a widget to
    fill it in. The arrows move a widget up and down, the copy button
-   duplicates it, and **Move to** sends it to any other column in the section.
+   duplicates it, and **Move to** sends it to any other column in the section —
+  or into a tab, panel or column of a container.
    Changing a row to fewer columns moves the widgets of the dropped columns
    into the last column that is left.
 4. A column's **Box** can be a **Card** or a **Raised card** (the site's own
@@ -314,8 +322,8 @@ How to use it:
 
 Good to know:
 
-- A layout holds up to 8 rows, 4 columns in a row, 8 widgets in a column and
-  40 widgets in all. For more, add a second layout section.
+- A layout holds up to 8 rows, 4 columns in a row, 8 widgets in a column or in
+  a tab, and 40 widgets in all — the widgets inside tabs and boxes count. For more, add a second layout section.
 - Heading widgets are given the right heading level for you; the size you
   choose is only how big they look.
 - The questions in a layout are not added to the page's FAQ listing for search

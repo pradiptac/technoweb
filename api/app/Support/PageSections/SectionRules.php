@@ -65,6 +65,8 @@ final class SectionRules
         'blocks.*.data.columns.*.body',
         // A layout section's text widgets (0.147.0): four levels of `*`.
         'blocks.*.data.rows.*.columns.*.widgets.*.html',
+        // …and the one level a container widget (0.154.0) holds: a text widget in a slot.
+        'blocks.*.data.rows.*.columns.*.widgets.*.slots.*.widgets.*.html',
     ];
 
     /**

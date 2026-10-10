@@ -154,12 +154,13 @@ export type MapSectionData = { heading?: string; lede?: string; url: string; add
  * The custom layout section (0.147.0, `LayoutPresenter`'s shape): rows of one
  * to four columns, each a short stack of widgets. A value that is the API's
  * default is absent — the website applies the default — and a widget carries
- * only the fields its own type declares. No widget holds another.
+ * only the fields its own type declares. Only a container widget holds widgets, one level deep.
  */
 export type LayoutWidgetDevice = "phone" | "tablet" | "desktop";
 type WidgetBase = { id: string; show_on?: LayoutWidgetDevice[] };
 export type LayoutAlign = "inherit" | "start" | "center" | "end";
-export type LayoutWidget = WidgetBase & (
+/** What a container's slot may hold (and a column): every widget but the embeds and the containers. */
+export type LayoutLeaf =
   | { type: "heading"; text: string; size?: "s" | "m" | "l" | "xl"; align?: LayoutAlign }
   | { type: "text"; html: string; lead?: boolean }
   | { type: "button"; label: string; href: string; variant?: "primary" | "secondary" | "link"; align?: LayoutAlign }
@@ -175,8 +176,19 @@ export type LayoutWidget = WidgetBase & (
   | {
       type: "video"; source?: "youtube" | "mp4"; youtube?: string; video?: string; poster?: string; poster_alt?: string;
       ratio?: "16:9" | "4:3" | "1:1" | "9:16"; caption?: string;
-    }
-  | { type: "form" | "slider" | "gallery"; slug: string }
+    };
+/**
+ * The four container widgets (0.154.0): each holds `slots`, and a slot holds
+ * ordinary widgets — one level, never another container, form, slider or gallery.
+ */
+export type LayoutChild = WidgetBase & LayoutLeaf;
+export type LayoutWidget = WidgetBase & (LayoutLeaf | { type: "form" | "slider" | "gallery"; slug: string } | LayoutContainer);
+export type LayoutSlot = { id: string; label?: string; title?: string; open?: boolean; widgets: LayoutChild[] };
+export type LayoutContainer = WidgetBase & (
+  | { type: "box"; surface?: "card" | "raised" | "tint"; pad?: "s" | "m" | "l"; align?: LayoutAlign; slots: LayoutSlot[] }
+  | { type: "tabs"; slots: LayoutSlot[] }
+  | { type: "panels"; slots: LayoutSlot[] }
+  | { type: "inner_row"; split?: "equal" | "wide_first" | "wide_last"; gap?: "s" | "m" | "l"; valign?: "stretch" | "top" | "center" | "bottom"; stack_from?: "md" | "lg"; slots: LayoutSlot[] }
 );
 export type LayoutColumn = {
   surface?: "none" | "card" | "raised"; pad?: "none" | "s" | "m"; align?: LayoutAlign; valign?: "top" | "center" | "bottom";
@@ -214,6 +226,8 @@ export type LayoutField = {
 export type LayoutWidgetSpec = {
   value: string; label: string; blurb: string; fields: LayoutField[];
   list?: { key: string; label: string; min: number; max: number; fields: LayoutField[] };
+  /** A container widget (0.154.0): its slots (tabs, panels, columns), their own fields, and the widget types a slot may hold. */
+  container?: { key: string; label: string; min: number; max: number; fields: LayoutField[]; child_types: string[] };
 };
 export type LayoutOptions = {
   widgets: LayoutWidgetSpec[];

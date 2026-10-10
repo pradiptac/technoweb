@@ -165,6 +165,29 @@ class SampleBuilderPageSeeder extends Seeder
                         ['widgets' => [['id' => 'sample31', 'type' => 'video', 'youtube' => 'aqz-KE-bpKQ', 'caption' => 'Big Buck Bunny, © Blender Foundation, CC BY 3.0 — a placeholder.']]],
                     ],
                 ],
+                [
+                    // 0.154.0: a tabs container and a panels container, the two the probe switches and opens.
+                    'id' => 'sample04',
+                    'columns' => [
+                        ['widgets' => [[
+                            'id' => 'sample41', 'type' => 'tabs', 'slots' => [
+                                ['id' => 'sample42', 'label' => 'Hardware', 'widgets' => [
+                                    ['id' => 'sample43', 'type' => 'heading', 'text' => 'Racks, switches and cabling', 'size' => 's'],
+                                    ['id' => 'sample44', 'type' => 'text', 'html' => '<p>What we supply and fit.</p>'],
+                                ]],
+                                ['id' => 'sample45', 'label' => 'Support', 'widgets' => [
+                                    ['id' => 'sample46', 'type' => 'list', 'items' => [['text' => 'Four-hour response'], ['text' => 'Yearly review']], 'marker' => 'dot'],
+                                ]],
+                            ],
+                        ]]],
+                        ['widgets' => [[
+                            'id' => 'sample51', 'type' => 'panels', 'slots' => [
+                                ['id' => 'sample52', 'title' => 'Is it quick?', 'open' => true, 'widgets' => [['id' => 'sample53', 'type' => 'text', 'html' => '<p>Usually a day.</p>']]],
+                                ['id' => 'sample54', 'title' => 'Is it tidy?', 'widgets' => [['id' => 'sample55', 'type' => 'button', 'label' => 'See our work', 'href' => '/case-studies']]],
+                            ],
+                        ]]],
+                    ],
+                ],
             ],
         ]);
     }

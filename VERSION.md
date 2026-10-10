@@ -21,6 +21,30 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.154.0 — 2026-10-10
+
+**Boxes, tabs, panels and columns inside a column of the custom layout.**
+
+- **Four widgets that hold other widgets.** A **box** (a card, a raised card or
+  a tinted card), **tabs** (two to six), **panels that open** (one to eight,
+  each can start open) and **columns inside** (two to four side by side). Each
+  tab, panel or column has its own list of widgets with the same **+ Heading**,
+  **+ Text**, **Move to**, copy and remove controls a column has.
+- **One level deep.** A container cannot hold another container, and a form,
+  slider or gallery stays in a column (each has its own play/pause or steps).
+  The widgets inside count toward the layout's 40 widgets and its text limit.
+- **On the page** every tab's text is in the page for search engines and a
+  reader without scripts; the inactive tabs are hidden, not removed. A tab's
+  or panel's name is a button, never a heading, so the page outline is the same
+  as without it.
+- API: `LayoutRules` gains a `container` description per widget and
+  `childTypes()`; `SectionRules::RICH_TEXT` names the text widget inside a
+  slot. Tests: eleven new cases in `LayoutSectionTest`; the probe
+  `layout-section.mjs` builds a tabs container and switches its tabs at 360
+  and 1280.
+
+---
+
 ## 0.153.0 — 2026-10-10
 
 **Sections can have space around them, a border and a shadow.**

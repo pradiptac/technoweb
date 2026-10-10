@@ -105,7 +105,9 @@ A full CMS for the people who write, without a developer in the loop.
 - **A custom layout section**: rows of one to four columns filled with
   headings, text, buttons, pictures, spaces, rules, icon boxes, questions that
   open and lists — and, since 0.149.0, a video (a YouTube link or a library
-  file, played only on a press), a form, a slider and a gallery — each widget optionally shown on some screens only and a
+  file, played only on a press), a form, a slider and a gallery, and — since
+  0.154.0 — boxes, tabs, panels that open and columns inside a column that hold
+  widgets of their own — each widget optionally shown on some screens only and a
   column optionally a card or a raised card — a picture beside words, three
   boxes in a row — without a new section type for each arrangement. Columns
   stack on a phone; nothing is a free number or colour.

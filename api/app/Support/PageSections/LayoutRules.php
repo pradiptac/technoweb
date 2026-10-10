@@ -37,7 +37,13 @@ use Illuminate\Validation\Validator;
  * rows, columns and widgets are put back in position order — the reordering
  * `validated()` does to a list rebuilt rule by rule.
  *
- * **No nesting**: a widget holds no widget and a layout has no layout widget.
+ * **Containers nest exactly one level** (0.154.0): `box`, `tabs`, `panels` and
+ * `inner_row` hold `slots` — `[{id, …slot fields, widgets: []}]` — and a slot
+ * holds ordinary widgets, never another container and never a form, slider or
+ * gallery (`childTypes()`). A column's widgets are depth 0, a slot's depth 1;
+ * the rules, `check()`, `normalise()` and `LayoutPresenter` recurse once and
+ * stop, each with the same caps. A child counts toward the section's widget
+ * and character totals, and its id must be unique across the whole section.
  */
 final class LayoutRules
 {
@@ -207,6 +213,39 @@ final class LayoutRules
                     'caption' => self::text('Caption (optional)', 200),
                 ],
             ],
+            'box' => [
+                'label' => 'Box',
+                'blurb' => 'A framed area holding other widgets: a card, a raised card or a tinted panel.',
+                'fields' => [
+                    'surface' => self::choice('Look', 'card', ['card' => 'Card', 'raised' => 'Raised card', 'tint' => 'Tinted panel']),
+                    'pad' => self::choice('Space inside', 'm', ['s' => 'Small', 'm' => 'Medium', 'l' => 'Large']),
+                    'align' => $align,
+                ],
+                'container' => ['key' => 'slots', 'label' => 'Contents', 'min' => 1, 'max' => 1, 'fields' => []],
+            ],
+            'tabs' => [
+                'label' => 'Tabs',
+                'blurb' => 'Two to six tabs, each holding its own widgets. Every tab is on the page for search engines; one shows at a time.',
+                'fields' => [],
+                'container' => ['key' => 'slots', 'label' => 'Tab', 'min' => 2, 'max' => 6, 'fields' => [
+                    'label' => self::text('Tab name', 40, true),
+                ]],
+            ],
+            'panels' => [
+                'label' => 'Panels that open',
+                'blurb' => 'Up to eight panels that open and close, each holding its own widgets.',
+                'fields' => [],
+                'container' => ['key' => 'slots', 'label' => 'Panel', 'min' => 1, 'max' => 8, 'fields' => [
+                    'title' => self::text('Panel title', 120, true),
+                    'open' => ['kind' => 'bool', 'label' => 'Open when the page loads'],
+                ]],
+            ],
+            'inner_row' => [
+                'label' => 'Columns inside',
+                'blurb' => 'Two to four columns side by side inside this column, each holding its own widgets.',
+                'fields' => array_intersect_key(self::rowFields(), array_flip(['split', 'gap', 'valign', 'stack_from'])),
+                'container' => ['key' => 'slots', 'label' => 'Column', 'min' => 2, 'max' => 4, 'fields' => []],
+            ],
             'form' => [
                 'label' => 'Form',
                 'blurb' => 'One of your published forms, drawn in the column.',
@@ -229,6 +268,23 @@ final class LayoutRules
                 ],
             ],
         ]);
+    }
+
+    /** The widgets that carry their own autoplay or are a record embed: never inside a container. */
+    private const NOT_NESTED = ['form', 'slider', 'gallery'];
+
+    /**
+     * The widgets a container's slot may hold: any but another container and
+     * the three embeds.
+     *
+     * @return list<string>
+     */
+    public static function childTypes(): array
+    {
+        return once(fn () => array_values(array_filter(
+            array_keys(self::widgets()),
+            fn ($type) => ! isset(self::widgets()[$type]['container']) && ! in_array($type, self::NOT_NESTED, true),
+        )));
     }
 
     /**
@@ -317,6 +373,9 @@ final class LayoutRules
             if (isset($widget['list'])) {
                 $entry['list'] = [...$widget['list'], 'fields' => $describe($widget['list']['fields'])];
             }
+            if (isset($widget['container'])) {
+                $entry['container'] = [...$widget['container'], 'fields' => $describe($widget['container']['fields']), 'child_types' => self::childTypes()];
+            }
             $widgets[] = $entry;
         }
 
@@ -394,7 +453,7 @@ final class LayoutRules
                 $rules["{$cp}.widgets"] = ['nullable', 'array', 'max:'.self::MAX_WIDGETS_PER_COLUMN];
 
                 foreach (self::slice($column['widgets'] ?? null, self::MAX_WIDGETS_PER_COLUMN) as $w => $widget) {
-                    $rules = [...$rules, ...self::widgetRules($widget, "{$cp}.widgets.{$w}")];
+                    $rules = [...$rules, ...self::widgetRules($widget, "{$cp}.widgets.{$w}", 0)];
                 }
             }
         }
@@ -403,15 +462,16 @@ final class LayoutRules
     }
 
     /** @return array<string, mixed> */
-    private static function widgetRules(mixed $widget, string $wp): array
+    private static function widgetRules(mixed $widget, string $wp, int $depth): array
     {
         $rules = [$wp => ['array']];
         if (! is_array($widget)) {
             return $rules;
         }
 
+        $types = $depth === 0 ? array_keys(self::widgets()) : self::childTypes();
         $rules["{$wp}.id"] = ['required', 'string', 'regex:'.self::ID];
-        $rules["{$wp}.type"] = ['required', 'string', Rule::in(array_keys(self::widgets()))];
+        $rules["{$wp}.type"] = ['required', 'string', Rule::in($types)];
         $rules["{$wp}.show_on"] = ['nullable', 'array', 'min:1', 'max:'.count(SectionRules::DEVICES)];
         foreach (array_keys(array_slice((array) ($widget['show_on'] ?? []), 0, count(SectionRules::DEVICES), true)) as $k) {
             if (is_int($k)) {
@@ -419,13 +479,36 @@ final class LayoutRules
             }
         }
 
-        $spec = self::widgets()[(string) ($widget['type'] ?? '')] ?? null;
-        if (! $spec) {
+        $type = (string) ($widget['type'] ?? '');
+        $spec = self::widgets()[$type] ?? null;
+        // A type this depth refuses gets no field rules: the `type` rule says so.
+        if (! $spec || ! in_array($type, $types, true)) {
             return $rules;
         }
 
         foreach ($spec['fields'] as $key => $field) {
             $rules["{$wp}.{$key}"] = self::fieldRule($field, self::applies($field, $widget, $spec['fields']));
+        }
+
+        if (isset($spec['container'])) {
+            $box = $spec['container'];
+            $rules["{$wp}.{$box['key']}"] = ['required', 'array', 'min:'.$box['min'], 'max:'.$box['max']];
+            foreach (self::slice($widget[$box['key']] ?? null, $box['max']) as $s => $slot) {
+                $sp = "{$wp}.{$box['key']}.{$s}";
+                $rules[$sp] = ['array'];
+                if (! is_array($slot)) {
+                    continue;
+                }
+                $rules["{$sp}.id"] = ['required', 'string', 'regex:'.self::ID];
+                foreach ($box['fields'] as $key => $field) {
+                    $rules["{$sp}.{$key}"] = self::fieldRule($field);
+                }
+                $rules["{$sp}.widgets"] = ['nullable', 'array', 'max:'.self::MAX_WIDGETS_PER_COLUMN];
+                // The one level: a child's own rules, and its type may not be a container.
+                foreach (self::slice($slot['widgets'] ?? null, self::MAX_WIDGETS_PER_COLUMN) as $w => $child) {
+                    $rules = [...$rules, ...self::widgetRules($child, "{$sp}.widgets.{$w}", 1)];
+                }
+            }
         }
 
         if (isset($spec['list'])) {
@@ -478,6 +561,7 @@ final class LayoutRules
     public static function messages(string $at): array
     {
         $w = "{$at}.rows.*.columns.*.widgets.*";
+        $c = "{$w}.slots.*.widgets.*";
 
         return [
             "{$at}.rows.required" => 'Add at least one row.',
@@ -489,6 +573,32 @@ final class LayoutRules
             "{$at}.rows.*.columns.*.widgets.max" => 'A column holds at most '.self::MAX_WIDGETS_PER_COLUMN.' widgets.',
             "{$at}.rows.*.id.required" => 'A row lost its id; remove it and add it again.',
             "{$at}.rows.*.id.regex" => 'A row lost its id; remove it and add it again.',
+            ...self::widgetMessages($w),
+            ...self::widgetMessages($c),
+            "{$c}.type.in" => 'A box, tabs, panels or columns inside cannot hold another of those, a form, a slider or a gallery; put those in the column itself.',
+            // A container's slots (tabs, panels, columns), one level.
+            "{$w}.slots.required" => 'Add the tabs, panels or columns this holds.',
+            "{$w}.slots.min" => 'This needs at least :min.',
+            "{$w}.slots.max" => 'This holds at most :max.',
+            "{$w}.slots.*.id.required" => 'A tab, panel or column lost its id; remove it and add it again.',
+            "{$w}.slots.*.id.regex" => 'A tab, panel or column lost its id; remove it and add it again.',
+            "{$w}.slots.*.label.required" => 'Give every tab a name.',
+            "{$w}.slots.*.label.max" => 'Keep a tab name to 40 characters.',
+            "{$w}.slots.*.title.required" => 'Give every panel a title.',
+            "{$w}.slots.*.title.max" => 'Keep a panel title to 120 characters.',
+            "{$w}.slots.*.widgets.max" => 'A tab, panel or column holds at most '.self::MAX_WIDGETS_PER_COLUMN.' widgets.',
+        ];
+    }
+
+    /**
+     * The messages for one widget's own fields, under `$w` (the wildcard path
+     * of a widget: a column's, and again for a container's child).
+     *
+     * @return array<string, string>
+     */
+    private static function widgetMessages(string $w): array
+    {
+        return [
             "{$w}.id.required" => 'A widget lost its id; remove it and add it again.',
             "{$w}.id.regex" => 'A widget lost its id; remove it and add it again.',
             "{$w}.type.required" => 'Every widget needs a type.',
@@ -542,28 +652,14 @@ final class LayoutRules
             $validator->errors()->add("{$at}.rows", 'The rows are not a list.');
         }
 
-        $ids = [];
-        $widgets = 0;
-        $chars = 0;
-        $pictures = [];
-        $records = [];
-        $singles = [];
-        $unique = function (mixed $id, string $key) use ($validator, &$ids) {
-            if (! is_string($id) || $id === '') {
-                return;
-            }
-            if (isset($ids[$id])) {
-                $validator->errors()->add($key, 'Two rows or widgets share an id; duplicate one again rather than copying it by hand.');
-            }
-            $ids[$id] = true;
-        };
+        $st = ['ids' => [], 'widgets' => 0, 'chars' => 0, 'pictures' => [], 'records' => [], 'singles' => []];
 
         foreach (self::slice($rows, self::MAX_ROWS) as $r => $row) {
             if (! is_array($row)) {
                 continue;
             }
             $rp = "{$at}.rows.{$r}";
-            $unique($row['id'] ?? null, "{$rp}.id");
+            self::unique($validator, $st, $row['id'] ?? null, "{$rp}.id");
 
             $columns = $row['columns'] ?? null;
             if (is_array($columns) && ! array_is_list($columns)) {
@@ -575,65 +671,13 @@ final class LayoutRules
             }
 
             foreach (self::slice($columns, self::MAX_COLUMNS) as $c => $column) {
-                if (! is_array($column)) {
-                    continue;
-                }
-                $cp = "{$rp}.columns.{$c}";
-                $list = $column['widgets'] ?? null;
-                if (is_array($list) && ! array_is_list($list)) {
-                    $validator->errors()->add("{$cp}.widgets", 'The widgets are not a list.');
-                }
-
-                foreach (self::slice($list, self::MAX_WIDGETS_PER_COLUMN) as $w => $widget) {
-                    if (! is_array($widget)) {
-                        continue;
-                    }
-                    $wp = "{$cp}.widgets.{$w}";
-                    $widgets++;
-                    $unique($widget['id'] ?? null, "{$wp}.id");
-                    $chars += self::characters(array_diff_key($widget, ['id' => 1, 'type' => 1]));
-
-                    $spec = self::widgets()[(string) ($widget['type'] ?? '')] ?? null;
-                    foreach ($spec['fields'] ?? [] as $key => $field) {
-                        $value = $widget[$key] ?? null;
-                        if ($value === null || $value === '' || ! self::applies($field, $widget, $spec['fields'])) {
-                            continue;
-                        }
-                        $at2 = "{$wp}.{$key}";
-
-                        switch ($field['kind']) {
-                            case 'path':
-                                if (is_string($value)) {
-                                    $pictures[$value][] = [$at2, 'image/'];
-                                }
-                                break;
-                            case 'video':
-                                if (is_string($value)) {
-                                    $pictures[$value][] = [$at2, 'video/'];
-                                }
-                                break;
-                            case 'youtube':
-                                if (is_string($value) && YouTube::id($value) === null) {
-                                    $validator->errors()->add($at2, 'That is not a YouTube link this site can play.');
-                                }
-                                break;
-                            case 'ref':
-                                if (! is_numeric($value)) {
-                                    break;
-                                }
-                                $kind = (string) $field['record'];
-                                $singles[$kind] = ($singles[$kind] ?? 0) + ($field['single'] ?? false ? 1 : 0);
-                                if (($field['single'] ?? false) && $singles[$kind] > 1) {
-                                    $validator->errors()->add($at2, "A layout section holds one {$kind}; use a second layout section for another.");
-                                }
-                                $records[$kind][(int) $value][] = $at2;
-                                break;
-                        }
-                    }
+                if (is_array($column)) {
+                    self::checkList($validator, $column['widgets'] ?? null, "{$rp}.columns.{$c}.widgets", $st, 0);
                 }
             }
         }
 
+        ['widgets' => $widgets, 'chars' => $chars, 'pictures' => $pictures, 'records' => $records] = $st;
         if ($widgets > self::MAX_WIDGETS) {
             $validator->errors()->add("{$at}.rows", 'A layout holds at most '.self::MAX_WIDGETS.' widgets; use a second layout section for the rest.');
         }
@@ -667,6 +711,116 @@ final class LayoutRules
                 foreach ($keys as $key) {
                     $validator->errors()->add($key, $problem);
                 }
+            }
+        }
+    }
+
+    /**
+     * Ids are unique across the whole section: rows, widgets, and a
+     * container's slots and children alike.
+     *
+     * @param  array<string, mixed>  $st
+     */
+    private static function unique(Validator $validator, array &$st, mixed $id, string $key): void
+    {
+        if (! is_string($id) || $id === '') {
+            return;
+        }
+        if (isset($st['ids'][$id])) {
+            $validator->errors()->add($key, 'Two rows, widgets, tabs or panels share an id; duplicate one again rather than copying it by hand.');
+        }
+        $st['ids'][$id] = true;
+    }
+
+    /**
+     * One list of widgets — a column's (depth 0) or a container slot's (depth 1,
+     * the last: a container found there is refused by its `type` rule and not
+     * walked into). Capped like `rules()`.
+     *
+     * @param  array<string, mixed>  $st  the section's running totals, by reference
+     */
+    private static function checkList(Validator $validator, mixed $list, string $lp, array &$st, int $depth): void
+    {
+        if (is_array($list) && ! array_is_list($list)) {
+            $validator->errors()->add($lp, 'The widgets are not a list.');
+        }
+
+        foreach (self::slice($list, self::MAX_WIDGETS_PER_COLUMN) as $w => $widget) {
+            if (! is_array($widget)) {
+                continue;
+            }
+            $wp = "{$lp}.{$w}";
+            $type = (string) ($widget['type'] ?? '');
+            $spec = self::widgets()[$type] ?? null;
+            $box = $spec['container'] ?? null;
+
+            $st['widgets']++;
+            self::unique($validator, $st, $widget['id'] ?? null, "{$wp}.id");
+            // A container's children are counted when they are visited, not twice.
+            $st['chars'] += self::characters(array_diff_key($widget, ['id' => 1, 'type' => 1, 'slots' => 1]));
+
+            if ($depth > 0 && ($spec === null || ! in_array($type, self::childTypes(), true))) {
+                continue;
+            }
+
+            foreach ($spec['fields'] ?? [] as $key => $field) {
+                $value = $widget[$key] ?? null;
+                if ($value === null || $value === '' || ! self::applies($field, $widget, $spec['fields'])) {
+                    continue;
+                }
+                $at2 = "{$wp}.{$key}";
+
+                switch ($field['kind']) {
+                    case 'path':
+                        if (is_string($value)) {
+                            $st['pictures'][$value][] = [$at2, 'image/'];
+                        }
+                        break;
+                    case 'video':
+                        if (is_string($value)) {
+                            $st['pictures'][$value][] = [$at2, 'video/'];
+                        }
+                        break;
+                    case 'youtube':
+                        if (is_string($value) && YouTube::id($value) === null) {
+                            $validator->errors()->add($at2, 'That is not a YouTube link this site can play.');
+                        }
+                        break;
+                    case 'ref':
+                        if (! is_numeric($value)) {
+                            break;
+                        }
+                        $kind = (string) $field['record'];
+                        $st['singles'][$kind] = ($st['singles'][$kind] ?? 0) + ($field['single'] ?? false ? 1 : 0);
+                        if (($field['single'] ?? false) && $st['singles'][$kind] > 1) {
+                            $validator->errors()->add($at2, "A layout section holds one {$kind}; use a second layout section for another.");
+                        }
+                        $st['records'][$kind][(int) $value][] = $at2;
+                        break;
+                }
+            }
+
+            if ($box === null) {
+                continue;
+            }
+
+            $slots = $widget[$box['key']] ?? null;
+            if (is_array($slots) && ! array_is_list($slots)) {
+                $validator->errors()->add("{$wp}.{$box['key']}", 'The tabs, panels or columns are not a list.');
+            }
+            $split = $widget['split'] ?? 'equal';
+            if (is_string($split) && $split !== 'equal' && is_array($slots) && count($slots) !== 2) {
+                $validator->errors()->add("{$wp}.split", 'A split needs exactly two columns; choose “Equal”.');
+            }
+
+            foreach (self::slice($slots, $box['max']) as $s => $slot) {
+                if (! is_array($slot)) {
+                    continue;
+                }
+                $sp = "{$wp}.{$box['key']}.{$s}";
+                self::unique($validator, $st, $slot['id'] ?? null, "{$sp}.id");
+                $st['chars'] += self::characters(array_diff_key($slot, ['id' => 1, 'widgets' => 1]));
+                self::checkList($validator, $slot['widgets'] ?? null, "{$sp}.widgets", $st, 1);
             }
         }
     }
@@ -713,7 +867,7 @@ final class LayoutRules
                 }
                 $widgets = [];
                 foreach (self::ordered($column['widgets'] ?? null, self::MAX_WIDGETS_PER_COLUMN) as $widget) {
-                    if (is_array($widget) && ($kept = self::widget($widget)) !== null) {
+                    if (is_array($widget) && ($kept = self::widget($widget, 0)) !== null) {
                         $widgets[] = $kept;
                     }
                 }
@@ -765,11 +919,11 @@ final class LayoutRules
      * @param  array<string, mixed>  $widget
      * @return array<string, mixed>|null
      */
-    private static function widget(array $widget): ?array
+    private static function widget(array $widget, int $depth): ?array
     {
         $type = (string) ($widget['type'] ?? '');
         $spec = self::widgets()[$type] ?? null;
-        if (! $spec) {
+        if (! $spec || ($depth > 0 && ! in_array($type, self::childTypes(), true))) {
             return null;
         }
 
@@ -789,6 +943,27 @@ final class LayoutRules
             }
         }
 
+        if (isset($spec['container'])) {
+            $box = $spec['container'];
+            $slots = [];
+            foreach (self::ordered($widget[$box['key']] ?? null, $box['max']) as $slot) {
+                if (! is_array($slot)) {
+                    continue;
+                }
+                $children = [];
+                foreach (self::ordered($slot['widgets'] ?? null, self::MAX_WIDGETS_PER_COLUMN) as $child) {
+                    if (is_array($child) && ($kept = self::widget($child, 1)) !== null) {
+                        $children[] = $kept;
+                    }
+                }
+                $slots[] = ['id' => (string) ($slot['id'] ?? ''), ...self::kept($slot, $box['fields']), 'widgets' => $children];
+            }
+            $out[$box['key']] = $slots;
+            // A split is for two columns, as on a row.
+            if (count($slots) !== 2) {
+                unset($out['split']);
+            }
+        }
         if (isset($spec['list'])) {
             $list = $spec['list'];
             $items = [];
