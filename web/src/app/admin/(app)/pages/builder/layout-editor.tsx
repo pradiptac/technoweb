@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { EditorField } from "@/components/admin/editor-field";
 import { ReorderButtons } from "@/components/admin/reorder-buttons";
@@ -9,7 +10,7 @@ import { Field, Select } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { LayoutField, LayoutOptions, LayoutWidgetSpec } from "@/types/api";
 import {
-  Choice, IconPick, ImagePath, Repeater, Text, Toggle, getIn, useBlock, type Json, type Path,
+  Choice, IconPick, ImagePath, NumberChoice, Repeater, Text, Toggle, VideoPath, getIn, useBlock, type Json, type Path,
 } from "../../blocks/editors/shared";
 
 /**
@@ -39,6 +40,17 @@ import {
  * widget's id and the builder's `epoch`; fifteen editors on one form would be
  * slow and cluttered.
  */
+
+/** The published records a form, slider or gallery widget can choose between (`GET /admin/pages/builder`). */
+type Records = { id: number; name: string }[];
+type EditorOptions = { layout?: LayoutOptions; forms?: Records; sliders?: Records; galleries?: Records };
+
+/** Where each `ref` field's record is made when there is none to choose yet. */
+const RECORD_LISTS = {
+  form: { key: "forms", href: "/admin/forms/new" },
+  slider: { key: "sliders", href: "/admin/sliders/new" },
+  gallery: { key: "galleries", href: "/admin/galleries/new" },
+} as const;
 
 type Widget = { id: string; type: string; show_on?: string[]; [key: string]: unknown };
 type Column = { widgets?: Widget[]; [key: string]: unknown };
@@ -81,6 +93,7 @@ type Ctx = {
   isOpen: (key: string, path: Path, initial?: boolean) => boolean;
   toggle: (key: string, path: Path, initial?: boolean) => void;
   sectionId: string;
+  options: EditorOptions;
   widgets: number;
   taken: () => Set<string>;
 };
@@ -108,8 +121,8 @@ function swap<T>(list: T[], from: number, delta: -1 | 1): T[] {
   return next;
 }
 
-export function LayoutEditor({ sectionId, options }: { sectionId: string; options: { layout?: LayoutOptions } }) {
-  const { content, set, anyErr } = useBlock();
+export function LayoutEditor({ sectionId, options }: { sectionId: string; options: EditorOptions }) {
+  const { content, set, setStep, anyErr } = useBlock();
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const spec = options.layout;
 
@@ -127,7 +140,8 @@ export function LayoutEditor({ sectionId, options }: { sectionId: string; option
     }
     return taken;
   };
-  const write = (next: LayoutRow[]) => set(["rows"], next as unknown as Json);
+  // A structural change is an undo step of its own (`setStep`), never merged with typing.
+  const write = (next: LayoutRow[]) => (setStep ?? set)(["rows"], next as unknown as Json);
 
   const ctx: Ctx = {
     spec,
@@ -137,6 +151,7 @@ export function LayoutEditor({ sectionId, options }: { sectionId: string; option
     isOpen: (key, path, initial = false) => (anyErr ? anyErr(path) : false) || (openMap[key] ?? initial),
     toggle: (key, path, initial = false) => setOpenMap((m) => ({ ...m, [key]: !(m[key] ?? ((anyErr ? anyErr(path) : false) || initial)) })),
     sectionId,
+    options,
     widgets: widgetCount,
     taken: ids,
   };
@@ -291,6 +306,10 @@ function ColumnCard({ column, row, index }: { column: Column; row: number; index
 
   const canAdd = widgets.length < spec.limits.widgets_per_column && total < spec.limits.widgets;
 
+  // A slider or a gallery carries its own autoplay and Pause control, so a section holds one of each: no second to add or copy.
+  const singles = new Set(spec.widgets.filter((w) => w.fields.some((f) => f.single)).map((w) => w.value));
+  const placed = new Set(rows.flatMap((r) => (r.columns ?? []).flatMap((c) => (c.widgets ?? []).map((w) => w.type))));
+
   // Every column in the section, as a place to send a widget.
   const targets = rows.flatMap((r, i) => (r.columns ?? []).map((_, j) => ({ value: `${i}.${j}`, label: `Row ${i + 1}, column ${j + 1}` })));
   const moveTo = (w: number, target: string) => {
@@ -327,7 +346,7 @@ function ColumnCard({ column, row, index }: { column: Column; row: number; index
             here={`${row}.${index}`}
             onMove={(d) => replaceWidgets(swap(widgets, w, d))}
             onRemove={() => replaceWidgets(widgets.filter((_, k) => k !== w))}
-            onDuplicate={canAdd ? () => { const copy = clone(widget); copy.id = mintId(taken()); const next = [...widgets]; next.splice(w + 1, 0, copy); replaceWidgets(next); } : undefined}
+            onDuplicate={canAdd && !singles.has(widget.type) ? () => { const copy = clone(widget); copy.id = mintId(taken()); const next = [...widgets]; next.splice(w + 1, 0, copy); replaceWidgets(next); } : undefined}
             onMoveTo={(target) => moveTo(w, target)}
           />
         ))}
@@ -336,7 +355,7 @@ function ColumnCard({ column, row, index }: { column: Column; row: number; index
 
       <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label={`Add a widget to column ${index + 1}`}>
         {spec.widgets.map((w) => (
-          <Button key={w.value} type="button" size="sm" variant="secondary" disabled={!canAdd} onClick={() => add(w)} title={w.blurb}>
+          <Button key={w.value} type="button" size="sm" variant="secondary" disabled={!canAdd || (singles.has(w.value) && placed.has(w.value))} onClick={() => add(w)} title={singles.has(w.value) && placed.has(w.value) ? `A layout section holds one ${w.label.toLowerCase()}.` : w.blurb}>
             + {w.label}
           </Button>
         ))}
@@ -415,13 +434,27 @@ function WidgetCard({ widget, path, index, count, targets, here, onMove, onRemov
   );
 }
 
+/** Whether a conditional field applies: every `when` entry holds, a sibling left unset counting as its default. */
+function applies(field: LayoutField, widget: Widget, fields: LayoutField[]): boolean {
+  return Object.entries(field.when ?? {}).every(([sibling, wanted]) => {
+    const have = widget[sibling] ?? fields.find((f) => f.key === sibling)?.default;
+    return have === wanted;
+  });
+}
+
 function WidgetFields({ widget, info, path }: { widget: Widget; info: LayoutWidgetSpec; path: Path }) {
-  const lines = info.fields.filter((f) => f.kind !== "bool" && f.kind !== "choice");
-  const choices = info.fields.filter((f) => f.kind === "choice");
-  const bools = info.fields.filter((f) => f.kind === "bool");
+  const shown = info.fields.filter((f) => applies(f, widget, info.fields));
+  // A choice another field depends on (a video's "where it is") comes first, on its own line: what is drawn below it changes with it.
+  const drivers = new Set(info.fields.flatMap((f) => Object.keys(f.when ?? {})));
+  const driving = shown.filter((f) => drivers.has(f.key));
+  const rest = shown.filter((f) => !drivers.has(f.key));
+  const lines = rest.filter((f) => f.kind !== "bool" && f.kind !== "choice");
+  const choices = rest.filter((f) => f.kind === "choice");
+  const bools = rest.filter((f) => f.kind === "bool");
 
   return (
     <>
+      {driving.map((f) => <FieldInput key={f.key} field={f} path={[...path, f.key]} widgetId={widget.id} />)}
       {lines.map((f) => <FieldInput key={f.key} field={f} path={[...path, f.key]} widgetId={widget.id} />)}
       {choices.length > 0 && (
         <div className="grid gap-x-3 sm:grid-cols-2">
@@ -453,12 +486,41 @@ function FieldInput({ field, path, widgetId }: { field: LayoutField; path: Path;
   switch (field.kind) {
     case "html": return <HtmlInput field={field} path={path} widgetId={widgetId} />;
     case "path": return <ImagePath path={path} label={field.label} />;
+    case "video": return <VideoPath path={path} label={field.label} />;
+    case "youtube": return <Text path={path} label={field.label} placeholder="https://www.youtube.com/watch?v=…" required={field.required} hint="A watch, share or embed link. Nothing is loaded from YouTube until a visitor presses play." />;
+    case "ref": return <RecordPick field={field} path={path} />;
     case "icon": return <IconPick path={path} label={field.label} />;
     case "link": return <Text path={path} label={field.label} placeholder="/contact" required={field.required} />;
     case "choice": return <SettingChoice field={field} path={path} />;
     case "bool": return <Toggle path={path} label={field.label} />;
     default: return <Text path={path} label={field.label} multiline={field.multiline} required={field.required} />;
   }
+}
+
+/** A published form, slider or gallery, chosen by name; the API stores its id. */
+function RecordPick({ field, path }: { field: LayoutField; path: Path }) {
+  const { options } = useLayout();
+  const list = field.record ? RECORD_LISTS[field.record] : null;
+  const records = list ? options[list.key] ?? [] : [];
+
+  if (!list || !records.length) {
+    return (
+      <p className="mb-[18px] rounded border border-dashed border-line-strong bg-surface px-4 py-3 text-13-5 text-muted">
+        There is no published {field.record ?? "record"} yet.{" "}
+        {list && <Link href={list.href} className="font-semibold text-brand-ink underline">Make one</Link>}.
+      </p>
+    );
+  }
+
+  return (
+    <NumberChoice
+      path={path}
+      label={field.label}
+      placeholder="Choose…"
+      options={records.map((r) => ({ value: String(r.id), label: r.name }))}
+      hint={field.single ? "A layout section holds one of these." : undefined}
+    />
+  );
 }
 
 /** The rich-text editor of one text widget: mounted only while its card is open, keyed on the widget and the history epoch. */

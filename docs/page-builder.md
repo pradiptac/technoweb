@@ -160,7 +160,7 @@ already cover.
 **Data** (`data`): `kicker`, `heading`, `lede` as any section, and `rows`,
 each `{id, split, gap, valign, stack_from, reverse_stacked, columns[]}`; a
 column `{surface, pad, align, valign, widgets[]}`; a widget
-`{id, type, show_on?, …its own fields}`. Nine widgets — `heading`, `text`
+`{id, type, show_on?, …its own fields}`. Nine widgets (thirteen since 0.149.0, below) — `heading`, `text`
 (rich), `button`, `image`, `spacer`, `divider`, `icon_box`, `accordion`,
 `list` — and **no nesting**: no widget holds another and a layout has no layout
 widget, so the editor is not a tree editor, the 320px rule stays provable and a
@@ -225,6 +225,56 @@ widget's lists and the widget headings for Heading colour — shows through. The
 first picture loads eagerly only when the section is one of the page's first
 two; widgets do not animate separately, the section's reveal is the only motion.
 
+**Video, form, slider and gallery widgets (0.149.0).** The second widget set,
+declared in `LayoutRules::widgets()` like the first nine, so the console's "Add
+widget" menu, the rules, `normalise()`, the presenter and the limits come from
+the API. They count toward the per-section limits like any widget; no limit
+changed.
+
+- **`video`**: `source` (`youtube`, the default and not stored, or `mp4`),
+  `youtube` (a link, stored as its id through `App\Support\YouTube::id()` —
+  the anchored host check, never `str_contains`), `video_path` (a library file
+  that must be `video/*`), `poster_path` (a library picture), `ratio` (16:9
+  default, 4:3, 1:1, 9:16) and `caption` ≤ 200. The two source fields carry
+  `when: {source: …}` in the descriptor: only the one that applies is required,
+  checked and stored (a stale `youtube` left on a file video is dropped by
+  `normalise()`), and the console draws only that one, with the choosing select
+  first. The website draws the **same facade the shop's gallery uses** —
+  `ProductVideoPlayer`: a YouTube video is a poster and a play button until
+  pressed (nothing is requested from any YouTube host, never `i.ytimg.com`; the
+  `youtube-nocookie.com` frame is mounted on the press), a file is
+  `<video preload="none">` with its cover. A 9:16 frame is held to a phone-sized
+  column. The CSP needs nothing new (`frame-src` already names the nocookie host,
+  `media-src` the asset origins).
+- **`form`, `slider`, `gallery`**: one field each, `form_id`/`slider_id`/
+  `gallery_id`, a descriptor of kind `ref` with its `record`. The record must
+  exist **and be published** — checked with `SectionRules::referenceProblem()`,
+  the function the builder's own `form`/`slider`/`gallery` sections now call
+  too (the sentences are theirs: "Publish the slider first — a page cannot show a
+  draft."), batched to one query a kind for the whole section. Stored as the id,
+  presented as the **current slug** (`slug`, the id is not sent) and drawn by the
+  components those sections use (`FormBlock`, `SliderFor`, `Gallery`), fetched
+  from their own public endpoints in `layout/embed-widgets.tsx`. A record
+  unpublished or deleted later drops its widget on read, and a column, row or
+  section left empty goes with it. Like the builder's own sections, a published
+  but *empty* slider or gallery is not dropped by the presenter; the endpoint's
+  404 makes the component render nothing.
+- **One slider and one gallery to a section** (`single: true` on the field): each
+  carries its own autoplay and Pause control, so a second is a 422 on its own
+  `slider_id`/`gallery_id` ("A layout section holds one slider; use a second
+  layout section for another."). The console disables "+ Slider"/"+ Gallery" once
+  one is placed and offers no Duplicate on them. A form may appear more than once.
+- **Heading levels**: a form's `FormBlock` gets level 3 once an `h2` has come
+  before it in the section and level 2 before that; `LayoutSection` does not
+  count a form as the `h2` (it may draw no headings at all), so a following
+  heading widget is still the section's first.
+- **The pickers** reuse the `forms`, `sliders` and `galleries` lists
+  `GET /admin/pages/builder` already sends; `NumberChoice` and `VideoPath` moved
+  from `section-editors.tsx` into `blocks/editors/shared.tsx` for the layout
+  editor to use. The descriptors' field kinds are now `youtube`, `video` and
+  `ref` beside the seven before, and a field may carry `when`, `record` and
+  `single`.
+
 **The console** (`pages/builder/layout-editor.tsx`): row cards (columns 1–4, and
 from the API's descriptors split, gap, line-up, stack-below, reverse), column
 cards (box, space inside, align, content position) and widget cards, each
@@ -249,7 +299,14 @@ widget, drag across columns. A record's body area may hold a layout
 (`RecordSections` excludes only `hero` and `theme_section`), and the library
 saves, links and delete-guards one unchanged. No preset uses it.
 
-Tests: `tests/Feature/LayoutSectionTest.php` — the stored shape (defaults and
+Tests: `tests/Feature/LayoutSectionTest.php` — (0.149.0: each of the four new
+widgets saves and presents; a lookalike YouTube host, a non-video file, a missing
+file and a missing link are 422s at the widget's own field; an unpublished,
+deleted or absent form, slider or gallery likewise; a second slider or gallery; a
+record unpublished or a file deleted after saving drops the widget on read; a
+field of the other source is not kept. Controls: `YouTube::id()` replaced by
+`str_contains` in `check()` fails the lookalike test, and the status comparison
+removed from `referenceProblem()` fails the draft test.) The stored shape (defaults and
 strays gone), the nested 422 keys, the three limits and the totals, ids, the
 picture check, sanitising on a page save, the live preview and a library save,
 the presenter's drops, a linked library section, `inline_fields` (the head

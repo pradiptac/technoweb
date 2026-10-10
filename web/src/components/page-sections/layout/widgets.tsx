@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { IconCheck } from "@/components/icons-ui";
+import { ProductVideoPlayer } from "@/components/product/product-video";
 import { ArrowLink, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { QuestionAccordion } from "@/components/ui/faq";
@@ -10,6 +11,7 @@ import { blurProps } from "@/lib/blur";
 import { focalStyle } from "@/lib/focal";
 import { cn } from "@/lib/utils";
 import type { LayoutAlign, LayoutWidget } from "@/types/api";
+import { EmbedWidget } from "./embed-widgets";
 
 /**
  * What a widget cannot know about itself, worked out by `LayoutSection` once
@@ -40,6 +42,8 @@ const ALIGN = { inherit: "", start: "text-start", center: "text-center", end: "t
 const JUSTIFY = { inherit: "", start: "justify-start", center: "justify-center", end: "justify-end" } as const;
 const RATIO = { "1:1": "aspect-square", "4:3": "aspect-[4/3]", "3:2": "aspect-[3/2]", "16:9": "aspect-video", "3:4": "aspect-[3/4]" } as const;
 const ROUNDED = { none: "", s: "rounded-md", m: "rounded-xl", l: "rounded-3xl", full: "rounded-full" } as const;
+// A tall video is held to a phone-sized column however wide its own is.
+const VIDEO_RATIO = { "16:9": "aspect-video", "4:3": "aspect-[4/3]", "1:1": "aspect-square", "9:16": "mx-auto aspect-[9/16] max-w-[22rem]" } as const;
 const SPACER = { s: "h-2", m: "h-6", l: "h-12", xl: "h-20" } as const;
 
 /** The classes the section Style's "Show on" uses: the class, never the attribute (preflight's `[hidden]` is `!important`). */
@@ -123,6 +127,34 @@ export function Widget({ widget, plan = FALLBACK_PLAN, columnAlign = "inherit" }
         </figure>
       );
     }
+
+    case "video": {
+      // The site's click-to-play facade and file player (the shop's and the
+      // builder's video section's): nothing is requested from YouTube, and no
+      // `i.ytimg.com` thumbnail, until a press; a file is `preload="none"`
+      // with its cover. A source that no longer parses renders nothing.
+      const mp4 = widget.source === "mp4";
+      if (mp4 ? !widget.video : !widget.youtube) return null;
+
+      return (
+        <figure data-widget="video" className={cn("m-0 min-w-0", gone)}>
+          <div data-frame className={cn("relative w-full overflow-hidden rounded-lg bg-dark", VIDEO_RATIO[widget.ratio ?? "16:9"] ?? VIDEO_RATIO["16:9"])}>
+            <ProductVideoPlayer
+              name={widget.caption || "Video"}
+              video={mp4
+                ? { kind: "file", url: widget.video, poster_url: widget.poster, poster_alt: widget.poster_alt }
+                : { kind: "youtube", youtube_id: widget.youtube, poster_url: widget.poster, poster_alt: widget.poster_alt }}
+            />
+          </div>
+          {widget.caption && <figcaption className={cn("mt-2 text-13-5 leading-snug text-muted", WRAP)}>{widget.caption}</figcaption>}
+        </figure>
+      );
+    }
+
+    case "form":
+    case "slider":
+    case "gallery":
+      return <EmbedWidget widget={widget} plan={plan} hidden={gone} />;
 
     case "spacer":
       return <div data-widget="spacer" aria-hidden className={cn("shrink-0", SPACER[widget.size ?? "m"] ?? SPACER.m, gone)} />;

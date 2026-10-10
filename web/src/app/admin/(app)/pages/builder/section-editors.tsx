@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { CoverField } from "@/components/admin/cover-field";
 import { EditorField } from "@/components/admin/editor-field";
 import { Field, Select } from "@/components/ui/input";
 import {
-  Choice, FilePath, IconPick, ImagePath, NumberInput, Repeater, Row, Text, Toggle, getIn, useBlock, type Path,
+  Choice, FilePath, IconPick, ImagePath, NumberChoice, NumberInput, Repeater, Row, Text, Toggle, VideoPath, getIn, useBlock, type Path,
 } from "../../blocks/editors/shared";
 import type { PageBuilderOptions, PageSectionType } from "@/types/api";
 import { HOME_SECTIONS } from "@/themes/options";
@@ -94,35 +93,6 @@ function Head() {
   );
 }
 
-/**
- * A select over a **number** — columns, and the id of a block, slider,
- * gallery or form. The shared `Choice` reads strings only, and these are
- * stored as integers (`SectionRules::normalise`), so through it a saved
- * "four columns" or a chosen slider would show as the fallback.
- */
-function NumberChoice({ path, label, options, placeholder, hint }: {
-  path: Path;
-  label: string;
-  options: { value: string; label: string }[];
-  /** An empty first option — "Choose…" — for a reference nothing has picked yet. */
-  placeholder?: string;
-  hint?: string;
-}) {
-  const { content, set, err, idPrefix } = useBlock();
-  const value = getIn(content, path);
-  const id = `${idPrefix ?? "b"}-${path.join("-")}`;
-  const current = typeof value === "number" || typeof value === "string" ? String(value) : placeholder !== undefined ? "" : options[0]?.value ?? "";
-
-  return (
-    <Field label={label} htmlFor={id} hint={hint} error={err(path)} variant="float-static">
-      <Select id={id} value={current} onChange={(e) => set(path, e.target.value === "" ? undefined : Number(e.target.value))}>
-        {placeholder !== undefined && <option value="">{placeholder}</option>}
-        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </Select>
-    </Field>
-  );
-}
-
 function Buttons() {
   return (
     <fieldset className="mb-2">
@@ -136,31 +106,6 @@ function Buttons() {
         <Text path={["secondary", "href"]} label="Second button — link" />
       </Row>
     </fieldset>
-  );
-}
-
-const VIDEO_HINT = "An MP4 from the media library. Keep it short and small — it loads when somebody presses play.";
-
-/** A video from the library — the slide repeater's picker, widened to MP4. */
-function VideoPath({ path, label, hint = VIDEO_HINT }: { path: Path; label: string; hint?: string }) {
-  const { content, set, err, media, idPrefix } = useBlock();
-  const value = getIn(content, path);
-  const stored = typeof value === "string" ? value : null;
-  const message = err(path);
-
-  return (
-    <div>
-      <CoverField
-        name={`_media_${idPrefix ?? "b"}-${path.join("-")}`}
-        label={label}
-        accept=".mp4,.webm"
-        hint={hint}
-        defaultPath={stored}
-        defaultUrl={stored ? media[stored] ?? null : null}
-        onPathChange={(p) => set(path, p ?? undefined)}
-      />
-      {message && <p className="-mt-3 mb-4 text-12-5 text-err">{message}</p>}
-    </div>
   );
 }
 

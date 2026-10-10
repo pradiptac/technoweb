@@ -23,6 +23,13 @@ import { chromium } from "playwright";
  * picture widget needs a library file, so the sample builder page covers it
  * (`npm run audit` on `/admin/pages/{id}/preview`).
  *
+ * 0.149.0 adds a third row of one column holding a Video widget (a YouTube
+ * link): the console shows the link field and not the file one, and on the
+ * public page **nothing is requested from a YouTube or Google host and no
+ * iframe exists until the play button is pressed**, after which the
+ * privacy-enhanced frame appears. The form, slider and gallery widgets need
+ * published records, so the API tests cover those.
+ *
  * Carries no credential. Not run by the author of the release: written
  * against the markup, so a locator that has drifted fails here first.
  */
@@ -137,6 +144,19 @@ try {
   // ---- a second row of three ---------------------------------------------------
   await card.getByRole("button", { name: "3 columns", exact: true }).click();
   ok(await card.locator("[data-layout-row-card]").count() === 2, "a second row of three columns is added");
+
+  // ---- a video widget (0.149.0) -------------------------------------------------
+  await card.getByRole("button", { name: "1 column", exact: true }).click();
+  const videoRow = card.locator("[data-layout-row-card]").nth(2);
+  await videoRow.getByRole("button", { name: "+ Video", exact: true }).click();
+  const videoCard = videoRow.locator('[data-layout-widget-card="video"]').first();
+  await videoCard.locator("button[aria-expanded]").first().click();
+  ok(await videoCard.getByLabel("YouTube link").count() === 1 && await videoCard.getByLabel("Video file").count() === 0, "a new video asks for a YouTube link, not a file");
+  await videoCard.getByLabel("Where it is").selectOption("mp4");
+  ok(await videoCard.getByLabel("YouTube link").count() === 0, "choosing a file hides the link field");
+  await videoCard.getByLabel("Where it is").selectOption("youtube");
+  await videoCard.getByLabel("YouTube link").fill("https://www.youtube.com/watch?v=aqz-KE-bpKQ");
+  await videoCard.getByLabel("Caption (optional)").fill("Probe video caption");
   if (SHOTS) await card.screenshot({ path: `${SHOTS}/layout-editor.png` });
 
   await Promise.all([
@@ -196,6 +216,22 @@ try {
       }
       ok([...reached].some((x) => x.startsWith("SUMMARY")) && [...reached].some((x) => x.endsWith(":button")), `Tab reaches the question and the button (${[...reached].join(", ")})`);
     }
+    if (width === 1280) {
+      // Nothing from YouTube or Google until the press; then the privacy-enhanced frame.
+      const hosts = [];
+      const watch = (req) => { if (/(youtube|ytimg|youtu.be|google|gstatic)/i.test(new URL(req.url()).hostname)) hosts.push(new URL(req.url()).hostname); };
+      site.on("request", watch);
+      await site.goto(`${BASE}/${slug}`, { waitUntil: "load", timeout: T });
+      await site.waitForSelector("html[data-aos-ready]", { timeout: T });
+      const video = site.locator('[data-widget="video"]').first();
+      await video.scrollIntoViewIfNeeded();
+      await site.waitForTimeout(1500);
+      ok(await video.locator("iframe").count() === 0 && hosts.length === 0, `the video widget loads nothing from YouTube before a press (${hosts.join(", ") || "no requests"})`);
+      await video.locator("button").first().click();
+      await video.locator('iframe[src*="youtube-nocookie.com"]').waitFor({ timeout: 15000 });
+      ok(true, "pressing play mounts the youtube-nocookie frame");
+      site.off("request", watch);
+    }
     if (SHOTS && (width === 390 || width === 1280)) await site.screenshot({ path: `${SHOTS}/layout-${width}.png`, fullPage: true });
   }
   await site.close();
@@ -205,7 +241,12 @@ try {
   } else if (pageId) {
     // The edit form's own Delete, confirmed in its dialog.
     try {
+      // The builder session left a form draft in this browser; a fresh form deletes cleanly.
+      await page.evaluate(() => { try { localStorage.clear(); } catch { /* none */ } });
       await page.goto(`${BASE}/admin/pages/${pageId}`, { waitUntil: "load", timeout: T });
+      await page.waitForTimeout(2000);
+      // The form's Delete asks through `window.confirm`, which Playwright cancels unless told otherwise.
+      page.on("dialog", (dialog) => dialog.accept().catch(() => {}));
       await page.getByRole("button", { name: /^Delete/ }).first().click();
       const confirm = page.locator("dialog[open] button", { hasText: /^Delete/ }).last();
       if (await confirm.count()) await confirm.click();

@@ -158,6 +158,13 @@ class SampleBuilderPageSeeder extends Seeder
                         ]],
                     ],
                 ],
+                [
+                    // 0.149.0: a video in a column (a facade until pressed), the widget the probe checks requests nothing before a press.
+                    'id' => 'sample03',
+                    'columns' => [
+                        ['widgets' => [['id' => 'sample31', 'type' => 'video', 'youtube' => 'aqz-KE-bpKQ', 'caption' => 'Big Buck Bunny, © Blender Foundation, CC BY 3.0 — a placeholder.']]],
+                    ],
+                ],
             ],
         ]);
     }

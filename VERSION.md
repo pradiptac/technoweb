@@ -21,6 +21,27 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.149.0 — 2026-10-10
+
+**A custom layout can hold a video, a form, a slider and a gallery.**
+
+- **Video.** A YouTube link or a video file from the library, with an optional
+  cover picture, a shape (wide, 4 : 3, square or tall) and a caption. It is the
+  site's own click-to-play: nothing is loaded from YouTube until somebody
+  presses play, and a file loads only when played.
+- **Form, slider and gallery.** Choose one of your published ones; the column
+  draws it exactly as the page sections of the same name do. One slider and one
+  gallery to a layout section, because each carries its own autoplay and Pause
+  control. A record unpublished or deleted later simply disappears from the page.
+- **API**: four more widgets in `LayoutRules` (so the console, the rules and the
+  limits come from the API as before), field kinds `youtube`, `video` and
+  `ref` and a `when` condition on a field; `SectionRules::referenceProblem()` is
+  shared with the builder's own form, slider and gallery sections. The sample
+  builder page gains a video row; `LayoutSectionTest` grows by eight; the probe
+  checks that the video widget requests nothing from YouTube before a press.
+
+---
+
 ## 0.148.0 — 2026-10-10
 
 **Every kind of record remembers its last thirty versions, not just pages.**

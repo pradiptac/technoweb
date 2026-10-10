@@ -172,6 +172,11 @@ export type LayoutWidget = WidgetBase & (
   | { type: "icon_box"; icon?: string; title: string; body?: string; href?: string; link_label?: string; layout?: "stacked" | "inline" }
   | { type: "accordion"; items: { question: string; answer: string }[] }
   | { type: "list"; items: { text: string; icon?: string }[]; marker?: "tick" | "dot" | "number" }
+  | {
+      type: "video"; source?: "youtube" | "mp4"; youtube?: string; video?: string; poster?: string; poster_alt?: string;
+      ratio?: "16:9" | "4:3" | "1:1" | "9:16"; caption?: string;
+    }
+  | { type: "form" | "slider" | "gallery"; slug: string }
 );
 export type LayoutColumn = {
   surface?: "none" | "card" | "raised"; pad?: "none" | "s" | "m"; align?: LayoutAlign; valign?: "top" | "center" | "bottom";
@@ -192,7 +197,7 @@ export type LayoutSectionData = Head & { rows: LayoutRow[] };
  */
 export type LayoutField = {
   key: string;
-  kind: "text" | "html" | "choice" | "bool" | "link" | "path" | "icon";
+  kind: "text" | "html" | "choice" | "bool" | "link" | "path" | "icon" | "youtube" | "video" | "ref";
   label: string;
   max?: number;
   required?: boolean;
@@ -200,6 +205,11 @@ export type LayoutField = {
   hint?: string | null;
   default?: string;
   choices?: { value: string; label: string }[];
+  /** Drawn only while a sibling field holds this value (a missing sibling counts as its `default`). */
+  when?: Record<string, string>;
+  /** A `ref` field: which published record it chooses, and whether a section may hold only one. */
+  record?: "form" | "slider" | "gallery";
+  single?: boolean;
 };
 export type LayoutWidgetSpec = {
   value: string; label: string; blurb: string; fields: LayoutField[];

@@ -2414,6 +2414,8 @@ const lf = {
   link: (key, label, required) => ({ key, kind: 'link', label, max: 2048, required }),
   icon: (key, label) => ({ key, kind: 'icon', label, required: false }),
 };
+/* 0.149.0: the video widget's conditional fields and the record pickers, as LayoutRules sends them. */
+const lrec = (key, label, record, single) => ({ key, kind: 'ref', label, record, required: true, single });
 const LAYOUT_ALIGN = lf.choice('align', 'Align', 'inherit', { inherit: 'Same as the box', start: 'Left', center: 'Centre', end: 'Right' });
 const LAYOUT_OPTIONS = {
   widgets: [
@@ -2442,6 +2444,16 @@ const LAYOUT_OPTIONS = {
     { value: 'list', label: 'List', blurb: 'Up to twelve short points with a tick, a dot or numbers.', fields: [
       lf.choice('marker', 'Marker', 'tick', { tick: 'Tick', dot: 'Dot', number: 'Number' })],
       list: { key: 'items', label: 'Point', min: 1, max: 12, fields: [lf.text('text', 'Words', 160, true), lf.icon('icon', 'Icon (optional)')] } },
+    { value: 'video', label: 'Video', blurb: 'A YouTube link or a video file from the library. Nothing is loaded until somebody presses play.', fields: [
+      lf.choice('source', 'Where it is', 'youtube', { youtube: 'A YouTube link', mp4: 'A video file from the library' }),
+      { key: 'youtube', kind: 'youtube', label: 'YouTube link', max: 255, required: true, when: { source: 'youtube' } },
+      { key: 'video_path', kind: 'video', label: 'Video file', max: 255, required: true, when: { source: 'mp4' } },
+      { key: 'poster_path', kind: 'path', label: 'Cover picture (optional)', max: 255, required: false },
+      lf.choice('ratio', 'Shape', '16:9', { '16:9': 'Wide, 16 : 9', '4:3': '4 : 3', '1:1': 'Square', '9:16': 'Tall, 9 : 16' }),
+      lf.text('caption', 'Caption (optional)', 200)] },
+    { value: 'form', label: 'Form', blurb: 'One of your published forms, drawn in the column.', fields: [lrec('form_id', 'Form', 'form', false)] },
+    { value: 'slider', label: 'Slider', blurb: 'One of your published sliders. A layout section holds one slider.', fields: [lrec('slider_id', 'Slider', 'slider', true)] },
+    { value: 'gallery', label: 'Gallery', blurb: 'One of your published galleries. A layout section holds one gallery.', fields: [lrec('gallery_id', 'Gallery', 'gallery', true)] },
   ],
   row: [
     lf.choice('split', 'Split', 'equal', { equal: 'Equal', wide_first: 'First wider', wide_last: 'Second wider' }, 'Only for a row of two columns.'),
@@ -2532,7 +2544,10 @@ const BUILDER_OPTIONS = {
     { value: 'product_categories', label: 'Product categories (catalogue)' }, { value: 'store_categories', label: 'Shop categories' },
     { value: 'vacancies', label: 'Open vacancies' },
   ],
-  content_blocks: [], sliders: [], galleries: [], forms: [],
+  content_blocks: [],
+  sliders: sliders.filter((s) => s.status === 'published').map(({ id, name, slug }) => ({ id, name, slug })),
+  galleries: galleries.filter((g) => g.status === 'published').map(({ id, name, slug }) => ({ id, name, slug })),
+  forms: forms.filter((f) => f.status === 'published').map(({ id, name, slug }) => ({ id, name, slug })),
   product_categories: productCategories.map(({ id, name, slug }) => ({ id, name, slug })),
   store_categories: storeCategories.map(({ id, name, slug }) => ({ id, name, slug })),
   download_categories: downloadCategories.filter((c) => c.is_active).map(({ id, name, slug }) => ({ id, name, slug })),
@@ -2580,6 +2595,9 @@ const SAMPLE_BUILDER_BLOCKS = [
           { id: 'wid00008', type: 'accordion', items: [{ question: 'Can a column be a box?', answer: 'Yes — a card, or a raised card.' }] },
         ] },
       ] },
+      { id: 'rowaaa03', columns: [
+        { widgets: [{ id: 'wid00009', type: 'video', youtube: 'aqz-KE-bpKQ', caption: 'Big Buck Bunny, © Blender Foundation, CC BY 3.0 — a placeholder.' }] },
+      ] },
     ] } },
   { id: '0f6a3c1e-1111-4a8b-9c2d-000000000010', type: 'rich_text', hidden: true, background: null, data: { heading: 'Hidden', body: '<p>Not drawn.</p>' } },
 ];
@@ -2611,7 +2629,20 @@ function presentSections(blocks) {
     /* A custom layout (0.147.0): a picture's path is a URL, and nothing is drawn empty — the LayoutPresenter's rules. */
     if (b.type === 'layout') {
       const url = (p) => `http://127.0.0.1:8899/storage/${p}`;
+      /* 0.149.0: a form, slider or gallery is its current slug, gone once unpublished; a file video is a URL. */
+      const records = { form: ['form_id', forms], slider: ['slider_id', sliders], gallery: ['gallery_id', galleries] };
       const widget = (w) => {
+        if (records[w.type]) {
+          const [key, list] = records[w.type];
+          const { [key]: id, ...rest } = w;
+          const found = list.find((x) => x.id === id && x.status === 'published');
+          return found ? { ...rest, slug: found.slug } : null;
+        }
+        if (w.type === 'video') {
+          const { video_path, poster_path, ...rest } = w;
+          if (w.source === 'mp4' ? !video_path : !w.youtube) return null;
+          return { ...rest, ...(video_path ? { video: url(video_path) } : {}), ...(poster_path ? { poster: url(poster_path), poster_alt: '' } : {}) };
+        }
         if (w.type !== 'image') return w;
         if (!w.image_path) return null;
         const { image_path, ...rest } = w;

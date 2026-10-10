@@ -2,11 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PublishStatus;
 use App\Enums\Role as RoleEnum;
+use App\Models\Form;
+use App\Models\Gallery;
 use App\Models\Media;
 use App\Models\Page;
 use App\Models\Role;
 use App\Models\SavedSection;
+use App\Models\Slider;
 use App\Models\User;
 use App\Support\MediaMeta;
 use App\Support\PageSections\LayoutRules;
@@ -244,7 +248,7 @@ class LayoutSectionTest extends TestCase
         $this->create([self::section([self::row([self::column([self::widget('divider', ['id' => 'BAD ID'])])])])])
             ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.rows.0.columns.0.widgets.0.id');
 
-        $this->create([self::section([self::row([self::column([self::widget('video', [])])])])])
+        $this->create([self::section([self::row([self::column([self::widget('carousel', [])])])])])
             ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.rows.0.columns.0.widgets.0.type');
     }
 
@@ -316,7 +320,7 @@ class LayoutSectionTest extends TestCase
 
         $this->assertContains('layout', collect($res->json('data.section_types'))->pluck('value')->all());
         $this->assertSame(
-            ['heading', 'text', 'button', 'image', 'spacer', 'divider', 'icon_box', 'accordion', 'list'],
+            ['heading', 'text', 'button', 'image', 'spacer', 'divider', 'icon_box', 'accordion', 'list', 'video', 'form', 'slider', 'gallery'],
             collect($res->json('data.layout.widgets'))->pluck('value')->all(),
         );
         $res->assertJsonPath('data.layout.limits.rows', 8)
@@ -345,7 +349,7 @@ class LayoutSectionTest extends TestCase
     {
         foreach (LayoutRules::widgets() as $type => $spec) {
             foreach ([...$spec['fields'], ...($spec['list']['fields'] ?? [])] as $key => $field) {
-                $this->assertContains($field['kind'], ['text', 'html', 'choice', 'bool', 'link', 'path', 'icon'], "{$type}.{$key}");
+                $this->assertContains($field['kind'], ['text', 'html', 'choice', 'bool', 'link', 'path', 'icon', 'youtube', 'video', 'ref'], "{$type}.{$key}");
             }
         }
     }
@@ -372,5 +376,198 @@ class LayoutSectionTest extends TestCase
 
         $this->actingAs($this->user(), 'sanctum')->patchJson("/api/v1/admin/pages/{$page->id}", ['blocks' => $page->blocks])->assertOk();
         $this->assertEquals($page->blocks, Page::query()->findOrFail($page->id)->blocks);
+    }
+
+    // ------------------------------------------------- video, form, slider, gallery (0.149.0)
+
+    /** @return array{0: Form, 1: Slider, 2: Gallery} */
+    private function records(PublishStatus $status = PublishStatus::Published): array
+    {
+        return [
+            Form::create(['name' => 'Survey', 'slug' => 'survey', 'status' => $status]),
+            Slider::create(['name' => 'Hero', 'slug' => 'hero', 'status' => $status]),
+            Gallery::create(['name' => 'Work', 'slug' => 'work', 'status' => $status]),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function embeds(): array
+    {
+        [$form, $slider, $gallery] = $this->records();
+        $this->media('media/tour.mp4', 'video/mp4');
+        $this->media('media/cover.jpg', 'image/jpeg', 'The tour');
+
+        return self::section([
+            self::row([
+                self::column([
+                    self::widget('video', ['youtube' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'caption' => 'Our team', 'ratio' => '4:3']),
+                    self::widget('video', ['source' => 'mp4', 'video_path' => 'media/tour.mp4', 'poster_path' => 'media/cover.jpg', 'ratio' => '9:16']),
+                ]),
+                self::column([
+                    self::widget('form', ['form_id' => $form->id, 'show_on' => ['desktop']]),
+                    self::widget('slider', ['slider_id' => $slider->id]),
+                    self::widget('gallery', ['gallery_id' => $gallery->id]),
+                ]),
+            ]),
+        ]);
+    }
+
+    public function test_the_video_form_slider_and_gallery_widgets_save_and_present(): void
+    {
+        $created = $this->create([$this->embeds()])->assertCreated();
+        $stored = $created->json('data.blocks.0.data.rows.0.columns');
+
+        // The pasted address is stored as the id; the default source is not stored; a form is its id.
+        $this->assertSame('dQw4w9WgXcQ', $stored[0]['widgets'][0]['youtube']);
+        $this->assertArrayNotHasKey('source', $stored[0]['widgets'][0]);
+        $this->assertSame('4:3', $stored[0]['widgets'][0]['ratio']);
+        $this->assertSame('mp4', $stored[0]['widgets'][1]['source']);
+        $this->assertIsInt($stored[1]['widgets'][0]['form_id']);
+        $this->assertSame(['desktop'], $stored[1]['widgets'][0]['show_on']);
+
+        $columns = $this->getJson('/api/v1/pages/laid-out')->assertOk()->json('data.sections.0.data.rows.0.columns');
+        [$youtube, $file] = $columns[0]['widgets'];
+        $this->assertSame('dQw4w9WgXcQ', $youtube['youtube']);
+        $this->assertArrayNotHasKey('video', $youtube);
+        $this->assertSame(asset('storage/media/tour.mp4'), $file['video']);
+        $this->assertSame(asset('storage/media/cover.jpg'), $file['poster']);
+        $this->assertSame('The tour', $file['poster_alt']);
+        $this->assertArrayNotHasKey('video_path', $file);
+        $this->assertArrayNotHasKey('poster_path', $file);
+
+        $this->assertSame(['survey', 'hero', 'work'], array_map(fn ($w) => $w['slug'], $columns[1]['widgets']));
+        $this->assertArrayNotHasKey('form_id', $columns[1]['widgets'][0]);
+        $this->assertSame(['desktop'], $columns[1]['widgets'][0]['show_on']);
+    }
+
+    public function test_a_field_that_belongs_to_the_other_source_is_not_kept(): void
+    {
+        $this->media('media/tour.mp4', 'video/mp4');
+        $block = self::section([self::row([self::column([
+            self::widget('video', ['source' => 'mp4', 'video_path' => 'media/tour.mp4', 'youtube' => 'not even a link']),
+            self::widget('video', ['youtube' => 'dQw4w9WgXcQ', 'video_path' => 'media/missing.mp4']),
+        ])])]);
+
+        $widgets = $this->create([$block])->assertCreated()->json('data.blocks.0.data.rows.0.columns.0.widgets');
+        $this->assertArrayNotHasKey('youtube', $widgets[0]);
+        $this->assertArrayNotHasKey('video_path', $widgets[1]);
+    }
+
+    public function test_bad_video_sources_are_refused_at_the_widgets_own_field(): void
+    {
+        $this->media('media/brochure.pdf', 'application/pdf');
+        $block = self::section([self::row([self::column([
+            self::widget('video', ['youtube' => 'https://www.youtube.com.attacker.test/watch?v=dQw4w9WgXcQ']),
+            self::widget('video', ['source' => 'mp4', 'video_path' => 'media/brochure.pdf']),
+            self::widget('video', ['source' => 'mp4', 'video_path' => 'media/absent.mp4']),
+            self::widget('video', ['youtube' => 'dQw4w9WgXcQ', 'poster_path' => 'media/brochure.pdf']),
+            self::widget('video', []),
+            self::widget('video', ['source' => 'mp4']),
+        ])])]);
+
+        $errors = $this->create([$block])->assertStatus(422)->json('errors');
+        $at = 'blocks.0.data.rows.0.columns.0.widgets';
+
+        $this->assertSame(['That is not a YouTube link this site can play.'], $errors["{$at}.0.youtube"]);
+        $this->assertSame(['That file is not a video.'], $errors["{$at}.1.video_path"]);
+        $this->assertSame(['Choose a video from the media library.'], $errors["{$at}.2.video_path"]);
+        $this->assertSame(['Choose a picture from the media library.'], $errors["{$at}.3.poster_path"]);
+        $this->assertSame(['Paste the YouTube link.'], $errors["{$at}.4.youtube"]);
+        $this->assertSame(['Choose a video from the media library.'], $errors["{$at}.5.video_path"]);
+    }
+
+    public function test_a_form_slider_or_gallery_must_exist_and_be_published(): void
+    {
+        $this->records(PublishStatus::Draft);
+        $form = Form::query()->firstOrFail();
+        $slider = Slider::query()->firstOrFail();
+        $gallery = Gallery::query()->firstOrFail();
+
+        $block = self::section([self::row([self::column([
+            self::widget('form', ['form_id' => $form->id]),
+            self::widget('slider', ['slider_id' => $slider->id]),
+            self::widget('gallery', ['gallery_id' => $gallery->id]),
+            self::widget('form', ['form_id' => 99999]),
+            self::widget('form', []),
+        ])])]);
+
+        $errors = $this->create([$block])->assertStatus(422)->json('errors');
+        $at = 'blocks.0.data.rows.0.columns.0.widgets';
+
+        $this->assertSame(['Publish the form first — a page cannot show a draft.'], $errors["{$at}.0.form_id"]);
+        $this->assertSame(['Publish the slider first — a page cannot show a draft.'], $errors["{$at}.1.slider_id"]);
+        $this->assertSame(['Publish the gallery first — a page cannot show a draft.'], $errors["{$at}.2.gallery_id"]);
+        $this->assertSame(['That form no longer exists.'], $errors["{$at}.3.form_id"]);
+        $this->assertSame(['Choose the form.'], $errors["{$at}.4.form_id"]);
+    }
+
+    public function test_a_layout_holds_one_slider_and_one_gallery(): void
+    {
+        [$form, $slider, $gallery] = $this->records();
+        $other = Slider::create(['name' => 'Second', 'slug' => 'second', 'status' => PublishStatus::Published]);
+
+        $block = self::section([
+            self::row([self::column([self::widget('slider', ['slider_id' => $slider->id])])]),
+            self::row([self::column([
+                self::widget('slider', ['slider_id' => $other->id]),
+                self::widget('gallery', ['gallery_id' => $gallery->id]),
+                self::widget('gallery', ['gallery_id' => $gallery->id]),
+                self::widget('form', ['form_id' => $form->id]),
+                self::widget('form', ['form_id' => $form->id]),
+            ])]),
+        ]);
+
+        $errors = $this->create([$block])->assertStatus(422)->json('errors');
+
+        $this->assertSame(['A layout section holds one slider; use a second layout section for another.'], $errors['blocks.0.data.rows.1.columns.0.widgets.0.slider_id']);
+        $this->assertSame(['A layout section holds one gallery; use a second layout section for another.'], $errors['blocks.0.data.rows.1.columns.0.widgets.2.gallery_id']);
+        // The first of each is fine, and a form may be drawn twice.
+        $this->assertArrayNotHasKey('blocks.0.data.rows.0.columns.0.widgets.0.slider_id', $errors);
+        $this->assertArrayNotHasKey('blocks.0.data.rows.1.columns.0.widgets.1.gallery_id', $errors);
+        $this->assertArrayNotHasKey('blocks.0.data.rows.1.columns.0.widgets.3.form_id', $errors);
+        $this->assertArrayNotHasKey('blocks.0.data.rows.1.columns.0.widgets.4.form_id', $errors);
+    }
+
+    public function test_a_record_unpublished_or_deleted_after_saving_drops_its_widget_on_read(): void
+    {
+        $this->create([$this->embeds()])->assertCreated();
+
+        Slider::query()->firstOrFail()->update(['status' => PublishStatus::Draft]);
+        Gallery::query()->firstOrFail()->delete();
+
+        $widgets = $this->getJson('/api/v1/pages/laid-out')->assertOk()->json('data.sections.0.data.rows.0.columns.1.widgets');
+        $this->assertSame(['form'], array_column($widgets, 'type'));
+
+        // A library file leaving: the file video goes, the YouTube one stays.
+        Media::query()->where('path', 'media/tour.mp4')->forceDelete();
+        MediaMeta::forget();
+        $left = $this->getJson('/api/v1/pages/laid-out')->assertOk()->json('data.sections.0.data.rows.0.columns.0.widgets');
+        $this->assertSame(['dQw4w9WgXcQ'], array_column($left, 'youtube'));
+
+        // The form follows: the right-hand column has nothing left and goes.
+        Form::query()->firstOrFail()->update(['status' => PublishStatus::Draft]);
+        $this->assertCount(1, $this->getJson('/api/v1/pages/laid-out')->json('data.sections.0.data.rows.0.columns'));
+    }
+
+    public function test_the_new_widgets_survive_a_second_save(): void
+    {
+        $created = $this->create([$this->embeds()])->assertCreated();
+        $page = Page::query()->findOrFail($created->json('data.id'));
+
+        $this->actingAs($this->user(), 'sanctum')->patchJson("/api/v1/admin/pages/{$page->id}", ['blocks' => $page->blocks])->assertOk();
+        $this->assertEquals($page->blocks, Page::query()->findOrFail($page->id)->blocks);
+    }
+
+    public function test_the_builder_options_describe_the_new_widgets(): void
+    {
+        $widgets = collect($this->actingAs($this->user(), 'sanctum')->getJson('/api/v1/admin/pages/builder')->assertOk()->json('data.layout.widgets'));
+
+        $video = collect($widgets->firstWhere('value', 'video')['fields'])->keyBy('key');
+        $this->assertSame(['source' => 'mp4'], $video['video_path']['when']);
+        $this->assertSame('youtube', $video['source']['default']);
+        $this->assertSame('ref', $widgets->firstWhere('value', 'slider')['fields'][0]['kind']);
+        $this->assertSame('slider', $widgets->firstWhere('value', 'slider')['fields'][0]['record']);
+        $this->assertTrue($widgets->firstWhere('value', 'gallery')['fields'][0]['single']);
+        $this->assertFalse($widgets->firstWhere('value', 'form')['fields'][0]['single']);
     }
 }

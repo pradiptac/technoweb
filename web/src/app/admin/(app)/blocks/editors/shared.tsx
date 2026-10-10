@@ -76,6 +76,13 @@ type Ctx = {
    * again on the new words.
    */
   epoch?: number;
+  /**
+   * `set` as an undo step of its own, never merged with typing in the same
+   * second. The page builder's layout editor moves, adds and removes widgets
+   * and rows through it: merged, an Undo right after a move also took back
+   * the words typed just before it. Absent, callers use `set`.
+   */
+  setStep?: (path: Path, value: Json | undefined) => void;
 };
 
 const BlockCtx = createContext<Ctx | null>(null);
@@ -217,6 +224,60 @@ export function FilePath({ path, label, hint, accept = ".pdf", noun = "a PDF" }:
       {hint && <p className="mt-1.5 text-12-5 text-faint">{hint}</p>}
       {message && <p className="mt-1.5 text-12-5 text-err">{message}</p>}
       <MediaBrowser open={open} onClose={() => setOpen(false)} kind="file" title={`Choose ${noun}`} accept={accept} onPick={(f) => { set(path, f.path); setOpen(false); }} />
+    </div>
+  );
+}
+
+/**
+ * A select over a **number** — columns, and the id of a block, slider,
+ * gallery or form. The shared `Choice` reads strings only, and these are
+ * stored as integers (`SectionRules::normalise`), so through it a saved
+ * "four columns" or a chosen slider would show as the fallback.
+ */
+export function NumberChoice({ path, label, options, placeholder, hint }: {
+  path: Path;
+  label: string;
+  options: { value: string; label: string }[];
+  /** An empty first option — "Choose…" — for a reference nothing has picked yet. */
+  placeholder?: string;
+  hint?: string;
+}) {
+  const { content, set, err, idPrefix } = useBlock();
+  const value = getIn(content, path);
+  const id = `${idPrefix ?? "b"}-${path.join("-")}`;
+  const current = typeof value === "number" || typeof value === "string" ? String(value) : placeholder !== undefined ? "" : options[0]?.value ?? "";
+
+  return (
+    <Field label={label} htmlFor={id} hint={hint} error={err(path)} variant="float-static">
+      <Select id={id} value={current} onChange={(e) => set(path, e.target.value === "" ? undefined : Number(e.target.value))}>
+        {placeholder !== undefined && <option value="">{placeholder}</option>}
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </Select>
+    </Field>
+  );
+}
+
+const VIDEO_HINT = "An MP4 from the media library. Keep it short and small — it loads when somebody presses play.";
+
+/** A video from the library — the slide repeater's picker, widened to MP4. */
+export function VideoPath({ path, label, hint = VIDEO_HINT }: { path: Path; label: string; hint?: string }) {
+  const { content, set, err, media, idPrefix } = useBlock();
+  const value = getIn(content, path);
+  const stored = typeof value === "string" ? value : null;
+  const message = err(path);
+
+  return (
+    <div>
+      <CoverField
+        name={`_media_${idPrefix ?? "b"}-${path.join("-")}`}
+        label={label}
+        accept=".mp4,.webm"
+        hint={hint}
+        defaultPath={stored}
+        defaultUrl={stored ? media[stored] ?? null : null}
+        onPathChange={(p) => set(path, p ?? undefined)}
+      />
+      {message && <p className="-mt-3 mb-4 text-12-5 text-err">{message}</p>}
     </div>
   );
 }

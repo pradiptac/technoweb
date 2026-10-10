@@ -273,6 +273,13 @@ layout**. It is a section made of **rows**; each row has one to four
 - **Heading**, **Text** (the same editor as a page body, with shortcodes),
   **Button**, **Picture** (from the media library), **Space**, **Rule**,
   **Icon box**, **Questions that open** and **List**.
+- **Video** — a YouTube link or a video file from the media library, with an
+  optional cover picture, a shape and a caption. Nothing is loaded from YouTube
+  until a visitor presses play.
+- **Form**, **Slider** and **Gallery** — pick one of your published ones from
+  the list. A layout section holds one slider and one gallery (each has its own
+  Pause button); a form can be used more than once. If you unpublish or delete
+  the one a widget uses, the widget leaves the page by itself.
 
 How to use it:
 

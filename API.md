@@ -1486,7 +1486,13 @@ columns}`, each of 1–4 columns `{surface?, pad?, align?, valign?, widgets}`, e
 of at most 8 widgets `{id, type, show_on?, …}` of type `heading` (`text`, `size`,
 `align`), `text` (`html`, rich, ≤ 20,000, `lead`), `button` (`label`, `href`,
 `variant`, `align`), `image` (`image_path`, `ratio`, `rounded`, `href`, `caption`),
-`spacer` (`size`), `divider` (`short`), `icon_box` (`icon`, `title`, `body`, `href`,
+`spacer` (`size`), `divider` (`short`), `video` (0.149.0: `source` of `youtube`
+or `mp4`, `youtube` stored as the 11-character id, `video_path` a library
+`video/*`, `poster_path`, `ratio` 16:9/4:3/1:1/9:16, `caption`; only the field
+that applies to the source is required or stored), `form` (`form_id`), `slider`
+(`slider_id`) and `gallery` (`gallery_id`) — each of the three a published
+record, refused on the widget's own id field if it is missing or a draft, and at
+most one slider and one gallery to a section — `icon_box` (`icon`, `title`, `body`, `href`,
 `link_label`, `layout`), `accordion` (`items` 1–12 `{question, answer}`) and `list`
 (`items` 1–12 `{text, icon?}`, `marker`). Ids (rows and widgets) match
 `^[a-z0-9]{6,12}$` and are unique within the section. No widget holds another.
@@ -1494,14 +1500,19 @@ A 422 is keyed at the nested path, `blocks.0.data.rows.1.columns.0.widgets.2.hre
 Refused: more than 8 rows, 4 columns or 8 widgets in a column (on the list's own
 key), more than 40 widgets or 150,000 characters (on `rows`), a split on other
 than two columns (on `rows.N.split`), a repeated id, a picture that is not an
-image in the library (on `…image_path`). Defaults are never stored and a key the
+image in the library (on `…image_path`; a video widget's file must be a video and
+its link a YouTube one, on `…video_path` and `…youtube`). Defaults are never stored and a key the
 widget's type does not declare is dropped. Rules are generated per index over the
 first 8 rows, 4 columns, 8 widgets and 12 items only. `GET /admin/pages/builder`
 adds `layout`: `{widgets: [{value, label, blurb, fields[], list?}], row[],
 column[], limits}`, each field `{key, kind, label, max?, required?, multiline?,
-hint?, default?, choices?}` — the whole table the validation is read from. On the
+hint?, default?, choices?, when?, record?, single?}` (`kind` also `youtube`,
+`video` and `ref`) — the whole table the validation is read from. On the
 public read the section's `rows` carry a picture as `image`/`image_alt`/
-`image_focus`/`image_blur`; a widget with a missing picture, an empty widget,
+`image_focus`/`image_blur`; a video widget carries `youtube` (the id) or `video`
+(a URL), and `poster`/`poster_alt` when it has a cover; a form, slider or gallery
+widget carries `slug` and not its id; a widget with a missing picture or video,
+a record no longer published, an empty widget,
 column, row or section is dropped. Its `inline_fields` are the head's only.
 
 **The admin detail read** carries `blocks` as stored, `blocks_media` (a URL

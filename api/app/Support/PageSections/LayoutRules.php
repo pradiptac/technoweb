@@ -2,8 +2,13 @@
 
 namespace App\Support\PageSections;
 
+use App\Models\Form;
+use App\Models\Gallery;
 use App\Models\Media;
+use App\Models\Slider;
 use App\Support\Blocks\BlockRules;
+use App\Support\YouTube;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -190,7 +195,78 @@ final class LayoutRules
                     ],
                 ],
             ],
+            'video' => [
+                'label' => 'Video',
+                'blurb' => 'A YouTube link or a video file from the library. Nothing is loaded until somebody presses play.',
+                'fields' => [
+                    'source' => self::choice('Where it is', 'youtube', ['youtube' => 'A YouTube link', 'mp4' => 'A video file from the library']),
+                    'youtube' => ['kind' => 'youtube', 'label' => 'YouTube link', 'max' => 255, 'required' => true, 'when' => ['source' => 'youtube']],
+                    'video_path' => ['kind' => 'video', 'label' => 'Video file', 'max' => 255, 'required' => true, 'when' => ['source' => 'mp4']],
+                    'poster_path' => ['kind' => 'path', 'label' => 'Cover picture (optional)', 'max' => 255, 'required' => false],
+                    'ratio' => self::choice('Shape', '16:9', ['16:9' => 'Wide, 16 : 9', '4:3' => '4 : 3', '1:1' => 'Square', '9:16' => 'Tall, 9 : 16']),
+                    'caption' => self::text('Caption (optional)', 200),
+                ],
+            ],
+            'form' => [
+                'label' => 'Form',
+                'blurb' => 'One of your published forms, drawn in the column.',
+                'fields' => [
+                    'form_id' => self::record('Form', 'form'),
+                ],
+            ],
+            'slider' => [
+                'label' => 'Slider',
+                'blurb' => 'One of your published sliders. A layout section holds one slider.',
+                'fields' => [
+                    'slider_id' => self::record('Slider', 'slider', true),
+                ],
+            ],
+            'gallery' => [
+                'label' => 'Gallery',
+                'blurb' => 'One of your published galleries. A layout section holds one gallery.',
+                'fields' => [
+                    'gallery_id' => self::record('Gallery', 'gallery', true),
+                ],
+            ],
         ]);
+    }
+
+    /**
+     * A published form, slider or gallery, by id. `single` is for the two that
+     * carry their own autoplay and Pause control: one of each to a section.
+     *
+     * @return array<string, mixed>
+     */
+    private static function record(string $label, string $record, bool $single = false): array
+    {
+        return ['kind' => 'ref', 'label' => $label, 'record' => $record, 'required' => true, 'single' => $single];
+    }
+
+    /** The model behind each `ref` field. @return array<string, class-string<Model>> */
+    private static function models(): array
+    {
+        return ['form' => Form::class, 'slider' => Slider::class, 'gallery' => Gallery::class];
+    }
+
+    /**
+     * Whether a conditional field applies to this widget: every `when` entry
+     * names a sibling field and the value it must hold, a sibling left at its
+     * default counting as holding it.
+     *
+     * @param  array<string, mixed>  $field
+     * @param  array<string, mixed>  $values  the widget as sent or stored
+     * @param  array<string, array<string, mixed>>  $fields  the widget's field table
+     */
+    private static function applies(array $field, array $values, array $fields): bool
+    {
+        foreach ((array) ($field['when'] ?? []) as $sibling => $wanted) {
+            $have = $values[$sibling] ?? ($fields[$sibling]['default'] ?? null);
+            if (! is_string($have) || $have !== $wanted) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /** @return array<string, mixed> */
@@ -263,14 +339,17 @@ final class LayoutRules
     // ---------------------------------------------------------------- rules
 
     /** The rules a field's kind implies. @param  array<string, mixed>  $field @return list<mixed> */
-    private static function fieldRule(array $field): array
+    private static function fieldRule(array $field, bool $applies = true): array
     {
-        $presence = ($field['required'] ?? false) ? 'required' : 'nullable';
+        // A conditional field that does not apply (a file link on a YouTube
+        // video) is not required, and is not stored either.
+        $presence = ($field['required'] ?? false) && $applies ? 'required' : 'nullable';
 
         return match ($field['kind']) {
             'text', 'html' => [$presence, 'string', 'max:'.$field['max']],
             'link' => [$presence, 'string', 'max:'.$field['max'], BlockRules::LINK],
-            'path' => [$presence, 'string', 'max:'.$field['max']],
+            'path', 'video', 'youtube' => [$presence, 'string', 'max:'.$field['max']],
+            'ref' => [$presence, 'integer'],
             'icon' => ['nullable', 'string', 'regex:'.SectionRules::ICON_PATTERN],
             'choice' => ['nullable', Rule::in(array_map('strval', array_keys($field['choices'])))],
             'bool' => ['nullable', 'boolean'],
@@ -346,7 +425,7 @@ final class LayoutRules
         }
 
         foreach ($spec['fields'] as $key => $field) {
-            $rules["{$wp}.{$key}"] = self::fieldRule($field);
+            $rules["{$wp}.{$key}"] = self::fieldRule($field, self::applies($field, $widget, $spec['fields']));
         }
 
         if (isset($spec['list'])) {
@@ -423,6 +502,14 @@ final class LayoutRules
             "{$w}.href.regex" => 'A link is a path, an https:// address, mailto: or tel:.',
             "{$w}.image_path.required" => 'Choose a picture for this image.',
             "{$w}.title.required" => 'Give the box a title.',
+            "{$w}.youtube.required" => 'Paste the YouTube link.',
+            "{$w}.video_path.required" => 'Choose a video from the media library.',
+            "{$w}.form_id.required" => 'Choose the form.',
+            "{$w}.form_id.integer" => 'Choose the form.',
+            "{$w}.slider_id.required" => 'Choose the slider.',
+            "{$w}.slider_id.integer" => 'Choose the slider.',
+            "{$w}.gallery_id.required" => 'Choose the gallery.',
+            "{$w}.gallery_id.integer" => 'Choose the gallery.',
             "{$w}.items.required" => 'Add at least one item.',
             "{$w}.items.min" => 'Add at least one item.',
             "{$w}.items.max" => 'Keep to '.self::MAX_ITEMS.' items.',
@@ -459,6 +546,8 @@ final class LayoutRules
         $widgets = 0;
         $chars = 0;
         $pictures = [];
+        $records = [];
+        $singles = [];
         $unique = function (mixed $id, string $key) use ($validator, &$ids) {
             if (! is_string($id) || $id === '') {
                 return;
@@ -504,8 +593,42 @@ final class LayoutRules
                     $unique($widget['id'] ?? null, "{$wp}.id");
                     $chars += self::characters(array_diff_key($widget, ['id' => 1, 'type' => 1]));
 
-                    if (($widget['type'] ?? null) === 'image' && is_string($widget['image_path'] ?? null) && $widget['image_path'] !== '') {
-                        $pictures[$widget['image_path']][] = "{$wp}.image_path";
+                    $spec = self::widgets()[(string) ($widget['type'] ?? '')] ?? null;
+                    foreach ($spec['fields'] ?? [] as $key => $field) {
+                        $value = $widget[$key] ?? null;
+                        if ($value === null || $value === '' || ! self::applies($field, $widget, $spec['fields'])) {
+                            continue;
+                        }
+                        $at2 = "{$wp}.{$key}";
+
+                        switch ($field['kind']) {
+                            case 'path':
+                                if (is_string($value)) {
+                                    $pictures[$value][] = [$at2, 'image/'];
+                                }
+                                break;
+                            case 'video':
+                                if (is_string($value)) {
+                                    $pictures[$value][] = [$at2, 'video/'];
+                                }
+                                break;
+                            case 'youtube':
+                                if (is_string($value) && YouTube::id($value) === null) {
+                                    $validator->errors()->add($at2, 'That is not a YouTube link this site can play.');
+                                }
+                                break;
+                            case 'ref':
+                                if (! is_numeric($value)) {
+                                    break;
+                                }
+                                $kind = (string) $field['record'];
+                                $singles[$kind] = ($singles[$kind] ?? 0) + ($field['single'] ?? false ? 1 : 0);
+                                if (($field['single'] ?? false) && $singles[$kind] > 1) {
+                                    $validator->errors()->add($at2, "A layout section holds one {$kind}; use a second layout section for another.");
+                                }
+                                $records[$kind][(int) $value][] = $at2;
+                                break;
+                        }
                     }
                 }
             }
@@ -520,11 +643,29 @@ final class LayoutRules
 
         if ($pictures !== []) {
             $found = Media::query()->whereIn('path', array_keys($pictures))->pluck('mime', 'path');
-            foreach ($pictures as $path => $keys) {
-                if (! $found->has($path) || ! str_starts_with((string) $found->get($path), 'image/')) {
-                    foreach ($keys as $key) {
-                        $validator->errors()->add($key, 'Choose a picture from the media library.');
+            foreach ($pictures as $path => $wanted) {
+                foreach ($wanted as [$key, $prefix]) {
+                    if ($found->has($path) && str_starts_with((string) $found->get($path), $prefix)) {
+                        continue;
                     }
+                    $validator->errors()->add($key, $prefix === 'video/'
+                        ? ($found->has($path) ? 'That file is not a video.' : 'Choose a video from the media library.')
+                        : 'Choose a picture from the media library.');
+                }
+            }
+        }
+
+        // One query a kind for the whole section, judged by the builder's own
+        // form, slider and gallery sections' rule.
+        foreach ($records as $kind => $ids) {
+            $found = self::models()[$kind]::query()->whereIn('id', array_keys($ids))->get()->keyBy('id');
+            foreach ($ids as $id => $keys) {
+                $problem = SectionRules::referenceProblem($found->get($id), $kind);
+                if ($problem === null) {
+                    continue;
+                }
+                foreach ($keys as $key) {
+                    $validator->errors()->add($key, $problem);
                 }
             }
         }
@@ -634,6 +775,13 @@ final class LayoutRules
 
         $out = ['id' => (string) ($widget['id'] ?? ''), 'type' => $type, ...self::kept($widget, $spec['fields'])];
 
+        // A field that only applies to one choice (a YouTube link on a file video) is not kept for another.
+        foreach ($spec['fields'] as $key => $field) {
+            if (isset($field['when']) && ! self::applies($field, $widget, $spec['fields'])) {
+                unset($out[$key]);
+            }
+        }
+
         if (is_array($widget['show_on'] ?? null)) {
             $devices = array_values(array_intersect(SectionRules::DEVICES, $widget['show_on']));
             if ($devices !== [] && count($devices) < count(SectionRules::DEVICES)) {
@@ -673,6 +821,17 @@ final class LayoutRules
                 case 'bool':
                     if (filter_var($value, FILTER_VALIDATE_BOOLEAN)) {
                         $out[$key] = true;
+                    }
+                    break;
+                case 'ref':
+                    if (is_numeric($value) && (int) $value > 0) {
+                        $out[$key] = (int) $value;
+                    }
+                    break;
+                case 'youtube':
+                    // The id, never the pasted address.
+                    if (is_string($value) && ($id = YouTube::id($value)) !== null) {
+                        $out[$key] = $id;
                     }
                     break;
                 case 'choice':

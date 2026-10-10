@@ -348,6 +348,11 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
     (id: string, change: (s: StoredSection) => StoredSection) => apply((prev) => prev.map((s) => (s.id === id ? change(s) : s)), `patch:${id}`),
     [apply],
   );
+  // A structural change inside a section (the layout editor's moves): its own step.
+  const patchStep = useCallback(
+    (id: string, change: (s: StoredSection) => StoredSection) => apply((prev) => prev.map((s) => (s.id === id ? change(s) : s))),
+    [apply],
+  );
 
   /*
    * Words edited on the page (0.128.0, docs/page-builder.md "Edit on the
@@ -538,6 +543,7 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
             onHide={() => toggleHidden(i)}
             onRemove={() => remove(i)}
             patch={patch}
+            patchStep={patchStep}
             epoch={epoch}
             onAssistant={(data) => replaceData(section.id, data)}
             onUndo={undo}
@@ -673,7 +679,7 @@ function SaveToLibrary({ saving, label, onClose, onSave }: {
 }
 
 function SectionCard({
-  section, index, count, label, expanded, errors, options, media, onToggle, onMove, onDuplicate, onHide, onRemove, patch,
+  section, index, count, label, expanded, errors, options, media, onToggle, onMove, onDuplicate, onHide, onRemove, patch, patchStep,
   dragging, dropBefore, dropAfter, onDragStart, onDragOverHalf, onDrop, onCopy, linkedName, onSaveToLibrary, onDetach,
   epoch, onAssistant, onUndo,
 }: {
@@ -704,6 +710,7 @@ function SectionCard({
   onHide: () => void;
   onRemove: () => void;
   patch: (id: string, change: (s: StoredSection) => StoredSection) => void;
+  patchStep: (id: string, change: (s: StoredSection) => StoredSection) => void;
 }) {
   const prefix = `blocks.${index}`;
   const mine = Object.entries(errors).filter(([k]) => k === prefix || k.startsWith(`${prefix}.`));
@@ -720,14 +727,18 @@ function SectionCard({
     (path: Path, value: Json | undefined) => patch(section.id, (s) => ({ ...s, data: setIn(s.data as Obj, path, value) as Obj })),
     [patch, section.id],
   );
+  const setStep = useCallback(
+    (path: Path, value: Json | undefined) => patchStep(section.id, (s) => ({ ...s, data: setIn(s.data as Obj, path, value) as Obj })),
+    [patchStep, section.id],
+  );
   const err = useCallback((path: Path) => errors[`${prefix}.data.${path.join(".")}`]?.[0], [errors, prefix]);
   const anyErr = useCallback((path: Path) => {
     const at = `${prefix}.data.${path.join(".")}`;
     return Object.keys(errors).some((k) => k === at || k.startsWith(`${at}.`));
   }, [errors, prefix]);
   const ctx = useMemo(
-    () => ({ content: section.data as Obj, set, err, anyErr, media, brands: [], idPrefix, epoch }),
-    [section.data, set, err, anyErr, media, idPrefix, epoch],
+    () => ({ content: section.data as Obj, set, setStep, err, anyErr, media, brands: [], idPrefix, epoch }),
+    [section.data, set, setStep, err, anyErr, media, idPrefix, epoch],
   );
   const assistant = !linked && options.ai_section?.types.includes(section.type) ? options.ai_section : null;
 

@@ -836,6 +836,22 @@ final class SectionRules
     /** The theme section that is the page's title: its hero. */
     public const THEME_HERO = 'hero';
 
+    /**
+     * Why a record a section points at cannot be shown, or null when it can:
+     * it has gone, or it is not published. One definition, shared with the
+     * layout section's form, slider and gallery widgets (`LayoutRules`).
+     */
+    public static function referenceProblem(?Model $record, string $noun): ?string
+    {
+        if (! $record) {
+            return "That {$noun} no longer exists.";
+        }
+
+        return $record->getAttribute('status') !== PublishStatus::Published
+            ? "Publish the {$noun} first — a page cannot show a draft."
+            : null;
+    }
+
     /** @param  array<string, mixed>  $data */
     private static function checkData(Validator $validator, PageSectionType $type, array $data, string $at): void
     {
@@ -858,11 +874,9 @@ final class SectionRules
                 return;
             }
             /** @var class-string<Model> $model */
-            $record = $model::query()->find((int) $id);
-            if (! $record) {
-                $validator->errors()->add("{$at}.{$key}", "That {$noun} no longer exists.");
-            } elseif ($record->getAttribute('status') !== PublishStatus::Published) {
-                $validator->errors()->add("{$at}.{$key}", "Publish the {$noun} first — a page cannot show a draft.");
+            $problem = self::referenceProblem($model::query()->find((int) $id), $noun);
+            if ($problem !== null) {
+                $validator->errors()->add("{$at}.{$key}", $problem);
             }
         };
 
