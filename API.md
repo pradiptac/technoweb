@@ -1504,6 +1504,25 @@ widgets and 150,000 characters. Errors are keyed at the nested path
 a slot with nothing left in it is dropped, and a container with no slot left.
 `GET /admin/pages/builder`'s `layout.widgets[]` gains `container: {key, label,
 min, max, fields[], child_types[]}` for these four.
+**`custom_code` — "Custom code" (0.158.0)** stores `{label, html, height?,
+mode?}`: `label` required, <= 80; `html` required, <= 50,000 characters, **stored
+and sent exactly as pasted** — it is in no sanitiser path, so a `<script>`
+survives the round trip; `height` one of `auto` (default), `s`, `m`, `l`;
+`mode` `frame` (default) or `page`. Defaults are not stored. A 422 is keyed
+`blocks.N.data.label` / `.html` / `.height` / `.mode`. **`mode: "page"` — the
+code running on the page itself, not in a sandboxed frame — is accepted only
+from an administrator**: anybody else gets a 422 on `blocks.N.data.mode`
+("Only an administrator can let code run on the page itself.") unless the
+block is already stored with the same id, code and mode, which is how a content
+manager re-saves a page holding an administrator's. The same check runs on a
+page's, a library item's and every record's `blocks` (`POST|PATCH
+/admin/pages`, `/admin/saved-sections` and the records of "Sections in a
+record's body area"); `POST /admin/pages/preview` does not call it, since
+nothing is stored. A save that adds or changes a custom code block is written
+to the activity log with `context.custom_code: true`, an edit of a page being
+otherwise unlogged. `GET /admin/pages/builder` adds `custom_code: {page_mode}`
+— whether the signed-in account may choose page mode. The public read sends the
+section as `{label, html, height?, mode?}`, the `html` raw.
 
 **`layout` — "Custom layout" (0.147.0)** stores `{kicker?, heading?, lede?,
 rows}`: 1–8 rows `{id, split?, gap?, valign?, stack_from?, reverse_stacked?,

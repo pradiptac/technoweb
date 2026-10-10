@@ -2386,6 +2386,7 @@ const SECTION_TYPES = [
   { value: 'subnav', label: 'In-page menu', blurb: 'A strip of links to the sections of this page, which stays at the top of the screen as it scrolls. It lists every section you have given an anchor to (Style → Anchor), in page order.' },
   { value: 'product_videos', label: 'Product videos', blurb: 'A row of the shop’s product videos, each with its product under it — picture, name, price and an Add to basket button. Whole shop or one category; it follows the videos on the products.' },
   { value: 'layout', label: 'Custom layout', blurb: 'Rows and columns you arrange yourself, filled with headings, text, pictures, buttons, icon boxes, questions and lists.' },
+  { value: 'custom_code', label: 'Custom code', blurb: 'HTML, CSS and script pasted in as it is, such as the widget a vendor supplies, a booking tool, a calculator. It runs in a sandboxed frame that cannot reach the rest of the page.' },
   { value: 'theme_section', label: 'From the theme', blurb: 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.' },
 ];
 /* The AI page builder's refusal while the AI SEO assistant is off (0.116.0) — the API's sentence. */
@@ -2496,6 +2497,8 @@ const BUILDER_OPTIONS = {
   section_presets: SECTION_PRESETS,
   // The custom layout section (0.147.0): widgets, row and column settings, limits.
   layout: LAYOUT_OPTIONS,
+  // Custom code (0.158.0): the mock's one account is an administrator, who may run it on the page itself.
+  custom_code: { page_mode: true },
   hero_layouts: [
     { value: 'centered', label: 'Centred', blurb: 'The words centred on the section’s ground.' },
     { value: 'split', label: 'Split', blurb: 'The words on one side, the picture framed on the other.' },

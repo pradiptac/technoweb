@@ -28,6 +28,8 @@ export type PageSectionType =
   | "theme_section"
   /** Rows and columns of widgets, arranged by hand (0.147.0). */
   | "layout"
+  /** Code pasted in as it is (0.158.0): drawn in a sandboxed frame unless an administrator chose the page itself. */
+  | "custom_code"
   /** A scroll story (0.114.0): steps that scroll past a picture held beside them. */
   | "story"
   /** A diagram (0.115.0): two to six steps joined by arrows that draw as the page scrolls. */
@@ -148,6 +150,10 @@ export type CountdownSectionData = Head & {
 export type ColumnsSectionData = Head & { columns: { heading?: string; body: string }[] };
 /** `section` is an id from `HOME_SECTIONS` in `themes/options.ts`; the active theme draws it. */
 export type ThemeSectionData = { section: string };
+/** `html` is raw by design; `mode` and `height` are absent at their defaults (a frame, sized by its content). */
+export type CustomCodeSectionData = {
+  label: string; html: string; mode?: "frame" | "page"; height?: "auto" | "s" | "m" | "l";
+};
 export type MapSectionData = { heading?: string; lede?: string; url: string; address?: string };
 
 /**
@@ -364,7 +370,8 @@ export type PageSection =
   | Of<"flow", FlowSectionData>
   | Of<"subnav", SubnavSectionData>
   | Of<"product_videos", ProductVideosSectionData>
-  | Of<"layout", LayoutSectionData>;
+  | Of<"layout", LayoutSectionData>
+  | Of<"custom_code", CustomCodeSectionData>;
 
 /** A section as stored and edited: paths and ids, and whatever the type's fields are. */
 export type StoredSection = {
@@ -409,6 +416,8 @@ export type PageBuilderOptions = {
   inline_fields?: Record<string, { path: string; max: number; widget?: string }[]>;
   /** The custom layout section (0.147.0): its widgets with every field, the row and column settings and the limits. Optional for an older API. */
   layout?: LayoutOptions;
+  /** Custom code (0.158.0): whether this account may run it on the page itself. Optional for an older API, which has the section not at all. */
+  custom_code?: { page_mode: boolean };
   /** The Design tab (0.146.0): the section types whose heading colour the site ignores. Optional for an older API. */
   style_options?: { heading_color_except: string[] };
   /**

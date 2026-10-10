@@ -105,7 +105,7 @@ function BuilderHome({ page }: { page: CmsPage }) {
       {/* An opening builder hero or the theme's own hero (a `theme_section`) is the `h1` — `startsWithHero` counts both. */}
       {!startsWithHero(sections) && <h1 className="sr-only">{page.title}</h1>}
 
-      <PageSections sections={sections} crumbs={[]} ownsH1 />
+      <PageSections sections={sections} crumbs={[]} ownsH1 runCode />
 
       <Container className="pb-16 empty:hidden" data-aos="fade-up">
         <AnswerBlocks blocks={page.answer_blocks} faqs={showsPageFaqs ? [] : page.faqs ?? []} className="mt-12" />

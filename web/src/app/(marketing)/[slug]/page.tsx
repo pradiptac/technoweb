@@ -142,7 +142,7 @@ function BuilderPage({ page, slug }: { page: CmsPage; slug: string }) {
     <>
       {!startsWithHero(sections) && <PageHero title={page.title} crumbs={crumbs} />}
 
-      <PageSections sections={sections} crumbs={crumbs} />
+      <PageSections sections={sections} crumbs={crumbs} runCode />
 
       <Container className="pb-16 empty:hidden" data-aos="fade-up">
         <AnswerBlocks blocks={page.answer_blocks} faqs={showsPageFaqs ? [] : page.faqs ?? []} className="mt-12" />

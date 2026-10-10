@@ -101,6 +101,14 @@ enum PageSectionType: string
      */
     case Layout = 'layout';
     /**
+     * Code pasted in as it is (0.158.0): HTML, CSS and script from a widget
+     * vendor. Stored **unsanitised** by design, so by default it runs in a
+     * sandboxed frame that cannot reach the page, the cookies or the API;
+     * only an administrator can let it run on the page itself.
+     * `docs/page-builder.md` "Custom code".
+     */
+    case CustomCode = 'custom_code';
+    /**
      * A section from the library, placed linked (2026-10-05): it stores only
      * `saved_id`, and the presenter draws the library's section in its place,
      * so an edit to it reaches every page that places it.
@@ -144,6 +152,7 @@ enum PageSectionType: string
             self::ProductVideos => 'Product videos',
             self::ThemeSection => 'From the theme',
             self::Layout => 'Custom layout',
+            self::CustomCode => 'Custom code',
             self::Saved => 'Saved section',
         };
     }
@@ -191,6 +200,7 @@ enum PageSectionType: string
             self::Subnav => 'A strip of links to the sections of this page, which stays at the top of the screen as it scrolls. '
                 .'It lists every section you have given an anchor to (Style → Anchor), in page order.',
             self::Layout => 'Rows and columns you arrange yourself, filled with headings, text, pictures, buttons, icon boxes, questions and lists.',
+            self::CustomCode => 'HTML, CSS and script pasted in as it is, such as the widget a vendor supplies, a booking tool, a calculator. It runs in a sandboxed frame that cannot reach the rest of the page.',
             self::Saved => 'A section from the library, kept in step with it: edit it once and every page that places it changes.',
         };
     }

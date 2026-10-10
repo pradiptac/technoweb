@@ -178,6 +178,14 @@ function buildReportOnlyCsp(dev: boolean, frameAncestors: string, assetOrigins: 
     frontend chooses the nocookie host, while Summernote builds the URL itself.
     Both are YouTube; only one of them is the one this code picks.
 
+    A custom code section (0.158.0) is a sandboxed `srcdoc` frame, and needs
+    nothing here: a `srcdoc` document is not fetched, so `frame-src` does not
+    govern it. It does **inherit this site's policy** — Report-Only and enforced
+    halves alike — so what the pasted code loads is reported by the policy above
+    (scripts and connections only report), and the enforced `form-action 'self'`
+    and `base-uri 'self'` apply inside the frame too: a form in a widget that
+    posts to another host is blocked, a widget's own `<base href>` as well.
+
     This list, `URI.SafeIframeRegexp` in api/config/purifier.php and the
     editor's own toolbar have to agree, and the sanitiser is the one that
     decides: a host allowed here but refused there is a video that vanishes on

@@ -44,7 +44,7 @@ export function CustomCode({ html }: { html: string }) {
 }
 
 /** A `<script>` parsed from markup is inert; a fresh one with the same attributes and text runs. */
-function revive(node: Node): Node {
+export function revive(node: Node): Node {
   if (node instanceof HTMLScriptElement) {
     const script = document.createElement("script");
     for (const { name, value } of Array.from(node.attributes)) script.setAttribute(name, value);

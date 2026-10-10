@@ -1509,6 +1509,103 @@ where it differs (`careers` for `jobs`, the type's slug for an entry) —
 not `PUBLIC`, which Windows sets itself — and `FAQ=0` is for a vacancy,
 which has no `FAQPage`.
 
+## Custom code (0.158.0)
+
+A section type, `custom_code`, for what the other types cannot draw: the
+snippet a vendor says to paste - a booking tool, a calculator, a chat, a
+badge. Its data is `{label (<= 80, required - what it is, shown in the
+console), html (raw, <= 50,000, required), height (auto|s|m|l - the frame's
+height until it has measured itself), mode (frame|page)}`. `auto` and `frame`
+are the defaults and are not stored. A content manager may use it - the
+client's choice, and what the rest of this section exists to make safe.
+
+### The security model
+
+**The code is stored exactly as pasted.** `html` is the one field in the
+builder that no sanitiser touches - it is deliberately not in
+`SectionRules::RICH_TEXT`, and a test pins that - because sanitised, it could
+not carry the script it exists for. Everything the site does to protect itself
+therefore happens at the sink:
+
+1. **Frame mode (the default).** The website draws it in
+   `<iframe srcdoc sandbox="allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox">`
+   with **no `allow-same-origin`**. The frame's document has an opaque origin:
+   it cannot read this page's cookies, localStorage or DOM, and a `fetch` from
+   it to the API is a cross-origin request carrying no credentials. That matters
+   because **the console and the public site are one origin**: script placed
+   in the page itself would act as whoever views the page, so a content
+   manager's script would act as any administrator who opens that page while
+   signed in. `allow-top-navigation` is absent, so it cannot send the page away;
+   `allow-popups` lets a link open a tab. The `srcdoc` is a small document:
+   the pasted code, `<base target="_blank">` and a few lines that post the
+   document's height to the parent.
+2. **Resizing.** `CodeFrame` (a client island) answers `message` events
+   **only when `event.source` is that frame's own `contentWindow`** - a sandboxed
+   frame's origin is the string "null", so the origin proves nothing - and
+   clamps the number (40-4,000 px) it sets. Width is 100%, `min-w-0 max-w-full`.
+3. **Page mode is an administrator's choice only.** `mode: "page"` puts the code
+   into the page itself, its scripts rebuilt so they run (`PageCode`, the
+   `body_code` setting's mechanism), for the widget that has to see the real
+   page. `App\Support\PageSections\CustomCodeGuard::check()` refuses it from
+   anybody who is not an administrator: 422 on `blocks.N.data.mode` - "Only an
+   administrator can let code run on the page itself." - unless the block is
+   **already stored identically** (same block id, same code, same mode), so a
+   content manager re-saving a page that holds an administrator's page-mode
+   block, or editing another section of it, is not refused; a changed or copied
+   block is. A content manager may always switch one *down* to a frame. It is
+   called from every door that saves sections: the page requests, the library's
+   (`SavedSectionRequest`), and every record's body area
+   (`RecordSections::after`); the unsaved preview does not call it, since it
+   stores nothing and the console never runs the code.
+4. **The console never executes it.** `PageSections` takes `runCode`, **false
+   by default**, and a custom code section draws a labelled placeholder -
+   "Custom code - {label} - shown on the published page" - unless it is true.
+   Only the public routes pass it: the homepage and CMS pages
+   (`(marketing)/page.tsx`, `[slug]/page.tsx`) and `RecordSections`, which only
+   marketing routes use. The saved preview, the draft preview, the builder's
+   live frame and the theme preview do not, so a new caller has to *ask* to
+   execute stored code; nobody has to remember to say no.
+5. **Recorded.** A save that adds or changes a custom code block (code, mode or
+   height against what is stored) is written to the activity log whatever else
+   it was - an edit of a page is otherwise not recorded - with context
+   `{custom_code: true}` (`CustomCodeGuard` marks the request, `ActivityLogger`
+   reads it). The console's page-mode choice is offered only when
+   `GET /admin/pages/builder` says `custom_code.page_mode` is true for the
+   account; that is a convenience, the refusal above is the control.
+
+### The Content-Security-Policy
+
+A `srcdoc` document is not fetched, so `frame-src` does not govern it and the
+policy needed no change. It **inherits** the site's policy, both halves: the
+Report-Only half reports what the pasted code loads or connects to (it blocks
+nothing, so a widget from a host the policy does not name still runs - the
+`body_code` rule), and the **enforced** `form-action 'self'`, `base-uri 'self'`
+and `object-src 'none'` apply inside the frame. A widget form that posts to
+another host is blocked; so is a `<base href>` or an `<object>`. That is the
+enforced half doing its job, and it is the same in page mode.
+
+### Things that will bite
+
+- The frame's document is separate: the site's CSS and fonts do not reach it,
+  and `prefers-color-scheme` is the visitor's, not the site's chosen scheme.
+- Height is measured from `document.body.scrollHeight` and the root's
+  `offsetHeight`, not `documentElement.scrollHeight`, which can never fall below
+  the frame's own height - a frame that has grown would never shrink. A widget
+  that sets `html, body { height: 100% }` is measured as the frame's height and
+  stays where it is; give it a starting height instead.
+- Nothing about the code is validated beyond length. A broken snippet breaks
+  its frame, not the page; in page mode it can break the page, which is why
+  that mode is an administrator's.
+- `inline_fields` omits `html`: the live preview shows a placeholder, so there
+  is nothing on the page to edit in place.
+- A linked library section holding page-mode code reaches every page that
+  places it; the library is held to the same rule, so only an administrator
+  could have written it.
+
+Probe: `node scripts/probes/custom-code.mjs` (see its docblock) creates a
+throwaway page whose code tries `parent.document.cookie`, reads the public page
+at 1280 and 360 and the console previews, then deletes it.
+
 ## Page history (0.145.0, every record kind 0.148.0)
 
 A page, a library item or any other record that carries a share link remembers
@@ -1648,6 +1745,16 @@ nothing, deleting the record deletes its history, and the role that owns the
 kind reads it while another gets a 403 (a store manager has a shop product's
 history and not a post's; a content manager the reverse; the SEO manager owns
 landing pages).
+
+`tests/Feature/CustomCodeSectionTest.php` — custom code (0.158.0): stored and
+sent raw (a `<script>` survives), `html` in no sanitiser path, defaults not
+stored, label and code required and capped, a content manager's frame accepted
+and page mode refused with the sentence, an administrator's page mode accepted,
+an administrator's block kept by a content manager when unchanged and refused
+when the code changes, when copied under a new id, or when raised again after
+being lowered, a record body area and the library holding the same line, the
+preview accepting without writing, and the activity log recording a changed
+block and not an unchanged re-save.
 
 `tests/Feature/PageBuilderTest.php` — every type's rules valid and invalid, an
 unknown type refused, ids unique, rich text sanitised in a nested field, media

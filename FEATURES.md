@@ -102,6 +102,12 @@ A full CMS for the people who write, without a developer in the loop.
   page can carry a menu of its own sections that follows the visitor down.
   An assistant on each section writes its wording from a line about it, or
   rewords, shortens or expands what it says — words only, with Undo.
+- **A custom code section**: paste the snippet a vendor supplies — a booking
+  tool, a calculator, a chat — and it is drawn in a sandboxed frame that
+  cannot read the page, its cookies or the site's API, and that sizes itself
+  to the code. Only an administrator can let it run on the page itself. The
+  console shows a labelled placeholder in its previews, and every save that
+  adds or changes one is written to the activity log.
 - **A custom layout section**: rows of one to four columns filled with
   headings, text, buttons, pictures, spaces, rules, icon boxes, questions that
   open and lists — and, since 0.149.0, a video (a YouTube link or a library

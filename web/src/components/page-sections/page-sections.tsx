@@ -25,6 +25,7 @@ import { StorySection } from "./story-section";
 import { FlowSection } from "./flow-section";
 import { SubnavSection } from "./subnav-section";
 import { LayoutSection } from "./layout/layout-section";
+import { CustomCodeSection } from "./custom-code-section";
 import { setHeroLevel } from "@/lib/hero-heading";
 import { LOCKED_SECTION } from "@/themes/options";
 
@@ -44,7 +45,7 @@ import { LOCKED_SECTION } from "@/themes/options";
  * gone; a type this build does not know renders nothing, since a stored
  * type outlives the code that drew it.
  */
-export async function PageSections({ sections, crumbs, ownsH1 = true, marked = false }: {
+export async function PageSections({ sections, crumbs, ownsH1 = true, marked = false, runCode = false }: {
   sections: PageSection[];
   crumbs: Crumb[];
   /**
@@ -59,6 +60,15 @@ export async function PageSections({ sections, crumbs, ownsH1 = true, marked = f
    * keeps the one-`h1` rule the audit holds every screen to.
    */
   ownsH1?: boolean;
+  /**
+   * Whether a custom code section may execute its code (0.158.0). **False by
+   * default, so every console surface — the previews, the live frame, the theme
+   * preview — draws a labelled placeholder**; only the public page and record
+   * routes pass true. Code is stored raw, and the console shares an origin with
+   * the site, so "run it unless told not to" would be one forgotten prop away
+   * from executing a content manager's script inside an administrator's session.
+   */
+  runCode?: boolean;
 }) {
   if (!sections.length) return null;
 
@@ -75,7 +85,7 @@ export async function PageSections({ sections, crumbs, ownsH1 = true, marked = f
   return (
     <div data-page-sections>
       {sections.map((section, i) => {
-        const node = renderSection(section, { first: ownsH1 && i === 0, eager: i <= 1, crumbs, themeId: theme.manifest.id });
+        const node = renderSection(section, { first: ownsH1 && i === 0, eager: i <= 1, crumbs, themeId: theme.manifest.id, runCode });
         if (!node) return null;
 
         // An in-page menu is drawn bare: its `<nav>` is `position: sticky`,
@@ -211,11 +221,11 @@ function opensOnThemeHero(sections: PageSection[] | undefined): boolean {
 }
 
 /** The types that do not reveal unless an editor asks them to. */
-const STILL: ReadonlySet<string> = new Set(["content_block", "logos", "divider", "cta"]);
+const STILL: ReadonlySet<string> = new Set(["content_block", "logos", "divider", "cta", "custom_code"]);
 
 function renderSection(
   section: PageSection,
-  { first, eager, crumbs, themeId }: { first: boolean; eager: boolean; crumbs: Crumb[]; themeId: string },
+  { first, eager, crumbs, themeId, runCode }: { first: boolean; eager: boolean; crumbs: Crumb[]; themeId: string; runCode: boolean },
 ): ReactNode {
   // How the section arrives: the editor's choice, or what the type did before
   // there was one — a band rises; a content block, a logo strip and a divider
@@ -257,6 +267,7 @@ function renderSection(
     case "subnav": return <SubnavSection data={section.data} />;
     case "product_videos": return <ProductVideosSection data={section.data} reveal={reveal} />;
     case "layout": return <LayoutSection data={section.data} eager={eager} reveal={reveal} />;
+    case "custom_code": return <CustomCodeSection data={section.data} run={runCode} reveal={reveal} />;
     // The active theme's own homepage section, arriving as `HomeSection` would
     // have it arrive: still unless the editor chose a reveal, and never the
     // hero, which opens a page (the homepage's rule, `section-bg.tsx`).

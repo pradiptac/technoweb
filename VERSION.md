@@ -21,6 +21,47 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.158.0 — 2026-10-10
+
+**Custom code: paste a vendor's snippet into a page, safely.**
+
+- **A new builder section, "Custom code".** A name, the code (HTML, CSS and
+  script, up to 50,000 characters, stored exactly as pasted), and a starting
+  height. Available on pages, in the section library and in the body area of
+  every record that takes sections; content managers may use it.
+- **It runs in a sandboxed frame.** The code is drawn in an `iframe srcdoc` with
+  `sandbox="allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox"`
+  and no `allow-same-origin`, so it cannot read the page's cookies, storage or
+  DOM or call the API as the visitor — the console and the site are one origin,
+  so script in the page itself would have acted as any administrator who viewed
+  it. The frame sizes itself by `postMessage` (answered only from its own
+  `contentWindow`, clamped 40–4,000 px).
+- **Running on the page itself is an administrator's.** `mode: "page"` is
+  refused from anyone else with a 422 on `blocks.N.data.mode`, unless the block
+  is already stored unchanged; one place, `CustomCodeGuard`, for the page,
+  library and record doors.
+- **The console never runs it.** The saved, draft, live and theme previews show
+  "Custom code — {name} — shown on the published page"; only the public page and
+  record routes opt in to executing code (`PageSections runCode`, off by
+  default).
+- **Logged.** A save that adds or changes custom code is written to the activity
+  log with `{custom_code: true}`.
+- The Content-Security-Policy needed no change (a `srcdoc` frame is not fetched)
+  and is documented in `security-headers.ts`: the frame inherits the policy,
+  enforced `form-action 'self'` included.
+- Retired from "offered and not wanted": a custom code section.
+- Tests: `CustomCodeSectionTest`. Probe: `scripts/probes/custom-code.mjs` (23
+  checks).
+- Merge review fixed two things the probe found, neither visible without a
+  browser: the "Where it runs" choice was never offered, because
+  `custom_code.page_mode` had gone onto the pages index's `meta` and not onto
+  `GET /admin/pages/builder`, where the editor reads it (a test now pins it
+  for both roles); and the frame never resized, because a server-rendered
+  frame reports its height before React hydrates and attaches the listener —
+  the parent now asks the frame to measure once it is listening.
+
+---
+
 ## 0.157.0 — 2026-10-10
 
 **Every shop tag is a page.**

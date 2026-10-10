@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Activity;
 use App\Models\User;
+use App\Support\PageSections\CustomCodeGuard;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -194,6 +195,13 @@ class ActivityLogger
             return true;
         }
 
+        // A save that added or changed custom code (`CustomCodeGuard` marks
+        // the request): raw markup and script on the site is worth a line even
+        // in an edit of a page, which is otherwise not recorded.
+        if ($request->attributes->get(CustomCodeGuard::REQUEST_FLAG)) {
+            return true;
+        }
+
         // A new record. `store` is the route's own name, so this covers an
         // entity nobody has written yet.
         if (self::actionOf($request) === 'store') {
@@ -335,6 +343,10 @@ class ActivityLogger
         if ((int) $request->attributes->get('bulk_deleted', 0) > 0) {
             $context['action'] = 'delete';
             $context['count'] = (int) $request->attributes->get('bulk_deleted');
+        }
+
+        if ($request->attributes->get(CustomCodeGuard::REQUEST_FLAG)) {
+            $context['custom_code'] = true;
         }
 
         foreach (self::CONTEXT_ALLOWLIST as $key) {

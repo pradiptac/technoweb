@@ -22,6 +22,11 @@ class PreviewPageSectionsRequest extends FormRequest
         return SectionRules::RICH_TEXT;
     }
 
+    protected function guardsCustomCode(): bool
+    {
+        return false;
+    }
+
     public function authorize(): bool
     {
         return $this->user() !== null;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { EditorField } from "@/components/admin/editor-field";
-import { Field, Select } from "@/components/ui/input";
+import { Field, Select, Textarea } from "@/components/ui/input";
 import {
   Choice, FilePath, IconPick, ImagePath, NumberChoice, NumberInput, Repeater, Row, Text, Toggle, VideoPath, getIn, useBlock, type Path,
 } from "../../blocks/editors/shared";
@@ -58,13 +58,14 @@ export function blankData(type: PageSectionType): Record<string, unknown> {
     case "subnav": return { label: "On this page" };
     case "product_videos": return { heading: "Shop the videos", limit: 8 };
     case "layout": return blankLayout();
+    case "custom_code": return {};
     default: return {};
   }
 }
 
 /** A one-line reminder of what a collapsed section holds. */
 export function summaryOf(data: Record<string, unknown>): string {
-  for (const key of ["heading", "quote", "kicker"]) {
+  for (const key of ["heading", "quote", "kicker", "label"]) {
     const v = data[key];
     if (typeof v === "string" && v.trim()) return v.trim();
   }
@@ -124,6 +125,61 @@ function Body({ sectionId, label = "Text" }: { sectionId: string; label?: string
       hint="Shortcodes work here, as in any page body."
       onChange={(html) => set(["body"], html || undefined)}
     />
+  );
+}
+
+/**
+ * Custom code (0.158.0): a label, the code as a monospace box, a starting
+ * height, and — for an administrator only — where it runs. The code is stored
+ * exactly as pasted; the website draws it in a sandboxed frame that cannot reach
+ * the page, and **this console never runs it** (every preview draws a
+ * placeholder). `canRunOnPage` is the API's answer for this account
+ * (`custom_code.page_mode`); the save refuses the choice from anyone else.
+ */
+function CustomCodeEditor({ canRunOnPage }: { canRunOnPage: boolean }) {
+  const { content, set, err, idPrefix } = useBlock();
+  const html = getIn(content, ["html"]);
+  const id = `${idPrefix ?? "b"}-html`;
+  const onPage = content.mode === "page";
+
+  return (
+    <>
+      <Text path={["label"]} label="What this code is" required placeholder="Booking widget" hint="Shown here and in the previews, so you can find it again." />
+      <Field label="Code" htmlFor={id} error={err(["html"])} hint="HTML, CSS and script, exactly as the vendor gave it. Up to 50,000 characters.">
+        <Textarea
+          id={id}
+          rows={12}
+          spellCheck={false}
+          autoCapitalize="off"
+          autoCorrect="off"
+          className="font-mono text-13 whitespace-pre"
+          value={typeof html === "string" ? html : ""}
+          onChange={(e) => set(["html"], e.target.value === "" ? undefined : e.target.value)}
+        />
+      </Field>
+      <Choice path={["height"]} label="Starting height" fallback="auto" options={[
+        { value: "auto", label: "Fit the code" },
+        { value: "s", label: "Short" },
+        { value: "m", label: "Medium" },
+        { value: "l", label: "Tall" },
+      ]} hint="The frame sizes itself to the code once it has loaded; this is the height it has until then." />
+      {canRunOnPage ? (
+        <Choice path={["mode"]} label="Where it runs" fallback="frame" options={[
+          { value: "frame", label: "In a sandboxed frame (safe)" },
+          { value: "page", label: "On the page itself (administrators only)" },
+        ]} hint="A frame cannot read the page, its cookies or the site's API. On the page itself the code can do anything the signed-in visitor can — choose it only for code you trust and that needs the real page." />
+      ) : (
+        <p className="measure -mt-2 mb-4 text-12-5 text-muted">
+          {onPage
+            ? "An administrator has let this code run on the page itself. You can change anything here except that: saving it unchanged keeps it; switching it to a frame cannot be undone by you."
+            : "This code runs in a sandboxed frame, which cannot read the page, its cookies or the site’s API. Letting it run on the page itself is an administrator’s choice."}
+        </p>
+      )}
+      <p className="measure -mt-2 mb-4 text-12-5 text-muted">
+        Previews in the console show a placeholder in place of the code; it runs on the published page only. A form in
+        the code can post to this site only.
+      </p>
+    </>
   );
 }
 
@@ -742,6 +798,9 @@ export function SectionEditor({ type, sectionId, options }: {
           <Text path={["address"]} label="Address" multiline hint="Shown on the map's card until somebody loads the map." />
         </>
       );
+
+    case "custom_code":
+      return <CustomCodeEditor canRunOnPage={options.custom_code?.page_mode === true} />;
 
     case "subnav":
       return (

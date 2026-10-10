@@ -22,7 +22,7 @@ import { PageSections } from "./page-sections";
 export function RecordSections({ sections, crumbs }: { sections: PageSection[]; crumbs: Crumb[] }) {
   return (
     <div data-record-sections>
-      <PageSections sections={sections} crumbs={crumbs} ownsH1={false} />
+      <PageSections sections={sections} crumbs={crumbs} ownsH1={false} runCode />
     </div>
   );
 }

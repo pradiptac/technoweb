@@ -170,7 +170,7 @@ class PageController extends Controller
      * category lists a product `cards` section narrows by. Published only,
      * because a section pointing at a draft is refused on save.
      */
-    public function builder(): JsonResponse
+    public function builder(Request $request): JsonResponse
     {
         $published = fn (string $model) => $model::query()->where('status', PublishStatus::Published)
             ->orderBy('name')->get(['id', 'name', 'slug']);
@@ -178,6 +178,10 @@ class PageController extends Controller
         return response()->json(['data' => [
             'section_types' => PageSectionType::options(),
             'section_presets' => SectionPresets::all(),
+            // Custom code (0.158.0): whether this account may choose to run it
+            // on the page itself (`CustomCodeGuard`) — the console shows the
+            // choice to administrators and a note to everyone else.
+            'custom_code' => ['page_mode' => (bool) $request->user()?->isAdmin()],
             // The library (2026-10-05): what "Add a section" offers from it,
             // and the templates a new page may start from.
             'library' => [

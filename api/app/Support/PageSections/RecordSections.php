@@ -97,6 +97,7 @@ final class RecordSections
     public static function after(Validator $validator, mixed $blocks): void
     {
         SectionRules::after($validator, $blocks);
+        CustomCodeGuard::check($validator, $blocks);
 
         if (! is_array($blocks)) {
             return;

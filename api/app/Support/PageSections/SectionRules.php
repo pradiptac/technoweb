@@ -136,6 +136,13 @@ final class SectionRules
     /** Where a section may be shown; all three is the default. */
     public const DEVICES = ['phone', 'tablet', 'desktop'];
 
+    /** Custom code (0.158.0): the longest paste, the frame's starting heights and where it runs. */
+    public const CUSTOM_CODE_MAX = 50000;
+
+    public const CUSTOM_CODE_HEIGHTS = ['auto', 's', 'm', 'l'];
+
+    public const CUSTOM_CODE_MODES = ['frame', 'page'];
+
     /** An in-page link target: `#pricing`. */
     public const ANCHOR = '/^[a-z][a-z0-9-]{0,47}$/';
 
@@ -571,6 +578,17 @@ final class SectionRules
                 'lede' => $lede,
                 'rows' => ['required', 'array', 'min:1', 'max:'.LayoutRules::MAX_ROWS],
             ],
+            // Code as pasted (0.158.0). `html` is the one field in the builder
+            // that is stored raw: it is deliberately in no sanitiser path
+            // (`RICH_TEXT`), and the website draws it in a sandboxed frame.
+            // `mode` and `height` default and are not stored; who may choose
+            // `page` is `CustomCodeGuard`'s.
+            PageSectionType::CustomCode => [
+                'label' => ['required', 'string', 'max:80'],
+                'html' => ['required', 'string', 'max:'.self::CUSTOM_CODE_MAX],
+                'height' => ['nullable', Rule::in(self::CUSTOM_CODE_HEIGHTS)],
+                'mode' => ['nullable', Rule::in(self::CUSTOM_CODE_MODES)],
+            ],
             // A linked library section: only which one. That it exists and is
             // a section (not a template) is checked in `checkData`.
             PageSectionType::Saved => [
@@ -584,7 +602,7 @@ final class SectionRules
      * (it chooses what is listed, and is drawn nowhere), a link that is
      * reduced to an id, and the rich-text bodies, which keep their editor.
      */
-    private const NOT_INLINE = ['youtube', 'category', 'department', 'body', 'columns.*.body'];
+    private const NOT_INLINE = ['youtube', 'category', 'department', 'body', 'columns.*.body', 'html'];
 
     /**
      * The plain-text fields an editor may change on the page itself, in the
@@ -825,6 +843,9 @@ final class SectionRules
             "{$d}.columns.required" => 'Add the columns.',
             "{$d}.columns.min" => 'Two columns at least.',
             "{$d}.columns.*.body.required" => 'Write the text for this column.',
+            "{$d}.html.required" => 'Paste the code.',
+            "{$d}.html.max" => 'The code is too long: '.self::CUSTOM_CODE_MAX.' characters at most.',
+            "{$d}.label.required" => 'Say what this code is, so you can find it again.',
             "{$d}.url.required" => 'Paste the Google Maps embed address.',
             "{$d}.section.required" => 'Choose one of the theme’s sections.',
             "{$d}.section.regex" => 'Choose one of the theme’s sections.',
@@ -1130,6 +1151,15 @@ final class SectionRules
             foreach (['rule', 'call', 'group'] as $bool) {
                 if (isset($data[$bool])) {
                     $data[$bool] = filter_var($data[$bool], FILTER_VALIDATE_BOOLEAN);
+                }
+            }
+            // The defaults are never stored: a frame, sized by its content.
+            if ($type === PageSectionType::CustomCode) {
+                if (($data['mode'] ?? null) === 'frame') {
+                    unset($data['mode']);
+                }
+                if (($data['height'] ?? null) === 'auto') {
+                    unset($data['height']);
                 }
             }
             // A downloads section is one kind of list or the other: read

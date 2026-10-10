@@ -336,6 +336,33 @@ Good to know:
 - There is no assistant on this section yet, and the live preview lets you
   edit its heading in place but not the words inside widgets.
 
+### Custom code
+
+For a booking tool, a calculator, a chat or any other snippet a supplier gives
+you to paste, add a **Custom code** section.
+
+1. Give it a **name** (what the code is — you will see this in the editor and
+   in the previews), and paste the code into the box exactly as you were given
+   it. It can hold HTML, CSS and script, up to 50,000 characters.
+2. Choose a **starting height**. The code sits in a frame that measures itself
+   once it has loaded, so this is only the height it has until then.
+3. Save. The code **runs only on the published page**. In the editor and in
+   every preview you see a grey note with the name in its place.
+
+How it is kept safe: the code runs inside a frame that cannot read the rest of
+the page, your visitors' cookies, or the site's own data, and cannot send the
+visitor to another page by itself. Because of that, a few things behave
+differently from a script pasted straight into a page: the site's fonts and
+colours do not reach into it, and a form in it can only post to this site.
+
+**On the page itself** is a separate choice, offered to administrators only. It
+puts the code into the page rather than into a frame, for a widget that has to
+see the real page. It can then do anything the signed-in visitor can, so it is
+for code you trust completely. If an administrator has chosen it for a section
+you can still edit the page and leave the section as it is, or change it to a
+frame; you cannot turn it back on. Every save that adds or changes custom code
+is written to the activity log.
+
 ### Drafting a page with AI
 
 On **Content → Pages**, **Draft with AI** writes a first version of a builder
