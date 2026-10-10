@@ -31,6 +31,7 @@ export * from "./messaging";
 export * from "./newsletter";
 export * from "./pages";
 export * from "./preview-links";
+export * from "./revisions";
 export * from "./seo";
 export * from "./settings";
 export * from "./site";

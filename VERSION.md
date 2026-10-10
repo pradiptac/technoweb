@@ -21,6 +21,29 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.145.0 — 2026-10-10
+
+**Pages and the section library remember their last thirty versions.**
+
+- **History, beside Share preview.** Each saved version of a page or a library
+  item with when, by whom and what changed (title, address, written text,
+  sections, template). Preview draws it as the site would; Restore loads it into
+  the form and a bar says nothing is saved until Save is pressed — and Save runs
+  today's rules, so a version pointing at something since unpublished is refused
+  naming the field. Status and publish date are never part of a version.
+- **Recorded on save, by one list.** `content_revisions`, the `Revisions`
+  registry and a `HasRevisions` trait on `Page` and `SavedSection`: the import,
+  the AI page draft and the library save are covered without touching them.
+  Identical content adds nothing; the same person saving again within five
+  minutes folds into the previous version; the newest thirty are kept;
+  `technoware:prune-revisions` removes history whose record is gone.
+- The other eleven record kinds that carry share links are named as deferred and
+  a test fails if one is in neither list. Read-only API (`/admin/revisions`);
+  mock parity (three versions of the sample page); `scripts/probes/revisions.mjs`;
+  `ContentRevisionTest`.
+
+---
+
 ## 0.144.0 — 2026-10-10
 
 **System → Status says what is slowing the site down, and how to fix it.**

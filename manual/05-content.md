@@ -370,6 +370,27 @@ sections exactly as on a page, then save.
 - Categories do not have a Sections tab: their description is a line in the
   heading, not a body.
 
+### Going back to an earlier version
+
+A page remembers its last thirty saved versions, and so does each item in the
+section library. Press **History**, at the top of the edit screen beside
+**Share preview**, to see them: when each was saved, by whom, and what changed —
+the title, the address, the written text, the sections or the template.
+
+- **Preview** draws that version the way the site would, without touching the
+  page. **Back to the list** returns.
+- **Restore** puts that version into the form you are looking at. Nothing is
+  saved yet: a bar says which version you loaded, and the page stays as it was
+  until you press **Save**. Leave without saving, and nothing has changed.
+- Whether a page is published, and when, is never changed by a restore.
+- If the old version points at something that has since been unpublished or
+  deleted — a slider, a form, a picture — Save will say which section needs
+  attention. A section you placed from the library shows the library's content
+  as it is now.
+- Saves by the same person within five minutes count as one version, and a
+  page created and edited straight away is one version. The page's SEO
+  details, questions and custom fields are not part of a version.
+
 ## Sharing a draft
 
 Someone who has no account on your site — a client, a colleague, the person who

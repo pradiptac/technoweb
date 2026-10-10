@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, type SetStateAction } from "react";
+import { useEffect, useState, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import { FormActions, SaveStatus } from "@/components/admin/form-actions";
 import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/input";
+import { Alert, Field, Input } from "@/components/ui/input";
+import { formatDate } from "@/lib/dates";
+import { REVISION_LOAD_EVENT, type RevisionLoad } from "@/lib/revisions";
 import { useSaveStatus } from "@/lib/hooks/use-save-status";
 import type { PageBuilderOptions, SavedSection, StoredSection } from "@/types/api";
 import { SectionBuilder } from "../../builder/section-builder";
@@ -24,6 +26,24 @@ export function LibraryEditor({ item, options }: { item: SavedSection; options: 
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const { dirty, saving, message, touch, run } = useSaveStatus();
   const template = item.kind === "template";
+  // A version from this item's history (0.145.0): in the fields, not saved, until Save is pressed.
+  const [loaded, setLoaded] = useState<string | null>(null);
+  const [loadedMedia, setLoadedMedia] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const onLoad = (event: Event) => {
+      const detail = (event as CustomEvent<RevisionLoad>).detail;
+      if (detail?.type !== "saved_section" || detail.id !== item.id) return;
+      setName(detail.snapshot.name ?? "");
+      setDescription(detail.snapshot.description ?? "");
+      setSectionsState(detail.snapshot.blocks ?? []);
+      setLoadedMedia((prev) => ({ ...prev, ...detail.media }));
+      setLoaded(detail.at ?? "");
+      touch();
+    };
+    document.addEventListener(REVISION_LOAD_EVENT, onLoad);
+    return () => document.removeEventListener(REVISION_LOAD_EVENT, onLoad);
+  }, [item.id, touch]);
 
   const setSections = (next: SetStateAction<StoredSection[]>) => { setSectionsState(next); touch(); };
 
@@ -34,7 +54,7 @@ export function LibraryEditor({ item, options }: { item: SavedSection; options: 
       blocks: sections,
     });
     setErrors(result.fieldErrors ?? {});
-    if (result.ok) router.refresh();
+    if (result.ok) { setLoaded(null); router.refresh(); }
     return { error: result.ok ? null : (result.error ?? "It could not be saved.") };
   }, "Saved.");
 
@@ -51,13 +71,19 @@ export function LibraryEditor({ item, options }: { item: SavedSection; options: 
         )}
       </div>
 
+      {loaded !== null && (
+        <Alert tone="info" title={loaded ? `Loaded the version from ${formatDate(loaded, "dateTime")}.` : "Loaded an earlier version."}>
+          Press Save to keep it — nothing has been saved yet. Leave without saving and the item stays as it was.
+        </Alert>
+      )}
+
       {errors.blocks?.[0] && <p role="alert" className="text-13 text-err">{errors.blocks[0]}</p>}
 
       <SectionBuilder
         sections={sections}
         setSections={setSections}
         options={options}
-        media={item.blocks_media ?? {}}
+        media={{ ...(item.blocks_media ?? {}), ...loadedMedia }}
         errors={errors}
         pageId={null}
         inLibrary

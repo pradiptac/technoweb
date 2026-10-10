@@ -100,6 +100,9 @@ A full CMS for the people who write, without a developer in the loop.
   rewords, shortens or expands what it says — words only, with Undo.
   Headings, lines of text and button wording can be edited directly on the
   live preview.
+  A page and each item in the section library keep a history: the last thirty
+  saved versions, each to look at as the site would draw it or to put back —
+  into the form, to be saved or left.
 - **FAQs** managed in one place and attached to any solution, service, product
   or page — rendered on the page and as `FAQPage` structured data.
 - **Rich-text editor** with the full toolbar — headings, colour, tables,

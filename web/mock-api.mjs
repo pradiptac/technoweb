@@ -4155,6 +4155,38 @@ createServer(async (req, res) => {
       }
     }
 
+    /* Page history (0.145.0): newest first, no snapshot on the list; the detail carries it and `blocks_media`.
+       Three versions of the sample builder page (id 6), the newest equal to what the page holds now. */
+    {
+      const REV_LABELS = { page: { created: 'Created', title: 'Title', slug: 'Address', body: 'Written body', blocks: 'Sections', template: 'Template' },
+        saved_section: { created: 'Created', name: 'Name', description: 'Description', blocks: 'Sections' } };
+      const sample = cmsPages.find((x) => x.id === 6);
+      const revSnap = (title, blocks) => ({ blocks, body: null, slug: 'sample-builder-page', template: 'builder', title });
+      const REVISIONS = [
+        { id: 1, type: 'page', subject_id: 6, saved_at: '2026-09-26T09:00:00Z', created_at: '2026-09-26T09:00:00Z', actor_name: 'Mock Admin',
+          changed: ['created'], snapshot: revSnap('Sample builder page', sample.blocks.slice(0, 1)) },
+        { id: 2, type: 'page', subject_id: 6, saved_at: '2026-09-28T11:30:00Z', created_at: '2026-09-28T11:25:00Z', actor_name: 'Mock Admin',
+          changed: ['title', 'blocks'], snapshot: revSnap('Sample builder page (draft 2)', sample.blocks.slice(0, 2)) },
+        { id: 3, type: 'page', subject_id: 6, saved_at: '2026-10-02T14:05:00Z', created_at: '2026-10-02T14:05:00Z', actor_name: 'Another Editor',
+          changed: ['title', 'blocks'], snapshot: revSnap('Sample builder page', sample.blocks) },
+      ].map((r) => ({ ...r, blocks_count: r.snapshot.blocks.length }));
+      const revRow = (r) => ({ id: r.id, saved_at: r.saved_at, created_at: r.created_at, actor_name: r.actor_name, changed: r.changed, blocks_count: r.blocks_count });
+      const revMeta = (type) => ({ labels: REV_LABELS[type] ?? {}, keep: 30, coalesce_minutes: 5 });
+      if (p === '/admin/revisions' && req.method === 'GET') {
+        const type = url.searchParams.get('type'); const id = Number(url.searchParams.get('id'));
+        if (!REV_LABELS[type]) return json(res, 422, { message: 'The selected type is invalid.', errors: { type: ['The selected type is invalid.'] } });
+        const rows = REVISIONS.filter((r) => r.type === type && r.subject_id === id).sort((a, b) => b.id - a.id)
+          .map((r) => ({ ...revRow(r), size: JSON.stringify(r.snapshot).length }));
+        return json(res, 200, { data: rows, meta: revMeta(type) });
+      }
+      const rv = p.match(/^\/admin\/revisions\/(\d+)$/);
+      if (rv && req.method === 'GET') {
+        const r = REVISIONS.find((x) => x.id === Number(rv[1]));
+        if (!r) return json(res, 404, { message: 'Not found.' });
+        return json(res, 200, { data: { ...revRow(r), type: r.type, subject_id: r.subject_id, snapshot: r.snapshot, blocks_media: {} }, meta: revMeta(r.type) });
+      }
+    }
+
     if (p === '/admin/seo' && req.method === 'GET') {
       const score = { value: 80, band: 'good', passed: 8, checked: 10, failed: [] };
       const rows = solutions.slice(0, 2).map((s) => ({

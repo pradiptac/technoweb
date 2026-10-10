@@ -65,6 +65,10 @@ Schedule::command('technoware:prune-client-errors')->dailyAt('03:35');
 // same reason as the line above (0.137.0, docs/seo.md "Missing pages").
 Schedule::command('technoware:prune-not-found')->dailyAt('03:40');
 
+// Page history whose page is gone, and revisions over a year old (0.145.0,
+// docs/page-builder.md "Page history"); the cap of thirty is applied on insert.
+Schedule::command('technoware:prune-revisions')->dailyAt('03:42');
+
 /*
  * The inbound email ledger, which is what stops a redelivered message
  * opening a second ticket. Six months, so a row outlives any plausible

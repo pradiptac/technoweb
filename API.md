@@ -4993,6 +4993,33 @@ anybody remembering to. Nothing the public read withholds is sent — an
 event's `online_url`, a download's file address — because it is the same
 resource. A knowledge-base preview is not counted as a view.
 
+## Admin — page history
+
+Saved versions of a page and of a library item (0.145.0, `docs/page-builder.md`
+"Page history"). Read-only: a restore is the console loading a snapshot into
+the edit form, so Save answers for it with the current rules.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/revisions?type=&id=` | `type` is `page` or `saved_section` (a 422 on `type` otherwise — the other kinds are not recorded yet). Newest first, at most 30, **no snapshots**: `{id, saved_at, created_at, actor_name, changed[], blocks_count, size}`. `meta`: `labels` (key → words for `changed`, including `created`), `keep` (30), `coalesce_minutes` (5) |
+| `GET` | `/admin/revisions/{id}` | Digits only (a 404 otherwise). Throttled 60/min. The same row plus `type`, `subject_id`, `snapshot` and `blocks_media` (every `*_path` in the sections → its URL, `{}` when none) |
+
+Under `role:content_manager,store_manager,seo_manager`, **narrowed per kind by
+the controller**: both kinds so far belong to `content_manager` (an
+administrator passes), so a store manager or a support engineer is a 403, and
+a customer token is a 403 too — the rule `/admin/preview-links` follows.
+
+**A version is the post-save state of the content columns**: a page's `title`,
+`slug`, `body`, `blocks` and `template`; a library item's `name`, `description`
+and `blocks`. `status` and `published_at` are never held. `saved_at` is when the
+version was last saved (a folded run of saves keeps moving it); `created_at`
+when it began. `changed` lists the keys that differ from the version before, or
+`["created"]` for the first. Saving identical content adds nothing; a save by the
+same person within five minutes of the previous version's creation updates that
+version instead; the newest 30 are kept. `technoware:prune-revisions` (03:42)
+deletes history whose record has gone and anything over a year old beyond each
+record's newest five.
+
 ## Admin — the AI SEO assistant (`role:seo_manager`)
 
 | Method | Path | Notes |

@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { formatDate } from "@/lib/dates";
+import { pageSnapshotValues, REVISION_LOAD_EVENT, type RevisionLoad } from "@/lib/revisions";
 
 type Draft = { at: string; values: Record<string, string[]> };
 
@@ -87,11 +88,20 @@ function restore(form: HTMLFormElement, values: Record<string, string[]>) {
  * *create* a control: a repeater row added and never saved has no field to
  * land in and is the one thing a draft loses. Placed inside the `<Form>`,
  * anywhere; it finds the form it is in.
+ *
+ * **It is also where a page's history is put back** (0.145.0, docs/page-builder.md
+ * "Page history"). The History dialog announces `tw:revision-load` on
+ * `document`; a version is only a set of field values, so it goes through the
+ * same `restore()` — typed values, then `tw:draft-restored` for the editor and
+ * the builder list to re-read — and a bar says what was loaded and that
+ * nothing is saved yet. The loaded values then count as typed, so the leave
+ * guard and the local draft treat them like any edit.
  */
 export function FormDraft() {
   const pathname = usePathname();
   const anchor = useRef<HTMLDivElement>(null);
   const [offer, setOffer] = useState<Draft | null>(null);
+  const [loaded, setLoaded] = useState<string | null>(null);
   const key = `${PREFIX}${pathname}`;
 
   useEffect(() => {
@@ -136,6 +146,20 @@ export function FormDraft() {
     };
   }, [key]);
 
+  // A version from the page's history, put into the form (never saved).
+  useEffect(() => {
+    const onLoad = (event: Event) => {
+      const form = anchor.current?.closest("form");
+      const detail = (event as CustomEvent<RevisionLoad>).detail;
+      if (!form || detail?.type !== "page") return;
+      restore(form, pageSnapshotValues(detail.snapshot));
+      setOffer(null);
+      setLoaded(detail.at ?? "");
+    };
+    document.addEventListener(REVISION_LOAD_EVENT, onLoad);
+    return () => document.removeEventListener(REVISION_LOAD_EVENT, onLoad);
+  }, []);
+
   const discard = () => { try { localStorage.removeItem(key); } catch { /* fine */ } setOffer(null); };
   const apply = () => {
     const form = anchor.current?.closest("form");
@@ -145,6 +169,11 @@ export function FormDraft() {
 
   return (
     <div ref={anchor} data-form-draft>
+      {loaded !== null && (
+        <Alert tone="info" title={loaded ? `Loaded the version from ${formatDate(loaded, "dateTime")}.` : "Loaded an earlier version."}>
+          Press Save to keep it — nothing has been saved yet. Leave without saving and the page stays as it was.
+        </Alert>
+      )}
       {offer && (
         <Alert tone="info" title={`You were typing here at ${formatDate(offer.at, "dateTime")}.`}>
           <span>Nothing was saved — put it back?</span>

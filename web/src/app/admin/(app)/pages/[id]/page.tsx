@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
+import { RevisionPanel } from "@/components/admin/revision-panel";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/input";
@@ -56,7 +57,10 @@ export default async function EditCmsPage({
         title="Edit page"
       >
         <Badge tone={statusTone[page.status]}>{page.status_label}</Badge>
-        <PreviewLinkPanel type="page" id={page.id} className="ml-auto" />
+        <span className="ml-auto flex flex-wrap items-center gap-2">
+          <RevisionPanel type="page" id={page.id} pageId={page.id} />
+          <PreviewLinkPanel type="page" id={page.id} />
+        </span>
         {page.template === "builder" && (
           <Link href={`/admin/pages/${page.id}/preview`} className="py-1 text-13-5 font-semibold text-brand-ink hover:underline">
             Preview

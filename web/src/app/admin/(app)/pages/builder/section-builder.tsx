@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { SECTION_REVEALS } from "@/lib/motion-choices";
+import { REVISION_LOAD_EVENT } from "@/lib/revisions";
 import { cn } from "@/lib/utils";
 import type { SectionBackground } from "@/themes/options";
 import type { PageBuilderOptions, PageSectionType, SectionPreset, StoredSection } from "@/types/api";
@@ -139,6 +140,21 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
    * saving — the words it had.
    */
   const [epoch, setEpoch] = useState(0);
+  /*
+   * A version put back from the record's history (0.145.0) replaces every
+   * section from outside, at once. The rich-text editors are remounted, as
+   * for Undo, and the undo steps are dropped: they describe the sections that
+   * were just replaced, and stepping into them would half-restore a stranger.
+   */
+  useEffect(() => {
+    const replaced = () => {
+      setEpoch((e) => e + 1);
+      setPast([]);
+      setFuture([]);
+    };
+    document.addEventListener(REVISION_LOAD_EVENT, replaced);
+    return () => document.removeEventListener(REVISION_LOAD_EVENT, replaced);
+  }, []);
   const lastPush = useRef<{ key: string; at: number }>({ key: "", at: 0 });
   const apply = useCallback(
     (change: (prev: StoredSection[]) => StoredSection[], coalesce?: string) => {

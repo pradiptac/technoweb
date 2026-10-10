@@ -1081,7 +1081,89 @@ where it differs (`careers` for `jobs`, the type's slug for an entry) —
 not `PUBLIC`, which Windows sets itself — and `FAQ=0` is for a vacancy,
 which has no `FAQPage`.
 
+## Page history (0.145.0)
+
+A page, or a library item, remembers what it was. **History**, in the header of
+its edit screen beside Share preview, lists the saved versions, newest first —
+when, by whom, which of title, address, written body, sections and template
+differ from the version before — and offers each one to **Preview** or
+**Restore**. Pages and the section library are the first two kinds; the other
+eleven kinds that carry share links are named in `Revisions::DEFERRED` and
+`ContentRevisionTest` fails if one is in neither list.
+
+**What a version is.** A row of `content_revisions` holding the *post-save*
+state of the record's content columns (`title`, `slug`, `body`, `blocks`,
+`template` for a page; `name`, `description`, `blocks` for a library item) as
+JSON in a `longText` column — nothing queries inside it, and MySQL's JSON type
+would reorder a section's keys. The newest version therefore equals "now" and
+creation is the first. **Never `status` or `published_at`**: restoring must not
+publish or unpublish anything. SEO fields, FAQs, answer blocks and custom fields
+are separate tables and are not captured. `App\Support\Revisions` is the one
+list (alias → model, owning role, columns); a model opts in with `HasRevisions`,
+whose `saved` hook writes and `deleted` hook forgets — so the WordPress import,
+the AI page draft and the library save are covered without an edit to any of
+them. A bulk status change fires no model events and records nothing, rightly.
+
+**The rules, each pinned by a test.**
+
+- **On save, never on autosave.** `FormDraft` already keeps unsaved work in the
+  browser; a row per autosave would spend the cap in an hour.
+- **Identical content adds nothing** (a sha1 of the canonical JSON — associative
+  arrays key-sorted, lists in order — compared with the latest version's).
+- **A save by the same person within five minutes of the previous version is
+  folded into it** (the row is updated, `changed` re-read against the version
+  before). The window runs from when the version was *created*, so a long
+  session still leaves a version every five minutes. A save with no actor
+  (artisan, an import) never folds. The consequence worth knowing: creating a
+  page and editing it within five minutes is *one* version.
+- **The newest thirty are kept** per record, pruned on insert;
+  `technoware:prune-revisions` (03:42) deletes history whose record is gone and
+  anything over a year old beyond each record's newest five.
+- **Recording never fails a save**: any failure is logged at `warning`.
+- `actor_name` is copied beside `user_id`, as the activity log does.
+
+**Read-only API, no restore endpoint.** `GET /admin/revisions?type=&id=` lists
+(no snapshots; `size` from `LENGTH(snapshot)`) and `GET /admin/revisions/{id}`
+carries the snapshot and `blocks_media`. `meta.labels` is the words for the
+`changed` keys — the console lists none. The routes sit behind the union of the
+roles that own a kind of record and the controller narrows to the owner of
+this one (`PreviewLinkController`'s rule); the console's `getRevisions()` turns
+a 403 or 404 into `null`, so a History button is drawn only for an account that
+may read it.
+
+**Restore is a load, not a write.** The dialog reads the version (a Server
+Action), and announces `tw:revision-load` on `document`. A page's `FormDraft`
+turns the snapshot into the field values it already knows how to put back — the
+same `restore()` a local draft uses, ending in `tw:draft-restored`, which
+re-keys the body editor and the builder's list — and shows "Loaded the version
+from … — press Save to keep it." A library item's `LibraryEditor` takes it into
+its state. `SectionBuilder` listens too: it remounts its rich-text editors and
+drops its undo steps (they describe sections that were just replaced). The
+loaded values count as typed, so the leave guard and the local draft treat them
+like any edit; **nothing is written until Save**, and Save runs *today's* rules,
+so a version pointing at a slider since unpublished or a picture since deleted
+gets an ordinary 422 on the right field instead of being written silently. A
+section placed linked from the library shows the library's content as it is
+now — a link is live by definition; the library's own history covers the other
+direction.
+
+**Preview** reuses the builder's unsaved-draft preview: a version with sections
+sends them through `previewSectionsAction`; a version with only a written body
+(or a builder page with nothing laid out) goes as one `rich_text` section, so
+the body is cleaned by the same rules and drawn by the same components.
+
+Probe: `PAGE_ID=<a page with 2+ versions> node scripts/probes/revisions.mjs`
+(`SAVE=1` also creates and deletes a throwaway page). The mock has three
+versions of its sample builder page (id 6).
+
 ## Tests
+
+`tests/Feature/ContentRevisionTest.php` — page history (0.145.0): creation and
+updates recorded with `changed`, a status change recording nothing, identical
+content adding nothing, the five-minute fold (same person only, not after the
+window), the cap of thirty, the library's history, deletion, the prune command,
+the list without snapshots and the detail with `blocks_media`, role narrowing,
+and the registry covering every share-link kind or naming it deferred.
 
 `tests/Feature/PageBuilderTest.php` — every type's rules valid and invalid, an
 unknown type refused, ids unique, rich text sanitised in a nested field, media
