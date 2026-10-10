@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, type RefObject } from "react";
 import { ButtonLink } from "@/components/ui/button";
+import { MenuBadge } from "@/components/ui/menu-badge";
 import { Logo } from "@/components/layout/logo";
 import { CartBadge } from "@/components/layout/cart-badge";
 import { IconChevronDown, IconClose, IconMail, IconPhone } from "@/components/icons-ui";
@@ -541,6 +542,7 @@ function DrawerItems({
             >
               {icon}
               {child.label}
+              <MenuBadge label={child.badge} tone={child.badgeTone} />
             </Row>
 
             {child.children && child.children.length > 0 && (

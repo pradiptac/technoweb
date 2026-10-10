@@ -2983,6 +2983,9 @@ export type MenuItemNode = {
   url: string | null;
   icon: string | null;
   description: string | null;
+  /** A status chip beside the entry and its tone (`live`, `beta`, `soon`, `new`); 0.150.0. */
+  badge?: string | null;
+  badge_tone?: string;
   open_in_new_tab: boolean;
   is_active: boolean;
   resolved_url: string | null;
@@ -3016,6 +3019,9 @@ export type NavNode = {
   href: string | null;
   icon: string | null;
   summary: string | null;
+  /** A status chip beside the entry (0.150.0); null when none. */
+  badge?: string | null;
+  badge_tone?: string | null;
   new_tab: boolean;
   children: NavNode[];
 };

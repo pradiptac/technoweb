@@ -109,6 +109,22 @@
   --color-topbar-line: var(--color-line-strong);
   --color-topbar-ink: var(--color-ink);
   --color-topbar-muted: var(--color-muted);
+  --color-topbar-live: var(--color-ok);
+  --color-topbar-beta: var(--color-tag-5);
+  --color-topbar-new: var(--color-brand-ink);
+}
+
+/* Top bar, columns (0.150.0): a square window under a double rule, each heading a `#` comment. */
+[data-theme="terminal"] [data-panel="topbar"][data-topbar-style="columns"] {
+  border-radius: 0;
+  border-top: 3px double var(--color-brand-600);
+}
+[data-theme="terminal"] [data-panel="topbar"][data-topbar-style="columns"] [data-topbar-heading] {
+  font-family: var(--font-mono);
+  letter-spacing: .06em;
+}
+[data-theme="terminal"] [data-panel="topbar"][data-topbar-style="columns"] [data-topbar-heading]::before {
+  content: "# ";
 }
 [data-theme="terminal"] [data-panel] a[href]:hover,
 [data-theme="terminal"] [data-panel] button:hover {

@@ -3049,6 +3049,34 @@ createServer(async (req, res) => {
      exactly the failure the 404 exists to prevent. */
   // Nothing assigned is `data: null` inside a 200 — a 404 is never cached by
   // Next, and this is fetched four times per layout render.
+  /* A menu item is `{label, href, icon, summary, badge, badge_tone, new_tab,
+     children}` (0.150.0): `badge` is plain text or null, `badge_tone` one of
+     live|beta|soon|new and null with it. With MOCK_TOPBAR_MENU=1 the top bar
+     is assigned a "Customer Zone" of three headed columns so the columns panel
+     and the chips can be driven without a Laravel; unset, nothing is assigned,
+     which is the default the frontend's fallbacks are built against. */
+  if (p === '/menus/topbar' && process.env.MOCK_TOPBAR_MENU) {
+    const leaf = (label, href, summary, badge = null, tone = null) => ({ label, href, icon: null, summary, badge, badge_tone: badge ? tone : null, new_tab: false, children: [] });
+    const col = (label, children) => ({ label, href: null, icon: null, summary: null, badge: null, badge_tone: null, new_tab: false, children });
+    return json(res, 200, { data: [{
+      label: 'Customer Zone', href: null, icon: null, summary: null, badge: null, badge_tone: null, new_tab: false,
+      children: [
+        col('Compute', [
+          leaf('Cloud servers', '/services', 'Virtual machines with the hardware and the uptime you would expect from a rack of your own.', 'Live', 'live'),
+          leaf('Bare metal', '/products', 'Dedicated servers, racked and cabled for you.', 'Beta', 'beta'),
+          leaf('GPU nodes', '/products', 'Accelerated compute for training and rendering.', 'Soon', 'soon'),
+        ]),
+        col('Network', [
+          leaf('Managed Wi-Fi', '/services', 'Surveyed, installed and watched.', 'Live', 'live'),
+          leaf('SD-WAN', '/services', 'One policy across every branch.', 'New', 'new'),
+        ]),
+        col('Support', [
+          leaf('Track a ticket', '/portal/tickets', 'See where your request stands.'),
+          leaf('Knowledge base', '/knowledge-base', 'Answers written by the engineers who fix things.'),
+        ]),
+      ],
+    }] });
+  }
   if (p.startsWith('/menus/')) return json(res, 200, { data: null });
 
   /* The newsletter's public surface.
@@ -3914,6 +3942,7 @@ createServer(async (req, res) => {
        location picker and its kind dropdown from these rather than listing
        them in TypeScript, so a mock that omitted them would render a screen
        with two empty selects and no error. */
+    // An admin menu item also carries `badge` (text or null) and `badge_tone` (live|beta|soon|new, default new).
     if (p === '/admin/menu-targets') return json(res, 200, { data: [] });
     if (p === '/admin/menus') return json(res, 200, {
       data: [],

@@ -100,12 +100,16 @@ class MenuTree
                     'href' => $url,
                     'icon' => $item->icon ?: null,
                     'summary' => $item->description ?: null,
+                    'badge' => $item->badge ?: null,
+                    'badge_tone' => $item->badge ? ($item->badge_tone ?: 'new') : null,
                     'new_tab' => $item->open_in_new_tab,
                     'children' => array_map(fn ($row) => [
                         'label' => $row['label'],
                         'href' => $row['href'],
                         'icon' => $row['icon'],
                         'summary' => $row['description'],
+                        'badge' => null,
+                        'badge_tone' => null,
                         'new_tab' => false,
                         'children' => [],
                     ], $rows),
@@ -140,6 +144,8 @@ class MenuTree
                  */
                 'icon' => $item->icon ?: self::fromTarget($item, ['icon']),
                 'summary' => $item->description ?: self::fromTarget($item, ['summary', 'description', 'excerpt', 'short_description']),
+                'badge' => $item->badge ?: null,
+                'badge_tone' => $item->badge ? ($item->badge_tone ?: 'new') : null,
                 'new_tab' => $item->open_in_new_tab,
                 'children' => $item->relationLoaded('children') ? self::level($item->children) : [],
             ];

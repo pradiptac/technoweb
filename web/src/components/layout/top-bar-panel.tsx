@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { PANEL_CLASSES, type MenuPanelStyle } from "@/components/layout/mega-menu";
 import type { MenuItem } from "@/lib/navigation";
+import { TopBarColumns } from "@/components/layout/top-bar-columns";
+import { useTopBarStyle } from "@/components/layout/topbar-style";
+import { MenuBadge } from "@/components/ui/menu-badge";
 import { navKey, newTabAttrs } from "@/lib/nav-key";
 import { cn } from "@/lib/utils";
 
@@ -85,7 +88,11 @@ import { cn } from "@/lib/utils";
 export function TopBarPanel({ items, style = "mega" }: { items: MenuItem[]; style?: MenuPanelStyle }) {
   const tabbed = items.some((item) => item.children && item.children.length > 0);
   const [active, setActive] = useState(0);
+  // `columns` is the top bar's own choice (Themes -> Top bar panel, 0.150.0)
+  // and wins over the menu style; otherwise the panel follows the menu.
+  const columns = useTopBarStyle() === "columns";
 
+  if (columns) return <TopBarColumns items={items} />;
   if (style === "simple") return <SimplePanel items={items} tabbed={tabbed} />;
   const tabsAcross = style === "semi" || style === "big";
 
@@ -198,7 +205,10 @@ export function TopBarPanel({ items, style = "mega" }: { items: MenuItem[]; styl
                 >
                   {hasIcon && <span className={card.summary ? "mt-0.5 shrink-0" : "shrink-0"}>{card.tile}</span>}
                   <span className="min-w-0">
-                    <span className="block text-14 font-semibold text-topbar-ink">{card.label}</span>
+                    <span className="flex items-center gap-2 text-14 font-semibold text-topbar-ink">
+                      {card.label}
+                      <MenuBadge label={card.badge} tone={card.badgeTone} />
+                    </span>
                     {card.summary && style !== "semi" && (
                       <span className="mt-0.5 block max-w-[34ch] text-12-5 leading-[1.5] text-topbar-muted">{card.summary}</span>
                     )}
@@ -236,9 +246,10 @@ function SimplePanel({ items, tabbed }: { items: MenuItem[]; tabbed: boolean }) 
         <Link
           href={item.href}
           {...newTabAttrs(item.newTab)}
-          className="block rounded-md px-3 py-1.5 text-14 text-topbar-ink transition-colors duration-(--duration-base) hover:bg-topbar-2"
+          className="flex items-center gap-2 rounded-md px-3 py-1.5 text-14 text-topbar-ink transition-colors duration-(--duration-base) hover:bg-topbar-2"
         >
           {item.label}
+          <MenuBadge label={item.badge} tone={item.badgeTone} />
         </Link>
       )}
     </li>

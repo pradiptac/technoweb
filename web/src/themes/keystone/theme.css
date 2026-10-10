@@ -71,6 +71,15 @@
   --color-topbar-muted: var(--color-muted);
   border-radius: 20px;
   box-shadow: var(--shadow-float);
+  --color-topbar-live: var(--color-ok);
+  --color-topbar-beta: var(--color-tag-5);
+  --color-topbar-new: var(--color-brand-ink);
+}
+
+/* Top bar, columns (0.150.0): the rounded card, with a brand line along a squarer top. */
+[data-theme="keystone"] [data-panel="topbar"][data-topbar-style="columns"] {
+  border-radius: 6px 6px 20px 20px;
+  border-top: 2px solid var(--color-brand-600);
 }
 [data-theme="keystone"] [data-panel="topbar"] li > a,
 [data-theme="keystone"] [data-panel="topbar"] li > button { border-radius: 999px; }

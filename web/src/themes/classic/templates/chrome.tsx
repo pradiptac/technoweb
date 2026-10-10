@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { AnnouncementBar } from "@/components/layout/announcement-bar";
 import { SiteFooter, footerLayoutFor } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { TopBarStyleProvider } from "@/components/layout/topbar-style";
 import { PageEnter } from "@/components/ui/page-enter";
 import { defaultTopBar } from "@/lib/navigation";
 import type { ChromeData } from "@/themes/contract";
@@ -23,13 +24,15 @@ export function Chrome({
           above the sticky header, so it scrolls away; only this layout has
           it — never the console or the portal. */}
       {announcement && <AnnouncementBar announcement={announcement} />}
-      <SiteHeader
-        menu={primary ? primary.sections : menu}
-        settings={settings}
-        links={primary?.links}
-        topBar={topBar ?? defaultTopBar()}
-        menuStyle={options.menu_style}
-      />
+      <TopBarStyleProvider value={options.topbar_style}>
+        <SiteHeader
+          menu={primary ? primary.sections : menu}
+          settings={settings}
+          links={primary?.links}
+          topBar={topBar ?? defaultTopBar()}
+          menuStyle={options.menu_style}
+        />
+      </TopBarStyleProvider>
       <main id="main"><PageEnter transition={motion.page}>{children}</PageEnter></main>
       {/* The footer is the one part of this chrome that changes per theme:
           Enterprise, Horizon and Canvas inherit the header and pick their

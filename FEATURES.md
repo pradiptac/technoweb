@@ -64,6 +64,10 @@ The product and solution catalogue built for how B2B buyers actually research.
   `/products/cisco-cbs350-24t-4g`), the way buyers link and bookmark.
 - **Choose what is in the navigation** separately from what is published, so
   a growing catalogue does not become an unusable mega menu.
+- **A customer-zone menu in columns.** The top bar's dropdown can open as a
+  wide panel under a thin brand line — a small uppercase heading over each
+  column, bold titles beneath with a one- to three-line description — and any
+  menu entry can carry a small outlined badge (Live, Beta, Soon, New).
 - **Every catalogue edit reaches the homepage** — rename a solution and it
   changes everywhere, including navigation and structured data.
 

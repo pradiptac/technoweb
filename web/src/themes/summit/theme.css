@@ -43,6 +43,18 @@
   border-radius: 6px;
   border-left: 3px solid var(--color-accent-500);
 }
+
+/* Top bar, columns (0.150.0): the accent rule runs along the top as well as down the left. */
+[data-theme="summit"] [data-panel="topbar"][data-topbar-style="columns"] {
+  border-radius: 0 0 6px 6px;
+  border-top: 2px solid var(--color-accent-500);
+}
+[data-theme="summit"] [data-panel="topbar"][data-topbar-style="columns"] [data-topbar-heading] {
+  font-variant-caps: all-small-caps;
+  text-transform: none;
+  letter-spacing: .14em;
+  font-size: 13px;
+}
 [data-theme="summit"] [data-panel="topbar"] li > a[aria-current],
 [data-theme="summit"] [data-panel="topbar"] li > button {
   font-size: 12px;

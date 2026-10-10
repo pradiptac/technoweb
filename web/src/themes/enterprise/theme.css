@@ -61,6 +61,12 @@
   border-top: 3px solid var(--color-brand-500);
   box-shadow: 0 12px 32px rgba(0, 0, 0, .28);
 }
+
+/* Top bar, columns (0.150.0): the 3px brand rule it already carries, squared off at the top. */
+[data-theme="enterprise"] [data-panel="topbar"][data-topbar-style="columns"] {
+  border-radius: 0 0 14px 14px;
+  border-top: 3px solid var(--color-brand-500);
+}
 [data-theme="enterprise"] [data-panel="topbar"] li > a,
 [data-theme="enterprise"] [data-panel="topbar"] li > button {
   border-radius: 8px;

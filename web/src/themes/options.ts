@@ -22,6 +22,9 @@
  *
  * - `menu_style` — how a top-level item's panel is drawn: a narrow list, two
  *   compact columns, the mega panel, or one spanning the whole header.
+ * - `topbar_style` — how the top bar's panel opens: `match` follows `menu_style`
+ *   (the default and what an install that chose nothing renders), `columns` is
+ *   its own wide panel of headed columns (0.150.0).
  * - `hero_style` — how a first- or second-level page opens: the banner
  *   band, a taller centred cover, the words beside the picture, or the
  *   headline alone.
@@ -36,6 +39,8 @@
  */
 
 export type MenuStyle = "simple" | "semi" | "mega" | "big";
+/** How the top bar's panel opens: following `menu_style`, or the client's columns (0.150.0). */
+export type TopBarPanelStyle = "match" | "columns";
 export type HeroStyle = "banner" | "cover" | "split" | "compact";
 /** Where a category card's name sits beside its icon: next to it, or at the card's far edge. */
 export type HeadingAlign = "left" | "right";
@@ -78,6 +83,7 @@ export type SectionSetting = {
 
 export type ThemeOptions = {
   menu_style: MenuStyle;
+  topbar_style: TopBarPanelStyle;
   hero_style: HeroStyle;
   /**
    * A theme's own option (2026-09-19): only a manifest that lists it under
@@ -111,6 +117,11 @@ export const MENU_STYLES: readonly Choice<MenuStyle>[] = [
   { id: "semi", label: "Semi mega", blurb: "Two compact columns with icons and no summaries." },
   { id: "mega", label: "Mega", blurb: "Three columns, an icon and a summary per entry." },
   { id: "big", label: "Big mega", blurb: "A panel as wide as the header, four columns, the section's link along the foot." },
+];
+
+export const TOPBAR_STYLES: readonly Choice<TopBarPanelStyle>[] = [
+  { id: "match", label: "Same as the menu", blurb: "The panel under a top-bar link opens in the menu style above — tabs and cards." },
+  { id: "columns", label: "Columns", blurb: "A wide panel under a thin brand line: a heading over each column of links, each with its status chip and a line of description. Everything shows at once." },
 ];
 
 export const HERO_STYLES: readonly Choice<HeroStyle>[] = [
@@ -261,6 +272,7 @@ export function resolveOptions(raw: string | undefined, themeId: string, default
 
   return {
     menu_style: choice(MENU_STYLES, stored.menu_style, defaults.menu_style ?? "mega"),
+    topbar_style: choice(TOPBAR_STYLES, stored.topbar_style, "match"),
     hero_style: choice(HERO_STYLES, stored.hero_style, defaults.hero_style ?? "banner"),
     heading_align: choice(HEADING_ALIGNS, stored.heading_align, defaults.heading_align ?? "left"),
     sections,

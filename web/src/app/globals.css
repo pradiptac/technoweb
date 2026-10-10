@@ -144,6 +144,10 @@
   --color-topbar-line:  #2a2e20;
   --color-topbar-ink:   #f6f7f2;
   --color-topbar-muted: #9ba095;
+  /* Menu badge inks on that panel (`badgeInks` in lib/palette.ts derives them per bar colour; these are the default bar's). SOON uses `-muted`. */
+  --color-topbar-live:  #85cc87;
+  --color-topbar-beta:  #bda8fc;
+  --color-topbar-new:   #adc367;
   /*
    * On the dark bands only, which stay dark in both schemes so none of these
    * invert: the muted copy on a brand-900/accent-900 CTA card, tinted with the
@@ -5038,3 +5042,41 @@ html[data-builder-preview] [data-edit]:focus {
   .public-site:has(> [data-action-bar]) [data-compare-tray] { bottom: calc(1rem + var(--action-bar-h)); }
   .public-site:has(> [data-action-bar]) [data-install-prompt] { bottom: calc(.75rem + var(--action-bar-h)); }
 }
+
+/*
+ * The menu badge (0.150.0, `components/ui/menu-badge.tsx`): a small outlined
+ * status chip beside a menu entry — uppercase, letter-spaced, a one-pixel
+ * border in the same colour as its text and no fill, so the contrast is the
+ * colour's own against the panel behind it. 12px, the public site's floor.
+ *
+ * Which colour: the scheme's status tokens on a light panel (the mega menu,
+ * the drawer) — `--color-tag-5` is the violet identity token, graded against
+ * the card like the other tags — and the `--color-topbar-*` inks on the top
+ * bar's panel, which `badgeInks()` walks to 4.5:1 on the bar's own raised step
+ * whatever colour the bar is set to. Themes whose top-bar panel is a light card
+ * re-token those three in their own `[data-panel="topbar"]` block.
+ */
+[data-menu-badge] {
+  --badge-ink: var(--color-brand-ink);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 .375rem;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--badge-ink);
+  font-size: .75rem;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+[data-menu-badge="live"] { --badge-ink: var(--color-ok); }
+[data-menu-badge="beta"] { --badge-ink: var(--color-tag-5); }
+[data-menu-badge="soon"] { --badge-ink: var(--color-muted); }
+[data-menu-badge="new"]  { --badge-ink: var(--color-brand-ink); }
+[data-panel="topbar"] [data-menu-badge="live"] { --badge-ink: var(--color-topbar-live); }
+[data-panel="topbar"] [data-menu-badge="beta"] { --badge-ink: var(--color-topbar-beta); }
+[data-panel="topbar"] [data-menu-badge="soon"] { --badge-ink: var(--color-topbar-muted); }
+[data-panel="topbar"] [data-menu-badge="new"]  { --badge-ink: var(--color-topbar-new); }

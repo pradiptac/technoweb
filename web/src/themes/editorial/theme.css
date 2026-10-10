@@ -74,6 +74,18 @@
   border: 1px solid var(--color-topbar-ink);
   box-shadow: none;
 }
+
+/* Top bar, columns (0.150.0): square, a double rule for the top and a hairline under each heading. */
+[data-theme="editorial"] [data-panel="topbar"][data-topbar-style="columns"] {
+  border-radius: 0;
+  border-top: 3px double var(--color-topbar-ink);
+}
+[data-theme="editorial"] [data-panel="topbar"][data-topbar-style="columns"] [data-topbar-heading] {
+  padding-bottom: .5rem;
+  border-bottom: 1px solid var(--color-topbar-line);
+  font-family: var(--font-display);
+  letter-spacing: .1em;
+}
 [data-theme="editorial"] [data-panel="topbar"] a,
 [data-theme="editorial"] [data-panel="topbar"] button {
   border-radius: 0;

@@ -92,6 +92,7 @@ class SiteThemeSettingsTest extends TestCase
         $json = json_encode([
             'classic' => [
                 'menu_style' => 'big',
+                'topbar_style' => 'columns',
                 'hero_style' => 'split',
                 'section_order' => ['cta', 'hero', 'cta', 'partners'],
                 'sections' => [
@@ -120,6 +121,7 @@ class SiteThemeSettingsTest extends TestCase
         $stored = json_decode(Setting::get('site_theme_options'), true);
 
         $this->assertSame('big', $stored['classic']['menu_style']);
+        $this->assertSame('columns', $stored['classic']['topbar_style'], 'the top-bar panel style is a choice id like the others');
         $this->assertSame('#0b1020', $stored['classic']['sections']['partners']['colour'], 'lower-cased');
         $this->assertArrayNotHasKey('angle', $stored['classic']['sections']['partners'], 'a blank angle is dropped');
         $this->assertSame(135, $stored['classic']['sections']['why']['angle']);

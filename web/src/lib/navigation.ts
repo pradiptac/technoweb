@@ -84,6 +84,9 @@ export type MenuItem = {
    * is how a renderer applies it, so `rel` cannot be forgotten on one of the four.
    */
   newTab?: boolean;
+  /** A status chip beside the label (0.150.0) — LIVE, BETA, SOON, NEW — and its tone id; drawn by `MenuBadge`. */
+  badge?: string | null;
+  badgeTone?: string | null;
   /*
    * Optional, so the CMS-driven fallback below satisfies the type without
    * every entry gaining an empty array it does not need: solutions, categories,
@@ -110,6 +113,8 @@ function toItem(node: NavNode): MenuItem {
     glyph: colourGlyphFor(node.icon),
     summary: node.summary,
     newTab: node.new_tab,
+    badge: node.badge ?? null,
+    badgeTone: node.badge_tone ?? null,
     children: node.children.map(toItem),
   };
 }

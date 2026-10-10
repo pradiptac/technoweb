@@ -83,6 +83,12 @@
   border-radius: 12px;
   box-shadow: 0 -1px 0 var(--color-brand-300), var(--shadow-float);
 }
+
+/* Top bar, columns (0.150.0): the glow along the top edge is the brand line. */
+[data-theme="sentinel"] [data-panel="topbar"][data-topbar-style="columns"] {
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 -1px 0 var(--color-brand-300), 0 -6px 18px -8px var(--color-brand-500), var(--shadow-float);
+}
 [data-theme="sentinel"] [data-panel="topbar"] [aria-current="true"] {
   background: transparent;
   color: var(--color-brand-300);

@@ -66,6 +66,11 @@ theme, so trying another theme and coming back loses nothing.
   narrow list), *Semi mega* (two compact columns with icons), *Mega* (three
   columns with icons and summaries) or *Big mega* (a panel the width of the
   header).
+- **Top bar panel** — how a link in the strip above the header opens when it
+  has a menu under it (a *Customer Zone*, say). *Same as the menu* follows the
+  menu style above. *Columns* opens a wide panel under a thin brand line, a
+  heading over each column of links with its badges and descriptions. Every
+  theme draws it in its own idiom.
 - **Inner page heading** — how pages open: *Banner* (the section's picture
   behind the heading), *Cover* (taller, words centred), *Split* (words left,
   picture framed on the right) or *Compact* (headline only, no picture).

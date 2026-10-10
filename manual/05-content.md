@@ -651,6 +651,23 @@ Clients, Careers and so on) are hidden until the first item is published.
 The top bar's telephone number, email and search box, and the bottom bar's
 copyright line, are part of the site itself — a menu cannot remove them.
 
+**Badges.** Open an item on **Site → Menus** and type a short word — *Live*,
+*Beta*, *Soon*, *New* — into **Badge** (twelve characters at most), then choose
+its **Badge colour**. It appears as a small outlined label beside the item in
+the top bar's panel, the header's dropdown and the phone menu. Leave it blank
+for none. The colours follow your theme and stay readable on whatever colour
+the top bar is.
+
+**A customer zone in columns.** On the top bar, build a link such as *Customer
+Zone* with a few **headings** under it (a custom item with no address — *Compute*,
+*Network*, *Support*), and under each heading the links, each with an optional
+**Description**. Then choose **Site → Themes → Top bar panel → Columns**
+(chapter 15): the panel opens wide, with each heading in small capitals over its
+own column, everything visible at once. A link placed directly under *Customer
+Zone* (not under a heading) shows in a first column with no heading. Up to four
+columns sit side by side; more wrap to a second row, and on a phone the panel
+narrows to the screen.
+
 ## Popups
 
 **Site → Popups** shows a message, a picture, or both, in a box over the page.

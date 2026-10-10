@@ -254,6 +254,8 @@ export type MenuItemPayload = {
   url?: string | null;
   icon?: string | null;
   description?: string | null;
+  badge?: string | null;
+  badge_tone?: string;
   open_in_new_tab?: boolean;
   is_active?: boolean;
   children?: MenuItemPayload[];

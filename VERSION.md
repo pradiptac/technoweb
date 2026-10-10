@@ -21,6 +21,28 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.150.0 — 2026-10-10
+
+**The top bar's dropdown can open in columns, and a menu entry can carry a badge.**
+
+- **A "columns" panel for the top bar.** The client pointed at a customer-zone
+  menu with a thin brand line along the top of a wide dark panel, a small
+  uppercase heading over each column, and bold titles with a one- to three-line
+  description under them. It is the fifth shape the top bar's panel can take,
+  chosen on **Site → Themes → Top bar panel → Columns**; every theme draws the
+  top edge in its own idiom, and nothing changes for an install that does not
+  choose it (stored as `topbar_style`, a theme option of its own, so the header's
+  mega menu keeps its own style).
+- **Menu badges.** Each menu item takes a short badge (twelve characters) and a
+  tone — Live, Beta, Soon, New — drawn as a small outlined chip beside the label
+  in the columns panel, the other top-bar panels, the mega menu and the phone
+  drawer. The tones are theme tokens; on the top bar they are derived per bar
+  colour so the text always clears 4.5:1.
+- Needs `php artisan migrate` (two nullable/defaulted columns on `menu_items`).
+  `scripts/probes/topbar-columns.mjs` drives the panel at 1280 and 360.
+
+---
+
 ## 0.149.0 — 2026-10-10
 
 **A custom layout can hold a video, a form, a slider and a gallery.**

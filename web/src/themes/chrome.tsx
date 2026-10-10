@@ -2,6 +2,7 @@ import type { ComponentType, ReactNode } from "react";
 import { AnnouncementBar } from "@/components/layout/announcement-bar";
 import type { MenuPanelStyle } from "@/components/layout/mega-menu";
 import { SiteFooter, type FooterLayout } from "@/components/layout/site-footer";
+import { TopBarStyleProvider } from "@/components/layout/topbar-style";
 import { PageEnter } from "@/components/ui/page-enter";
 import { defaultTopBar } from "@/lib/navigation";
 import type { MenuSection, NavLink, TopBarLink } from "@/lib/navigation";
@@ -43,13 +44,15 @@ export function themeChrome({
     return (
       <>
         {announcement && <AnnouncementBar announcement={announcement} />}
-        <Header
-          menu={primary ? primary.sections : menu}
-          settings={settings}
-          links={primary?.links}
-          topBar={topBar ?? defaultTopBar()}
-          menuStyle={options.menu_style}
-        />
+        <TopBarStyleProvider value={options.topbar_style}>
+          <Header
+            menu={primary ? primary.sections : menu}
+            settings={settings}
+            links={primary?.links}
+            topBar={topBar ?? defaultTopBar()}
+            menuStyle={options.menu_style}
+          />
+        </TopBarStyleProvider>
         {between?.(settings)}
         <main id="main"><PageEnter transition={motion.page}>{children}</PageEnter></main>
         <SiteFooter layout={footer} settings={settings} columns={footerMenu ?? undefined} bottomBar={bottomBar ?? undefined} />

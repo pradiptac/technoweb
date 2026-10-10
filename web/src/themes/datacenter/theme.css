@@ -53,6 +53,16 @@
   border-radius: 4px;
   border-top: 2px solid var(--color-brand-500);
 }
+
+/* Top bar, columns (0.150.0): a rack panel under its brand rule, the headings in mono. */
+[data-theme="datacenter"] [data-panel="topbar"][data-topbar-style="columns"] {
+  border-radius: 0 0 4px 4px;
+  border-top: 2px solid var(--color-brand-500);
+}
+[data-theme="datacenter"] [data-panel="topbar"][data-topbar-style="columns"] [data-topbar-heading] {
+  font-family: var(--font-mono);
+  letter-spacing: .08em;
+}
 [data-theme="datacenter"] [data-panel="topbar"] li > a[aria-current],
 [data-theme="datacenter"] [data-panel="topbar"] li > button {
   font-family: var(--font-mono);

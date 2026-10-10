@@ -12,8 +12,8 @@ import { isHex } from "@/lib/presets";
 import { cn } from "@/lib/utils";
 import { MANIFESTS } from "@/themes/manifests";
 import {
-  HEADING_ALIGNS, HERO_STYLES, HOME_SECTIONS, MENU_STYLES, SECTION_KINDS, SECTION_TEXTURES,
-  type Choice, type HeadingAlign, type HeroStyle, type MenuStyle, type SectionBackground, type SectionKind, type SectionTexture,
+  HEADING_ALIGNS, HERO_STYLES, HOME_SECTIONS, MENU_STYLES, SECTION_KINDS, SECTION_TEXTURES, TOPBAR_STYLES,
+  type Choice, type HeadingAlign, type HeroStyle, type MenuStyle, type SectionBackground, type SectionKind, type SectionTexture, type TopBarPanelStyle,
 } from "@/themes/options";
 
 /**
@@ -24,6 +24,7 @@ import {
  */
 export type OptionsDraft = Record<string, {
   menu_style?: MenuStyle;
+  topbar_style?: TopBarPanelStyle;
   hero_style?: HeroStyle;
   heading_align?: HeadingAlign;
   sections?: Record<string, Partial<SectionBackground> & { enabled?: boolean; reveal?: string }>;
@@ -98,6 +99,15 @@ export function ThemeOptionsEditor({
         disabled={ignores.has("menu_style")}
         note={ignores.has("menu_style") ? `${manifest?.name} draws its own menu and does not use this.` : undefined}
         diagram={(id) => <MenuDiagram style={id} />}
+      />
+
+      <ChoiceTiles<TopBarPanelStyle>
+        legend="Top bar panel"
+        intro="How a link in the strip above the header opens when it has a menu under it, such as Customer Zone. Edit the links in Site → Menus."
+        choices={TOPBAR_STYLES}
+        value={mine.topbar_style ?? "match"}
+        onChange={(v) => set({ topbar_style: v })}
+        diagram={(id) => <TopBarDiagram style={id} />}
       />
 
       <ChoiceTiles<HeroStyle>
@@ -214,6 +224,42 @@ function MenuDiagram({ style }: { style: MenuStyle }) {
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** The strip above the header, and the panel under its last link: tabs and cards, or headed columns under a brand line. */
+function TopBarDiagram({ style }: { style: TopBarPanelStyle }) {
+  return (
+    <div className="relative h-full p-[6%]">
+      <div className="flex h-[12%] items-center justify-end gap-[4%] rounded-sm bg-dark px-[4%]">
+        {[0, 1].map((i) => <i key={i} className="h-[35%] w-[10%] rounded-xs bg-dark-muted/70" />)}
+      </div>
+      <div className="absolute top-[20%] right-[6%] h-[62%] w-[70%] overflow-hidden rounded-b-sm bg-dark p-[3%] shadow-2 ring-1 ring-dark-line">
+        {style === "columns" ? (
+          <>
+            <i className="absolute inset-x-0 top-0 h-[3%] bg-brand-600" />
+            <div className="mt-[3%] grid h-full grid-cols-3 gap-[5%]">
+              {[0, 1, 2].map((c) => (
+                <div key={c} className="flex flex-col gap-[9%]">
+                  <i className="h-[7%] w-[60%] rounded-xs bg-dark-muted" />
+                  {[0, 1, 2].map((r) => (
+                    <div key={r} className="flex flex-col gap-[6%]">
+                      <span className="flex items-center gap-[6%]"><i className="h-[8px] w-[45%] rounded-xs bg-dark-ink/80" /><i className="h-[8px] w-[22%] rounded-xs border border-brand-ink/70" /></span>
+                      <i className="h-[5px] w-[85%] rounded-xs bg-dark-muted/60" />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="grid h-full grid-cols-[28%_1fr] gap-[4%]">
+            <div className="flex flex-col gap-[10%]">{[0, 1, 2].map((i) => <i key={i} className={cn("h-[16%] rounded-xs", i === 0 ? "bg-dark-line" : "bg-dark-2")} />)}</div>
+            <div className="grid grid-cols-2 gap-[6%]">{[0, 1, 2, 3].map((i) => <i key={i} className="h-[40%] rounded-xs bg-dark-2" />)}</div>
+          </div>
+        )}
       </div>
     </div>
   );

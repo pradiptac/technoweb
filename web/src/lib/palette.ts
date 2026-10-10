@@ -351,6 +351,27 @@ export function darkNeutrals(hue: number): Neutrals {
 export type Band = { bar: string; bar2: string; line: string; ink: string; muted: string };
 
 /**
+ * The inks of a menu badge on the top bar's panel (0.150.0): LIVE, BETA and
+ * NEW as text and as a one-pixel outline, each walked to 4.5:1 on the bar's
+ * raised step — the lightest ground a badge sits on, since the panel's
+ * hover is `bar2` — whatever colour the bar is. SOON is the band's own
+ * `muted`. Needed because the status tokens (`--color-ok`, `--color-info`)
+ * are chosen for the scheme's panels, and the bar's colour is a setting: a
+ * green graded for a white card is not a green graded for a navy strip.
+ * Hues are fixed (a success green, a violet, the theme's brand); lightness
+ * is what is solved for.
+ */
+export function badgeInks(band: Band, brandHue: number): { live: string; beta: string; new: string } {
+  const dir: 1 | -1 = luminance(band.ink) > luminance(band.bar2) ? 1 : -1;
+  const start = (h: number): Lch => ({ L: dir > 0 ? 0.78 : 0.42, C: 0.12, h });
+  return {
+    live: pushUntil(start(145), band.bar2, 4.5, dir),
+    beta: pushUntil(start(295), band.bar2, 4.5, dir),
+    new: pushUntil(start(brandHue), band.bar2, 4.5, dir),
+  };
+}
+
+/**
  * The top bar's colours from one typed hex, for one scheme.
  *
  * In light the bar is the colour as typed wherever that can be read on — an

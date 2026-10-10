@@ -4177,6 +4177,17 @@ listing them, the rule `schema_type_options` follows.
 is editorial work, and it is the same role that already owns every record those
 links point at.
 
+**A menu item carries a badge (0.150.0).** `badge` (plain text, at most 12
+characters, stored as typed and drawn upper-case; a blank or whitespace-only
+value is no badge) and `badge_tone` (`live`, `beta`, `soon` or `new`; default
+`new`) on every item of `POST`/`PATCH /admin/menus`, a 422 at the nested path
+(`items.0.children.1.badge`, `...badge_tone`) when too long or not one of the
+four. The admin read returns both (`badge_tone` is `new` beside a null badge);
+the public `GET /menus/{location}` returns `badge` and `badge_tone` on every
+node — `badge_tone` is **null whenever `badge` is**, and a live list's
+expanded rows carry neither. The colour behind each tone is the frontend's
+token; no colour is stored or sent.
+
 **Items arrive nested and are replaced wholesale**, the rule `faqs` and `slides`
 follow. `parent_id` and `sort_order` are read off the *shape* of the payload,
 never trusted from it — which is also what makes a cycle unrepresentable rather

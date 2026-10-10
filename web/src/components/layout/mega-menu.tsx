@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { IconArrowRight } from "@/components/icons-ui";
+import { MenuBadge } from "@/components/ui/menu-badge";
 import type { MenuItem, MenuSection } from "@/lib/navigation";
 import { navKey, newTabAttrs } from "@/lib/nav-key";
 
@@ -178,7 +179,10 @@ export function MegaMenu({ section, style = "mega" }: { section: MenuSection; st
                     <span className={summary ? "mt-0.5 shrink-0" : "shrink-0"}>{glyph}</span>
                   )}
                   <span className="min-w-0">
-                    <span className={["block font-semibold text-ink", compact ? "text-13-5" : "text-14"].join(" ")}>{item.label}</span>
+                    <span className={["flex items-center gap-2 font-semibold text-ink", compact ? "text-13-5" : "text-14"].join(" ")}>
+                      {item.label}
+                      <MenuBadge label={item.badge} tone={item.badgeTone} />
+                    </span>
                     {summary && (
                       <span className="mt-0.5 block max-w-[34ch] text-12-5 leading-[1.5] text-muted">
                         {truncate(summary, style === "big" ? 72 : 84)}
@@ -253,6 +257,7 @@ function SubItems({ items, indented }: { items: MenuItem[]; indented: boolean })
               {/* A small glyph in its own hue: an identity, not a tile. */}
               {child.glyph && <span aria-hidden className="grid shrink-0 place-items-center">{child.glyph}</span>}
               <span className="min-w-0">{child.label}</span>
+              <MenuBadge label={child.badge} tone={child.badgeTone} />
             </Link>
           )}
 
