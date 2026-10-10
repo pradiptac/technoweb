@@ -10,7 +10,21 @@ import { previewRevisionAction, readRevisionAction } from "@/components/admin/re
 import type { RevisionMeta, RevisionRow, RevisionType } from "@/types/revisions";
 
 /** What the record is called in the sentences in the dialog. */
-const NOUN: Record<RevisionType, string> = { page: "page", saved_section: "library item" };
+const NOUN: Record<RevisionType, string> = {
+  page: "page",
+  saved_section: "library item",
+  blog_post: "post",
+  knowledge_article: "article",
+  case_study: "case study",
+  solution: "solution",
+  service: "service",
+  product: "product",
+  store_product: "product",
+  event: "event",
+  job_opening: "vacancy",
+  entry: "entry",
+  landing_page: "landing page",
+};
 
 function sizeLabel(bytes: number | undefined): string {
   if (!bytes) return "";
@@ -23,7 +37,9 @@ function sizeLabel(bytes: number | undefined): string {
  *
  * **Restore loads, it does not save.** The version is read, then announced on
  * `document` for the form that holds the record to take (`FormDraft` for a
- * page, `LibraryEditor` for a library item). Nothing is written until the
+ * page or any other record, `LibraryEditor` for a library item). A kind the
+ * API marks `restorable: false` is looked at and not put back: Restore is not
+ * drawn and the dialog says why. Nothing is written until the
  * editor presses Save, and that save runs the current rules — a version
  * pointing at a slider since unpublished gets a normal 422 on the right
  * field instead of being written silently. Status and publish date are not in
@@ -48,6 +64,7 @@ export function RevisionDialog({
   const [busy, setBusy] = useState<number | null>(null);
   const [, start] = useTransition();
   const noun = NOUN[type];
+  const restorable = meta.restorable !== false;
 
   const close = useCallback(() => { setOpen(false); setLooking(null); setError(null); }, []);
 
@@ -72,6 +89,7 @@ export function RevisionDialog({
       announceRevisionLoad({
         type, id,
         at: result.revision.saved_at,
+        fields: result.meta.fields,
         snapshot: result.revision.snapshot,
         media: result.revision.blocks_media ?? {},
       });
@@ -106,9 +124,11 @@ export function RevisionDialog({
         footer={looking ? (
           <>
             <Button type="button" variant="ghost" size="sm" onClick={() => setLooking(null)}>Back to the list</Button>
-            <Button type="button" size="sm" pending={busy === looking.row.id} onClick={() => restore(looking.row)}>
-              Restore this version
-            </Button>
+            {restorable && (
+              <Button type="button" size="sm" pending={busy === looking.row.id} onClick={() => restore(looking.row)}>
+                Restore this version
+              </Button>
+            )}
           </>
         ) : (
           <Button type="button" variant="ghost" size="sm" onClick={close}>Close</Button>
@@ -143,18 +163,23 @@ export function RevisionDialog({
                     <Button type="button" size="sm" variant="secondary" disabled={busy !== null} pending={busy === row.id} onClick={() => preview(row)}>
                       Preview
                     </Button>
-                    <Button type="button" size="sm" variant="secondary" disabled={busy !== null} onClick={() => restore(row)}>
-                      Restore
-                    </Button>
+                    {restorable && (
+                      <Button type="button" size="sm" variant="secondary" disabled={busy !== null} onClick={() => restore(row)}>
+                        Restore
+                      </Button>
+                    )}
                   </div>
                 </li>
               ))}
             </ul>
             <p className="measure mt-3 text-12-5 text-muted">
-              Restore puts the version into the form below — nothing is saved until you press Save. The status
-              and publish date are never changed. A section placed linked from the library shows the
-              library’s content as it is now, and a version pointing at something since unpublished or deleted
-              is refused by Save, naming the field.
+              {restorable
+                ? "Restore puts the version into the form below — nothing is saved until you press Save. The status and publish date are never changed. "
+                : "This kind of record’s form cannot take a version back, so a version can be looked at here and not restored. "}
+              A section placed linked from the library shows the library’s content as it is now, and a version
+              pointing at something since unpublished or deleted is refused by Save, naming the field. Only the
+              name or title, address, written body and sections are kept in a version — not the SEO fields, FAQs, answer
+              blocks, custom fields, relations or anything else on the other tabs.
             </p>
           </>
         )}

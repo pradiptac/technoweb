@@ -3,15 +3,31 @@
 namespace Tests\Feature;
 
 use App\Enums\Role as RoleEnum;
+use App\Models\BlogPost;
+use App\Models\Brand;
+use App\Models\CaseStudy;
 use App\Models\ContentRevision;
+use App\Models\ContentType;
+use App\Models\Entry;
+use App\Models\Event;
+use App\Models\JobOpening;
+use App\Models\KnowledgeArticle;
+use App\Models\LandingPage;
 use App\Models\Page;
+use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Models\Role;
 use App\Models\SavedSection;
+use App\Models\Service;
+use App\Models\Solution;
+use App\Models\StoreProduct;
 use App\Models\User;
 use App\Support\PreviewLinks;
 use App\Support\Revisions;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -54,7 +70,7 @@ class ContentRevisionTest extends TestCase
         return Page::create($attrs + ['title' => 'History page', 'slug' => 'history-page', 'body' => '<p>One.</p>', 'template' => 'default', 'status' => 'draft']);
     }
 
-    private function revisions(Page|SavedSection $subject, string $alias = 'page')
+    private function revisions(Model $subject, string $alias = 'page')
     {
         return ContentRevision::query()->where('subject_type', $alias)->where('subject_id', $subject->getKey())->orderBy('id')->get();
     }
@@ -299,7 +315,7 @@ class ContentRevisionTest extends TestCase
 
     public function test_an_unknown_kind_or_revision_is_refused(): void
     {
-        $this->asStaff(RoleEnum::ContentManager)->getJson('/api/v1/admin/revisions?type=blog_post&id=1')->assertUnprocessable();
+        $this->asStaff(RoleEnum::ContentManager)->getJson('/api/v1/admin/revisions?type=nonsense&id=1')->assertUnprocessable();
         $this->asStaff(RoleEnum::ContentManager)->getJson('/api/v1/admin/revisions/999999')->assertNotFound();
         $this->asStaff(RoleEnum::ContentManager)->getJson('/api/v1/admin/revisions/abc')->assertNotFound();
     }
@@ -309,6 +325,210 @@ class ContentRevisionTest extends TestCase
         $this->app['auth']->forgetGuards();
 
         $this->withoutHeader('Authorization')->getJson('/api/v1/admin/revisions?type=page&id=1')->assertUnauthorized();
+    }
+
+    // ------------------------------------------------- the other eleven kinds (0.148.0)
+
+    /** A draft of the given kind, as `PreviewLinkTest` makes them. */
+    private function draft(string $type): Model
+    {
+        $status = ['status' => 'draft'];
+
+        return match ($type) {
+            'blog_post' => BlogPost::create([
+                'title' => 'A draft post', 'slug' => 'a-draft-post', 'excerpt' => 'x', 'body' => '<p>Words.</p>',
+                'author_id' => $this->staff(RoleEnum::ContentManager)->id,
+            ] + $status),
+            'knowledge_article' => KnowledgeArticle::create([
+                'title' => 'A draft article', 'slug' => 'a-draft-article', 'excerpt' => 'x', 'body' => '<p>Words.</p>',
+            ] + $status),
+            'case_study' => CaseStudy::create([
+                'title' => 'A draft case study', 'slug' => 'a-draft-case-study', 'summary' => 'x', 'body' => '<p>Words.</p>',
+            ] + $status),
+            'solution' => Solution::create(['title' => 'A draft solution', 'slug' => 'a-draft-solution', 'summary' => 'x', 'overview' => '<p>Words.</p>'] + $status),
+            'service' => Service::create(['title' => 'A draft service', 'slug' => 'a-draft-service', 'summary' => 'x', 'body' => '<p>Words.</p>'] + $status),
+            'product' => Product::create(['name' => 'A draft switch', 'slug' => 'a-draft-switch', 'description' => '<p>Words.</p>'] + $status),
+            'store_product' => StoreProduct::create([
+                'name' => 'A draft licence', 'slug' => 'a-draft-licence', 'price_paise' => 1000000, 'track_stock' => false, 'stock' => 0,
+                'description' => '<p>Words.</p>',
+            ] + $status),
+            'event' => Event::create([
+                'title' => 'A draft seminar', 'slug' => 'a-draft-seminar', 'summary' => 'x', 'format' => 'online',
+                'starts_at' => '2026-12-12 15:00:00', 'online_url' => 'https://meet.example.test/secret-room',
+                'registration_mode' => 'none', 'body' => '<p>Words.</p>',
+            ] + $status),
+            'job_opening' => JobOpening::create(['title' => 'A draft vacancy', 'slug' => 'a-draft-vacancy', 'summary' => 'x', 'description' => '<p>Words.</p>'] + $status),
+            'entry' => Entry::create([
+                'content_type_id' => ContentType::create([
+                    'name' => 'Partner story', 'plural' => 'Partner stories', 'slug' => 'partner-stories',
+                    'is_active' => true, 'archive_enabled' => true,
+                ])->id,
+                'title' => 'A draft story', 'slug' => 'a-draft-story', 'summary' => 'x', 'body' => '<p>Words.</p>',
+            ] + $status),
+            'landing_page' => LandingPage::create([
+                'kind' => 'brand_category',
+                'brand_id' => Brand::create(['name' => 'Cisco', 'slug' => 'cisco'])->id,
+                'product_category_id' => ProductCategory::create(['name' => 'Switches', 'slug' => 'switches'])->id,
+                'title' => 'Cisco Switches', 'heading' => 'Cisco switches we supply', 'intro' => '<p>Words.</p>',
+            ] + $status),
+        };
+    }
+
+    /**
+     * alias => [alias, watched column that carries the written body, the role that owns it,
+     *           a role that does not, whether the kind has sections].
+     *
+     * @return array<string, array{0: string, 1: string, 2: RoleEnum, 3: RoleEnum, 4: bool}>
+     */
+    public static function kinds(): array
+    {
+        return [
+            'blog_post' => ['blog_post', 'body', RoleEnum::ContentManager, RoleEnum::StoreManager, true],
+            'knowledge_article' => ['knowledge_article', 'body', RoleEnum::ContentManager, RoleEnum::StoreManager, true],
+            'case_study' => ['case_study', 'body', RoleEnum::ContentManager, RoleEnum::StoreManager, true],
+            'solution' => ['solution', 'overview', RoleEnum::ContentManager, RoleEnum::StoreManager, true],
+            'service' => ['service', 'body', RoleEnum::ContentManager, RoleEnum::StoreManager, true],
+            'product' => ['product', 'description', RoleEnum::ContentManager, RoleEnum::StoreManager, true],
+            'store_product' => ['store_product', 'description', RoleEnum::StoreManager, RoleEnum::ContentManager, true],
+            'event' => ['event', 'body', RoleEnum::ContentManager, RoleEnum::StoreManager, true],
+            'job_opening' => ['job_opening', 'description', RoleEnum::ContentManager, RoleEnum::StoreManager, true],
+            'entry' => ['entry', 'body', RoleEnum::ContentManager, RoleEnum::StoreManager, true],
+            'landing_page' => ['landing_page', 'intro', RoleEnum::SeoManager, RoleEnum::ContentManager, false],
+        ];
+    }
+
+    #[DataProvider('kinds')]
+    public function test_creating_a_record_of_this_kind_is_its_first_revision(string $alias, string $column, RoleEnum $owner, RoleEnum $other, bool $sections): void
+    {
+        $record = $this->draft($alias);
+
+        $rows = $this->revisions($record, $alias);
+
+        $this->assertCount(1, $rows);
+        $this->assertSame(['created'], $rows[0]->changed);
+        $this->assertSame($record->getAttribute($column), $rows[0]->snapshot[$column]);
+        $this->assertEqualsCanonicalizing(Revisions::columns($alias), array_keys($rows[0]->snapshot));
+    }
+
+    #[DataProvider('kinds')]
+    public function test_a_change_to_a_watched_column_is_a_revision(string $alias, string $column, RoleEnum $owner, RoleEnum $other, bool $sections): void
+    {
+        $record = $this->draft($alias);
+
+        $record->update([$column => '<p>Changed words.</p>']);
+
+        $rows = $this->revisions($record, $alias);
+        $this->assertCount(2, $rows);
+        $this->assertSame([$column], $rows[1]->changed);
+        $this->assertSame('<p>Changed words.</p>', $rows[1]->snapshot[$column]);
+    }
+
+    #[DataProvider('kinds')]
+    public function test_a_change_to_the_sections_or_their_layout_is_a_revision(string $alias, string $column, RoleEnum $owner, RoleEnum $other, bool $sections): void
+    {
+        if (! $sections) {
+            $this->assertNotContains('blocks', Revisions::columns($alias));
+            $this->assertNotContains('body_layout', Revisions::columns($alias));
+
+            return;
+        }
+
+        $record = $this->draft($alias);
+
+        $record->update(['body_layout' => 'sections', 'blocks' => [self::block('Laid out')]]);
+
+        $rows = $this->revisions($record, $alias);
+        $this->assertCount(2, $rows);
+        $this->assertSame(['body_layout', 'blocks'], $rows[1]->changed);
+        $this->assertSame(1, $rows[1]->blocks_count);
+        $this->assertSame('sections', $rows[1]->snapshot['body_layout']);
+    }
+
+    #[DataProvider('kinds')]
+    public function test_a_status_only_change_records_nothing_for_this_kind(string $alias, string $column, RoleEnum $owner, RoleEnum $other, bool $sections): void
+    {
+        $record = $this->draft($alias);
+        $class = $record::class;
+
+        // A freshly loaded instance, as the console's status change is.
+        $class::query()->findOrFail($record->getKey())->update(['status' => 'published']);
+        $class::query()->findOrFail($record->getKey())->update(['status' => 'archived']);
+
+        $rows = $this->revisions($record, $alias);
+        $this->assertCount(1, $rows);
+        $this->assertArrayNotHasKey('status', $rows[0]->snapshot);
+        $this->assertArrayNotHasKey('published_at', $rows[0]->snapshot);
+    }
+
+    #[DataProvider('kinds')]
+    public function test_the_role_that_owns_the_kind_reads_its_history_and_another_does_not(string $alias, string $column, RoleEnum $owner, RoleEnum $other, bool $sections): void
+    {
+        $record = $this->draft($alias);
+        $record->update([$column => '<p>Second.</p>']);
+        $first = $this->revisions($record, $alias)->first();
+
+        $list = $this->asStaff($owner)->getJson("/api/v1/admin/revisions?type={$alias}&id={$record->getKey()}")->assertOk();
+        $this->assertCount(2, $list->json('data'));
+        $this->assertSame([$column], $list->json('data.0.changed'));
+        $this->assertTrue($list->json('meta.restorable'));
+        $this->assertSame(Revisions::bodyColumns($alias), $list->json('meta.body_columns'));
+        $this->assertSame(Revisions::labels($alias)[$column], $list->json("meta.labels.{$column}"));
+        $this->asStaff($owner)->getJson('/api/v1/admin/revisions/'.$first->id)->assertOk()
+            ->assertJsonPath('data.type', $alias);
+
+        $this->asStaff($other)->getJson("/api/v1/admin/revisions?type={$alias}&id={$record->getKey()}")->assertForbidden();
+        $this->asStaff($other)->getJson('/api/v1/admin/revisions/'.$first->id)->assertForbidden();
+        $this->asStaff(RoleEnum::Admin)->getJson("/api/v1/admin/revisions?type={$alias}&id={$record->getKey()}")->assertOk();
+    }
+
+    #[DataProvider('kinds')]
+    public function test_deleting_a_record_of_this_kind_deletes_its_history(string $alias, string $column, RoleEnum $owner, RoleEnum $other, bool $sections): void
+    {
+        $record = $this->draft($alias);
+        $record->update([$column => '<p>Second.</p>']);
+        $this->assertCount(2, $this->revisions($record, $alias));
+
+        $record->delete();
+
+        $this->assertCount(0, $this->revisions($record, $alias));
+    }
+
+    public function test_a_store_manager_has_a_shop_products_history_and_not_a_posts(): void
+    {
+        $product = $this->draft('store_product');
+        $post = $this->draft('blog_post');
+
+        $this->asStaff(RoleEnum::StoreManager)->getJson("/api/v1/admin/revisions?type=store_product&id={$product->id}")->assertOk();
+        $this->asStaff(RoleEnum::StoreManager)->getJson("/api/v1/admin/revisions?type=blog_post&id={$post->id}")->assertForbidden();
+        $this->asStaff(RoleEnum::ContentManager)->getJson("/api/v1/admin/revisions?type=blog_post&id={$post->id}")->assertOk();
+        $this->asStaff(RoleEnum::ContentManager)->getJson("/api/v1/admin/revisions?type=store_product&id={$product->id}")->assertForbidden();
+    }
+
+    public function test_a_save_through_the_console_records_who_made_it_on_a_non_page_kind(): void
+    {
+        $post = $this->draft('blog_post');
+
+        $this->asStaff(RoleEnum::ContentManager, 'poster')
+            ->patchJson("/api/v1/admin/blog-posts/{$post->id}", ['title' => 'Edited through the console'])
+            ->assertOk();
+
+        $rows = $this->revisions($post, 'blog_post');
+        $this->assertCount(2, $rows);
+        $this->assertSame('Content_manager poster', $rows[1]->actor_name);
+        $this->assertSame(['title'], $rows[1]->changed);
+    }
+
+    public function test_every_registered_kind_names_a_written_body_and_no_kind_is_preview_only(): void
+    {
+        foreach (Revisions::aliases() as $alias) {
+            if ($alias === 'saved_section') {
+                continue; // the library holds sections, not a written body
+            }
+
+            $this->assertNotEmpty(Revisions::bodyColumns($alias), $alias);
+            $this->assertEmpty(array_diff(Revisions::bodyColumns($alias), Revisions::columns($alias)), "{$alias}: a body column is not watched");
+            $this->assertTrue(Revisions::restorable($alias), $alias);
+        }
     }
 
     // -------------------------------------------------------------- registry

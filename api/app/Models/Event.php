@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\EventFormat;
 use App\Enums\EventRegistrationMode;
 use App\Enums\PublishStatus;
+use App\Models\Concerns\HasRevisions;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
 use App\Models\Contracts\Faqable;
@@ -47,7 +48,7 @@ use Illuminate\Support\Str;
  */
 class Event extends Model implements Faqable
 {
-    use HasSeo, Sluggable;
+    use HasRevisions, HasSeo, Sluggable;
 
     /**
      * Slugs the event's own routes already mean something by: the manage

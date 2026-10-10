@@ -2,9 +2,20 @@
 
 namespace App\Support;
 
+use App\Models\BlogPost;
+use App\Models\CaseStudy;
 use App\Models\ContentRevision;
+use App\Models\Entry;
+use App\Models\Event;
+use App\Models\JobOpening;
+use App\Models\KnowledgeArticle;
+use App\Models\LandingPage;
 use App\Models\Page;
+use App\Models\Product;
 use App\Models\SavedSection;
+use App\Models\Service;
+use App\Models\Solution;
+use App\Models\StoreProduct;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
@@ -46,11 +57,60 @@ final class Revisions
 
     /**
      * Kinds that carry share links but whose history is a follow-up. Listed so
-     * the test can say "deliberately not yet" rather than "forgotten".
+     * the test can say "deliberately not yet" rather than "forgotten". Empty
+     * since 0.148.0, when the other eleven were registered; a new kind of
+     * shareable record is registered or named here before it ships.
+     *
+     * @var list<string>
      */
-    public const DEFERRED = [
-        'blog_post', 'knowledge_article', 'case_study', 'solution', 'service',
-        'product', 'store_product', 'event', 'job_opening', 'entry', 'landing_page',
+    public const DEFERRED = [];
+
+    /**
+     * Kinds whose version can be looked at but not put back through the edit
+     * form — none: every form holds its content as named controls that
+     * `FormDraft` writes. A kind added here gets History with Preview only,
+     * and the dialog says why. A method rather than a constant so that the
+     * empty list is not read as a fact by the analyser.
+     *
+     * @return list<string>
+     */
+    public static function previewOnly(): array
+    {
+        return [];
+    }
+
+    /**
+     * Where a column and the edit form's control for it are named differently,
+     * `alias => [column => control]`. Empty: every watched column is posted
+     * under its own name by every form (checked kind by kind in 0.148.0). It
+     * exists so a form that disagrees is mapped here rather than renamed.
+     *
+     * @return array<string, array<string, string>>
+     */
+    private static function fieldMaps(): array
+    {
+        return [];
+    }
+
+    /**
+     * The columns whose words are the record's written body, in the order the
+     * page draws them — what a preview shows when the version has no sections.
+     * `description` on a catalogue product, a shop product and a vacancy,
+     * `overview` on a solution, `intro` then `body` on a landing page.
+     */
+    private const BODY_COLUMNS = [
+        'page' => ['body'],
+        'blog_post' => ['body'],
+        'knowledge_article' => ['body'],
+        'case_study' => ['body'],
+        'solution' => ['overview'],
+        'service' => ['body'],
+        'product' => ['description'],
+        'store_product' => ['description'],
+        'event' => ['body'],
+        'job_opening' => ['description'],
+        'entry' => ['body'],
+        'landing_page' => ['intro', 'body'],
     ];
 
     /** Words for the `changed` list, sent to the console so it lists none itself. */
@@ -63,6 +123,10 @@ final class Revisions
         'template' => 'Template',
         'name' => 'Name',
         'description' => 'Description',
+        'overview' => 'Overview',
+        'heading' => 'Heading',
+        'intro' => 'Introduction',
+        'body_layout' => 'Body layout',
     ];
 
     /**
@@ -75,6 +139,20 @@ final class Revisions
         return [
             'page' => [Page::class, 'content_manager', ['title', 'slug', 'body', 'blocks', 'template']],
             'saved_section' => [SavedSection::class, 'content_manager', ['name', 'description', 'blocks']],
+            // Roles as `PreviewLinks`; the title and address, the written body
+            // and the sections. Never the status or a date.
+            'blog_post' => [BlogPost::class, 'content_manager', ['title', 'slug', 'body', 'body_layout', 'blocks']],
+            'knowledge_article' => [KnowledgeArticle::class, 'content_manager', ['title', 'slug', 'body', 'body_layout', 'blocks']],
+            'case_study' => [CaseStudy::class, 'content_manager', ['title', 'slug', 'body', 'body_layout', 'blocks']],
+            'solution' => [Solution::class, 'content_manager', ['title', 'slug', 'overview', 'body_layout', 'blocks']],
+            'service' => [Service::class, 'content_manager', ['title', 'slug', 'body', 'body_layout', 'blocks']],
+            'product' => [Product::class, 'content_manager', ['name', 'slug', 'description', 'body_layout', 'blocks']],
+            'store_product' => [StoreProduct::class, 'store_manager', ['name', 'slug', 'description', 'body_layout', 'blocks']],
+            'event' => [Event::class, 'content_manager', ['title', 'slug', 'body', 'body_layout', 'blocks']],
+            'job_opening' => [JobOpening::class, 'content_manager', ['title', 'slug', 'description', 'body_layout', 'blocks']],
+            'entry' => [Entry::class, 'content_manager', ['title', 'slug', 'body', 'body_layout', 'blocks']],
+            // No slug (its address is derived) and no sections: the heading and the two written passages.
+            'landing_page' => [LandingPage::class, 'seo_manager', ['title', 'heading', 'intro', 'body']],
         ];
     }
 
@@ -106,6 +184,24 @@ final class Revisions
     public static function columns(string $alias): array
     {
         return self::types()[$alias][2] ?? [];
+    }
+
+    /** @return array<string, string> column => the edit form's control, only where they differ. */
+    public static function fieldMap(string $alias): array
+    {
+        return self::fieldMaps()[$alias] ?? [];
+    }
+
+    /** @return list<string> the columns that are the written body, for a preview. */
+    public static function bodyColumns(string $alias): array
+    {
+        return self::BODY_COLUMNS[$alias] ?? [];
+    }
+
+    /** Whether Restore is offered: the form can take the version. */
+    public static function restorable(string $alias): bool
+    {
+        return ! in_array($alias, self::previewOnly(), true);
     }
 
     /** @return array<string, string> key => words, for the kind. */
@@ -276,6 +372,21 @@ final class Revisions
 
     private static function actor(): ?User
     {
+        /*
+         * Read who signed in only where something already asked: a console
+         * save has been through `auth:sanctum`, so its guard is resolved.
+         * Resolving one here — from a seeder, a job, an import, or a model
+         * saved while a public request is being answered — would build a
+         * guard around whatever request is current and cache its user for
+         * the rest of the process (found by `CartReminderTest`, whose
+         * "View as" request was answered as the portal session before it).
+         */
+        $auth = app('auth');
+
+        if (! $auth->hasResolvedGuards()) {
+            return null;
+        }
+
         $request = request();
         $user = $request->user('sanctum') ?? $request->user();
 

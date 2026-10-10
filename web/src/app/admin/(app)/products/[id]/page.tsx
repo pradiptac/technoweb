@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
+import { RevisionPanel } from "@/components/admin/revision-panel";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
@@ -58,7 +59,10 @@ export default async function EditProductPage({
         title="Edit product"
       >
         <Badge tone={statusTone[product.status]}>{product.status_label ?? product.status}</Badge>
-        <PreviewLinkPanel type="product" id={product.id} className="ml-auto" />
+        <span className="ml-auto flex flex-wrap items-center gap-2">
+          <RevisionPanel type="product" id={product.id} />
+          <PreviewLinkPanel type="product" id={product.id} />
+        </span>
         <Link href={`/products/${product.slug}`} className="py-1 text-13-5 font-semibold text-brand-ink hover:underline">
           View on site ↗
         </Link>

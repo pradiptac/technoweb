@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
+import { RevisionPanel } from "@/components/admin/revision-panel";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
@@ -48,7 +49,10 @@ export default async function EditKnowledgeArticlePage({
         title="Edit article"
       >
         <Badge tone={statusTone[article.status]}>{article.status_label}</Badge>
-        <PreviewLinkPanel type="knowledge_article" id={article.id} className="ml-auto" />
+        <span className="ml-auto flex flex-wrap items-center gap-2">
+          <RevisionPanel type="knowledge_article" id={article.id} />
+          <PreviewLinkPanel type="knowledge_article" id={article.id} />
+        </span>
         {article.status === "published" && (
           <Link
             href={`/knowledge-base/${article.slug}`}

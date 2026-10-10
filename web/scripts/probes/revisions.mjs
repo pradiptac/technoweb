@@ -6,11 +6,16 @@ import { chromium } from "playwright";
  *
  *   ADMIN_LOGIN_EMAIL=… ADMIN_LOGIN_PASSWORD=… PAGE_ID=<a page with 2+ versions> \
  *     node scripts/probes/revisions.mjs
- *   SAVE=1 …   also creates, edits and deletes a throwaway page (step 5).
+ *   TYPE=solution ID=1 …   another kind of record (0.148.0): any alias in
+ *     ROUTES below; `entry` also wants ENTRY_TYPE=<the content type's slug>.
+ *     `PAGE_ID` is `TYPE=page ID=…`. A sign-in whose role does not own the
+ *     kind sees no History button, which is reported rather than failed.
+ *   SAVE=1 …   also creates, edits and deletes a throwaway page (step 5;
+ *     pages only).
  *   SHOTS=<dir> saves the dialog and the banner.
  *
- * On the page named by PAGE_ID (the mock's sample builder page, id 6, has
- * three):
+ * On the record named by ID (the mock's sample builder page, id 6, and its
+ * solution 1 have three versions each):
  *   1. opens History and reads the rows — each has a time, a person, what
  *      changed, a Preview and a Restore;
  *   2. Preview on the oldest row: a framed `/admin/draft-preview/…`, the
@@ -31,7 +36,28 @@ import { chromium } from "playwright";
  * on the page, 2–4 are skipped and said so.
  */
 const BASE = process.env.BASE ?? "http://localhost:3000";
-const PAGE_ID = process.env.PAGE_ID;
+const TYPE = process.env.TYPE ?? "page";
+const PAGE_ID = process.env.ID ?? process.env.PAGE_ID;
+const ENTRY_TYPE = process.env.ENTRY_TYPE ?? "";
+/** The edit screen of each kind that has a history. */
+const ROUTES = {
+  page: (id) => `/admin/pages/${id}`,
+  blog_post: (id) => `/admin/blog/${id}`,
+  knowledge_article: (id) => `/admin/knowledge-base/${id}`,
+  case_study: (id) => `/admin/case-studies/${id}`,
+  solution: (id) => `/admin/solutions/${id}`,
+  service: (id) => `/admin/services/${id}`,
+  product: (id) => `/admin/products/${id}`,
+  store_product: (id) => `/admin/store/products/${id}`,
+  event: (id) => `/admin/events/${id}`,
+  job_opening: (id) => `/admin/jobs/${id}`,
+  entry: (id) => `/admin/content/${ENTRY_TYPE}/${id}`,
+  landing_page: (id) => `/admin/landing-pages/${id}`,
+};
+if (!ROUTES[TYPE]) { console.error(`TYPE must be one of: ${Object.keys(ROUTES).join(", ")}`); process.exit(2); }
+/** The control holding the record's title, or its name on a product. */
+const TITLE = TYPE === "product" || TYPE === "store_product" ? "#name" : "#title";
+const editUrl = (id) => `${BASE}${ROUTES[TYPE](id)}`;
 const SHOTS = process.env.SHOTS;
 const SAVE = process.env.SAVE === "1";
 const T = 180000;
@@ -62,12 +88,17 @@ const openHistory = async () => {
 };
 
 if (PAGE_ID) {
-  await page.goto(`${BASE}/admin/pages/${PAGE_ID}`, { waitUntil: "load", timeout: T });
-  const title = page.locator("#title");
+  await page.goto(editUrl(PAGE_ID), { waitUntil: "load", timeout: T });
+  const title = page.locator(TITLE);
   await title.waitFor({ timeout: T });
   const originalTitle = await title.inputValue();
 
   // 1 — the list
+  if (await page.locator("button", { hasText: /^History$/ }).count() === 0) {
+    note(`no History button on this ${TYPE} (this sign-in does not own the kind, or the record has no versions yet)`);
+    await browser.close();
+    process.exit(0);
+  }
   await openHistory();
   const count = await rows().count();
   ok(count >= 1, `History lists the saved versions (${count})`);
@@ -98,16 +129,22 @@ if (PAGE_ID) {
     await banner.first().waitFor({ timeout: T });
     ok(true, "the banner says which version was loaded and that nothing is saved");
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/history-restored.png` });
-    const blocks = await page.locator('input[name="blocks"]').inputValue();
-    let loaded = [];
-    try { loaded = JSON.parse(blocks); } catch { /* reported below */ }
-    ok(Array.isArray(loaded) && (sectionsAsked === 0 || loaded.length === sectionsAsked),
-      `the form holds that version's sections (${loaded.length} of ${sectionsAsked || "n/a"})`);
+    // A kind without sections (a landing page), or a form without the control, has none to compare.
+    if (await page.locator('input[name="blocks"]').count()) {
+      const blocks = await page.locator('input[name="blocks"]').inputValue();
+      let loaded = [];
+      try { loaded = JSON.parse(blocks); } catch { /* reported below */ }
+      ok(Array.isArray(loaded) && (sectionsAsked === 0 || loaded.length === sectionsAsked),
+        `the form holds that version's sections (${loaded.length} of ${sectionsAsked || "n/a"})`);
+    } else {
+      note(`this ${TYPE} form has no sections control; the section count was not compared`);
+    }
+    ok((await page.locator(TITLE).inputValue()).trim() !== "", "the form's title or name holds the version's");
 
     // 4 — nothing was written
-    await page.goto(`${BASE}/admin/pages/${PAGE_ID}`, { waitUntil: "load", timeout: T });
-    await page.locator("#title").waitFor({ timeout: T });
-    ok(await page.locator("#title").inputValue() === originalTitle, "reloading without saving leaves the page as it was");
+    await page.goto(editUrl(PAGE_ID), { waitUntil: "load", timeout: T });
+    await page.locator(TITLE).waitFor({ timeout: T });
+    ok(await page.locator(TITLE).inputValue() === originalTitle, "reloading without saving leaves the record as it was");
     const discard = page.locator("[data-form-draft] button", { hasText: /^Discard$/ });
     if (await discard.count()) await discard.click();
     await openHistory();
@@ -117,11 +154,13 @@ if (PAGE_ID) {
     note("fewer than two versions on this page; Preview and Restore were not exercised");
   }
 } else {
-  note("PAGE_ID not set; steps 1–4 skipped");
+  note("ID (or PAGE_ID) not set; steps 1–4 skipped");
 }
 
 // 5 — a save makes a version (opt-in: it writes, then cleans up after itself)
-if (SAVE) {
+if (SAVE && TYPE !== "page") {
+  note(`SAVE=1 makes a throwaway page; skipped for TYPE=${TYPE}`);
+} else if (SAVE) {
   const stamp = Date.now();
   await page.goto(`${BASE}/admin/pages/new`, { waitUntil: "load", timeout: T });
   await page.locator("#title").fill(`Revision probe ${stamp}`);

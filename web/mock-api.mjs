@@ -4258,6 +4258,18 @@ createServer(async (req, res) => {
     {
       const REV_LABELS = { page: { created: 'Created', title: 'Title', slug: 'Address', body: 'Written body', blocks: 'Sections', template: 'Template' },
         saved_section: { created: 'Created', name: 'Name', description: 'Description', blocks: 'Sections' } };
+      /* 0.148.0: the other eleven kinds. The words and the written-body columns are the API's (Revisions::LABELS / BODY_COLUMNS). */
+      const KIND_COLUMNS = { blog_post: 'body', knowledge_article: 'body', case_study: 'body', solution: 'overview', service: 'body',
+        product: 'description', store_product: 'description', event: 'body', job_opening: 'description', entry: 'body' };
+      const COLUMN_WORDS = { title: 'Title', name: 'Name', slug: 'Address', body: 'Written body', overview: 'Overview', description: 'Description',
+        heading: 'Heading', intro: 'Introduction', body_layout: 'Body layout', blocks: 'Sections' };
+      const BODY_COLUMNS = { page: ['body'], landing_page: ['intro', 'body'] };
+      for (const [kind, column] of Object.entries(KIND_COLUMNS)) {
+        BODY_COLUMNS[kind] = [column];
+        const named = kind === 'product' || kind === 'store_product' ? 'name' : 'title';
+        REV_LABELS[kind] = Object.fromEntries(['created', named, 'slug', column, 'body_layout', 'blocks'].map((k) => [k, k === 'created' ? 'Created' : COLUMN_WORDS[k]]));
+      }
+      REV_LABELS.landing_page = Object.fromEntries(['created', 'title', 'heading', 'intro', 'body'].map((k) => [k, k === 'created' ? 'Created' : COLUMN_WORDS[k]]));
       const sample = cmsPages.find((x) => x.id === 6);
       const revSnap = (title, blocks) => ({ blocks, body: null, slug: 'sample-builder-page', template: 'builder', title });
       const REVISIONS = [
@@ -4267,9 +4279,18 @@ createServer(async (req, res) => {
           changed: ['title', 'blocks'], snapshot: revSnap('Sample builder page (draft 2)', sample.blocks.slice(0, 2)) },
         { id: 3, type: 'page', subject_id: 6, saved_at: '2026-10-02T14:05:00Z', created_at: '2026-10-02T14:05:00Z', actor_name: 'Another Editor',
           changed: ['title', 'blocks'], snapshot: revSnap('Sample builder page', sample.blocks) },
-      ].map((r) => ({ ...r, blocks_count: r.snapshot.blocks.length }));
+        /* A solution (id 1) shows a non-page kind: its written body is `overview`, and its form takes a version back. */
+        ...[
+          ['created', '2026-09-20T09:00:00Z', '<p>First draft of the overview.</p>'],
+          ['overview', '2026-09-27T10:15:00Z', '<p>A tighter overview.</p>'],
+          ['overview', '2026-10-03T16:40:00Z', '<p>The overview as it stands now.</p>'],
+        ].map(([changed, at, overview], i) => ({
+          id: 10 + i, type: 'solution', subject_id: 1, saved_at: at, created_at: at, actor_name: i === 2 ? 'Another Editor' : 'Mock Admin',
+          changed: [changed], snapshot: { title: 'Enterprise Networking', slug: 'networking', overview, body_layout: 'body', blocks: null },
+        })),
+      ].map((r) => ({ ...r, blocks_count: Array.isArray(r.snapshot.blocks) ? r.snapshot.blocks.length : 0 }));
       const revRow = (r) => ({ id: r.id, saved_at: r.saved_at, created_at: r.created_at, actor_name: r.actor_name, changed: r.changed, blocks_count: r.blocks_count });
-      const revMeta = (type) => ({ labels: REV_LABELS[type] ?? {}, keep: 30, coalesce_minutes: 5 });
+      const revMeta = (type) => ({ labels: REV_LABELS[type] ?? {}, keep: 30, coalesce_minutes: 5, fields: {}, body_columns: BODY_COLUMNS[type] ?? [], restorable: true });
       if (p === '/admin/revisions' && req.method === 'GET') {
         const type = url.searchParams.get('type'); const id = Number(url.searchParams.get('id'));
         if (!REV_LABELS[type]) return json(res, 422, { message: 'The selected type is invalid.', errors: { type: ['The selected type is invalid.'] } });

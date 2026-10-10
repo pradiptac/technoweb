@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
+import { RevisionPanel } from "@/components/admin/revision-panel";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
 import { getAnswerBlockKinds, getBrandOptions, getServiceOptions, getStoreCategories, getStoreProduct, getPageBuilderOptionsIfAllowed, getStoreTagNames } from "@/lib/admin";
@@ -58,6 +59,7 @@ export default async function EditStoreProductPage({
     <>
       <PageHeader back={{ href: "/admin/store/products", label: "Store products" }} title={product.name}>
         <div className="ml-auto flex items-center gap-2">
+          <RevisionPanel type="store_product" id={product.id} />
           <PreviewLinkPanel type="store_product" id={product.id} />
           {!product.in_stock && <Badge tone="urgent">Out of stock</Badge>}
           <Badge tone={statusTone[product.status]}>{product.status_label ?? product.status}</Badge>

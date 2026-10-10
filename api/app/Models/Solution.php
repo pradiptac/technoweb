@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PublishStatus;
 use App\Models\Concerns\HasAnswerBlocks;
 use App\Models\Concerns\HasCustomFields;
+use App\Models\Concerns\HasRevisions;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\RepathsLandingPages;
 use App\Models\Concerns\Sluggable;
@@ -19,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Solution extends Model implements Answerable, Faqable
 {
-    use HasAnswerBlocks, HasCustomFields, HasSeo, RepathsLandingPages, Sluggable;
+    use HasAnswerBlocks, HasCustomFields, HasRevisions, HasSeo, RepathsLandingPages, Sluggable;
 
     protected $fillable = [
         'title', 'slug', 'summary', 'problem_statement', 'overview',

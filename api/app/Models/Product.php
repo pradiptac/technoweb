@@ -7,6 +7,7 @@ use App\Enums\ProductAvailability;
 use App\Enums\PublishStatus;
 use App\Models\Concerns\HasAnswerBlocks;
 use App\Models\Concerns\HasCustomFields;
+use App\Models\Concerns\HasRevisions;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
 use App\Models\Contracts\Answerable;
@@ -24,7 +25,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model implements Answerable, Faqable
 {
-    use HasAnswerBlocks, HasCustomFields, HasFactory, HasSeo, Sluggable, SoftDeletes;
+    use HasAnswerBlocks, HasCustomFields, HasFactory, HasRevisions, HasSeo, Sluggable, SoftDeletes;
 
     protected $fillable = [
         'brand_id', 'product_category_id', 'name', 'slug', 'sku',

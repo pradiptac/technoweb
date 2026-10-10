@@ -429,9 +429,12 @@ sections exactly as on a page, then save.
 ### Going back to an earlier version
 
 A page remembers its last thirty saved versions, and so does each item in the
-section library. Press **History**, at the top of the edit screen beside
+section library and every blog post, knowledge-base article, case study,
+solution, service, product, shop product, event, vacancy, custom content entry
+and landing page. Press **History**, at the top of the edit screen beside
 **Share preview**, to see them: when each was saved, by whom, and what changed —
-the title, the address, the written text, the sections or the template.
+the title or name, the address, the written text, the sections or the template.
+You see it for the records your role may edit, as with Share preview.
 
 - **Preview** draws that version the way the site would, without touching the
   page. **Back to the list** returns.
@@ -444,8 +447,12 @@ the title, the address, the written text, the sections or the template.
   attention. A section you placed from the library shows the library's content
   as it is now.
 - Saves by the same person within five minutes count as one version, and a
-  page created and edited straight away is one version. The page's SEO
-  details, questions and custom fields are not part of a version.
+  page created and edited straight away is one version. The SEO
+  details, questions, custom fields, relations (related products, categories,
+  industries), prices, stock and everything else on the other tabs are not part
+  of a version — only the title or name, the address, the written text and the
+  sections. On a shop product, Restore leaves the sections as they are if your
+  account cannot edit them.
 
 ## Sharing a draft
 

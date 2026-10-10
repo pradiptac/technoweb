@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { formatDate } from "@/lib/dates";
-import { pageSnapshotValues, REVISION_LOAD_EVENT, type RevisionLoad } from "@/lib/revisions";
+import { snapshotValues, REVISION_LOAD_EVENT, type RevisionLoad } from "@/lib/revisions";
 
 type Draft = { at: string; values: Record<string, string[]> };
 
@@ -89,8 +89,8 @@ function restore(form: HTMLFormElement, values: Record<string, string[]>) {
  * land in and is the one thing a draft loses. Placed inside the `<Form>`,
  * anywhere; it finds the form it is in.
  *
- * **It is also where a page's history is put back** (0.145.0, docs/page-builder.md
- * "Page history"). The History dialog announces `tw:revision-load` on
+ * **It is also where a record's history is put back** (0.145.0 for pages, 0.148.0
+ * for the other eleven kinds; docs/page-builder.md "Page history"). The History dialog announces `tw:revision-load` on
  * `document`; a version is only a set of field values, so it goes through the
  * same `restore()` — typed values, then `tw:draft-restored` for the editor and
  * the builder list to re-read — and a bar says what was loaded and that
@@ -151,8 +151,9 @@ export function FormDraft() {
     const onLoad = (event: Event) => {
       const form = anchor.current?.closest("form");
       const detail = (event as CustomEvent<RevisionLoad>).detail;
-      if (!form || detail?.type !== "page") return;
-      restore(form, pageSnapshotValues(detail.snapshot));
+      // A library item is not a form with fields: its editor takes its own versions.
+      if (!form || !detail || detail.type === "saved_section") return;
+      restore(form, snapshotValues(detail.snapshot, detail.fields));
       setOffer(null);
       setLoaded(detail.at ?? "");
     };

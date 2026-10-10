@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
+import { RevisionPanel } from "@/components/admin/revision-panel";
 import { getLandingPage } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -30,7 +31,10 @@ export default async function EditLandingPage({
   return (
     <>
       <PageHeader title={record.title} back={{ href: "/admin/landing-pages", label: "Landing pages" }}>
-        <PreviewLinkPanel type="landing_page" id={record.id} className="ml-auto" />
+        <span className="ml-auto flex flex-wrap items-center gap-2">
+          <RevisionPanel type="landing_page" id={record.id} />
+          <PreviewLinkPanel type="landing_page" id={record.id} />
+        </span>
       </PageHeader>
       <LandingPageForm record={record} saved={Boolean(flags.saved)} drafted={Boolean(flags.drafted)} />
     </>

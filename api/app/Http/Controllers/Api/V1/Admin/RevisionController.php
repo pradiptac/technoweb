@@ -94,6 +94,14 @@ class RevisionController extends Controller
             'labels' => Revisions::labels($type),
             'keep' => Revisions::KEEP,
             'coalesce_minutes' => Revisions::COALESCE_MINUTES,
+            // What the console needs to put a version into this kind's edit
+            // form and to draw it, sent so it lists none of it itself (0.148.0):
+            // the control name where it differs from the column, the columns
+            // that are the written body (a preview shows them when there are
+            // no sections), and whether the form can take a version at all.
+            'fields' => (object) Revisions::fieldMap($type),
+            'body_columns' => Revisions::bodyColumns($type),
+            'restorable' => Revisions::restorable($type),
         ];
     }
 

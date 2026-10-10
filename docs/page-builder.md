@@ -1247,15 +1247,39 @@ where it differs (`careers` for `jobs`, the type's slug for an entry) —
 not `PUBLIC`, which Windows sets itself — and `FAQ=0` is for a vacancy,
 which has no `FAQPage`.
 
-## Page history (0.145.0)
+## Page history (0.145.0, every record kind 0.148.0)
 
-A page, or a library item, remembers what it was. **History**, in the header of
-its edit screen beside Share preview, lists the saved versions, newest first —
-when, by whom, which of title, address, written body, sections and template
-differ from the version before — and offers each one to **Preview** or
-**Restore**. Pages and the section library are the first two kinds; the other
-eleven kinds that carry share links are named in `Revisions::DEFERRED` and
-`ContentRevisionTest` fails if one is in neither list.
+A page, a library item or any other record that carries a share link remembers
+what it was. **History**, in the header of its edit screen beside Share
+preview, lists the saved versions, newest first — when, by whom, which of
+title, address, written body, sections and template differ from the version
+before — and offers each one to **Preview** or **Restore**. Thirteen kinds have
+one: pages and the section library (0.145.0), and since 0.148.0 the other
+eleven kinds that carry share links — blog post, knowledge article, case
+study, solution, service, catalogue product, shop product, event, vacancy,
+custom content entry and landing page. `Revisions::DEFERRED` is now `[]`;
+`ContentRevisionTest` still fails if a share-link kind is in neither list, so a
+twelfth kind of shareable record cannot ship without a decision.
+
+**What each kind watches** (0.148.0; `Revisions::types()`, read from each
+model's `$fillable` — the title or name, the address, the written body, and
+`body_layout` + `blocks` where the record can lay its body out as sections):
+
+| Kind | Role | Columns |
+|---|---|---|
+| `blog_post`, `knowledge_article`, `case_study`, `service`, `event`, `entry` | content manager | `title`, `slug`, `body`, `body_layout`, `blocks` |
+| `solution` | content manager | `title`, `slug`, `overview`, `body_layout`, `blocks` |
+| `job_opening` | content manager | `title`, `slug`, `description`, `body_layout`, `blocks` |
+| `product` | content manager | `name`, `slug`, `description`, `body_layout`, `blocks` |
+| `store_product` | store manager | `name`, `slug`, `description`, `body_layout`, `blocks` |
+| `landing_page` | SEO manager | `title`, `heading`, `intro`, `body` — no slug (its address is derived from the records it is about, and re-derived on save) and no sections |
+
+Never a status, a publish date or a closing date. A kind's **written body**
+(`Revisions::bodyColumns()`, sent as `meta.body_columns`) is what a preview
+draws when the version has no sections: `body`, `overview`, `description`, or a
+landing page's `intro` then `body`. Whether a version laid its page out as
+sections is its `template` for a page and its `body_layout` for every other
+record.
 
 **What a version is.** A row of `content_revisions` holding the *post-save*
 state of the record's content columns (`title`, `slug`, `body`, `blocks`,
@@ -1298,11 +1322,27 @@ a 403 or 404 into `null`, so a History button is drawn only for an account that
 may read it.
 
 **Restore is a load, not a write.** The dialog reads the version (a Server
-Action), and announces `tw:revision-load` on `document`. A page's `FormDraft`
-turns the snapshot into the field values it already knows how to put back — the
+Action), and announces `tw:revision-load` on `document`. The record's
+`FormDraft` (every one of the eleven forms mounts one) turns the snapshot into
+the field values it already knows how to put back — `snapshotValues()` in
+`lib/revisions.ts`, one function for every kind: a column goes to the control
+of the same name, the sections as the JSON the hidden `blocks` control holds — the
 same `restore()` a local draft uses, ending in `tw:draft-restored`, which
 re-keys the body editor and the builder's list — and shows "Loaded the version
-from … — press Save to keep it." A library item's `LibraryEditor` takes it into
+from … — press Save to keep it." **Restore needs each snapshot key to equal the
+form's control name**, and checked kind by kind it does: every form posts its
+title or name as `title`/`name`, `slug`, its body control (`body`,
+`overview`, `description`, a landing page's `intro` and `body`) and the Sections
+tab's `body_layout` and `blocks`. Where one ever differs the answer is
+`Revisions::fieldMaps()` (sent as `meta.fields`, empty today), not a renamed
+control; a kind whose form cannot take a version at all goes in
+`Revisions::previewOnly()` (empty) and gets History with Preview and a sentence
+saying why, no Restore button. A control a form lacks is simply not written:
+an entry type without a body, and a shop product opened by a store manager who
+lacks the Content manager role — that form draws `SectionsUnavailable` and has
+no `blocks` control, so Restore there puts back the name, address and
+description and leaves the sections as they are, as saving that form does. A
+library item's `LibraryEditor` takes it into
 its state. `SectionBuilder` listens too: it remounts its rich-text editors and
 drops its undo steps (they describe sections that were just replaced). The
 loaded values count as typed, so the leave guard and the local draft treat them
@@ -1319,8 +1359,17 @@ sends them through `previewSectionsAction`; a version with only a written body
 the body is cleaned by the same rules and drawn by the same components.
 
 Probe: `PAGE_ID=<a page with 2+ versions> node scripts/probes/revisions.mjs`
-(`SAVE=1` also creates and deletes a throwaway page). The mock has three
-versions of its sample builder page (id 6).
+(`SAVE=1` also creates and deletes a throwaway page);
+`TYPE=solution ID=1` (any alias; `entry` also `ENTRY_TYPE=<slug>`) runs the same
+steps on another kind. The mock has three versions of its sample builder page
+(id 6) and of its solution 1.
+
+**Not in a version, any kind:** SEO fields, FAQs, answer blocks, custom fields,
+relations (industries, related products, categories), pictures, prices, stock
+and every setting on the other tabs. The dialog says so. Two details worth
+knowing: deleting a catalogue product (soft delete) takes its history with it,
+since nothing lists a trashed row; and a landing page's `path` is not
+watched, so restoring an older `title` never moves a URL.
 
 ## Tests
 
@@ -1330,6 +1379,13 @@ content adding nothing, the five-minute fold (same person only, not after the
 window), the cap of thirty, the library's history, deletion, the prune command,
 the list without snapshots and the detail with `blocks_media`, role narrowing,
 and the registry covering every share-link kind or naming it deferred.
+0.148.0 adds a data provider over the eleven other kinds: creation is the
+first version, a change to the written body is one, a change to `body_layout`
+or `blocks` is one (landing pages hold neither), a status-only change records
+nothing, deleting the record deletes its history, and the role that owns the
+kind reads it while another gets a 403 (a store manager has a shop product's
+history and not a post's; a content manager the reverse; the SEO manager owns
+landing pages).
 
 `tests/Feature/PageBuilderTest.php` — every type's rules valid and invalid, an
 unknown type refused, ids unique, rich text sanitised in a nested field, media

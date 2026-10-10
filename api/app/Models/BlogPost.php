@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PublishStatus;
 use App\Models\Concerns\HasAnswerBlocks;
 use App\Models\Concerns\HasCustomFields;
+use App\Models\Concerns\HasRevisions;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
 use App\Models\Contracts\Answerable;
@@ -19,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class BlogPost extends Model implements Answerable, Faqable
 {
-    use HasAnswerBlocks, HasCustomFields, HasSeo, Sluggable;
+    use HasAnswerBlocks, HasCustomFields, HasRevisions, HasSeo, Sluggable;
 
     protected $fillable = [
         'author_id', 'title', 'slug', 'excerpt', 'body',

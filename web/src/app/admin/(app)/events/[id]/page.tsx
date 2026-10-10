@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
+import { RevisionPanel } from "@/components/admin/revision-panel";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
 import { getEventWithMeta, getPageBuilderOptions, type AdminEvent, type EventMeta } from "@/lib/admin";
@@ -41,6 +42,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
         <Badge tone={eventStatusTone(event.status)}>{event.status_label}</Badge>
 
         <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-1">
+          <RevisionPanel type="event" id={event.id} />
           <PreviewLinkPanel type="event" id={event.id} />
           {(event.registration_mode === "open" || held > 0) && (
             <Link href={`/admin/events/${event.id}/registrations`} className="py-1 text-13-5 font-semibold text-brand-ink hover:underline">

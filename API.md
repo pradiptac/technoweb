@@ -5032,23 +5032,30 @@ resource. A knowledge-base preview is not counted as a view.
 
 ## Admin — page history
 
-Saved versions of a page and of a library item (0.145.0, `docs/page-builder.md`
-"Page history"). Read-only: a restore is the console loading a snapshot into
+Saved versions of a page, a library item (0.145.0) and every other record that
+carries a share link (0.148.0, `docs/page-builder.md` "Page history"). Read-only: a restore is the console loading a snapshot into
 the edit form, so Save answers for it with the current rules.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/revisions?type=&id=` | `type` is `page` or `saved_section` (a 422 on `type` otherwise — the other kinds are not recorded yet). Newest first, at most 30, **no snapshots**: `{id, saved_at, created_at, actor_name, changed[], blocks_count, size}`. `meta`: `labels` (key → words for `changed`, including `created`), `keep` (30), `coalesce_minutes` (5) |
+| `GET` | `/admin/revisions?type=&id=` | `type` is `page`, `saved_section`, or one of the eleven other share-link aliases — `blog_post`, `knowledge_article`, `case_study`, `solution`, `service`, `product`, `store_product`, `event`, `job_opening`, `entry`, `landing_page` — and anything else is a 422 on `type`. Newest first, at most 30, **no snapshots**: `{id, saved_at, created_at, actor_name, changed[], blocks_count, size}`. `meta`: `labels` (key → words for `changed`, including `created`), `keep` (30), `coalesce_minutes` (5), and since 0.148.0 `fields` (column → the edit form's control, only where they differ; `{}` today), `body_columns` (the columns that are the kind's written body, in the order a preview draws them) and `restorable` (false would mean History offers Preview only; true for every kind) |
 | `GET` | `/admin/revisions/{id}` | Digits only (a 404 otherwise). Throttled 60/min. The same row plus `type`, `subject_id`, `snapshot` and `blocks_media` (every `*_path` in the sections → its URL, `{}` when none) |
 
 Under `role:content_manager,store_manager,seo_manager`, **narrowed per kind by
-the controller**: both kinds so far belong to `content_manager` (an
-administrator passes), so a store manager or a support engineer is a 403, and
-a customer token is a 403 too — the rule `/admin/preview-links` follows.
+the controller** to the role that owns the record — the same owners as
+`/admin/preview-links` (`App\Support\Revisions` mirrors `PreviewLinks`): `store_product` is
+`store_manager`, `landing_page` is `seo_manager`, every other kind is
+`content_manager`. An administrator passes; any other role, and a customer
+token, is a 403 — so a store manager has a shop product's history and gets a 403
+on a blog post's, and a content manager the reverse.
 
 **A version is the post-save state of the content columns**: a page's `title`,
 `slug`, `body`, `blocks` and `template`; a library item's `name`, `description`
-and `blocks`. `status` and `published_at` are never held. `saved_at` is when the
+and `blocks`; and, for the other eleven kinds, the title or name, the address
+(not a landing page's, which is derived), the written body (`body`, a
+solution's `overview`, `description` on a product, shop product and vacancy; a
+landing page's `heading`, `intro` and `body`) and `body_layout` + `blocks` where the
+record can lay its body out as sections. `status` and `published_at` are never held. `saved_at` is when the
 version was last saved (a folded run of saves keeps moving it); `created_at`
 when it began. `changed` lists the keys that differ from the version before, or
 `["created"]` for the first. Saving identical content adds nothing; a save by the

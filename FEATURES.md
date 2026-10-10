@@ -106,9 +106,10 @@ A full CMS for the people who write, without a developer in the loop.
   stack on a phone; nothing is a free number or colour.
   Headings, lines of text and button wording can be edited directly on the
   live preview.
-  A page and each item in the section library keep a history: the last thirty
-  saved versions, each to look at as the site would draw it or to put back —
-  into the form, to be saved or left.
+  Every page, library item, blog post, article, case study, solution, service,
+  product, shop product, event, vacancy, custom entry and landing page keeps a
+  history: the last thirty saved versions, each to look at as the site would
+  draw it or to put back — into the form, to be saved or left.
   A section can be given a minimum height and a heading colour, and its
   spacing, alignment and height can differ on phones, tablets and computers —
   chosen from fixed steps, so the page keeps passing its readability checks.

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
+import { RevisionPanel } from "@/components/admin/revision-panel";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
@@ -53,7 +54,10 @@ export default async function EditBlogPostPage({
         title="Edit post"
       >
         <Badge tone={statusTone[post.status]}>{post.status_label}</Badge>
-        <PreviewLinkPanel type="blog_post" id={post.id} className="ml-auto" />
+        <span className="ml-auto flex flex-wrap items-center gap-2">
+          <RevisionPanel type="blog_post" id={post.id} />
+          <PreviewLinkPanel type="blog_post" id={post.id} />
+        </span>
         {post.status === "published" && (
           <Link
             href={`/blog/${post.slug}`}

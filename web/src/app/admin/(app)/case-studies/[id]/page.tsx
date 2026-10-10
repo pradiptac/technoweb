@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
+import { RevisionPanel } from "@/components/admin/revision-panel";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
@@ -47,7 +48,10 @@ export default async function EditCaseStudyPage({
         title="Edit case study"
       >
         <Badge tone={statusTone[study.status]}>{study.status_label}</Badge>
-        <PreviewLinkPanel type="case_study" id={study.id} className="ml-auto" />
+        <span className="ml-auto flex flex-wrap items-center gap-2">
+          <RevisionPanel type="case_study" id={study.id} />
+          <PreviewLinkPanel type="case_study" id={study.id} />
+        </span>
         {study.status === "published" && (
           <Link
             href={`/case-studies/${study.slug}`}

@@ -21,6 +21,40 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.148.0 — 2026-10-10
+
+**Every kind of record remembers its last thirty versions, not just pages.**
+
+- **History on eleven more edit screens.** Blog posts, knowledge-base articles,
+  case studies, solutions, services, catalogue products, shop products, events,
+  vacancies, custom content entries and landing pages get the History button
+  beside Share preview that pages and the section library had from 0.145.0:
+  the saved versions newest first, each to Preview as the site draws it or to
+  Restore into the form (nothing is saved until Save, and Save runs today's
+  rules). Each kind keeps its title or name, address, written body
+  (`body`, a solution's `overview`, `description` on products and vacancies, a
+  landing page's `heading`/`intro`/`body`) and, where it has them, `body_layout`
+  and `blocks` — never a status or a date. Owners follow the share links: a
+  store manager reads a shop product's history and gets a 403 on a post's, a
+  content manager the reverse, the SEO manager owns landing pages.
+- **API.** `App\Support\Revisions` registers the eleven (`DEFERRED` is now `[]`,
+  and `ContentRevisionTest` still fails on a share-link kind in neither list);
+  the models opt in with `HasRevisions`. `meta` on the revision endpoints gains
+  `fields`, `body_columns` and `restorable` so the console lists none of it. Every
+  form already posts each column under its own name, so `fields` is empty, and
+  no kind is preview-only.
+- **Console.** `snapshotValues()` replaces the page-only mapping in `FormDraft`'s
+  restore; the preview draws a version's sections when its record laid its body
+  out as sections and its written body otherwise. `RevisionPanel` sits beside
+  `PreviewLinkPanel` on the eleven screens.
+- Mock: three versions of solution 1. Probe: `revisions.mjs` takes `TYPE` and
+  `ID` (and `ENTRY_TYPE`) for another kind.
+- Not in a version: SEO fields, FAQs, answer blocks, custom fields, relations,
+  prices, stock, pictures. Deleting a catalogue product (soft delete) takes its
+  history with it.
+
+---
+
 ## 0.147.0 — 2026-10-10
 
 **A section can be laid out by hand: rows, columns and widgets.**

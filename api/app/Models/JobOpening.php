@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\EmploymentType;
 use App\Enums\PublishStatus;
+use App\Models\Concerns\HasRevisions;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
 use App\Support\HtmlSanitiser;
@@ -27,7 +28,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class JobOpening extends Model
 {
-    use HasSeo, Sluggable;
+    use HasRevisions, HasSeo, Sluggable;
 
     protected $fillable = [
         'title', 'slug', 'department', 'location', 'employment_type', 'openings',

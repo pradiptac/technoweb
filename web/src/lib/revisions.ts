@@ -14,6 +14,8 @@ export type RevisionLoad = {
   id: number;
   /** When the version was saved, for the banner. */
   at: string | null;
+  /** Column → control name, where a form names a column differently (`meta.fields`). */
+  fields?: Record<string, string>;
   snapshot: RevisionSnapshot;
   /** Picture path → URL for the version's sections. */
   media: Record<string, string>;
@@ -24,17 +26,30 @@ export function announceRevisionLoad(detail: RevisionLoad) {
 }
 
 /**
- * A page's snapshot as the page form's controls name them — the same
+ * A version’s snapshot as the edit form’s controls name them — the same
  * `Record<name, values[]>` shape `FormDraft` keeps, so the one restore path
- * writes it. `status` and `published_at` are not in a snapshot and are never
- * touched: restoring a version must not publish or unpublish anything.
+ * writes it, for a page and for every other kind of record (0.148.0).
+ *
+ * A column is posted under its own name by every form; `fields` (the API’s
+ * `meta.fields`) says where one is not. A list (the sections) goes as the JSON
+ * the hidden `blocks` control holds, an absent value as an empty string, and a
+ * page’s empty `template` as `default`. `status` and `published_at` are not in
+ * a snapshot and are never touched: restoring a version must not publish or
+ * unpublish anything. A column the form has no control for (a shop product’s
+ * sections, for an account without the Content manager role; an entry type
+ * without a body) is simply not written.
  */
-export function pageSnapshotValues(snapshot: RevisionSnapshot): Record<string, string[]> {
-  return {
-    title: [snapshot.title ?? ""],
-    slug: [snapshot.slug ?? ""],
-    body: [snapshot.body ?? ""],
-    template: [snapshot.template || "default"],
-    blocks: [JSON.stringify(snapshot.blocks ?? [])],
-  };
+export function snapshotValues(snapshot: RevisionSnapshot, fields: Record<string, string> = {}): Record<string, string[]> {
+  const values: Record<string, string[]> = {};
+
+  for (const [column, value] of Object.entries(snapshot)) {
+    const name = fields[column] ?? column;
+
+    if (column === "blocks") values[name] = [JSON.stringify(Array.isArray(value) ? value : [])];
+    else if (column === "template") values[name] = [typeof value === "string" && value ? value : "default"];
+    else if (column === "body_layout") values[name] = [value === "sections" ? "sections" : "body"];
+    else values[name] = [typeof value === "string" ? value : ""];
+  }
+
+  return values;
 }
