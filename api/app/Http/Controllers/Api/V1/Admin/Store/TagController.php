@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\V1\Admin\Store;
 
 use App\Enums\ProductType;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Store\TagRequest;
 use App\Http\Resources\Admin\Store\TagResource;
 use App\Models\Brand;
+use App\Models\Redirect;
 use App\Models\Setting;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
@@ -61,14 +63,18 @@ class TagController extends Controller
         return (new TagResource($tag->loadCount('products')))->response()->setStatusCode(201);
     }
 
-    public function update(Request $request, StoreTag $storeTag): TagResource
+    /** One tag with its page fields and SEO override — the edit screen's read. */
+    public function show(StoreTag $storeTag): TagResource
     {
-        $request->validate([
-            'name' => ['sometimes', 'required', 'string'],
-            'is_visible' => ['sometimes', 'boolean'],
-        ]);
+        return new TagResource($storeTag->loadCount('products')->load('seo'));
+    }
 
-        $changes = [];
+    public function update(TagRequest $request, StoreTag $storeTag): TagResource
+    {
+        $data = $request->validated();
+        $seo = $data['seo'] ?? null;
+
+        $changes = array_intersect_key($data, array_flip(['heading', 'intro']));
 
         if ($request->has('name')) {
             [$slug, $name] = $this->nameAndSlug($request->string('name')->value(), 'name');
@@ -84,14 +90,39 @@ class TagController extends Controller
             $changes['is_visible'] = $request->boolean('is_visible');
         }
 
+        $from = $storeTag->slug;
         $storeTag->update($changes);
+        // Through the relation, never a hand-set `seoable_type` - the morph map stores "store_tag".
+        if ($seo !== null) {
+            $storeTag->seo()->updateOrCreate([], $seo);
+        }
 
-        return new TagResource($storeTag->loadCount('products'));
+        if ($storeTag->slug !== $from) {
+            self::redirect($from, $storeTag->slug);
+        }
+
+        return new TagResource($storeTag->loadCount('products')->load('seo'));
+    }
+
+    /**
+     * A 301 from a tag page's old address to its new one, so a rename or a
+     * merge does not leave a dead link behind. A redirect that starts at the
+     * address now live is dropped first, or renaming a tag back would loop.
+     */
+    public static function redirect(string $fromSlug, string $toSlug): void
+    {
+        Redirect::query()->where('from_path', '/store/tags/'.$toSlug)->delete();
+
+        Redirect::updateOrCreate(
+            ['from_path' => '/store/tags/'.$fromSlug],
+            ['to_path' => '/store/tags/'.$toSlug, 'status_code' => 301, 'is_active' => true, 'created_automatically' => true],
+        );
     }
 
     public function destroy(StoreTag $storeTag): JsonResponse
     {
         // The pivot rows cascade; the products keep everything else.
+        $storeTag->seo()->delete();
         $storeTag->delete();
 
         return response()->json(null, 204);
@@ -107,7 +138,9 @@ class TagController extends Controller
         }
 
         $into = StoreTag::query()->findOrFail($data['into']);
+        $from = $storeTag->slug;
         $moved = Tags::merge($storeTag, $into);
+        self::redirect($from, $into->slug);
 
         return response()->json([
             'message' => 'Merged into '.$into->name.'.',

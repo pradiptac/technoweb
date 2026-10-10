@@ -44,13 +44,12 @@ import type { StoreTagChip } from "@/types/store-tags";
  */
 /**
  * A product's own tags, as the same small chips in its buy panel, each opening
- * the shop filtered to it. Left-aligned and wrapping — it sits under a
- * paragraph, not under a search bar. Nothing when there are none.
+ * the tag's page (`/store/tags/<slug>`, 0.157.0) — the row on the category and
+ * shop pages keeps its filter links. Left-aligned and wrapping — it sits under
+ * a paragraph, not under a search bar. Nothing when there are none.
  */
-export function ProductTagChips({ tags, category, className }: {
+export function ProductTagChips({ tags, className }: {
   tags?: { name: string; slug: string }[];
-  /** The product's category: the row is drawn only inside one, so the link opens there. */
-  category?: string;
   className?: string;
 }) {
   if (!tags || tags.length === 0) return null;
@@ -60,7 +59,7 @@ export function ProductTagChips({ tags, category, className }: {
       {tags.map((tag) => (
         <li key={tag.slug}>
           <Link
-            href={`/store?${category ? `category=${encodeURIComponent(category)}&` : ""}tag=${encodeURIComponent(tag.slug)}`}
+            href={`/store/tags/${encodeURIComponent(tag.slug)}`}
             className="inline-flex h-[26px] items-center rounded-full px-3 text-12 leading-none font-semibold text-white transition-opacity duration-(--duration-base) hover:opacity-85"
             style={{ background: `var(--color-tag-fill-${tagIndex(tag.slug)})` }}
           >

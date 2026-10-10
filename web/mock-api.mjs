@@ -610,7 +610,12 @@ const mockTags = [
 const tagLinks = new Map([[1, [1, 2, 3, 4]], [2, [2]], [3, [5]]]);
 const tagSlugOf = (name) => name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 const tagUse = (tag) => [...tagLinks.values()].filter((ids) => ids.includes(tag.id)).length;
-const tagResource = (t) => ({ id: t.id, name: t.name, slug: t.slug, is_visible: t.is_visible, sort_order: t.sort_order, products_count: tagUse(t) });
+const tagResource = (t) => ({ id: t.id, name: t.name, slug: t.slug, is_visible: t.is_visible, sort_order: t.sort_order, products_count: tagUse(t), heading: t.heading ?? null, intro: t.intro ?? null, public_path: `/store/tags/${t.slug}` });
+// Tag pages (0.157.0): the detail read adds the SEO override and what the page falls back to; the public page counts published products only (every mock product is published).
+const tagSeoDefaults = (t) => ({ title: t.heading || t.name, description: `Shop ${t.name} products in the shop.`, canonical_url: `https://www.technoware.in/store/tags/${t.slug}`, robots: 'index, follow', focus_keyword: null, secondary_keywords: [], og_title: t.heading || t.name, og_description: `Shop ${t.name} products in the shop.`, og_image: null, schema_type: 'CollectionPage', schema_type_options: ['CollectionPage', 'WebPage'], sitemap_include: true });
+const tagSeoOverride = (t) => ({ title: null, description: null, canonical_url: null, robots: null, focus_keyword: null, secondary_keywords: [], og_title: null, og_description: null, og_image_path: null, og_image: null, schema_type: null, sitemap_include: true, ...(t.seo ?? {}) });
+const tagPublishedCount = (t) => storeProducts.filter((sp) => (tagLinks.get(sp.id) ?? []).includes(t.id)).length;
+const tagDetail = (t) => ({ ...tagResource(t), seo: tagSeoOverride(t), seo_defaults: { ...tagSeoDefaults(t), ...Object.fromEntries(Object.entries(t.seo ?? {}).filter(([, v]) => v !== null && v !== '' && !Array.isArray(v) && typeof v !== 'boolean')) } });
 const tagOrder = (a, b) => ((a.sort_order === 0) - (b.sort_order === 0)) || (a.sort_order - b.sort_order) || (tagUse(b) - tagUse(a)) || a.name.localeCompare(b.name);
 const tagSettings = { store_tags_enabled: '1', store_tags_limit: '12', store_tags_auto: '1' };
 function syncProductTags() {
@@ -4528,8 +4533,13 @@ createServer(async (req, res) => {
         syncProductTags();
         return json(res, 200, { message: `Merged into ${target.name}.`, data: { moved, into: tagResource(target) } });
       }
+      if (id && req.method === 'GET') return json(res, 200, { data: tagDetail(tag) });
       if (id && req.method === 'PATCH') {
         const body = await readJsonBody(req);
+        if ('heading' in body) tag.heading = body.heading ? String(body.heading).slice(0, 160) : null;
+        // The API sanitises rich text on write; the mock drops script blocks and handlers so the probe's check means something.
+        if ('intro' in body) tag.intro = body.intro ? String(body.intro).replace(/<script[\s\S]*?<\/script>/gi, '').replace(/\son\w+="[^"]*"/gi, '') : null;
+        if (body.seo && typeof body.seo === 'object') tag.seo = { ...(tag.seo ?? {}), ...body.seo };
         if (typeof body.name === 'string') {
           const clean = body.name.replace(/\s+/g, ' ').trim();
           if (!clean || clean.length > 32 || !tagSlugOf(clean)) return refuse('name', 'A tag needs a name of 1 to 32 characters with a letter or number.');
@@ -4538,7 +4548,7 @@ createServer(async (req, res) => {
         }
         if (typeof body.is_visible === 'boolean') tag.is_visible = body.is_visible;
         syncProductTags();
-        return json(res, 200, { data: tagResource(tag) });
+        return json(res, 200, { data: tagDetail(tag) });
       }
       if (id && req.method === 'DELETE') {
         mockTags.splice(mockTags.indexOf(tag), 1);
@@ -5983,8 +5993,24 @@ createServer(async (req, res) => {
 
   /* The store, the cart, and nothing shared with the catalogue above. */
   // The tag row's chips (0.141.0): visible tags with their counts, curated first then most used; `data: []` in a 200.
+  // One tag's page (0.157.0): a shown tag only (404 otherwise, and while the row is off); the count is published products, indexable from three.
+  const tagPageMatch = p.match(/^\/store\/tags\/([^/]+)$/);
+  if (tagPageMatch) {
+    const t = mockTags.find((x) => x.slug === decodeURIComponent(tagPageMatch[1]));
+    if (!t || !t.is_visible || tagSettings.store_tags_enabled !== '1') return json(res, 404, { message: 'Not found.' });
+    const count = tagPublishedCount(t);
+    const seo = { ...tagSeoDefaults(t), ...Object.fromEntries(Object.entries(t.seo ?? {}).filter(([, v]) => v !== null && v !== '' && !Array.isArray(v) && typeof v !== 'boolean')) };
+    return json(res, 200, { data: { name: t.name, slug: t.slug, heading: t.heading ?? null, intro: t.intro ?? null, count, indexable: count >= 3, updated_at: '2026-10-10T10:00:00+05:30', seo, schema: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: t.heading || t.name, url: `https://www.technoware.in/store/tags/${t.slug}` } } });
+  }
   if (p === '/store/tags') {
     const cat = url.searchParams.get('category');
+    if (url.searchParams.get('all') === '1') {
+      // The sitemap's read: every shown tag with a published product, with updated_at, indexable and the sitemap switch.
+      const data = tagSettings.store_tags_enabled !== '1' ? [] : mockTags
+        .filter((t) => t.is_visible && tagPublishedCount(t) > 0)
+        .map((t) => ({ name: t.name, slug: t.slug, count: tagPublishedCount(t), updated_at: '2026-10-10T10:00:00+05:30', indexable: tagPublishedCount(t) >= 3, seo: { sitemap_include: t.seo?.sitemap_include !== false } }));
+      return json(res, 200, { data });
+    }
     const limit = Math.min(30, Math.max(1, Number(url.searchParams.get('limit')) || Number(tagSettings.store_tags_limit)));
     const data = tagSettings.store_tags_enabled !== '1' ? [] : mockTags
       .filter((t) => t.is_visible)

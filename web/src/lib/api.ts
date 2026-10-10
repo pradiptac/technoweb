@@ -2,7 +2,7 @@ import "server-only";
 import { clientIpHeaders } from "@/lib/client-ip";
 import { previewRecord, type PreviewKind } from "@/lib/preview-store";
 import type { StoreFacetsResponse, VideoShelfRow } from "@/types/store-merch";
-import type { StoreTagChip } from "@/types/store-tags";
+import type { StoreTagChip, StoreTagPage, StoreTagSitemapRow } from "@/types/store-tags";
 import type {
   ContentBlock,
   BlogPost,
@@ -318,6 +318,22 @@ export const publicApi = {
       `/store/tags${category ? `?category=${encodeURIComponent(category)}` : ""}`,
       { revalidate: 300, tags: ["store-products", "store-tags"] },
     ),
+  /**
+   * One tag's page (0.157.0). ISR-cached under `store-tags`, the tag's own
+   * `store-tag:<slug>` and `store-products` (its count and grid change with a
+   * product save). A hidden, unknown or switched-off tag is a 404.
+   */
+  storeTag: (slug: string) =>
+    apiFetch<Single<StoreTagPage>>(`/store/tags/${encodeURIComponent(slug)}`, {
+      revalidate: 300,
+      tags: ["store-tags", `store-tag:${slug}`, "store-products"],
+    }),
+  /** Every shown tag with a published product, for the sitemap (`?all=1`). */
+  storeTagsAll: () =>
+    apiFetch<Collection<StoreTagSitemapRow>>("/store/tags?all=1", {
+      revalidate: 600,
+      tags: ["store-products", "store-tags"],
+    }),
   storeCategories: () =>
     apiFetch<Collection<StoreCategory>>("/store/categories", {
       revalidate: 600,

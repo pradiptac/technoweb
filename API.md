@@ -2480,6 +2480,8 @@ The coloured row under the shop's search bar. See `docs/store.md` "Tags".
 | Method | Path | Notes |
 |---|---|---|
 | `GET` | `/store/tags` | `?category=<slug>`, `?limit=` (1–30, default `store_tags_limit`). `{data: [{name, slug, count}]}` — **visible** tags carried by **published** products (of that category), curated tags first in the Tags screen's order, then the most used. **`{data: []}` in a 200** when there are none or `store_tags_enabled` is off |
+| `GET` | `/store/tags/{slug}` | A tag's page (0.157.0): `{data: {name, slug, heading, intro, count, indexable, updated_at, seo, schema}}`. `count` is **published** products; `indexable` is `count >= 3`; `schema` a `CollectionPage`. **404** for a hidden tag, an unknown slug and while `store_tags_enabled` is off; a tag nothing published carries still answers (`count: 0`). Declared after `store/tags` |
+| `GET` | `/store/tags?all=1` | The sitemap's read: every shown tag with a published product, no limit and no category; each row adds `updated_at`, `indexable` and `seo: {sitemap_include}` |
 | `GET` | `/store/products` | gains `?tag=<slug>` (a hidden tag still filters), and `?q=` also matches a tag's name |
 
 Product rows and `GET /store/products/{slug}` carry `tags: [{name, slug}]` —
@@ -2494,8 +2496,9 @@ visible tags only, in the Tags screen's order. The three settings
 | `PATCH` | `/admin/store/tags/reorder` | `ids[]` — every tag in the order drawn; renumbered 1..n. **Declared above `{id}`** |
 | `PATCH` | `/admin/store/tags/settings` | `settings: [{key, value}]` — the three keys and **no other** (422 by name); the switches `0`/`1`, the limit 4–30 |
 | `POST` | `/admin/store/tags/auto` | Runs the automatic rule over every product with no tags that was never decided. `{data: {tagged, untagged}}`. Throttled 6/min |
-| `PATCH` | `/admin/store/tags/{id}` | `name` (the slug follows it; 422 if another tag has it), `is_visible` |
-| `POST` | `/admin/store/tags/{id}/merge` | `into`. Moves its products onto `into` without duplicates, deletes it. `{data: {moved, into}}` |
+| `GET` | `/admin/store/tags/{id}` | One tag with `heading`, `intro`, `public_path`, `seo` (the override) and `seo_defaults` |
+| `PATCH` | `/admin/store/tags/{id}` | `name` (the slug follows it; 422 if another tag has it; **a 301 from the old `/store/tags/…` address is written**), `is_visible`, `heading` (160), `intro` (rich text, sanitised on write), `seo` (the override block every record takes). Answers the detail shape |
+| `POST` | `/admin/store/tags/{id}/merge` | `into`. Moves its products onto `into` without duplicates, deletes it and writes a 301 from its address to `into`'s. `{data: {moved, into}}` |
 | `DELETE` | `/admin/store/tags/{id}` | **204**. Its products keep everything else |
 | `POST` | `/admin/store/products/tag-suggest` | `name`, `short_description`, `description`, `specifications`, `brand_id`, `store_category_id`, `type`, `current[]`. `{data: {tags[], source: "ai"\|"rules"}}` — the AI assistant when it is on, has a key and the day's cap is not reached, otherwise the rule; anything the AI cannot answer falls back to the rule. Nothing is saved. Throttled 10/min |
 

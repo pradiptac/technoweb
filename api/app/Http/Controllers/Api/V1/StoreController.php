@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Store\CategoryResource;
 use App\Http\Resources\Store\ProductResource;
+use App\Http\Resources\Store\TagResource;
 use App\Models\ProductReview;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
@@ -141,8 +142,12 @@ class StoreController extends Controller
             return response()->json(['data' => []]);
         }
 
-        $limit = $request->filled('limit') ? min(30, max(1, $request->integer('limit'))) : Tags::limit();
-        $category = $request->filled('category') ? $request->string('category')->value() : null;
+        // `?all=1` is the sitemap's read (0.157.0): every visible tag with a
+        // published product, no limit, no category, each with the facts a tag
+        // page's indexing is decided on. Without it the row is unchanged.
+        $all = $request->boolean('all');
+        $limit = $all ? 5000 : ($request->filled('limit') ? min(30, max(1, $request->integer('limit'))) : Tags::limit());
+        $category = ! $all && $request->filled('category') ? $request->string('category')->value() : null;
 
         $published = fn ($q) => $q
             ->published()
@@ -150,6 +155,7 @@ class StoreController extends Controller
 
         $tags = StoreTag::query()
             ->visible()
+            ->when($all, fn ($q) => $q->with('seo'))
             ->whereHas('products', $published)
             ->withCount(['products as products_count' => $published])
             ->orderByRaw('sort_order = 0')
@@ -163,7 +169,28 @@ class StoreController extends Controller
             'name' => $t->name,
             'slug' => $t->slug,
             'count' => (int) $t->products_count,
-        ])->values()]);
+        ] + ($all ? [
+            'updated_at' => $t->updated_at?->toIso8601String(),
+            'indexable' => $t->products_count >= StoreTag::MIN_INDEXABLE,
+            // A tag with no override row has no `seo`; the relation is typed non-null.
+            'seo' => ['sitemap_include' => (bool) ($t->seo?->sitemap_include ?? true)], // @phpstan-ignore nullsafe.neverNull
+        ] : []))->values()]);
+    }
+
+    /**
+     * One tag's page (0.157.0, `docs/store.md` "Tags"): a visible tag, 404
+     * for a hidden or unknown one and while tags are switched off. A tag
+     * nothing published carries still answers, with a count of 0 and
+     * `indexable: false` — the page exists, the search engines are told not to
+     * list it. Declared after `store/tags` so the literal wins.
+     */
+    public function tag(StoreTag $storeTag): JsonResource
+    {
+        abort_unless(Tags::enabled() && $storeTag->is_visible, 404);
+
+        $storeTag->loadCount(['products as products_count' => fn ($q) => $q->published()])->load('seo');
+
+        return (new TagResource($storeTag))->withSchema();
     }
 
     /**

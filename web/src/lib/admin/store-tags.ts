@@ -38,7 +38,13 @@ export async function createStoreTag(name: string): Promise<AdminStoreTag> {
   return res.data;
 }
 
-export async function updateStoreTag(id: number, payload: { name?: string; is_visible?: boolean }): Promise<AdminStoreTag> {
+/** One tag with its page fields and SEO override — the edit screen (0.157.0). */
+export async function getStoreTag(id: number): Promise<AdminStoreTag> {
+  const res = await apiFetch<{ data: AdminStoreTag }>(`/admin/store/tags/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function updateStoreTag(id: number, payload: Record<string, unknown>): Promise<AdminStoreTag> {
   const res = await apiFetch<{ data: AdminStoreTag }>(`/admin/store/tags/${id}`, {
     method: "PATCH", body: payload, token: await token(),
   });

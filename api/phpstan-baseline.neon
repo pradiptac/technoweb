@@ -511,7 +511,7 @@ parameters:
 			path: app/Http/Controllers/Api/V1/Admin/SeoController.php
 
 		-
-			message: '#^Strict comparison using \!\=\= between array\{''body''\}\|array\{''description''\}\|array\{''intro'', ''body''\}\|array\{''problem_statement'', ''overview''\} and array\{\} will always evaluate to true\.$#'
+			message: '#^Strict comparison using \!\=\= between array\{''body''\}\|array\{''description''\}\|array\{''problem_statement'', ''overview''\}\|array\{0\: ''intro'', 1\?\: ''body''\} and array\{\} will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
 			count: 1
 			path: app/Http/Controllers/Api/V1/Admin/SeoController.php

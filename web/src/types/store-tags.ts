@@ -19,6 +19,39 @@ export type AdminStoreTag = {
   sort_order: number;
   /** Every product carrying it, drafts included — what deleting it would touch. */
   products_count?: number;
+  /** The tag page's own heading and introduction (0.157.0); the heading falls back to the name. */
+  heading?: string | null;
+  /** Rich text, sanitised on write. */
+  intro?: string | null;
+  /** `/store/tags/<slug>` — a path; the browser supplies the origin. */
+  public_path?: string;
+  /** Detail only. */
+  seo?: import("./api").SeoOverride;
+  seo_defaults?: import("./api").Seo;
+};
+
+/**
+ * A tag's page (0.157.0, `GET /store/tags/{slug}`). `count` is published
+ * products; `indexable` is the API's rule (three or more) and the page is
+ * `noindex, follow` and out of the sitemap without it.
+ */
+export type StoreTagPage = {
+  name: string;
+  slug: string;
+  heading: string | null;
+  intro: string | null;
+  count: number;
+  indexable: boolean;
+  updated_at?: string | null;
+  seo?: import("./api").Seo;
+  schema?: Record<string, unknown>;
+};
+
+/** A row of `GET /store/tags?all=1`, the sitemap's read. */
+export type StoreTagSitemapRow = StoreTagChip & {
+  updated_at?: string | null;
+  indexable: boolean;
+  seo?: { sitemap_include: boolean };
 };
 
 export type StoreTagSettings = {

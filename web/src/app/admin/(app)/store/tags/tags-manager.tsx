@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { Form } from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Switch } from "@/components/ui/switch";
 import { Alert, Field, Input, Select } from "@/components/ui/input";
@@ -195,6 +195,7 @@ export function TagsManager({ tags, meta }: { tags: AdminStoreTag[]; meta: Store
                   />
 
                   <span className="flex flex-wrap gap-1.5">
+                    <ButtonLink href={`/admin/store/tags/${tag.id}`} variant="ghost" size="sm">Edit page</ButtonLink>
                     <Button type="button" variant="ghost" size="sm" onClick={() => open("rename", tag)}>Rename</Button>
                     <Button type="button" variant="ghost" size="sm" onClick={() => open("merge", tag)} disabled={tags.length < 2}>Merge into…</Button>
                     <Button type="button" variant="ghost" size="sm" onClick={() => open("delete", tag)}>Delete</Button>
@@ -220,7 +221,7 @@ export function TagsManager({ tags, meta }: { tags: AdminStoreTag[]; meta: Store
           </>
         )}
       >
-        <Field label="Name" htmlFor="rename-tag" hint="Renaming also changes the tag's address, so an old link to it stops finding it.">
+        <Field label="Name" htmlFor="rename-tag" hint="Renaming also changes the address of the tag's page; the old address redirects to the new one.">
           <Input id="rename-tag" value={name} maxLength={meta.name_max} onChange={(e) => setName(e.target.value)} />
         </Field>
       </Modal>

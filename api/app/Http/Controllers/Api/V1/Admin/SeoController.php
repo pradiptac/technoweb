@@ -24,6 +24,7 @@ use App\Models\Setting;
 use App\Models\Solution;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
+use App\Models\StoreTag;
 use App\Support\AeoScore;
 use App\Support\EntityLinks;
 use App\Support\GeoScore;
@@ -110,6 +111,11 @@ class SeoController extends Controller
          * to open and fix.
          */
         'store_category' => [StoreCategory::class, 'name', 'store/categories', 'Store categories', ['faqs', 'answerBlocks'], ['description'], 80],
+        /*
+         * A shop tag is a landing page at `/store/tags/{slug}` since 0.157.0.
+         * The introduction is its body; a sentence or two is a complete one.
+         */
+        'store_tag' => [StoreTag::class, 'name', 'store/tags', 'Store tags', [], ['intro'], 60],
         /*
          * Entries of the custom content types (docs/custom-content.md) — one
          * row per entry. The console route is per type

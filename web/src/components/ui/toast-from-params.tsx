@@ -161,6 +161,10 @@ const OUTCOMES: Record<string, Message> = {
     tone: "ok",
     title: "Category saved",
   },
+  "store-tag-page-saved": {
+    tone: "ok",
+    title: "Tag page saved",
+  },
   "store-category-deleted": {
     tone: "ok",
     title: "Category deleted",

@@ -51,6 +51,7 @@ Route::middleware('role:store_manager')->group(function () {
     Route::patch('store/tags/settings', [AdminStoreTagController::class, 'settings'])->name('store.tags.settings');
     Route::post('store/tags/auto', [AdminStoreTagController::class, 'auto'])->middleware('throttle:6,1')->name('store.tags.auto');
     Route::post('store/products/tag-suggest', [AdminStoreTagController::class, 'suggest'])->middleware('throttle:10,1')->name('store.products.tag-suggest');
+    Route::get('store/tags/{storeTag:id}', [AdminStoreTagController::class, 'show'])->name('store.tags.show');
     Route::patch('store/tags/{storeTag:id}', [AdminStoreTagController::class, 'update'])->name('store.tags.update');
     Route::post('store/tags/{storeTag:id}/merge', [AdminStoreTagController::class, 'merge'])->name('store.tags.merge');
     Route::delete('store/tags/{storeTag:id}', [AdminStoreTagController::class, 'destroy'])->name('store.tags.destroy');

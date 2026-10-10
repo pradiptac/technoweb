@@ -21,6 +21,7 @@ use App\Models\Setting;
 use App\Models\Solution;
 use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
+use App\Models\StoreTag;
 use App\Support\Events\EventText;
 use App\Support\Mail\MailBrand;
 use App\Support\Store\Fulfilment;
@@ -841,6 +842,19 @@ class StructuredData
             'about' => $page->brand
                 ? ['@type' => 'Brand', 'name' => $page->brand->name]
                 : null,
+        ]);
+    }
+
+    /** A shop tag's page: a listing of the products carrying it, so a `CollectionPage`. */
+    public static function storeTag(StoreTag $tag, int $count): array
+    {
+        return self::graph([
+            '@type' => 'CollectionPage',
+            'name' => $tag->heading ?: $tag->name,
+            'description' => str(HtmlSanitiser::toText($tag->intro ?? ''))->limit(300)->value() ?: null,
+            'url' => self::url($tag->publicPath()),
+            'isPartOf' => ['@type' => 'WebSite', '@id' => self::url().'/#website', 'name' => self::company(), 'url' => self::url()],
+            'mainEntity' => $count > 0 ? ['@type' => 'ItemList', 'numberOfItems' => $count] : null,
         ]);
     }
 }

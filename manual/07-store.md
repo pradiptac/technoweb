@@ -427,10 +427,22 @@ off with *Tag new products automatically* on **Store → Tags**.
 - **The list** — each tag in its colour with how many products carry it.
   **Shown** switches a tag off the shop's row (it stays on its products). The
   arrows put the tags you care about first; the rest follow by how many
-  products carry them. **Rename** changes the name (and so the tag's address).
-  **Merge into…** moves a tag's products onto another and removes it — the way
+  products carry them. **Rename** changes the name (and so the tag's page
+  address; the old address redirects). **Edit page** opens the tag's own page
+  (below). **Merge into…** moves a tag's products onto another and removes it — the way
   to join two spellings. **Delete** asks first and says how many products
   lose the tag.
+
+**A tag's page.** Every shown tag has a page of its own at
+`/store/tags/<name>` — the tag chip on a product opens it. **Edit page** on
+**Store → Tags** gives it a **Heading** (blank uses the tag's name), an
+**Introduction** (above the products) and the **SEO** tab every page has, with
+a **View page** link. The page lists the tag's first products, with a link to
+the whole filtered shop when there are more. A page about **fewer than three**
+products on sale is kept out of search engines and the sitemap whatever the
+SEO tab says — a thin page does more harm than good — and joins them the day a
+third product is published. Hiding a tag, or switching the tags row off,
+removes its page. The chips under the search bar still filter the shop.
 
 **Spreadsheets.** The shop export and import have a `tags` column, with the
 tags separated by `;`. A blank cell leaves a product's tags as they are. A

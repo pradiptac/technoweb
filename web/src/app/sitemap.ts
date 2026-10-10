@@ -110,7 +110,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const [
       solutions, services, industries, categories, products,
       posts, articles, caseStudies, pages, careers,
-      storeProducts, storeCategories, taxonomy, landing, settings, events, downloads,
+      storeProducts, storeCategories, storeTags, taxonomy, landing, settings, events, downloads,
     ] = await Promise.all([
       publicApi.solutions().then((r) => r.data),
       publicApi.services().then((r) => r.data),
@@ -135,6 +135,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
        */
       all((q) => publicApi.storeProducts(q)),
       publicApi.storeCategories().then((r) => r.data),
+      // Shown tags with a published product; on its own `catch` so a failure leaves tag pages out, not the sitemap.
+      publicApi.storeTagsAll().then((r) => r.data).catch(() => []),
       // Blog categories are real, indexable, linked-to pages with their own
       // canonical — `/blog/category/{slug}` — and were unlisted too.
       publicApi.blogTaxonomy().then((r) => r.data),
@@ -239,6 +241,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
        */
       ...included(storeCategories).map((c) => entry(`/store/categories/${c.slug}`, 0.7, "weekly", when(c.updated_at))),
       ...included(storeProducts).map((p) => entry(`/store/products/${p.slug}`, 0.7, "weekly", when(p.updated_at))),
+      // A tag page is listed only with three or more published products (the API's `indexable`); under that it is `noindex`.
+      ...included(storeTags.filter((t) => t.indexable)).map((t) => entry(`/store/tags/${t.slug}`, 0.5, "weekly", when(t.updated_at))),
       ...taxonomy.categories.map((c) => entry(`/blog/category/${c.slug}`, 0.5, "weekly")),
       ...landing.map((l) => entry(l.path, 0.6, "monthly", when(l.updated_at))),
       // /privacy, /terms and anything else an editor publishes.

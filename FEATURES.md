@@ -240,7 +240,9 @@ first rupee.
   and the product's brand, category and key specifications when it is not),
   are added automatically **once** to a product that has none, and are tidied
   on **Store → Tags**: hide, reorder, rename, merge two spellings, delete.
-  They travel in the shop's CSV and arrive from WooCommerce.
+  They travel in the shop's CSV and arrive from WooCommerce. Each tag also has a
+  **page of its own** (`/store/tags/…`) with a heading, an introduction and SEO
+  — listed by search engines from three products on sale.
 - **Order management**: status lifecycle, dispatch notice on status change,
   tracking, uploaded invoices, internal notes, manual payment recording.
 - **Courier booking with Shiprocket** (optional; tracking by hand stays the

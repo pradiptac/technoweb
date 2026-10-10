@@ -2164,7 +2164,52 @@ across (entities decoded); only a name that cannot be kept is warned about.
 
 `StoreTagsTest` pins all of it; the once-only rule, the published-only count
 and the twelve-tag cap were each control-run. Not built: tags on the marketing
-catalogue, a tag's own landing page, tags as a menu item, tag pictures.
+catalogue, tags as a menu item, tag pictures.
+
+### Tag pages (0.157.0)
+
+A tag is also a page, `/store/tags/{slug}` (the client's decision, 2026-10-10,
+reversing the earlier "no landing page per tag").
+
+- **The record.** `store_tags` gains `heading` (160) and `intro` (rich text,
+  named in `TagRequest::richTextFields()` or it would bypass the sanitiser);
+  `StoreTag` is `HasSeo` (`store_tag` was already in the morph map), so the
+  page has the SEO panel, a score and a row on `/admin/seo` ("Store tags",
+  `SeoController::ENTITIES`, depth 60 words).
+- **The read.** `GET /store/tags/{slug}` answers `{name, slug, heading, intro,
+  count, indexable, updated_at, seo, schema}`: 404 for a hidden tag, an
+  unknown slug **and while `store_tags_enabled` is off** (the feature is the
+  row *and* the pages); a tag nothing published carries answers with `count: 0`.
+  `count` is published products only. `schema` is a `CollectionPage`
+  (`StructuredData::storeTag`).
+- **Indexing: three or more published products** (`StoreTag::MIN_INDEXABLE`).
+  Under it the website sets `robots: noindex, follow` (unless the SEO tab has
+  already said noindex) and `GET /store/tags?all=1` — the sitemap's read:
+  every shown tag with a published product, no limit, no category, adding
+  `updated_at`, `indexable` and `seo.sitemap_include` to each row — marks it
+  `indexable: false`, and `sitemap.ts` lists only `indexable` rows whose
+  `sitemap_include` is not false. The plain `/store/tags` row is unchanged.
+- **Caching.** The page is ISR: `generateStaticParams` returns `[]`, it reads
+  no `searchParams`, cookie or header, and its fetches carry `store-tags`,
+  `store-tag:<slug>` and `store-products` — so a product save and every Tags
+  action refresh it, and `updateTagPageAction` purges the tag's own key. It
+  shows the first page of `/store/products?tag=<slug>` and, when there are
+  more, a link to `/store?tag=<slug>`; it renders `StoreFilterBar` itself like
+  every page under `/store`.
+- **A rename moves the address, and the 301 is written.** `StoreTag` is still
+  not `Sluggable` (the slug is the identity the vocabulary is merged on, never
+  derived from the name), so `TagController::redirect()` writes the `redirects`
+  row on a rename and on a merge (old tag -> the tag it joined), and deletes any
+  redirect that *starts* at the address now live, so renaming a tag back cannot
+  loop. Deleting a tag leaves a 404; its `seo_metadata` row goes with it.
+- **Links.** The chips on a **product page** open the tag page; the row on the
+  shop and category pages still link to `/store?…&tag=…` (they sit on pages
+  that must not read `searchParams`, and a filter is what they are for).
+- **Console.** `/admin/store/tags/{id}` (`GET`/`PATCH`, `role:store_manager`):
+  heading, introduction and SEO; name and the Shown switch stay on the list.
+  `StoreTagPageTest` pins the 404s, the published-only count, the threshold, the
+  sanitiser, the SEO override, the redirects and the role gate - the threshold
+  and the sanitiser were control-run.
 
 ## Delivery charges and shipping zones (0.142.0)
 

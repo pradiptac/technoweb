@@ -334,7 +334,7 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
               )}
 
               {/* The product's own tags (0.141.0), each opening the shop filtered to it. */}
-              {settingEnabled(settings, "store_tags_enabled") && <ProductTagChips tags={product.tags} category={product.category?.slug} />}
+              {settingEnabled(settings, "store_tags_enabled") && <ProductTagChips tags={product.tags} />}
 
               <AddToBasket product={product} />
 

@@ -21,6 +21,36 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.157.0 — 2026-10-10
+
+**Every shop tag is a page.**
+
+- **`/store/tags/{slug}`.** A tag gains a heading, an introduction (rich text,
+  sanitised on write) and the SEO panel every indexable record has; the page
+  shows the tag's first products under the shop's own bar, with a link to the
+  filtered shop for the rest. A tag nothing published carries still answers,
+  as a stub. A hidden tag, an unknown one, or the tags row being switched off
+  is a 404.
+- **Thin pages stay out of search.** Under three published products the page
+  is `noindex, follow` and out of the sitemap (`indexable` on the API's
+  answer); it joins them when a third product is published.
+- **A rename or a merge leaves a 301** from the tag's old address — tags were
+  deliberately not `Sluggable`, and now that the slug is an address the
+  redirect is written by the Tags controller.
+- **Product pages link to it.** The tag chips on a product open the tag's
+  page; the row under the shop's search bar keeps filtering.
+- **Console.** Store → Tags has an **Edit page** link per tag: Content
+  (heading, introduction) and SEO tabs, **View page**, and the tag is on the
+  SEO overview as "Store tags".
+- `GET /store/tags/{slug}`, `GET /store/tags?all=1`, `GET /admin/store/tags/{id}`;
+  `PATCH /admin/store/tags/{id}` takes `heading`, `intro`, `seo`. Mock in
+  parity; `StoreTagPageTest`; probe `scripts/probes/store-tag-page.mjs`
+  (18 checks; merge review taught it that the hidden tag's page and the old
+  address before its redirect lands are deliberate 404s, whose dev-only React
+  warning it now ignores for those steps alone).
+
+---
+
 ## 0.156.0 — 2026-10-10
 
 **Edit the custom layout's words on the live preview.**

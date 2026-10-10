@@ -165,6 +165,8 @@ const DISCOVER = [
   { from: "/events", match: /^\/events\/(?!registration(?:\/|$))[^/]+$/ },
   // A store product page: the reviews section, its popovers and the dialog's trigger (docs/store.md, "Reviews").
   { from: "/store", match: /^\/store\/products\/[^/]+$/ },
+  // A tag page (0.157.0), reached the way a shopper reaches it: the chip on a product.
+  { from: "/store", via: /^\/store\/products\/[^/]+$/, match: /^\/store\/tags\/[^/]+$/ },
   { from: "/case-studies", match: /^\/case-studies\/[^/]+$/ },
   { from: "/knowledge-base", match: /^\/knowledge-base\/[^/]+$/ },
   // A reference's shape, not `[^/]+`: the queue's header links to
@@ -264,6 +266,7 @@ const DISCOVER = [
   { from: "/admin/webhooks", match: /^\/admin\/webhooks\/\d+$/, admin: true },
   { from: "/admin/store/products", match: /^\/admin\/store\/products\/\d+$/, admin: true },
   { from: "/admin/store/categories", match: /^\/admin\/store\/categories\/\d+$/, admin: true },
+  { from: "/admin/store/tags", match: /^\/admin\/store\/tags\/\d+$/, admin: true },
   { from: "/admin/store/orders", match: /^\/admin\/store\/orders\/[A-Z0-9-]+$/, admin: true },
   { from: "/admin/store/returns", match: /^\/admin\/store\/returns\/[A-Z0-9-]+$/, admin: true },
   { from: "/admin/store/coupons", match: /^\/admin\/store\/coupons\/\d+$/, admin: true },

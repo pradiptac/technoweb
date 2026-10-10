@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
+import { seoFromFormData, str } from "@/lib/admin-form";
 import {
   autoTagStoreProducts, createStoreTag, deleteStoreTag, mergeStoreTag, reorderStoreTags,
   saveStoreTagSettings, suggestStoreTags, updateStoreTag, type TagSuggestInput,
@@ -75,6 +76,43 @@ export async function createTagAction(_prev: TagsFormState, formData: FormData):
   purge();
 
   return { ok: true };
+}
+
+export type TagPageFormState = { error?: string; fieldErrors?: Record<string, string[]> };
+
+/**
+ * The tag page's Content and SEO tabs (0.157.0). Purges `store-tags` - which
+ * every tag page's fetch carries - and the tag's own `store-tag:<slug>`, so
+ * the public page shows the edit on its next request. The slug cannot change
+ * here (the name is renamed on the list), so one tag is enough.
+ */
+export async function updateTagPageAction(_prev: TagPageFormState, formData: FormData): Promise<TagPageFormState> {
+  const id = Number(formData.get("id"));
+  const slug = str(formData, "slug");
+
+  if (!id) return { error: "Missing tag id." };
+
+  const seo = seoFromFormData(formData);
+
+  try {
+    await updateStoreTag(id, {
+      heading: str(formData, "heading"),
+      intro: str(formData, "intro"),
+      ...(seo ? { seo } : {}),
+    });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 401) redirect("/admin/login");
+      if (error.status === 403) return { error: "Only a store manager or an administrator can manage tags." };
+      if (error.status === 422) return { error: "Check the highlighted fields.", fieldErrors: error.errors };
+    }
+
+    return { error: "We could not save the tag page. Try again shortly." };
+  }
+
+  purge();
+  if (slug) updateTag(`store-tag:${slug}`);
+  redirect("/admin/store/tags?done=store-tag-page-saved");
 }
 
 export async function renameTagAction(id: number, name: string): Promise<TagActionResult> {
