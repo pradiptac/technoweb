@@ -2104,9 +2104,13 @@ export type Order = {
   courier?: string | null;
   tracking_number?: string | null;
   tracking_url?: string | null;
+  /** The courier's own word for where the parcel is (0.143.0); null while typed by hand or not going well. */
+  shipment_status?: string | null;
   placed_at?: string | null;
   paid_at?: string | null;
   dispatched_at?: string | null;
+  /** When the courier delivered it (0.143.0). */
+  delivered_at?: string | null;
   completed_at?: string | null;
   items?: OrderLine[];
   payments?: { status: string; status_label: string; method?: string | null; paid_at?: string | null }[];
@@ -2209,6 +2213,8 @@ export type StoreDashboard = {
     returns_requested?: number;
     /** Orders whose Zoho Books invoice was refused. Links to `/admin/store/orders?zoho=failed`. */
     zoho_failed?: number;
+    /** Parcels the courier is bringing back or cancelled. Links to `/admin/store/orders?shipment=problem`. */
+    shipments_in_trouble?: number;
     out_of_stock: number;
     codes_exhausted: number;
     failed_payments: number;
@@ -2399,6 +2405,10 @@ export type AdminOrder = {
   returns?: import("./returns").OrderReturnSummary[];
   /** Where the order's Zoho Books invoice has got to (0.134.0). Null while Zoho is off and nothing was asked. */
   zoho?: import("./zoho").OrderZohoState | null;
+  /** The parcel with the courier platform (0.143.0). Detail read only; null while the provider is manual and nothing was booked. */
+  shipment?: import("./courier").OrderShipment | null;
+  /** When the courier delivered it (0.143.0). */
+  delivered_at?: string | null;
   placed_at?: string | null;
   paid_at?: string | null;
   dispatched_at?: string | null;

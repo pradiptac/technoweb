@@ -427,6 +427,24 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'zoho_books', 'key' => 'zoho_books_scope_version', 'value' => null, 'type' => 'string'],
 
             /*
+             * Courier booking (0.143.0, docs/store.md "Shiprocket"). Private
+             * — an API user's password and a webhook token live here — and
+             * `manual` until an administrator chooses otherwise, which is the
+             * hand-typed tracking form the console has always had. The
+             * pickup location is one of Shiprocket's own nicknames, chosen
+             * from its list; the parcel is the default size in whole cm.
+             */
+            ['group' => 'shiprocket', 'key' => 'store_courier_provider', 'value' => 'manual', 'type' => 'string'],
+            ['group' => 'shiprocket', 'key' => 'shiprocket_email', 'value' => null, 'type' => 'string'],
+            ['group' => 'shiprocket', 'key' => 'shiprocket_password', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'shiprocket', 'key' => 'shiprocket_pickup_location', 'value' => null, 'type' => 'string'],
+            ['group' => 'shiprocket', 'key' => 'shiprocket_parcel_length', 'value' => '20', 'type' => 'string'],
+            ['group' => 'shiprocket', 'key' => 'shiprocket_parcel_breadth', 'value' => '15', 'type' => 'string'],
+            ['group' => 'shiprocket', 'key' => 'shiprocket_parcel_height', 'value' => '10', 'type' => 'string'],
+            ['group' => 'shiprocket', 'key' => 'shiprocket_webhook_token', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'shiprocket', 'key' => 'shiprocket_error', 'value' => null, 'type' => 'string'],
+
+            /*
              * Comments, site-wide.
              *
              * **Default off.** Switched on this puts a public form on every

@@ -12,7 +12,7 @@ import { DeliveryRow } from "@/components/store/delivery-row";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import {
-  FulfilPanel, InvoicePanel, NotePanel, RecordPaymentPanel, RecordRefundPanel, ShippingPanel, StatusPanel,
+  CourierPanel, FulfilPanel, InvoicePanel, NotePanel, RecordPaymentPanel, RecordRefundPanel, ShippingPanel, StatusPanel,
   ZohoInvoicePanel,
   ZohoPaymentLine,
 } from "./order-panels";
@@ -70,7 +70,10 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
       </PageHeader>
 
       {/* The same line the customer sees on their order, so the desk and the customer read one picture. */}
-      <OrderTimeline order={order} className="mb-5" />
+      <OrderTimeline
+        order={{ ...order, shipment_status: order.shipment && !order.shipment.problem ? order.shipment.status : null }}
+        className="mb-5"
+      />
 
       <div className="grid gap-5 lg:grid-cols-[1.3fr_1fr] lg:items-start">
         <div className="grid gap-5">
@@ -145,6 +148,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
             Only for an order with something to send. A courier form on a
             licence order asks a question that has no answer.
           */}
+          {order.needs_shipping ? <CourierPanel order={order} /> : null}
           {order.needs_shipping ? <ShippingPanel order={order} /> : null}
 
           {/* Above the upload it replaces; renders nothing while Zoho Books is not in use. */}

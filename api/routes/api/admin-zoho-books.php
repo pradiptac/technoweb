@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\ShiprocketController;
 use App\Http\Controllers\Api\V1\Admin\ZohoBooksController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,4 +20,10 @@ Route::middleware('role:admin')->group(function () {
     Route::post('settings/zoho-books/disconnect', [ZohoBooksController::class, 'disconnect'])->name('settings.zoho-books.disconnect');
     Route::post('settings/zoho-books/test', [ZohoBooksController::class, 'test'])
         ->middleware('throttle:6,1')->name('settings.zoho-books.test');
+
+    // Shiprocket (0.143.0, docs/store.md "Shiprocket"): where the connection
+    // stands, and a test that signs in and lists the pickup locations only.
+    Route::get('settings/shiprocket', [ShiprocketController::class, 'status'])->name('settings.shiprocket.status');
+    Route::post('settings/shiprocket/test', [ShiprocketController::class, 'test'])
+        ->middleware('throttle:6,1')->name('settings.shiprocket.test');
 });

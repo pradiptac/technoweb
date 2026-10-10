@@ -9,6 +9,7 @@ import {
   recordStoreOrderPayment,
   recordStoreOrderRefund,
   sendZohoPayment,
+  runShipmentAction, type ShipmentAction,
 } from "@/lib/admin";
 
 export type OrderActionState = { error?: string; ok?: string };
@@ -340,4 +341,73 @@ export async function fulfilOrderAction(
       ? "One code issued."
       : `${result.assigned} codes issued.`,
   };
+}
+
+const SHIPMENT_DONE: Record<ShipmentAction, string> = {
+  book: "Booked with Shiprocket.",
+  assign: "A courier was assigned.",
+  pickup: "Pickup requested.",
+  label: "The label is ready.",
+  cancel: "The shipment was cancelled with Shiprocket.",
+  track: "Asked Shiprocket where it is.",
+};
+
+/**
+ * One action for the courier panel (docs/store.md "Shiprocket"): book, assign
+ * the courier, ask for a pickup, make the label, cancel, or ask where the parcel
+ * is. Each acts on the real Shiprocket account, so each is its own button with
+ * its own press; the API claims the booking, so two presses make one order.
+ * A refusal comes back in Shiprocket's own words, which name the thing to fix.
+ *
+ * The parcel's weight arrives in kilograms (what a person weighs in) and goes
+ * on as whole grams, converted on the integers rather than through a float.
+ */
+export async function shipmentAction(
+  _previous: OrderActionState,
+  formData: FormData,
+): Promise<OrderActionState> {
+  const orderNumber = String(formData.get("order_number") ?? "");
+  const action = String(formData.get("action") ?? "") as ShipmentAction;
+
+  if (!orderNumber || !(action in SHIPMENT_DONE)) return { error: "Missing order." };
+
+  const body: Record<string, unknown> = {};
+
+  if (action === "book") {
+    const grams = kilogramsToGrams(String(formData.get("weight_kg") ?? ""));
+
+    if (grams === null) return { error: "Enter the parcel's weight in kilograms, for example 1.5." };
+    body.weight_grams = grams;
+
+    for (const side of ["length", "breadth", "height"] as const) {
+      const value = String(formData.get(side) ?? "").trim();
+
+      if (!/^\d{1,3}$/.test(value) || Number(value) < 1) return { error: "Enter each side of the parcel in whole centimetres." };
+      body[side] = Number(value);
+    }
+  }
+
+  try {
+    await runShipmentAction(orderNumber, action, body);
+  } catch (error) {
+    // The refusal is written on the order too, so the panel must re-read it.
+    refresh(orderNumber);
+
+    return toState(error, "Shiprocket did not answer. Try again shortly.");
+  }
+
+  refresh(orderNumber);
+
+  return { ok: SHIPMENT_DONE[action] };
+}
+
+/** "1.5" → 1500, on the digits: no float between the text and the grams. */
+function kilogramsToGrams(text: string): number | null {
+  const match = /^(\d{1,4})(?:\.(\d{1,3}))?$/.exec(text.trim());
+
+  if (!match) return null;
+
+  const grams = Number(match[1]) * 1000 + Number((match[2] ?? "").padEnd(3, "0"));
+
+  return grams >= 1 ? grams : null;
 }

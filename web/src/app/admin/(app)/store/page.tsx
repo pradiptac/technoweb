@@ -220,6 +220,8 @@ export default async function StoreDashboardPage({
     { key: "returns", count: attention.returns_requested ?? 0, label: "returns waiting for a decision", href: "/admin/store/returns?status=requested", icon: IconTag, tone: "warn" as const },
     /* Invoices Zoho Books refused: each order says why, in Zoho's words, and offers the retry. */
     { key: "zoho", count: attention.zoho_failed ?? 0, label: "Zoho invoices refused", href: "/admin/store/orders?zoho=failed", icon: IconTag, tone: "err" as const },
+    /* Parcels the courier is bringing back or cancelled: a person decides what happens to the order. */
+    { key: "shipments", count: attention.shipments_in_trouble ?? 0, label: "parcels coming back or cancelled", href: "/admin/store/orders?shipment=problem", icon: IconTruck, tone: "warn" as const },
     { key: "unpaid", count: attention.awaiting_payment, label: "never paid for", href: "/admin/store/orders?unpaid=1", icon: IconClock, tone: "info" as const },
   ].filter((w) => w.count > 0);
 

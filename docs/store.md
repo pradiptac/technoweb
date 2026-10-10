@@ -2316,3 +2316,193 @@ the sales CSV and report, the order email, the Zoho line and credit note, the
 reminder total, the zones-mode feed and markup, and every console rule.
 `scripts/probes/shipping-zones.mjs` drives the checkout at 360 and 1280 and
 puts everything back.
+
+## Shiprocket: booking and tracking a parcel (0.143.0)
+
+**Optional, off, and "By hand" stays the default.** `store_courier_provider`
+(private `shiprocket` group) is `manual` or `shiprocket`. On `manual`, or on
+`shiprocket` with the sign-in or the pickup location unsaved
+(`CourierSettings::active()` is false), no control is drawn, no call is made
+and the existing tracking form works exactly as it did. Every existing order
+test passes untouched; `ShiprocketTest::test_a_manual_install_asks_nothing_of_anybody`
+pins that nothing is asked, in both directions.
+
+**There is no Shiprocket sandbox, and that decides the whole shape.** The
+documentation says "any requests made using the valid API credentials will
+affect the real-time data in your Shiprocket account". So: every test fakes the
+service (`tests/Support/FakesShiprocket`, a routed `Http::fake()` under
+`Http::preventStrayRequests()`, modelled on `FakesZohoBooks`); "Test the
+connection" signs in and lists the pickup locations — the only two read-only
+calls — and books nothing; `scripts/probes/courier.mjs` never switches the
+provider on and never presses Book or Test. **It has not been driven against a
+real account.** Every assumption about a shape the documentation leaves open is
+one small place, commented `unverified against a real account:`, and listed
+below.
+
+### The client
+
+`App\Support\Store\Shipping\Shiprocket` over Laravel's HTTP client, no SDK, base
+`https://apiv2.shiprocket.in/v1/external`. Sign in, pickup locations, create
+order, assign courier and AWB, request pickup, label, track by AWB, cancel.
+
+- **The token** is cached for 9 days (it is good for 10), keyed on a hash of the
+  API user's email. A 401 forgets it and signs in once more; a second 401 is the
+  account's answer and is reported. A failed sign-in caches nothing.
+- **A 200 can be an error.** Shiprocket answers HTTP 200 with `status: 404`, an
+  empty label URL, `label_created: 0`, `track_status: 0`. Each method tests for
+  the field it needs and treats its absence as a refusal in Shiprocket's words
+  (`message`, then the first validation error); a body carrying an integer
+  `status` of 400 or more is a refusal too. `track_status: 0` is *not* — it means
+  no scans yet.
+- **`shiprocket_error`** is the `mail_error` pattern: any refusal writes
+  Shiprocket's words, the next success clears it, and it is written only when it
+  changes. The settings panel shows it.
+- **Ids.** `order_id` and `shipment_id` come back from create and are stored
+  separately (`orders.shipment_order_id`, `orders.shipment_id`): AWB, pickup and
+  label want the shipment id (as an array), cancel wants Shiprocket's order id.
+  The webhook's own `order_id` is our reference "as Shiprocket holds it" and may
+  carry a suffix, so it is never used to match; `sr_order_id`, then the AWB, is.
+
+### Booking: once, in the right units, with only what a courier needs
+
+`Shipments::book()`:
+
+1. **A conditional claim** on `orders.shipment_booking` (the `ZohoInvoices`
+   pattern): null, `failed` or `cancelled` → `creating`, in one UPDATE, so two
+   presses cannot both create the order — a duplicate `order_id` has no
+   documented safe response. A claim older than ten minutes is taken over. A
+   courier-cancelled or returned parcel may be booked again.
+   `ShiprocketTest` re-enters `book()` from inside the create call to prove the
+   second is refused with the first still in flight.
+2. **Every attempt after the first sends `{number}-{attempt}`** as the reference
+   (`shipment_attempts`). Shiprocket will not take the id of a cancelled order,
+   and a booking that failed with no usable answer may or may not exist there;
+   a server fault says so in the order's error ("Shiprocket may still have
+   received the order — check its panel before booking again").
+3. **Units are converted at the edge on integers.** Weight is a three-place
+   decimal *string* of kilograms built from grams by `intdiv` and a remainder
+   (`Shipments::kg`, 1750 → `"1.750"`); money is rupees from paise (a whole
+   number when it is one, else `Money::toRupeeString`'s exact decimal); sizes
+   are whole centimetres, each at least 1 (Shiprocket requires above 0.5).
+4. **Weight** is `orders.shipping_weight_grams` when the checkout recorded one,
+   else `ShippingQuote::unitWeight()` per shipped line — the same rule a basket
+   is weighed by — and the console's form can override it.
+5. **Only what a courier needs leaves**: the name, the phone as ten digits, the
+   delivery address (sent as the billing address too, with `shipping_is_billing`,
+   so the billing address never travels), each *shipped* line's name, SKU,
+   quantity and price, and the order number. Not the customer's note, not the
+   GSTIN (the documentation does not require it), not a licence line.
+6. **COD or Prepaid**: an order with `paid_at` is `"Prepaid"`; an unpaid
+   cash-on-delivery order is `"COD"`; anything else unpaid is refused with a
+   sentence, as are a digital-only order, a cancelled/refunded/refund-requested
+   one and one with no address.
+
+The courier, AWB and tracking link go into the existing `courier`,
+`tracking_number` and `tracking_url` columns, so the emails, the timeline and
+both order pages read a booked parcel without knowing where it came from. The
+AWB step runs straight after create; if *it* fails (a low wallet, an
+unserviceable pincode) the booking stands, `shipment_error` says why, and
+**Assign a courier** can be pressed again without making a second order.
+
+### Status: one place, never backwards
+
+`ShipmentStatus::apply()` is where a webhook and the tracker both end. **It reads
+`shipment_status_id`, never `current_status_id`**: Shiprocket has two numberings
+(7 is Delivered in both, 8 is Canceled for a shipment and 5 for an order, 17 is
+Out for delivery and 19 is) and a webhook carries both, the second unexplained.
+
+- Every mapped id has a rank; an update below the stored rank, or the same id
+  again, changes nothing (the `MessageDelivery::rank()` rule). An id not in the
+  table is ignored, because storing it would let a label we cannot place
+  outrank one we can. The order row is locked while it is applied.
+- *Picked up, shipped, handed over, in transit, out for delivery* → the order
+  moves to **Dispatched** through `moveTo()` — and from Paid through Ready for
+  dispatch, because Paid may not go straight there — then `DispatchNotice::send()`
+  sends the dispatch email and message. That helper is the one place
+  `OrderDispatched` is sent (the console's status action calls it too), so a
+  scan and a click cannot send it twice or from two places. Only a move *we* make
+  sends it; an order already dispatched, completed or further is left alone.
+- *Delivered* → `delivered_at` (the courier's time when it gave one), through
+  Dispatched if the scans were missed, to **Completed**. `ReturnPolicy::deadline()`
+  now counts from `delivered_at` first, then `completed_at`, then dispatch plus
+  the transit window.
+- *RTO (initiated, acknowledged, failed again, out for delivery, in transit,
+  delivered) and cancelled* → **no status change**. `shipment_problem` is set
+  (`returning`, `returned`, `cancelled`), a line goes in the order's trail, and
+  `attention.shipments_in_trouble` counts it (`Order::scopeShipmentTrouble()`,
+  the list `?shipment=problem` opens). A person decides what an order whose
+  parcel came back becomes; the system will not guess at a refund.
+
+### The webhook
+
+`POST /store/shipping/webhooks/courier` (`CourierWebhookController`). **The
+address must not contain "shiprocket", "kartrocket", "sr" or "kr"** — Shiprocket
+refuses such a URL — so it names the role, not the vendor, and
+`ShiprocketTest::test_the_webhook_address_names_neither_the_vendor_nor_its_short_forms`
+reads the route's URI for all four. The settings panel prints the full address
+and warns when the API's own domain contains one.
+
+It follows the messaging webhooks: **200 always** (Shiprocket wants a bare 200),
+**fails closed**, un-throttled. The payload carries no signature, only an optional
+token in `x-api-key`, so `shiprocket_webhook_token` is compared with
+`hash_equals` and *no token saved accepts nothing, even an empty header*. A forged
+call could otherwise dispatch and complete orders and email customers about it.
+Scans of the return leg (`is_return: 1`) are ignored; the provider being `manual`
+makes it inert.
+
+### The tracker
+
+`technoware:track-shipments`, every 30 minutes (`routes/console.php`, above the
+pause loop, so an update or a restore holds it). The webhook is the fast path
+and this is the one that cannot be missed. Booked parcels with an AWB, not
+delivered, returned or cancelled, oldest `shipment_checked_at` first, at most 40
+a run (`--limit`). A parcel is stamped as checked *before* it is asked about, so
+one that always fails cannot hold the front of the queue; a refusal stops the run
+(a refused sign-in would be refused for every parcel) and is written to
+`shiprocket_error`. **Always exits 0.** Does nothing while the provider is manual.
+
+### The console and the customer
+
+`GET /admin/settings/shiprocket` (`role:admin`, with `POST …/test`) reads the
+pickup locations from Shiprocket **only while the provider is on and a sign-in is
+saved**; on "By hand" the screen is opened as often as anybody likes and asks
+nothing. The pickup location is a select with a blank first option (the 0.134.0
+lesson), posted under `setting__shiprocket_pickup_location` only when drawn. The
+order resource carries a `shipment` block on the detail read — null while manual
+and nothing was ever booked — whose `can_*` flags are the answers the API will
+give to the press, so a button is drawn only when it will be taken. The five
+routes under `/admin/store/orders/{n}/shipment/*` are `role:store_manager`,
+throttled, and 422 in Shiprocket's words. One `pending` governs the panel's
+buttons, so the pressed one spins and its neighbours are disabled.
+
+The customer's order carries `shipment_status` (only while it goes well — a
+parcel coming back is for the desk to word) and `delivered_at`. `OrderTimeline`
+gains a fifth **Delivered** step *only* for a parcel Shiprocket is following; a
+hand-typed order keeps four, because a step nothing could ever reach is a promise.
+
+### Unverified against a real account
+
+1. That `payment_method: "COD"` collects `sub_total + shipping_charges`. There is
+   no COD-amount field; the discount is taken off `sub_total` and `total_discount`
+   sent as 0 so it cannot be subtracted twice. Check on the first real COD order.
+2. That the money fields accept a decimal (they are typed `integer`); a whole
+   rupee is sent as an integer.
+3. That an expired token answers 401 on `apiv2` (only the serviceability host's
+   body is documented), and the shape of a failed AWB assignment (wallet,
+   unserviceable) — read through `message` and a few likely paths.
+4. That the first `courier_id`-less assignment uses the account's default courier
+   (the documentation says "the default courier").
+5. The public tracking page's address (`https://shiprocket.co/tracking/{awb}`)
+   and the time zone of every date Shiprocket sends.
+6. That an unverified pickup location can be booked from (`phone_verified` is read
+   and not enforced), and that a nickname rather than a code is what
+   `pickup_location` takes.
+7. Webhook retries, timeouts and whether a non-200 disables it; whether the
+   `x-api-key` header is omitted when no token is set (we require one).
+8. The label URL's lifetime (it is stored, and "Make the label" re-asks).
+
+### Not built
+
+Shiprocket's rate quotes (the delivery charge stays the zones'), return pickups,
+manifests, several parcels for one order, the wrapper "forward shipment" call,
+cancelling a shipment when the order is cancelled.

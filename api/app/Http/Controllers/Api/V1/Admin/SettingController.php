@@ -29,6 +29,7 @@ use App\Support\Net\PublicHost;
 use App\Support\Seo\GoogleServiceAccount;
 use App\Support\Store\CartReminders;
 use App\Support\Store\Fulfilment;
+use App\Support\Store\Shipping\CourierSettings;
 use App\Support\Store\ShippingQuote;
 use App\Support\Store\Zoho\ZohoSettings;
 use App\Support\ThemeOptions;
@@ -310,6 +311,8 @@ class SettingController extends Controller
             // Zoho Books: the data centre, when an invoice is made, and the
             // state the business is registered in — `ZohoSettings` owns all three.
             'zoho_books_dc', 'zoho_books_invoice_when', 'zoho_books_home_state' => ZohoSettings::options($key),
+            // Courier booking (0.143.0): manual or Shiprocket.
+            'store_courier_provider' => CourierSettings::options($key),
             'theme_radius' => self::RADII,
             'theme_density' => self::DENSITIES,
             'theme_surface' => self::SURFACES,
@@ -1201,7 +1204,9 @@ class SettingController extends Controller
                 ?? MeetingSettings::refusalFor($key, $row['value'] ?? null)
                 ?? EventSettings::refusalFor($key, $row['value'] ?? null)
                 // And the `zoho_books` group's choices (0.134.0, docs/store.md).
-                ?? ZohoSettings::refusalFor($key, $row['value'] ?? null);
+                ?? ZohoSettings::refusalFor($key, $row['value'] ?? null)
+                // And the `shiprocket` group's (0.143.0, docs/store.md "Shiprocket").
+                ?? CourierSettings::refusalFor($key, $row['value'] ?? null);
 
             if ($refusal !== null) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => $refusal]);

@@ -23,7 +23,7 @@ export const metadata = buildMetadata({ title: "Orders", path: "/admin/store/ord
 */
 
 type SearchParams = {
-  q?: string; status?: string; open?: string; unpaid?: string; zoho?: string;
+  q?: string; status?: string; open?: string; unpaid?: string; zoho?: string; shipment?: string;
   page?: string; per_page?: string; sort?: string; dir?: string;
 };
 
@@ -44,6 +44,7 @@ export default async function StoreOrdersPage({
       open: params.open === "1",
       unpaid: params.unpaid === "1",
       zoho: params.zoho,
+      shipment: params.shipment,
       sort: params.sort,
       dir: params.dir,
       page: Number(params.page) || 1,
@@ -59,8 +60,9 @@ export default async function StoreOrdersPage({
 
   const orders = result.data;
   const zohoFailed = params.zoho === "failed";
-  const filtered = Boolean(params.q || params.status || params.open || params.unpaid || zohoFailed);
-  const listParams = { q: params.q, status: params.status, open: params.open, unpaid: params.unpaid, zoho: zohoFailed ? "failed" : undefined, per_page: params.per_page, sort: params.sort, dir: params.dir };
+  const shipmentTrouble = params.shipment === "problem";
+  const filtered = Boolean(params.q || params.status || params.open || params.unpaid || zohoFailed || shipmentTrouble);
+  const listParams = { q: params.q, status: params.status, open: params.open, unpaid: params.unpaid, zoho: zohoFailed ? "failed" : undefined, shipment: shipmentTrouble ? "problem" : undefined, per_page: params.per_page, sort: params.sort, dir: params.dir };
   const sortable = { basePath: "/admin/store/orders", params: listParams, sort: params.sort, dir: params.dir };
 
   return (
@@ -102,6 +104,7 @@ export default async function StoreOrdersPage({
 
         {/* Arrived from the dashboard's tile: kept across Apply, dropped by Clear. */}
         {zohoFailed && <input type="hidden" name="zoho" value="failed" />}
+        {shipmentTrouble && <input type="hidden" name="shipment" value="problem" />}
 
         <div className="flex gap-2">
           <Button type="submit" size="sm">Apply</Button>
@@ -115,7 +118,13 @@ export default async function StoreOrdersPage({
         </p>
       )}
 
-      {result.meta.pending_payment > 0 && !params.unpaid && !zohoFailed && (
+      {shipmentTrouble && (
+        <p className="mb-3 text-13 text-muted">
+          Showing orders whose parcel the courier is bringing back or cancelled. Open one to see what happened and decide what to do.
+        </p>
+      )}
+
+      {result.meta.pending_payment > 0 && !params.unpaid && !zohoFailed && !shipmentTrouble && (
         <p className="mb-3 text-13 text-muted">
           <Link href="/admin/store/orders?unpaid=1" className="font-semibold text-brand-ink underline">
             {result.meta.pending_payment} awaiting payment

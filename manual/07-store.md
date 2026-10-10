@@ -131,7 +131,9 @@ Working an order:
 2. Move it through **Processing** and **Ready for dispatch** as you pack it.
 3. Enter the **courier, tracking number and tracking link**. The customer is
    emailed when you change the status to **Dispatched** — not when you type
-   the tracking number, so enter it first.
+   the tracking number, so enter it first. (With Shiprocket switched on, the
+   **Courier booking** panel does this for you — see *Booking parcels with
+   Shiprocket* below.)
 4. **The invoice.** With Zoho Books connected (see *Invoices from Zoho
    Books* below) it is made by itself and attached to the order. Otherwise
    **upload it** (a PDF) — the site does not generate invoices, your
@@ -554,6 +556,97 @@ to an address that has unsubscribed, and each carries an unsubscribe link.
 The Overview shows how many reminded baskets became orders. The wording of the
 emails is under **System → Email templates**.
 
+## Booking parcels with Shiprocket
+
+*Optional.* By default you type the courier and tracking number on each order.
+If you use Shiprocket you can instead book the parcel from the order page, print
+the label, ask for the pickup, and have the status come back by itself.
+**Nothing changes until you switch it on**, and you can switch it off again.
+
+> **Shiprocket has no test mode.** Everything pressed on an order acts on your
+> real Shiprocket account, and a courier assigned is paid for from your
+> Shiprocket wallet. Try one real parcel first and look at it in Shiprocket's
+> panel before you book more.
+
+### Setting it up
+
+*Administrator.* In Shiprocket, open **Settings → API → Create an API user**.
+Give it a **different email address** from the one you sign in with, and copy the
+password it shows — Shiprocket shows it once. Then in **Store → Settings →
+Shiprocket courier**:
+
+1. Set *How parcels are booked* to **Shiprocket**, enter the API user's email
+   and password, and **Save**.
+2. Choose the **Pickup location** — the address in Shiprocket the courier
+   collects from. The list is read from your Shiprocket account once the sign-in
+   is saved. **Save** again.
+3. Check the *usual parcel* size. It fills the booking form; you can change it on
+   each order.
+4. Press **Test the connection**. It signs in and lists your pickup locations and
+   does nothing else.
+5. **Tracking.** The panel shows a *tracking address*. In Shiprocket, open
+   **Settings → API → Webhooks**, paste that address, switch it on, and enter a
+   token — make one up, at least 16 letters and digits, and put the **same one**
+   in the *Webhook token* field here. Without the token the site accepts nothing
+   from Shiprocket, and falls back to asking every half hour. If the panel says
+   Shiprocket will refuse the address, it contains a word Shiprocket does not
+   allow ("shiprocket", "kartrocket", "sr" or "kr"): your site's API domain needs
+   to change.
+
+### Booking an order
+
+Open a paid order — or a cash-on-delivery one — that has something to ship. The
+**Courier booking** panel shows the weight (worked out from what was bought) and
+the parcel's size, ready to change. Press **Book with Shiprocket**. The site
+creates the order at Shiprocket, asks it for a courier — its default, as set in
+your Shiprocket account — and fills in the courier, the tracking number and the
+tracking link below. Then:
+
+- **Make the label** and **Open the label** to print it.
+- **Request pickup** asks the courier to collect.
+- **Where is it now?** asks Shiprocket straight away.
+- **Cancel shipment** cancels it at Shiprocket and clears the courier from the
+  order. Shiprocket refuses once the parcel is out for pickup, and says so.
+
+A cash-on-delivery parcel is booked as cash on delivery. If Shiprocket cannot
+assign a courier (a low wallet, a pincode nobody serves), the booking stays and
+the panel says why; fix it in Shiprocket and press **Assign a courier**. An order
+that has not been paid for (and is not cash on delivery), one with only licences
+or services in it, and a cancelled one cannot be booked, and the panel says why.
+Pressing Book twice makes one booking.
+
+### What happens by itself
+
+When Shiprocket reports the parcel **picked up** or **in transit**, the order
+moves to **Dispatched** and the customer is emailed, once, exactly as when you
+change the status yourself. When it is **delivered**, the delivery time is noted
+and the order becomes **Completed** — which is when the customer's returns
+window starts. The customer's order page shows the courier's own wording ("Out
+for delivery") and a *Delivered* step.
+
+If Shiprocket says the parcel is **coming back** (a return to origin) or the
+courier **cancelled** it, the order's status is **not** changed: you decide what
+it becomes. The order's history gets a line, the Store overview shows *parcels
+coming back or cancelled*, and **Orders** can be filtered to them. A parcel that
+came back can be booked again.
+
+### Things to check on the first real order
+
+The site has been built from Shiprocket's published documentation and has not
+been tried against an account yet. On your first parcel look in Shiprocket for:
+
+- **The amount to collect** on a cash-on-delivery parcel. It should equal the
+  order's total. (The site sends the goods less any discount, plus delivery, and
+  has to assume that is how Shiprocket adds them.)
+- **The courier it chose.** With no choice made, Shiprocket uses your account's
+  default courier.
+- **The weight and size**, and the pickup address.
+- That the first *picked up* message from Shiprocket really moves the order to
+  Dispatched (if not, check the webhook address and token).
+
+If a booking is refused, the panel and the order show Shiprocket's own words, and
+the settings screen shows the last refusal.
+
 ## Shipping: what delivery costs
 
 *Store manager and Administrator.* Open **Store → Shipping**.
@@ -663,7 +756,10 @@ What goes in the feeds:
 - Nothing marks an order paid except the gateway or a **recorded payment**
   with a reference.
 - The dispatch email goes when the status changes to Dispatched — enter the
-  tracking details before you change it.
+  tracking details before you change it. With Shiprocket on, it goes when the
+  courier reports the pickup.
+- Shiprocket has no test mode: everything pressed on an order acts on your real
+  account.
 - Refunds are recorded here but made in the gateway or bank.
 - Cancelling or refunding does not return stock to the shelf.
 - A digital product can sell with no codes left; watch the Overview.

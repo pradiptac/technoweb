@@ -1,15 +1,15 @@
 "use client";
 
-import { useActionState, useCallback } from "react";
+import { useActionState, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileDrop } from "@/components/ui/file-drop";
 import { useUploadForm } from "@/lib/hooks/use-upload-form";
 import { Form } from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonAnchor } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import {
   addNoteAction, createZohoInvoiceAction, fulfilOrderAction, moveOrderAction, recordPaymentAction, recordRefundAction, saveInvoiceAction,
-  saveShippingAction, sendZohoPaymentAction,
+  saveShippingAction, sendZohoPaymentAction, shipmentAction,
   type OrderActionState,
 } from "../actions";
 import { paiseToRupeeInput } from "@/lib/money";
@@ -93,8 +93,10 @@ export function ShippingPanel({ order }: { order: AdminOrder }) {
 
       <h2 className="mb-1 text-15 font-semibold">Delivery</h2>
       <p className="measure mb-3 text-13 text-muted">
-        Entered by hand — there is no courier integration. The customer sees the courier, the
-        number and the link on their own order page.
+        {order.shipment?.active
+          ? "Booking above fills these in; type over them if the parcel went another way. "
+          : "Entered by hand. "}
+        The customer sees the courier, the number and the link on their own order page.
       </p>
 
       {state.error && <Alert tone="err" title="Not saved">{state.error}</Alert>}
@@ -123,6 +125,154 @@ export function ShippingPanel({ order }: { order: AdminOrder }) {
       <Button type="submit" size="sm" pending={pending}>
         {pending ? "Saving…" : "Save delivery details"}
       </Button>
+    </Form>
+  );
+}
+
+/** 1750 → "1.75": grams as the kilograms a person weighs in, by integer division. */
+function gramsToKilograms(grams: number): string {
+  const whole = Math.floor(grams / 1000);
+  const rest = String(grams % 1000).padStart(3, "0").replace(/0+$/, "");
+
+  return rest === "" ? String(whole) : `${whole}.${rest}`;
+}
+
+/**
+ * The parcel with the courier platform (docs/store.md "Shiprocket").
+ *
+ * Drawn only when the API sends `shipment` — Shiprocket is chosen in Store
+ * settings, or something was once booked — so an install on hand-typed
+ * tracking sees the Delivery panel and nothing else. Every control is the
+ * API's own word: a button is drawn only when the API will take the press
+ * (`can_*`), and a refusal is Shiprocket's reason, not ours.
+ *
+ * **Every button here acts on the real Shiprocket account**, and one `pending`
+ * state governs them all, so the pressed one spins and its neighbours are
+ * disabled for the length of the call: a second press while the first is in
+ * flight is exactly what the booking claim exists to survive, and not
+ * offering it is kinder than surviving it.
+ */
+export function CourierPanel({ order }: { order: AdminOrder }) {
+  const [state, formAction, pending] = useActionState(shipmentAction, initial);
+  const [pressed, setPressed] = useState<string | null>(null);
+  const shipment = order.shipment;
+
+  if (!shipment || !order.needs_shipping) return null;
+
+  const live = shipment.booking === "created";
+  const trouble = shipment.problem !== null;
+  const press = (action: string) => ({
+    type: "submit" as const,
+    name: "action",
+    value: action,
+    formNoValidate: action !== "book",
+    disabled: pending,
+    pending: pending && pressed === action,
+    onClick: () => setPressed(action),
+  });
+
+  return (
+    <Form
+      action={formAction}
+      state={state}
+      className={trouble || shipment.booking === "failed"
+        ? "min-w-0 rounded-lg border border-err/40 bg-err-soft p-5"
+        : "min-w-0 rounded-lg border border-line-strong bg-card p-5"}
+      data-courier={shipment.booking ?? "none"}
+    >
+      <input type="hidden" name="order_number" value={order.order_number} />
+
+      <h2 className="mb-1 text-15 font-semibold">Courier booking</h2>
+
+      <p className="measure mb-3 text-13 text-muted">
+        {!live && "Book this parcel with Shiprocket and it fills in the courier, the tracking number and the link below by itself. The customer is told when the courier picks it up."}
+        {live && (
+          <>
+            Booked with Shiprocket
+            {shipment.shiprocket_order_id && <> as order <span className="font-mono">{shipment.shiprocket_order_id}</span></>}.
+            {shipment.has_courier
+              ? <> {order.courier} · AWB <span className="font-mono">{order.tracking_number}</span>.</>
+              : " No courier is assigned yet."}
+          </>
+        )}
+      </p>
+
+      {live && shipment.status && (
+        <p className="mb-3 text-13-5">
+          <span className="text-muted">Status: </span>
+          <strong>{shipment.status}</strong>
+          {shipment.status_at && <span className="text-muted"> · {formatDate(shipment.status_at, "dateTime")}</span>}
+        </p>
+      )}
+
+      {trouble && (
+        <Alert tone="warn" title={shipment.problem === "cancelled" ? "The courier cancelled this shipment" : "The parcel is coming back"} dismissible={false}>
+          {shipment.problem === "cancelled"
+            ? "Book it again, or decide what happens to this order."
+            : "The courier is returning it to you. Decide what happens to this order — nothing has been changed for you."}
+        </Alert>
+      )}
+
+      {shipment.error && !state.error && (
+        /* Shiprocket's words can carry an identifier with nowhere to break: `anywhere`, not `break-words`. */
+        <p className="mb-3 rounded border border-err/25 bg-card px-3 py-2 text-13 text-ink [overflow-wrap:anywhere]">
+          {shipment.error}
+        </p>
+      )}
+
+      {state.error && <Alert tone="err" title="Not done">{state.error}</Alert>}
+      {state.ok && !state.error && <Alert tone="ok" title={state.ok} />}
+
+      {!live && !shipment.can_book && shipment.book_refusal && (
+        <p className="mb-3 text-13 text-muted">{shipment.book_refusal}</p>
+      )}
+
+      {shipment.can_book && shipment.defaults && (
+        <div className="mb-3 grid grid-cols-2 gap-x-4 sm:grid-cols-4">
+          <Field label="Weight (kg)" htmlFor="courier_weight_kg" className="mb-0">
+            <Input id="courier_weight_kg" name="weight_kg" inputMode="decimal" defaultValue={gramsToKilograms(shipment.defaults.weight_grams)} />
+          </Field>
+          <Field label="Length (cm)" htmlFor="courier_length" className="mb-0">
+            <Input id="courier_length" name="length" inputMode="numeric" defaultValue={String(shipment.defaults.length)} />
+          </Field>
+          <Field label="Breadth (cm)" htmlFor="courier_breadth" className="mb-0">
+            <Input id="courier_breadth" name="breadth" inputMode="numeric" defaultValue={String(shipment.defaults.breadth)} />
+          </Field>
+          <Field label="Height (cm)" htmlFor="courier_height" className="mb-0">
+            <Input id="courier_height" name="height" inputMode="numeric" defaultValue={String(shipment.defaults.height)} />
+          </Field>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        {shipment.can_book && (
+          <Button size="sm" {...press("book")}>
+            {pending && pressed === "book" ? "Booking…" : shipment.booking === "failed" ? "Try booking again" : "Book with Shiprocket"}
+          </Button>
+        )}
+        {shipment.can_assign && (
+          <Button size="sm" {...press("assign")}>{pending && pressed === "assign" ? "Asking…" : "Assign a courier"}</Button>
+        )}
+        {shipment.can_label && !shipment.label_url && (
+          <Button size="sm" variant="secondary" {...press("label")}>{pending && pressed === "label" ? "Making…" : "Make the label"}</Button>
+        )}
+        {shipment.label_url && (
+          <ButtonAnchor href={shipment.label_url} target="_blank" rel="noopener noreferrer" variant="secondary" size="sm">Open the label</ButtonAnchor>
+        )}
+        {shipment.can_pickup && (
+          <Button size="sm" variant="secondary" {...press("pickup")}>{pending && pressed === "pickup" ? "Asking…" : "Request pickup"}</Button>
+        )}
+        {shipment.can_track && (
+          <Button size="sm" variant="ghost" {...press("track")}>{pending && pressed === "track" ? "Asking…" : "Where is it now?"}</Button>
+        )}
+        {shipment.can_cancel && (
+          <Button size="sm" variant="ghost" {...press("cancel")}>{pending && pressed === "cancel" ? "Cancelling…" : "Cancel shipment"}</Button>
+        )}
+      </div>
+
+      {shipment.pickup_requested_at && (
+        <p className="mt-3 text-12-5 text-muted">Pickup requested {formatDate(shipment.pickup_requested_at, "dateTime")}.</p>
+      )}
     </Form>
   );
 }

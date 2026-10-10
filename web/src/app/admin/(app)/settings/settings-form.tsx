@@ -37,12 +37,14 @@ import { MeetingsGooglePanel } from "./meetings-google-panel";
 import { GoogleLoginNote } from "./google-login-note";
 import type { MeetingsGoogleStatus } from "@/types/meetings";
 import { ZohoBooksPanel } from "./zoho-books-panel";
+import { ShiprocketPanel } from "./shiprocket-panel";
+import type { ShiprocketStatus } from "@/types/courier";
 import type { ZohoBooksStatus } from "@/types/zoho";
 
 const initial: SettingsFormState = {};
 
 export function SettingsForm({
-  screen, groups, uploads, payments, mail, inbound, messaging, drive, meetingsGoogle, zoho,
+  screen, groups, uploads, payments, mail, inbound, messaging, drive, meetingsGoogle, zoho, shiprocket,
 }: {
   screen: SettingsScreen;
   groups: SettingGroups;
@@ -60,6 +62,8 @@ export function SettingsForm({
   meetingsGoogle?: MeetingsGoogleStatus;
   /** Only Store settings draws the Zoho Books connection. */
   zoho?: ZohoBooksStatus;
+  /** Only Store settings draws the Shiprocket connection. */
+  shiprocket?: ShiprocketStatus;
 }) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);
 
@@ -78,7 +82,7 @@ export function SettingsForm({
   }
 
   const panel = (group: string) => (
-    <GroupPanel key={group} group={group} rows={groups[group]} uploads={uploads} payments={payments} mail={mail} inbound={inbound} messaging={messaging} drive={drive} meetingsGoogle={meetingsGoogle} zoho={zoho} />
+    <GroupPanel key={group} group={group} rows={groups[group]} uploads={uploads} payments={payments} mail={mail} inbound={inbound} messaging={messaging} drive={drive} meetingsGoogle={meetingsGoogle} zoho={zoho} shiprocket={shiprocket} />
   );
 
   return (
@@ -136,7 +140,7 @@ export function SettingsForm({
  * can draw a group the same way.
  */
 function GroupPanel({
-  group, rows, uploads, payments, mail, inbound, messaging, drive, meetingsGoogle, zoho,
+  group, rows, uploads, payments, mail, inbound, messaging, drive, meetingsGoogle, zoho, shiprocket,
 }: {
   group: string;
   rows: SettingGroups[string];
@@ -148,6 +152,7 @@ function GroupPanel({
   drive?: BackupDriveStatus;
   meetingsGoogle?: MeetingsGoogleStatus;
   zoho?: ZohoBooksStatus;
+  shiprocket?: ShiprocketStatus;
 }) {
   const meta = GROUP_TITLES[group] ?? { title: group, blurb: "" };
 
@@ -530,6 +535,9 @@ function GroupPanel({
 
         {/* Zoho Books: its consent, the organisation and taxes only Zoho can list, a test, where things stand. */}
         {group === "zoho_books" && <ZohoBooksPanel status={zoho} rows={rows} />}
+
+        {/* Shiprocket: the pickup location only it can list, the tracking address to paste into it, a test, where things stand. */}
+        {group === "shiprocket" && <ShiprocketPanel status={shiprocket} rows={rows} />}
 
         {/* Customers' "Continue with Google": the redirect address to register with Google, and whether it is live. */}
         {group === "google_login" && (

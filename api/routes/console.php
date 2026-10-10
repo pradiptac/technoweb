@@ -320,6 +320,17 @@ Schedule::command('technoware:sync-zoho-invoices')
     ->withoutOverlapping(10);
 
 /*
+ * Courier tracking (0.143.0, docs/store.md "Shiprocket"): the backstop to
+ * the webhook. Asks the platform about booked parcels not yet delivered,
+ * oldest check first, a bounded number per run. Does nothing at all while the
+ * provider is manual or the sign-in is not saved. Above the pause loop, so
+ * it waits out an update or a restore like everything else.
+ */
+Schedule::command('technoware:track-shipments')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping(20);
+
+/*
  * Backups (2026-09-27, docs/backups.md). The worker every minute, in the
  * background so its forty seconds do not hold up the queue drain behind it,
  * and never two at once. It works through any restore, then any backup, then

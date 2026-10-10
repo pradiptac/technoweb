@@ -202,6 +202,9 @@ class StoreMetrics
             // payment or a credit note — and which wait on a person: the
             // list `?zoho=failed` opens. Zero while it is off.
             'zoho_failed' => Order::query()->zohoFailed()->count(),
+            // Parcels coming back or cancelled by the courier (0.143.0) and
+            // still waiting on a person: the list `?shipment=problem` opens.
+            'shipments_in_trouble' => Order::query()->shipmentTrouble()->count(),
             /*
              * Failed payments are counted over the window rather than for ever.
              * A card declined last March is not something anybody is going to

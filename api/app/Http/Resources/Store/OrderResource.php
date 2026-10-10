@@ -78,10 +78,19 @@ class OrderResource extends JsonResource
             'courier' => $this->courier,
             'tracking_number' => $this->tracking_number,
             'tracking_url' => $this->tracking_url,
+            /*
+             * The courier's own word for where the parcel is (0.143.0,
+             * docs/store.md "Shiprocket"), only while it is going well: a
+             * parcel coming back or cancelled is something the desk decides
+             * what to say about, not a status to show. Null while the courier
+             * is typed by hand.
+             */
+            'shipment_status' => $this->shipment_booking === 'created' && $this->shipment_problem === null ? $this->shipment_status : null,
 
             'placed_at' => $this->placed_at?->toIso8601String(),
             'paid_at' => $this->paid_at?->toIso8601String(),
             'dispatched_at' => $this->dispatched_at?->toIso8601String(),
+            'delivered_at' => $this->delivered_at?->toIso8601String(),
             'completed_at' => $this->completed_at?->toIso8601String(),
 
             'items' => OrderItemResource::collection($this->whenLoaded('items')),

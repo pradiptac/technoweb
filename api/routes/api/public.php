@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\CompanySuggestionController;
 use App\Http\Controllers\Api\V1\ContentBlockController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\ContentTypeController as PublicContentTypeController;
+use App\Http\Controllers\Api\V1\CourierWebhookController;
 use App\Http\Controllers\Api\V1\DownloadController;
 use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\EventController;
@@ -241,6 +242,17 @@ Route::post('orders/{orderNumber}/verify', [PaymentController::class, 'verify'])
     ->middleware('throttle:20,1')->name('orders.verify');
 Route::post('payments/{gateway}/webhook', [PaymentController::class, 'webhook'])
     ->name('payments.webhook');
+
+/*
+ * The courier platform reporting where a parcel is (0.143.0, docs/store.md
+ * "Shiprocket"). **The address may not contain "shiprocket", "kartrocket",
+ * "sr" or "kr"** — Shiprocket refuses such a webhook URL — so it names the
+ * role and not the vendor. Un-throttled and 200 always, like the payment
+ * webhook, and fails closed: nothing is acted on without the saved token in
+ * `x-api-key`.
+ */
+Route::post('store/shipping/webhooks/courier', CourierWebhookController::class)
+    ->name('store.shipping.webhook');
 
 /*
  * Revealing an activation code.

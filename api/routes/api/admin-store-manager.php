@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\Admin\Store\PromoController as AdminStorePromoCo
 use App\Http\Controllers\Api\V1\Admin\Store\ReportController as AdminStoreReportController;
 use App\Http\Controllers\Api\V1\Admin\Store\ReturnController as AdminStoreReturnController;
 use App\Http\Controllers\Api\V1\Admin\Store\ReviewController as AdminStoreReviewController;
+use App\Http\Controllers\Api\V1\Admin\Store\ShipmentController as AdminStoreShipmentController;
 use App\Http\Controllers\Api\V1\Admin\Store\ShippingController as AdminStoreShippingController;
 use App\Http\Controllers\Api\V1\Admin\Store\StockController as AdminStoreStockController;
 use App\Http\Controllers\Api\V1\Admin\Store\TagController as AdminStoreTagController;
@@ -173,6 +174,25 @@ Route::middleware('role:store_manager')->group(function () {
     Route::post('store/orders/{order}/payments/{payment}/zoho', [ZohoBooksController::class, 'sendPayment'])
         ->whereNumber('payment')->middleware('throttle:20,1')->name('store.orders.payments.zoho');
     Route::post('store/orders/{order}/fulfil', [AdminStoreOrderController::class, 'fulfil'])->name('store.orders.fulfil');
+
+    /*
+     * Booking the parcel with the courier platform (0.143.0, docs/store.md
+     * "Shiprocket"). Every one is a 422 while the provider is `manual`.
+     * Each acts on the real account, so each is throttled; the connection
+     * itself is the administrator's.
+     */
+    Route::post('store/orders/{order}/shipment/book', [AdminStoreShipmentController::class, 'book'])
+        ->middleware('throttle:20,1')->name('store.orders.shipment.book');
+    Route::post('store/orders/{order}/shipment/assign', [AdminStoreShipmentController::class, 'assign'])
+        ->middleware('throttle:20,1')->name('store.orders.shipment.assign');
+    Route::post('store/orders/{order}/shipment/pickup', [AdminStoreShipmentController::class, 'pickup'])
+        ->middleware('throttle:20,1')->name('store.orders.shipment.pickup');
+    Route::post('store/orders/{order}/shipment/label', [AdminStoreShipmentController::class, 'label'])
+        ->middleware('throttle:20,1')->name('store.orders.shipment.label');
+    Route::post('store/orders/{order}/shipment/cancel', [AdminStoreShipmentController::class, 'cancel'])
+        ->middleware('throttle:20,1')->name('store.orders.shipment.cancel');
+    Route::post('store/orders/{order}/shipment/track', [AdminStoreShipmentController::class, 'track'])
+        ->middleware('throttle:30,1')->name('store.orders.shipment.track');
 
     /*
      * The returns desk (0.132.0, docs/store.md "Returns"), bound by

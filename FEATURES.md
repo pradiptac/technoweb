@@ -217,6 +217,13 @@ first rupee.
   They travel in the shop's CSV and arrive from WooCommerce.
 - **Order management**: status lifecycle, dispatch notice on status change,
   tracking, uploaded invoices, internal notes, manual payment recording.
+- **Courier booking with Shiprocket** (optional; tracking by hand stays the
+  default): book a parcel from the order page with its weight and size, get the
+  courier, the tracking number and the label, ask for the pickup, and cancel.
+  The courier's status comes back by itself — a pickup dispatches the order and
+  emails the customer, a delivery completes it and starts the returns window — a
+  parcel coming back is flagged for you, and the customer sees the live status.
+  Not yet tried against a real Shiprocket account.
 - **Invoices in Zoho Books** (optional): connect your Zoho Books and each
   order's GST invoice is made there by itself — when dispatched, or when
   paid — with CGST/SGST or IGST chosen from the delivery state, and the PDF

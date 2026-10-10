@@ -21,6 +21,63 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.143.0 — 2026-10-10
+
+**Parcels can be booked with Shiprocket from the order page, and the courier's
+status comes back by itself. Not yet tried against a real Shiprocket account.**
+
+- **A choice, and "By hand" is still the default.** Under **Store → Settings →
+  Shiprocket courier**, *How parcels are booked* is *By hand* — the courier and
+  tracking boxes on each order, exactly as before — or *Shiprocket*. On *By hand*
+  (or with the sign-in unfinished) nothing is drawn, nothing is asked of
+  Shiprocket and no order behaves differently.
+- **Book from the order.** With Shiprocket on, a paid order — or a cash-on-delivery
+  one — shows a **Courier booking** panel: the weight (from the basket) and the
+  parcel's size, filled in and editable, then **Book with Shiprocket**. It makes
+  the order there, asks Shiprocket for a courier, and writes the courier, the
+  tracking number and the tracking link into the boxes the order already has — so
+  the emails, the timeline and the customer's pages need no change. Then **Make
+  the label**, **Request pickup**, **Where is it now?** and **Cancel shipment**.
+  A cash-on-delivery parcel is booked as cash on delivery for the amount due.
+  A press books once however often it is made. An unpaid online order, a
+  licence-only order and a cancelled one cannot be booked, and the sentence says
+  why.
+- **The status comes back.** Shiprocket tells the site when a parcel is picked
+  up, moves, and is delivered (a **tracking address** shown on the settings
+  screen, and a **token**, to paste into Shiprocket's webhook settings), and
+  every half hour the site asks about parcels it has not heard of for a while.
+  *Picked up* or *in transit* moves the order to **Dispatched** and sends the
+  customer the same dispatch email a manual dispatch sends, once. *Delivered*
+  stamps the delivery time and completes the order — which is also where the
+  returns window starts counting. A parcel coming back to you, or cancelled by
+  the courier, changes no status: it leaves a line in the order's history and a
+  figure on the Store overview, and **Orders → ?shipment=problem** lists them. A
+  late or repeated message never moves an order backwards.
+- **The customer** sees the courier's own word ("Out for delivery") under
+  Dispatched, and a fifth **Delivered** step, but only for a parcel Shiprocket
+  is following.
+- **What it does not do.** Shiprocket's own rate quotes (the delivery charge is
+  still the shop's), return pickups, manifests, several parcels for one order.
+- **Not tried against a real Shiprocket account.** Shiprocket has no test mode
+  — everything it is asked acts on the live account — so every check here ran
+  against a stand-in built from Shiprocket's published documentation. On the
+  first real order, enter the API user and pickup location, use **Test the
+  connection** (it only signs in and lists locations), then book **one** parcel
+  and look at it in Shiprocket's panel before booking more. Check three things:
+  that a cash-on-delivery parcel there collects the order's total (the site
+  sends the goods less the discount, plus delivery, and has to assume how
+  Shiprocket adds them); that the courier it picked is the one you expected
+  (with no choice made it uses your account's default); and that the first
+  `picked up` message really dispatches the order. The manual lists the
+  smaller assumptions.
+- Developers: `App\Support\Store\Shipping\*` (`Shiprocket` the client,
+  `Shipments` the booking, `ShipmentStatus` the one place a courier status
+  becomes an order change, `CourierSettings`), `POST /store/shipping/webhooks/courier`,
+  `technoware:track-shipments`, migration `add_shipment_to_orders`; docs/store.md
+  "Shiprocket".
+
+---
+
 ## 0.142.0 — 2026-10-09
 
 **The delivery charge shown is now the delivery charge taken. Delivery can be

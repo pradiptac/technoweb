@@ -349,6 +349,30 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Record payments and refunds in Zoho Books",
     hint: "On, each payment on an order is recorded against its Zoho invoice and each refund becomes a credit note. Off, only the invoice is made and the rest is entered in Zoho by hand.",
   },
+  /*
+    Shiprocket (0.143.0, docs/store.md). The pickup location is Shiprocket's
+    own list, so the connection panel draws it; the sign-in is an API user made
+    under Settings → API in Shiprocket, never the panel login.
+  */
+  store_courier_provider: {
+    label: "How parcels are booked",
+    hint: "By hand is the form you have always had: you type the courier and tracking number on each order. Shiprocket adds a Book button to the order page, prints the label and brings the courier's status back by itself.",
+  },
+  shiprocket_email: {
+    label: "API user email",
+    hint: "From Settings → API → Create an API user in Shiprocket. It has to be a different address from the one you sign in to Shiprocket with.",
+  },
+  shiprocket_password: {
+    label: "API user password",
+    hint: "The password Shiprocket showed once when it made the API user. Stored encrypted and never shown again.",
+  },
+  shiprocket_parcel_length: { label: "Usual parcel length (cm)", hint: "A whole number. Filled in on each booking; change it there when a parcel differs." },
+  shiprocket_parcel_breadth: { label: "Usual parcel breadth (cm)" },
+  shiprocket_parcel_height: { label: "Usual parcel height (cm)" },
+  shiprocket_webhook_token: {
+    label: "Webhook token",
+    hint: "Make one up — at least 16 letters and digits — and paste the same one into Shiprocket's webhook settings. Without it nothing Shiprocket sends is accepted.",
+  },
   zoho_books_home_state: {
     label: "Your state (place of business)",
     hint: "The state your GSTIN is registered in. A sale delivered inside it carries CGST and SGST; one to any other state carries IGST.",
@@ -1031,6 +1055,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Zoho Books",
     blurb: "Optional. Connect your Zoho Books and each order's GST invoice is made there by itself — when the order is dispatched, or when it is paid — and the PDF is attached to the order for the customer to download. Payments are recorded against it and refunds become credit notes. Save the client ID and secret, connect, then choose the organisation, your state, the two taxes and the account each way of paying goes into.",
   },
+  shiprocket: {
+    title: "Shiprocket courier",
+    blurb: "Optional. Book parcels with Shiprocket from the order page: it makes the order there, assigns a courier, prints the label, asks for the pickup and tells this site when the parcel is picked up and delivered. Left on \"By hand\", nothing here is used and the order page is as it always was. Shiprocket has no test mode — everything pressed on an order acts on your real account.",
+  },
   indexnow: {
     title: "IndexNow",
     blurb: "Tells Bing, Yandex and the other IndexNow engines the moment a page is published, changed or removed, instead of waiting for a crawl — Bing's index is what Copilot and ChatGPT search read. Off until launch: the site's public address is pinned to production on every machine, so a ping from anywhere else would name pages that are not there yet. The key is minted on first use and is public by the protocol's design.",
@@ -1180,6 +1208,8 @@ export const FIELD_ORDER: Record<string, string[]> = {
           "store_price_drop_min_percent", "store_review_requests_enabled", "store_review_request_days", "meta_catalogue_enabled"],
   store_reminders: ["store_cart_reminders_enabled", "store_cart_reminder_1_hours", "store_cart_reminder_2_days", "store_cart_reminder_coupon"],
   zoho_books: ["zoho_books_enabled", "zoho_books_invoice_when", "zoho_books_send_payments", "zoho_books_oauth_client_id", "zoho_books_oauth_client_secret"],
+  shiprocket: ["store_courier_provider", "shiprocket_email", "shiprocket_password", "shiprocket_webhook_token",
+               "shiprocket_parcel_length", "shiprocket_parcel_breadth", "shiprocket_parcel_height"],
   leads: ["lead_intent_words"],
   meetings: ["meetings_enabled", "meeting_default_hours", "meeting_slot_step", "meeting_min_notice_hours", "meeting_max_days",
              "meeting_holidays", "meeting_reminders", "meeting_block_google_busy", "meetings_email",
@@ -1233,6 +1263,9 @@ export const HIDDEN = new Set([
   // which consent the connection holds, which nobody types.
   "zoho_books_account_gateway", "zoho_books_account_cod", "zoho_books_account_bank_transfer", "zoho_books_account_upi",
   "zoho_books_scope_version",
+  // Shiprocket: the pickup location is a select of Shiprocket's own list, drawn by the panel under this name
+  // (a blank first option, so nothing is chosen for you), and the last refusal is shown by the panel.
+  "shiprocket_pickup_location", "shiprocket_error",
 ]);
 
 /**
@@ -1284,7 +1317,7 @@ export type SettingsScreen = {
   lede: string;
   saveLabel: string;
   /** Status reads beyond `getSettings()` that a panel on this screen needs. */
-  needs?: ("mail" | "inbound" | "messaging" | "backups" | "meetings" | "zoho")[];
+  needs?: ("mail" | "inbound" | "messaging" | "backups" | "meetings" | "zoho" | "shiprocket")[];
   /** The groups drawn, in order. A `label` puts a heading over those tabs. */
   sections: { label?: string; groups: string[] }[];
 };
@@ -1353,10 +1386,10 @@ export const SCREENS: SettingsScreen[] = [
     path: "/admin/store/settings",
     title: "Store settings",
     area: "Store",
-    lede: "Whether the shop is open, what delivery costs and how long it takes, how licences are handed over, the basket reminders, how the shop takes money, and invoices made in Zoho Books.",
+    lede: "Whether the shop is open, what delivery costs and how long it takes, how licences are handed over, the basket reminders, how the shop takes money, invoices made in Zoho Books and parcels booked with Shiprocket.",
     saveLabel: "Save store settings",
-    needs: ["zoho"],
-    sections: [{ groups: ["store", "store_reminders", "payments", "zoho_books"] }],
+    needs: ["zoho", "shiprocket"],
+    sections: [{ groups: ["store", "store_reminders", "payments", "zoho_books", "shiprocket"] }],
   },
   {
     path: "/admin/newsletter/settings",

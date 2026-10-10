@@ -71,6 +71,16 @@ class Order extends Model
             'dispatched_at' => 'datetime',
             'completed_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            // Courier booking and tracking (0.143.0, docs/store.md "Shiprocket").
+            'delivered_at' => 'datetime',
+            'shipment_attempts' => 'integer',
+            'shipment_claimed_at' => 'datetime',
+            'shipment_awb_at' => 'datetime',
+            'shipment_pickup_at' => 'datetime',
+            'shipment_cancelled_at' => 'datetime',
+            'shipment_status_id' => 'integer',
+            'shipment_status_at' => 'datetime',
+            'shipment_checked_at' => 'datetime',
             'zoho_attempts' => 'integer',
             'zoho_claimed_at' => 'datetime',
             'zoho_next_attempt_at' => 'datetime',
@@ -166,6 +176,21 @@ class Order extends Model
     public function scopePaid(Builder $query): Builder
     {
         return $query->whereNotNull('paid_at');
+    }
+
+    /**
+     * Orders whose parcel the courier is bringing back or has cancelled
+     * (0.143.0) and which nobody has finished: not completed, cancelled or
+     * refunded. The dashboard's tile and the list it opens
+     * (`?shipment=problem`) are this one scope.
+     */
+    public function scopeShipmentTrouble(Builder $query): Builder
+    {
+        return $query->where('shipment_booking', 'created')
+            ->whereNotNull('shipment_problem')
+            ->whereNotIn('status', [
+                OrderStatus::Completed->value, OrderStatus::Cancelled->value, OrderStatus::Refunded->value,
+            ]);
     }
 
     /**

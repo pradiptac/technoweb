@@ -3196,6 +3196,26 @@ createServer(async (req, res) => {
     if (/^\/admin\/store\/orders\/[^/]+\/zoho-invoice$/.test(p) && req.method === 'POST') {
       return json(res, 422, { message: 'Zoho Books invoices are switched off.' });
     }
+    /* Shiprocket (0.143.0, docs/store.md "Shiprocket"): the provider is "By hand", the
+       default, so the settings panel offers the select and the tracking address and
+       the order page draws no booking control. The booking routes answer what the API
+       does with the provider off, and the test is refused until a sign-in is saved.
+       The webhook address is the real route's — it names neither the vendor nor
+       "sr" or "kr". */
+    if (p === '/admin/settings/shiprocket' && req.method === 'GET') {
+      return json(res, 200, { data: {
+        provider: 'manual', active: false, missing: [], credentials_saved: false, email: null, pickup_location: null,
+        locations: [], parcel: { length: 20, breadth: 15, height: 10 },
+        webhook_url: 'http://127.0.0.1:8000/api/v1/store/shipping/webhooks/courier', webhook_url_ok: true,
+        webhook_token_set: false, error: null, booked: 0, in_trouble: 0,
+      } });
+    }
+    if (p === '/admin/settings/shiprocket/test' && req.method === 'POST') {
+      return json(res, 422, { message: "Save the API user's email and password first." });
+    }
+    if (/^\/admin\/store\/orders\/[^/]+\/shipment\/(book|assign|pickup|label|cancel|track)$/.test(p) && req.method === 'POST') {
+      return json(res, 422, { message: 'Parcels are not booked with a courier platform on this site.', errors: { shipment: ['Parcels are not booked with a courier platform on this site.'] } });
+    }
     // One payment or refund sent to Zoho Books on request (0.136.0).
     if (/^\/admin\/store\/orders\/[^/]+\/payments\/\d+\/zoho$/.test(p) && req.method === 'POST') {
       return json(res, 422, { message: 'Zoho Books invoices are switched off.' });
@@ -4430,7 +4450,7 @@ createServer(async (req, res) => {
         orders: { total: 0, paid: 0, pending_payment: 0, cancelled: 0, period: 0, with_physical: 0, with_digital: 0 },
         revenue: { total_paise: 0, period_paise: 0, gst_paise: 0, discount_paise: 0, refunded_paise: 0, average_paise: null, sample: 0 },
         catalogue: { products: 0, published: 0, out_of_stock: 0 },
-        attention: { awaiting_payment: 0, awaiting_dispatch: 0, awaiting_codes: 0, reviews_pending: 1, refund_requested: 0, returns_requested: mockReturns.filter(r => r.status === 'requested').length, zoho_failed: 0, out_of_stock: 0, codes_exhausted: 0, failed_payments: 0 },
+        attention: { awaiting_payment: 0, awaiting_dispatch: 0, awaiting_codes: 0, reviews_pending: 1, refund_requested: 0, returns_requested: mockReturns.filter(r => r.status === 'requested').length, zoho_failed: 0, shipments_in_trouble: 0, out_of_stock: 0, codes_exhausted: 0, failed_payments: 0 },
         funnel: { product_views: null, paid_orders: 0, views_to_orders: null },
         // Null, not zeros: the mock never reminds anybody about a basket.
         recovered: null,
@@ -4633,6 +4653,21 @@ createServer(async (req, res) => {
           s('zoho_books_account_gateway', null, { group: 'zoho_books' }), s('zoho_books_account_cod', null, { group: 'zoho_books' }),
           s('zoho_books_account_bank_transfer', null, { group: 'zoho_books' }), s('zoho_books_account_upi', null, { group: 'zoho_books' }),
           s('zoho_books_scope_version', null, { group: 'zoho_books' }),
+        ],
+        /* Shiprocket (Store -> Settings): "By hand", nothing saved. The pickup location and the error row are
+           drawn by the panel, not the generic grid. */
+        shiprocket: [
+          s('store_courier_provider', 'manual', { group: 'shiprocket', options: [
+            { value: 'manual', label: 'By hand', description: 'You type the courier and tracking number on each order, as before.' },
+            { value: 'shiprocket', label: 'Shiprocket', description: 'Book the parcel from the order page.' },
+          ] }),
+          s('shiprocket_email', null, { group: 'shiprocket' }),
+          s('shiprocket_password', null, { group: 'shiprocket', is_secret: true, is_set: false }),
+          s('shiprocket_pickup_location', null, { group: 'shiprocket' }),
+          s('shiprocket_parcel_length', '20', { group: 'shiprocket' }), s('shiprocket_parcel_breadth', '15', { group: 'shiprocket' }),
+          s('shiprocket_parcel_height', '10', { group: 'shiprocket' }),
+          s('shiprocket_webhook_token', null, { group: 'shiprocket', is_secret: true, is_set: false }),
+          s('shiprocket_error', null, { group: 'shiprocket' }),
         ],
         push: [
           s('push_api_key', 'AIzaMockKey000000000000000000000000000', { group: 'push' }), s('push_project_id', 'technoware-push', { group: 'push' }),

@@ -43,7 +43,10 @@ final class ReturnPolicy
     /** The last moment a return may be asked for, or null before the order has left. */
     public static function deadline(Order $order): ?CarbonInterface
     {
-        $delivered = $order->completed_at
+        // `delivered_at` is the courier's own word (0.143.0, docs/store.md
+        // "Shiprocket") and wins; `completed_at` is the desk's.
+        $delivered = $order->delivered_at
+            ?? $order->completed_at
             ?? $order->dispatched_at?->copy()->addDays(Fulfilment::transitDays()['max']);
 
         if ($order->dispatched_at === null || $delivered === null) {

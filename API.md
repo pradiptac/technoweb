@@ -1914,6 +1914,47 @@ centre's published downloads as `items[{title, note?, version?,
 released_label?, download_id, locked?, size, extension}]` with `index_path:
 "/downloads"` — no `url` — and drops the section when there are none.
 
+## Shiprocket: booking and tracking (0.143.0)
+
+Optional courier booking for the shop's orders (`docs/store.md` "Shiprocket").
+`store_courier_provider` in the private `shiprocket` group is `manual` (the
+default: every route below that books answers 422 and nothing is asked of
+anybody) or `shiprocket`. **Shiprocket has no sandbox: every call it is asked
+acts on the live account.**
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/store/shipping/webhooks/courier` | Shiprocket reporting a scan. **Public, un-throttled, 200 `{ok: true}` always, fails closed.** The address contains none of "shiprocket", "kartrocket", "sr", "kr" (Shiprocket refuses such a URL). The payload has no signature, only an optional token Shiprocket sends as `x-api-key`, compared with `hash_equals` to `shiprocket_webhook_token`; with none saved, nothing is accepted. Matches the order by `sr_order_id`, then `awb`; reads `shipment_status_id` (never `current_status_id`); ignores `is_return: 1`, an id it cannot place, an earlier or repeated status |
+| `GET` | `/admin/settings/shiprocket` | `role:admin`. `{provider, active, missing[], credentials_saved, email, pickup_location, locations[], parcel{length,breadth,height}, webhook_url, webhook_url_ok, webhook_token_set, error, booked, in_trouble}`. `locations` is read from Shiprocket **only while the provider is `shiprocket` and a sign-in is saved** |
+| `POST` | `/admin/settings/shiprocket/test` | `role:admin`, 6/min. Signs in afresh and lists the pickup locations — nothing else; books nothing. 200 `{locations[], pickup_location_found, message}`; 422 in Shiprocket's words |
+| `POST` | `/admin/store/orders/{n}/shipment/book` | `role:store_manager`, 20/min. `weight_grams?`, `length?`, `breadth?`, `height?` (whole cm), `courier_id?`. Claims the booking (one order at Shiprocket however often pressed), creates it, assigns the courier and AWB. Answers the order. 422 when the provider is manual or incomplete, the order has nothing to ship, is unpaid and not cash on delivery, is cancelled/refunded, has no address, is already booked or being booked, or Shiprocket refuses (its words) |
+| `POST` | `…/shipment/assign` | `courier_id?`. After a refused assignment, or to choose a courier |
+| `POST` | `…/shipment/pickup` | Requests the courier's pickup. Needs an assigned courier |
+| `POST` | `…/shipment/label` | Makes the label; `shipment.label_url` |
+| `POST` | `…/shipment/cancel` | Cancels the AWB and the order at Shiprocket and clears the courier and tracking from the order |
+| `POST` | `…/shipment/track` | Asks Shiprocket where it is now, through the same path the webhook uses |
+
+The admin order's detail read carries `delivered_at` and `shipment`: `null`
+while the provider is manual and nothing was booked, else `{provider, active,
+booking (creating|created|failed|cancelled), attempts, shiprocket_order_id,
+shipment_id, has_courier, pickup_requested_at, label_url, status_id, status,
+status_at, problem (returning|returned|cancelled), error, checked_at,
+delivered_at, can_book, book_refusal, can_assign, can_pickup, can_label,
+can_cancel, can_track, defaults{weight_grams,length,breadth,height}|null}`.
+Every `can_*` is the answer the API will give to the press.
+`GET /admin/store/orders?shipment=problem` lists parcels the courier is bringing
+back or cancelled; `/admin/store/dashboard` adds `attention.shipments_in_trouble`.
+The customer's order (`GET /orders/{n}?token=`, `/my/orders/{n}`) carries
+`shipment_status` — the courier's own label, only while it goes well — and
+`delivered_at`.
+
+The `shiprocket` settings group (private): `store_courier_provider`,
+`shiprocket_email`, `shiprocket_password` (secret), `shiprocket_pickup_location`,
+`shiprocket_parcel_length|breadth|height` (whole cm, 1–300),
+`shiprocket_webhook_token` (secret, 16–120 characters, no spaces) and
+`shiprocket_error` (Shiprocket's last refusal in its own words).
+`technoware:track-shipments` runs every 30 minutes.
+
 ## The store
 
 A **separate catalogue** from `/products`. What the shop sells is maintained

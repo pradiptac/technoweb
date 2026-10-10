@@ -7,6 +7,8 @@ use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Models\OrderReturn;
 use App\Support\Store\DigitalFulfilment;
+use App\Support\Store\Shipping\CourierSettings;
+use App\Support\Store\Shipping\Shipments;
 use App\Support\Store\Zoho\ZohoInvoices;
 use App\Support\Store\Zoho\ZohoPayments;
 use App\Support\Store\Zoho\ZohoSettings;
@@ -30,9 +32,63 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Order */
 class OrderResource extends JsonResource
 {
+    /**
+     * Where the parcel is with the courier platform, and what the console may
+     * offer (0.143.0, docs/store.md "Shiprocket"). Every `can_*` is the
+     * answer the API will give to the press, so the screen draws a control
+     * only when it will be taken. Null when the provider is manual and no
+     * booking was ever made.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function shipment(): ?array
+    {
+        $order = $this->resource;
+        $active = CourierSettings::active();
+
+        if (! $active && $order->shipment_booking === null) {
+            return null;
+        }
+
+        $refusal = $active ? Shipments::refusalToBook($order) : 'Shiprocket is not switched on.';
+        $live = $order->shipment_booking === 'created' && filled($order->shipment_id);
+        $rebook = in_array($order->shipment_booking, [null, 'failed', 'cancelled'], true)
+            || ($order->shipment_booking === 'created' && in_array($order->shipment_problem, ['cancelled', 'returned'], true))
+            || ($order->shipment_booking === 'creating' && $order->shipment_claimed_at?->lt(now()->subMinutes(10)));
+        $canBook = $refusal === null && $rebook;
+
+        return [
+            'provider' => $order->shipment_provider ?? CourierSettings::provider(),
+            'active' => $active,
+            'booking' => $order->shipment_booking,
+            'attempts' => (int) $order->shipment_attempts,
+            'shiprocket_order_id' => $order->shipment_order_id,
+            'shipment_id' => $order->shipment_id,
+            'has_courier' => $order->shipment_awb_at !== null,
+            'pickup_requested_at' => $order->shipment_pickup_at?->toIso8601String(),
+            'label_url' => $order->shipment_label_url,
+            'status_id' => $order->shipment_status_id,
+            'status' => $order->shipment_status,
+            'status_at' => $order->shipment_status_at?->toIso8601String(),
+            'problem' => $order->shipment_problem,
+            'error' => $order->shipment_error,
+            'checked_at' => $order->shipment_checked_at?->toIso8601String(),
+            'delivered_at' => $order->delivered_at?->toIso8601String(),
+            'can_book' => $canBook,
+            // Why not, in words — only worth saying while nothing is booked.
+            'book_refusal' => $canBook || ! $rebook ? null : $refusal,
+            'can_assign' => $active && $live && $order->shipment_awb_at === null,
+            'can_pickup' => $active && $live && $order->shipment_awb_at !== null && $order->shipment_pickup_at === null && $order->delivered_at === null,
+            'can_label' => $active && $live && $order->shipment_awb_at !== null,
+            'can_cancel' => $active && $live && $order->delivered_at === null && $order->shipment_problem !== 'cancelled',
+            'can_track' => $active && $live && filled($order->tracking_number),
+            'defaults' => $canBook ? Shipments::defaults($order) : null,
+        ];
+    }
+
     public function toArray(Request $request): array
     {
-        $detail = $request->routeIs('*.show', '*.update', '*.status', '*.shipping', '*.fulfil');
+        $detail = $request->routeIs('*.show', '*.update', '*.status', '*.shipping', '*.fulfil', '*.shipment.*');
         // Why this order's payments cannot be sent to Zoho Books now, or
         // null: asked once here, read for every row below.
         $zohoRefusal = $this->relationLoaded('payments') ? ZohoPayments::refusal($this->resource) : null;
@@ -109,6 +165,11 @@ class OrderResource extends JsonResource
             'tracking_number' => $this->tracking_number,
             'tracking_url' => $this->tracking_url,
             'shipping_notes' => $this->when($detail, $this->shipping_notes),
+            // The parcel with the courier platform (0.143.0): null while the
+            // provider is manual and nothing was ever booked, so the order
+            // screen is exactly what it was.
+            'shipment' => $this->when($detail, fn () => $this->shipment()),
+            'delivered_at' => $this->delivered_at?->toIso8601String(),
 
             /*
              * Whether somebody is waiting on a licence key.

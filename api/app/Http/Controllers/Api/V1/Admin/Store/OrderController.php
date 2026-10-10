@@ -2,18 +2,15 @@
 
 namespace App\Http\Controllers\Api\V1\Admin\Store;
 
-use App\Enums\MessageEvent;
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\Store\OrderResource;
 use App\Models\Order;
-use App\Notifications\OrderDispatched;
 use App\Support\ListSort;
-use App\Support\Messaging\OrderMessages;
-use App\Support\Notifier;
 use App\Support\Store\DigitalFulfilment;
 use App\Support\Store\Payments\ManualPayment;
 use App\Support\Store\Payments\ManualRefund;
+use App\Support\Store\Shipping\DispatchNotice;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -53,6 +50,8 @@ class OrderController extends Controller
             ->when($request->boolean('unpaid'), fn ($q) => $q->where('status', OrderStatus::PendingPayment))
             // Orders Zoho Books refused an invoice, a payment or a credit note for — the dashboard tile's list.
             ->when($request->input('zoho') === 'failed', fn ($q) => $q->zohoFailed())
+            // Parcels the courier is bringing back or cancelled (0.143.0) — the dashboard tile's list.
+            ->when($request->input('shipment') === 'problem', fn ($q) => $q->shipmentTrouble())
             ->when($request->boolean('open'), fn ($q) => $q->whereNotIn('status', [
                 OrderStatus::Completed->value,
                 OrderStatus::Cancelled->value,
@@ -123,8 +122,7 @@ class OrderController extends Controller
          * is the moment it actually left.
          */
         if ($next === OrderStatus::Dispatched) {
-            Notifier::to($order->customer_email, new OrderDispatched($order->fresh()));
-            OrderMessages::order(MessageEvent::OrderDispatched, $order->fresh());
+            DispatchNotice::send($order);
         }
 
         return new OrderResource($order->fresh(['items', 'payments', 'history', 'notes']));
