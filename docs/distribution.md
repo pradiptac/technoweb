@@ -125,7 +125,8 @@ hands every request to `api/install/Wizard.php` outside the document root:
   concern only.
 - **Clean install versus sample content.** It runs `InstallSeeder` (structure
   and starting points only), plus `DemoSeeder` when the box is ticked, which
-  is off by default. `DatabaseSeeder` runs both, so a developer's
+  is ticked by default (0.151.0, the client: a first install should show the
+  site working; unticking it gives an empty site). `DatabaseSeeder` runs both, so a developer's
   `migrate:fresh --seed` is unchanged. It also calls
   `UpgradeSteps::markAllDone()`, so the first update does not replay history.
 - **`Branding::apply()` makes the install the customer's.** Every seeded

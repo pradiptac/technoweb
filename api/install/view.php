@@ -110,7 +110,7 @@ dl.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:12px 0}dl.
         <div><label for="m-from">Send from</label><input type="email" id="m-from" name="mail_from"><p class="err" data-err="mail_from"></p></div>
       </div>
     </div>
-    <div class="check"><label><input type="checkbox" name="demo"> Load sample content (made-up posts, products, team and tickets to try the site with — all of it must be deleted before launch)</label></div>
+    <div class="check"><label><input type="checkbox" name="demo" checked> Load sample content (made-up posts, products, team and tickets to try the site with — untick for an empty site; all of it must be deleted before launch)</label></div>
     <button data-go="site">Continue</button>
   </section>
 

@@ -65,6 +65,10 @@ is not one. Replace it with text your adviser has approved before launch.
 
 ## 6. If you loaded the sample content
 
+The setup wizard loads it unless **Load sample content** is unticked on the
+"Your company and your first administrator" step — it is ticked to begin with, so the site has something
+to show the first time you open it.
+
 The sample posts, products, team members, clients, certifications, case
 studies, the sample support tickets, the invented address and the social links
 are **all made up**. Delete each of them, or replace it with your own, before

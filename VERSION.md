@@ -21,6 +21,20 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.151.0 — 2026-10-10
+
+**A new install loads the sample content unless told not to.**
+
+- The setup wizard's **Load sample content** box (step 4, "Your company and
+  your first administrator") now starts ticked, at the client's request, so
+  a first install shows the site working: sample posts, products, team,
+  events, downloads and tickets. Unticking it still gives an empty site, and
+  everything sample is still named in CLAUDE.md's "Known risks and
+  placeholders" and must be deleted before launch. Nothing changes for an
+  installed site or an update.
+
+---
+
 ## 0.150.0 — 2026-10-10
 
 **The top bar's dropdown can open in columns, and a menu entry can carry a badge.**
