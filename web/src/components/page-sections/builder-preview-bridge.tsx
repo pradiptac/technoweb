@@ -103,34 +103,48 @@ export function BuilderPreviewBridge() {
       marks.clear();
 
       for (const section of fields) {
-        const root = document.querySelector(`[data-builder-id="${CSS.escape(section.id)}"]`);
-        if (!root) continue;
+        const page = document.querySelector(`[data-builder-id="${CSS.escape(section.id)}"]`);
+        if (!page) continue;
 
-        const wanted = new Map<string, InlineValue[]>();
-        for (const field of section.fields) {
-          const key = squash(field.value);
-          if (key) wanted.set(key, [...(wanted.get(key) ?? []), field]);
-        }
+        // A layout widget's words are looked for inside that widget only (0.156.0),
+        // so two widgets saying the same thing are two fields in two places and
+        // not an ambiguity; every other field is looked for in the section.
+        const scopes = new Map<string | undefined, InlineValue[]>();
+        for (const field of section.fields) scopes.set(field.scope, [...(scopes.get(field.scope) ?? []), field]);
 
-        const found = new Map<string, HTMLElement[]>();
-        for (const el of root.querySelectorAll<HTMLElement>("*")) {
-          const text = squash(el.textContent ?? "");
-          if (!wanted.has(text) || el.closest(NOT_HERE)) continue;
-          // The innermost element holding exactly these words, and nothing but words.
-          if ([...el.children].some((child) => squash(child.textContent ?? "") === text)) continue;
-          if ([...el.querySelectorAll("*")].some((inner) => !WORDS_ONLY.has(inner.tagName))) continue;
-          // Drawn at this width: a layout's other copy of the same words is not.
-          if (!el.getClientRects().length) continue;
-          found.set(text, [...(found.get(text) ?? []), el]);
+        for (const [scope, group] of scopes) {
+          const root = scope === undefined ? page : page.querySelector(`[data-layout-widget="${CSS.escape(scope)}"]`);
+          if (root) stampIn(root, section.id, group);
         }
+      }
+    };
 
-        for (const [text, list] of wanted) {
-          const els = found.get(text) ?? [];
-          // One field: every place it is drawn is that field. Several fields
-          // with the same words: only when each has exactly one place, in order.
-          if (list.length === 1) els.forEach((el) => mark(el, section.id, list[0]));
-          else if (els.length === list.length) els.forEach((el, i) => mark(el, section.id, list[i]));
-        }
+    const stampIn = (root: Element, id: string, group: InlineValue[]) => {
+      const wanted = new Map<string, InlineValue[]>();
+      for (const field of group) {
+        const key = squash(field.value);
+        if (key) wanted.set(key, [...(wanted.get(key) ?? []), field]);
+      }
+
+      const found = new Map<string, HTMLElement[]>();
+      // The root too: a heading widget is itself the element that holds its words.
+      for (const el of [root as HTMLElement, ...root.querySelectorAll<HTMLElement>("*")]) {
+        const text = squash(el.textContent ?? "");
+        if (!wanted.has(text) || el.closest(NOT_HERE)) continue;
+        // The innermost element holding exactly these words, and nothing but words.
+        if ([...el.children].some((child) => squash(child.textContent ?? "") === text)) continue;
+        if ([...el.querySelectorAll("*")].some((inner) => !WORDS_ONLY.has(inner.tagName))) continue;
+        // Drawn at this width: a layout's other copy of the same words is not.
+        if (!el.getClientRects().length) continue;
+        found.set(text, [...(found.get(text) ?? []), el]);
+      }
+
+      for (const [text, list] of wanted) {
+        const els = found.get(text) ?? [];
+        // One field: every place it is drawn is that field. Several fields
+        // with the same words: only when each has exactly one place, in order.
+        if (list.length === 1) els.forEach((el) => mark(el, id, list[0]));
+        else if (els.length === list.length) els.forEach((el, i) => mark(el, id, list[i]));
       }
     };
 
@@ -217,7 +231,7 @@ export function BuilderPreviewBridge() {
           .filter((s) => typeof s?.id === "string" && Array.isArray(s.fields))
           .map((s) => ({
             id: s.id as string,
-            fields: (s.fields as InlineValue[]).filter((f) => isInlinePath(f?.path) && typeof f.value === "string" && Number.isInteger(f.max) && f.max > 0),
+            fields: (s.fields as InlineValue[]).filter((f) => isInlinePath(f?.path) && typeof f.value === "string" && Number.isInteger(f.max) && f.max > 0 && (f.scope === undefined || typeof f.scope === "string")),
           }));
         // After the page has finished arriving: a mark on markup React has
         // yet to hydrate would be an attribute it did not render.

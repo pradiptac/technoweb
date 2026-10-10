@@ -830,6 +830,11 @@ class PageBuilderTest extends TestCase
             $rules = SectionRules::for(PageSectionType::from($type));
 
             foreach ($fields as $field) {
+                // The layout's widget words come from the widget table (LayoutSectionTest pins them).
+                if (isset($field['widget'])) {
+                    continue;
+                }
+
                 $this->assertContains('string', $rules[$field['path']], "{$type}.{$field['path']}");
                 $this->assertContains('max:'.$field['max'], $rules[$field['path']], "{$type}.{$field['path']}");
                 $this->assertDoesNotMatchRegularExpression(

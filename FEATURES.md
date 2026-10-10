@@ -113,8 +113,9 @@ A full CMS for the people who write, without a developer in the loop.
   well as moved with the arrows — a picture beside words, three
   boxes in a row — without a new section type for each arrangement. Columns
   stack on a phone; nothing is a free number or colour.
-  Headings, lines of text and button wording can be edited directly on the
-  live preview.
+  Headings, lines of text and button wording — including a layout's headings,
+  buttons, icon-box titles, list points and captions, even inside tabs and
+  boxes — can be edited directly on the live preview.
   Every page, library item, blog post, article, case study, solution, service,
   product, shop product, event, vacancy, custom entry and landing page keeps a
   history: the last thirty saved versions, each to look at as the site would

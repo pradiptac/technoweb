@@ -307,11 +307,43 @@ class LayoutSectionTest extends TestCase
             ->assertJsonPath('data.sections.0.data.rows.0.columns.0.widgets.0.text', 'From the library');
     }
 
-    public function test_inline_editing_offers_only_the_head(): void
+    /** Edit on the page (0.156.0): the head, and the single-line words of the widgets, each tied to the widget type it belongs to. */
+    public function test_inline_editing_offers_the_widgets_words_and_never_html(): void
     {
-        $paths = collect(SectionRules::inlineFields()['layout'] ?? [])->pluck('max', 'path')->all();
+        $fields = SectionRules::inlineFields()['layout'] ?? [];
+        $paths = collect($fields)->pluck('max', 'path')->all();
+        $w = 'rows.*.columns.*.widgets.*';
 
-        $this->assertSame(['kicker' => 80, 'heading' => 160, 'lede' => 400], $paths);
+        // The head, as before.
+        $this->assertSame(['kicker' => 80, 'heading' => 160, 'lede' => 400], collect($paths)->only(['kicker', 'heading', 'lede'])->all());
+
+        // A widget's words, with the rule's own length, at the top level and one level down in a slot.
+        foreach (["{$w}", "{$w}.slots.*.widgets.*"] as $base) {
+            $this->assertSame(160, $paths["{$base}.text"] ?? null, $base);
+            $this->assertSame(40, $paths["{$base}.label"] ?? null, $base);
+            $this->assertSame(80, $paths["{$base}.title"] ?? null, $base);
+            $this->assertSame(200, $paths["{$base}.caption"] ?? null, $base);
+            $this->assertSame(40, $paths["{$base}.link_label"] ?? null, $base);
+            $this->assertSame(160, $paths["{$base}.items.*.text"] ?? null, $base);
+        }
+
+        // A container's own slot names (a tab, a panel) are text too; its slots hold no further containers.
+        $this->assertSame(40, $paths["{$w}.slots.*.label"]);
+        $this->assertSame(120, $paths["{$w}.slots.*.title"]);
+        $this->assertArrayNotHasKey("{$w}.slots.*.widgets.*.slots.*.label", $paths);
+
+        // `text` means a heading's words on a heading and a list point's on a list: each spec names its widget.
+        $this->assertSame('heading', collect($fields)->firstWhere('path', "{$w}.text")['widget']);
+        $this->assertSame('list', collect($fields)->firstWhere('path', "{$w}.items.*.text")['widget']);
+        $this->assertSame('button', collect($fields)->firstWhere('path', "{$w}.label")['widget']);
+
+        // Never rich text, the multi-line words, a link, a picture or a choice.
+        foreach ($fields as $field) {
+            $this->assertDoesNotMatchRegularExpression('/\.(html|body|answer|href|image_path|poster_path|youtube|video_path|size|align|variant)$/', $field['path'], $field['path']);
+        }
+        $this->assertArrayNotHasKey("{$w}.html", $paths);
+        $this->assertArrayNotHasKey("{$w}.body", $paths);
+        $this->assertArrayNotHasKey("{$w}.items.*.answer", $paths);
     }
 
     public function test_the_builder_options_send_the_widgets_and_limits(): void

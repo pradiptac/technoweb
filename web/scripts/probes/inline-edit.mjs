@@ -22,10 +22,22 @@ import { chromium } from "playwright";
  * back; at the phone's width the words are found again; (8) a message naming a field that is not edited in place, or the
  * wrong current words, changes nothing; (9) the page logs no error or
  * warning. Carries no credential.
+ *
+ * **The layout section's words** (0.156.0) are checked on a second page when
+ * LAYOUT_PAGE_ID names one (the probe skips them, and says so, without it): a
+ * builder page whose first Layout section holds, in any order, two Heading
+ * widgets in different columns with exactly the words "Same words", a Tabs
+ * container whose first tab holds a Heading "Inside the tab", and a Text
+ * widget (rich text). It checks that (10) the second of the identical headings
+ * is edited on the page and the first is not touched — each widget is found
+ * inside its own element; (11) a heading inside a tab edits; (12) a rich-text
+ * widget offers no edit; (13) a wrong `was`, and a path that is a heading's
+ * `text` on a widget that is not a heading, change nothing.
  */
 const BASE = process.env.BASE ?? "http://localhost:3000";
 const SHOTS = process.env.SHOTS;
 const PAGE_ID = process.env.PAGE_ID;
+const LAYOUT_PAGE_ID = process.env.LAYOUT_PAGE_ID;
 if (!PAGE_ID) { console.error("PAGE_ID is required: a builder page (see the docblock)."); process.exit(2); }
 
 const browser = await chromium.launch();
@@ -160,6 +172,77 @@ await page.waitForTimeout(500);
 const still = (await blocks())[0].data;
 ok(still.layout === held.data.layout && still.primary?.href === held.data.primary?.href && still.heading === held.data.heading,
   "a field not edited in place, the wrong current words and an over-long value all change nothing");
+
+// ---- 10-13: the layout section's words, each found inside its own widget
+if (!LAYOUT_PAGE_ID) {
+  console.log("skip the layout section's words: LAYOUT_PAGE_ID is not set");
+} else {
+  await page.goto(`${BASE}/admin/pages/${LAYOUT_PAGE_ID}?tab=builder`, { waitUntil: "load", timeout: 180000 });
+  await page.locator("li[data-section-card]").first().waitFor({ timeout: 120000 });
+  await page.locator(SHOWN).waitFor({ timeout: 180000 });
+  await frame.locator("[data-edit]").first().waitFor({ timeout: 120000 });
+  await page.waitForTimeout(1500);
+
+  /** Every widget of the first layout section with its path, a container's children included. */
+  const widgets = async () => {
+    const list = (await blocks()).find((b) => b.type === "layout");
+    const out = [];
+    const visit = (ws, at) => ws?.forEach((w, i) => {
+      out.push({ path: [...at, i], w });
+      w.slots?.forEach((slot, j) => visit(slot.widgets, [...at, i, "slots", j, "widgets"]));
+    });
+    list?.data.rows?.forEach((row, r) => row.columns?.forEach((col, c) => visit(col.widgets, ["rows", r, "columns", c, "widgets"])));
+    return { id: list?.id, widgets: out };
+  };
+  const lay = '[data-page-section="layout"]';
+  const same = (all) => all.widgets.filter((x) => x.w.type === "heading" && x.w.text.startsWith("Same words"));
+
+  const first = await widgets();
+  ok(same(first).length === 2, "the layout page holds two headings with the same words");
+  const twins = frame.locator(`${lay} [data-widget="heading"][data-edit]`).filter({ hasText: /^Same words/ });
+  ok(await twins.count() === 2, "both are editable on the page, though their words are identical");
+
+  // 10: the second one changes, the first does not
+  const at = await src();
+  await twins.nth(1).click();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.type(" two", { delay: 8 });
+  await page.waitForTimeout(300);
+  const [a, b] = same(await widgets());
+  ok(a.w.text === "Same words" && b.w.text === "Same words two", `the second heading changes ("${b.w.text}") and the first does not ("${a.w.text}")`);
+  // A folded widget card shows its words in its summary line ("Heading — Same words"); its inputs are only drawn when open.
+  const cardTexts = await page.locator('li[data-section-card="layout"] [data-layout-widget-card="heading"] > div > button').evaluateAll((els) => els.map((e) => e.textContent.split("— ")[1] ?? ""));
+  ok(cardTexts.includes("Same words two") && cardTexts.includes("Same words"), `the card shows the same two headings (${cardTexts.join(" | ")})`);
+  await page.keyboard.press("Enter");
+  await redrawn(at);
+
+  // 11: a heading inside a tab
+  const inTab = frame.locator(`${lay} [data-widget="tabs"] [data-widget="heading"][data-edit]`).first();
+  ok(await inTab.count() === 1, "a heading inside the first tab is editable");
+  const at2 = await src();
+  await inTab.click();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.type(" here", { delay: 8 });
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(300);
+  const child = (await widgets()).widgets.find((x) => x.w.type === "heading" && x.w.text.startsWith("Inside the tab"));
+  ok(child?.w.text === "Inside the tab here" && child.path.includes("slots"), `it changes in the tab's slot ("${child?.w.text}")`);
+  await redrawn(at2);
+
+  // 12: a rich-text widget keeps its editor
+  ok(await frame.locator(`${lay} [data-widget="text"][data-edit], ${lay} [data-widget="text"] [data-edit]`).count() === 0, "a rich-text widget offers no edit on the page");
+
+  // 13: forged messages
+  const now = await widgets();
+  const twin = same(now)[1];
+  const text = now.widgets.find((x) => x.w.type === "text");
+  await forge({ type: "tw:builder-edit", id: now.id, path: [...twin.path, "text"], value: "Forged", was: "not what it says" });
+  await forge({ type: "tw:builder-edit", id: now.id, path: [...text.path, "text"], value: "Forged", was: "" });
+  await page.waitForTimeout(500);
+  const after = await widgets();
+  ok(same(after)[1].w.text === twin.w.text && after.widgets.find((x) => x.w.type === "text").w.text === undefined,
+    `a wrong \`was\`, and a heading's path on a widget that is not a heading, change nothing (${same(after)[1].w.text} / ${JSON.stringify(after.widgets.find((x) => x.w.type === "text").w)})`);
+}
 
 await page.waitForTimeout(1000);
 ok(problems.length === 0, `no console errors or warnings${problems.length ? ":\n  " + problems.join("\n  ") : ""}`);

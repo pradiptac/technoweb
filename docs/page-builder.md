@@ -853,6 +853,48 @@ is stored as nothing. Disabled on an opening hero, which never animates.
 and each section puts it on its root; see `docs/motion.md`, "A section's own
 reveal".
 
+
+### The layout's words on the page (0.156.0)
+
+**The words of a layout section's widgets are edited in the preview too** —
+a heading, a button's wording, an icon box's title and link text, a list
+point, a picture's or video's caption — at the top of a column and inside a
+box, tab, panel or inner column.
+
+- **Which fields is still the API's answer, now also read from the widget
+  table.** `SectionRules::layoutInlineFields()` walks
+  `LayoutRules::widgets()`: every `text`-kind field that is not multi-line,
+  with the table's own `max`, at `rows.*.columns.*.widgets.*.<key>`, in a
+  list (`….items.*.text`), and one level down at
+  `….slots.*.widgets.*.<key>`. A container's slot names are offered at
+  `….slots.*.label` / `.title`. **Never `html`** (rich text keeps its
+  editor), a choice, a link, a picture, an icon or the multi-line words
+  (an icon box's text, an accordion's answers). `LayoutSectionTest` pins it.
+- **A spec names its widget.** `text` is a heading's words on a heading and
+  a point's on a list, so each layout spec is `{path, max, widget}` and a
+  path applies only where the widget the path sits in (the nearest object
+  with a `type`) has that type. `inlineValues()` and `specFor()` honour it —
+  the builder refuses an edit whose path falls under the wrong widget.
+- **A widget's words are looked for inside that widget's element.**
+  `LayoutSection` and the container widgets stamp
+  `data-layout-widget="<id>"` beside `data-widget`; the builder sends each
+  field with a `scope` (the widget's id), and `BuilderPreviewBridge` looks
+  for the words **only inside that element**. Two widgets with the same words
+  are two fields in two places, not an ambiguity; several fields in one
+  widget (a list's points) keep the old rule (exactly one place each, in
+  order). Fields without a scope are found in the section as before.
+- **Same message, same apply path.** `{id, path, value, was}`, the paths now
+  up to twelve keys long (`rows.0.columns.1.widgets.2.slots.0.widgets.1.text`);
+  `setIn`/`getIn` take any depth, and the handler is still the Effect Event
+  in `flushSync`.
+- **Left to the card, by the bridge's own rules:** a tab's name (a
+  `role="tab"` button — a press switches tabs), a panel's title (a
+  `summary` — Space toggles it), anything inside a closed panel or an inactive
+  tab (not drawn; found again after the press that shows it), the rich-text
+  widget, and the multi-line words. A button widget's wording **is** editable:
+  it renders as a link, a press in the frame never navigates (the bridge
+  prevents it), and the label is a plain `span`.
+
 ## Seeded, and audited
 
 `SampleBuilderPageSeeder` creates one **draft** page at `/sample-builder-page`

@@ -69,7 +69,7 @@ export function Widget({
       const Tag = plan.level === 2 ? "h2" : "h3";
       return (
         <Tag
-          data-widget="heading"
+          data-widget="heading" data-layout-widget={widget.id}
           data-widget-heading
           className={cn("min-w-0 text-balance", WRAP, HEADING_SIZE[widget.size ?? "m"] ?? HEADING_SIZE.m, ALIGN[widget.align ?? "inherit"], gone)}
         >
@@ -80,7 +80,7 @@ export function Widget({
 
     case "text":
       return (
-        <div data-widget="text" className={cn("min-w-0 max-w-full [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto", gone)}>
+        <div data-widget="text" data-layout-widget={widget.id} className={cn("min-w-0 max-w-full [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto", gone)}>
           <ProseWithShortcodes
             html={widget.html}
             className={cn(WRAP, "[&>*:first-child]:mt-0 [&>*:last-child]:mb-0", widget.lead && "text-[19px] leading-[1.6]")}
@@ -97,7 +97,7 @@ export function Widget({
       const label = <span className={cn("min-w-0 text-center", WRAP)}>{widget.label}</span>;
 
       return (
-        <div data-widget="button" data-section-buttons={own === "inherit" ? "" : undefined} className={wrap}>
+        <div data-widget="button" data-layout-widget={widget.id} data-section-buttons={own === "inherit" ? "" : undefined} className={wrap}>
           {widget.variant === "link"
             ? <ArrowLink href={widget.href} className="max-w-full">{label}</ArrowLink>
             : (
@@ -130,7 +130,7 @@ export function Widget({
         : picture;
 
       return (
-        <figure data-widget="image" className={cn("m-0 min-w-0", gone)}>
+        <figure data-widget="image" data-layout-widget={widget.id} className={cn("m-0 min-w-0", gone)}>
           {linked}
           {widget.caption && <figcaption className={cn("mt-2 text-13-5 leading-snug text-muted", WRAP)}>{widget.caption}</figcaption>}
         </figure>
@@ -146,7 +146,7 @@ export function Widget({
       if (mp4 ? !widget.video : !widget.youtube) return null;
 
       return (
-        <figure data-widget="video" className={cn("m-0 min-w-0", gone)}>
+        <figure data-widget="video" data-layout-widget={widget.id} className={cn("m-0 min-w-0", gone)}>
           <div data-frame className={cn("relative w-full overflow-hidden rounded-lg bg-dark", VIDEO_RATIO[widget.ratio ?? "16:9"] ?? VIDEO_RATIO["16:9"])}>
             <ProductVideoPlayer
               name={widget.caption || "Video"}
@@ -172,10 +172,10 @@ export function Widget({
       return <ContainerWidget widget={widget} plans={plans ?? new Map()} columnAlign={columnAlign} />;
 
     case "spacer":
-      return <div data-widget="spacer" aria-hidden className={cn("shrink-0", SPACER[widget.size ?? "m"] ?? SPACER.m, gone)} />;
+      return <div data-widget="spacer" data-layout-widget={widget.id} aria-hidden className={cn("shrink-0", SPACER[widget.size ?? "m"] ?? SPACER.m, gone)} />;
 
     case "divider":
-      return <hr data-widget="divider" className={cn("m-0 border-0 border-t border-line-strong", widget.short ? "w-16" : "w-full", gone)} />;
+      return <hr data-widget="divider" data-layout-widget={widget.id} className={cn("m-0 border-0 border-t border-line-strong", widget.short ? "w-16" : "w-full", gone)} />;
 
     case "icon_box": {
       const Title = plan.titleIsHeading ? "h3" : "p";
@@ -183,7 +183,7 @@ export function Widget({
 
       return (
         <Card interactive={false} padding="md" className={cn("h-full min-w-0", gone)}>
-          <div data-widget="icon_box" className={cn("flex min-w-0 gap-4", inline ? "flex-row items-start" : "flex-col")}>
+          <div data-widget="icon_box" data-layout-widget={widget.id} className={cn("flex min-w-0 gap-4", inline ? "flex-row items-start" : "flex-col")}>
             {widget.icon && <IconTile name={widget.icon} className="shrink-0" />}
             <div className="min-w-0">
               <Title className={cn("text-16-5 font-semibold leading-snug text-ink", WRAP)}>{widget.title}</Title>
@@ -197,7 +197,7 @@ export function Widget({
 
     case "accordion":
       return (
-        <div data-widget="accordion" className={cn("min-w-0", WRAP, gone)}>
+        <div data-widget="accordion" data-layout-widget={widget.id} className={cn("min-w-0", WRAP, gone)}>
           <QuestionAccordion items={widget.items.map((q, i) => ({ key: i, question: q.question, answer: q.answer }))} />
         </div>
       );
@@ -207,21 +207,21 @@ export function Widget({
 
       if (widget.marker === "number") {
         return (
-          <ol data-widget="list" className={cn("min-w-0 list-decimal space-y-2 pl-6 marker:font-semibold marker:text-brand-ink", gone)}>
+          <ol data-widget="list" data-layout-widget={widget.id} className={cn("min-w-0 list-decimal space-y-2 pl-6 marker:font-semibold marker:text-brand-ink", gone)}>
             {widget.items.map((item, i) => <li key={i} className="pl-1">{text(item.text)}</li>)}
           </ol>
         );
       }
       if (widget.marker === "dot") {
         return (
-          <ul data-widget="list" className={cn("min-w-0 list-disc space-y-2 pl-6 marker:text-brand-ink", gone)}>
+          <ul data-widget="list" data-layout-widget={widget.id} className={cn("min-w-0 list-disc space-y-2 pl-6 marker:text-brand-ink", gone)}>
             {widget.items.map((item, i) => <li key={i} className="pl-1">{text(item.text)}</li>)}
           </ul>
         );
       }
 
       return (
-        <ul data-widget="list" className={cn("min-w-0 space-y-3", gone)}>
+        <ul data-widget="list" data-layout-widget={widget.id} className={cn("min-w-0 space-y-3", gone)}>
           {widget.items.map((item, i) => (
             <li key={i} className="flex min-w-0 items-start gap-3.5">
               {item.icon

@@ -21,6 +21,32 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.156.0 — 2026-10-10
+
+**Edit the custom layout's words on the live preview.**
+
+- In the preview, a layout section's **headings, button wording, icon-box
+  titles and link text, list points and picture or video captions** are now
+  changed where they stand, like a hero's heading — also inside a box, a tab,
+  a panel or a column inside a column. Two headings that say the same thing in
+  different columns are two separate edits.
+- Still in the card: text widgets (formatted text), the multi-line words (an
+  icon box's text, an accordion's answers), and the names of tabs and panels,
+  which are buttons on the page.
+- Behind it: the API's `inline_fields` lists the layout's widget words, read
+  from the widget table (never rich text), each tied to the widget type it
+  belongs to; the preview looks for a widget's words inside that widget only.
+  No change to how an edit is sent. The probe grew a layout part.
+- Merge review finished the console half, which the branch had left undone
+  (it did not type-check): a layout field is offered only when the widget it
+  sits in is of the spec's type, and an edit coming back is checked the same
+  way, so a forged message cannot put a heading's `text` onto a rich-text
+  widget (the probe's forged-message check failed on exactly that); and the
+  preview's search for a widget's words now includes the widget's own element,
+  since a heading widget is the element that holds them.
+
+---
+
 ## 0.155.0 — 2026-10-10
 
 **Drag and drop in the custom layout.**

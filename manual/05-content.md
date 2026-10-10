@@ -409,7 +409,7 @@ preview** above the sections puts it away; **Desktop**, **Tablet** and
 
 You can change wording directly in that preview:
 
-- Press a **heading**, a **line of text** or a **button's wording**. A
+- Press a **heading**, a **line of text** or a **button's wording** — in a custom layout too: a heading, a button, an icon box's title, a list point or a picture's caption, also inside a box, a tab or a panel. A
   dashed outline under the pointer shows what can be edited. Type; **Enter**
   finishes, **Escape** puts back what was there.
 - The section's own fields on the left change as you type, and **Undo**
@@ -419,6 +419,8 @@ You can change wording directly in that preview:
   still changed in the section's card — pressing anywhere else in a section
   opens it. So are a few words the page draws specially: tab names,
   questions that open and close, links with an arrow, and counting figures.
+  In a custom layout the same goes for the names of tabs and panels, and for
+  its text widgets, which keep their editor.
 - Each field keeps its usual length; typing stops when it is full.
 
 ### Sections on other records

@@ -406,7 +406,7 @@ export type PageBuilderOptions = {
    * live preview lets an editor change in place — a path with `*` for a row,
    * and the length the save holds it to. The API's, read off its own rules.
    */
-  inline_fields?: Record<string, { path: string; max: number }[]>;
+  inline_fields?: Record<string, { path: string; max: number; widget?: string }[]>;
   /** The custom layout section (0.147.0): its widgets with every field, the row and column settings and the limits. Optional for an older API. */
   layout?: LayoutOptions;
   /** The Design tab (0.146.0): the section types whose heading colour the site ignores. Optional for an older API. */

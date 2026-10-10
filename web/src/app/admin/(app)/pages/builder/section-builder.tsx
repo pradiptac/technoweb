@@ -358,7 +358,7 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
   const editFromPreview = useCallback(
     (id: string, path: InlinePath, value: string, was: string) => {
       const section = sections.find((s) => s.id === id);
-      const spec = section && specFor(options.inline_fields?.[section.type], path);
+      const spec = section && specFor(options.inline_fields?.[section.type], path, section.data);
       if (!section || !spec || value.length > spec.max || /[\r\n]/.test(value)) return;
       const current = getIn(section.data as Obj, path);
       if ((typeof current === "string" ? current : "") !== was) return;

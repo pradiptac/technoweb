@@ -61,7 +61,7 @@ export function ContainerWidget({
           tint={widget.surface === "tint" ? "var(--color-brand-600)" : undefined}
           className={cn("min-w-0", widget.surface === "raised" && "shadow-3", ALIGN[align], gone)}
         >
-          <div data-widget="box">
+          <div data-widget="box" data-layout-widget={widget.id}>
             <Stack widgets={slots[0].widgets} plans={plans} align={align === "inherit" ? columnAlign : align} />
           </div>
         </Card>
@@ -70,7 +70,7 @@ export function ContainerWidget({
 
     case "tabs":
       return (
-        <div data-widget="tabs" className={cn("min-w-0", gone)}>
+        <div data-widget="tabs" data-layout-widget={widget.id} className={cn("min-w-0", gone)}>
           <ContainerTabs
             id={`ct-${widget.id}`}
             labels={slots.map((s, i) => s.label ?? `Tab ${i + 1}`)}
@@ -81,7 +81,7 @@ export function ContainerWidget({
 
     case "panels":
       return (
-        <div data-widget="panels" className={cn("min-w-0 [overflow-wrap:anywhere]", gone)}>
+        <div data-widget="panels" data-layout-widget={widget.id} className={cn("min-w-0 [overflow-wrap:anywhere]", gone)}>
           <QuestionAccordion
             items={slots.map((s, i) => ({
               key: s.id, question: s.title ?? `Panel ${i + 1}`, open: s.open,
@@ -94,7 +94,7 @@ export function ContainerWidget({
     case "inner_row":
       return (
         <div
-          data-widget="inner_row"
+          data-widget="inner_row" data-layout-widget={widget.id}
           className={cn("grid min-w-0", gridClasses(slots.length, widget.stack_from, widget.split), GAP[widget.gap ?? "m"] ?? GAP.m, VALIGN[widget.valign ?? "stretch"] ?? VALIGN.stretch, gone)}
         >
           {slots.map((s) => (

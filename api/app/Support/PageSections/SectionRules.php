@@ -598,7 +598,11 @@ final class SectionRules
      * its own rules. A stored path is text by its rules and not by its
      * meaning, hence the `_path` suffix and `NOT_INLINE`.
      *
-     * @return array<string, list<array{path: string, max: int}>>
+     * The layout section's head comes from `for()` like any other type; its
+     * widgets' words are read from `LayoutRules::widgets()` (0.156.0, see
+     * `layoutInlineFields()`), each carrying the `widget` type it applies to.
+     *
+     * @return array<string, list<array{path: string, max: int, widget?: string}>>
      */
     public static function inlineFields(): array
     {
@@ -619,8 +623,52 @@ final class SectionRules
                 }
             }
 
+            if ($type === PageSectionType::Layout) {
+                $fields = [...$fields, ...self::layoutInlineFields()];
+            }
+
             if ($fields !== []) {
                 $out[$type->value] = $fields;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * The single-line text of the layout's widgets (0.156.0): every `text`-kind
+     * field the widget table declares that is not multiline — never `html`, a
+     * choice, a link or a picture. The `text` key means different things on a
+     * heading and on a list item, so each spec names the `widget` it belongs
+     * to. A container's own slot fields (a tab's name) are offered at the top
+     * level only, and a slot's widgets under `slots.*.widgets.*` — one level,
+     * as the widgets themselves allow.
+     *
+     * @return list<array{path: string, max: int, widget: string}>
+     */
+    private static function layoutInlineFields(): array
+    {
+        $words = fn (array $fields) => array_filter($fields, fn ($f) => $f['kind'] === 'text' && ! $f['multiline'] && ($f['max'] ?? 0) > 0);
+        $out = [];
+        $top = 'rows.*.columns.*.widgets.*';
+
+        foreach (LayoutRules::widgets() as $type => $spec) {
+            $bases = [$top];
+            if (in_array($type, LayoutRules::childTypes(), true)) {
+                $bases[] = "{$top}.slots.*.widgets.*";
+            }
+
+            foreach ($bases as $base) {
+                foreach ($words($spec['fields']) as $key => $field) {
+                    $out[] = ['path' => "{$base}.{$key}", 'max' => $field['max'], 'widget' => $type];
+                }
+                foreach ($words($spec['list']['fields'] ?? []) as $key => $field) {
+                    $out[] = ['path' => "{$base}.{$spec['list']['key']}.*.{$key}", 'max' => $field['max'], 'widget' => $type];
+                }
+            }
+
+            foreach ($words($spec['container']['fields'] ?? []) as $key => $field) {
+                $out[] = ['path' => "{$top}.{$spec['container']['key']}.*.{$key}", 'max' => $field['max'], 'widget' => $type];
             }
         }
 
