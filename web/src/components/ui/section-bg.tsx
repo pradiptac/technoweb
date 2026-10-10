@@ -41,7 +41,7 @@ import { LOCKED_SECTION, type SectionBackground, type ThemeOptions } from "@/the
  * coloured-text inks that read on the new ground.
  */
 export function SectionBg({
-  id, bg, seeds, className, eager = false, edges, children,
+  id, bg, seeds, className, eager = false, edges, frame, children,
 }: {
   id: string;
   bg: SectionBackground | undefined;
@@ -58,6 +58,12 @@ export function SectionBg({
    * (no shell at all) draws none.
    */
   edges?: { top?: string; bottom?: string };
+  /**
+   * A builder section's frame (0.153.0, `style.mt/mb/border/shadow`): the
+   * data attributes `globals.css` reads, put on the outermost box — this shell
+   * — so the space, the rule and the shadow sit outside the ground.
+   */
+  frame?: Record<string, string | undefined>;
   children: ReactNode;
 }) {
   if (!bg) return <>{children}</>;
@@ -70,6 +76,7 @@ export function SectionBg({
       data-ground={surface.ground}
       data-edge-top={edges?.top}
       data-edge-bottom={edges?.bottom}
+      {...frame}
       style={surface.style}
       className={cn("relative overflow-hidden", className)}
     >

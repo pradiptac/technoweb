@@ -256,13 +256,25 @@ visible window below the site header) and a **Heading colour** (Brand,
 Secondary or Accent — a readable shade of your theme colour, matched to the
 section's background; a hero, a call to action and your theme's own sections
 keep their colours). Below them, **Different on phone / tablet / computer**
-lets one screen differ: choose the screen, then change the space above, the
-space below, the alignment or the height there. **Same as other screens**
+lets one screen differ: choose the screen, then change the padding, the space
+above or below, the alignment or the height there. **Same as other screens**
 means "do what the settings above say". *Normal* is the section's usual
 spacing — use it when you want one screen to go back to normal while another
 is changed. The live preview shows each screen when you switch it. A section
 with a shaped edge does not offer *None* or *S* for the space on that side,
 because the edge needs the room.
+
+#### Space around a section, a border and a shadow
+
+In **Style**, **Padding above / below** is the room *inside* a section, on its
+background. **Space above** and **Space below** are the room *outside* it,
+between it and its neighbours; they never touch the sides. Each is a step —
+None, S, Normal, L or XL — and each can differ on phone, tablet and computer in
+the same **Different on phone / tablet / computer** panel. **Border** draws a
+thin line along the top and foot of the section (Light, Strong or in your brand
+colour), and **Shadow** lifts it off the page (Soft, Medium or Large). A shadow
+is not drawn on a section with a shaped edge. None of these changes a text
+colour, so the page stays readable.
 
 #### A custom layout
 

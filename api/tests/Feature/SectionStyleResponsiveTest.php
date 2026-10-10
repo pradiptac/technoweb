@@ -131,6 +131,59 @@ class SectionStyleResponsiveTest extends TestCase
         $this->create([self::section($style)])->assertStatus(422)->assertJsonValidationErrors($key);
     }
 
+    public function test_the_frame_is_stored_and_returned(): void
+    {
+        $style = [
+            'mt' => 'm', 'mb' => 'xl', 'border' => 'brand', 'shadow' => 'l',
+            'responsive' => ['phone' => ['mt' => 'none', 'mb' => 's'], 'desktop' => ['mt' => 'l']],
+        ];
+
+        $this->create([self::section($style)])->assertCreated()
+            ->assertJsonPath('data.blocks.0.style', $style);
+
+        $this->getJson('/api/v1/pages/designed-page')->assertOk()
+            ->assertJsonPath('data.sections.0.style', $style);
+    }
+
+    public function test_the_frame_defaults_are_not_stored_but_a_device_override_matching_the_base_is(): void
+    {
+        $this->create([
+            self::section(['mt' => 'default', 'mb' => 'default', 'border' => 'default', 'shadow' => 'default']),
+            self::section(['mt' => 'l', 'responsive' => ['desktop' => ['mt' => 'l', 'mb' => 'm']]]),
+        ])->assertCreated()
+            ->assertJsonPath('data.blocks.0.style', null)
+            ->assertJsonPath('data.blocks.1.style', ['mt' => 'l', 'responsive' => ['desktop' => ['mt' => 'l', 'mb' => 'm']]]);
+    }
+
+    /** @return array<string, array{0: array<string, mixed>, 1: string}> */
+    public static function frameRefusals(): array
+    {
+        return [
+            'a negative space' => [['mt' => '-xl'], 'blocks.0.style.mt'],
+            'a pixel space below' => [['mb' => '40px'], 'blocks.0.style.mb'],
+            'a border colour' => [['border' => '#ff0000'], 'blocks.0.style.border'],
+            'a border that is a width' => [['border' => '3px'], 'blocks.0.style.border'],
+            'a shadow that is css' => [['shadow' => '0 0 9px red'], 'blocks.0.style.shadow'],
+            'default is not a step on a device (space above)' => [['responsive' => ['phone' => ['mt' => 'default']]], 'blocks.0.style.responsive.phone.mt'],
+            'an unknown step on a device (space below)' => [['responsive' => ['tablet' => ['mb' => 'huge']]], 'blocks.0.style.responsive.tablet.mb'],
+        ];
+    }
+
+    /** @param  array<string, mixed>  $style */
+    #[DataProvider('frameRefusals')]
+    public function test_a_frame_value_outside_its_list_is_refused_at_its_dotted_path(array $style, string $key): void
+    {
+        $this->create([self::section($style)])->assertStatus(422)->assertJsonValidationErrors($key);
+    }
+
+    public function test_style_itself_keeps_the_frame_and_drops_its_defaults(): void
+    {
+        $this->assertSame(
+            ['mt' => 'none', 'shadow' => 's', 'responsive' => ['phone' => ['mb' => 'm']]],
+            SectionRules::style(['mt' => 'none', 'mb' => 'default', 'border' => 'default', 'shadow' => 's', 'responsive' => ['phone' => ['mb' => 'm', 'mt' => 'default']]]),
+        );
+    }
+
     public function test_an_unknown_device_is_never_stored(): void
     {
         $this->create([self::section(['responsive' => ['watch' => ['pad_top' => 's'], 'phone' => ['pad_top' => 's']]])])->assertCreated()

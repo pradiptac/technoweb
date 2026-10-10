@@ -4359,8 +4359,8 @@ section[data-page-section="rich_text"] + section[data-page-section="rich_text"] 
     linear-gradient(black 0 0) 0 calc(var(--et) - 1px) / 100% calc(100% - var(--et) - var(--eb) + 2px) no-repeat,
     var(--mb) bottom / 100% var(--eb) no-repeat;
 }
-[data-section][data-edge-top] { --et: var(--edge); margin-top: calc(-1 * var(--edge)); padding-top: var(--edge); }
-[data-section][data-edge-bottom] { --eb: var(--edge); margin-bottom: calc(-1 * var(--edge)); padding-bottom: var(--edge); }
+[data-section][data-edge-top] { --et: var(--edge); margin-top: calc(var(--sp-t, 0px) - var(--edge)); padding-top: var(--edge); }
+[data-section][data-edge-bottom] { --eb: var(--edge); margin-bottom: calc(var(--sp-b, 0px) - var(--edge)); padding-bottom: var(--edge); }
 [data-section][data-edge-top="wave"] { --mt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath d='M0 10V5C20 0 30 0 50 5S80 10 100 5V10Z'/%3E%3C/svg%3E"); }
 [data-section][data-edge-bottom="wave"] { --mb: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath transform='matrix(1 0 0 -1 0 10)' d='M0 10V5C20 0 30 0 50 5S80 10 100 5V10Z'/%3E%3C/svg%3E"); }
 [data-section][data-edge-top="slant"] { --mt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath d='M0 10L100 0V10Z'/%3E%3C/svg%3E"); }
@@ -4402,6 +4402,88 @@ section[data-page-section="rich_text"] + section[data-page-section="rich_text"] 
   [data-section-style][data-pad-top="xl"] > [data-page-section] { padding-top: calc(9rem * var(--density, 1)); }
   [data-section-style][data-pad-bottom="l"] > [data-page-section] { padding-bottom: calc(6.5rem * var(--density, 1)); }
   [data-section-style][data-pad-bottom="xl"] > [data-page-section] { padding-bottom: calc(9rem * var(--density, 1)); }
+}
+
+/*
+ * A builder section's frame (0.153.0, `style.mt` / `mb` / `border` / `shadow`,
+ * docs/page-builder.md "Space, rule and shadow"). `frameAttrs()` stamps these
+ * on the outermost box — the background shell when the section has a ground,
+ * else the style wrapper — so the space lies outside the ground, the rule runs
+ * along its edges and the shadow falls from it.
+ *
+ * Space is above and below only, never the sides and never negative, on the
+ * padding's own scale times `--density`. It is a custom property (`--sp-t`,
+ * `--sp-b`) read by one `margin-block` rule, so a base choice and a device's
+ * override are just two assignments, and a shaped edge — which pulls the
+ * section over its neighbour by a negative margin of its own — reads the same
+ * property and adds to it (`calc(var(--sp-t) - var(--edge))`) rather than
+ * being replaced. Border is a rule above and below, not a box: a section is as
+ * wide as the page, and side rules would be drawn at the screen's edge. The
+ * shadow lifts the section above its neighbours (`z-index: 1`) or the next
+ * section's ground would paint over it. Nothing here sets a text or background
+ * colour; a border inside `box-sizing: border-box` cannot widen the page.
+ */
+[data-section-frame] { margin-top: var(--sp-t, 0px); margin-bottom: var(--sp-b, 0px); }
+[data-section-frame][data-border="line"] { border-block: 1px solid var(--color-line); }
+[data-section-frame][data-border="strong"] { border-block: 1px solid var(--color-line-strong); }
+[data-section-frame][data-border="brand"] { border-block: 2px solid var(--color-brand-600); }
+[data-section-frame][data-shadow] { position: relative; z-index: 1; }
+[data-section-frame][data-shadow="s"] { box-shadow: var(--shadow-1); }
+[data-section-frame][data-shadow="m"] { box-shadow: var(--shadow-2); }
+[data-section-frame][data-shadow="l"] { box-shadow: var(--shadow-3); }
+[data-section-frame][data-mt="none"] { --sp-t: 0px; }
+[data-section-frame][data-mt="s"] { --sp-t: calc(1.5rem * var(--density, 1)); }
+[data-section-frame][data-mt="m"] { --sp-t: calc(3rem * var(--density, 1)); }
+[data-section-frame][data-mt="l"] { --sp-t: calc(4.5rem * var(--density, 1)); }
+[data-section-frame][data-mt="xl"] { --sp-t: calc(6rem * var(--density, 1)); }
+[data-section-frame][data-mb="none"] { --sp-b: 0px; }
+[data-section-frame][data-mb="s"] { --sp-b: calc(1.5rem * var(--density, 1)); }
+[data-section-frame][data-mb="m"] { --sp-b: calc(3rem * var(--density, 1)); }
+[data-section-frame][data-mb="l"] { --sp-b: calc(4.5rem * var(--density, 1)); }
+[data-section-frame][data-mb="xl"] { --sp-b: calc(6rem * var(--density, 1)); }
+@media (width >= 64rem) {
+  [data-section-frame][data-mt="m"] { --sp-t: calc(4rem * var(--density, 1)); }
+  [data-section-frame][data-mt="l"] { --sp-t: calc(6.5rem * var(--density, 1)); }
+  [data-section-frame][data-mt="xl"] { --sp-t: calc(9rem * var(--density, 1)); }
+  [data-section-frame][data-mb="m"] { --sp-b: calc(4rem * var(--density, 1)); }
+  [data-section-frame][data-mb="l"] { --sp-b: calc(6.5rem * var(--density, 1)); }
+  [data-section-frame][data-mb="xl"] { --sp-b: calc(9rem * var(--density, 1)); }
+}
+@media (width < 40rem) {
+  [data-section-frame][data-fr~="mt-p-none"] { --sp-t: 0px; }
+  [data-section-frame][data-fr~="mt-p-s"] { --sp-t: calc(1.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mt-p-m"] { --sp-t: calc(3rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mt-p-l"] { --sp-t: calc(4.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mt-p-xl"] { --sp-t: calc(6rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-p-none"] { --sp-b: 0px; }
+  [data-section-frame][data-fr~="mb-p-s"] { --sp-b: calc(1.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-p-m"] { --sp-b: calc(3rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-p-l"] { --sp-b: calc(4.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-p-xl"] { --sp-b: calc(6rem * var(--density, 1)); }
+}
+@media (40rem <= width < 64rem) {
+  [data-section-frame][data-fr~="mt-t-none"] { --sp-t: 0px; }
+  [data-section-frame][data-fr~="mt-t-s"] { --sp-t: calc(1.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mt-t-m"] { --sp-t: calc(3rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mt-t-l"] { --sp-t: calc(4.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mt-t-xl"] { --sp-t: calc(6rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-t-none"] { --sp-b: 0px; }
+  [data-section-frame][data-fr~="mb-t-s"] { --sp-b: calc(1.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-t-m"] { --sp-b: calc(3rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-t-l"] { --sp-b: calc(4.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-t-xl"] { --sp-b: calc(6rem * var(--density, 1)); }
+}
+@media (width >= 64rem) {
+  [data-section-frame][data-fr~="mt-d-none"] { --sp-t: 0px; }
+  [data-section-frame][data-fr~="mt-d-s"] { --sp-t: calc(1.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mt-d-m"] { --sp-t: calc(4rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mt-d-l"] { --sp-t: calc(6.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mt-d-xl"] { --sp-t: calc(9rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-d-none"] { --sp-b: 0px; }
+  [data-section-frame][data-fr~="mb-d-s"] { --sp-b: calc(1.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-d-m"] { --sp-b: calc(4rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-d-l"] { --sp-b: calc(6.5rem * var(--density, 1)); }
+  [data-section-frame][data-fr~="mb-d-xl"] { --sp-b: calc(9rem * var(--density, 1)); }
 }
 
 /* Width narrows the section's container, never widens it: 90% of the screen

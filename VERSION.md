@@ -21,6 +21,29 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.153.0 — 2026-10-10
+
+**Sections can have space around them, a border and a shadow.**
+
+- **Space above and below, outside the background.** `style.mt` / `mb` (None, S,
+  Normal, L, XL) and the same per screen under "Different on phone / tablet /
+  computer". Never the sides and never negative. Put on the section's
+  background shell, so it is room around the section and not more ground. A
+  shaped edge keeps its overlap: the space adds to it.
+- **A border and a shadow.** `style.border` (Light, Strong, Brand) draws a rule
+  along the top and foot from theme tokens; `style.shadow` (Soft, Medium, Large)
+  uses the site's shadow tokens. Neither changes a text or background colour.
+- The Style panel's old "Space above/below" rows are now "Padding above/below"
+  (inside the section); the manual says which is which.
+- Every door that takes sections shares the rules, so all accept the new keys.
+  Tests in `SectionStyleResponsiveTest`; probe `section-style.mjs` extended
+  (24 checks).
+- The wrapper's marker is `data-section-frame`: the first cut named it
+  `data-frame`, which the picture and parallax rules already use for a clipped
+  picture frame.
+
+---
+
 ## 0.152.0 — 2026-10-10
 
 **Every on/off choice on a record form is the sliding switch.**

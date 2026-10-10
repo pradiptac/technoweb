@@ -97,6 +97,14 @@ final class SectionRules
         // The heading's ink (0.146.0): one of the three coloured inks, which
         // the section's ground re-derives to pass AA — never a colour.
         'heading_color' => ['default', 'brand', 'secondary', 'accent'],
+        // Space outside the section (0.153.0): above and below only, never the
+        // sides and never negative; `m` is a real step here as on a device.
+        'mt' => ['default', 'none', 's', 'm', 'l', 'xl'],
+        'mb' => ['default', 'none', 's', 'm', 'l', 'xl'],
+        // A rule round the section's ground and a shadow under it (0.153.0),
+        // both drawn from tokens; neither touches a text or background colour.
+        'border' => ['default', 'line', 'strong', 'brand'],
+        'shadow' => ['default', 's', 'm', 'l'],
     ];
 
     /**
@@ -112,6 +120,8 @@ final class SectionRules
         'pad_bottom' => ['none', 's', 'm', 'l', 'xl'],
         'align' => ['start', 'center', 'end'],
         'min_h' => ['none', 's', 'm', 'l', 'screen'],
+        'mt' => ['none', 's', 'm', 'l', 'xl'],
+        'mb' => ['none', 's', 'm', 'l', 'xl'],
     ];
 
     /**
@@ -205,6 +215,10 @@ final class SectionRules
             "{$prefix}.*.style.edge_bottom" => ['nullable', Rule::in(self::STYLE['edge_bottom'])],
             "{$prefix}.*.style.min_h" => ['nullable', Rule::in(self::STYLE['min_h'])],
             "{$prefix}.*.style.heading_color" => ['nullable', Rule::in(self::STYLE['heading_color'])],
+            "{$prefix}.*.style.mt" => ['nullable', Rule::in(self::STYLE['mt'])],
+            "{$prefix}.*.style.mb" => ['nullable', Rule::in(self::STYLE['mb'])],
+            "{$prefix}.*.style.border" => ['nullable', Rule::in(self::STYLE['border'])],
+            "{$prefix}.*.style.shadow" => ['nullable', Rule::in(self::STYLE['shadow'])],
             "{$prefix}.*.style.responsive" => ['nullable', 'array'],
             "{$prefix}.*.style.anchor" => ['nullable', 'string', 'regex:'.self::ANCHOR],
             "{$prefix}.*.style.show_on" => ['nullable', 'array', 'min:1'],

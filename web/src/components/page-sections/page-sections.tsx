@@ -6,7 +6,7 @@ import { sectionReveal } from "@/lib/motion-choices";
 import { getSiteSettings } from "@/lib/settings";
 import { activeTheme } from "@/themes";
 import type { PageSection } from "@/types/api";
-import type { SectionStyle } from "@/types/page-sections";
+import type { SectionDeviceStyle, SectionStyle } from "@/types/page-sections";
 import { cn } from "@/lib/utils";
 import { HeroSection } from "./hero-section";
 import {
@@ -85,6 +85,7 @@ export async function PageSections({ sections, crumbs, ownsH1 = true, marked = f
         // the height of that wrapper, which is its own height: not at all.
         if (section.type === "subnav" && !marked) return <Fragment key={section.id}>{node}</Fragment>;
 
+        const frame = frameAttrs(section.style);
         const drawn = (
           <SectionBg
             key={section.id}
@@ -95,9 +96,10 @@ export async function PageSections({ sections, crumbs, ownsH1 = true, marked = f
             // A top edge is cut out of the section above it. The page's first
             // section has none, and an in-page menu is an opaque bar pinned
             // over whatever follows it — the cut would be hidden under it.
+            frame={frame}
             edges={{ top: i > 0 && sections[i - 1]?.type !== "subnav" ? section.style?.edge_top : undefined, bottom: section.style?.edge_bottom }}
           >
-            <StyledSection style={section.style}>{node}</StyledSection>
+            <StyledSection style={section.style} frame={section.background ? undefined : frame}>{node}</StyledSection>
           </SectionBg>
         );
 
@@ -124,7 +126,7 @@ export async function PageSections({ sections, crumbs, ownsH1 = true, marked = f
  * (Tailwind v4's preflight makes the attribute `!important`, which no
  * breakpoint could win back).
  */
-function StyledSection({ style, children }: { style?: SectionStyle | null; children: ReactNode }) {
+function StyledSection({ style, frame, children }: { style?: SectionStyle | null; frame?: Record<string, string | undefined>; children: ReactNode }) {
   if (!style) return <>{children}</>;
   const shown = style.show_on;
   const hide = shown
@@ -143,7 +145,8 @@ function StyledSection({ style, children }: { style?: SectionStyle | null; child
       data-scroll={style.scroll}
       data-min-h={style.min_h}
       data-heading-color={style.heading_color}
-      data-r={responsiveTokens(style.responsive)}
+      data-r={responsiveTokens(style.responsive, RESPONSIVE_KEYS)}
+      {...frame}
       className={hide || undefined}
     >
       {children}
@@ -160,20 +163,36 @@ function StyledSection({ style, children }: { style?: SectionStyle | null; child
  * undefined and React omits the attribute, leaving its markup unchanged.
  */
 const RESPONSIVE_KEYS = [["pad_top", "pt"], ["pad_bottom", "pb"], ["align", "al"], ["min_h", "mh"]] as const;
+const FRAME_KEYS = [["mt", "mt"], ["mb", "mb"]] as const;
 const DEVICE_CODES = [["phone", "p"], ["tablet", "t"], ["desktop", "d"]] as const;
 
-function responsiveTokens(responsive: SectionStyle["responsive"]): string | undefined {
+function responsiveTokens(responsive: SectionStyle["responsive"], keys: readonly (readonly [keyof SectionDeviceStyle, string])[]): string | undefined {
   if (!responsive) return undefined;
   const tokens: string[] = [];
   for (const [device, d] of DEVICE_CODES) {
     const given = responsive[device];
     if (!given) continue;
-    for (const [key, k] of RESPONSIVE_KEYS) {
+    for (const [key, k] of keys) {
       const value = given[key];
       if (typeof value === "string" && /^[a-z]+$/.test(value)) tokens.push(`${k}-${d}-${value}`);
     }
   }
   return tokens.length ? tokens.join(" ") : undefined;
+}
+
+/**
+ * The frame attributes (0.153.0): space above and below, a rule, a shadow.
+ * They belong on the outermost box — the background shell when there is one,
+ * else the style wrapper — so the margin sits outside the ground, the border
+ * runs along its edges and the shadow falls from it. `[data-section-frame]` rules in
+ * globals.css read them; only the API's choices reach here, and none of it
+ * touches a colour the contrast audit grades.
+ */
+function frameAttrs(style: SectionStyle | null | undefined): Record<string, string | undefined> | undefined {
+  if (!style) return undefined;
+  const fr = responsiveTokens(style.responsive, FRAME_KEYS);
+  if (!style.mt && !style.mb && !style.border && !style.shadow && !fr) return undefined;
+  return { "data-section-frame": "", "data-mt": style.mt, "data-mb": style.mb, "data-border": style.border, "data-shadow": style.shadow, "data-fr": fr };
 }
 
 /**

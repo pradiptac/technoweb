@@ -289,6 +289,12 @@ export type SectionStyle = {
   min_h?: SectionMinHeight;
   /** The heading's ink: one of the three coloured inks (0.146.0). Ignored on a band of fixed colour. */
   heading_color?: "brand" | "secondary" | "accent";
+  /** Space above and below the section, outside its ground (0.153.0). Never the sides, never negative. */
+  mt?: SectionSpace;
+  mb?: SectionSpace;
+  /** A rule above and below the section's ground, and a shadow under it (0.153.0). */
+  border?: "line" | "strong" | "brand";
+  shadow?: "s" | "m" | "l";
   /** Per-device overrides (0.146.0). A missing key inherits the base; `m` is the section's normal rhythm. */
   responsive?: Partial<Record<SectionDevice, SectionDeviceStyle>>;
 };
@@ -296,7 +302,10 @@ export type SectionStyle = {
 export type SectionEdge = "wave" | "slant" | "curve" | "peak";
 export type SectionDevice = "phone" | "tablet" | "desktop";
 export type SectionMinHeight = "s" | "m" | "l" | "screen";
+export type SectionSpace = "none" | "s" | "m" | "l" | "xl";
 export type SectionDeviceStyle = {
+  mt?: SectionSpace;
+  mb?: SectionSpace;
   pad_top?: "none" | "s" | "m" | "l" | "xl";
   pad_bottom?: "none" | "s" | "m" | "l" | "xl";
   align?: "start" | "center" | "end";

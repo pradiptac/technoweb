@@ -8,7 +8,7 @@ import { chromium } from "playwright";
  *     node scripts/probes/section-style.mjs
  *   SHOTS=<dir> saves the Style panel and the previewed section.
  *
- * On the page's second section: chooses XL space above, Narrow, Centred,
+ * On the page's second section: chooses XL padding above, Narrow, Centred,
  * Larger heading, link name `probe-anchor`, and switches phones off; opens
  * Preview and checks the framed section carries `[data-section-style]` with
  * those attributes and the id, that its container is narrower than its
@@ -46,7 +46,7 @@ const panel = card.locator("fieldset:has(legend:text-is('Style'))");
 await panel.waitFor();
 // `.first()`: the per-device rows repeat these names further down; the base row comes first.
 const press = (group, label) => panel.locator(`[role="group"]:has(p:text-is("${group}")) button:text-is("${label}")`).first().click();
-await press("Space above", "XL");
+await press("Padding above", "XL");
 await press("Content width", "Narrow");
 await press("Heading and text", "Centred");
 await press("Heading size", "Larger");
@@ -82,7 +82,7 @@ if (SHOTS) await styled.first().screenshot({ path: `${SHOTS}/style-section.png` 
 await page.keyboard.press("Escape");
 await styled.first().waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
 await press("Show on", "Phones");
-await press("Space above", "L");
+await press("Padding above", "L");
 await press("Minimum height", "L");
 await press("Heading colour", "Brand");
 const toggle = panel.locator("button[aria-controls$='-st-devices']");
@@ -90,14 +90,14 @@ if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click(
 const devicePress = (group, label) => card.locator(`[id$="-st-devices"] [role="group"]:has(p:text-is("${group}")) button:text-is("${label}")`).click();
 const deviceTab = (label) => panel.locator(`[aria-label="Screen to edit"] button`, { hasText: label }).click();
 await deviceTab("Phone");
-await devicePress("Space above", "S");
+await devicePress("Padding above", "S");
 await devicePress("Minimum height", "M");
 await deviceTab("Tablet");
-await devicePress("Space above", "Normal");
+await devicePress("Padding above", "Normal");
 ok((await toggle.innerText()).includes("2 screens"), "the disclosure counts two overridden screens");
 await deviceTab("Phone");
-await devicePress("Space above", "Same as other screens");
-await devicePress("Space above", "S");
+await devicePress("Padding above", "Same as other screens");
+await devicePress("Padding above", "S");
 ok(await panel.locator('[aria-label="Screen to edit"] button[aria-pressed="true"]').innerText().then((t) => t.startsWith("Phone")), "the device switch follows the press");
 
 await page.locator("button.btn", { hasText: /^Preview$/ }).click();
@@ -126,6 +126,54 @@ ok(phone.over <= 0 && (await measure(320)).over <= 0, "no horizontal overflow at
 // A section with no style at all is not wrapped, so nothing changed for it.
 ok(await frame2.locator("[data-section-style]").count() === 1, "only the styled section is wrapped; the others are unchanged");
 if (SHOTS) await mineBox.screenshot({ path: `${SHOTS}/style-device.png` });
+
+// ---- Space, rule and shadow (0.153.0) --------------------------------------
+// Close the preview and add the frame: Normal space above (3rem, 4rem from
+// lg), S below, a Strong border, a Medium shadow; phone None above; desktop
+// XL below. The section has no background of its own, so the attributes sit on
+// the style wrapper; the margin is read there at three widths, the border and
+// shadow once, and nothing may overflow.
+await page.keyboard.press("Escape");
+await mineBox.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+await press("Space above", "Normal");
+await press("Space below", "S");
+await press("Border", "Strong");
+await press("Shadow", "Medium");
+await deviceTab("Phone");
+await devicePress("Space above", "None");
+await deviceTab("Computer");
+await devicePress("Space below", "XL");
+await page.locator("button.btn", { hasText: /^Preview$/ }).click();
+const frame3 = page.frameLocator('iframe[title="Unsaved preview of the sections"]');
+const framed = frame3.locator("[data-section-frame]").first();
+await framed.waitFor({ timeout: 120000 });
+ok((await framed.getAttribute("data-mt")) === "m" && (await framed.getAttribute("data-mb")) === "s"
+  && (await framed.getAttribute("data-border")) === "strong" && (await framed.getAttribute("data-shadow")) === "m",
+  "the frame choices are stamped on the outermost box");
+ok(((await framed.getAttribute("data-fr")) ?? "").split(" ").sort().join(" ") === "mb-d-xl mt-p-none", "data-fr lists the device overrides");
+const iframe3 = page.locator('iframe[title="Unsaved preview of the sections"]');
+const frameAt = async (width) => {
+  await iframe3.evaluate((el, w) => { el.style.width = `${w}px`; el.style.maxWidth = "none"; }, width);
+  await page.waitForTimeout(400);
+  return framed.evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return {
+      mt: parseFloat(cs.marginTop), mb: parseFloat(cs.marginBottom), ml: parseFloat(cs.marginLeft),
+      bt: parseFloat(cs.borderTopWidth), bl: parseFloat(cs.borderLeftWidth), shadow: cs.boxShadow,
+      over: document.documentElement.scrollWidth - window.innerWidth,
+    };
+  });
+};
+const f360 = await frameAt(360);
+const f768 = await frameAt(768);
+const f1280 = await frameAt(1280);
+ok(f360.mt === 0 && Math.abs(f360.mb - 24) < 1, `phone: no space above (override), 1.5rem below (${JSON.stringify(f360)})`);
+ok(Math.abs(f768.mt - 48) < 1 && Math.abs(f768.mb - 24) < 1, `tablet: 3rem above (Normal), 1.5rem below (${JSON.stringify(f768)})`);
+ok(Math.abs(f1280.mt - 64) < 1 && Math.abs(f1280.mb - 144) < 1, `desktop: 4rem above, 9rem below (override) (${JSON.stringify(f1280)})`);
+ok(f360.bt === 1 && f360.bl === 0 && f360.ml === 0, "a 1px rule above and below, no side border, no side margin");
+ok(f360.shadow !== "none" && f1280.shadow !== "none", "a box-shadow is drawn");
+ok(f360.over <= 0 && f1280.over <= 0 && (await frameAt(320)).over <= 0, "no horizontal overflow at 320, 360 or 1280");
+if (SHOTS) await framed.screenshot({ path: `${SHOTS}/style-frame.png` });
 
 await page.waitForTimeout(1500);
 ok(problems.length === 0, `no console errors or warnings${problems.length ? ":\n  " + problems.join("\n  ") : ""}`);

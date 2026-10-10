@@ -1459,6 +1459,13 @@ base; an unknown device is ignored, and an empty device or an empty
 website ignores (`hero`, `cta`, `theme_section`, `subnav`). Every door that takes
 `blocks` (pages, records, the library, the preview) validates the same keys.
 
+**Since 0.153.0.** `style` also takes `mt` and `mb` (`default`, `none`, `s`, `m`,
+`l`, `xl` — space above and below the section, outside its ground; `default` not
+stored), `border` (`default`, `line`, `strong`, `brand`) and `shadow` (`default`,
+`s`, `m`, `l`); each `responsive.<device>` takes `mt` and `mb` (`none`, `s`, `m`,
+`l`, `xl`, stored even when equal to the base). Values outside a list are a 422 on
+`blocks.N.style.<key>` or `blocks.N.style.responsive.<device>.<key>`.
+
 **Since 0.126.0.** `style` takes `edge_top` and `edge_bottom`, each one of
 `wave`, `slant`, `curve`, `peak` (422 on `blocks.N.style.edge_top` otherwise;
 `default`, the straight edge, is not stored). A `background` — on a section

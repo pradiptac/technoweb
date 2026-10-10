@@ -134,10 +134,9 @@ change a colour the audit reads.
 - **Edges.** A shaped edge is cut into the room the padding leaves it, so the
   console disables `None` and `S` for a device's space above when the section has a
   top edge, and below when it has a bottom edge.
-- **Not built, by decision.** No section-level border, radius or shadow (a
-  full-bleed band has nothing to round; column surfaces in a later layout
-  release cover it), no margin (outside the ground shell, so it would only show
-  the shell), no per-device heading size (the display scale is already fluid) and
+- **Not built, by decision.** No radius (a full-bleed band has nothing to
+  round; margins, borders and shadows arrived in 0.153.0 — next section), no
+  per-device heading size (the display scale is already fluid) and
   no per-device column counts on existing sections.
 - **Console.** `style-field.tsx`: the disclosure carries a three-button device
   switch, each row has "Same as other screens" and a count on the header; errors
@@ -146,6 +145,48 @@ change a colour the audit reads.
   Undo, copy and paste and the library carry `style` with the section.
 - Tests: `SectionStyleResponsiveTest`. Probe: `scripts/probes/section-style.mjs`
   reads computed padding and height at 390 / 768 / 1280 and overflow at 320.
+
+## Space, rule and shadow (0.153.0)
+
+A section can be given space above and below it, a rule along its top and foot
+and a shadow. Choices only: nothing is a pixel, a hex or a number.
+
+- **Stored in `style`.** `mt`, `mb` (`default`, `none`, `s`, `m`, `l`, `xl`),
+  `border` (`default`, `line`, `strong`, `brand`), `shadow` (`default`, `s`, `m`,
+  `l`); `responsive.<device>.mt/mb` (`none`, `s`, `m`, `l`, `xl`) with the
+  per-device rules above (`m` stored, an override stored even when equal to the
+  base). The first of each base list is never stored. Padding keeps its keys;
+  the console now calls it "Padding above/below" and the new rows "Space
+  above/below" (outside the section).
+- **Where it goes.** `frameAttrs()` in `page-sections.tsx` stamps `data-section-frame`,
+  `data-mt`, `data-mb`, `data-border`, `data-shadow` and `data-fr` (the device
+  tokens `mt-p-s`...) on the outermost box: `SectionBg`'s shell when the section
+  has a background (its new `frame` prop), otherwise the `[data-section-style]`
+  wrapper. A margin on the inner wrapper would sit inside the shell and read as
+  more of the ground. A `subnav` is drawn bare and takes none.
+- **CSS.** `[data-section-frame]` has `margin-top: var(--sp-t, 0px); margin-bottom:
+  var(--sp-b, 0px)`. `[data-section-frame][data-mt="..."]` and `[data-fr~="mt-p-..."]`
+  (inside the device's media query, after the base rules) assign `--sp-t`/`--sp-b`
+  on the padding's scale — 0, 1.5rem, 3rem (4rem from `lg`), 4.5rem (6.5rem),
+  6rem (9rem) — times `var(--density, 1)`. The custom properties are `--sp-*`
+  because `--mt`/`--mb` are the shaped edges' mask images.
+- **Edges.** A shaped edge pulls its section over the neighbour with a negative
+  margin of its own, so those rules now read `margin-top: calc(var(--sp-t, 0px)
+  - var(--edge))` (and bottom): space **adds to** the overlap, and with no space
+  chosen the computed value is what it was. Collapsed margins between two
+  sections follow CSS (the larger of two positives; a positive and a negative
+  add), as for any stacked blocks.
+- **Border** is `border-block` (top and foot) from `--color-line`,
+  `--color-line-strong` or, 2px, `--color-brand-600` — never a box, because a
+  section is as wide as the page and side rules would sit on the screen edge.
+  Box-sizing keeps it inside the width. **Shadow** is `--shadow-1/2/3` with
+  `position: relative; z-index: 1`, or the next section's ground would paint over
+  it; the edge mask clips it, so a section with a shaped edge shows none. On a
+  section with no background the rule and shadow belong to the wrapper and are
+  drawn around the section's content box.
+- Nothing sets a text or background colour. Tests: `SectionStyleResponsiveTest`.
+  Probe: `scripts/probes/section-style.mjs` reads computed margins, border and
+  shadow at 360 / 1280.
 
 ## The layout section (0.147.0)
 

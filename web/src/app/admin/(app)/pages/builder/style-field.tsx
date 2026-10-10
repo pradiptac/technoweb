@@ -18,7 +18,7 @@ import type { SectionDevice, SectionDeviceStyle, SectionStyle } from "@/types/pa
  * `aria-pressed` buttons in a labelled group, each 32px tall — the console's
  * dense scale, still clear of the 24px tap-target floor.
  */
-type Key = "pad_top" | "pad_bottom" | "width" | "align" | "heading" | "heading_color" | "min_h" | "headline" | "scroll" | "edge_top" | "edge_bottom";
+type Key = "pad_top" | "pad_bottom" | "mt" | "mb" | "border" | "shadow" | "width" | "align" | "heading" | "heading_color" | "min_h" | "headline" | "scroll" | "edge_top" | "edge_bottom";
 
 /** The four shapes an edge can take (0.126.0). */
 const EDGES: [string, string][] = [["default", "Straight"], ["wave", "Wave"], ["slant", "Slant"], ["curve", "Curve"], ["peak", "Peak"]];
@@ -26,9 +26,24 @@ const EDGES: [string, string][] = [["default", "Straight"], ["wave", "Wave"], ["
 /** Said under both motion controls (0.114.0): reduced motion turns each of them off. */
 const STILL = "Still for visitors who ask for less motion.";
 
+/** Space outside the section (0.153.0): the padding's own scale, with a normal step. */
+const MARGINS: [string, string][] = [["default", "Default"], ["none", "None"], ["s", "S"], ["m", "Normal"], ["l", "L"], ["xl", "XL"]];
+
 const CHOICES: Record<Key, { label: string; options: [string, string][]; hint?: string }> = {
-  pad_top: { label: "Space above", options: [["default", "Default"], ["none", "None"], ["s", "S"], ["l", "L"], ["xl", "XL"]] },
-  pad_bottom: { label: "Space below", options: [["default", "Default"], ["none", "None"], ["s", "S"], ["l", "L"], ["xl", "XL"]] },
+  pad_top: { label: "Padding above", options: [["default", "Default"], ["none", "None"], ["s", "S"], ["l", "L"], ["xl", "XL"]], hint: "Room inside the section, on its background." },
+  pad_bottom: { label: "Padding below", options: [["default", "Default"], ["none", "None"], ["s", "S"], ["l", "L"], ["xl", "XL"]] },
+  mt: { label: "Space above", options: MARGINS, hint: "Room outside the section, between it and the one above. Never the sides." },
+  mb: { label: "Space below", options: MARGINS, hint: "Room outside the section, between it and the one below." },
+  border: {
+    label: "Border",
+    options: [["default", "None"], ["line", "Light"], ["strong", "Strong"], ["brand", "Brand"]],
+    hint: "A rule along the top and foot of the section, in a colour from the theme.",
+  },
+  shadow: {
+    label: "Shadow",
+    options: [["default", "None"], ["s", "Soft"], ["m", "Medium"], ["l", "Large"]],
+    hint: "Lifts the section off the page. Not drawn on a section with a shaped edge.",
+  },
   width: { label: "Content width", options: [["default", "Full"], ["medium", "Medium"], ["narrow", "Narrow"]], hint: "Narrow suits a block of text; the screen's edge is never passed." },
   align: { label: "Heading and text", options: [["default", "Left"], ["center", "Centred"]] },
   heading: { label: "Heading size", options: [["default", "Default"], ["s", "Smaller"], ["l", "Larger"]] },
@@ -74,8 +89,10 @@ const DEVICES: [NonNullable<SectionStyle["show_on"]>[number], string][] = [["pho
 type DeviceKey = keyof SectionDeviceStyle;
 const PADS: [string, string][] = [["none", "None"], ["s", "S"], ["m", "Normal"], ["l", "L"], ["xl", "XL"]];
 const DEVICE_ROWS: { key: DeviceKey; label: string; options: [string, string][] }[] = [
-  { key: "pad_top", label: "Space above", options: PADS },
-  { key: "pad_bottom", label: "Space below", options: PADS },
+  { key: "pad_top", label: "Padding above", options: PADS },
+  { key: "pad_bottom", label: "Padding below", options: PADS },
+  { key: "mt", label: "Space above", options: PADS },
+  { key: "mb", label: "Space below", options: PADS },
   { key: "align", label: "Heading and text", options: [["start", "Left"], ["center", "Centred"], ["end", "Right"]] },
   { key: "min_h", label: "Minimum height", options: [["none", "None"], ["s", "S"], ["m", "M"], ["l", "L"], ["screen", "Full screen"]] },
 ];
@@ -217,7 +234,7 @@ export function StyleField({ value, onChange, idPrefix, errors, sectionType, hea
         </button>
 
         <div id={`${idPrefix}-st-devices`} hidden={!isOpen} className="border-t border-line p-3">
-          <p className="mb-2 text-12 text-faint">Spacing, alignment and height can change by screen. Anything left on “Same as other screens” follows the settings above.</p>
+          <p className="mb-2 text-12 text-faint">Padding, space, alignment and height can change by screen. Anything left on “Same as other screens” follows the settings above.</p>
           <div role="group" aria-label="Screen to edit" className="mb-3 flex flex-wrap gap-1">
             {(Object.keys(DEVICE_LABEL) as SectionDevice[]).map((d) => {
               const count = Object.keys(responsive[d] ?? {}).length;
