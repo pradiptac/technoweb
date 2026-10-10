@@ -23,7 +23,7 @@ class SanitisesRichTextTest extends TestCase
 
             protected function richTextFields(): array
             {
-                return ['body', 'answer_blocks.*.detail', 'blocks.*.data.body'];
+                return ['body', 'answer_blocks.*.detail', 'blocks.*.data.body', 'blocks.*.data.rows.*.columns.*.widgets.*.html'];
             }
 
             public function run(): void
@@ -77,5 +77,24 @@ class SanitisesRichTextTest extends TestCase
 
         $this->assertSame('<p>Body</p>', $out['body']);
         $this->assertSame('<p>Detail</p>', $out['answer_blocks'][0]['detail']);
+    }
+
+    public function test_four_stars_deep_a_layout_widgets_html_is_cleaned_on_every_widget(): void
+    {
+        $text = fn (string $html) => ['type' => 'text', 'html' => $html];
+        $out = $this->prepared(['blocks' => [['data' => ['rows' => [
+            ['columns' => [
+                ['widgets' => [$text('<p>One</p><script>alert(1)</script>'), ['type' => 'heading', 'text' => '<b>kept as typed</b>']]],
+                ['widgets' => [$text('<p onclick="x()">Two</p>')]],
+            ]],
+            ['columns' => [['widgets' => [$text('<iframe src="//evil"></iframe><p>Three</p>')]]]],
+        ]]]]]);
+
+        $rows = $out['blocks'][0]['data']['rows'];
+        $this->assertSame('<p>One</p>', $rows[0]['columns'][0]['widgets'][0]['html']);
+        $this->assertStringNotContainsString('onclick', $rows[0]['columns'][1]['widgets'][0]['html']);
+        $this->assertStringNotContainsString('iframe', $rows[1]['columns'][0]['widgets'][0]['html']);
+        // Only the named key is cleaned: a widget's plain text is escaped at the sink, not rewritten here.
+        $this->assertSame('<b>kept as typed</b>', $rows[0]['columns'][0]['widgets'][1]['text']);
     }
 }

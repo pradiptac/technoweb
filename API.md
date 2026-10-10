@@ -1480,6 +1480,30 @@ title or kicker, else the anchor in words) — and is **left out of
 `sections` when fewer than two sections qualify**. A background or style
 sent on a `subnav` is stored and not drawn.
 
+**`layout` — "Custom layout" (0.147.0)** stores `{kicker?, heading?, lede?,
+rows}`: 1–8 rows `{id, split?, gap?, valign?, stack_from?, reverse_stacked?,
+columns}`, each of 1–4 columns `{surface?, pad?, align?, valign?, widgets}`, each
+of at most 8 widgets `{id, type, show_on?, …}` of type `heading` (`text`, `size`,
+`align`), `text` (`html`, rich, ≤ 20,000, `lead`), `button` (`label`, `href`,
+`variant`, `align`), `image` (`image_path`, `ratio`, `rounded`, `href`, `caption`),
+`spacer` (`size`), `divider` (`short`), `icon_box` (`icon`, `title`, `body`, `href`,
+`link_label`, `layout`), `accordion` (`items` 1–12 `{question, answer}`) and `list`
+(`items` 1–12 `{text, icon?}`, `marker`). Ids (rows and widgets) match
+`^[a-z0-9]{6,12}$` and are unique within the section. No widget holds another.
+A 422 is keyed at the nested path, `blocks.0.data.rows.1.columns.0.widgets.2.href`.
+Refused: more than 8 rows, 4 columns or 8 widgets in a column (on the list's own
+key), more than 40 widgets or 150,000 characters (on `rows`), a split on other
+than two columns (on `rows.N.split`), a repeated id, a picture that is not an
+image in the library (on `…image_path`). Defaults are never stored and a key the
+widget's type does not declare is dropped. Rules are generated per index over the
+first 8 rows, 4 columns, 8 widgets and 12 items only. `GET /admin/pages/builder`
+adds `layout`: `{widgets: [{value, label, blurb, fields[], list?}], row[],
+column[], limits}`, each field `{key, kind, label, max?, required?, multiline?,
+hint?, default?, choices?}` — the whole table the validation is read from. On the
+public read the section's `rows` carry a picture as `image`/`image_alt`/
+`image_focus`/`image_blur`; a widget with a missing picture, an empty widget,
+column, row or section is dropped. Its `inline_fields` are the head's only.
+
 **The admin detail read** carries `blocks` as stored, `blocks_media` (a URL
 for every stored `*_path`) and `sections` — the public shape, hidden ones
 left out — for the saved preview. The index's `meta` carries

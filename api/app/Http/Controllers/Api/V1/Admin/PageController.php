@@ -25,6 +25,7 @@ use App\Models\Slider;
 use App\Models\StoreCategory;
 use App\Support\CustomFields\CustomFields;
 use App\Support\PageSections\BodySections;
+use App\Support\PageSections\LayoutRules;
 use App\Support\PageSections\RecordSections;
 use App\Support\PageSections\SectionPresenter;
 use App\Support\PageSections\SectionPresets;
@@ -201,6 +202,9 @@ class PageController extends Controller
             // the live preview lets an editor change in place, and their
             // lengths — read from the save's rules.
             'inline_fields' => SectionRules::inlineFields(),
+            // The custom layout section (0.147.0): its widgets with every field,
+            // the row and column settings and the limits, so the console lists none.
+            'layout' => LayoutRules::options(),
             // Sections on other records (0.129.0): the two layouts a record
             // chooses between, and the section types its body area cannot hold.
             'record_sections' => RecordSections::options(),

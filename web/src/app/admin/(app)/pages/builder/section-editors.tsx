@@ -9,6 +9,7 @@ import {
 } from "../../blocks/editors/shared";
 import type { PageBuilderOptions, PageSectionType } from "@/types/api";
 import { HOME_SECTIONS } from "@/themes/options";
+import { LayoutEditor, blankLayout, layoutSummary } from "./layout-editor";
 
 /**
  * One section's fields, by type (`docs/page-builder.md`).
@@ -57,6 +58,7 @@ export function blankData(type: PageSectionType): Record<string, unknown> {
     case "flow": return { heading: "", items: [{}, {}] };
     case "subnav": return { label: "On this page" };
     case "product_videos": return { heading: "Shop the videos", limit: 8 };
+    case "layout": return blankLayout();
     default: return {};
   }
 }
@@ -74,7 +76,8 @@ export function summaryOf(data: Record<string, unknown>): string {
   // A list with no heading yet — a scroll story, steps, features — is named by its first item.
   const first = Array.isArray(data.items) ? (data.items[0] as { title?: unknown } | undefined) : undefined;
   if (typeof first?.title === "string" && first.title.trim()) return first.title.trim();
-  return "";
+  // A custom layout, with no heading of its own, says how much is in it.
+  return layoutSummary(data);
 }
 
 const COLUMNS = [{ value: "2", label: "Two" }, { value: "3", label: "Three" }, { value: "4", label: "Four" }];
@@ -832,6 +835,9 @@ export function SectionEditor({ type, sectionId, options }: {
           </p>
         </>
       );
+
+    case "layout":
+      return <LayoutEditor sectionId={sectionId} options={options} />;
 
     case "theme_section":
       return (

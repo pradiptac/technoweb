@@ -147,6 +147,119 @@ change a colour the audit reads.
 - Tests: `SectionStyleResponsiveTest`. Probe: `scripts/probes/section-style.mjs`
   reads computed padding and height at 390 / 768 / 1280 and overflow at 320.
 
+## The layout section (0.147.0)
+
+`layout` — "Custom layout" — is the one section whose data is a tree: rows of
+one to four columns, each a short stack of widgets. It exists because the
+client asked to compose a band from loose parts (a picture beside words, three
+boxes, a heading over a button) without a new section type for each
+arrangement. It is still **not a free canvas**: nothing is positioned, nothing
+is a number or a colour, and every choice is a step on a fixed scale the audits
+already cover.
+
+**Data** (`data`): `kicker`, `heading`, `lede` as any section, and `rows`,
+each `{id, split, gap, valign, stack_from, reverse_stacked, columns[]}`; a
+column `{surface, pad, align, valign, widgets[]}`; a widget
+`{id, type, show_on?, …its own fields}`. Nine widgets — `heading`, `text`
+(rich), `button`, `image`, `spacer`, `divider`, `icon_box`, `accordion`,
+`list` — and **no nesting**: no widget holds another and a layout has no layout
+widget, so the editor is not a tree editor, the 320px rule stays provable and a
+heading's level needs no context. A bigger composition is several layout
+sections, which the stack already provides. Limits: 8 rows, 1–4 columns, 8
+widgets a column, 40 widgets and 150,000 characters a section, a text widget
+20,000.
+
+**`App\Support\PageSections\LayoutRules` is the only table.** `widgets()` says
+what every field of every widget is — kind, label, limit, choices, default — and
+the validation rules, `normalise()` and the console's editor are all read from
+it (`options()` → `GET /admin/pages/builder` → `layout`); TypeScript lists no
+widget, field, choice or limit. `SectionRules` has only the hooks: `for()` names
+the head and `rows`, `forPayload()` merges `LayoutRules::rules()`, `checkData()`
+calls `check()`, `normalise()` sends the rows to `LayoutRules::normalise()`
+(the head still goes through `keep()`, which cannot walk a tree by name), and
+`messages()` adds `LayoutRules::messages()`.
+
+- **Rules are per index and the walk is capped.** `forPayload()` runs before
+  validation, so a payload of 5,000 rows must not be iterated: only the first 8
+  rows, 4 columns, 8 widgets and 12 items get rules, only for integer keys (a
+  key such as `*` or `a.b` would otherwise become a wildcard), and the `max:`
+  on each list refuses the rest. `check()` and `normalise()` cap the same way —
+  `after()` runs even when a rule has failed. A 422 is keyed where the console
+  field is: `blocks.2.data.rows.0.columns.1.widgets.3.html`.
+- **`check()`**: ids unique across rows and widgets of the section and shaped
+  `^[a-z0-9]{6,12}$`; a split only on exactly two columns; lists that are
+  lists; every picture in the library and an image — one `whereIn` for the whole
+  section; the 40-widget and 150,000-character totals.
+- **`normalise()` stores what each widget's own type declares**, so a stray
+  `href` on a heading is never kept; defaults are never stored (`split: equal`,
+  `gap: m`, a column's `surface: none`…); a split and a stacking order go with a
+  row that is not two columns; rows, columns and widgets are put back in
+  position order (`validated()` rebuilds a list rule by rule).
+- **Rich text**: `blocks.*.data.rows.*.columns.*.widgets.*.html` is in
+  `SectionRules::RICH_TEXT`. Two requests carried hard-coded copies of that
+  list instead of spreading the constant — `PreviewPageSectionsRequest` and
+  `SavedSectionRequest` — so a layout's text would have skipped the sanitiser
+  in the live preview and in the library; both spread it now. Every other widget
+  string is plain and escaped by React.
+- **`LayoutPresenter`** is the public shape: a picture's path becomes
+  `image`, `image_alt`, `image_focus`, `image_blur`; a widget whose picture has
+  left the library, and every empty widget, column, row and the section itself,
+  is dropped. Defaults stay absent — the website applies them.
+
+**The website** (`components/page-sections/layout/`): `LayoutSection` works out
+the headings once, in document order, because no widget knows where it is — the
+layout never draws an `h1`; its own heading is an `h2` and every heading widget
+`h3`; with none of its own the first heading widget is the `h2`. An icon box's
+title is a heading only once an `h2` has come before it, a paragraph until
+then (a lone `h3` straight under the page's `h1` is the jump the audit fails).
+`LayoutRow` is a grid from literal class tables (never classes built from
+stored text — the 0.107.0 bug), `minmax(0, …)` tracks and `min-w-0` on every
+cell; a phone is always one column, two columns stop stacking at `md` or `lg`,
+three at the same, four go 1 → 2 → 4. A column's box is the site's `Card`
+(`card`, or `raised` with a shadow), static not hover-lifting; there is
+**deliberately no outline surface**, a bordered box with no ground being exactly
+what the audit's card-ground check fails. An explicit alignment (a widget's or a
+column's) is a utility class on the element; left as `inherit` the section's own
+Style alignment — now extended to `layout` in `globals.css`, as are the text
+widget's lists and the widget headings for Heading colour — shows through. The
+first picture loads eagerly only when the section is one of the page's first
+two; widgets do not animate separately, the section's reveal is the only motion.
+
+**The console** (`pages/builder/layout-editor.tsx`): row cards (columns 1–4, and
+from the API's descriptors split, gap, line-up, stack-below, reverse), column
+cards (box, space inside, align, content position) and widget cards, each
+collapsed to a snippet. Everything is bound by path and the controls are drawn
+from `options.layout`, so a field added to the API is editable with no change
+here. A structural change is one `set` of `rows` (each `set` starts from the same
+snapshot); fewer columns hand the dropped ones' widgets to the last kept column.
+Rows and widgets carry an 8-character base-36 id (`crypto.getRandomValues`) that
+the React keys use, fresh on duplicate, because a rich-text editor reads its
+value once — a position key would show one widget's words in another's box.
+Summernote is mounted only for an open text widget, keyed `${widget.id}-${epoch}`.
+Reordering is arrows and a "Move to" select (any column in the section), no
+drag. A card with an error under it opens by itself (`anyErr` on the block
+context).
+
+**Not offered**: the AI section assistant (`SectionDraft::SCHEMA` has no
+`layout`), the AI page draft (`PageDraft::TYPES` is closed), WordPress import
+(recognisers target fixed types), inline editing of widget text (only the head is
+inline — its paths are derived from `for()` as for every type; widget paths
+would be seven segments, past `isInlinePath`'s cap of six), copy of a single
+widget, drag across columns. A record's body area may hold a layout
+(`RecordSections` excludes only `hero` and `theme_section`), and the library
+saves, links and delete-guards one unchanged. No preset uses it.
+
+Tests: `tests/Feature/LayoutSectionTest.php` — the stored shape (defaults and
+strays gone), the nested 422 keys, the three limits and the totals, ids, the
+picture check, sanitising on a page save, the live preview and a library save,
+the presenter's drops, a linked library section, `inline_fields` (the head
+only), the builder options, a 5,000-row payload bounded, the sample page's
+layout through the real rules. `SanitisesRichTextTest` pins the four-star path;
+`RecordSectionsTest` runs a layout through all eleven record types. Controls:
+removing the walk cap fails the hostile-payload test, removing the per-type key
+whitelist the stored-shape test, and reverting either request fix the
+sanitising test. Probe: `scripts/probes/layout-section.mjs`.
+
 ## Editing: undo, drag, copy and paste (0.105.0)
 
 All in `builder/section-builder.tsx`, client-side only; the API is unchanged.

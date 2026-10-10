@@ -310,4 +310,28 @@ class RecordSectionsTest extends TestCase
 
         $this->assertSame(['hero', 'theme_section'], RecordSections::excluded());
     }
+
+    /** @param  array<string, mixed>  $base */
+    #[DataProvider('records')]
+    public function test_a_custom_layout_is_a_section_a_record_may_hold(string $admin, string $public, string $model, string $body, array $base): void
+    {
+        $layout = self::section('layout', ['heading' => 'Why us', 'rows' => [[
+            'id' => 'row00001',
+            'columns' => [
+                ['widgets' => [['id' => 'wid00001', 'type' => 'text', 'html' => '<p>Laid out.</p><script>alert(1)</script>']]],
+                ['widgets' => [['id' => 'wid00002', 'type' => 'button', 'label' => 'Talk', 'href' => '/contact']]],
+            ],
+        ]]]);
+
+        $created = $this->store($admin, [...$base, 'body_layout' => 'sections', 'blocks' => [$layout]])->assertCreated();
+
+        // The rich text inside a widget was cleaned by this request's own list.
+        $html = $created->json('data.blocks.0.data.rows.0.columns.0.widgets.0.html');
+        $this->assertStringNotContainsString('<script', $html);
+        $this->assertStringContainsString('Laid out.', $html);
+
+        $this->getJson("/api/v1/{$public}/{$created->json('data.slug')}")->assertOk()
+            ->assertJsonPath('data.sections.0.type', 'layout')
+            ->assertJsonPath('data.sections.0.data.rows.0.columns.1.widgets.0.label', 'Talk');
+    }
 }

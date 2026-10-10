@@ -2380,6 +2380,7 @@ const SECTION_TYPES = [
   { value: 'flow', label: 'Diagram', blurb: 'A row of connected steps — a network, a process, how data moves — whose connecting lines draw themselves as the page scrolls.' },
   { value: 'subnav', label: 'In-page menu', blurb: 'A strip of links to the sections of this page, which stays at the top of the screen as it scrolls. It lists every section you have given an anchor to (Style → Anchor), in page order.' },
   { value: 'product_videos', label: 'Product videos', blurb: 'A row of the shop’s product videos, each with its product under it — picture, name, price and an Add to basket button. Whole shop or one category; it follows the videos on the products.' },
+  { value: 'layout', label: 'Custom layout', blurb: 'Rows and columns you arrange yourself, filled with headings, text, pictures, buttons, icon boxes, questions and lists.' },
   { value: 'theme_section', label: 'From the theme', blurb: 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.' },
 ];
 /* The AI page builder's refusal while the AI SEO assistant is off (0.116.0) — the API's sentence. */
@@ -2400,9 +2401,68 @@ const savedResource = (x, detail) => ({
   count: x.blocks.length, author: 'Mock editor', updated_at: x.updated_at,
   ...(detail ? { blocks: x.blocks, blocks_media: {}, sections: x.blocks, linked_from: [] } : {}),
 });
+/*
+ * The custom layout section's descriptors (0.147.0), as LayoutRules::options()
+ * sends them: every widget with every field, the row and column settings and
+ * the limits. The console draws its controls from these, so this must say what
+ * the API says.
+ */
+const lf = {
+  text: (key, label, max, required = false, multiline = false) => ({ key, kind: 'text', label, max, required, multiline }),
+  choice: (key, label, def, choices, hint = null) => ({ key, kind: 'choice', label, default: def, hint, choices: Object.entries(choices).map(([value, l]) => ({ value, label: l })) }),
+  bool: (key, label) => ({ key, kind: 'bool', label }),
+  link: (key, label, required) => ({ key, kind: 'link', label, max: 2048, required }),
+  icon: (key, label) => ({ key, kind: 'icon', label, required: false }),
+};
+const LAYOUT_ALIGN = lf.choice('align', 'Align', 'inherit', { inherit: 'Same as the box', start: 'Left', center: 'Centre', end: 'Right' });
+const LAYOUT_OPTIONS = {
+  widgets: [
+    { value: 'heading', label: 'Heading', blurb: 'A title. The size is how big it looks; which level it is on the page is worked out for you.', fields: [
+      lf.text('text', 'Heading', 160, true),
+      lf.choice('size', 'Size', 'm', { s: 'Small', m: 'Medium', l: 'Large', xl: 'Extra large' }), LAYOUT_ALIGN] },
+    { value: 'text', label: 'Text', blurb: 'Paragraphs, lists, links and tables from the editor, exactly as a page body.', fields: [
+      { key: 'html', kind: 'html', label: 'Text', max: 20000, required: true }, lf.bool('lead', 'Larger, as an introduction')] },
+    { value: 'button', label: 'Button', blurb: 'One button that links to a page, an address, an email or a phone number.', fields: [
+      lf.text('label', 'Label', 40, true), lf.link('href', 'Link', true),
+      lf.choice('variant', 'Look', 'primary', { primary: 'Solid', secondary: 'Outlined', link: 'Link' }), LAYOUT_ALIGN] },
+    { value: 'image', label: 'Picture', blurb: 'A picture from the media library in a fixed frame, with its alt text and focal point.', fields: [
+      { key: 'image_path', kind: 'path', label: 'Picture', max: 255, required: true },
+      lf.choice('ratio', 'Shape', '4:3', { '1:1': 'Square', '4:3': '4 : 3', '3:2': '3 : 2', '16:9': 'Wide, 16 : 9', '3:4': 'Tall, 3 : 4' }),
+      lf.choice('rounded', 'Corners', 'none', { none: 'Square', s: 'Slightly rounded', m: 'Rounded', l: 'Very rounded', full: 'Round' }),
+      lf.link('href', 'Link (optional)', false), lf.text('caption', 'Caption (optional)', 200)] },
+    { value: 'spacer', label: 'Space', blurb: 'Empty space between two widgets.', fields: [
+      lf.choice('size', 'Height', 'm', { s: 'Small', m: 'Medium', l: 'Large', xl: 'Extra large' })] },
+    { value: 'divider', label: 'Rule', blurb: 'A thin line across the column.', fields: [lf.bool('short', 'Short, not the full width')] },
+    { value: 'icon_box', label: 'Icon box', blurb: 'An icon, a title and a few words, drawn as a card, with an optional link.', fields: [
+      lf.icon('icon', 'Icon'), lf.text('title', 'Title', 80, true), lf.text('body', 'Words', 300, false, true),
+      lf.link('href', 'Link (optional)', false), lf.text('link_label', 'Link text (optional)', 40),
+      lf.choice('layout', 'Layout', 'stacked', { stacked: 'Icon above', inline: 'Icon beside' })] },
+    { value: 'accordion', label: 'Questions that open', blurb: 'Up to twelve questions with their answers, opening one at a time. Not added to the page’s FAQ listing for search engines.', fields: [],
+      list: { key: 'items', label: 'Question', min: 1, max: 12, fields: [lf.text('question', 'Question', 200, true), lf.text('answer', 'Answer', 2000, true, true)] } },
+    { value: 'list', label: 'List', blurb: 'Up to twelve short points with a tick, a dot or numbers.', fields: [
+      lf.choice('marker', 'Marker', 'tick', { tick: 'Tick', dot: 'Dot', number: 'Number' })],
+      list: { key: 'items', label: 'Point', min: 1, max: 12, fields: [lf.text('text', 'Words', 160, true), lf.icon('icon', 'Icon (optional)')] } },
+  ],
+  row: [
+    lf.choice('split', 'Split', 'equal', { equal: 'Equal', wide_first: 'First wider', wide_last: 'Second wider' }, 'Only for a row of two columns.'),
+    lf.choice('gap', 'Space between', 'm', { s: 'Small', m: 'Medium', l: 'Large' }),
+    lf.choice('valign', 'Columns line up', 'stretch', { stretch: 'Equal height', top: 'Top', center: 'Middle', bottom: 'Bottom' }, 'Equal height makes boxes in a row the same height.'),
+    lf.choice('stack_from', 'Stack below', 'md', { md: 'Tablet width', lg: 'Laptop width' }, 'Below this width the columns sit one above the other.'),
+    lf.bool('reverse_stacked', 'Second column first when stacked'),
+  ],
+  column: [
+    lf.choice('surface', 'Box', 'none', { none: 'None', card: 'Card', raised: 'Raised card' }, 'A card has the theme’s ground, border and corners.'),
+    lf.choice('pad', 'Space inside', 'm', { none: 'None', s: 'Small', m: 'Medium' }, 'Only with a box.'),
+    lf.choice('align', 'Align text', 'inherit', { inherit: 'Same as the section', start: 'Left', center: 'Centre', end: 'Right' }),
+    lf.choice('valign', 'Content sits', 'top', { top: 'Top', center: 'Middle', bottom: 'Bottom' }),
+  ],
+  limits: { rows: 8, columns: 4, widgets_per_column: 8, widgets: 40, characters: 150000, html: 20000, items: 12 },
+};
 const BUILDER_OPTIONS = {
   section_types: SECTION_TYPES,
   section_presets: SECTION_PRESETS,
+  // The custom layout section (0.147.0): widgets, row and column settings, limits.
+  layout: LAYOUT_OPTIONS,
   hero_layouts: [
     { value: 'centered', label: 'Centred', blurb: 'The words centred on the section’s ground.' },
     { value: 'split', label: 'Split', blurb: 'The words on one side, the picture framed on the other.' },
@@ -2460,6 +2520,7 @@ const BUILDER_OPTIONS = {
     story: [['kicker', 60], ['heading', 120], ['lede', 300], ['items.*.title', 100], ['items.*.body', 600]],
     flow: [['kicker', 80], ['heading', 120], ['lede', 300], ['items.*.title', 60], ['items.*.note', 160], ['caption', 200]],
     subnav: [['label', 40]],
+    layout: [['kicker', 80], ['heading', 160], ['lede', 400]],
   }).map(([type, fields]) => [type, fields.map(([path, max]) => ({ path, max }))])),
   card_sources: [
     { value: 'solutions', label: 'Solutions' }, { value: 'services', label: 'Services' }, { value: 'industries', label: 'Industries' },
@@ -2500,6 +2561,26 @@ const SAMPLE_BUILDER_BLOCKS = [
     { question: 'Can a section be hidden?', answer: 'Yes — it stays with the page and is left off the public site.' },
     { question: 'Can sections be reordered?', answer: 'Yes, with the arrows on each section.' },
   ] } },
+  /* A custom layout (0.147.0): a picture beside words, then three boxes — the two arrangements the probe checks. */
+  { id: '0f6a3c1e-1111-4a8b-9c2d-000000000011', type: 'layout', hidden: false, background: null, data: {
+    kicker: 'Custom layout', heading: 'Rows and columns, arranged by hand', rows: [
+      { id: 'rowaaa01', split: 'wide_last', valign: 'center', columns: [
+        { widgets: [
+          { id: 'wid00001', type: 'heading', text: 'A picture beside words', size: 'l' },
+          { id: 'wid00002', type: 'text', html: '<p>Text from the editor, with <strong>bold</strong> and a <a href="/about">link</a>.</p>' },
+          { id: 'wid00003', type: 'button', label: 'Talk to us', href: '/contact' },
+        ] },
+        { widgets: [{ id: 'wid00004', type: 'image', image_path: 'media/mock/layout-sample.jpg', ratio: '4:3', rounded: 'm', caption: 'A placeholder picture.' }] },
+      ] },
+      { id: 'rowaaa02', columns: [
+        { surface: 'card', widgets: [{ id: 'wid00005', type: 'icon_box', icon: 'shield', title: 'Secure by default', body: 'One sentence about it.' }] },
+        { surface: 'card', widgets: [{ id: 'wid00006', type: 'icon_box', icon: 'clock', title: 'Fast to respond', body: 'One sentence about it.' }] },
+        { surface: 'raised', widgets: [
+          { id: 'wid00007', type: 'list', items: [{ text: 'One' }, { text: 'Two' }], marker: 'number' },
+          { id: 'wid00008', type: 'accordion', items: [{ question: 'Can a column be a box?', answer: 'Yes — a card, or a raised card.' }] },
+        ] },
+      ] },
+    ] } },
   { id: '0f6a3c1e-1111-4a8b-9c2d-000000000010', type: 'rich_text', hidden: true, background: null, data: { heading: 'Hidden', body: '<p>Not drawn.</p>' } },
 ];
 /** The presenter's shape, for this mock's few types: hidden ones gone, a live list resolved. */
@@ -2526,6 +2607,21 @@ function presentSections(blocks) {
       const { category_id, limit, ...rest } = b.data ?? {};
       const items = storeVideoRows({ limit: limit || 8, categoryId: category_id ?? null });
       return items.length ? { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, style: b.style ?? null, data: { ...rest, items } } : null;
+    }
+    /* A custom layout (0.147.0): a picture's path is a URL, and nothing is drawn empty — the LayoutPresenter's rules. */
+    if (b.type === 'layout') {
+      const url = (p) => `http://127.0.0.1:8899/storage/${p}`;
+      const widget = (w) => {
+        if (w.type !== 'image') return w;
+        if (!w.image_path) return null;
+        const { image_path, ...rest } = w;
+        return { ...rest, image: url(image_path), image_alt: w.caption ?? '', image_focus: null, image_blur: null };
+      };
+      const rows = (b.data?.rows ?? []).map((row) => ({
+        ...row,
+        columns: (row.columns ?? []).map((c) => ({ ...c, widgets: (c.widgets ?? []).map(widget).filter(Boolean) })).filter((c) => c.widgets.length),
+      })).filter((row) => row.columns.length);
+      return rows.length ? { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, style: b.style ?? null, data: { ...b.data, rows } } : null;
     }
     if (b.type !== 'cards') return { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, data: b.data };
     const items = solutions.slice(0, b.data.limit || 6).map((s) => ({

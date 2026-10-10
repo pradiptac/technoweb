@@ -60,7 +60,12 @@ final class SectionRules
      * section. Every request that accepts `blocks` names these in its
      * `richTextFields()`, or a section's markup is stored as typed.
      */
-    public const RICH_TEXT = ['blocks.*.data.body', 'blocks.*.data.columns.*.body'];
+    public const RICH_TEXT = [
+        'blocks.*.data.body',
+        'blocks.*.data.columns.*.body',
+        // A layout section's text widgets (0.147.0): four levels of `*`.
+        'blocks.*.data.rows.*.columns.*.widgets.*.html',
+    ];
 
     /**
      * A section's style (2026-10-05, docs/page-builder.md "Style"): how it
@@ -227,6 +232,11 @@ final class SectionRules
             }
             foreach (self::for($type, "{$prefix}.{$i}.data") as $key => $rule) {
                 $rules["{$prefix}.{$i}.data.{$key}"] = $rule;
+            }
+            // A layout is a tree: its rows, columns and widgets are generated
+            // from what each one says it is, over a capped walk.
+            if ($type === PageSectionType::Layout && is_array($block['data'] ?? null)) {
+                $rules = [...$rules, ...LayoutRules::rules($block['data'], "{$prefix}.{$i}.data")];
             }
         }
 
@@ -535,6 +545,16 @@ final class SectionRules
             PageSectionType::ThemeSection => [
                 'section' => ['required', 'string', 'regex:/^[a-z][a-z0-9_-]{0,31}$/'],
             ],
+            // Rows and columns of widgets (0.147.0). Only the head and the list
+            // of rows are named here — the head is free text, so the live
+            // preview edits it in place; everything below a row is generated
+            // by `LayoutRules::rules()`, which reads each widget's own type.
+            PageSectionType::Layout => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'rows' => ['required', 'array', 'min:1', 'max:'.LayoutRules::MAX_ROWS],
+            ],
             // A linked library section: only which one. That it exists and is
             // a section (not a template) is checked in `checkData`.
             PageSectionType::Saved => [
@@ -680,6 +700,9 @@ final class SectionRules
                 $type = is_array($block) ? PageSectionType::tryFrom((string) ($block['type'] ?? '')) : null;
                 foreach ($type ? (self::TYPE_MESSAGES[$type->value] ?? []) : [] as $key => $message) {
                     $own["{$prefix}.{$i}.data.{$key}"] = $message;
+                }
+                if ($type === PageSectionType::Layout) {
+                    $own = [...$own, ...LayoutRules::messages("{$prefix}.{$i}.data")];
                 }
             }
         }
@@ -945,6 +968,9 @@ final class SectionRules
                     $validator->errors()->add("{$at}.category_id", 'That shop category no longer exists. Choose another.');
                 }
                 break;
+            case PageSectionType::Layout:
+                LayoutRules::check($validator, $data, $at);
+                break;
             case PageSectionType::Saved:
                 $id = $data['saved_id'] ?? null;
                 if (is_numeric($id) && ! SavedSection::query()->whereKey((int) $id)->where('kind', SavedSection::KIND_SECTION)->exists()) {
@@ -1010,7 +1036,13 @@ final class SectionRules
                 continue;
             }
 
-            $data = self::keep(is_array($block['data'] ?? null) ? $block['data'] : [], array_keys(self::for($type)));
+            $given = is_array($block['data'] ?? null) ? $block['data'] : [];
+            // A layout's rows are a tree `keep()` cannot walk by name: only
+            // its head goes through it, the rows through their own table.
+            $data = self::keep($given, $type === PageSectionType::Layout ? LayoutRules::HEAD : array_keys(self::for($type)));
+            if ($type === PageSectionType::Layout) {
+                $data['rows'] = LayoutRules::normalise($given['rows'] ?? null);
+            }
 
             foreach (['block_id', 'slider_id', 'gallery_id', 'form_id', 'saved_id', 'category_id', 'limit', 'columns', 'highlight', 'start'] as $int) {
                 if (isset($data[$int]) && is_numeric($data[$int])) {

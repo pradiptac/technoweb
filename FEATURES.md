@@ -98,6 +98,12 @@ A full CMS for the people who write, without a developer in the loop.
   page can carry a menu of its own sections that follows the visitor down.
   An assistant on each section writes its wording from a line about it, or
   rewords, shortens or expands what it says — words only, with Undo.
+- **A custom layout section**: rows of one to four columns filled with
+  headings, text, buttons, pictures, spaces, rules, icon boxes, questions that
+  open and lists, each widget optionally shown on some screens only and a
+  column optionally a card or a raised card — a picture beside words, three
+  boxes in a row — without a new section type for each arrangement. Columns
+  stack on a phone; nothing is a free number or colour.
   Headings, lines of text and button wording can be edited directly on the
   live preview.
   A page and each item in the section library keep a history: the last thirty

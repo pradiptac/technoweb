@@ -265,6 +265,7 @@ final class SectionPresenter
             PageSectionType::Downloads => self::downloads($data),
             PageSectionType::ProductVideos => self::productVideos($data),
             PageSectionType::Countdown => self::countdown($data),
+            PageSectionType::Layout => LayoutPresenter::present($data),
             default => $data,
         };
     }

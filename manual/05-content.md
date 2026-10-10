@@ -264,6 +264,46 @@ is changed. The live preview shows each screen when you switch it. A section
 with a shaped edge does not offer *None* or *S* for the space on that side,
 because the edge needs the room.
 
+#### A custom layout
+
+When none of the ready-made sections is the shape you want, add **Custom
+layout**. It is a section made of **rows**; each row has one to four
+**columns**; each column holds **widgets** you add one at a time:
+
+- **Heading**, **Text** (the same editor as a page body, with shortcodes),
+  **Button**, **Picture** (from the media library), **Space**, **Rule**,
+  **Icon box**, **Questions that open** and **List**.
+
+How to use it:
+
+1. Add the section and give it a heading if you like. Open **Row 1**.
+2. Choose how many **Columns** the row has. With two, **Split** makes one
+   wider than the other. **Stack below** decides where the columns fall one
+   above the other on a smaller screen; on a phone they always do, and
+   **Second column first when stacked** puts a picture above its words rather
+   than below.
+3. In each column press **+ Heading**, **+ Text** and so on. Open a widget to
+   fill it in. The arrows move a widget up and down, the copy button
+   duplicates it, and **Move to** sends it to any other column in the section.
+   Changing a row to fewer columns moves the widgets of the dropped columns
+   into the last column that is left.
+4. A column's **Box** can be a **Card** or a **Raised card** (the site's own
+   card, in your theme's style) with **Space inside**; **Align text** and
+   **Content sits** place what is in it.
+5. Every widget has **Show on** — untick Phone to leave a decorative picture
+   off a small screen.
+
+Good to know:
+
+- A layout holds up to 8 rows, 4 columns in a row, 8 widgets in a column and
+  40 widgets in all. For more, add a second layout section.
+- Heading widgets are given the right heading level for you; the size you
+  choose is only how big they look.
+- The questions in a layout are not added to the page's FAQ listing for search
+  engines — use a **Questions** section for that.
+- There is no assistant on this section yet, and the live preview lets you
+  edit its heading in place but not the words inside widgets.
+
 ### Drafting a page with AI
 
 On **Content → Pages**, **Draft with AI** writes a first version of a builder

@@ -21,6 +21,34 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.147.0 — 2026-10-10
+
+**A section can be laid out by hand: rows, columns and widgets.**
+
+- **Custom layout.** A new builder section, `layout`: up to 8 rows of 1–4
+  columns, each column up to 8 widgets — heading, text (the editor), button,
+  picture, space, rule, icon box, questions that open and list. A row says how
+  its two columns split (equal, first or second wider), the space between, how
+  the columns line up, where they stack on a smaller screen and whether the
+  second comes first when stacked; a column can be a card or a raised card.
+  Each widget can be shown on only some screens. A phone is always one column.
+- **Not a free canvas.** Nothing is positioned and nothing is a number or a
+  colour; every choice is a step on a fixed scale, a box is the site's own
+  card, and widgets cannot hold widgets.
+- **Safe by construction.** Rules are generated per index over a capped walk
+  (a 5,000-row payload is refused without being walked); a widget stores only
+  the fields its own type declares; text widgets are sanitised in the page
+  save, the live preview and the library. The live preview and the library
+  save were found to carry hard-coded copies of the rich-text list and now
+  use the one constant.
+- **API**: `PageSectionType::Layout`, `LayoutRules`, `LayoutPresenter`,
+  `layout` on `GET /admin/pages/builder`; the console draws its controls from
+  that, so the API alone says what a widget is. The sample builder page gains
+  a layout; `LayoutSectionTest`, a `SanitisesRichTextTest` case, a
+  `RecordSectionsTest` row; the probe `layout-section.mjs`.
+
+---
+
 ## 0.146.0 — 2026-10-10
 
 **A section can be a different shape on a phone, a tablet and a computer.**

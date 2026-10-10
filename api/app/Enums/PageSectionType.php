@@ -95,6 +95,12 @@ enum PageSectionType: string
      */
     case ThemeSection = 'theme_section';
     /**
+     * Rows and columns arranged by hand, filled with widgets (0.147.0): the
+     * one section whose data is a tree. `App\Support\PageSections\LayoutRules`
+     * says what it may hold, `LayoutPresenter` how it is read.
+     */
+    case Layout = 'layout';
+    /**
      * A section from the library, placed linked (2026-10-05): it stores only
      * `saved_id`, and the presenter draws the library's section in its place,
      * so an edit to it reaches every page that places it.
@@ -137,6 +143,7 @@ enum PageSectionType: string
             self::Subnav => 'In-page menu',
             self::ProductVideos => 'Product videos',
             self::ThemeSection => 'From the theme',
+            self::Layout => 'Custom layout',
             self::Saved => 'Saved section',
         };
     }
@@ -183,6 +190,7 @@ enum PageSectionType: string
             self::ThemeSection => 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.',
             self::Subnav => 'A strip of links to the sections of this page, which stays at the top of the screen as it scrolls. '
                 .'It lists every section you have given an anchor to (Style → Anchor), in page order.',
+            self::Layout => 'Rows and columns you arrange yourself, filled with headings, text, pictures, buttons, icon boxes, questions and lists.',
             self::Saved => 'A section from the library, kept in step with it: edit it once and every page that places it changes.',
         };
     }

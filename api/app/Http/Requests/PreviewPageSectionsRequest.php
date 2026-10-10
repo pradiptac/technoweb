@@ -19,7 +19,7 @@ class PreviewPageSectionsRequest extends FormRequest
 
     protected function richTextFields(): array
     {
-        return ['blocks.*.data.body', 'blocks.*.data.columns.*.body'];
+        return SectionRules::RICH_TEXT;
     }
 
     public function authorize(): bool

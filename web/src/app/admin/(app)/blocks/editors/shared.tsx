@@ -64,6 +64,11 @@ type Ctx = {
    */
   idPrefix?: string;
   /**
+   * Whether any error sits at or under a path — the page builder's layout
+   * editor opens a card with one inside it, so a 422 is never behind a fold.
+   */
+  anyErr?: (path: Path) => boolean;
+  /**
    * Bumped when the content is replaced from outside the fields — the page
    * builder's Undo and Redo, and its assistant (0.127.0). Every plain field
    * here is controlled and follows `content` by itself; a rich-text editor

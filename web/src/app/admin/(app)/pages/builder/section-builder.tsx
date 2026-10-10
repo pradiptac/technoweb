@@ -721,9 +721,13 @@ function SectionCard({
     [patch, section.id],
   );
   const err = useCallback((path: Path) => errors[`${prefix}.data.${path.join(".")}`]?.[0], [errors, prefix]);
+  const anyErr = useCallback((path: Path) => {
+    const at = `${prefix}.data.${path.join(".")}`;
+    return Object.keys(errors).some((k) => k === at || k.startsWith(`${at}.`));
+  }, [errors, prefix]);
   const ctx = useMemo(
-    () => ({ content: section.data as Obj, set, err, media, brands: [], idPrefix, epoch }),
-    [section.data, set, err, media, idPrefix, epoch],
+    () => ({ content: section.data as Obj, set, err, anyErr, media, brands: [], idPrefix, epoch }),
+    [section.data, set, err, anyErr, media, idPrefix, epoch],
   );
   const assistant = !linked && options.ai_section?.types.includes(section.type) ? options.ai_section : null;
 

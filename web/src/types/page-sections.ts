@@ -26,6 +26,8 @@ export type PageSectionType =
   | "team" | "downloads" | "countdown" | "columns" | "map"
   /** One of the active theme's homepage sections, by its `HOME_SECTIONS` id (0.113.0). */
   | "theme_section"
+  /** Rows and columns of widgets, arranged by hand (0.147.0). */
+  | "layout"
   /** A scroll story (0.114.0): steps that scroll past a picture held beside them. */
   | "story"
   /** A diagram (0.115.0): two to six steps joined by arrows that draw as the page scrolls. */
@@ -149,6 +151,68 @@ export type ThemeSectionData = { section: string };
 export type MapSectionData = { heading?: string; lede?: string; url: string; address?: string };
 
 /**
+ * The custom layout section (0.147.0, `LayoutPresenter`'s shape): rows of one
+ * to four columns, each a short stack of widgets. A value that is the API's
+ * default is absent — the website applies the default — and a widget carries
+ * only the fields its own type declares. No widget holds another.
+ */
+export type LayoutWidgetDevice = "phone" | "tablet" | "desktop";
+type WidgetBase = { id: string; show_on?: LayoutWidgetDevice[] };
+export type LayoutAlign = "inherit" | "start" | "center" | "end";
+export type LayoutWidget = WidgetBase & (
+  | { type: "heading"; text: string; size?: "s" | "m" | "l" | "xl"; align?: LayoutAlign }
+  | { type: "text"; html: string; lead?: boolean }
+  | { type: "button"; label: string; href: string; variant?: "primary" | "secondary" | "link"; align?: LayoutAlign }
+  | {
+      type: "image"; image: string; image_alt?: string; image_focus?: string | null; image_blur?: string | null;
+      ratio?: "1:1" | "4:3" | "3:2" | "16:9" | "3:4"; rounded?: "none" | "s" | "m" | "l" | "full"; href?: string; caption?: string;
+    }
+  | { type: "spacer"; size?: "s" | "m" | "l" | "xl" }
+  | { type: "divider"; short?: boolean }
+  | { type: "icon_box"; icon?: string; title: string; body?: string; href?: string; link_label?: string; layout?: "stacked" | "inline" }
+  | { type: "accordion"; items: { question: string; answer: string }[] }
+  | { type: "list"; items: { text: string; icon?: string }[]; marker?: "tick" | "dot" | "number" }
+);
+export type LayoutColumn = {
+  surface?: "none" | "card" | "raised"; pad?: "none" | "s" | "m"; align?: LayoutAlign; valign?: "top" | "center" | "bottom";
+  widgets: LayoutWidget[];
+};
+export type LayoutRow = {
+  id: string;
+  split?: "equal" | "wide_first" | "wide_last"; gap?: "s" | "m" | "l"; valign?: "stretch" | "top" | "center" | "bottom";
+  stack_from?: "md" | "lg"; reverse_stacked?: boolean;
+  columns: LayoutColumn[];
+};
+export type LayoutSectionData = Head & { rows: LayoutRow[] };
+
+/**
+ * What the console draws a layout's controls from (`LayoutRules::options()`):
+ * one descriptor per field, so a widget type or a field added to the API needs
+ * no change here. `default` is the choice that is never stored.
+ */
+export type LayoutField = {
+  key: string;
+  kind: "text" | "html" | "choice" | "bool" | "link" | "path" | "icon";
+  label: string;
+  max?: number;
+  required?: boolean;
+  multiline?: boolean;
+  hint?: string | null;
+  default?: string;
+  choices?: { value: string; label: string }[];
+};
+export type LayoutWidgetSpec = {
+  value: string; label: string; blurb: string; fields: LayoutField[];
+  list?: { key: string; label: string; min: number; max: number; fields: LayoutField[] };
+};
+export type LayoutOptions = {
+  widgets: LayoutWidgetSpec[];
+  row: LayoutField[];
+  column: LayoutField[];
+  limits: { rows: number; columns: number; widgets_per_column: number; widgets: number; characters: number; html: number; items: number };
+};
+
+/**
  * One step of a scroll story as the public read carries it: the picture
  * resolved to its URL with alt text and focal point. Stored, the step holds
  * `image_path` instead (the console edits `StoredSection.data`).
@@ -266,7 +330,8 @@ export type PageSection =
   | Of<"story", StorySectionData>
   | Of<"flow", FlowSectionData>
   | Of<"subnav", SubnavSectionData>
-  | Of<"product_videos", ProductVideosSectionData>;
+  | Of<"product_videos", ProductVideosSectionData>
+  | Of<"layout", LayoutSectionData>;
 
 /** A section as stored and edited: paths and ids, and whatever the type's fields are. */
 export type StoredSection = {
@@ -309,6 +374,8 @@ export type PageBuilderOptions = {
    * and the length the save holds it to. The API's, read off its own rules.
    */
   inline_fields?: Record<string, { path: string; max: number }[]>;
+  /** The custom layout section (0.147.0): its widgets with every field, the row and column settings and the limits. Optional for an older API. */
+  layout?: LayoutOptions;
   /** The Design tab (0.146.0): the section types whose heading colour the site ignores. Optional for an older API. */
   style_options?: { heading_color_except: string[] };
   /**

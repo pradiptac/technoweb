@@ -41,11 +41,13 @@ class SampleBuilderPageSeeder extends Seeder
         // sections: next/image's dev LCP check keys its images by URL, so a
         // lazy copy of the hero's photo further down overwrites the eager
         // hero's entry and the audit reports the hero as lazy.
-        $pictures = Media::query()->where('mime', 'like', 'image/%')->where('mime', 'not like', '%svg%')->orderBy('id')->limit(3)->pluck('path')->all()
-            ?: Media::query()->where('mime', 'like', 'image/%')->orderBy('id')->limit(3)->pluck('path')->all();
+        $pictures = Media::query()->where('mime', 'like', 'image/%')->where('mime', 'not like', '%svg%')->orderBy('id')->limit(4)->pluck('path')->all()
+            ?: Media::query()->where('mime', 'like', 'image/%')->orderBy('id')->limit(4)->pluck('path')->all();
         $picture = $pictures[0] ?? null;
         $beside = $pictures[1] ?? $picture;
         $portrait = $pictures[2] ?? $beside;
+        // The layout's own picture (0.147.0): a fourth, so no URL repeats on the page.
+        $framed = $pictures[3] ?? null;
         $published = fn (string $model) => $model::query()->where('status', PublishStatus::Published)->orderBy('id')->value('id');
 
         $sections = [
@@ -82,6 +84,7 @@ class SampleBuilderPageSeeder extends Seeder
                 'body' => '<p>The video plays only when somebody presses it.</p>',
                 'media' => 'youtube', 'youtube' => 'aqz-KE-bpKQ', 'side' => 'right',
             ]),
+            $this->layoutSection($framed),
             $this->section('cards', ['heading' => 'A live list', 'lede' => 'Whatever is published, as the theme draws its grids.', 'source' => 'solutions', 'limit' => 3, 'columns' => 3]),
             $this->section('testimonial', ['quote' => 'A customer’s words go here, with their permission.', 'name' => 'A customer', 'role' => 'Their role, their company', 'photo_path' => $portrait]),
             $this->section('logos', ['heading' => 'Trusted by', 'source' => 'clients']),
@@ -113,6 +116,49 @@ class SampleBuilderPageSeeder extends Seeder
             'status' => PublishStatus::Draft,
             'body' => null,
             'blocks' => json_decode((string) json_encode(SectionRules::normalise($sections)), true),
+        ]);
+    }
+
+    /**
+     * The custom layout (0.147.0): a picture beside words, then three boxes —
+     * the two arrangements the audits and the layout probe check. Without a
+     * fourth picture in the library the first row carries an icon box instead.
+     *
+     * @return array<string, mixed>
+     */
+    private function layoutSection(?string $picture): array
+    {
+        return $this->section('layout', [
+            'kicker' => 'Custom layout',
+            'heading' => 'Rows and columns, arranged by hand',
+            'rows' => [
+                [
+                    'id' => 'sample01', 'split' => 'wide_last', 'valign' => 'center',
+                    'columns' => [
+                        ['widgets' => [
+                            ['id' => 'sample11', 'type' => 'heading', 'text' => 'A picture beside words', 'size' => 'l'],
+                            ['id' => 'sample12', 'type' => 'text', 'html' => '<p>Text from the editor, with <strong>bold</strong> and a <a href="/about">link</a>.</p>'],
+                            ['id' => 'sample13', 'type' => 'button', 'label' => 'Talk to us', 'href' => '/contact'],
+                        ]],
+                        ['widgets' => [
+                            $picture
+                                ? ['id' => 'sample14', 'type' => 'image', 'image_path' => $picture, 'ratio' => '4:3', 'rounded' => 'm', 'caption' => 'A placeholder picture.']
+                                : ['id' => 'sample14', 'type' => 'icon_box', 'icon' => 'shield', 'title' => 'Secure by default', 'body' => 'One sentence about it.'],
+                        ]],
+                    ],
+                ],
+                [
+                    'id' => 'sample02',
+                    'columns' => [
+                        ['surface' => 'card', 'widgets' => [['id' => 'sample21', 'type' => 'icon_box', 'icon' => 'shield', 'title' => 'Secure by default', 'body' => 'One sentence about it.']]],
+                        ['surface' => 'card', 'widgets' => [['id' => 'sample22', 'type' => 'icon_box', 'icon' => 'clock', 'title' => 'Fast to respond', 'body' => 'One sentence about it.']]],
+                        ['surface' => 'raised', 'widgets' => [
+                            ['id' => 'sample23', 'type' => 'list', 'marker' => 'number', 'items' => [['text' => 'One'], ['text' => 'Two']]],
+                            ['id' => 'sample24', 'type' => 'accordion', 'items' => [['question' => 'Can a column be a box?', 'answer' => 'Yes — a card, or a raised card.']]],
+                        ]],
+                    ],
+                ],
+            ],
         ]);
     }
 
