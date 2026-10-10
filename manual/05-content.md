@@ -311,7 +311,12 @@ How to use it:
 3. In each column press **+ Heading**, **+ Text** and so on. Open a widget to
    fill it in. The arrows move a widget up and down, the copy button
    duplicates it, and **Move to** sends it to any other column in the section —
-  or into a tab, panel or column of a container.
+  or into a tab, panel or column of a container. On a computer you can also
+  **drag** a row or a widget by the dotted grip (⠿) at its left: drop it where
+  the line shows — in another column, into a tab or box, or above another
+  row. A box, tabs, panels or columns cannot be dragged into one another, and
+  a video, form, slider or gallery stays out of them; where a drop is not
+  allowed no line appears. One drop is one step for **Undo**.
    Changing a row to fewer columns moves the widgets of the dropped columns
    into the last column that is left.
 4. A column's **Box** can be a **Card** or a **Raised card** (the site's own

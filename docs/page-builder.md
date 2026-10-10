@@ -400,7 +400,7 @@ They share one structure: `slots: [{id, …the slot's fields, widgets: []}]`. In
 (recognisers target fixed types), inline editing of widget text (only the head is
 inline — its paths are derived from `for()` as for every type; widget paths
 would be seven segments, past `isInlinePath`'s cap of six), copy of a single
-widget, drag across columns. A record's body area may hold a layout
+widget. A record's body area may hold a layout
 (`RecordSections` excludes only `hero` and `theme_section`), and the library
 saves, links and delete-guards one unchanged. No preset uses it.
 
@@ -431,6 +431,54 @@ removing the walk cap fails the hostile-payload test, removing the per-type key
 whitelist the stored-shape test, and reverting either request fix the
 sanitising test. Probe: `scripts/probes/layout-section.mjs`.
 
+## Drag in the layout section (0.155.0)
+
+Rows and widgets of a layout section can be dragged by a `⠿` grip (from `sm`;
+touch fires no HTML drag events, so the arrows and "Move to" stay and are the
+way on a phone and from the keyboard). No library: the section builder's own
+HTML5 drag was extracted to `lib/hooks/use-drag-reorder.ts`, and the section
+list moved onto it with the same lines and the same single `apply()` call.
+
+**The hook.** `useDragReorder<T>({ accepts?, onMove })` returns `handle(scope,
+index, item)` (spread on the grip: `draggable`, start, end), `target(scope,
+index)` (spread on an item: `dragover`/`drop`), `list(scope, length)` (spread on
+an *empty* list's element, which has no item to hover; `{}` otherwise), `root`
+(spread on an ancestor of every list so a pointer over none withdraws the line),
+`line(scope, index)` and `dragging(scope, index)`. A *scope* is any string the
+caller picks for one list; a position is a **gap** — `index` is the gap before
+item `index` and `length` the gap after the last, chosen from the pointer's
+top or bottom half of the item. `onMove(from, to, item)` gets the gap as it was
+before the held item left; `reinsert(list, from, to)` does the same-list move.
+
+**What is refused.** `accepts(sourceScope, targetScope, item)` (default: only
+the held item's own list). A refused target is not a drop target: no
+`preventDefault`, so the browser shows "not allowed", and `line()` is false, so
+no line. A gap that would change nothing (beside the held item) draws no line
+and moves nothing. The innermost target stops the event, so an outer list never
+answers for a pointer over an inner one — even when the inner one refuses. A
+drag the hook did not start (a file from the desktop) is ignored.
+
+**In the layout editor** (`layout-editor.tsx`, one instance for the editor, in
+the layout context): scopes are `rows`, a column's key (`c:row.column`) and a
+slot's key (`s:<slot id>`) — the keys `updateList` already writes by.
+
+- Rows go among rows, never into a column.
+- A widget goes within its column, to any other column of any row, and into or
+  out of or between container slots.
+- **A container never goes into a slot, and a slot takes only the container
+  descriptor's `child_types`** (read from `options.layout`, the API's table;
+  nothing is listed in TypeScript). A video, form, slider or gallery therefore
+  stays out of a tab, a box and the rest.
+- A column or slot at `widgets_per_column` takes nothing from another list.
+- Each completed drop is **one `write()`** — one `setStep` of `rows`, its own
+  undo step. A move between lists is a removal and an insertion composed inside
+  that one write.
+
+Probe: `scripts/probes/layout-section.mjs` (column to column and back with Undo,
+a container refused by a tab with no line, a video taken into a tab and Undone,
+a heading between tabs,
+a row above a row, a section drag beside them).
+
 ## Editing: undo, drag, copy and paste (0.105.0)
 
 All in `builder/section-builder.tsx`, client-side only; the API is unchanged.
@@ -445,7 +493,8 @@ All in `builder/section-builder.tsx`, client-side only; the API is unchanged.
 - **Drag and drop.** A `⠿` handle (from `sm`) is the HTML5 drag source; the
   card under the pointer shows a brand line where the section will land
   (its top or bottom half). The arrows stay: HTML drag and drop does not
-  fire on touch, and the keyboard needs them.
+  fire on touch, and the keyboard needs them. Since 0.155.0 the mechanism is
+  `lib/hooks/use-drag-reorder.ts` (see "Drag in the layout section" below).
 - **Copy and paste.** Copy writes `{"tw-section": 1, section}` to the
   clipboard and to `localStorage` (`tw_section_clipboard`), so Paste works
   where the clipboard cannot be read back. Paste checks the shape and the

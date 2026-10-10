@@ -21,6 +21,30 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.155.0 — 2026-10-10
+
+**Drag and drop in the custom layout.**
+
+- **Drag a row or a widget by its grip** (⠿, on a computer) and drop it where
+  the line shows: a widget to another place in its column, to any other column,
+  or into and out of a box, a tab, a panel or an inner column; a row above or
+  below another. The arrows and **Move to** stay, for the keyboard and for a
+  phone.
+- **What cannot go where is not offered.** A box, tabs, panels or inner columns
+  never go into one another, a tab takes only the widgets the API allows (no
+  form, slider or gallery), and a column already full takes no more —
+  there is no line to drop on, and nothing moves.
+- **One drop is one Undo step.**
+- Behind it: the section builder's own drag was lifted into one small hook
+  (`use-drag-reorder.ts`), and the list of sections now uses it with exactly
+  the lines and behaviour it had. No library, no API change. The probe
+  `layout-section.mjs` drags a widget between columns and back, refuses a
+  container in a tab, takes a video into one and back out with Undo, moves a
+  heading between tabs, reorders rows and a section. Merge review fixed the
+  probe, which had never run: its drags reached past the window.
+
+---
+
 ## 0.154.0 — 2026-10-10
 
 **Boxes, tabs, panels and columns inside a column of the custom layout.**

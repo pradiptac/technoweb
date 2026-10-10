@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { SECTION_REVEALS } from "@/lib/motion-choices";
+import { reinsert, useDragReorder } from "@/lib/hooks/use-drag-reorder";
 import { REVISION_LOAD_EVENT } from "@/lib/revisions";
 import { cn } from "@/lib/utils";
 import type { SectionBackground } from "@/themes/options";
@@ -99,6 +100,9 @@ const setLivePref = (on: boolean) => {
 const CLIP_KEY = "tw_section_clipboard";
 const CLIP_TAG = "tw-section";
 const HISTORY = 50;
+/** The one list a section drag moves within. */
+const SECTIONS = "sections";
+
 export function SectionBuilder({ sections, setSections, options, media, errors, pageId, inLibrary = false, readBody }: {
   sections: StoredSection[];
   setSections: Dispatch<SetStateAction<StoredSection[]>>;
@@ -202,21 +206,7 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
   }, [undo, redo]);
 
   /* Drag and drop: which section is held, and where it would land. */
-  const [dragging, setDragging] = useState<number | null>(null);
-  const [dropAt, setDropAt] = useState<number | null>(null);
-  const drop = (to: number) => {
-    if (dragging === null) return;
-    const from = dragging;
-    setDragging(null);
-    setDropAt(null);
-    if (to === from || to === from + 1) return;
-    apply((prev) => {
-      const next = [...prev];
-      const [item] = next.splice(from, 1);
-      next.splice(to > from ? to - 1 : to, 0, item);
-      return next;
-    });
-  };
+  const dnd = useDragReorder<StoredSection>({ onMove: (from, to) => apply((prev) => reinsert(prev, from.index, to.index)) });
 
   /* Copy and paste between pages. */
   const copy = async (section: StoredSection) => {
@@ -515,15 +505,14 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
         </section>
       )}
 
-      <ol className="grid gap-3" onDragEnd={() => { setDragging(null); setDropAt(null); }}>
+      <ol className="grid gap-3">
         {sections.map((section, i) => (
           <SectionCard
-            dragging={dragging === i}
-            dropBefore={dropAt === i && dragging !== null && dragging !== i && dragging !== i - 1}
-            dropAfter={i === sections.length - 1 && dropAt === sections.length && dragging !== null && dragging !== i}
-            onDragStart={() => setDragging(i)}
-            onDragOverHalf={(after) => setDropAt(after ? i + 1 : i)}
-            onDrop={() => drop(dropAt ?? i)}
+            dragging={dnd.dragging(SECTIONS, i)}
+            dropBefore={dnd.line(SECTIONS, i)}
+            dropAfter={i === sections.length - 1 && dnd.line(SECTIONS, sections.length)}
+            handleProps={dnd.handle(SECTIONS, i, section)}
+            targetProps={dnd.target(SECTIONS, i)}
             onCopy={() => copy(section)}
             linkedName={section.type === "saved" ? libraryName(section.data.saved_id) : undefined}
             onSaveToLibrary={inLibrary ? undefined : () => setSaving({ kind: "section", index: i })}
@@ -680,7 +669,7 @@ function SaveToLibrary({ saving, label, onClose, onSave }: {
 
 function SectionCard({
   section, index, count, label, expanded, errors, options, media, onToggle, onMove, onDuplicate, onHide, onRemove, patch, patchStep,
-  dragging, dropBefore, dropAfter, onDragStart, onDragOverHalf, onDrop, onCopy, linkedName, onSaveToLibrary, onDetach,
+  dragging, dropBefore, dropAfter, handleProps, targetProps, onCopy, linkedName, onSaveToLibrary, onDetach,
   epoch, onAssistant, onUndo,
 }: {
   epoch: number;
@@ -692,9 +681,8 @@ function SectionCard({
   dragging: boolean;
   dropBefore: boolean;
   dropAfter: boolean;
-  onDragStart: () => void;
-  onDragOverHalf: (after: boolean) => void;
-  onDrop: () => void;
+  handleProps: ReturnType<ReturnType<typeof useDragReorder>["handle"]>;
+  targetProps: ReturnType<ReturnType<typeof useDragReorder>["target"]>;
   onCopy: () => void;
   section: StoredSection;
   index: number;
@@ -746,12 +734,7 @@ function SectionCard({
     <li
       data-section-card={section.type}
       data-section-card-id={section.id}
-      onDragOver={(e) => {
-        e.preventDefault();
-        const box = e.currentTarget.getBoundingClientRect();
-        onDragOverHalf(e.clientY > box.top + box.height / 2);
-      }}
-      onDrop={(e) => { e.preventDefault(); onDrop(); }}
+      {...targetProps}
       className={cn(
         "relative min-w-0 rounded-lg border bg-card transition-opacity duration-(--duration-fast)",
         bad ? "border-err" : "border-line-strong", section.hidden && "opacity-80", dragging && "opacity-50",
@@ -762,8 +745,7 @@ function SectionCard({
       {dropAfter && <span aria-hidden className="absolute inset-x-2 -bottom-2 h-1 rounded-full bg-brand-500" />}
       <div className="flex flex-wrap items-center gap-2 p-3">
         <span
-          draggable
-          onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", section.id); onDragStart(); }}
+          {...handleProps}
           title="Drag to move"
           aria-hidden
           className="hidden cursor-grab touch-none select-none rounded px-1 text-16 leading-none text-faint hover:bg-surface-2 hover:text-ink active:cursor-grabbing sm:block"

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { EditorField } from "@/components/admin/editor-field";
+import { reinsert, useDragReorder, type DragSpot } from "@/lib/hooks/use-drag-reorder";
 import { ReorderButtons } from "@/components/admin/reorder-buttons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,8 +34,8 @@ import {
  * **Rows and widgets carry a short id** (8 base-36 characters) the React keys
  * use, not the index: a rich-text editor reads its value once, so a reordered
  * list keyed by position would show one widget's words in another's box. A
- * duplicate gets fresh ids. Reordering is arrows and selects — HTML drag does
- * not fire on a touch screen, and nested lists are where it would go wrong.
+ * duplicate gets fresh ids. Reordering is arrows and selects everywhere, and
+ * (0.155.0) a grip on each row and widget for a mouse — see below.
  *
  * **Summernote is mounted only for an open text widget**, keyed on the
  * widget's id and the builder's `epoch`; fifteen editors on one form would be
@@ -47,6 +48,17 @@ import {
  * move that first takes a widget out of the list ahead of a container still
  * lands in the container. "Move to" lists every column and every slot a
  * widget may go to; a container is offered columns only.
+ *
+ * **Drag (0.155.0)** is `useDragReorder`, one instance for the whole editor:
+ * every list is a scope (`rows`, a column's key, a slot's key), so a widget
+ * can be dropped in its own column, in another row's column, or into and out
+ * of a container's slot. The rules live in `accepts`: rows go among rows and
+ * widgets among widgets; a container never goes into a slot, a slot takes
+ * only the container's `child_types` (the API's descriptor), and a column or
+ * slot already at `widgets_per_column` takes nothing more. A refused target
+ * draws no line and takes no drop. Each drop is one `write`, so one undo
+ * step. The grips are hidden below `sm` — touch fires no HTML drag events —
+ * and the arrows and "Move to" are untouched, so the keyboard loses nothing.
  */
 
 /** The published records a form, slider or gallery widget can choose between (`GET /admin/pages/builder`). */
@@ -67,6 +79,11 @@ type LayoutRow = { id: string; columns?: Column[]; [key: string]: unknown };
 type Slot = { id: string; widgets?: Widget[]; [key: string]: unknown };
 /** A place a widget can be sent: a column, or a container's slot (`slot`), by the key `updateList` reads. */
 type Target = { value: string; label: string; slot: boolean };
+/** What is held in a drag: a row (scope `rows`) or a widget (any other scope). */
+type Held = LayoutRow | Widget;
+type Dnd = ReturnType<typeof useDragReorder<Held>>;
+
+const ROWS = "rows";
 
 const ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -110,6 +127,7 @@ type Ctx = {
   taken: () => Set<string>;
   /** Every column and slot, for a widget's "Move to". */
   targets: Target[];
+  dnd: Dnd;
 };
 const LayoutCtx = createContext<Ctx | null>(null);
 function useLayout(): Ctx {
@@ -179,6 +197,21 @@ function updateList(rows: LayoutRow[], key: string, fn: (list: Widget[]) => Widg
   }));
 }
 
+/** The widgets of one list, by the key `updateList` reads. */
+function listOf(rows: LayoutRow[], key: string): Widget[] {
+  let found: Widget[] = [];
+  updateList(rows, key, (list) => { found = list; return list; });
+  return found;
+}
+
+/** The container widget a slot belongs to. */
+function slotOwner(rows: LayoutRow[], slotId: string): Widget | undefined {
+  for (const r of rows) for (const c of r.columns ?? []) for (const w of c.widgets ?? []) {
+    if (Array.isArray(w.slots) && (w.slots as Slot[]).some((s) => s.id === slotId)) return w;
+  }
+  return undefined;
+}
+
 function swap<T>(list: T[], from: number, delta: -1 | 1): T[] {
   const next = [...list];
   const [item] = next.splice(from, 1);
@@ -190,12 +223,39 @@ export function LayoutEditor({ sectionId, options }: { sectionId: string; option
   const { content, set, setStep, anyErr } = useBlock();
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const spec = options.layout;
+  const rows = Array.isArray(content.rows) ? (content.rows as unknown as LayoutRow[]) : [];
+  // A structural change is an undo step of its own (`setStep`), never merged with typing.
+  const write = (next: LayoutRow[]) => (setStep ?? set)(["rows"], next as unknown as Json);
+
+  const dnd = useDragReorder<Held>({
+    accepts: (source, target, item) => {
+      if (!spec) return false;
+      if (source === ROWS || target === ROWS) return source === target;
+      if (target.startsWith("s:")) {
+        const widget = item as Widget;
+        const owner = slotOwner(rows, target.slice(2));
+        const box = spec.widgets.find((w) => w.value === owner?.type)?.container;
+        if (!box || spec.widgets.find((w) => w.value === widget.type)?.container || !box.child_types.includes(widget.type)) return false;
+      }
+      return source === target || listOf(rows, target).length < spec.limits.widgets_per_column;
+    },
+    onMove: (from: DragSpot, to: DragSpot, item: Held) => {
+      if (from.scope === ROWS) return write(reinsert(rows, from.index, to.index));
+      if (from.scope === to.scope) return write(updateList(rows, from.scope, (list) => reinsert(list, from.index, to.index)));
+      const widget = item as Widget;
+      // Out of one list, into the other — one write, the target found by key after the removal.
+      write(updateList(updateList(rows, from.scope, (list) => list.filter((w) => w.id !== widget.id)), to.scope, (list) => {
+        const next = [...list];
+        next.splice(to.index, 0, widget);
+        return next;
+      }));
+    },
+  });
 
   if (!spec) {
     return <p className="text-13-5 text-muted">This server does not offer custom layouts yet. Update the API, then reload.</p>;
   }
 
-  const rows = Array.isArray(content.rows) ? (content.rows as unknown as LayoutRow[]) : [];
   const widgetCount = countWidgets(rows);
   const ids = () => {
     const taken = new Set<string>();
@@ -224,8 +284,6 @@ export function LayoutEditor({ sectionId, options }: { sectionId: string; option
     });
     return [{ value: columnKey(i, j), label: where, slot: false }, ...inside];
   }));
-  // A structural change is an undo step of its own (`setStep`), never merged with typing.
-  const write = (next: LayoutRow[]) => (setStep ?? set)(["rows"], next as unknown as Json);
 
   const ctx: Ctx = {
     spec,
@@ -239,6 +297,7 @@ export function LayoutEditor({ sectionId, options }: { sectionId: string; option
     widgets: widgetCount,
     taken: ids,
     targets,
+    dnd,
   };
 
   const addRow = (columns: number) => {
@@ -249,6 +308,7 @@ export function LayoutEditor({ sectionId, options }: { sectionId: string; option
 
   return (
     <LayoutCtx.Provider value={ctx}>
+      <div {...dnd.root}>
       <Text path={["kicker"]} label="Kicker" />
       <Text path={["heading"]} label="Heading" hint="Optional. With one, the headings below it are a level lower." />
       <Text path={["lede"]} label="Lede" multiline />
@@ -271,6 +331,7 @@ export function LayoutEditor({ sectionId, options }: { sectionId: string; option
           ))}
         </div>
       </fieldset>
+      </div>
     </LayoutCtx.Provider>
   );
 }
@@ -283,7 +344,7 @@ function SettingChoice({ field, path }: { field: LayoutField; path: Path }) {
 }
 
 function RowCard({ row, index }: { row: LayoutRow; index: number }) {
-  const { spec, rows, write, isOpen, toggle, taken } = useLayout();
+  const { spec, rows, write, isOpen, toggle, taken, dnd } = useLayout();
   const path: Path = ["rows", index];
   const key = row.id;
   const open = isOpen(key, path, true);
@@ -314,8 +375,14 @@ function RowCard({ row, index }: { row: LayoutRow; index: number }) {
   const widgetCount = columns.reduce((m, c) => m + (c.widgets?.length ?? 0), 0);
 
   return (
-    <li data-layout-row-card={row.id} className="min-w-0 rounded-lg border border-line-strong bg-card">
+    <li
+      data-layout-row-card={row.id}
+      {...dnd.target(ROWS, index)}
+      className={cn("relative min-w-0 rounded-lg border border-line-strong bg-card", dnd.dragging(ROWS, index) && "opacity-50")}
+    >
+      <DropLine above={dnd.line(ROWS, index)} below={index === rows.length - 1 && dnd.line(ROWS, rows.length)} gap="-0.625rem" />
       <div className="flex flex-wrap items-center gap-2 p-3">
+        <Grip props={dnd.handle(ROWS, index, row)} label={`row ${index + 1}`} />
         <button
           type="button"
           onClick={() => toggle(key, path, true)}
@@ -371,6 +438,31 @@ function RowCard({ row, index }: { row: LayoutRow; index: number }) {
   );
 }
 
+/** The grip a mouse drags by; hidden below `sm`, where touch fires no drag events and the arrows do the job. */
+function Grip({ props, label }: { props: ReturnType<Dnd["handle"]>; label: string }) {
+  return (
+    <span
+      {...props}
+      data-layout-grip
+      title={`Drag ${label} to move it`}
+      aria-hidden
+      className="hidden cursor-grab touch-none select-none rounded px-1 text-16 leading-none text-faint hover:bg-surface-2 hover:text-ink active:cursor-grabbing sm:block"
+    >
+      ⠿
+    </span>
+  );
+}
+
+/** Where a dragged row or widget would land: a line in the gap above or below the item (`gap` is half the list's gap). */
+function DropLine({ above, below, gap }: { above: boolean; below: boolean; gap: string }) {
+  return (
+    <>
+      {above && <span aria-hidden data-layout-drop-line className="absolute inset-x-2 h-1 rounded-full bg-brand-500" style={{ top: gap }} />}
+      {below && <span aria-hidden data-layout-drop-line className="absolute inset-x-2 h-1 rounded-full bg-brand-500" style={{ bottom: gap }} />}
+    </>
+  );
+}
+
 function ColumnCard({ column, row, index }: { column: Column; row: number; index: number }) {
   const { spec, write, rows } = useLayout();
   const path: Path = ["rows", row, "columns", index];
@@ -409,7 +501,7 @@ function WidgetList({ listKey, base, widgets, allowed, subject, onChange }: {
   subject: string;
   onChange: (next: Widget[]) => void;
 }) {
-  const { spec, rows, write, taken, widgets: total, targets } = useLayout();
+  const { spec, rows, write, taken, widgets: total, targets, dnd } = useLayout();
 
   const add = (kind: LayoutWidgetSpec) => {
     const ids = taken();
@@ -435,11 +527,12 @@ function WidgetList({ listKey, base, widgets, allowed, subject, onChange }: {
   };
 
   return (
-    <>
+    <div {...dnd.list(listKey, widgets.length)} data-layout-list={listKey}>
       <ol className="grid gap-2">
         {widgets.map((widget, w) => (
           <WidgetCard
             key={widget.id}
+            listKey={listKey}
             widget={widget}
             path={[...base, w]}
             index={w}
@@ -453,7 +546,12 @@ function WidgetList({ listKey, base, widgets, allowed, subject, onChange }: {
           />
         ))}
       </ol>
-      {widgets.length === 0 && <p className="mb-2 text-12-5 text-faint">Nothing here yet.</p>}
+      {widgets.length === 0 && (
+        <div className="relative">
+          <DropLine above={dnd.line(listKey, 0)} below={false} gap="-0.25rem" />
+          <p className="mb-2 text-12-5 text-faint">Nothing here yet.</p>
+        </div>
+      )}
 
       <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label={`Add a widget to ${subject}`}>
         {offered.map((w) => (
@@ -463,7 +561,7 @@ function WidgetList({ listKey, base, widgets, allowed, subject, onChange }: {
         ))}
       </div>
       {!canAdd && <p className="mt-1.5 text-12-5 text-faint">A column or slot holds {spec.limits.widgets_per_column} widgets and a layout {spec.limits.widgets}.</p>}
-    </>
+    </div>
   );
 }
 
@@ -559,7 +657,8 @@ function snippet(widget: Widget): string {
   return first?.question ?? first?.text ?? "";
 }
 
-function WidgetCard({ widget, path, index, count, targets, here, onMove, onRemove, onDuplicate, onMoveTo }: {
+function WidgetCard({ listKey, widget, path, index, count, targets, here, onMove, onRemove, onDuplicate, onMoveTo }: {
+  listKey: string;
   widget: Widget;
   path: Path;
   index: number;
@@ -571,15 +670,21 @@ function WidgetCard({ widget, path, index, count, targets, here, onMove, onRemov
   onDuplicate?: () => void;
   onMoveTo: (target: string) => void;
 }) {
-  const { spec, isOpen, toggle } = useLayout();
+  const { spec, isOpen, toggle, dnd } = useLayout();
   const info = spec.widgets.find((w) => w.value === widget.type);
   const open = isOpen(widget.id, path);
   const text = snippet(widget);
   const moveId = `${widget.id}-move`;
 
   return (
-    <li data-layout-widget-card={widget.type} className="min-w-0 rounded-lg border border-line-strong bg-card">
+    <li
+      data-layout-widget-card={widget.type}
+      {...dnd.target(listKey, index)}
+      className={cn("relative min-w-0 rounded-lg border border-line-strong bg-card", dnd.dragging(listKey, index) && "opacity-50")}
+    >
+      <DropLine above={dnd.line(listKey, index)} below={index === count - 1 && dnd.line(listKey, count)} gap="-0.375rem" />
       <div className="flex flex-wrap items-center gap-2 p-2">
+        <Grip props={dnd.handle(listKey, index, widget)} label={info?.label.toLowerCase() ?? "widget"} />
         <button
           type="button"
           onClick={() => toggle(widget.id, path)}

@@ -108,7 +108,9 @@ A full CMS for the people who write, without a developer in the loop.
   file, played only on a press), a form, a slider and a gallery, and — since
   0.154.0 — boxes, tabs, panels that open and columns inside a column that hold
   widgets of their own — each widget optionally shown on some screens only and a
-  column optionally a card or a raised card — a picture beside words, three
+  column optionally a card or a raised card, and — since 0.155.0 — rows and
+  widgets that can be dragged into place (between columns, tabs and boxes) as
+  well as moved with the arrows — a picture beside words, three
   boxes in a row — without a new section type for each arrangement. Columns
   stack on a phone; nothing is a free number or colour.
   Headings, lines of text and button wording can be edited directly on the

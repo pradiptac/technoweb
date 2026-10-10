@@ -38,6 +38,11 @@ import { chromium } from "playwright";
  * `hidden`; pressing the second tab shows its text and hides the first
  * panel; and at 360 nothing overflows.
  *
+ * 0.155.0 adds drag and drop: a widget from column 1 to column 2 and back
+ * (each drop one Undo step), a container refused by a tab (no drop
+ * line, nothing moves), a heading from one tab into the other, a row above
+ * another, and a section drag beside all of it.
+ *
  * Carries no credential. Not run by the author of the release: written
  * against the markup, so a locator that has drifted fails here first.
  */
@@ -194,6 +199,109 @@ try {
   await tabEditable.click();
   await page.keyboard.type("Probe text in the second tab.");
   await page.waitForTimeout(400);
+  // ---- drag and drop (0.155.0) ----------------------------------------------------
+  // HTML5 drag through Playwright's mouse; a grip is `[data-layout-grip]`, the first inside a card being its own.
+  const grip = (loc) => loc.locator("[data-layout-grip]").first();
+  const undo = () => page.getByRole("button", { name: "Undo", exact: true }).click();
+  const lines = () => card.locator("[data-layout-drop-line]").count();
+  const kinds = (loc) => loc.locator(":scope > ol > [data-layout-widget-card]").evaluateAll((els) => els.map((e) => e.getAttribute("data-layout-widget-card")));
+  const hold = async (from, to, y) => {
+    // Centre the pair in the (tall) window: both ends must be on screen for the pointer to reach them.
+    const mid = ((await from.boundingBox()).y + (await to.boundingBox()).y) / 2;
+    await page.evaluate((dy) => window.scrollBy(0, dy), mid - page.viewportSize().height / 2); // not mouse.wheel: the pointer may sit over the sidebar
+    await page.waitForTimeout(150);
+    const f = await from.boundingBox();
+    const t = await to.boundingBox();
+    await page.mouse.move(f.x + f.width / 2, f.y + f.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(f.x + f.width / 2 + 6, f.y + f.height / 2 + 6, { steps: 3 });
+    await page.mouse.move(t.x + t.width / 2, t.y + y, { steps: 8 });
+    await page.mouse.move(t.x + t.width / 2, t.y + y + 1, { steps: 2 });
+  };
+  const list = (n) => col(n).locator("[data-layout-list]").first();
+  const drag = async (from, to, y) => { await hold(from, to, y); await page.mouse.up(); };
+
+  // A pointer cannot drag to what is outside the viewport, and a headless drag does not scroll: fold every
+  // open widget that is not a container (an open text editor is ~600px) and give the drags a tall window.
+  for (let open = card.locator('[data-layout-widget-card]:not([data-layout-widget-card="tabs"],[data-layout-widget-card="box"],[data-layout-widget-card="panels"],[data-layout-widget-card="inner_row"]) > div > button[aria-expanded="true"]'); await open.count(); ) await open.first().click();
+  await page.setViewportSize({ width: 1300, height: 8000 }); // under 1400: no live preview beside the list
+  await card.evaluate((el) => el.scrollIntoView({ block: "start" }));
+  await page.waitForTimeout(300);
+  // A widget from column 1 to column 2 — one drop, one write — and back.
+  const col0 = await kinds(list(0));
+  const col1 = await kinds(list(1));
+  await drag(widget(0, "divider").locator("[data-layout-grip]").first(), widget(1, "icon_box"), 6);
+  await page.waitForTimeout(300);
+  ok(
+    JSON.stringify(await kinds(list(0))) === JSON.stringify(col0.slice(0, -1)) && (await kinds(list(1)))[0] === "divider",
+    `dragging a widget onto the top of the other column moves it there (${await kinds(list(0))} | ${await kinds(list(1))})`,
+  );
+  const last0 = list(0).locator(":scope > ol > [data-layout-widget-card]").last();
+  await drag(widget(1, "divider").locator("[data-layout-grip]").first(), last0, (await last0.boundingBox()).height - 4);
+  await page.waitForTimeout(300);
+  ok(JSON.stringify(await kinds(list(0))) === JSON.stringify(col0) && JSON.stringify(await kinds(list(1))) === JSON.stringify(col1), "dragging it back to the foot of column 1 restores both columns");
+  await undo();
+  ok((await kinds(list(1)))[0] === "divider", "Undo takes back exactly the last drop");
+  await undo();
+  ok(JSON.stringify(await kinds(list(0))) === JSON.stringify(col0) && JSON.stringify(await kinds(list(1))) === JSON.stringify(col1), "Undo again restores the start");
+
+  // A container is never dropped into a slot: no line, no change.
+  const slotHeading = slots.nth(0).locator('[data-layout-widget-card="heading"]').first();
+  const tabsBefore = await tabsRow.locator('[data-layout-widget-card="tabs"]').count();
+  await hold(grip(tabsCard), slotHeading, 6);
+  ok((await lines()) === 0, "hovering a container over a tab's widget draws no drop line");
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  ok(
+    (await tabsRow.locator('[data-layout-widget-card="tabs"]').count()) === tabsBefore && (await slots.locator('[data-layout-widget-card="tabs"]').count()) === 0,
+    "dropping a container into a tab changes nothing",
+  );
+
+  // A video is one of a tab's child types (only containers, forms, sliders and galleries are not): it goes in, and Undo takes it out.
+  await hold(videoCard.locator("[data-layout-grip]").first(), slotHeading, 6);
+  ok((await lines()) === 1, "a video over a tab draws a drop line");
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  ok((await slots.locator('[data-layout-widget-card="video"]').count()) === 1, "a video goes into a tab");
+  await undo();
+  ok((await slots.locator('[data-layout-widget-card="video"]').count()) === 0, "Undo takes the video back out");
+
+  // A heading moves from one tab to the other, and Undo brings it back.
+  await hold(grip(tabHeading), tabText, 6);
+  ok((await lines()) === 1, "an allowed target draws one drop line");
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  ok((await slots.nth(0).locator("[data-layout-widget-card]").count()) === 0 && (await slots.nth(1).locator('[data-layout-widget-card="heading"]').count()) === 1, "a heading is dragged from the first tab into the second");
+  await undo();
+  ok((await slots.nth(0).locator('[data-layout-widget-card="heading"]').count()) === 1, "Undo puts it back in the first tab");
+
+  // Rows: the second row above the first, and Undo.
+  const rowIds = () => card.locator("[data-layout-row-card]").evaluateAll((els) => els.map((e) => e.getAttribute("data-layout-row-card")));
+  const rowsBefore = await rowIds();
+  await drag(grip(card.locator("[data-layout-row-card]").nth(1)), card.locator("[data-layout-row-card]").nth(0), 6);
+  await page.waitForTimeout(300);
+  const rowsAfter = await rowIds();
+  ok(rowsAfter[0] === rowsBefore[1] && rowsAfter[1] === rowsBefore[0], "dragging row 2 above row 1 swaps them");
+  await undo();
+  ok(JSON.stringify(await rowIds()) === JSON.stringify(rowsBefore), "Undo restores the rows");
+
+  // A section drag still works beside it (builder-editing.mjs covers it in depth): add a divider, drag the layout under it.
+  await page.getByRole("button", { name: "Add a section" }).first().click();
+  await page.locator("dialog[open] button", { hasText: "Divider" }).first().click();
+  const sectionCards = page.locator("li[data-section-card]");
+  await sectionCards.nth(1).waitFor({ timeout: 30000 });
+  const sectionOrder = () => sectionCards.evaluateAll((els) => els.map((e) => e.getAttribute("data-section-card")));
+  const sectionsBefore = await sectionOrder();
+  const lower = await sectionCards.nth(1).boundingBox();
+  await drag(sectionCards.nth(0).locator('span[draggable="true"]').first(), sectionCards.nth(1), lower.height - 4);
+  await page.waitForTimeout(300);
+  const sectionsAfter = await sectionOrder();
+  ok(sectionsAfter[0] === sectionsBefore[1] && sectionsAfter[1] === sectionsBefore[0], `a section still drags (${sectionsBefore} → ${sectionsAfter})`);
+  await undo();
+  await undo();
+  ok((await sectionCards.count()) === 1, "Undo twice takes back the drag and the divider");
+
+  await page.setViewportSize({ width: 1400, height: 1100 });
   if (SHOTS) await card.screenshot({ path: `${SHOTS}/layout-editor.png` });
 
   await Promise.all([
