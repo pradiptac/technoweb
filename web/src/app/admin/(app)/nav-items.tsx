@@ -446,6 +446,7 @@ export const NAV: NavItem[] = [
       */
       { role: "admin", href: "/admin/info-bar", label: "Info bar", icon: IconMegaphone },
       { role: "admin", href: "/admin/themes", label: "Themes", icon: IconLayers },
+      { role: "admin", href: "/admin/site/chrome", label: "Header & footer", icon: IconLayers },
       { role: "admin", href: "/admin/site/settings", label: "Settings", icon: IconSliders },
       { role: "content_manager", href: "/admin/forms", label: "Forms", icon: IconMail },
     ],

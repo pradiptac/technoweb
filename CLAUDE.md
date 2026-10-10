@@ -2680,6 +2680,7 @@ One folder per theme under `web/src/themes/`; four template slots; `site_theme` 
 - The preview route is its own dynamic segment; `forcePreviewTheme()` writes a `cache()` store **before the first `await` after `params`** and never from a layout, so no cached render sees a cookie.
 - Theme CSS is one `@import` per theme in `themes/themes.css` at the top of `globals.css`, so theme rules lose ties to the 12px floor and the motion rules by design; every rule is scoped under `[data-theme="<id>"]` on `.public-site`.
 - Themes is `/admin/themes`, a screen beside Info bar (`STANDALONE_GROUPS`), and the palette picker is "Colour palette"; the Preview link is a plain `<a>` outside the radio's label.
+- Header & footer (0.160.0, `docs/site-chrome.md` "Arranging a theme's header and footer", `/admin/site/chrome`): an editor **arranges each theme's own parts, never builds one** — which parts show, their order where the theme allows, the main button's words and link — and the themes still draw them. It is `header`/`footer` inside that theme's object in `site_theme_options` (`ThemeOptions::cleanChrome()`, ids from `HEADER_PARTS`/`FOOTER_PARTS`, a button's switch in `header.cta.on` not in `parts`, link by `LinkPattern`, label ≤ 30), stored as differences; **what a theme draws is its manifest's `chrome`** (`themes/chrome-parts.ts`: `parts` in draw order, `groups` that can swap places among themselves, `off` for parts drawn only when asked), so the default reproduces the chrome as it was and `resolveChrome()` (`themes/chrome.tsx`) is the one answer. A header wraps each part in `show` and the movable clusters in `<Arranged nodes={{…}}>`, written in the theme's own order; the footer's `Brand` and `BottomRow` take `chrome`. Hiding a part only makes room, so no width gate moved; the mobile drawer is not affected. The in-header light/dark switch is opt-in and appears from 1600px.
 - `Breadcrumbs` lives in `breadcrumbs.tsx` and is re-exported from `page-hero.tsx`, because a template importing the dispatcher that lazily loads it would be a cycle.
 - Identical HTML is not identical bytes: streamed `<script>` runs vary in count, `useId` values encode tree position, and a cold dynamic route streams its metadata — the snapshot probe normalises all three.
 - Editorial (step 2) is the first real theme: a three-rule masthead whose section rail sticks, a ruled front page whose lead is the slider full-bleed or a fixed picture with the words on it, a headline instead of a banner on every inner page; it redefines the two *type* tokens and never a colour token, and `Card` stamps `data-card` so a theme can restyle it by attribute.
@@ -3184,7 +3185,6 @@ same evening (0.153.0–0.159.0). What still stands:
 **Offered earlier and not wanted** (the client, 2026-10-10: "not
 required"). Not to be built unless the client asks: Microsoft sign-in, and
 Google sign-in for staff (customers' Google sign-in, 0.133.0, stays); a
-header and footer builder; a
 template builder.
 
 ---

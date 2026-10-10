@@ -21,6 +21,38 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.160.0 — 2026-10-10
+
+**Arrange a theme's header and footer.**
+
+- **Site → Header & footer.** For each theme, choose which parts of its header
+  and footer show — the top bar, phone, email, search, the top-bar links, the
+  main and second buttons, the basket mark on Store; and in the footer the
+  logo, tagline, address, phone, social links, menu columns, newsletter signup,
+  policy links, credit line and the light / dark switch. Where a theme allows,
+  the parts that share a row or a block can swap places, and the header's main
+  button takes its own words (30 characters) and link. A live frame of the
+  theme sits beside the list.
+- **Not a free builder, by choice.** Each theme still draws its own header and
+  footer; the screen only offers the parts that theme has. With nothing chosen
+  every theme looks exactly as before. A light / dark switch in the header is
+  new, off unless switched on, and appears from 1600px wide.
+- Stored in the theme options (`header` and `footer` per theme, only what
+  differs from the theme's own); the API checks the part ids, the switches, the
+  order and the link. Nothing to migrate.
+  `scripts/probes/chrome-builder.mjs` drives the screen and reads the preview
+  at 1280 and 360, now for all twelve themes, and names what sticks out when a
+  page scrolls sideways.
+- Merge review: run across every theme, a button's own words ("Book a survey")
+  pushed the phone header 3–24px past a 360px screen in seven themes, so an
+  editor's words are cut shorter below 420px (4rem, Terminal's bracketed label
+  6rem). The default output was proved unchanged by building before and after
+  and diffing 35 routes' HTML (`html-snapshot.mjs`): only the stylesheet's
+  hash differs. The webpack build that needed found `careers/[slug]` exporting
+  a helper a page module may not export (since 0.82); it is no longer exported.
+
+---
+
 ## 0.159.0 — 2026-10-10
 
 **Shiprocket: courier quotes, manifests, and the courier collecting a return.**

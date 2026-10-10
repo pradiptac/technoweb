@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, type ReactNode, type RefObject } from "react";
+import { Fragment, useRef, useState, type ReactNode, type RefObject } from "react";
 import { CartBadge } from "@/components/layout/cart-badge";
 import { MegaMenu, PANEL_CHEVRON_CLASSES, PANEL_HOST_CLASS, type MenuPanelStyle } from "@/components/layout/mega-menu";
 import { closePanelOnNavigate, releasePanel } from "@/components/layout/panel-host";
 import { TopBarPanel } from "@/components/layout/top-bar-panel";
+import { SchemeToggle } from "@/components/ui/scheme-toggle";
 import { IconChevronDown } from "@/components/icons-ui";
 import { contact, mainNav } from "@/content/site";
 import { navKey } from "@/lib/nav-key";
+import { arrange, type ResolvedChrome } from "@/themes/chrome-parts";
 import type { MenuSection, NavLink, TopBarLink } from "@/lib/navigation";
 import type { SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
@@ -67,7 +69,7 @@ export function useHeaderNav({
  */
 export function PrimaryNavItems({
   nav, menu = {}, menuStyle = "mega", isStoreItem, linkClassName, itemClassName, chevronClassName = "size-3",
-  cartBadgeClassName = "relative -top-[6px] -ml-1", renderLabel = (label) => label,
+  cartBadgeClassName = "relative -top-[6px] -ml-1", renderLabel = (label) => label, showCart = true,
 }: {
   nav: readonly NavLink[];
   menu?: Record<string, MenuSection>;
@@ -81,6 +83,8 @@ export function PrimaryNavItems({
   cartBadgeClassName?: string;
   /** How the label is printed — Terminal prints `/label` in lower case. */
   renderLabel?: (label: string) => ReactNode;
+  /** The basket mark on the Store link; the Header & footer screen can switch it off. */
+  showCart?: boolean;
 }) {
   return (
     <>
@@ -105,7 +109,7 @@ export function PrimaryNavItems({
               className={linkClassName}
             >
               {renderLabel(item.label)}
-              {item.href !== null && isStoreItem(item.href) && <CartBadge size={18} className={cartBadgeClassName} />}
+              {showCart && item.href !== null && isStoreItem(item.href) && <CartBadge size={18} className={cartBadgeClassName} />}
               {section && <IconChevronDown className={cn(chevronClassName, PANEL_CHEVRON_CLASSES)} />}
             </Trigger>
             {section && <MegaMenu section={section} style={menuStyle} />}
@@ -167,3 +171,49 @@ export const ONE_ROW_GATE = (i: number, count: number) => (i === count - 1 ? "hi
 export const TERMINAL_GATE = (i: number, count: number) => (i === count - 1 ? "hidden min-[1600px]:flex" : "hidden min-[1760px]:flex");
 /** The two-row headers' gate: the last always, the rest from `sm`. */
 export const STRIP_GATE = (i: number, count: number) => (i === count - 1 ? "flex" : "hidden sm:flex");
+
+/**
+ * A header button's words: the theme's own pair (the long one from 560px, the
+ * short one below it) or, when an editor has typed some, those — one label at
+ * every width, cut short with an ellipsis on a phone where the row has no
+ * room to spare.
+ */
+export function CtaWords({
+  label, long, short, longClass = "hidden min-[560px]:inline", shortClass = "min-[560px]:hidden",
+}: {
+  label?: string;
+  long: ReactNode;
+  short: ReactNode;
+  longClass?: string;
+  shortClass?: string;
+}) {
+  // An editor's own words: cut short on a phone, tighter still under 420px, where Launch ran 20px over at 360 with "Book a survey".
+  if (label) return <span className="max-[559px]:max-w-[8.5rem] max-[419px]:max-w-[4rem] max-[559px]:truncate">{label}</span>;
+  return (
+    <>
+      <span className={longClass}>{long}</span>
+      <span className={shortClass}>{short}</span>
+    </>
+  );
+}
+
+/**
+ * The light / dark switch in a header — opt-in (Site → Header & footer), so no
+ * theme draws it until asked. Shown from 1600px where it sits in a bar, which
+ * is wider than every gate the bar's other tools use: the footer carries the
+ * same control at every width, and a header at its measured limit has no room
+ * for a 90px control.
+ */
+export function HeaderScheme({ onDark = false, className = "hidden min-[1600px]:inline-flex" }: { onDark?: boolean; className?: string }) {
+  return <SchemeToggle area="site" onDark={onDark} className={cn("shrink-0", className)} />;
+}
+
+/**
+ * A cluster of header parts in the order the manifest's group (and so the
+ * Header & footer screen) puts them, the switched-off ones left out. Write
+ * the nodes (an object, in the order the theme draws them) and the default is the markup
+ * it always rendered. Whole groups only — see `arrange()`.
+ */
+export function Arranged<Id extends string>({ chrome, nodes }: { chrome: ResolvedChrome<Id>; nodes: Partial<Record<Id, ReactNode>> }) {
+  return <>{arrange(chrome, Object.entries(nodes) as [Id, ReactNode][]).map(([id, node]) => <Fragment key={id}>{node}</Fragment>)}</>;
+}

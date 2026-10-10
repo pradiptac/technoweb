@@ -1,4 +1,5 @@
 import type { ThemeManifest } from "../contract.ts";
+import { oneRowHeader, BRAND_FOOTER } from "../chrome-parts.ts";
 
 /**
  * Launch: the site as a product launch page.
@@ -21,4 +22,5 @@ export const launchManifest: ThemeManifest = {
   // Every page opens on the rounded panel with the picture beside the words.
   ignores: ["hero_style"],
   defaults: { menu_style: "semi" },
+  chrome: { header: oneRowHeader(["utility", "search", "phone", "cta"]), footer: BRAND_FOOTER },
 };

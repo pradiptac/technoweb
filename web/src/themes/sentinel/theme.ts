@@ -1,4 +1,5 @@
 import type { ThemeManifest } from "../contract.ts";
+import { oneRowHeader, BRAND_FOOTER } from "../chrome-parts.ts";
 
 /**
  * Sentinel: the security company's site, after eset.com.
@@ -25,4 +26,5 @@ export const sentinelManifest: ThemeManifest = {
   // The category cards' name beside or at the far edge of its icon — asked for on 2026-09-19.
   offers: ["heading_align"],
   defaults: { menu_style: "mega", heading_align: "left" },
+  chrome: { header: oneRowHeader(["utility", "search", "phone", "cta"]), footer: BRAND_FOOTER },
 };

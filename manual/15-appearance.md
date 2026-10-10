@@ -78,6 +78,34 @@ theme, so trying another theme and coming back loses nothing.
   (Sentinel's **Category card heading**, for example).
 - A theme that does not use an option shows it greyed out.
 
+### Header & footer
+
+**Site → Header & footer** chooses which parts of the header and footer a theme
+shows. Pick the theme at the top (it starts on the one the site uses); the list
+shows only the parts *that theme* has, because each theme draws its own header
+and footer and this does not change how they look.
+
+- **Switch a part off** — the top bar, the phone number, the email address, the
+  search field, the top-bar links, the main button, a second button, the
+  basket mark beside Store; in the footer the logo, tagline, address, phone
+  number, social icons, link columns, newsletter signup, policy links, credit
+  line and the light / dark switch. Switching a part off only frees the room; the
+  rest of the header stays where the theme puts it.
+- **Move a part** — the up and down arrows appear on parts that share a row or a
+  block and that the theme can reorder (the search and the phone number in the
+  header, say, or the tagline and the address in the footer).
+- **The main button** has its own *Words* (up to 30 characters) and *Links to*
+  (a page such as `/contact`, a full `https://` address, `mailto:` or `tel:`).
+  Leave either blank to keep the theme's own. On a phone a long label is cut short
+  with an ellipsis so the header still fits.
+- **A light / dark switch in the header** is off until you switch it on, and shows
+  from 1600px wide; the footer's switch shows at every width.
+- The preview beside the list is the theme's real homepage as last saved, at
+  desktop or phone width. **Restore defaults** puts a theme back as it came.
+
+The phone number and the search in the mobile menu are not affected by these
+switches.
+
 ### Homepage sections
 
 **Homepage sections** lists the parts of the homepage in order: Hero,

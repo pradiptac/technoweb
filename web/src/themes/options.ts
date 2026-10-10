@@ -38,6 +38,8 @@
  *   follow in the theme's own order, so a section added later still shows.
  */
 
+import { parseChrome, type ChromeOptions } from "./chrome-parts.ts";
+
 export type MenuStyle = "simple" | "semi" | "mega" | "big";
 /** How the top bar's panel opens: following `menu_style`, or the client's columns (0.150.0). */
 export type TopBarPanelStyle = "match" | "columns";
@@ -92,6 +94,8 @@ export type ThemeOptions = {
    */
   heading_align: HeadingAlign;
   sections: Partial<Record<string, SectionSetting>>;
+  /** The header's and the footer's parts as stored (0.160.0); `resolveChrome()` applies the theme's defaults to them. */
+  chrome: ChromeOptions;
   /** Section ids in the order chosen; empty means the theme's own order. */
   order: string[];
   /**
@@ -276,6 +280,7 @@ export function resolveOptions(raw: string | undefined, themeId: string, default
     hero_style: choice(HERO_STYLES, stored.hero_style, defaults.hero_style ?? "banner"),
     heading_align: choice(HEADING_ALIGNS, stored.heading_align, defaults.heading_align ?? "left"),
     sections,
+    chrome: parseChrome(stored.header, stored.footer),
     order,
   };
 }

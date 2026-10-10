@@ -1,4 +1,5 @@
 import type { ThemeManifest } from "../contract.ts";
+import { CLASSIC_HEADER, FIXED_FOOTER } from "../chrome-parts.ts";
 
 /**
  * Canvas: the warm editorial system in `DESIGN-claude.md`.
@@ -26,4 +27,5 @@ export const canvasManifest: ThemeManifest = {
   screenshot: "/themes/canvas.jpg",
   extends: "classic",
   defaults: { menu_style: "semi", hero_style: "split" },
+  chrome: { header: CLASSIC_HEADER, footer: FIXED_FOOTER },
 };

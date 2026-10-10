@@ -1,4 +1,5 @@
 import type { ThemeManifest } from "../contract.ts";
+import { oneRowHeader, BRAND_FOOTER } from "../chrome-parts.ts";
 
 /**
  * Keystone: the enterprise platform's site, after truenas.com.
@@ -23,4 +24,5 @@ export const keystoneManifest: ThemeManifest = {
   // Every inner page opens centred on the page ground with the banner framed under the words.
   ignores: ["hero_style"],
   defaults: { menu_style: "semi" },
+  chrome: { header: oneRowHeader(["search", "phone", "cta", "utility"]), footer: { ...BRAND_FOOTER, groups: [["tagline", "address"]] } },
 };

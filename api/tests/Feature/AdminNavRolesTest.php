@@ -52,6 +52,8 @@ class AdminNavRolesTest extends TestCase
         'info-bar' => 'settings',
         // Themes is the `themes` settings group on a screen of its own, the info bar's shape.
         'themes' => 'settings',
+        // Header & footer: one theme's parts, saved in the `site_theme_options` row by the same endpoint.
+        'site/chrome' => 'settings',
         // Each module's own settings, a screen at the end of its sidebar section
         // since 2026-09-20 — all of them the one settings endpoint under a
         // different console path, so all of them compare against role:admin.

@@ -47,6 +47,20 @@ final class ThemeOptions
      */
     public const REVEAL = '/^[a-z][a-z0-9-]{0,15}$/';
 
+    /**
+     * The parts a theme's header and footer are made of (0.160.0). Which of
+     * them a given theme draws, and which it lets move, is the theme's
+     * manifest on the frontend; the lists here are only the ids a row may
+     * name at all. `cta` and `cta2` are switched in their own objects
+     * (`header.cta.on`), so they are ids for `order` but not keys of `parts`.
+     */
+    public const HEADER_PARTS = ['topbar', 'phone', 'email', 'search', 'utility', 'cta', 'cta2', 'cart', 'scheme'];
+
+    public const FOOTER_PARTS = ['brand', 'tagline', 'address', 'phone', 'social', 'columns', 'signup', 'legal', 'credit', 'scheme'];
+
+    /** The longest button label a header will print. */
+    public const CTA_LABEL_MAX = 30;
+
     /** The most a row may hold — a few themes' worth, not a document. */
     private const MAX_BYTES = 32768;
 
@@ -115,6 +129,16 @@ final class ThemeOptions
                     continue;
                 }
 
+                // The header's and the footer's parts (0.160.0).
+                if ($key === 'header' || $key === 'footer') {
+                    $chrome = self::cleanChrome($theme, $key, $value);
+                    if ($chrome !== []) {
+                        $cleaned[$key] = (object) $chrome;
+                    }
+
+                    continue;
+                }
+
                 // Every other option is a choice id: the list lives with the
                 // theme that declares it.
                 if (! is_string($value) || ! preg_match(self::ID, $value)) {
@@ -128,6 +152,131 @@ final class ThemeOptions
         }
 
         return json_encode((object) $out, JSON_UNESCAPED_SLASHES) ?: '{}';
+    }
+
+    /**
+     * One theme's `header` or `footer` object: `parts` (id → `{on: bool}`),
+     * `order` (known ids, no repeats) and, for the header, `cta`/`cta2`
+     * (`{label, href, on}`). Only what is present is kept and an empty
+     * object stores nothing, so absent means the theme's own default — the
+     * defaults live in the manifests, which is why the console sends
+     * differences and this only refuses what is not a shape.
+     *
+     * @return array<string, mixed>
+     *
+     * @throws \InvalidArgumentException
+     */
+    private static function cleanChrome(string $theme, string $which, mixed $value): array
+    {
+        if (! is_array($value) || (array_is_list($value) && $value !== [])) {
+            throw new \InvalidArgumentException("The {$which} options for \"{$theme}\" must be an object.");
+        }
+
+        $header = $which === 'header';
+        $known = $header ? self::HEADER_PARTS : self::FOOTER_PARTS;
+        // A header's cta/cta2 carry their own switch; they are not `parts` keys.
+        $switchable = $header ? array_values(array_diff($known, ['cta', 'cta2'])) : $known;
+        $out = [];
+
+        foreach (array_keys($value) as $k) {
+            if (! in_array($k, array_merge(['parts', 'order'], $header ? ['cta', 'cta2'] : []), true)) {
+                throw new \InvalidArgumentException("\"{$k}\" is not something a {$which} can be set to.");
+            }
+        }
+
+        if (isset($value['parts'])) {
+            if (! is_array($value['parts'])) {
+                throw new \InvalidArgumentException("The {$which} parts for \"{$theme}\" must be an object.");
+            }
+            $parts = [];
+            foreach ($value['parts'] as $id => $part) {
+                if (! in_array($id, $switchable, true)) {
+                    throw new \InvalidArgumentException("\"{$id}\" is not a {$which} part.");
+                }
+                if (! is_array($part) || ! is_bool($part['on'] ?? null)) {
+                    throw new \InvalidArgumentException("The \"{$id}\" part needs on or off.");
+                }
+                $parts[$id] = (object) ['on' => $part['on']];
+            }
+            if ($parts !== []) {
+                $out['parts'] = (object) $parts;
+            }
+        }
+
+        if (isset($value['order'])) {
+            if (! is_array($value['order']) || ! array_is_list($value['order'])) {
+                throw new \InvalidArgumentException("The {$which} order for \"{$theme}\" must be a list.");
+            }
+            $ids = [];
+            foreach ($value['order'] as $id) {
+                if (! in_array($id, $known, true)) {
+                    throw new \InvalidArgumentException("\"{$id}\" is not a {$which} part.");
+                }
+                if (! in_array($id, $ids, true)) {
+                    $ids[] = $id;
+                }
+            }
+            if ($ids !== []) {
+                $out['order'] = $ids;
+            }
+        }
+
+        if ($header) {
+            foreach (['cta', 'cta2'] as $button) {
+                if (! isset($value[$button])) {
+                    continue;
+                }
+                $row = self::cleanButton($button, $value[$button]);
+                if ($row !== []) {
+                    $out[$button] = (object) $row;
+                }
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * A header button: its label (plain text), its link (`LinkPattern`) and
+     * its switch. A blank label or link means the theme's own, and is not
+     * stored.
+     *
+     * @return array<string, mixed>
+     *
+     * @throws \InvalidArgumentException
+     */
+    private static function cleanButton(string $button, mixed $value): array
+    {
+        if (! is_array($value)) {
+            throw new \InvalidArgumentException("The {$button} button must be an object.");
+        }
+
+        $row = [];
+
+        $label = $value['label'] ?? null;
+        if ($label !== null && $label !== '') {
+            if (! is_string($label) || trim($label) === '' || mb_strlen($label) > self::CTA_LABEL_MAX || $label !== strip_tags($label)) {
+                throw new \InvalidArgumentException('A button label is plain text of '.self::CTA_LABEL_MAX.' characters or fewer.');
+            }
+            $row['label'] = trim($label);
+        }
+
+        $href = $value['href'] ?? null;
+        if ($href !== null && $href !== '') {
+            if (! is_string($href) || ! LinkPattern::allows($href)) {
+                throw new \InvalidArgumentException('A button links to a path on this site, an http(s) address, a mailto: or a tel:.');
+            }
+            $row['href'] = $href;
+        }
+
+        if (array_key_exists('on', $value)) {
+            if (! is_bool($value['on'])) {
+                throw new \InvalidArgumentException("The {$button} button needs on or off.");
+            }
+            $row['on'] = $value['on'];
+        }
+
+        return $row;
     }
 
     /** @return array<string, array<string, mixed>> */

@@ -558,3 +558,98 @@ something comes back.
 
 `scripts/probes/action-bar.mjs` measures all three through the real settings
 form and always switches both features off again.
+
+## Arranging a theme's header and footer (0.160.0)
+
+**Site → Header & footer** (`/admin/site/chrome`, administrators) lets an
+editor choose which parts of a theme's header and footer show, put the movable
+ones in another order, and change the words and the link on the header's
+buttons. It is **not a builder**: each theme still draws its own header and
+footer — the markup, the widths at which a piece appears, the idiom — and the
+screen chooses among the parts *that theme has*. A free-form builder was
+considered and not wanted (the client, 2026-10-10).
+
+**The data** is two keys inside a theme's object in the `site_theme_options`
+row (`docs/themes.md`), beside `menu_style` and `sections`:
+
+```json
+{ "launch": {
+    "header": { "parts": { "search": {"on": false}, "scheme": {"on": true} },
+                "order": ["cta", "search", "utility", "phone"],
+                "cta":  { "label": "Book a survey", "href": "/book-a-visit", "on": true } },
+    "footer": { "parts": { "signup": {"on": false} }, "order": ["social", "tagline", "address"] } } }
+```
+
+- **Header ids** (`ThemeOptions::HEADER_PARTS`): `topbar` (the strip above the
+  bar), `phone`, `email`, `search`, `utility` (the top-bar menu's links), `cta`
+  (the main button), `cta2` (a quieter second button), `cart` (the basket mark
+  on the Store link), `scheme` (a light / dark switch, new in the header).
+  **Footer ids** (`FOOTER_PARTS`): `brand` (the logo), `tagline`, `address`,
+  `phone`, `social`, `columns`, `signup`, `legal` (policy links), `credit`,
+  `scheme`.
+- A button's switch is `header.cta.on` / `header.cta2.on`, **not** an entry in
+  `parts` (the API refuses `parts.cta`); its `label` is plain text of at most 30
+  characters and its `href` is checked by `LinkPattern`, so `javascript:` and
+  `//host` are refused. A blank label or link means the theme's own.
+- **Only differences are stored.** Absent means the theme's default: the
+  console works out what changed against the manifest and writes just that, and
+  `ThemeOptions::clean()` drops anything empty, so an untouched theme stores
+  nothing. The API does not know the themes (they are code on the frontend), so
+  what it refuses is a *shape* — an id outside the two lists, a non-boolean
+  switch, an order naming an unknown id, a bad link — with the row's usual
+  error key, `settings.N.value`. `GET /admin/settings` sends the two id lists as
+  `meta.theme_parts`.
+- **What a theme draws is its manifest's `chrome`** (`themes/chrome-parts.ts`,
+  declared in each `themes/<id>/theme.ts`): `parts` (every part it draws, in
+  the order it draws them), `groups` (clusters whose members may swap places
+  among themselves — the members of one row or one block, listed in the theme's
+  own order) and `off` (parts it draws only when asked: `scheme`). **That is how
+  the defaults reproduce today's chrome exactly**: with nothing stored every
+  supported part is on bar `off`, no group is reordered, and a button keeps the
+  theme's own words and link. `resolveChrome(themeId, options)`
+  (`themes/chrome.tsx`) is the one answer; `themeChrome()` and classic's chrome
+  hand it to the header (`chrome` prop, `ResolvedHeader`) and `SiteFooter`
+  (`ResolvedFooter`).
+- **How a header uses it.** Each part is `chrome.show.<id> && …`; a cluster the
+  theme can reorder is `<Arranged chrome={chrome} nodes={{ utility: …, search:
+  …, phone: …, cta: … }}/>` (`header-parts.tsx`), the nodes written in the
+  theme's own order, so the default is the markup it always rendered (the
+  `Fragment`s add no element). `arrange()` takes **whole groups only** — a part
+  that is in no group would be sorted to the end. `PrimaryNavItems` takes
+  `showCart`. A button's words go through `CtaWords`: the theme's own pair
+  (long from 560px, short below) or the editor's one label, ellipsised below
+  560px where the row has nothing to spare. The 404 page renders the classic
+  header with no options and gets its default.
+- **How a footer uses it.** `SiteFooter` takes `chrome`; `columns` empties the
+  link columns (`--footer-cols` never goes below 1), `signup` is folded into the
+  signup flag, `Brand` draws the logo, tagline, address (carrying the phone
+  number) and social row as an arranged block — `address` stands for the phone
+  as well when only the number is on — and `BottomRow` the credit, policy links
+  and scheme switch, and nothing at all when all three are off. Layouts that
+  compose their own brand block (`statement`, `cream`, `contact`, and the
+  masthead's big name) read the same flags.
+- **Hiding only makes room.** No breakpoint or width gate moved: the one-row
+  headers' search (1760px / 1920px), phone and utility gates, the classic
+  Contact button (1400px) and every `max-[…]` rule are the theme's and stay.
+  The mobile drawer is not touched — the number and the search field are there
+  by design — and neither is the footer on a small screen.
+- **The in-header switch is opt-in and late.** `scheme` is off by default; on,
+  it appears from 1600px, wider than every gate the bars already use, because a
+  bar at its measured limit has no 90px to give. The footer's switch shows at
+  every width. It sits in the bar proper (not in a top strip), so it survives
+  switching the strip off.
+- **The screen** reads the whole row, changes one theme's two keys and posts the
+  whole row back through `saveSettingsAction` — the Themes screen's own way, so
+  neither screen disturbs the other's keys. A button's link is read raw while
+  being typed (a half-typed link is not yet a link) and Save is disabled while
+  one does not pass the same pattern. The frame beside it is the theme's real
+  `/theme-preview/<id>`, reloaded when the saved row comes back; Desktop and
+  Phone widths. Parts the theme lacks are not listed.
+
+`scripts/probes/chrome-builder.mjs` switches off search and phone and changes
+the button's words in Classic and Launch through the real screen, then reads
+the preview at 1280 and 360 (the drawer is excluded from every count) and
+restores the defaults. `scripts/probes/html-snapshot.mjs` is the proof the
+default markup did not move: build the tree from before this release and the
+one after, snapshot each (`node scripts/probes/html-snapshot.mjs <dir>` against
+`npm run start`), and `diff -r` must come back empty.

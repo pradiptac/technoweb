@@ -85,7 +85,7 @@ const longDate = (iso: string) =>
  * `jobLocationType: TELECOMMUTE`, and a posting with neither is not indexed at
  * all.
  */
-export const locationLabel = (job: JobOpening) => job.location?.trim() || "Remote";
+const locationLabel = (job: JobOpening) => job.location?.trim() || "Remote";
 
 /**
  * The role at a glance: the four facts somebody decides on before reading a

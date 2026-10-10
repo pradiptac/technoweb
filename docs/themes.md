@@ -997,3 +997,26 @@ review found, and the rule each fix leaves behind:
 
 `scripts/probes/full-rows.mjs` and the audits measure what can be measured;
 the review is still a person looking at the four widths.
+
+## Header & footer parts (0.160.0)
+
+Each manifest declares what its header and footer draw (`chrome`, in
+`themes/<id>/theme.ts`; the model is `themes/chrome-parts.ts`) and the stored
+choices live in `site_theme_options[<theme>].header` / `.footer` — the whole
+account is `docs/site-chrome.md` "Arranging a theme's header and footer". A
+theme that adds a header or footer part declares it in its manifest and wraps it
+in `chrome.show.<id>`; one that does not still resolves to its defaults.
+
+| Theme | Header parts (cluster that can swap places) | Footer parts (movable) |
+|---|---|---|
+| Classic, Enterprise, Horizon, Canvas (the classic header) | topbar, phone, email, search, utility, cta ("Request a consultation"), cta2 ("Contact", from 1400px), cart, scheme (off) — phone/email, search/utility and cta2/cta swap among themselves | Classic `columns`, Enterprise `split`: all ten, tagline/address/social movable. Horizon `centred`: all ten, tagline/address/social movable. Canvas `cream`: all ten, none movable |
+| Editorial | topbar, phone, email, search, utility, cta (nameplate, plus the small "Consultation" link on a phone), cart, scheme — phone/email, search/utility | `masthead`: all ten (the big name is the logo), tagline/address/social |
+| Datacenter | topbar (status strip with its readouts), phone, search, utility, email, cta, cart, scheme — search/utility/email | `console`: all ten (the status line's number is `phone`), tagline/address/social |
+| Launch, Sentinel, Summit, Terminal, Vantage | utility, search, phone, cta, cart, scheme — all four in the cluster, the order the theme draws them (Vantage's button is "Support ticket" to /support) | Launch `card`, Terminal `prompt`, Sentinel `glow`: all ten, tagline/address/social. Summit `statement`: all ten, none movable. Vantage `contact`: no logo; tagline, address, phone, social, columns, signup, legal, credit, scheme |
+| Keystone | search, phone, cta, utility, cart, scheme — all four in the cluster | `plate`: all ten, tagline/address movable (its social row sits on the right, apart) |
+
+Rules that held while wrapping 12 themes: a part is wrapped, never restyled; the
+default markup is what it was (Fragments only); a theme's own gates (1280 nav,
+1440/1680/1760/1920 tools, 560/419 button words) are not touched; and a part
+that lives in the top strip (classic, editorial, datacenter) is greyed in the
+console while the strip is off.

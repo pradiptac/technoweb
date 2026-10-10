@@ -7,7 +7,9 @@ import { PageEnter } from "@/components/ui/page-enter";
 import { defaultTopBar } from "@/lib/navigation";
 import type { MenuSection, NavLink, TopBarLink } from "@/lib/navigation";
 import type { SiteSettings } from "@/lib/site-settings";
+import { resolveFooter, resolveHeader, type ResolvedFooter, type ResolvedHeader } from "./chrome-parts";
 import type { ChromeData, ThemeTemplates } from "./contract";
+import { DEFAULT_THEME_ID, manifestById } from "./manifests";
 import type { ThemeOptions } from "./options";
 
 /** What every theme header takes: the chrome's own data, already resolved. */
@@ -17,7 +19,18 @@ export type ThemeHeaderProps = {
   links?: NavLink[];
   topBar: TopBarLink[];
   menuStyle?: MenuPanelStyle;
+  /** Which of the header's parts to draw and in what order (0.160.0); always resolved by `themeChrome`. */
+  chrome: ResolvedHeader;
 };
+
+/** A theme's header and footer parts as the stored options and the theme's own manifest settle them. */
+export function resolveChrome(themeId: string, options: ThemeOptions): { header: ResolvedHeader; footer: ResolvedFooter } {
+  const support = (manifestById(themeId) ?? manifestById(DEFAULT_THEME_ID))!.chrome;
+  return {
+    header: resolveHeader(support.header, options.chrome.header),
+    footer: resolveFooter(support.footer, options.chrome.footer),
+  };
+}
 
 /**
  * A theme's chrome from its two decisions: which header, which footer.
@@ -39,8 +52,9 @@ export function themeChrome({
   between?: (settings: SiteSettings) => ReactNode;
 }): ThemeTemplates["Chrome"] {
   return function Chrome({
-    settings, menu, primary, footerMenu, topBar, bottomBar, announcement, motion, options, children,
-  }: ChromeData & { options: ThemeOptions; children: ReactNode }) {
+    settings, menu, primary, footerMenu, topBar, bottomBar, announcement, motion, options, themeId, children,
+  }: ChromeData & { options: ThemeOptions; themeId: string; children: ReactNode }) {
+    const chrome = resolveChrome(themeId, options);
     return (
       <>
         {announcement && <AnnouncementBar announcement={announcement} />}
@@ -51,11 +65,12 @@ export function themeChrome({
             links={primary?.links}
             topBar={topBar ?? defaultTopBar()}
             menuStyle={options.menu_style}
+            chrome={chrome.header}
           />
         </TopBarStyleProvider>
         {between?.(settings)}
         <main id="main"><PageEnter transition={motion.page}>{children}</PageEnter></main>
-        <SiteFooter layout={footer} settings={settings} columns={footerMenu ?? undefined} bottomBar={bottomBar ?? undefined} />
+        <SiteFooter layout={footer} settings={settings} columns={footerMenu ?? undefined} bottomBar={bottomBar ?? undefined} chrome={chrome.footer} />
       </>
     );
   };

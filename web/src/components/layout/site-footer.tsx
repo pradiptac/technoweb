@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { CSSProperties, ReactNode } from "react";
+import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { SchemeToggle } from "@/components/ui/scheme-toggle";
 import { CreditLine } from "@/components/layout/credit-line";
 import { Container } from "@/components/ui/container";
@@ -12,6 +12,7 @@ import { NewsletterSignup } from "@/components/layout/newsletter-signup";
 import { IconMail, IconMapPin, IconPhone } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
 import { brandName } from "@/lib/brand";
+import { arrange, resolveFooter, FIXED_FOOTER, type FooterPartId, type ResolvedFooter } from "@/themes/chrome-parts";
 
 /**
  * How the footer is arranged — one per theme (2026-09-17, "a different
@@ -87,7 +88,7 @@ type Column = { heading: string; href: string | null; links: NavLink[] };
 type Legal = { label: string; href: string; newTab: boolean };
 
 export function SiteFooter({
-  settings = {}, columns, bottomBar, layout = "columns",
+  settings = {}, columns, bottomBar, layout = "columns", chrome = resolveFooter(FIXED_FOOTER, { parts: {}, order: [] }),
 }: {
   settings?: SiteSettings;
   /*
@@ -102,12 +103,15 @@ export function SiteFooter({
   */
   bottomBar?: Legal[];
   layout?: FooterLayout;
+  /** Which parts to draw and in what order (Site → Header & footer); absent draws everything the layout has. */
+  chrome?: ResolvedFooter;
 }) {
-  const nav: Column[] = columns ?? footerNav.map((col) => ({
+  const allColumns: Column[] = columns ?? footerNav.map((col) => ({
     heading: col.heading,
     href: "",
     links: col.links.map((l) => ({ label: l.label, href: l.href, newTab: false })),
   }));
+  const nav = chrome.show.columns ? allColumns : [];
 
   /*
     The four policy pages are hard-coded here as the fallback and are **CMS
@@ -134,10 +138,10 @@ export function SiteFooter({
     and then answers 403 is worse than no form. Read through `settingEnabled`,
     because settings are strings and `"0"` is truthy in JavaScript.
   */
-  const signup = settingEnabled(settings, "newsletter_signup_enabled", false);
+  const signup = chrome.show.signup && settingEnabled(settings, "newsletter_signup_enabled", false);
   const tagline = settings.tagline ??
     "Hardware, network and security infrastructure — designed, deployed and supported by engineers.";
-  const p = { settings, nav, legal, signup, tagline };
+  const p = { settings, nav, legal, signup, tagline, chrome };
 
   switch (layout) {
     case "masthead": return <Masthead {...p} />;
@@ -155,7 +159,7 @@ export function SiteFooter({
   }
 }
 
-type Parts = { settings: SiteSettings; nav: Column[]; legal: Legal[]; signup: boolean; tagline: string };
+type Parts = { settings: SiteSettings; nav: Column[]; legal: Legal[]; signup: boolean; tagline: string; chrome: ResolvedFooter };
 
 /* ----------------------------------------------------------------- pieces */
 
@@ -163,39 +167,48 @@ type Parts = { settings: SiteSettings; nav: Column[]; legal: Legal[]; signup: bo
  * The logo, the tagline, the address and phone, the social row. `onDark` picks the band's tokens;
  * `social={false}` for a layout that draws the social row somewhere else, or the footer shows it twice.
  */
-function Brand({ settings, tagline, onDark, centred = false, social = true, className }: { settings: SiteSettings; tagline: string; onDark: boolean; centred?: boolean; social?: boolean; className?: string }) {
+function Brand({ settings, tagline, onDark, centred = false, social = true, className, chrome }: { settings: SiteSettings; tagline: string; onDark: boolean; centred?: boolean; social?: boolean; className?: string; chrome: ResolvedFooter }) {
+  // The address block carries the number, so it stands for both parts; its place in the order is the address's.
+  const parts = { show: { ...chrome.show, address: chrome.show.address || chrome.show.phone }, order: chrome.order };
+  const showAddress = chrome.show.address && settings.address;
+  const showPhone = chrome.show.phone && settings.phone;
+  const nodes: [FooterPartId, ReactNode][] = [
+    ["tagline", <p key="tagline" className={cn("max-w-[34ch] leading-relaxed", centred && "mx-auto")}>{tagline}</p>],
+    ["address", (showAddress || showPhone) ? (
+      /*
+        No rule above it and no heading over the address: this block is
+        three short things — who we are, where we are, where else to find
+        us — and a hairline between each made an identity block read as a
+        stack of separate widgets.
+      */
+      <section className={cn("mt-5 max-w-[34ch]", centred && "mx-auto")}>
+        <address className="not-italic leading-relaxed">
+          {/* Kept as typed: an address is line-broken by whoever wrote it. */}
+          {showAddress && <span className="block whitespace-pre-line">{settings.address}</span>}
+          {showPhone && (
+            <a href={telHref(settings.phone!)} className={cn("mt-2 inline-block font-mono text-14 transition-colors", onDark ? "hover:text-white" : "hover:text-ink")}>
+              {/* `font-mono`, the rule this project holds for data: a telephone number is dialled, not read as prose. */}
+              {settings.phone}
+            </a>
+          )}
+        </address>
+      </section>
+    ) : null],
+    ["social", social ? <SocialLinks settings={settings} /> : null],
+  ];
   return (
     <div className={cn(centred && "flex flex-col items-center text-center", className)}>
-      <Logo
-        onDark={onDark}
-        className="mb-3.5 block"
-        logoUrl={settings.logo_url}
-        logoWidth={settings.logo_width}
-        logoHeight={settings.logo_height}
-        companyName={settings.company_name}
-      />
-      <p className={cn("max-w-[34ch] leading-relaxed", centred && "mx-auto")}>{tagline}</p>
-      {(settings.address || settings.phone) && (
-        /*
-          No rule above it and no heading over the address: this block is
-          three short things — who we are, where we are, where else to find
-          us — and a hairline between each made an identity block read as a
-          stack of separate widgets.
-        */
-        <section className={cn("mt-5 max-w-[34ch]", centred && "mx-auto")}>
-          <address className="not-italic leading-relaxed">
-            {/* Kept as typed: an address is line-broken by whoever wrote it. */}
-            {settings.address && <span className="block whitespace-pre-line">{settings.address}</span>}
-            {settings.phone && (
-              <a href={telHref(settings.phone)} className={cn("mt-2 inline-block font-mono text-14 transition-colors", onDark ? "hover:text-white" : "hover:text-ink")}>
-                {/* `font-mono`, the rule this project holds for data: a telephone number is dialled, not read as prose. */}
-                {settings.phone}
-              </a>
-            )}
-          </address>
-        </section>
+      {chrome.show.brand && (
+        <Logo
+          onDark={onDark}
+          className="mb-3.5 block"
+          logoUrl={settings.logo_url}
+          logoWidth={settings.logo_width}
+          logoHeight={settings.logo_height}
+          companyName={settings.company_name}
+        />
       )}
-      {social && <SocialLinks settings={settings} />}
+      {arrange(parts, nodes).map(([id, node]) => <Fragment key={id}>{node}</Fragment>)}
     </div>
   );
 }
@@ -264,13 +277,17 @@ function pathLabel(l: NavLink): string {
 }
 
 /** The credit line, the policy links and the scheme toggle, in one row. */
-function BottomRow({ settings, legal, onDark, className, mono = false }: { settings: SiteSettings; legal: Legal[]; onDark: boolean; className?: string; mono?: boolean }) {
+function BottomRow({ settings, legal, onDark, className, mono = false, chrome }: { settings: SiteSettings; legal: Legal[]; onDark: boolean; className?: string; mono?: boolean; chrome: ResolvedFooter }) {
+  const { credit, legal: showLegal, scheme } = chrome.show;
+  if (!credit && !showLegal && !scheme) return null;
   return (
     <div className={cn("flex flex-wrap justify-between gap-x-6 gap-y-3 py-5.5 text-13", mono && "font-mono text-12-5", className)}>
-      <CreditLine
-        companyName={settings.company_name ?? brandName()}
-        linkClassName={cn("font-medium hover:underline", onDark ? "text-dark-ink hover:text-white" : "text-ink hover:text-brand-ink")}
-      />
+      {credit && (
+        <CreditLine
+          companyName={settings.company_name ?? brandName()}
+          linkClassName={cn("font-medium hover:underline", onDark ? "text-dark-ink hover:text-white" : "text-ink hover:text-brand-ink")}
+        />
+      )}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         {/*
           The policy row, from a menu when one is assigned to the bottom bar
@@ -279,7 +296,7 @@ function BottomRow({ settings, legal, onDark, className, mono = false }: { setti
           has no room for a group. `getBottomBarNav` drops children rather
           than recursing, so the decision lives in one place.
         */}
-        <ul className="flex flex-wrap gap-5">
+        {showLegal && <ul className="flex flex-wrap gap-5">
           {legal.map((l) => (
             <li key={`${l.href}-${l.label}`}>
               <Link href={l.href} {...(l.newTab ? { target: "_blank", rel: "noreferrer" } : {})} className={onDark ? "hover:text-white" : "hover:text-ink"}>
@@ -287,13 +304,13 @@ function BottomRow({ settings, legal, onDark, className, mono = false }: { setti
               </Link>
             </li>
           ))}
-        </ul>
+        </ul>}
         {/*
           The site's own scheme control, independent of the console's. In the
           footer rather than the header: it is a preference somebody sets
           once, not a thing they reach for.
         */}
-        <SchemeToggle area="site" onDark={onDark} />
+        {scheme && <SchemeToggle area="site" onDark={onDark} />}
       </div>
     </div>
   );
@@ -316,7 +333,7 @@ function SignupBand({ onDark, className }: { onDark: boolean; className?: string
 /* ---------------------------------------------------------------- layouts */
 
 /** The dark band with the brand column and one column per menu column. Classic. */
-function Columns({ settings, nav, legal, signup, tagline }: Parts) {
+function Columns({ settings, nav, legal, signup, tagline, chrome }: Parts) {
   return (
     <footer data-footer="columns" className="bg-dark pt-[60px] text-sm text-dark-muted">
       <Container>
@@ -327,39 +344,41 @@ function Columns({ settings, nav, legal, signup, tagline }: Parts) {
           than stacking; the brand column spans both.
         */}
         <div className="grid grid-cols-2 gap-x-6 gap-y-9 pb-11 lg:grid-cols-[1.4fr_repeat(var(--footer-cols),minmax(0,1fr))] lg:gap-9"
-          style={{ "--footer-cols": nav.length } as CSSProperties}>
-          <Brand settings={settings} tagline={tagline} onDark className="col-span-2 lg:col-span-1" />
+          style={{ "--footer-cols": Math.max(nav.length, 1) } as CSSProperties}>
+          <Brand chrome={chrome} settings={settings} tagline={tagline} onDark className="col-span-2 lg:col-span-1" />
           {nav.map((col) => <FooterColumn key={col.heading} col={col} onDark />)}
         </div>
-        <BottomRow settings={settings} legal={legal} onDark className="border-t border-dark-line" />
+        <BottomRow chrome={chrome} settings={settings} legal={legal} onDark className="border-t border-dark-line" />
       </Container>
     </footer>
   );
 }
 
 /** The company name huge across the top over hairline rules; the columns as a ruled row; the page ground. Editorial. */
-function Masthead({ settings, nav, legal, signup, tagline }: Parts) {
+function Masthead({ settings, nav, legal, signup, tagline, chrome }: Parts) {
   const name = settings.company_name ?? brandName();
   return (
     <footer data-footer="masthead" className="border-t-2 border-ink bg-page pt-8 text-sm text-muted">
       <Container>
-        <p aria-hidden className="select-none overflow-hidden border-b border-line pb-4 font-display text-[clamp(2.75rem,9.5vw,8.5rem)] leading-[.9] font-semibold tracking-[-.045em] text-ink uppercase">
-          {name}
-        </p>
+        {chrome.show.brand && (
+          <p aria-hidden className="select-none overflow-hidden border-b border-line pb-4 font-display text-[clamp(2.75rem,9.5vw,8.5rem)] leading-[.9] font-semibold tracking-[-.045em] text-ink uppercase">
+            {name}
+          </p>
+        )}
         {signup && <SignupBand onDark={false} className="border-b border-line py-8" />}
         <div className="grid grid-cols-2 gap-x-6 gap-y-9 border-b border-line py-9 lg:grid-cols-[1.2fr_repeat(var(--footer-cols),minmax(0,1fr))] lg:gap-9"
-          style={{ "--footer-cols": nav.length } as CSSProperties}>
-          <Brand settings={settings} tagline={tagline} onDark={false} className="col-span-2 lg:col-span-1 lg:border-r lg:border-line lg:pr-9" />
+          style={{ "--footer-cols": Math.max(nav.length, 1) } as CSSProperties}>
+          <Brand chrome={chrome} settings={settings} tagline={tagline} onDark={false} className="col-span-2 lg:col-span-1 lg:border-r lg:border-line lg:pr-9" />
           {nav.map((col) => <FooterColumn key={col.heading} col={col} onDark={false} headingClass="font-serif normal-case tracking-normal text-15 italic" />)}
         </div>
-        <BottomRow settings={settings} legal={legal} onDark={false} />
+        <BottomRow chrome={chrome} settings={settings} legal={legal} onDark={false} />
       </Container>
     </footer>
   );
 }
 
 /** Dark, with a mono status line, `›` bullets and a mono policy row. Datacenter. */
-function Console({ settings, nav, legal, signup, tagline }: Parts) {
+function Console({ settings, nav, legal, signup, tagline, chrome }: Parts) {
   const year = new Date().getFullYear();
   return (
     <footer data-footer="console" className="bg-dark text-sm text-dark-muted">
@@ -369,46 +388,46 @@ function Console({ settings, nav, legal, signup, tagline }: Parts) {
             <span className="text-dark-ink">{settings.company_name ?? brandName()}</span>
             <span aria-hidden className="inline-flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-ok" />systems nominal</span>
             <span>{year}</span>
-            {settings.phone && <span className="ml-auto">tel {settings.phone}</span>}
+            {chrome.show.phone && settings.phone && <span className="ml-auto">tel {settings.phone}</span>}
           </p>
         </Container>
       </div>
       <Container>
         {signup && <SignupBand onDark className="border-b border-dark-line py-9" />}
         <div className="grid grid-cols-2 gap-x-6 gap-y-9 py-11 lg:grid-cols-[1.4fr_repeat(var(--footer-cols),minmax(0,1fr))] lg:gap-9"
-          style={{ "--footer-cols": nav.length } as CSSProperties}>
-          <Brand settings={settings} tagline={tagline} onDark className="col-span-2 lg:col-span-1" />
+          style={{ "--footer-cols": Math.max(nav.length, 1) } as CSSProperties}>
+          <Brand chrome={chrome} settings={settings} tagline={tagline} onDark className="col-span-2 lg:col-span-1" />
           {nav.map((col) => (
             <FooterColumn key={col.heading} col={col} onDark bullet="›" headingClass="font-mono" />
           ))}
         </div>
-        <BottomRow settings={settings} legal={legal} onDark mono className="border-t border-dark-line" />
+        <BottomRow chrome={chrome} settings={settings} legal={legal} onDark mono className="border-t border-dark-line" />
       </Container>
     </footer>
   );
 }
 
 /** The footer inside one rounded brand-wash card on the page ground; the policy row outside it. Launch. */
-function CardFooter({ settings, nav, legal, signup, tagline }: Parts) {
+function CardFooter({ settings, nav, legal, signup, tagline, chrome }: Parts) {
   return (
     <footer data-footer="card" className="bg-page pt-6 text-sm text-muted">
       <Container>
         <div className="rounded-3xl bg-brand-50 px-6 py-9 sm:px-9 lg:px-12 lg:py-12">
           {signup && <SignupBand onDark={false} className="mb-9 border-b border-brand-200/60 pb-9" />}
           <div className="grid grid-cols-2 gap-x-6 gap-y-9 lg:grid-cols-[1.4fr_repeat(var(--footer-cols),minmax(0,1fr))] lg:gap-9"
-            style={{ "--footer-cols": nav.length } as CSSProperties}>
-            <Brand settings={settings} tagline={tagline} onDark={false} className="col-span-2 lg:col-span-1" />
+            style={{ "--footer-cols": Math.max(nav.length, 1) } as CSSProperties}>
+            <Brand chrome={chrome} settings={settings} tagline={tagline} onDark={false} className="col-span-2 lg:col-span-1" />
             {nav.map((col) => <FooterColumn key={col.heading} col={col} onDark={false} />)}
           </div>
         </div>
-        <BottomRow settings={settings} legal={legal} onDark={false} />
+        <BottomRow chrome={chrome} settings={settings} legal={legal} onDark={false} />
       </Container>
     </footer>
   );
 }
 
 /** Mono throughout; every link printed as a path; the credit line as a prompt. Terminal. */
-function Prompt({ settings, nav, legal, signup, tagline }: Parts) {
+function Prompt({ settings, nav, legal, signup, tagline, chrome }: Parts) {
   return (
     <footer data-footer="prompt" className="border-t border-line bg-page pt-9 font-mono text-13 text-muted">
       <Container>
@@ -421,8 +440,8 @@ function Prompt({ settings, nav, legal, signup, tagline }: Parts) {
           longest path the footer menu carries.
         */}
         <div className="grid grid-cols-1 gap-x-6 gap-y-9 py-9 sm:grid-cols-2 lg:grid-cols-[1.3fr_repeat(var(--footer-cols),minmax(0,1fr))] lg:gap-9"
-          style={{ "--footer-cols": nav.length } as CSSProperties}>
-          <Brand settings={settings} tagline={tagline} onDark={false} className="sm:col-span-2 lg:col-span-1" />
+          style={{ "--footer-cols": Math.max(nav.length, 1) } as CSSProperties}>
+          <Brand chrome={chrome} settings={settings} tagline={tagline} onDark={false} className="sm:col-span-2 lg:col-span-1" />
           {nav.map((col) => (
             <div key={col.heading}>
               <h2 className="mb-4 text-12 font-semibold text-ink">
@@ -434,7 +453,7 @@ function Prompt({ settings, nav, legal, signup, tagline }: Parts) {
         </div>
         <div className="border-t border-line">
           <p className="pt-5 text-12-5"><span aria-hidden className="text-brand-ink">$ </span>whoami<span aria-hidden className="ml-0.5 inline-block w-[7px] animate-pulse border-b-2 border-brand-ink align-baseline">&nbsp;</span></p>
-          <BottomRow settings={settings} legal={legal} onDark={false} mono className="pt-2" />
+          <BottomRow chrome={chrome} settings={settings} legal={legal} onDark={false} mono className="pt-2" />
         </div>
       </Container>
     </footer>
@@ -442,106 +461,106 @@ function Prompt({ settings, nav, legal, signup, tagline }: Parts) {
 }
 
 /** The tagline set large above four columns on the page ground, under an accent rule. Summit. */
-function Statement({ settings, nav, legal, signup, tagline }: Parts) {
+function Statement({ settings, nav, legal, signup, tagline, chrome }: Parts) {
   return (
     <footer data-footer="statement" className="border-t-4 border-accent-500 bg-page pt-12 text-sm text-muted">
       <Container>
-        <p className="measure font-display text-[clamp(1.6rem,3.2vw,2.6rem)] leading-[1.15] font-semibold tracking-[-.03em] text-ink">{tagline}</p>
+        {chrome.show.tagline && <p className="measure font-display text-[clamp(1.6rem,3.2vw,2.6rem)] leading-[1.15] font-semibold tracking-[-.03em] text-ink">{tagline}</p>}
         {signup && <SignupBand onDark={false} className="mt-9 border-t border-line pt-9" />}
         <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-9 border-t border-line pt-9 pb-11 lg:grid-cols-[1fr_repeat(var(--footer-cols),minmax(0,1fr))] lg:gap-9"
-          style={{ "--footer-cols": nav.length } as CSSProperties}>
+          style={{ "--footer-cols": Math.max(nav.length, 1) } as CSSProperties}>
           <div className="col-span-2 lg:col-span-1">
-            <Logo className="mb-3.5 block" logoUrl={settings.logo_url} logoWidth={settings.logo_width} logoHeight={settings.logo_height} companyName={settings.company_name} />
-            {(settings.address || settings.phone) && (
+            {chrome.show.brand && <Logo className="mb-3.5 block" logoUrl={settings.logo_url} logoWidth={settings.logo_width} logoHeight={settings.logo_height} companyName={settings.company_name} />}
+            {((chrome.show.address && settings.address) || (chrome.show.phone && settings.phone)) && (
               <address className="not-italic leading-relaxed">
-                {settings.address && <span className="block whitespace-pre-line">{settings.address}</span>}
-                {settings.phone && <a href={telHref(settings.phone)} className="mt-2 inline-block font-mono text-14 hover:text-ink">{settings.phone}</a>}
+                {chrome.show.address && settings.address && <span className="block whitespace-pre-line">{settings.address}</span>}
+                {chrome.show.phone && settings.phone && <a href={telHref(settings.phone)} className="mt-2 inline-block font-mono text-14 hover:text-ink">{settings.phone}</a>}
               </address>
             )}
-            <SocialLinks settings={settings} />
+            {chrome.show.social && <SocialLinks settings={settings} />}
           </div>
           {nav.map((col) => <FooterColumn key={col.heading} col={col} onDark={false} />)}
         </div>
-        <BottomRow settings={settings} legal={legal} onDark={false} className="border-t border-line" />
+        <BottomRow chrome={chrome} settings={settings} legal={legal} onDark={false} className="border-t border-line" />
       </Container>
     </footer>
   );
 }
 
 /** Two panels: the brand block on a brand-900 panel, the columns on the dark band beside it. Enterprise. */
-function Split({ settings, nav, legal, signup, tagline }: Parts) {
+function Split({ settings, nav, legal, signup, tagline, chrome }: Parts) {
   return (
     <footer data-footer="split" className="bg-dark text-sm text-dark-muted">
       <div className="lg:grid lg:grid-cols-[minmax(0,.38fr)_minmax(0,1fr)]">
         <div className="bg-brand-900 px-6 py-11 text-dark-muted sm:px-10 lg:px-14 lg:py-14">
           <div className="ml-auto max-w-[420px] lg:mr-0">
-            <Brand settings={settings} tagline={tagline} onDark />
+            <Brand chrome={chrome} settings={settings} tagline={tagline} onDark />
           </div>
         </div>
         <div className="px-6 py-11 sm:px-10 lg:px-14 lg:py-14">
           {signup && <SignupBand onDark className="mb-9 border-b border-dark-line pb-9" />}
           <div className="grid grid-cols-2 gap-x-6 gap-y-9 lg:grid-cols-[repeat(var(--footer-cols),minmax(0,1fr))] lg:gap-9"
-            style={{ "--footer-cols": nav.length } as CSSProperties}>
+            style={{ "--footer-cols": Math.max(nav.length, 1) } as CSSProperties}>
             {nav.map((col) => <FooterColumn key={col.heading} col={col} onDark headingClass="border-b border-dark-line pb-2" />)}
           </div>
         </div>
       </div>
       <Container>
-        <BottomRow settings={settings} legal={legal} onDark className="border-t border-dark-line" />
+        <BottomRow chrome={chrome} settings={settings} legal={legal} onDark className="border-t border-dark-line" />
       </Container>
     </footer>
   );
 }
 
 /** Everything centred under a brand-gradient rule: logo, tagline, the columns as a row, the social row. Horizon. */
-function Centred({ settings, nav, legal, signup, tagline }: Parts) {
+function Centred({ settings, nav, legal, signup, tagline, chrome }: Parts) {
   return (
     <footer data-footer="centred" className="bg-dark pt-0 text-sm text-dark-muted">
       <div aria-hidden className="h-1.5 bg-linear-to-r from-brand-600 via-secondary-500 to-accent-500" />
       <Container>
         <div className="pt-12 pb-9">
-          <Brand settings={settings} tagline={tagline} onDark centred />
+          <Brand chrome={chrome} settings={settings} tagline={tagline} onDark centred />
         </div>
         {signup && <SignupBand onDark className="mx-auto max-w-[900px] border-y border-dark-line py-9" />}
         <div className="grid grid-cols-2 gap-x-6 gap-y-9 py-10 text-center sm:grid-cols-[repeat(var(--footer-cols),minmax(0,1fr))] sm:gap-9"
-          style={{ "--footer-cols": nav.length } as CSSProperties}>
+          style={{ "--footer-cols": Math.max(nav.length, 1) } as CSSProperties}>
           {nav.map((col) => <FooterColumn key={col.heading} col={col} onDark />)}
         </div>
-        <BottomRow settings={settings} legal={legal} onDark className="border-t border-dark-line justify-center" />
+        <BottomRow chrome={chrome} settings={settings} legal={legal} onDark className="border-t border-dark-line justify-center" />
       </Container>
     </footer>
   );
 }
 
 /** The tagline in the display serif at 400 over a coral hairline, on the cream ground. Canvas. */
-function Cream({ settings, nav, legal, signup, tagline }: Parts) {
+function Cream({ settings, nav, legal, signup, tagline, chrome }: Parts) {
   return (
     <footer data-footer="cream" className="border-t border-accent-500/60 bg-surface pt-12 text-sm text-muted">
       <Container>
-        <p className="max-w-[26ch] font-display text-[clamp(1.75rem,3.6vw,3rem)] leading-[1.1] font-normal tracking-[-.02em] text-ink">{tagline}</p>
+        {chrome.show.tagline && <p className="max-w-[26ch] font-display text-[clamp(1.75rem,3.6vw,3rem)] leading-[1.1] font-normal tracking-[-.02em] text-ink">{tagline}</p>}
         {signup && <SignupBand onDark={false} className="mt-9 border-t border-line pt-9" />}
         <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-9 border-t border-line pt-9 pb-11 lg:grid-cols-[1fr_repeat(var(--footer-cols),minmax(0,1fr))] lg:gap-9"
-          style={{ "--footer-cols": nav.length } as CSSProperties}>
+          style={{ "--footer-cols": Math.max(nav.length, 1) } as CSSProperties}>
           <div className="col-span-2 lg:col-span-1">
-            <Logo className="mb-3.5 block" logoUrl={settings.logo_url} logoWidth={settings.logo_width} logoHeight={settings.logo_height} companyName={settings.company_name} />
-            {(settings.address || settings.phone) && (
+            {chrome.show.brand && <Logo className="mb-3.5 block" logoUrl={settings.logo_url} logoWidth={settings.logo_width} logoHeight={settings.logo_height} companyName={settings.company_name} />}
+            {((chrome.show.address && settings.address) || (chrome.show.phone && settings.phone)) && (
               <address className="not-italic leading-relaxed">
-                {settings.address && <span className="block whitespace-pre-line">{settings.address}</span>}
-                {settings.phone && <a href={telHref(settings.phone)} className="mt-2 inline-block font-mono text-14 hover:text-ink">{settings.phone}</a>}
+                {chrome.show.address && settings.address && <span className="block whitespace-pre-line">{settings.address}</span>}
+                {chrome.show.phone && settings.phone && <a href={telHref(settings.phone)} className="mt-2 inline-block font-mono text-14 hover:text-ink">{settings.phone}</a>}
               </address>
             )}
-            <SocialLinks settings={settings} />
+            {chrome.show.social && <SocialLinks settings={settings} />}
           </div>
           {nav.map((col) => <FooterColumn key={col.heading} col={col} onDark={false} headingClass="normal-case tracking-normal text-14 font-normal italic" />)}
         </div>
-        <BottomRow settings={settings} legal={legal} onDark={false} className="border-t border-line" />
+        <BottomRow chrome={chrome} settings={settings} legal={legal} onDark={false} className="border-t border-line" />
       </Container>
     </footer>
   );
 }
 
 /** Dark, under a hairline that glows in the brand colour at its middle; the columns first, the brand block last. Sentinel. */
-function Glow({ settings, nav, legal, signup, tagline }: Parts) {
+function Glow({ settings, nav, legal, signup, tagline, chrome }: Parts) {
   return (
     <footer data-footer="glow" className="relative bg-dark pt-14 text-sm text-dark-muted">
       {/* The seam between page and footer: a hairline whose middle carries the brand colour. */}
@@ -549,23 +568,23 @@ function Glow({ settings, nav, legal, signup, tagline }: Parts) {
       <Container>
         {signup && <SignupBand onDark className="mb-11 border-b border-dark-line pb-10" />}
         <div className="grid grid-cols-2 gap-x-6 gap-y-9 pb-11 lg:grid-cols-[repeat(var(--footer-cols),minmax(0,1fr))_1.3fr] lg:gap-9"
-          style={{ "--footer-cols": nav.length } as CSSProperties}>
+          style={{ "--footer-cols": Math.max(nav.length, 1) } as CSSProperties}>
           {nav.map((col) => <FooterColumn key={col.heading} col={col} onDark headingClass="font-light normal-case tracking-normal text-15 text-white" />)}
-          <Brand settings={settings} tagline={tagline} onDark className="col-span-2 border-t border-dark-line pt-8 lg:col-span-1 lg:border-t-0 lg:border-l lg:pl-9 lg:pt-0" />
+          <Brand chrome={chrome} settings={settings} tagline={tagline} onDark className="col-span-2 border-t border-dark-line pt-8 lg:col-span-1 lg:border-t-0 lg:border-l lg:pl-9 lg:pt-0" />
         </div>
-        <BottomRow settings={settings} legal={legal} onDark className="border-t border-dark-line" />
+        <BottomRow chrome={chrome} settings={settings} legal={legal} onDark className="border-t border-dark-line" />
       </Container>
     </footer>
   );
 }
 
 /** Dark, opening on a row of contact plates, the columns beside a rounded signup panel. Vantage. */
-function Contact({ settings, nav, legal, signup, tagline }: Parts) {
+function Contact({ settings, nav, legal, signup, tagline, chrome }: Parts) {
   type Plate = { icon: ReactNode; label: string; href: string | null };
   const plates: Plate[] = [];
-  if (settings.phone) plates.push({ icon: <IconPhone className="size-4" />, label: settings.phone, href: telHref(settings.phone) });
+  if (chrome.show.phone && settings.phone) plates.push({ icon: <IconPhone className="size-4" />, label: settings.phone, href: telHref(settings.phone) });
   if (settings.support_email) plates.push({ icon: <IconMail className="size-4" />, label: settings.support_email, href: `mailto:${settings.support_email}` });
-  if (settings.address) plates.push({ icon: <IconMapPin className="size-4" />, label: settings.address.replace(/\s*\n\s*/g, ", "), href: null });
+  if (chrome.show.address && settings.address) plates.push({ icon: <IconMapPin className="size-4" />, label: settings.address.replace(/\s*\n\s*/g, ", "), href: null });
   return (
     <footer data-footer="contact" className="bg-dark pt-12 text-sm text-dark-muted">
       <Container>
@@ -581,21 +600,23 @@ function Contact({ settings, nav, legal, signup, tagline }: Parts) {
         )}
         <div className={cn("grid gap-x-10 gap-y-9 py-10", signup && "lg:grid-cols-[1fr_minmax(0,380px)]")}>
           <div className="grid grid-cols-2 gap-x-6 gap-y-9 sm:grid-cols-[repeat(var(--footer-cols),minmax(0,1fr))]"
-            style={{ "--footer-cols": nav.length } as CSSProperties}>
+            style={{ "--footer-cols": Math.max(nav.length, 1) } as CSSProperties}>
             {nav.map((col) => <FooterColumn key={col.heading} col={col} onDark headingClass="text-accent-300 normal-case tracking-normal text-15" />)}
           </div>
           {signup && (
             <div className="rounded-2xl bg-dark-2 p-6">
               <h2 className="font-display text-17 font-semibold text-white">Occasional notes on infrastructure</h2>
-              <p className="mt-1.5 leading-relaxed">{tagline}</p>
+              {chrome.show.tagline && <p className="mt-1.5 leading-relaxed">{tagline}</p>}
               <div className="mt-4"><NewsletterSignup onDark /></div>
             </div>
           )}
         </div>
-        <div className="border-t border-dark-line pt-6">
-          <SocialLinks settings={settings} />
-        </div>
-        <BottomRow settings={settings} legal={legal} onDark />
+        {chrome.show.social && (
+          <div className="border-t border-dark-line pt-6">
+            <SocialLinks settings={settings} />
+          </div>
+        )}
+        <BottomRow chrome={chrome} settings={settings} legal={legal} onDark />
       </Container>
     </footer>
   );
@@ -606,13 +627,13 @@ function Contact({ settings, nav, legal, signup, tagline }: Parts) {
  * The social row is drawn on the right only — `Brand` is told not to — and that column is as wide as its widest
  * piece (`max-content`), so the pill stays one line; a `1fr` share wrapped it to two inside a 40px-high pill.
  */
-function Plate({ settings, nav, legal, signup, tagline }: Parts) {
+function Plate({ settings, nav, legal, signup, tagline, chrome }: Parts) {
   return (
     <footer data-footer="plate" className="bg-dark pt-14 text-sm text-dark-muted">
       <Container>
         <div className="grid grid-cols-2 gap-x-6 gap-y-9 pb-11 lg:grid-cols-[1.3fr_repeat(var(--footer-cols),minmax(0,1fr))_max-content] lg:gap-9"
-          style={{ "--footer-cols": nav.length } as CSSProperties}>
-          <Brand settings={settings} tagline={tagline} onDark social={false} className="col-span-2 lg:col-span-1" />
+          style={{ "--footer-cols": Math.max(nav.length, 1) } as CSSProperties}>
+          <Brand chrome={chrome} settings={settings} tagline={tagline} onDark social={false} className="col-span-2 lg:col-span-1" />
           {nav.map((col) => <FooterColumn key={col.heading} col={col} onDark headingClass="normal-case tracking-normal text-14 font-bold text-white" />)}
           <div className="col-span-2 flex flex-col items-start gap-4 lg:col-span-1 lg:items-end">
             {signup && (
@@ -620,11 +641,11 @@ function Plate({ settings, nav, legal, signup, tagline }: Parts) {
                 Subscribe to our newsletter
               </a>
             )}
-            <SocialLinks settings={settings} />
+            {chrome.show.social && <SocialLinks settings={settings} />}
           </div>
         </div>
         {signup && <div id="newsletter"><SignupBand onDark className="border-t border-dark-line py-9" /></div>}
-        <BottomRow settings={settings} legal={legal} onDark className="border-t border-dark-line" />
+        <BottomRow chrome={chrome} settings={settings} legal={legal} onDark className="border-t border-dark-line" />
       </Container>
     </footer>
   );

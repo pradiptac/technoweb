@@ -1,4 +1,5 @@
 import type { ThemeManifest } from "../contract.ts";
+import { oneRowHeader, FIXED_FOOTER } from "../chrome-parts.ts";
 
 /**
  * Summit: the site as a software product company presents itself.
@@ -23,4 +24,5 @@ export const summitManifest: ThemeManifest = {
   // Every page opens on the dark centred band; the section banner is never drawn.
   ignores: ["hero_style"],
   defaults: { menu_style: "mega" },
+  chrome: { header: oneRowHeader(["utility", "search", "phone", "cta"]), footer: FIXED_FOOTER },
 };

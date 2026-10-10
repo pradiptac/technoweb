@@ -185,6 +185,11 @@ The parts of the design a client changes after launch, without a designer.
 - **Galleries** with tabs, a lightbox and per-gallery transitions.
 - **Popups** targeted by section or path, sized and timed, shown once per
   visit or once per day, scheduled with a start and end.
+- **Header & footer parts** — per theme, switch the parts its header and footer draw
+  (top bar, phone, email, search, links, buttons, basket mark; logo, tagline,
+  address, social, columns, signup, policy links, credit, light / dark switch),
+  reorder the ones that share a row, and set the main button's words and link,
+  beside a live preview. Each theme still draws its own.
 - **Section banners** — one photograph behind each area's page heading, with
   contrast guaranteed whatever is uploaded.
 - **Logo, favicon, address, phone, map embed, social profiles** — all

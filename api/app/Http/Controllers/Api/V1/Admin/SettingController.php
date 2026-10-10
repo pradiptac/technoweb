@@ -105,6 +105,8 @@ class SettingController extends Controller
             'meta' => [
                 'uploads' => UploadLimits::describe(),
                 'payments' => self::payments(),
+                // The ids a theme's header and footer rows may name (0.160.0); which a theme draws is its manifest.
+                'theme_parts' => ['header' => ThemeOptions::HEADER_PARTS, 'footer' => ThemeOptions::FOOTER_PARTS, 'cta_label_max' => ThemeOptions::CTA_LABEL_MAX],
             ],
         ]);
     }

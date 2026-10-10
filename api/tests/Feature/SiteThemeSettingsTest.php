@@ -6,6 +6,7 @@ use App\Enums\Role as RoleEnum;
 use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;
+use App\Support\ThemeOptions;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -181,5 +182,90 @@ class SiteThemeSettingsTest extends TestCase
 
         $this->assertNull(Setting::get('site_theme_options'));
         $this->assertArrayNotHasKey('site_theme_options', $this->getJson('/api/v1/settings')->json('data'));
+    }
+
+    public function test_header_and_footer_parts_are_cleaned_and_stored_as_differences(): void
+    {
+        $json = json_encode([
+            'launch' => [
+                'header' => [
+                    'parts' => ['search' => ['on' => false], 'phone' => ['on' => false], 'scheme' => ['on' => true]],
+                    'order' => ['cta', 'search', 'cta', 'phone'],
+                    'cta' => ['label' => '  Get a quote ', 'href' => '/quote', 'on' => true],
+                    'cta2' => ['label' => '', 'href' => ''],
+                ],
+                'footer' => ['parts' => ['signup' => ['on' => false]], 'order' => ['social', 'tagline']],
+            ],
+            // Nothing in them: stores nothing.
+            'classic' => ['header' => [], 'footer' => ['parts' => [], 'order' => []]],
+        ]);
+
+        $this->save(['site_theme_options' => $json])->assertOk();
+
+        $stored = json_decode(Setting::get('site_theme_options'), true);
+
+        $this->assertSame(['search' => ['on' => false], 'phone' => ['on' => false], 'scheme' => ['on' => true]], $stored['launch']['header']['parts']);
+        $this->assertSame(['cta', 'search', 'phone'], $stored['launch']['header']['order'], 'duplicates dropped, order kept');
+        $this->assertSame(['label' => 'Get a quote', 'href' => '/quote', 'on' => true], $stored['launch']['header']['cta'], 'the label is trimmed');
+        $this->assertArrayNotHasKey('cta2', $stored['launch']['header'], 'a blank button stores nothing');
+        $this->assertSame(['signup' => ['on' => false]], $stored['launch']['footer']['parts']);
+        $this->assertSame(['social', 'tagline'], $stored['launch']['footer']['order']);
+        $this->assertArrayNotHasKey('header', $stored['classic'], 'an empty header stores nothing: absent is the theme\'s own');
+        $this->assertArrayNotHasKey('footer', $stored['classic']);
+    }
+
+    public function test_header_and_footer_options_of_the_wrong_shape_are_refused_at_their_row(): void
+    {
+        foreach ([
+            // Not a part this side has.
+            ['header' => ['parts' => ['signup' => ['on' => false]]]],
+            ['footer' => ['parts' => ['search' => ['on' => false]]]],
+            ['header' => ['parts' => ['mystery' => ['on' => false]]]],
+            // A button is switched in its own object, not as a part.
+            ['header' => ['parts' => ['cta' => ['on' => false]]]],
+            ['footer' => ['cta' => ['label' => 'Hi']]],
+            // A switch is a boolean.
+            ['header' => ['parts' => ['search' => ['on' => 'no']]]],
+            ['header' => ['parts' => ['search' => false]]],
+            ['header' => ['cta' => ['on' => 0]]],
+            // The order names known ids of that side.
+            ['header' => ['order' => ['search', 'columns']]],
+            ['footer' => ['order' => 'tagline,social']],
+            ['header' => ['order' => ['../x']]],
+            // A button's words and link.
+            ['header' => ['cta' => ['label' => str_repeat('x', 31)]]],
+            ['header' => ['cta' => ['label' => '<b>Buy</b>']]],
+            ['header' => ['cta' => ['href' => 'javascript:alert(1)']]],
+            ['header' => ['cta' => ['href' => '//evil.example']]],
+            ['header' => ['cta2' => ['href' => 'no spaces/allowed here']]],
+            // An unknown key, and the wrong container.
+            ['header' => ['colour' => '#ffffff']],
+            ['header' => 'search'],
+        ] as $bad) {
+            $this->save(['company_name' => 'Technoware', 'site_theme_options' => json_encode(['classic' => $bad])])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('settings.1.value');
+        }
+
+        $this->assertNull(Setting::get('site_theme_options'));
+    }
+
+    public function test_a_button_label_of_exactly_the_limit_and_the_link_kinds_are_accepted(): void
+    {
+        $label = str_repeat('x', ThemeOptions::CTA_LABEL_MAX);
+
+        foreach (['/contact', 'https://example.test/book', 'mailto:sales@example.test', 'tel:+911234567890'] as $href) {
+            $this->save(['site_theme_options' => json_encode(['classic' => ['header' => ['cta' => ['label' => $label, 'href' => $href]]]])])->assertOk();
+            $this->assertSame($href, json_decode(Setting::get('site_theme_options'), true)['classic']['header']['cta']['href']);
+        }
+    }
+
+    public function test_the_admin_settings_meta_names_the_ids_a_row_may_use(): void
+    {
+        $meta = $this->actingAs($this->admin(), 'sanctum')->getJson('/api/v1/admin/settings')->json('meta.theme_parts');
+
+        $this->assertSame(ThemeOptions::HEADER_PARTS, $meta['header']);
+        $this->assertSame(ThemeOptions::FOOTER_PARTS, $meta['footer']);
+        $this->assertSame(30, $meta['cta_label_max']);
     }
 }

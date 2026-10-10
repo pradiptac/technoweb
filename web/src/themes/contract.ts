@@ -8,6 +8,7 @@ import type {
 import type { BannerSection, SiteSettings } from "@/lib/site-settings";
 import type { BackdropVariant } from "@/components/ui/backdrop";
 import type { Crumb } from "@/components/ui/page-hero";
+import type { ChromeSupport } from "./chrome-parts";
 import type { OfferedOption, ThemeDefaults, ThemeOptions } from "./options";
 
 /**
@@ -48,6 +49,8 @@ export type ThemeManifest = {
   ignores?: ("menu_style" | "hero_style")[];
   /** A theme's own options, drawn on the Themes screen for this theme alone (`OfferedOption`). */
   offers?: OfferedOption[];
+  /** Which header and footer parts this theme draws, which can swap places, which start off (0.160.0) — `themes/chrome-parts.ts`. */
+  chrome: ChromeSupport;
 };
 
 /** The marketing layout's fetches, resolved, plus the two derived settings. */

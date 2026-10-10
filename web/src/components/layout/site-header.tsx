@@ -17,11 +17,13 @@ import { MobileDrawer } from "@/components/layout/mobile-drawer";
 import { closePanelOnNavigate, releasePanel } from "@/components/layout/panel-host";
 import { CartBadge } from "@/components/layout/cart-badge";
 import { SiteSearch } from "@/components/layout/site-search";
+import { Arranged, HeaderScheme } from "@/components/layout/header-parts";
+import { CLASSIC_HEADER, defaultHeader, type ResolvedHeader } from "@/themes/chrome-parts";
 import { ShimmerLink } from "@/components/velora/shimmer-button";
 import type { MenuSection } from "@/lib/navigation";
 
 export function SiteHeader({
-  menu = {}, settings = {}, links, topBar, menuStyle = "mega",
+  menu = {}, settings = {}, links, topBar, menuStyle = "mega", chrome = defaultHeader(CLASSIC_HEADER),
 }: {
   menu?: Record<string, MenuSection>;
   settings?: SiteSettings;
@@ -40,6 +42,12 @@ export function SiteHeader({
   topBar: TopBarLink[];
   /** How a section's panel is drawn — the theme option; `MegaMenu` says what each is. */
   menuStyle?: MenuPanelStyle;
+  /**
+    Which parts to draw and in what order (Site → Header & footer). Absent is
+    the theme's own, which is what the 404 page — no theme options to read —
+    gets.
+  */
+  chrome?: ResolvedHeader;
 }) {
   const nav: readonly NavLink[] = links ?? mainNav.map((item) => ({
     label: item.label, href: item.href, newTab: false,
@@ -79,6 +87,7 @@ export function SiteHeader({
   return (
     <>
       {/* utility bar */}
+      {chrome.show.topbar && (
       <div className="bg-topbar text-13 text-topbar-muted">
         <Container className="flex h-[38px] items-center justify-between gap-4">
           <div className="flex items-center gap-6">
@@ -90,18 +99,24 @@ export function SiteHeader({
               strip, and "Customer login" was clipped at the edge. Below `lg`
               the address is one tap away in the drawer.
             */}
-            {phone ? (
+            <Arranged chrome={chrome} nodes={{
+              phone: (
+                phone ? (
               <a href={telHref(phone)} className="flex items-center gap-1.5 whitespace-nowrap py-1.5 hover:text-topbar-ink">
                 <IconPhone className="size-[13px]" />
                 {phone}
               </a>
-            ) : null}
-            {email ? (
+            ) : null
+              ),
+              email: (
+                email ? (
               <a href={`mailto:${email}`} className="hidden whitespace-nowrap py-1.5 hover:text-topbar-ink lg:inline-flex lg:items-center lg:gap-1.5">
                 <IconMail className="size-[13px]" />
                 {email}
               </a>
-            ) : null}
+            ) : null
+              ),
+            }} />
           </div>
           <div className="flex items-center gap-5">
             {/*
@@ -126,12 +141,17 @@ export function SiteHeader({
               three results per group as the term is typed, from `/search`'s
               own ranking. Enter with nothing highlighted is still the GET.
             */}
+            <Arranged chrome={chrome} nodes={{
+            search: (
             <SiteSearch
               placeholders={["Search products, guides…", "Try a part number: CBS350-24T", "Firewall installation", "Wi-Fi survey", "AMC for servers"]}
               className="hidden h-7 w-[240px] max-w-none rounded border-topbar-line bg-topbar-2 pl-2.5 pr-0.5 text-topbar-ink focus-within:ring-1 focus-within:ring-brand-400 md:flex [&>span]:left-2.5 [&>span]:text-12-5 [&>span]:text-topbar-muted"
               inputClassName="text-12-5 text-topbar-ink"
               buttonClassName="size-6 rounded-sm"
             />
+            ),
+            utility: (
+            <>
             {/*
               All but the **last** are hidden below `sm`, which is what this
               bar already did with its three hard-coded links and is now a
@@ -195,9 +215,13 @@ export function SiteHeader({
                 </div>
               );
             })}
+            </>
+            ),
+            }} />
           </div>
         </Container>
       </div>
+      )}
 
       <header className="sticky top-0 z-40 border-b border-line bg-card/85 backdrop-blur-[14px]">
         {/*
@@ -290,7 +314,7 @@ export function SiteHeader({
                         baseline — it is a mark on "Store", not a second item.
                         (16px first; asked for a little bigger.)
                       */}
-                      {item.href !== null && isStoreItem(item.href) && <CartBadge size={18} className="relative -top-[7px] -ml-1" />}
+                      {item.href !== null && isStoreItem(item.href) && chrome.show.cart && <CartBadge size={18} className="relative -top-[7px] -ml-1" />}
                       {section && (
                         <IconChevronDown className={cn("size-[11px] text-faint", PANEL_CHEVRON_CLASSES)} />
                       )}
@@ -321,16 +345,21 @@ export function SiteHeader({
               footer, in the top bar and one press away in the drawer — so it is
               what gives way.
             */}
-            <ButtonLink href="/contact" variant="ghost" size="sm" className="hidden min-[1400px]:inline-flex">
-              Contact
+            <Arranged chrome={chrome} nodes={{
+            cta2: (
+            <ButtonLink href={chrome.cta2.href ?? "/contact"} variant="ghost" size="sm" className="hidden min-[1400px]:inline-flex">
+              {chrome.cta2.label ?? "Contact"}
             </ButtonLink>
+            ),
+            cta: (
+            <>
             {/*
               Velora's shimmer button, in place of the `soft` ButtonLink and
               its lift/glow. Sized to the header's row — the published pill
               is 48px and `px-8`, and this row is at its measured limit at
               320px, so the width stays what the soft button's was.
             */}
-            <ShimmerLink href="/contact" className="h-9 rounded px-4 text-13 font-semibold max-[419px]:px-[11px] max-[419px]:text-12">
+            <ShimmerLink href={chrome.cta.href ?? "/contact"} className="h-9 rounded px-4 text-13 font-semibold max-[419px]:px-[11px] max-[419px]:text-12">
               {/*
                 One promise at every width, shortened rather than swapped. The
                 narrow variant used to read "Get a quote", which is a different
@@ -346,11 +375,19 @@ export function SiteHeader({
                 visible double gap. Wrapping them makes the gap apply to the
                 label as a whole, which is what it is for.
               */}
+              {chrome.cta.label ? (
+                <span className="max-[559px]:max-w-[8.5rem] max-[559px]:truncate">{chrome.cta.label}</span>
+              ) : (
               <span>
                 <span className="hidden min-[560px]:inline">Request a </span>
                 <span className="min-[560px]:lowercase">Consultation</span>
               </span>
+              )}
             </ShimmerLink>
+            </>
+            ),
+            }} />
+            {chrome.show.scheme && <HeaderScheme />}
             <button
               ref={toggleRef}
               type="button"

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { PrimaryNavItems, UtilityLinks, useHeaderNav, TERMINAL_GATE } from "@/components/layout/header-parts";
+import { PrimaryNavItems, UtilityLinks, useHeaderNav, TERMINAL_GATE, Arranged, HeaderScheme } from "@/components/layout/header-parts";
+import type { ResolvedHeader } from "@/themes/chrome-parts";
 import { Logo } from "@/components/layout/logo";
 import type { MenuPanelStyle } from "@/components/layout/mega-menu";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
@@ -33,13 +34,15 @@ import { cn } from "@/lib/utils";
  * which is `relative` for it.
  */
 export function PromptHeader({
-  menu = {}, settings = {}, links, topBar, menuStyle = "simple",
+  menu = {}, settings = {}, links, topBar, menuStyle = "simple", chrome,
 }: {
   menu?: Record<string, MenuSection>;
   settings?: SiteSettings;
   links?: NavLink[];
   topBar: TopBarLink[];
   menuStyle?: MenuPanelStyle;
+  /** Which parts to draw and in what order (the Header & footer screen). */
+  chrome: ResolvedHeader;
 }) {
   const bigMenu = menuStyle === "big";
   const { nav, utility, phone, isStoreItem, open, setOpen, toggleRef, drawerProps } = useHeaderNav({ settings, links, topBar });
@@ -67,6 +70,7 @@ export function PromptHeader({
                 menu={menu}
                 menuStyle={menuStyle}
                 isStoreItem={isStoreItem}
+                showCart={chrome.show.cart}
                 linkClassName="relative flex items-center gap-1 whitespace-nowrap px-2 py-4 text-12-5 text-ink-2 transition-colors duration-(--duration-base) hover:text-brand-ink after:absolute after:inset-x-2 after:bottom-0 after:h-[3px] after:origin-left after:scale-x-0 after:bg-brand-500 after:transition-[scale] after:duration-(--duration-slow) hover:after:duration-(--duration-draw) focus-visible:after:duration-(--duration-draw) group-[:focus-within:not([data-closed])]:after:duration-(--duration-draw) after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-[:focus-within:not([data-closed])]:after:scale-x-100 motion-reduce:after:transition-none"
                   chevronClassName="size-[11px]"
                   cartBadgeClassName="relative -top-[7px] -ml-0.5"
@@ -76,39 +80,56 @@ export function PromptHeader({
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-1">
-            <UtilityLinks
-              utility={utility}
-              menuStyle={menuStyle}
-              gate={TERMINAL_GATE}
-              linkClassName="flex items-center gap-1 whitespace-nowrap px-2 py-2 text-12-5 text-muted transition-colors duration-(--duration-base) hover:text-ink group-[:hover:not([data-closed])]:text-ink group-[:focus-within:not([data-closed])]:text-ink"
-                chevronClassName="size-[11px]"
-                renderLabel={(label) => <>[{label.toLowerCase()}]</>}
-            />
-            <SiteSearch
-              placeholders={["> search_", "> part number", "> firewall"]}
-              className="hidden h-8 w-[190px] max-w-none rounded-none border-line-strong bg-surface pl-2.5 pr-0.5 min-[1920px]:flex [&>span]:left-2.5 [&>span]:font-mono [&>span]:text-12-5"
-              inputClassName="font-mono text-12-5"
-              buttonClassName="size-6 rounded-none"
-            />
-            {phone ? (
-              <a
-                href={telHref(phone)}
-                aria-label={`Call ${phone}`}
-                title={phone}
-                // The ticker under the header carries the number at every width; the icon is for the widths with room.
-                className="hidden size-9 place-items-center text-ink-2 transition-colors duration-(--duration-base) hover:text-brand-ink min-[1600px]:grid"
+            <Arranged chrome={chrome} nodes={{
+              utility: (
+              <UtilityLinks
+                utility={utility}
+                menuStyle={menuStyle}
+                gate={TERMINAL_GATE}
+                linkClassName="flex items-center gap-1 whitespace-nowrap px-2 py-2 text-12-5 text-muted transition-colors duration-(--duration-base) hover:text-ink group-[:hover:not([data-closed])]:text-ink group-[:focus-within:not([data-closed])]:text-ink"
+                  chevronClassName="size-[11px]"
+                  renderLabel={(label) => <>[{label.toLowerCase()}]</>}
+              />
+              ),
+              search: (
+              <SiteSearch
+                placeholders={["> search_", "> part number", "> firewall"]}
+                className="hidden h-8 w-[190px] max-w-none rounded-none border-line-strong bg-surface pl-2.5 pr-0.5 min-[1920px]:flex [&>span]:left-2.5 [&>span]:font-mono [&>span]:text-12-5"
+                inputClassName="font-mono text-12-5"
+                buttonClassName="size-6 rounded-none"
+              />
+              ),
+              phone: (
+              phone ? (
+                <a
+                  href={telHref(phone)}
+                  aria-label={`Call ${phone}`}
+                  title={phone}
+                  // The ticker under the header carries the number at every width; the icon is for the widths with room.
+                  className="hidden size-9 place-items-center text-ink-2 transition-colors duration-(--duration-base) hover:text-brand-ink min-[1600px]:grid"
+                >
+                  <IconPhone className="size-4" />
+                </a>
+              ) : null
+              ),
+              cta: (
+              /* Not below 360px, where it ran the menu button 8px off a 320px screen; the drawer carries contact. */
+              <Link
+                href={chrome.cta.href ?? "/contact"}
+                className="inline-flex h-9 items-center whitespace-nowrap border border-ink bg-ink px-3 text-12-5 font-semibold text-page transition-colors duration-(--duration-base) hover:bg-brand-600 hover:border-brand-600 hover:text-brand-on max-[419px]:px-2.5 max-[359px]:hidden"
               >
-                <IconPhone className="size-4" />
-              </a>
-            ) : null}
-            {/* Not below 360px, where it ran the menu button 8px off a 320px screen; the drawer carries contact. */}
-            <Link
-              href="/contact"
-              className="inline-flex h-9 items-center whitespace-nowrap border border-ink bg-ink px-3 text-12-5 font-semibold text-page transition-colors duration-(--duration-base) hover:bg-brand-600 hover:border-brand-600 hover:text-brand-on max-[419px]:px-2.5 max-[359px]:hidden"
-            >
-              <span className="hidden min-[1440px]:inline">[ talk to an engineer ]</span>
-              <span className="min-[1440px]:hidden">[ engineer ]</span>
-            </Link>
+                {chrome.cta.label ? (
+                <span className="max-w-[10rem] truncate max-[419px]:max-w-[6rem]">[ {chrome.cta.label.toLowerCase()} ]</span>
+              ) : (
+                <>
+                  <span className="hidden min-[1440px]:inline">[ talk to an engineer ]</span>
+                                  <span className="min-[1440px]:hidden">[ engineer ]</span>
+                </>
+              )}
+              </Link>
+              ),
+            }} />
+            {chrome.show.scheme && <HeaderScheme />}
             <button
               ref={toggleRef}
               type="button"

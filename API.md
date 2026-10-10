@@ -4633,6 +4633,23 @@ page by title) and a 422 on anything else. It is not on the public
 `/settings` map; **`homepage_page_slug`** is, derived on every read and
 present only while the id still names a published builder page.
 
+**Header and footer parts (0.160.0).** Each theme's object in `site_theme_options`
+also takes `header` and `footer`: `{parts: {<id>: {on: bool}}, order: [<id>…]}`,
+and for the header `cta` and `cta2`: `{label, href, on}`. Ids are
+`ThemeOptions::HEADER_PARTS` (`topbar phone email search utility cta cta2 cart
+scheme`) and `FOOTER_PARTS` (`brand tagline address phone social columns signup
+legal credit scheme`), sent by `GET /admin/settings` as
+`meta.theme_parts: {header, footer, cta_label_max}`. A button's switch is
+`header.cta.on` and `header.cta2.on` — `cta` and `cta2` are not keys of `parts`
+(a 422) though they may appear in `order`. `label` is plain text of at most 30
+characters (trimmed; markup, or longer, is a 422), `href` a `LinkPattern` value;
+a blank label or link means the theme's own. A switch must be a boolean, an
+unknown id, key or a non-list `order` is a 422 keyed to the row
+(`settings.N.value`), and duplicates in `order` are dropped. Empty objects store
+nothing: **absent means the theme's default**, which the frontend's manifests
+define (the API cannot know the themes), so the console writes only what
+differs.
+
 **The `banners` group is public**, and is nine media paths plus a switch: the
 picture behind each section's page heading. Public for the same reason
 `appearance` is — the heading is painted before anybody signs in. Every path is

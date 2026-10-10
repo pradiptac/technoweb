@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { TopBarStyleProvider } from "@/components/layout/topbar-style";
 import { PageEnter } from "@/components/ui/page-enter";
 import { defaultTopBar } from "@/lib/navigation";
+import { resolveChrome } from "@/themes/chrome";
 import type { ChromeData } from "@/themes/contract";
 import type { ThemeOptions } from "@/themes/options";
 
@@ -18,6 +19,7 @@ import type { ThemeOptions } from "@/themes/options";
 export function Chrome({
   settings, menu, primary, footerMenu, topBar, bottomBar, announcement, motion, options, themeId, children,
 }: ChromeData & { options: ThemeOptions; themeId: string; children: ReactNode }) {
+  const chrome = resolveChrome(themeId, options);
   return (
     <>
       {/* The strip above the header, when Settings say there is one. In flow,
@@ -31,6 +33,7 @@ export function Chrome({
           links={primary?.links}
           topBar={topBar ?? defaultTopBar()}
           menuStyle={options.menu_style}
+          chrome={chrome.header}
         />
       </TopBarStyleProvider>
       <main id="main"><PageEnter transition={motion.page}>{children}</PageEnter></main>
@@ -42,6 +45,7 @@ export function Chrome({
         columns={footerMenu ?? undefined}
         bottomBar={bottomBar ?? undefined}
         layout={footerLayoutFor(themeId)}
+        chrome={chrome.footer}
       />
     </>
   );

@@ -1,4 +1,5 @@
 import type { ThemeManifest } from "../contract.ts";
+import { BRAND_FOOTER } from "../chrome-parts.ts";
 
 /**
  * Datacenter: the site as an operations floor.
@@ -21,4 +22,5 @@ export const datacenterManifest: ThemeManifest = {
   // Every page opens on the dark band; the section banner is never drawn.
   ignores: ["hero_style"],
   defaults: { menu_style: "semi" },
+  chrome: { header: { parts: ["topbar", "phone", "search", "utility", "email", "cta", "cart", "scheme"], groups: [["search", "utility", "email"]], off: ["scheme"] }, footer: BRAND_FOOTER },
 };

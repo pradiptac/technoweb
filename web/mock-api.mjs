@@ -4964,6 +4964,9 @@ createServer(async (req, res) => {
           s('push_messaging_sender_id', '123456789012', { group: 'push' }), s('push_app_id', '1:123456789012:web:0a1b2c3d4e5f', { group: 'push' }),
           s('push_vapid_key', 'BMockVapidKey', { group: 'push' }),
         ],
+      }, meta: {
+        // The ids a theme's header and footer rows may name (ThemeOptions::HEADER_PARTS / FOOTER_PARTS); site_theme_options itself is stored verbatim, as before.
+        theme_parts: { header: ['topbar', 'phone', 'email', 'search', 'utility', 'cta', 'cta2', 'cart', 'scheme'], footer: ['brand', 'tagline', 'address', 'phone', 'social', 'columns', 'signup', 'legal', 'credit', 'scheme'], cta_label_max: 30 },
       } });
     }
     if (p === '/admin/settings' && req.method === 'PATCH') return json(res, 200, { data: [] });
