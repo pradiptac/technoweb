@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { StatusBadge, PriorityBadge, statusTone, statusLabel } from "@/components/ui/badge";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
-import { getDashboard, getOnboarding } from "@/lib/admin";
+import { getActivity, getDashboard, getOnboarding, getTickets } from "@/lib/admin";
 import { OnboardingCard } from "@/components/admin/onboarding-card";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card";
 import { Panel } from "@/components/app-shell/panel";
 import { HERO_ACTION, HERO_ACTION_PRIMARY, HERO_ACTION_SECONDARY, HeroBand } from "@/components/app-shell/hero-band";
 import { Entrance } from "@/components/app-shell/entrance";
+import { ActivityFeed, type ActivityItem } from "@/components/app-shell/activity-feed";
 import { greeting } from "@/lib/greeting";
 import { TicketArrivals, TicketFigures, TicketVolume } from "./metrics";
 import { DashboardCustomise } from "./dashboard-customise";
@@ -85,7 +86,7 @@ function availableFor(dashboard: AdminDashboard): { widgets: WidgetKey[]; groups
   if (dashboard.metrics.arrivals) widgets.push("arrivals");
   widgets.push("status");
   if (dashboard.leads?.funnel) widgets.push("pipeline");
-  widgets.push("urgent");
+  widgets.push("urgent", "activity");
 
   const groups: GroupKey[] = ["support", "sales"];
   if (dashboard.visits || dashboard.meetings) groups.push("diary");
@@ -140,6 +141,23 @@ async function DashboardBody({ volume }: { volume?: string }) {
   // The checklist alongside, never in the way: null for a non-administrator
   // or an unreachable API, and the dashboard is drawn either way.
   const onboarding = getOnboarding();
+  /*
+   * The Activity panel's rows (Console 2.0), started beside the dashboard
+   * call. An administrator reads the activity log; the desk, which may not,
+   * reads the newest tickets. Either failing is null and the panel is simply
+   * not drawn.
+   */
+  const activity: Promise<ActivityItem[] | null> = getCurrentStaff().then((me) =>
+    me?.roles.some((r) => r.slug === "admin")
+      ? getActivity({ per_page: 8 }).then((r) => r.data.map((e): ActivityItem => ({
+          id: `a${e.id}`, at: e.created_at, tone: "brand",
+          text: <>{e.actor.name} · {e.action.replaceAll("_", " ")}{e.subject?.label ? <> · {e.subject.label}</> : null}</>,
+        })))
+      : getTickets({ sort: "created", dir: "desc", per_page: 8 }).then((r) => r.data.map((t): ActivityItem => ({
+          id: `t${t.id}`, at: t.created_at, tone: "info", href: `/admin/tickets/${t.reference}`,
+          text: <>{t.reference} · {t.subject}</>,
+        }))),
+  ).catch(() => null);
   const dashboard = await loadDashboard(volume);
   if (!dashboard) {
     return (
@@ -309,6 +327,7 @@ async function DashboardBody({ volume }: { volume?: string }) {
 
   const checklist = await onboarding;
   const view = await readView();
+  const recent = await activity;
 
   /*
    * The hero's one line and its buttons (Console 2.0), from figures this
@@ -437,6 +456,12 @@ async function DashboardBody({ volume }: { volume?: string }) {
       </section>
     ),
   };
+
+  panels.activity = recent && (
+    <Panel title="Activity" icon={<IconClock />}>
+      <ActivityFeed items={recent} />
+    </Panel>
+  );
 
   const drawable = (Object.keys(panels) as WidgetKey[]).filter((key) => Boolean(panels[key]));
   const rows = arrange(view, drawable);

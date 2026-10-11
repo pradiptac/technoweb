@@ -63,8 +63,8 @@ const widths = async (label) => {
 await open();
 const first = await rows();
 console.log(`    default: ${first.map((r) => `[${r.keys}] ${r.gap}`).join("  ")}`);
-ok(first.map((r) => r.keys).join(" | ") === "glance | kpis | volume | arrivals | status pipeline | urgent", "untouched, the panels are in the default order");
-ok(first.map((r) => r.gap).join(" ") === "0px 32px 12px 12px 12px 36px", "and spaced as the dashboard always was (0, 32, 12, 12, 12, 36)");
+ok(first.map((r) => r.keys).join(" | ") === "glance | kpis | volume | arrivals | status pipeline | urgent | activity", "untouched, the panels are in the default order");
+ok(first.map((r) => r.gap).join(" ") === "0px 32px 12px 12px 12px 36px 32px", "and spaced as the dashboard always was (0, 32, 12, 12, 12, 36), Activity 32 under the ticket list");
 ok(first.every((r, i) => i === 0 || r.top > first[i - 1].top), "document order is the order on screen");
 const button = await trigger.boundingBox();
 ok(Math.round(button.height) === 32, `the button is the height the page reserved for it (${Math.round(button.height)}px)`);
@@ -74,7 +74,8 @@ await widths("default");
 await trigger.click();
 const listed = await dialog.locator("ol > li").evaluateAll((items) => items.map((li) => li.querySelector("label span span")?.textContent ?? ""));
 console.log(`    offered: ${listed.join(" | ")}`);
-ok(listed.length === 7, `the dialog lists every panel this role has (${listed.length})`);
+// Eight since Console 2.0 added the Activity panel (0.166.0).
+ok(listed.length === 8, `the dialog lists every panel this role has (${listed.length})`);
 await dialog.getByLabel(/^When tickets arrive/).uncheck();
 for (let i = 0; i < 6; i++) await dialog.getByRole("button", { name: "Move “High priority” up" }).click();
 await dialog.getByRole("button", { name: "Cancel" }).click();
@@ -89,7 +90,7 @@ await save();
 
 const changed = await rows();
 console.log(`    changed: ${changed.map((r) => `[${r.keys}] ${r.gap}`).join("  ")}`);
-ok(changed.map((r) => r.keys).join(" | ") === "urgent | glance | kpis | volume | status pipeline", "after Save: High priority first, the heatmap gone");
+ok(changed.map((r) => r.keys).join(" | ") === "urgent | glance | kpis | volume | status pipeline | activity", "after Save: High priority first, the heatmap gone");
 // Among the rows: the closed dialog still names every panel.
 ok((await page.locator("[data-dashboard-row]").getByText("When tickets arrive").count()) === 0, "the hidden panel is not in the markup");
 ok(changed.every((r, i) => i === 0 || r.top > changed[i - 1].top), "document order is still the order on screen");

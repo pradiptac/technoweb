@@ -130,6 +130,13 @@ for (const width of [360, 1280]) {
   ok(over <= 0, `${width}: no horizontal overflow (${over})`);
 }
 
+// (6b) The Activity panel, drawn for an administrator from the activity log
+await page.setViewportSize({ width: 1280, height: 800 });
+await go("/admin");
+const activityRow = page.locator('[data-dashboard-row~="activity"]');
+ok(await activityRow.count() === 1, "Activity panel on the dashboard");
+ok(await activityRow.locator("ol li").count() >= 1, "Activity panel lists entries");
+
 // (7) Console errors
 ok(errors.length === 0, `nothing logged${errors.length ? `: ${errors.join(" | ")}` : ""}`);
 await page.evaluate(() => { localStorage.removeItem("tw_console_nav"); localStorage.removeItem("tw_console_motion"); });
