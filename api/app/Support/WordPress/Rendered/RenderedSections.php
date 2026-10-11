@@ -40,7 +40,7 @@ use Illuminate\Support\Str;
 final class RenderedSections
 {
     /** Kinds a heading just above them becomes the heading of. */
-    private const TAKE_HEADING = ['pricing', 'gallery', 'form', 'features', 'figures', 'bars', 'faq', 'tabs', 'checklist', 'timeline', 'steps', 'testimonial', 'video'];
+    private const TAKE_HEADING = ['pricing', 'gallery', 'form', 'features', 'figures', 'bars', 'faq', 'tabs', 'checklist', 'timeline', 'steps', 'testimonial', 'video', 'map'];
 
     /** Kinds whose section has a kicker over its heading. */
     private const TAKE_KICKER = ['features', 'figures', 'bars', 'tabs', 'checklist', 'timeline', 'steps', 'testimonial'];
@@ -71,9 +71,35 @@ final class RenderedSections
      * @param  Closure(string): ?string  $body  markup → cleaned markup
      * @param  Closure(string): ?string  $media  a picture's address → library path
      */
-    public function __construct(private Closure $body, private Closure $media, private ?Parts $parts = null)
+    /** @param  list<Recogniser>|null  $recognisers  what to look for; the WordPress builders' by default */
+    public function __construct(private Closure $body, private Closure $media, private ?Parts $parts = null, ?array $recognisers = null)
     {
-        $this->recognisers = self::recognisers();
+        $this->recognisers = $recognisers ?? self::recognisers();
+    }
+
+    /**
+     * What the site import looks for: the builders' recognisers above, which
+     * key on class names a hand-written site sometimes shares, then the generic
+     * ones, which key on structure. They are asked after, so nothing a
+     * WordPress recogniser claims is taken from it.
+     *
+     * @return list<Recogniser>
+     */
+    public static function siteRecognisers(): array
+    {
+        return [
+            ...self::recognisers(),
+            new R\GenericHero,
+            new R\MapEmbed,
+            new R\VideoEmbed,
+            new R\QuoteBlock,
+            new R\LogoStrip,
+            new R\StatsRow,
+            new R\DetailsFaq,
+            new R\MediaTextBlock,
+            new R\RepeatedCards,
+            new R\CtaBand,
+        ];
     }
 
     /** @return list<Recogniser> in the order they are asked */
@@ -327,6 +353,7 @@ final class RenderedSections
 
         $rows = match ($piece->kind) {
             'hero' => [self::row('hero', array_filter([
+                'kicker' => isset($d['kicker']) ? mb_substr((string) $d['kicker'], 0, 80) : null,
                 'heading' => $d['heading'],
                 'lede' => $d['lede'] ?? null,
                 ...(($path = isset($d['image']) ? ($this->media)((string) $d['image']) : null) !== null
@@ -335,7 +362,11 @@ final class RenderedSections
                 'primary' => $d['primary'] ?? null,
                 'secondary' => $d['secondary'] ?? null,
             ]))],
-            'video' => [self::row('video', array_filter(['heading' => $heading, 'source' => 'youtube', 'youtube' => $d['youtube'], 'caption' => $d['caption'] ?? null]))],
+            'video' => isset($d['mp4'])
+                ? (($path = ($this->media)((string) $d['mp4'])) === null ? null : [self::row('video', array_filter(['heading' => $heading, 'source' => 'mp4', 'video_path' => $path, 'caption' => $d['caption'] ?? null]))])
+                : [self::row('video', array_filter(['heading' => $heading, 'source' => 'youtube', 'youtube' => $d['youtube'], 'caption' => $d['caption'] ?? null]))],
+            'map' => [self::row('map', array_filter(['heading' => $heading, 'url' => $d['url']]))],
+            'media_text' => $this->mediaText($d),
             'divider' => [self::row('divider', ['size' => 'medium', 'rule' => true])],
             'cta' => [self::row('cta', array_filter(['heading' => $d['heading'], 'lede' => $d['lede'] ?? null, 'tone' => 'brand', 'primary' => $d['primary'] ?? null, 'secondary' => $d['secondary'] ?? null]))],
             'testimonial' => $this->testimonials($piece->items, $heading, $kicker),
@@ -398,6 +429,34 @@ final class RenderedSections
         }
 
         return $rows;
+    }
+
+    /**
+     * A picture beside words (the generic recogniser's): the picture is brought
+     * into the library, the words cleaned like any text section's.
+     *
+     * @param  array<string, mixed>  $d
+     * @return list<array<string, mixed>>|null
+     */
+    private function mediaText(array $d): ?array
+    {
+        $path = ($this->media)((string) $d['image']);
+
+        if ($path === null) {
+            return null;
+        }
+
+        $body = trim((string) $d['body']) !== '' ? ($this->body)((string) $d['body']) : null;
+
+        return [self::row('media_text', array_filter([
+            'heading' => Str::limit((string) $d['heading'], 157, '…'),
+            'body' => $body,
+            'media' => 'image',
+            'image_path' => $path,
+            'side' => $d['side'] ?? 'left',
+            'primary' => $d['primary'] ?? null,
+            'secondary' => $d['secondary'] ?? null,
+        ]))];
     }
 
     /**

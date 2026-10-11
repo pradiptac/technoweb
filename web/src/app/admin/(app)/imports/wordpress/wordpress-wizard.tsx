@@ -476,7 +476,7 @@ export function WordPressImportWizard({
   );
 }
 
-function Radio({ name, value, checked, onChange, label, hint }: {
+export function Radio({ name, value, checked, onChange, label, hint }: {
   name: string; value: string; checked: boolean; onChange: () => void; label: string; hint: string;
 }) {
   return (
@@ -487,7 +487,7 @@ function Radio({ name, value, checked, onChange, label, hint }: {
   );
 }
 
-function Progress({ title, subtitle, percent, label, children }: {
+export function Progress({ title, subtitle, percent, label, children }: {
   title: string; subtitle?: string; percent: number; label: string; children: ReactNode;
 }) {
   return (
@@ -504,7 +504,7 @@ function Progress({ title, subtitle, percent, label, children }: {
 }
 
 /** The plan (or the result), one row per kind of record, with every reason a record was skipped or lost something. */
-function StepsTable({ steps, done = false }: { steps: WordPressImportStep[]; done?: boolean }) {
+export function StepsTable({ steps, done = false }: { steps: WordPressImportStep[]; done?: boolean }) {
   return (
     <section>
       <h2 className="mb-2 text-13-5 font-semibold">{done ? "What was brought across" : "What an import would do"}</h2>

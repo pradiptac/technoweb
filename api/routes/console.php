@@ -84,6 +84,7 @@ Schedule::command('technoware:prune-inbound-emails')->dailyAt('03:37');
  */
 Schedule::command('technoware:prune-newsletter-scans')->hourly();
 Schedule::command('technoware:prune-wordpress-imports')->hourly();
+Schedule::command('technoware:prune-site-imports')->hourly();
 
 /*
  * Spam and binned comments.

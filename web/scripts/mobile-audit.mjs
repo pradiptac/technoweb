@@ -124,7 +124,7 @@ const ADMIN_ROUTES = [
   // Outgoing webhooks: the form's event grid is two columns of cards from
   // `sm` and one below it, and the delivery log is a table with data-labels.
   "/admin/webhooks", "/admin/webhooks/new",
-  "/admin/imports/wordpress", "/admin/backups", "/admin/backups/settings",
+  "/admin/imports/wordpress", "/admin/imports/site", "/admin/backups", "/admin/backups/settings",
   // System → Status and Updates (2026-09-28, docs/distribution.md).
   "/admin/system/status", "/admin/system/updates",
   "/admin/profile", "/admin/customers",

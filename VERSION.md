@@ -21,6 +21,49 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.163.0 — 2026-10-11
+
+**Import a website that is not WordPress.**
+
+- **System → Site import.** Give it a live web address or a ZIP of a site's
+  files and it reads the site, shows what would come across and what would not
+  (and why), and — only when you press Import — brings every page in as a
+  **draft** laid out in sections you can rearrange in the page builder. The
+  site's header, menu and footer are recognised by what repeats across its
+  pages and left out of them; the pictures a page shows and the PDFs it links
+  to are copied into the media library; titles, descriptions, share pictures and
+  "do not index" become the page's search-engine settings; the header and
+  footer menus come across as **unassigned** menus; links between pages are
+  pointed at the new addresses; and each old address gets a redirect, never over
+  an address the new site serves itself.
+- **It reads structure, not class names**, so it works on Bootstrap, Tailwind,
+  Webflow and plain hand-written HTML: a heading over a picture, a row of cards,
+  a picture beside words, a row of figures, questions and answers, a quotation,
+  a call-to-action band, a strip of logos (a gallery), a Google map, an MP4 and a
+  contact form (a form of its own). Anything it cannot place stays text, and it
+  will not make a section that would lose a word.
+- **A live address is read politely** — through the safe fetcher, obeying
+  `robots.txt`, staying on one site, about two pages a second at most, up to
+  1,000 pages. **A ZIP is checked before it is trusted**: a path that tries to
+  leave its folder, a script or PHP file, a file over its size cap or a ZIP that
+  unpacks to too much is refused or named, and nothing in it is ever run or
+  served.
+- **Importing again updates what it made** and never changes a page's address;
+  a page you have edited here since is left alone. The home page becomes the
+  site's only if you tick it.
+- Not in this release (0.164.0): an AI fallback for blocks the rules cannot
+  place, classifying pages as posts or products, and reading the site's brand
+  colours and fonts.
+- Internally: the WordPress import's reusable parts moved to
+  `App\Support\Import` (`PartsHost`, `LinkRewriter`, `Redirects`,
+  `MediaDownload`) and `Harvest` takes either import — its tests pass unchanged.
+  New: `SiteImport` model and `site_imports` table, `RunSiteImport`,
+  `technoware:prune-site-imports`, ten generic recognisers beside the
+  WordPress ones, `lib/chunk-upload.ts` (shared with System → Updates),
+  `docs/site-import.md`, manual chapter 27.
+
+---
+
 ## 0.162.0 — 2026-10-11
 
 **A better page-template library.**

@@ -525,6 +525,13 @@ export const NAV: NavItem[] = [
       */
       { role: "admin", href: "/admin/imports/wordpress", label: "WordPress import", icon: IconArrows },
       /*
+        Importing a website with no API (0.163.0, docs/site-import.md): a live
+        address or an uploaded ZIP. `role:admin` for the same reason, and the
+        console path is the API's, so `AdminNavRolesTest` maps it to
+        `admin/imports/site` directly.
+      */
+      { role: "admin", href: "/admin/imports/site", label: "Site import", icon: IconGlobe },
+      /*
         Backups and their settings (2026-09-27, docs/backups.md). `role:admin`:
         a backup is every customer and every ticket attachment in one file, and
         a restore replaces the lot. The paths are the API's, so

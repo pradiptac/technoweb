@@ -1066,6 +1066,38 @@ on the import row or in a job payload. Every request to the site — and to
 its upload URLs — goes through `SafeHttp`: public addresses, pinned, at most
 three redirects checked hop by hop, credentials never sent to another host.
 
+## Importing a website (`role:admin`)
+
+A site with no API, from a live address or an uploaded ZIP (0.163.0): scan,
+review, commit. See `docs/site-import.md`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/imports/site` | The last twenty imports, newest first. `meta.active` — the import in flight, ready or failed, in full, or null; `meta.delivering`; `meta.sections` (`pages`, `menus`, `redirects`); `meta.chunk_bytes` (1,572,864 — the piece size an upload is sliced to); `meta.limits` `{depth, pages, zip_bytes}` |
+| `POST` | `/admin/imports/site/upload` | One piece of a ZIP, appended in order: multipart `name` (`*.zip`, 120), `index`, `total`, `chunk` (≤ `meta.chunk_bytes`). `index` 0 starts again; the last piece is checked to begin `PK` and renamed into place. `{data: {received, complete, file}}`. 422 on `chunk` over the ZIP cap (200 MB) or not a ZIP. Held at `site-imports/uploads/{user id}-{name}` on the private disk. Throttled 600/min |
+| `POST` | `/admin/imports/site` | Starts a scan. `source` `url` or `zip`; `start_url` (required for `url`; https is assumed when nothing is said; http is allowed), `zip` (the `name` just uploaded), `depth` 0–6 (default 3), `max_pages` 1–1000 (default 300), `sections[]` of `pages`, `menus`, `redirects` (default all; pages are always imported). **202**. 422 on `start_url` for a private, numeric or unresolvable host, on `zip` for an upload that is gone or while another import is in flight, and on `queue` when nothing drains the queue. A `ready` import of any site is cancelled. Throttled 6/min |
+| `GET` | `/admin/imports/site/{id}` | The import: `status` (`pending`, `scanning`, `analysing`, `ready`, `running`, `completed`, `failed`, `cancelled`, `expired`), `source`, `site_url` (the start address, or the ZIP's name), `settings`, `decisions`, `progress` `{phase (crawl, zip, chrome), pages, queued, requests, current, capped, zip_files, analyse_step, analyse_percent, commit_step, commit_percent}`, `site` once read `{name, url, pages, home_path, chrome_blocks, menus {primary: n, footer: n}, capped, skipped[{reason, count, examples}], notes[]}`, `analysis` once analysed `{steps[], notices[], pages[], decisions, analysed_at}`, `result`, `can_resume` |
+| `PATCH` | `/admin/imports/site/{id}` | `decisions` — `set_homepage` (bool), `menus` (a subset of the keys the review offers, `primary` / `footer`), `skip` (old paths to leave out, each beginning `/`). `ready` only; **202**, the dry run re-runs. A list is replaced, not merged |
+| `POST` | `/admin/imports/site/{id}/commit` | `ready`, or `failed` with a commit cursor (resume). **202**. Throttled 6/min |
+| `DELETE` | `/admin/imports/site/{id}` | Cancels a scan or a commit, or discards a review; deletes the harvest and the ZIP. What a commit already wrote stays. 422 on a completed import |
+
+**`analysis.steps`** is the WordPress import's shape (`{key, label, create,
+update, skip, warn, reasons[{reason, count, kind, examples}]}`) for keys `pages`,
+`media`, `page_parts`, `menus`, `links` and `redirects`. **`analysis.pages`** is
+one row per page read: `{path, title, action (create, update, skip), sections,
+types {section type: n}, note}`. **`analysis.decisions`** is what the review
+offers: `set_homepage {value, page {path, title} | null}` and `menus[{key,
+label, items, value}]`.
+
+**Everything arrives as a draft** (`pages.template` `builder`, `status` draft),
+menus unassigned, nothing mailed. The import map is `wordpress_import_map`,
+keyed by a hash of `static:` and the host (or the ZIP's name), so a second import
+of the same site updates what the first made, never changes a slug, and leaves a
+page edited here alone. Every request the crawler makes goes through `SafeHttp`;
+`SITE_IMPORT_ALLOW_PRIVATE=true` lets a site on this machine be read under
+`APP_ENV=local` only. The ZIP is unpacked to the private disk, held to an
+extension allowlist and size caps, and never served or run.
+
 ## Backups (`role:admin`)
 
 The database and the uploaded files, full and incremental, to S3 /

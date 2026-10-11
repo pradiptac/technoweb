@@ -75,6 +75,7 @@ use App\Models\SeoSuggestion;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\ShippingZone;
+use App\Models\SiteImport;
 use App\Models\Slider;
 use App\Models\Solution;
 use App\Models\StoreCategory;
@@ -364,6 +365,7 @@ class AppServiceProvider extends ServiceProvider
             // A WordPress import is bound on its routes, so the activity log
             // names it as the subject of a commit or a cancel.
             'wordpress_import' => WordPressImport::class,
+            'site_import' => SiteImport::class,
 
             // Backups and restores are bound on their routes (delete, cancel),
             // so the activity log names them as the subject.

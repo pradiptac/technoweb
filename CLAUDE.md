@@ -154,6 +154,7 @@ Contents:
   - Online meetings — `docs/meetings.md`
   - Custom fields and content types — `docs/custom-content.md`
   - Importing a WordPress / WooCommerce site — `docs/wordpress-import.md`
+  - Importing a website with no API — `docs/site-import.md`
   - Backups — `docs/backups.md`
   - Distribution: the release zip, the setup wizard, the updater — `docs/distribution.md`
   - The chart kit — `docs/charts.md`
@@ -2901,6 +2902,24 @@ System → WordPress import (2026-09-27): scan → dry run → review → commit
 - Customers arrive active, unconfirmed, with a random password (sign-in by code confirms them and claims their guest orders) and join "Existing customers" through their own hook, as the client decided; the review names the sequences that would email them. Per-record IndexNow pings are suppressed (`IndexNow::suppressed`). Staff are never created; menus arrive unassigned.
 - Yoast titles that are only the title plus the old site's name, and canonicals pointing at the old site, are never copied — and a Yoast head is used only when its canonical is the record's own address (without its index Yoast repeats the first post's head on every post; measured on a real site). The application password reads `wc/v3` too; a WooCommerce key is optional. Old-site staff roles are not imported as customers. ACF kinds are inferred and changeable in the review; repeaters, groups, galleries and relationships are named and not kept.
 - Redirects: a 301 from every imported record's old address, plus `/shop` → `/store`, never over a route, page or archive this site serves. "Plain" permalinks (`/?p=62`, `/?product=cap`) are stored as `/?{name}={value}` and `proxy.ts` looks them up **on the home path only**, keeping the rest of the query; a shop category's old address is read from `wp/v2/product_cat`, never assumed to be `/product-category/`.
+
+### Importing a website with no API — `docs/site-import.md`
+
+System → Site import (0.163.0, part 1 of two): a live URL (crawled) or an uploaded ZIP, scan → dry run → review → commit like the WordPress import, every page a **draft** builder page. Not yet (0.164.0): the AI fallback, page/post/product classification, brand colours and fonts.
+
+- It is `WordPress\Importer`'s loop over its own steps (`SiteImport\Importer`, `Steps\{Pages,Menus,Links,Redirects}`), its own model/table/job (`site_imports`, `RunSiteImport`, `technoware:prune-site-imports`) and **no new map table**: `wordpress_import_map` keyed by `sha1('static:' . host)` (or the ZIP's name), `wordpress_import_id` left null because it is a foreign key to the WordPress imports.
+- The refactor that made it possible is `App\Support\Import\{PartsHost, LinkRewriter, Redirects, MediaDownload}` and `Harvest` taking either import: `Rendered\Parts` needs a `PartsHost`, not `WordPress\Context`; `WordPressImportTest`, `RenderedSectionsTest`, `GutenbergSectionsTest` and `BodySectionsTest` pass unchanged across it, and any further generalisation has to keep them so.
+- Every request is `SafeHttp`; `SITE_IMPORT_ALLOW_PRIVATE` (`config/site_import.php`) is honoured only under `APP_ENV=local`; the crawler reads robots.txt, asks a host every `SITE_IMPORT_DELAY_MS` (500) at most and stays on one host (`www.` or not).
+- A ZIP is chunk-uploaded like a release (`imports/site/upload`, `lib/chunk-upload.ts` shared with System → Updates), unpacked to the **private** disk and never served or run: `ZipSource::relative()` is the zip-slip check, 5,000 files / 500 MB declared and the bytes *actually read* are capped, only html, htm, css, images, svg, pdf and woff2 are kept, and the harvest and the ZIP are deleted when the import ends.
+- **Chrome** is what repeats: a block (hash of tag, skeleton and words) on ≥ 60% of pages and ≥ 3 pages, plus `<nav>`, a top-level `<footer>` and a `<header>` that holds a menu and no `<h1>`; only container tags count as repeated chrome and only with 12 characters of words — an inline element repeated in the menu ("About") once removed every paragraph link to About from every page. The menus are read off the home page before its chrome goes.
+- `RenderedSections::siteRecognisers()` is the WordPress recognisers **then** the generic ones (`GenericHero`, `MapEmbed`, `VideoEmbed`, `QuoteBlock`, `LogoStrip`, `StatsRow`, `DetailsFaq`, `MediaTextBlock`, `RepeatedCards`, `CtaBand`, helper `Structure`); they key on structure, never on a class name, and a unit test requires WordPress snippets to read identically with them added.
+- A generic recogniser may not drop a word: a hero is claimed only when its headline, one line either side and its buttons account for everything in it, a button is a link styled as one **or beside one**, and cards are text only (a features item has an icon, not a photograph). A page's top-level children are offered whole inside one `<div>` unless it opens with loose words.
+- A logo strip becomes a **gallery**, not a `logos` section — that draws this site's own clients/brands.
+- A page's slug is its old path with `/` → `-` (`home-page` for `/`: `home` is reserved); a slug this site routes (`about`, `contact`, `services`) gets the next free one and `Redirects::live` then refuses the redirect over the address this site serves — as designed, and the review says so.
+- A canonical is **never** copied (it names the old address); title (site name taken off by `SiteName`), description, `og:image` and `noindex` are.
+- A re-import updates through the map and leaves a page **edited here** alone: a `page_hash` map row holds the fingerprint of what the import last wrote (title + blocks in canonical key order — MySQL's JSON reorders object keys, so comparing `json_encode` of the reloaded blocks reported every page as edited), and the links step refreshes it (`Revisions::canonical()` is public for this).
+- Pictures are fetched from any host a page shows them from, an address with no extension is named and skipped, and the dry run counts media the same way the commit fetches it (`Context::planMedia()` / `media()` over the same layout) so the review's counts are the commit's.
+- Forms and galleries are made **published**, as the WordPress import does (a `form` section needs a published form); they are reachable only through the draft page. The home page becomes `homepage_page_id` only when ticked.
 
 ### Backups — `docs/backups.md`
 

@@ -118,7 +118,7 @@ const ADMIN_ROUTES = [
   // entry below, because nothing seeds a webhook and its id is whatever an
   // administrator made.
   "/admin/webhooks", "/admin/webhooks/new",
-  "/admin/imports/wordpress", "/admin/backups", "/admin/backups/settings",
+  "/admin/imports/wordpress", "/admin/imports/site", "/admin/backups", "/admin/backups/settings",
   // System → Status and Updates (2026-09-28, docs/distribution.md).
   "/admin/system/status", "/admin/system/updates",
   // Engineer visits (docs/visits.md): the queue and its settings; the record

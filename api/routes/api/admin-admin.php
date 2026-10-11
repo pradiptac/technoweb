@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Admin\MailController;
 use App\Http\Controllers\Api\V1\Admin\MediaCdnController;
 use App\Http\Controllers\Api\V1\Admin\MessagingSettingsController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
+use App\Http\Controllers\Api\V1\Admin\SiteImportController;
 use App\Http\Controllers\Api\V1\Admin\UserAdminController;
 use App\Http\Controllers\Api\V1\Admin\WebhookController;
 use App\Http\Controllers\Api\V1\Admin\WordPressImportController;
@@ -49,6 +50,24 @@ Route::middleware('role:admin')->group(function () {
     Route::post('imports/wordpress/{wordpressImport}/commit', [WordPressImportController::class, 'commit'])
         ->middleware('throttle:6,1')->name('imports.wordpress.commit');
     Route::delete('imports/wordpress/{wordpressImport}', [WordPressImportController::class, 'destroy'])->name('imports.wordpress.destroy');
+
+    /*
+     * Importing a website that has no API — a live address read page by page,
+     * or an uploaded ZIP of its files (0.163.0). `role:admin` for the same
+     * reason: one import writes pages, files, menus and redirects across the
+     * site. The ZIP arrives in chunks like a release does, and nothing in it
+     * is ever executed or served. See `docs/site-import.md`.
+     */
+    Route::get('imports/site', [SiteImportController::class, 'index'])->name('imports.site.index');
+    Route::post('imports/site', [SiteImportController::class, 'store'])
+        ->middleware('throttle:6,1')->name('imports.site.store');
+    Route::post('imports/site/upload', [SiteImportController::class, 'upload'])
+        ->middleware('throttle:600,1')->name('imports.site.upload');
+    Route::get('imports/site/{siteImport}', [SiteImportController::class, 'show'])->name('imports.site.show');
+    Route::patch('imports/site/{siteImport}', [SiteImportController::class, 'update'])->name('imports.site.update');
+    Route::post('imports/site/{siteImport}/commit', [SiteImportController::class, 'commit'])
+        ->middleware('throttle:6,1')->name('imports.site.commit');
+    Route::delete('imports/site/{siteImport}', [SiteImportController::class, 'destroy'])->name('imports.site.destroy');
 
     /*
      * JavaScript failures, grouped by bug rather than listed by

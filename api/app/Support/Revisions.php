@@ -443,7 +443,7 @@ final class Revisions
      * hashes the same whether it came from the model or from MySQL's JSON type,
      * which reorders object keys.
      */
-    private static function canonical(mixed $value): mixed
+    public static function canonical(mixed $value): mixed
     {
         if (! is_array($value)) {
             return $value;

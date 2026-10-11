@@ -3,9 +3,11 @@
 namespace App\Support\WordPress\Steps;
 
 use App\Models\WordPressImportMapping;
+use App\Support\Import\LinkRewriter;
 use App\Support\WordPress\Context;
 use App\Support\WordPress\ImportMap;
 use App\Support\WordPress\Outcome;
+use Closure;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -91,7 +93,7 @@ class LinksStep extends Step
                 }
 
                 if ($row->target_type === 'page' && is_array($blocks = $model->getAttribute('blocks')) && $blocks !== []) {
-                    $rewritten = $this->rewriteSections($ctx, $blocks, $paths, $label);
+                    $rewritten = LinkRewriter::sections($blocks, $this->mapper($ctx, $paths, $label));
                     if ($rewritten !== $blocks) {
                         $model->setAttribute('blocks', $rewritten);
                         $changed = true;
@@ -157,54 +159,38 @@ class LinksStep extends Step
         return $path === '/' ? null : $path;
     }
 
-    /**
-     * A section list with every `body` rewritten as markup and every `href`
-     * as a link, at any depth.
-     *
-     * @param  array<int|string, mixed>  $value
-     * @param  array<string, string>  $paths
-     * @return array<int|string, mixed>
-     */
-    private function rewriteSections(Context $ctx, array $value, array $paths, string $label): array
-    {
-        foreach ($value as $key => $item) {
-            if (is_array($item)) {
-                $value[$key] = $this->rewriteSections($ctx, $item, $paths, $label);
-            } elseif ($key === 'body' && is_string($item) && $item !== '') {
-                $value[$key] = $this->rewrite($ctx, $item, $paths, $label);
-            } elseif ($key === 'href' && is_string($item) && $item !== '') {
-                $value[$key] = html_entity_decode((string) preg_replace('/^href="|"$/', '', $this->rewrite($ctx, 'href="'.e($item).'"', $paths, $label)), ENT_QUOTES);
-            }
-        }
-
-        return $value;
-    }
-
     /** @param  array<string, string>  $paths */
     private function rewrite(Context $ctx, string $html, array $paths, string $label): string
     {
+        return LinkRewriter::html($html, $this->mapper($ctx, $paths, $label));
+    }
+
+    /**
+     * What an href in imported markup becomes: a file in the old uploads is
+     * brought into the library, a link to an imported page its new path.
+     *
+     * @param  array<string, string>  $paths
+     * @return Closure(string): ?string
+     */
+    private function mapper(Context $ctx, array $paths, string $label): Closure
+    {
         $site = preg_replace('/^www\./i', '', (string) parse_url((string) ($ctx->site()['url'] ?? $ctx->import->site_url), PHP_URL_HOST));
 
-        return (string) preg_replace_callback('/(\bhref=")([^"]+)(")/i', function (array $m) use ($ctx, $paths, $site, $label) {
-            $href = html_entity_decode($m[2], ENT_QUOTES);
+        return function (string $href) use ($ctx, $paths, $site, $label): ?string {
             $host = preg_replace('/^www\./i', '', (string) parse_url($href, PHP_URL_HOST));
 
             if ($host !== '' && strcasecmp($host, $site) !== 0) {
-                return $m[0];
+                return null;
             }
 
             if (self::isSiteUpload($ctx, $href) && ($path = $ctx->media($href, $label)) !== null) {
-                return $m[1].e(Context::mediaUrl($path)).$m[3];
+                return Context::mediaUrl($path);
             }
 
             $old = self::normalise($href);
             $fragment = (string) parse_url($href, PHP_URL_FRAGMENT);
 
-            if ($old !== null && isset($paths[$old])) {
-                return $m[1].e($paths[$old].($fragment !== '' ? '#'.$fragment : '')).$m[3];
-            }
-
-            return $m[0];
-        }, $html);
+            return $old !== null && isset($paths[$old]) ? $paths[$old].($fragment !== '' ? '#'.$fragment : '') : null;
+        };
     }
 }

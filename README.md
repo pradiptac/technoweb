@@ -1815,6 +1815,25 @@ To test against a WordPress on this machine (Laragon), set
 `WORDPRESS_IMPORT_ALLOW_PRIVATE=true` in `api/.env`; it is ignored unless
 `APP_ENV=local`.
 
+## Importing a website with no API (0.163.0)
+
+System → **Site import** brings in a site that is not WordPress — a hand-written
+one, a Webflow / Wix / Framer export, a site-builder template — from its web
+address or an uploaded ZIP. Every page arrives as a **draft** laid out in
+builder sections, with its pictures, search-engine details, menus (unassigned),
+internal links and redirects, after a review that names what will and will not
+come across. See `docs/site-import.md` and the customer manual's chapter 27.
+
+Setup: `php artisan migrate --force` (the `site_imports` table) and the
+scheduler's cron entry, which runs the read and the import. Nothing is added to
+the `.env` for ordinary use. For development only,
+`SITE_IMPORT_ALLOW_PRIVATE=true` (honoured under `APP_ENV=local` and nowhere
+else) lets the importer read a site on this machine — `python -m http.server` in
+a folder of HTML is enough — and `SITE_IMPORT_DELAY_MS` (default 500) sets how
+long it waits between two requests to one host. A ZIP is uploaded in pieces like
+a release, so the host's own upload limit does not apply; it is unpacked to
+`storage/app/private/site-imports/` and deleted when the import ends.
+
 ## Importing subscribers from a website
 
 Campaign → Subscribers → **From a website** reads a site to a chosen depth —

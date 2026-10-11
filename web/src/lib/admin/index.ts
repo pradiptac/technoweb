@@ -43,6 +43,7 @@ export * from "./visits";
 export * from "./meetings";
 export * from "./webhooks";
 export * from "./wordpress-import";
+export * from "./site-import";
 export * from "./backups";
 export * from "./system";
 export * from "./downloads";

@@ -2,6 +2,7 @@
 
 namespace App\Support\WordPress;
 
+use App\Models\SiteImport;
 use App\Models\WordPressImport;
 use Generator;
 use Illuminate\Support\Facades\Storage;
@@ -44,9 +45,9 @@ final class Harvest
 
     public int $requests = 0;
 
-    public static function dir(WordPressImport $import): string
+    public static function dir(WordPressImport|SiteImport $import): string
     {
-        return 'wordpress-imports/'.$import->id;
+        return ($import instanceof SiteImport ? 'site-imports/' : 'wordpress-imports/').$import->id;
     }
 
     public static function load(WordPressImport $import): self
@@ -102,7 +103,7 @@ final class Harvest
     }
 
     /** @param  list<array<string, mixed>>  $items */
-    public function append(WordPressImport $import, string $collection, array $items): void
+    public function append(WordPressImport|SiteImport $import, string $collection, array $items): void
     {
         if ($items === []) {
             $this->counts[$collection] ??= 0;
@@ -127,7 +128,7 @@ final class Harvest
      *
      * @return Generator<int, array<string, mixed>>
      */
-    public static function read(WordPressImport $import, string $collection): Generator
+    public static function read(WordPressImport|SiteImport $import, string $collection): Generator
     {
         $path = Storage::disk(self::DISK)->path(self::file($import, $collection));
 
@@ -149,17 +150,17 @@ final class Harvest
     }
 
     /** @return list<array<string, mixed>> a whole collection in memory — for the small ones only */
-    public static function all(WordPressImport $import, string $collection): array
+    public static function all(WordPressImport|SiteImport $import, string $collection): array
     {
         return iterator_to_array(self::read($import, $collection), false);
     }
 
-    public static function discard(WordPressImport $import): void
+    public static function discard(WordPressImport|SiteImport $import): void
     {
         Storage::disk(self::DISK)->deleteDirectory(self::dir($import));
     }
 
-    private static function file(WordPressImport $import, string $collection): string
+    private static function file(WordPressImport|SiteImport $import, string $collection): string
     {
         // A collection name is ours (`cpt:portfolio` → `cpt-portfolio`), never a path from the site.
         return self::dir($import).'/'.preg_replace('/[^a-z0-9_-]/', '-', strtolower($collection)).'.jsonl';

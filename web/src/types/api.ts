@@ -3967,5 +3967,6 @@ export * from "./reviews";
 export * from "./page-sections";
 export * from "./visits";
 export * from "./wordpress-import";
+export * from "./site-import";
 export * from "./backups";
 export * from "./preview";

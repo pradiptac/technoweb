@@ -9,7 +9,7 @@ use App\Models\ContentBlock;
 use App\Models\Form;
 use App\Models\Gallery;
 use App\Support\Blocks\BlockRules;
-use App\Support\WordPress\Context;
+use App\Support\Import\PartsHost;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -48,7 +48,7 @@ final class Parts
 
     /** @param  bool  $writes  whether records are created, or only counted */
     public function __construct(
-        private readonly Context $ctx,
+        private readonly PartsHost $ctx,
         private readonly string $page,
         private readonly string $title,
         private readonly bool $writes,
@@ -67,14 +67,14 @@ final class Parts
         if (! $this->writes) {
             $this->count(self::FORM, $key, 'Forms, placed as form sections');
             foreach ($spec['dropped'] ?? [] as $label) {
-                $this->ctx->report->count(self::STEP, 'warn');
-                $this->ctx->report->reason(self::STEP, 'warn', 'A file upload field has no field here and was left out of its form.', $this->title.' — '.$label);
+                $this->ctx->report()->count(self::STEP, 'warn');
+                $this->ctx->report()->reason(self::STEP, 'warn', 'A file upload field has no field here and was left out of its form.', $this->title.' — '.$label);
             }
 
             return 0;
         }
 
-        if ($existing = $this->ctx->map->model(self::FORM, $key, Form::class)) {
+        if ($existing = $this->ctx->map()->model(self::FORM, $key, Form::class)) {
             return (int) $existing->getKey();
         }
 
@@ -95,7 +95,7 @@ final class Parts
                 'sort_order' => $i,
             ]);
         }
-        $this->ctx->map->put(self::FORM, $key, $form);
+        $this->ctx->map()->put(self::FORM, $key, $form);
 
         return (int) $form->getKey();
     }
@@ -130,7 +130,7 @@ final class Parts
             return 0;
         }
 
-        if ($existing = $this->ctx->map->model(self::PRICING, $key, ContentBlock::class)) {
+        if ($existing = $this->ctx->map()->model(self::PRICING, $key, ContentBlock::class)) {
             return (int) $existing->getKey();
         }
 
@@ -141,7 +141,7 @@ final class Parts
             'status' => PublishStatus::Published,
             'data' => $content,
         ]);
-        $this->ctx->map->put(self::PRICING, $key, $block);
+        $this->ctx->map()->put(self::PRICING, $key, $block);
 
         return (int) $block->getKey();
     }
@@ -173,7 +173,7 @@ final class Parts
             return 0;
         }
 
-        if ($existing = $this->ctx->map->model(self::GALLERY, $key, Gallery::class)) {
+        if ($existing = $this->ctx->map()->model(self::GALLERY, $key, Gallery::class)) {
             return (int) $existing->getKey();
         }
 
@@ -186,7 +186,7 @@ final class Parts
         foreach ($items as $i => $item) {
             $gallery->items()->create($item + ['sort_order' => $i]);
         }
-        $this->ctx->map->put(self::GALLERY, $key, $gallery);
+        $this->ctx->map()->put(self::GALLERY, $key, $gallery);
 
         return (int) $gallery->getKey();
     }
@@ -197,7 +197,7 @@ final class Parts
      */
     private function local(string $href): string
     {
-        $site = (string) parse_url((string) ($this->ctx->site()['url'] ?? $this->ctx->import->site_url), PHP_URL_HOST);
+        $site = (string) parse_url($this->ctx->siteUrl(), PHP_URL_HOST);
         $host = (string) parse_url($href, PHP_URL_HOST);
         if ($host === '' || $site === '' || strcasecmp((string) preg_replace('/^www\./i', '', $host), (string) preg_replace('/^www\./i', '', $site)) !== 0) {
             return $href;
@@ -222,14 +222,14 @@ final class Parts
     {
         // A marker of its own, so "counted already" is not confused with "imported before".
         $marker = $type.'#counted';
-        if ($this->ctx->map->has($marker, $key)) {
+        if ($this->ctx->map()->has($marker, $key)) {
             return;
         }
-        $this->ctx->map->plan($marker, $key);
+        $this->ctx->map()->plan($marker, $key);
 
-        $exists = $this->ctx->map->get($type, $key) !== null;
-        $this->ctx->report->count(self::STEP, $exists ? 'update' : 'create');
-        $this->ctx->report->reason(self::STEP, 'info', $exists ? $reason.' (already here; kept as it is)' : $reason, $this->title);
+        $exists = $this->ctx->map()->get($type, $key) !== null;
+        $this->ctx->report()->count(self::STEP, $exists ? 'update' : 'create');
+        $this->ctx->report()->reason(self::STEP, 'info', $exists ? $reason.' (already here; kept as it is)' : $reason, $this->title);
     }
 
     /** @param  array<string, mixed>  $content */

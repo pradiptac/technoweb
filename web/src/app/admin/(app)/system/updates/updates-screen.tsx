@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { formatDate } from "@/lib/dates";
+import { uploadInChunks } from "@/lib/chunk-upload";
 import type { UpdatePackage, UpdateRun, UpdateStatus, UpdatesIndex } from "@/types/system";
 import {
   abandonUpdateAction, applyUpdateAction, deletePackageAction, loadUpdatesAction, retryUpdateAction,
@@ -156,31 +157,12 @@ export function UpdatesScreen({ initial }: { initial: UpdatesIndex }) {
     if (!/\.zip$/i.test(file.name)) { setError("Choose the .zip file your supplier sent."); return; }
 
     const name = file.name.replace(/[^A-Za-z0-9._-]/g, "-");
-    const size = index.chunk_bytes;
-    const total = Math.max(1, Math.ceil(file.size / size));
-    setUpload({ name, done: 0, total });
+    const result = await uploadInChunks({
+      url: "/api/admin/system/updates/upload", file, name, chunkBytes: index.chunk_bytes,
+      onProgress: (p) => setUpload({ name, ...p }),
+    });
 
-    for (let i = 0; i < total; i++) {
-      const body = new FormData();
-      body.set("name", name);
-      body.set("index", String(i));
-      body.set("total", String(total));
-      body.set("chunk", file.slice(i * size, (i + 1) * size), "chunk");
-
-      let ok = false;
-      for (let attempt = 0; attempt < 3 && !ok; attempt++) {
-        const res = await fetch("/api/admin/system/updates/upload", { method: "POST", body }).catch(() => null);
-        ok = !!res && res.ok;
-        if (!ok && res) {
-          const payload = await res.json().catch(() => null) as { message?: string; errors?: Record<string, string[]> } | null;
-          const message = payload?.errors ? Object.values(payload.errors)[0]?.[0] : payload?.message;
-          if (res.status < 500) { setError(message || "The upload was refused."); setUpload(null); return; }
-        }
-      }
-
-      if (!ok) { setError("The upload stopped. Check the connection and try again."); setUpload(null); return; }
-      setUpload({ name, done: i + 1, total });
-    }
+    if (!result.ok) { setError(result.error); setUpload(null); return; }
 
     setUpload(null);
     await refresh();
