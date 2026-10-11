@@ -11,6 +11,9 @@ import { istDate } from "@/lib/visit-dates";
 import { StatTile, type Tone } from "@/components/admin/stat-tile";
 import { Card } from "@/components/ui/card";
 import { Panel } from "@/components/app-shell/panel";
+import { HERO_ACTION, HERO_ACTION_PRIMARY, HERO_ACTION_SECONDARY, HeroBand } from "@/components/app-shell/hero-band";
+import { Entrance } from "@/components/app-shell/entrance";
+import { greeting } from "@/lib/greeting";
 import { TicketArrivals, TicketFigures, TicketVolume } from "./metrics";
 import { DashboardCustomise } from "./dashboard-customise";
 import { arrange, dashboardCookie, parseView, type DashboardView, type GroupKey, type WidgetKey } from "@/lib/dashboard-view";
@@ -306,6 +309,27 @@ async function DashboardBody({ volume }: { volume?: string }) {
 
   const checklist = await onboarding;
   const view = await readView();
+
+  /*
+   * The hero's one line and its buttons (Console 2.0), from figures this
+   * role's answer already holds — a section the API left null is never
+   * mentioned, the rule every tile here follows.
+   */
+  const staff = await getCurrentStaff();
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  const due = dashboard.counts.overdue_tickets;
+  const summary = [
+    due > 0 ? plural(due, "overdue ticket", "overdue tickets") : null,
+    dashboard.counts.open_tickets > 0 ? `${dashboard.counts.open_tickets} open` : null,
+    dashboard.leads && dashboard.leads.new > 0 ? plural(dashboard.leads.new, "new lead", "new leads") : null,
+    dashboard.visits && dashboard.visits.awaiting > 0 ? plural(dashboard.visits.awaiting, "visit to confirm", "visits to confirm") : null,
+    dashboard.meetings && dashboard.meetings.today > 0 ? plural(dashboard.meetings.today, "meeting today", "meetings today") : null,
+  ].filter(Boolean);
+  const heroActions = [
+    { label: "Open the queue", href: "/admin/tickets?open=1" },
+    due > 0 ? { label: "Overdue tickets", href: "/admin/tickets?overdue=1" } : null,
+    dashboard.leads ? { label: "New leads", href: "/admin/leads?status=new" } : null,
+  ].filter((a): a is { label: string; href: string } => a !== null).slice(0, 3);
   const shown = (key: string) => !view.hidden.includes(key);
 
   /*
@@ -330,11 +354,11 @@ async function DashboardBody({ volume }: { volume?: string }) {
       a row where the screen cannot hold that, never a group split over two
       rows of its own (the client, 2026-09-29: one line per title).
     */
-    glance: tileGroups.length > 0 && (
+    glance: tileGroups.length > 0 && (() => { let idx = 0; return (
       <div className="flex flex-wrap gap-3">
         {tileGroups.map(([key, title, list]) => (
           <Card
-            key={key} as="section" interactive={false} padding="none" className="flex min-w-0 flex-col p-3"
+            key={key} as="section" interactive={false} padding="none" className="flex min-w-0 flex-col rounded-xl p-3 shadow-1"
             style={{ flex: `${list.length} 1 calc(${list.length} * 9.5rem + ${list.length - 1} * 0.5rem + 1.5rem + 2px)` }}
           >
             <h2 className="mb-2 text-12-5 font-semibold text-muted">{title}</h2>
@@ -348,13 +372,13 @@ async function DashboardBody({ volume }: { volume?: string }) {
               style={{ "--tiles": list.length } as CSSProperties}
             >
               {list.map((t) => (
-                <li key={t.label}><StatTile {...t} compact /></li>
+                <li key={t.label} data-entrance-item style={{ "--i": idx++ } as CSSProperties}><StatTile {...t} compact /></li>
               ))}
             </ul>
           </Card>
         ))}
       </div>
-    ),
+    ); })(),
 
     kpis: <TicketFigures metrics={dashboard.metrics} />,
     volume: <TicketVolume metrics={dashboard.metrics} />,
@@ -433,6 +457,18 @@ async function DashboardBody({ volume }: { volume?: string }) {
 
   return (
     <>
+      <HeroBand
+        className="mb-5"
+        title={greeting(staff?.name ?? "")}
+        summary={summary.length ? `${summary.join(" · ")}.` : "All quiet. Nothing is waiting on you."}
+        actions={heroActions.map((a, i) => (
+          <Link key={a.href} href={a.href} data-press className={cn(HERO_ACTION, i === 0 ? HERO_ACTION_PRIMARY : HERO_ACTION_SECONDARY)}>
+            {a.label}
+          </Link>
+        ))}
+      />
+      <Entrance scope="console" />
+
       {checklist && checklist.done < checklist.total && <OnboardingCard data={checklist} />}
 
       {rows.length === 0 && (

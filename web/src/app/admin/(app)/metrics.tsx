@@ -161,7 +161,7 @@ export function TicketVolume({ metrics }: { metrics: DashboardMetrics }) {
 
   return (
     <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">
-      <Card interactive={false} padding="sm" className="flex min-w-0 flex-col">
+      <Card interactive={false} padding="sm" className="flex min-w-0 flex-col rounded-xl shadow-2">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <div>
             <p className="text-13 font-semibold">Ticket volume</p>
@@ -227,7 +227,7 @@ export function TicketVolume({ metrics }: { metrics: DashboardMetrics }) {
       </Card>
 
       <div className="grid content-start gap-3">
-        <Card interactive={false} padding="sm">
+        <Card interactive={false} padding="sm" className="rounded-xl shadow-2">
           <p className="mb-3 text-13 font-semibold">Open by priority</p>
           <BarList
             empty="Nothing open."
@@ -240,7 +240,7 @@ export function TicketVolume({ metrics }: { metrics: DashboardMetrics }) {
             }))}
           />
         </Card>
-        <Card interactive={false} padding="sm">
+        <Card interactive={false} padding="sm" className="rounded-xl shadow-2">
           <p className="mb-3 text-13 font-semibold">Open by category</p>
           {/* A category is a name an editor typed, so it takes a hue derived
               from that name: stable across renders and already contrast-
@@ -261,7 +261,7 @@ export function TicketArrivals({ metrics }: { metrics: DashboardMetrics }) {
   if (!metrics.arrivals) return null;
 
   return (
-    <Card interactive={false} padding="sm">
+    <Card interactive={false} padding="sm" className="rounded-xl shadow-2">
       <div className="mb-3">
         <p className="text-13 font-semibold">When tickets arrive</p>
         <p className="text-12 text-muted">

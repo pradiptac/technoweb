@@ -5216,3 +5216,18 @@ html[data-builder-preview] [data-edit]:focus {
 html[data-console-motion="subtle"] [data-console] [data-nav-pill] { transition-duration: 0s; }
 html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active { scale: none; }
 @media (prefers-reduced-motion: reduce) { [data-console] [data-nav-pill] { transition-duration: 0s; } }
+
+/* Console 2.0 entrance — the dashboard and the portal home, once a session
+   (components/app-shell/entrance.tsx; the root layout stamps the attribute
+   before paint). Hero wash, then the tiles rise; the figures count and the
+   charts draw by themselves. `from`-only keyframes, so the resting state is
+   each element's own, and nothing is hidden outside the guard. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-entrance] [data-hero-band] { animation: hero-in var(--duration-slow) var(--ease-brand) both; }
+  html[data-entrance] [data-hero-wash] { animation: hero-drift 1200ms var(--ease-brand) both; }
+  html[data-entrance] [data-entrance-item] { animation: hero-tile var(--duration-slow) var(--ease-brand) both; animation-delay: calc(120ms + var(--i, 0) * 40ms); }
+  @keyframes hero-in { from { opacity: 0; } }
+  @keyframes hero-drift { from { opacity: 0; translate: -8% 6%; } }
+  @keyframes hero-tile { from { opacity: 0; translate: 0 8px; } }
+  html[data-console-motion="subtle"][data-entrance] :is([data-hero-wash], [data-entrance-item]) { animation-name: hero-in; }
+}
