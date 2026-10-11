@@ -8,7 +8,6 @@ import { ToastProvider } from "@/components/ui/toast";
 import { AlertsAsToastsProvider } from "@/components/ui/alert-mode";
 import { ToastFromParams } from "@/components/ui/toast-from-params";
 import { Logo } from "@/components/layout/logo";
-import { IconSignOut } from "@/components/icons-ui";
 import { getCurrentStaff } from "@/lib/admin-auth";
 import { requireScreen } from "@/lib/admin-screen";
 import { getSiteSettings } from "@/lib/settings";
@@ -23,6 +22,8 @@ import { CommandPalette } from "./command-palette";
 import { NewSincePoller } from "./new-since";
 import { TableView } from "./table-view";
 import { brandName } from "@/lib/brand";
+import { TopBar } from "@/components/app-shell/top-bar";
+import { AccountMenu } from "@/components/app-shell/account-menu";
 
 /**
  * Every route under this layout requires a staff session. The login page
@@ -91,8 +92,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       {/* `data-console` scopes the table rules in globals.css (density, the
           sticky header) to this area: the portal draws `.admin-table`s too. */}
       <div data-console className="flex min-h-screen flex-col bg-surface">
-        <div className="sticky top-0 z-30 border-b border-line bg-card/95 backdrop-blur-[10px]">
-          <Container className={`${CONSOLE_WIDTH} flex h-13 items-center gap-3`}>
+        <TopBar
+          width={CONSOLE_WIDTH}
+          brand={
             <Link href="/admin" className="group/logo flex shrink-0 items-center gap-2.5">
               <Logo
                 className="text-17"
@@ -131,85 +133,34 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 </span>
               </span>
             </Link>
+          }
+        >
+          {/* The console is where staff spend hours, which is where a dark
+              scheme earns its keep. */}
+          {/* Ctrl/⌘ K, and this button for everybody else. Its 30px at
+              320 is exactly what the toggle's margin below `sm` was:
+              the row measured 6px over with both. */}
+          <CommandPalette pages={palettePages(staff.roles.map((r) => r.slug))} />
+          {/* Renders nothing on a screen with no table, and from `md` only. */}
+          <TableView />
+          <SchemeToggle area="console" className="sm:mr-1.5" />
 
-            <div className="ml-auto flex min-w-0 items-center gap-1">
-              {/* The console is where staff spend hours, which is where a dark
-                  scheme earns its keep. */}
-              {/* Ctrl/⌘ K, and this button for everybody else. Its 30px at
-                  320 is exactly what the toggle's margin below `sm` was:
-                  the row measured 6px over with both. */}
-              <CommandPalette pages={palettePages(staff.roles.map((r) => r.slug))} />
-              {/* Renders nothing on a screen with no table, and from `md` only. */}
-              <TableView />
-              <SchemeToggle area="console" className="sm:mr-1.5" />
-
-              {/* Always a new tab (the client, 2026-09-28): the console is
-                  where somebody is in the middle of something, and checking
-                  the site must not cost them their place — or a half-filled
-                  form. A plain anchor, since a new tab is a document load. */}
-              <a
-                href="/"
-                target="_blank"
-                rel="noopener"
-                className="hidden rounded px-2.5 py-1.5 text-13 font-medium text-muted transition-colors hover:bg-surface-2 hover:text-ink sm:block"
-              >
-                View site
-                <span className="sr-only"> (opens in a new tab)</span>
-              </a>
-
-              {/* Their own name reaches their own account — every role can,
-                  unlike the Staff screen. The roles sit in the title so they are
-                  available without spending a line on them. */}
-              <Link
-                href="/admin/profile"
-                title={roles ? `${staff.name} · ${roles}` : staff.name}
-                /*
-                  Hidden below `sm`, and in the nav instead — "Your account".
-
-                  Two things were wrong at 320px. `min-w-0` is what lets a
-                  `truncate` actually shrink, since a flex item's automatic
-                  minimum size is its min-content width and for a single word
-                  like "Administrator" that is the whole word: without it this
-                  refused to shrink and pushed Sign out 5px off the screen.
-                  With it, the link shrank to 20px — an ellipsis and nothing
-                  else, which is not a control anyone can use — and the row
-                  still did not fit. So it goes, the way "View site" already
-                  does, and the destination moves somewhere it can be read.
-                */
-                className="hidden min-w-0 max-w-[22ch] truncate rounded px-2.5 py-1.5 text-13 font-medium transition-colors hover:bg-surface-2 sm:block"
-              >
-                {staff.name}
-              </Link>
-
-              <form action={logoutAction}>
-                {/*
-                  The mark below `sm`, the words from `sm` (the client,
-                  2026-09-23).
-
-                  "Sign out" is two words in a row that has already given up
-                  the account link and "View site" to fit 320px, so it wrapped
-                  to two lines and made the header a row taller than everything
-                  in it. The glyph is the one this control has everywhere, and
-                  the name is on the button rather than in it — `aria-label`
-                  holds for both breakpoints, so nothing reading this ever gets
-                  a button called nothing.
-
-                  The box stays a tap target at the smaller size: a 16px glyph
-                  inside `px-2.5 py-1.5` is 36x28, both past the 24px floor the
-                  phone audit enforces.
-                */}
-                <button
-                  type="submit"
-                  aria-label="Sign out"
-                  className="flex items-center gap-1.5 rounded border border-line-strong bg-card px-2.5 py-1.5 text-13 font-semibold transition-colors hover:border-faint"
-                >
-                  <IconSignOut className="size-4 sm:hidden" aria-hidden="true" />
-                  <span className="hidden sm:inline">Sign out</span>
-                </button>
-              </form>
-            </div>
-          </Container>
-        </div>
+          {/* "View site" is always a new tab (the client, 2026-09-28):
+              the console is where somebody is in the middle of something,
+              and checking the site must not cost them their place — or a
+              half-filled form. It, their own account and Sign out live in
+              the account menu now (Console 2.0), which also gives the bar
+              back the room it lacked at 320px. */}
+          <AccountMenu
+            name={staff.name}
+            detail={roles || null}
+            items={[
+              { label: "Your account", href: "/admin/profile" },
+              { label: "View site", href: "/", external: true },
+            ]}
+            signOut={logoutAction}
+          />
+        </TopBar>
 
         {/*
           The coming-soon page is on (0.122.0). Staff see the real site in
