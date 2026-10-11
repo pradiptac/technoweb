@@ -74,6 +74,69 @@ export function ChoiceField({
   );
 }
 
+/** The select's last option: a model id typed in, from openrouter.ai/models. */
+export const CUSTOM_MODEL = "__custom__";
+
+export const CUSTOM_MODEL_HINT =
+  "Paste the id exactly as openrouter.ai/models shows it, e.g. google/gemma-4-31b-it:free. Save, then press Test this model.";
+
+/**
+ * One of the two OpenRouter model pickers (`seo_ai_model`, `chatbot_model`):
+ * the API's described list, and a last option, "Another OpenRouter model…",
+ * which reveals a box for any id on openrouter.ai/models (0.165.0).
+ *
+ * The API flags a stored id from outside its list (`custom`); that row is not
+ * drawn as an option of its own here, it *is* the custom option, with the id
+ * in the box. The select is controlled and unnamed (`<Form>` puts it back
+ * after a refusal); the named hidden input carries the value that is posted —
+ * the listed id, or the typed one. The API refuses an id OpenRouter does not
+ * list, and says so on the row.
+ */
+export function ModelField({
+  id, label, value, options,
+}: {
+  id: string;
+  label: string;
+  value: string | null;
+  options: { value: string; label: string; description: string; custom?: boolean }[];
+}) {
+  const listed = options.filter((o) => !o.custom);
+  const stored = options.find((o) => o.custom)?.value ?? "";
+  const [chosen, setChosen] = useState(stored ? CUSTOM_MODEL : (value ?? listed[0]?.value ?? ""));
+  const [typed, setTyped] = useState(stored);
+  const custom = chosen === CUSTOM_MODEL;
+  const description = custom ? undefined : listed.find((o) => o.value === chosen)?.description;
+
+  // Re-assert the DOM value after a render: see ChoiceField.
+  const ref = useRef<HTMLSelectElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (el && el.value !== chosen) el.value = chosen;
+  });
+
+  return (
+    <div>
+      <Field label={label} htmlFor={`${id}-choice`} variant="float-static" hint={description}>
+        <Select ref={ref} id={`${id}-choice`} value={chosen} onChange={(e) => setChosen(e.currentTarget.value)}>
+          {listed.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+          <option value={CUSTOM_MODEL}>Another OpenRouter model…</option>
+        </Select>
+      </Field>
+      <input type="hidden" id={id} name={id} value={custom ? typed.trim() : chosen} />
+      {custom && (
+        <Field label="OpenRouter model id" htmlFor={`${id}-custom`} hint={CUSTOM_MODEL_HINT}>
+          <Input
+            id={`${id}-custom`} value={typed} onChange={(e) => setTyped(e.currentTarget.value)}
+            maxLength={100} spellCheck={false} autoCapitalize="none" autoCorrect="off" className="font-mono text-14"
+          />
+        </Field>
+      )}
+    </div>
+  );
+}
+
 /**
  * Whether a stored boolean setting is on, read the way the API reads it:
  * `Setting::get()` passes a `boolean` row through `FILTER_VALIDATE_BOOLEAN`,

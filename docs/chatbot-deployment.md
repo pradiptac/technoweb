@@ -107,13 +107,14 @@ which is why the default model is **Gemini 2.5 Flash**.
 
 The consequence for whoever deploys this: **a model answers only when its
 maker's key — or OpenRouter credit — is on that OpenRouter account.** The
-seven models offered (`App\Enums\AiModel`):
+models offered (`App\Enums\AiModel`):
 
 | Model id | Needs, at OpenRouter |
 |---|---|
 | `google/gemini-2.5-flash` (the default) | a Google AI Studio key, or credit |
 | `google/gemini-2.5-flash-lite` | the same |
 | `google/gemini-2.5-pro` | the same |
+| `google/gemma-4-31b-it:free`, `google/gemma-4-26b-a4b-it:free` | nothing: free at OpenRouter (0.165.0), with tight per-minute and per-day limits, and free providers may keep prompts for training |
 | `openai/gpt-4o-mini` | an OpenAI key, or credit |
 | `openai/gpt-4.1-mini` | the same |
 | `openai/gpt-4o` | the same |
@@ -121,6 +122,17 @@ seven models offered (`App\Enums\AiModel`):
 | `anthropic/claude-haiku-5.5` | an Anthropic key, or credit |
 | `anthropic/claude-sonnet-5.5` | the same |
 | `anthropic/claude-opus-5.5` | the same |
+
+**Each request is pinned to the maker's own provider, with no fallback** (`OpenRouterProvider::routing()`): `google/*` (`:free` included) is sent with `provider: {only: ["google-ai-studio"], allow_fallbacks: false}`, `anthropic/*` with `anthropic` and `openai/*` with `openai`; a model from any other maker is sent unpinned. It exists because OpenRouter once routed a request away from the client's own (BYOK) key and charged the OpenRouter wallet. The consequence for a typed id: an account-level guardrail at OpenRouter that allows only those three providers refuses a model from another maker (a free NVIDIA one, say) with OpenRouter's own words — Test this model shows them.
+
+**Any other OpenRouter model** can be typed (0.165.0): choose "Another
+OpenRouter model…" and paste the id as openrouter.ai/models shows it. The API
+accepts it when it has the shape `maker/model` (up to 100 characters) and
+OpenRouter's public list has it; if that list cannot be fetched it is accepted
+on its shape alone. A free model is the cheapest way to try the assistant, but
+its limits are a visitor's wait: past them the assistant answers with links to
+the pages it found. Free models can also be withdrawn — **Test this model**
+after saving, and again if answers stop.
 
 A stored value outside the list is kept and sent exactly as written — the
 rule `AiModel` exists to keep, since substituting a model bills somebody for

@@ -17,6 +17,7 @@ use App\Support\Seo\Ai\SeoAssistant;
 use App\Support\Seo\Ai\SeoContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -552,6 +553,8 @@ class SeoAiTest extends TestCase
         $admin = $this->admin();
 
         $this->setting('seo_ai_model', null);
+        // Well-shaped, but OpenRouter's list does not have it.
+        Http::fake(['openrouter.ai/api/v1/models' => Http::response(['data' => [['id' => 'openai/gpt-4o']]])]);
 
         $this->actingAs($admin)->patchJson('/api/v1/admin/settings', [
             'settings' => [['key' => 'seo_ai_model', 'value' => 'openai/gpt-typo-4o']],

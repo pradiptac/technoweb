@@ -153,6 +153,34 @@ class OpenRouterProviderTest extends TestCase
     }
 
     /**
+     * The client's own keys sit at OpenRouter for three makers. A request for
+     * one of their models is pinned to that maker's provider with fallbacks
+     * off, so it runs under the client's key or is refused — never routed to
+     * another provider and paid from the OpenRouter wallet, which happened on
+     * 2026-10-11. Any other maker is sent unpinned (the account's guardrail
+     * decides), and nothing else in the body changes.
+     */
+    public function test_each_request_is_pinned_to_the_makers_own_provider_with_no_fallback(): void
+    {
+        $this->key();
+        $this->answers($this->ok());
+
+        foreach (['google/gemini-2.5-flash', 'google/gemma-4-31b-it:free', 'anthropic/claude-sonnet-5.5', 'openai/gpt-4o-mini', 'nvidia/some-model:free'] as $model) {
+            $this->ask(10, ['model' => $model]);
+        }
+
+        $sent = Http::recorded()->map(fn (array $pair) => [$pair[0]->data()['model'], $pair[0]->data()['provider'] ?? null])->all();
+
+        $this->assertSame([
+            ['google/gemini-2.5-flash', ['only' => ['google-ai-studio'], 'allow_fallbacks' => false]],
+            ['google/gemma-4-31b-it:free', ['only' => ['google-ai-studio'], 'allow_fallbacks' => false]],
+            ['anthropic/claude-sonnet-5.5', ['only' => ['anthropic'], 'allow_fallbacks' => false]],
+            ['openai/gpt-4o-mini', ['only' => ['openai'], 'allow_fallbacks' => false]],
+            ['nvidia/some-model:free', null],
+        ], $sent);
+    }
+
+    /**
      * A model that thinks first draws its thinking from the same allowance
      * as its answer, so a cap sized for the answer alone — five tokens to
      * prove a model — comes back empty. It is given headroom; a model that

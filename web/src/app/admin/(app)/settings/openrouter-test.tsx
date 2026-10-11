@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Select } from "@/components/ui/input";
+import { Alert, Field, Input, Select } from "@/components/ui/input";
 import type { AiModels } from "@/lib/admin";
+import { CUSTOM_MODEL, CUSTOM_MODEL_HINT } from "./settings-fields";
 import { aiModelsAction, testOpenRouterAction, type IntegrationActionState } from "./integrations-actions";
 
 /**
@@ -27,13 +28,17 @@ export function OpenRouterTest({ configured }: { configured: boolean }) {
   const [result, setResult] = useState<IntegrationActionState>({});
   const [info, setInfo] = useState<AiModels | null>(null);
   const [model, setModel] = useState("");
+  const [typed, setTyped] = useState("");
 
   useEffect(() => {
     let live = true;
     void aiModelsAction().then((found) => {
       if (!live || !found) return;
       setInfo(found);
-      setModel((current) => current || found.seoModel || found.models[0]?.value || "");
+      // A saved id from outside the list is the custom option, id in the box.
+      const outside = [found.seoModel, found.chatbotModel].find((m) => m && !found.models.some((o) => !o.custom && o.value === m));
+      if (outside) setTyped(outside);
+      setModel((current) => current || (found.seoModel && outside === found.seoModel ? CUSTOM_MODEL : found.seoModel) || found.models[0]?.value || "");
     });
     return () => { live = false; };
   }, []);
@@ -53,15 +58,24 @@ export function OpenRouterTest({ configured }: { configured: boolean }) {
         {info && info.models.length > 0 && (
           <Field label="Model to test" htmlFor="openrouter-test-model" variant="float-static" className="mb-0 min-w-0 flex-1 basis-64">
             <Select id="openrouter-test-model" value={model} onChange={(e) => setModel(e.currentTarget.value)} disabled={busy || !configured}>
-              {info.models.map((m) => (
+              {info.models.filter((m) => !m.custom).map((m) => (
                 <option key={m.value} value={m.value}>{m.label}{uses(m.value)}</option>
               ))}
+              <option value={CUSTOM_MODEL}>Another OpenRouter model…</option>
             </Select>
           </Field>
         )}
+        {info && model === CUSTOM_MODEL && (
+          <Field label="OpenRouter model id" htmlFor="openrouter-test-custom" hint={CUSTOM_MODEL_HINT} className="mb-0 min-w-0 flex-1 basis-64">
+            <Input
+              id="openrouter-test-custom" value={typed} onChange={(e) => setTyped(e.currentTarget.value)} disabled={busy || !configured}
+              maxLength={100} spellCheck={false} autoCapitalize="none" autoCorrect="off" className="font-mono text-14"
+            />
+          </Field>
+        )}
         <Button
-          type="button" variant="secondary" size="sm" disabled={busy || !configured}
-          onClick={() => start(async () => setResult(await testOpenRouterAction(model)))}
+          type="button" variant="secondary" size="sm" disabled={busy || !configured || (model === CUSTOM_MODEL && !typed.trim())}
+          onClick={() => start(async () => setResult(await testOpenRouterAction(model === CUSTOM_MODEL ? typed.trim() : model)))}
         >
           {busy ? "Asking OpenRouter…" : "Test this model"}
         </Button>

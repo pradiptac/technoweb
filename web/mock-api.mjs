@@ -2207,6 +2207,8 @@ const SEO_AI_META = {
     { value: 'google/gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite (Google)', description: 'Google\'s cheapest and quickest.' },
     { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash (Google)', description: 'Quick and capable. The default.' },
     { value: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro (Google)', description: 'The strongest Google model offered here.' },
+    { value: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B — free (Google)', description: 'Free on OpenRouter, with tight per-minute and per-day limits; free providers may keep prompts for training.' },
+    { value: 'google/gemma-4-26b-a4b-it:free', label: 'Gemma 4 26B — free (Google)', description: 'Free on OpenRouter, with tight per-minute and per-day limits; free providers may keep prompts for training.' },
   ],
   actions: [
     { value: 'generate', label: 'Generate SEO', description: 'A title, a description and keywords for this record.' },
@@ -4967,7 +4969,7 @@ createServer(async (req, res) => {
 
     /* The models the "Test this model" control offers beside the OpenRouter key. */
     if (p === '/admin/seo/ai/models' && req.method === 'GET') {
-      return json(res, 200, { data: SEO_AI_META.models, meta: { seo_model: SEO_AI_META.model, chatbot_model: SEO_AI_META.model, key_configured: false } });
+      return json(res, 200, { data: SEO_AI_META.models, meta: { seo_model: SEO_AI_META.model, chatbot_model: SEO_AI_META.model, key_configured: false, custom: false } });
     }
 
     if (p === '/admin/seo/ai/suggestions' && req.method === 'GET') {

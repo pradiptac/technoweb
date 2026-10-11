@@ -16,6 +16,7 @@ use App\Models\Setting;
 use App\Support\Announcement;
 use App\Support\Backups\BackupSettings;
 use App\Support\Chat\ChatSettings;
+use App\Support\Chat\OpenRouterModels;
 use App\Support\Events\EventSettings;
 use App\Support\HtmlSanitiser;
 use App\Support\InboundMail\InboundMail;
@@ -527,10 +528,11 @@ class SettingController extends Controller
             if (in_array($row['key'], ['seo_ai_model', 'chatbot_model'], true) && filled($row['value'])) {
                 $stored = (string) ($existing[$row['key']]->value ?? '');
 
-                if (AiModel::tryFrom($row['value']) === null && $row['value'] !== $stored) {
-                    throw ValidationException::withMessages([
-                        "settings.{$i}.value" => 'That is not one of the models offered. Set it directly if you mean it.',
-                    ]);
+                // 0.165.0: a typed OpenRouter id is accepted when it has the
+                // shape and is on OpenRouter's live list (or the list cannot
+                // be read) — `OpenRouterModels`. The stored value always passes.
+                if ($row['value'] !== $stored && ($message = OpenRouterModels::refusalFor((string) $row['value'])) !== null) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => $message]);
                 }
             }
 

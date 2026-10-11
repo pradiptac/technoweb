@@ -30,7 +30,9 @@ export async function saveSettingsAction(
     if (error instanceof ApiError) {
       if (error.status === 401) redirect("/admin/login");
       if (error.status === 403) return { error: "Only an administrator can change settings." };
-      if (error.status === 422) return { error: "Some values were rejected. Check the fields and try again." };
+      // The API's own sentence for the first refused row ("OpenRouter has no
+      // model called …") says what to fix; the generic one only says that.
+      if (error.status === 422) return { error: Object.values(error.errors ?? {}).flat()[0] ?? "Some values were rejected. Check the fields and try again." };
     }
     return { error: "We could not save the settings. Try again shortly." };
   }

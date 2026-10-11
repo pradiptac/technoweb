@@ -357,6 +357,8 @@ dropdown shows them:
 | `google/gemini-2.5-flash` | `AiModel::DEFAULT` — what a blank `seo_ai_model`, a blank `chatbot_model` and an unset `AI_MODEL` all resolve to |
 | `google/gemini-2.5-flash-lite` | the lightest, and the gentlest on a free key's limits |
 | `google/gemini-2.5-pro` | thinks before it answers; for content work and page drafts |
+| `google/gemma-4-31b-it:free` | 0.165.0. Free at OpenRouter — see "Free models" below |
+| `google/gemma-4-26b-a4b-it:free` | the same, the lighter one |
 | `openai/gpt-4o-mini` | |
 | `openai/gpt-4.1-mini` | |
 | `openai/gpt-4o` | |
@@ -365,12 +367,46 @@ dropdown shows them:
 | `anthropic/claude-sonnet-5.5` | the same |
 | `anthropic/claude-opus-5.5` | the same; several times Sonnet's cost |
 
-All ten accept images, which is a requirement and not a coincidence:
+All twelve accept images, which is a requirement and not a coincidence:
 `AltText` sends a picture to whichever model is chosen, so a text-only model
 on the list would break one feature and say so only when somebody pressed the
 button. `seo_ai_model` falls through to the chatbot's model and then `.env`
 when blank (`SeoAiSettings::model()`), so "one model everywhere" is the state
 of an install nobody has differentiated.
+
+### Free models, and any model by its id (0.165.0)
+
+**Each request is pinned to the maker's own provider, with no fallback** (`OpenRouterProvider::routing()`): `google/*` (`:free` included) is sent with `provider: {only: ["google-ai-studio"], allow_fallbacks: false}`, `anthropic/*` with `anthropic` and `openai/*` with `openai`; a model from any other maker is sent unpinned. It exists because OpenRouter once routed a request away from the client's own (BYOK) key and charged the OpenRouter wallet. The consequence for a typed id: an account-level guardrail at OpenRouter that allows only those three providers refuses a model from another maker (a free NVIDIA one, say) with OpenRouter's own words — Test this model shows them.
+
+The two Gemma 4 models are OpenRouter's `:free` variants (checked against
+`GET https://openrouter.ai/api/v1/models`: both read images and support
+`response_format`; `thinks()` is false). Their descriptions say what free
+costs, and no price is shown because none would stay true: **tight
+per-minute and per-day limits** (a bulk SEO run or a busy assistant meets them
+first — a 429 is reported in the provider's words and never retried), **free
+providers may keep prompts for training** (so no customer details in a brief),
+and **a free model can be withdrawn without notice** — press Test this model.
+
+Any other model OpenRouter offers can be typed: the last option of each
+picker is "Another OpenRouter model…", which reveals a box.
+`App\Support\Chat\OpenRouterModels` is the rule, shared by `PATCH
+/admin/settings` (`seo_ai_model`, `chatbot_model`) and `test-model`:
+
+- the id must match `^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._:-]*$` and be at
+  most 100 characters (`seo_suggestions.model` was widened to match);
+- **and** be on OpenRouter's live list — the public `GET /api/v1/models`, no
+  key, 10 s timeout, cached an hour under one key. Not on it is a 422 on the
+  row: "OpenRouter has no model called “…”. Copy the id from openrouter.ai/models.";
+- **if the list cannot be fetched the id is accepted on its shape alone** —
+  OpenRouter being down never blocks a save — and that failure is remembered
+  for a minute, not an hour;
+- one of `AiModel`'s own ids, or the value already stored, passes without a
+  fetch.
+
+A stored custom id is the custom option in the console with its id in the box;
+the API still sends it as a marked `custom: true` row in `options`, which the
+console does not draw as a second option. `GET /admin/seo/ai/models` carries
+`meta.custom`: whether either saved model is outside the list.
 
 **A model on the list is not a model the key can call.** The client's own
 provider keys are saved at OpenRouter (bring your own key), and OpenRouter

@@ -63,7 +63,12 @@ namespace App\Enums;
  *
  * Read a picture. `AltText` sends one to whichever model is chosen, so a
  * text-only model on this list would be a model that breaks one feature and
- * says so only when somebody presses the button. All ten accept images.
+ * says so only when somebody presses the button. All twelve accept images.
+ *
+ * Gemma 4's two free models were added in 0.165.0 (checked against
+ * OpenRouter's list: both read images and support `response_format`). Any
+ * other OpenRouter id can be typed in the console and is checked by
+ * `App\Support\Chat\OpenRouterModels`.
  *
  * Written September 2026, moved to OpenRouter ids October 2026; Anthropic's
  * three added 2026-10-11 (the client keeps an Anthropic key at OpenRouter;
@@ -78,6 +83,8 @@ enum AiModel: string
     case Gemini25Flash = 'google/gemini-2.5-flash';
     case Gemini25FlashLite = 'google/gemini-2.5-flash-lite';
     case Gemini25Pro = 'google/gemini-2.5-pro';
+    case Gemma431BFree = 'google/gemma-4-31b-it:free';
+    case Gemma426BFree = 'google/gemma-4-26b-a4b-it:free';
     case Gpt4oMini = 'openai/gpt-4o-mini';
     case Gpt41Mini = 'openai/gpt-4.1-mini';
     case Gpt4o = 'openai/gpt-4o';
@@ -103,6 +110,8 @@ enum AiModel: string
             self::Gemini25Flash => 'Gemini 2.5 Flash (Google)',
             self::Gemini25FlashLite => 'Gemini 2.5 Flash-Lite (Google)',
             self::Gemini25Pro => 'Gemini 2.5 Pro (Google)',
+            self::Gemma431BFree => 'Gemma 4 31B — free (Google)',
+            self::Gemma426BFree => 'Gemma 4 26B — free (Google)',
             self::Gpt4oMini => 'GPT-4o mini (OpenAI)',
             self::Gpt41Mini => 'GPT-4.1 mini (OpenAI)',
             self::Gpt4o => 'GPT-4o (OpenAI)',
@@ -127,6 +136,8 @@ enum AiModel: string
             self::Gemini25Flash => 'The default. Google’s all-rounder: follows a brief well and handles long pages. Works with a free Google AI Studio key added at OpenRouter, within that key’s limits.',
             self::Gemini25FlashLite => 'Google’s lightest and quickest. Fine for titles, descriptions, keywords and alt text, and the gentlest on a free key’s limits.',
             self::Gemini25Pro => 'Google’s strongest and slowest: it thinks before it answers, and the thinking counts as usage. For content work and page drafts, not for the website assistant.',
+            self::Gemma431BFree => 'Google’s larger open Gemma model, free on OpenRouter. Tight per-minute and per-day limits; a bulk run will hit them. Free providers may keep prompts for training, so leave customer details out. Models can disappear: press Test this model.',
+            self::Gemma426BFree => 'Google’s lighter Gemma model, free on OpenRouter and quicker than the 31B. Tight per-minute and per-day limits; a bulk run will hit them. Free providers may keep prompts for training, so leave customer details out. Models can disappear: press Test this model.',
             self::Gpt4oMini => 'OpenAI’s cheapest and quickest. Needs an OpenAI key, or credit, in the OpenRouter account.',
             self::Gpt41Mini => 'OpenAI’s all-rounder, better at following a brief than 4o mini. Needs an OpenAI key, or credit, in the OpenRouter account.',
             self::Gpt4o => 'Stronger on analysis and rewriting copy, at several times the cost of mini. Needs an OpenAI key, or credit, in the OpenRouter account.',
@@ -207,7 +218,7 @@ enum AiModel: string
      * the screen — a select whose current value is absent silently reassigns
      * itself to the first option the moment the form is submitted.
      *
-     * @return array<int, array{value: string, label: string, description: string}>
+     * @return array<int, array{value: string, label: string, description: string, custom?: bool}>
      */
     public static function options(?string $stored = null): array
     {
@@ -217,10 +228,13 @@ enum AiModel: string
         );
 
         if ($stored !== null && $stored !== '' && self::tryFrom($stored) === null) {
+            // `custom` lets the console draw this as its "Another OpenRouter
+            // model…" option with the id in a box, rather than as a second row.
             $options[] = [
                 'value' => $stored,
                 'label' => $stored,
                 'description' => 'Set outside this list. It is sent to OpenRouter exactly as written — test it before relying on it.',
+                'custom' => true,
             ];
         }
 

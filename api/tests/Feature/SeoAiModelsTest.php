@@ -64,7 +64,7 @@ class SeoAiModelsTest extends TestCase
 
     // ---- GET seo/ai/models ---------------------------------------------------
 
-    public function test_the_models_endpoint_lists_the_ten_and_says_what_is_in_use(): void
+    public function test_the_models_endpoint_lists_the_twelve_and_says_what_is_in_use(): void
     {
         $this->key();
         $this->setting('seo_ai_model', 'google/gemini-2.5-flash');
@@ -75,15 +75,18 @@ class SeoAiModelsTest extends TestCase
         $response = $this->actingAs($this->staff('seo_manager'))
             ->getJson('/api/v1/admin/seo/ai/models')
             ->assertOk()
-            ->assertJsonStructure(['data' => [['value', 'label', 'description']], 'meta' => ['seo_model', 'chatbot_model', 'key_configured']])
+            ->assertJsonStructure(['data' => [['value', 'label', 'description']], 'meta' => ['seo_model', 'chatbot_model', 'key_configured', 'custom']])
             ->assertJsonPath('meta.seo_model', 'google/gemini-2.5-flash')
             ->assertJsonPath('meta.chatbot_model', 'openai/gpt-4.1-mini')
-            ->assertJsonPath('meta.key_configured', true);
+            ->assertJsonPath('meta.key_configured', true)
+            ->assertJsonPath('meta.custom', false);
 
         $this->assertSame([
             'google/gemini-2.5-flash',
             'google/gemini-2.5-flash-lite',
             'google/gemini-2.5-pro',
+            'google/gemma-4-31b-it:free',
+            'google/gemma-4-26b-a4b-it:free',
             'openai/gpt-4o-mini',
             'openai/gpt-4.1-mini',
             'openai/gpt-4o',
@@ -113,11 +116,13 @@ class SeoAiModelsTest extends TestCase
             ->getJson('/api/v1/admin/seo/ai/models')
             ->assertOk()
             ->assertJsonPath('meta.seo_model', 'anthropic/some-other-model')
+            ->assertJsonPath('meta.custom', true)
             ->json('data');
 
-        $this->assertCount(11, $data);
-        $this->assertSame('anthropic/some-other-model', $data[10]['value']);
-        $this->assertStringContainsString('Set outside this list', $data[10]['description']);
+        $this->assertCount(13, $data);
+        $this->assertSame('anthropic/some-other-model', $data[12]['value']);
+        $this->assertStringContainsString('Set outside this list', $data[12]['description']);
+        $this->assertTrue($data[12]['custom']);
     }
 
     public function test_with_no_key_and_nothing_chosen_it_says_so_and_falls_through(): void
@@ -134,7 +139,7 @@ class SeoAiModelsTest extends TestCase
             ->assertJsonPath('meta.seo_model', 'google/gemini-2.5-flash')
             ->assertJsonPath('meta.chatbot_model', 'google/gemini-2.5-flash')
             ->assertJsonPath('data.0.value', 'google/gemini-2.5-flash')
-            ->assertJsonCount(10, 'data');
+            ->assertJsonCount(12, 'data');
     }
 
     public function test_the_models_endpoint_is_the_seo_managers_and_an_administrators(): void
@@ -195,17 +200,21 @@ class SeoAiModelsTest extends TestCase
     public function test_a_refusal_reaches_the_administrator_in_the_providers_own_words(): void
     {
         $this->key();
-        Http::fake(['openrouter.ai/*' => Http::sequence()
+        Http::fake([
+            // A typed id has to be on OpenRouter's list to be tried at all.
+            'openrouter.ai/api/v1/models' => Http::response(['data' => [['id' => 'openai/gpt-9-enormous']]]),
+            // Narrow, or the sequence below is advanced by the list fetch too.
+            'openrouter.ai/api/v1/chat/*' => Http::sequence()
             // A model id nobody serves.
-            ->push(['error' => ['code' => 404, 'message' => 'No endpoints found for openai/gpt-9-enormous.']], 404)
+                ->push(['error' => ['code' => 404, 'message' => 'No endpoints found for openai/gpt-9-enormous.']], 404)
             // The maker's own key was never added at OpenRouter (BYOK).
-            ->push(['error' => [
-                'code' => 401,
-                'message' => 'Provider returned error',
-                'metadata' => ['provider_name' => 'Google AI Studio', 'raw' => '{"error":{"code":400,"message":"API key not valid. Please pass a valid API key.","status":"INVALID_ARGUMENT"}}'],
-            ]], 401)
+                ->push(['error' => [
+                    'code' => 401,
+                    'message' => 'Provider returned error',
+                    'metadata' => ['provider_name' => 'Google AI Studio', 'raw' => '{"error":{"code":400,"message":"API key not valid. Please pass a valid API key.","status":"INVALID_ARGUMENT"}}'],
+                ]], 401)
             // A 200 that is not an answer.
-            ->push(['error' => ['code' => 502, 'message' => 'Provider returned error', 'metadata' => ['provider_name' => 'OpenAI', 'raw' => 'upstream connect error']]]),
+                ->push(['error' => ['code' => 502, 'message' => 'Provider returned error', 'metadata' => ['provider_name' => 'OpenAI', 'raw' => 'upstream connect error']]]),
         ]);
         $user = $this->staff('seo_manager');
 

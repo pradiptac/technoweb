@@ -213,19 +213,21 @@ export async function testSeoAiModel(model?: string) {
  * "Test a model" control beside the OpenRouter key. Calls no provider.
  */
 export type AiModels = {
-  models: { value: string; label: string; description: string }[];
+  models: { value: string; label: string; description: string; custom?: boolean }[];
   seoModel: string;
   chatbotModel: string;
   keyConfigured: boolean;
+  /** Whether either saved model was typed in rather than chosen from the list. */
+  custom: boolean;
 };
 
 export async function getAiModels(): Promise<AiModels> {
   const res = await apiFetch<{
     data: AiModels["models"];
-    meta: { seo_model: string; chatbot_model: string; key_configured: boolean };
+    meta: { seo_model: string; chatbot_model: string; key_configured: boolean; custom: boolean };
   }>("/admin/seo/ai/models", { token: await token() });
 
-  return { models: res.data, seoModel: res.meta.seo_model, chatbotModel: res.meta.chatbot_model, keyConfigured: res.meta.key_configured };
+  return { models: res.data, seoModel: res.meta.seo_model, chatbotModel: res.meta.chatbot_model, keyConfigured: res.meta.key_configured, custom: res.meta.custom };
 }
 
 export async function setSitemapInclude(type: string, id: number, include: boolean): Promise<void> {

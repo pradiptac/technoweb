@@ -248,7 +248,35 @@ The models offered:
 | Gemini 2.5 Flash (Google) — used when you choose nothing | A free Google AI Studio key added at OpenRouter |
 | Gemini 2.5 Flash-Lite (Google) — the quickest and lightest | The same |
 | Gemini 2.5 Pro (Google) — the strongest and slowest; for content work, not for the chat assistant | The same |
+| Gemma 4 31B — free, Gemma 4 26B — free (Google) | Nothing extra: they are free on OpenRouter (see below) |
 | GPT-4o mini, GPT-4.1 mini, GPT-4o, GPT-4.1 (OpenAI) | An OpenAI key, or paid credit, in your OpenRouter account |
+| Claude Haiku, Sonnet, Opus 5.5 (Anthropic) | An Anthropic key, or paid credit, in your OpenRouter account |
+
+### Using a free model
+
+Choose **Gemma 4 31B — free** or **Gemma 4 26B — free** for either model
+choice, save, then press **Test this model**. They cost nothing, but they come
+with limits: OpenRouter allows only a small number of requests each minute and
+each day to a free model, and the companies that run free models may keep what
+you send to improve them — so do not paste customer details into a brief. A
+free model can also be withdrawn without notice; if answers stop, press
+**Test this model** and, if it fails, choose another.
+
+### Choosing any other model
+
+Every model OpenRouter offers can be used, not only the ones listed. At the
+foot of each model choice (and of **Model to test**) pick **Another OpenRouter
+model…** and paste the model's id exactly as openrouter.ai/models shows it —
+for example `google/gemma-4-31b-it:free`. Save, then press **Test this model**.
+If OpenRouter has no model with that id the save is refused and says so; if
+OpenRouter cannot be reached at that moment the id is saved as typed, so test
+it.
+
+A model from another maker (a free NVIDIA model, say) may be refused by your
+OpenRouter account's own guardrail if it allows only Google, Anthropic and
+OpenAI; this site also sends each request to the model's own maker only and
+never to a substitute. The refusal shows in OpenRouter's words when you press
+**Test this model**.
 
 **A free Google key has two costs.** Google limits how many requests it will
 take each minute and each day; when a limit is reached, the website assistant

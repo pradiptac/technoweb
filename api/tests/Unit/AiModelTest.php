@@ -12,12 +12,14 @@ use Tests\TestCase;
  */
 class AiModelTest extends TestCase
 {
-    public function test_the_ten_models_are_openrouter_ids_with_googles_first_and_the_default_first_of_all(): void
+    public function test_the_twelve_models_are_openrouter_ids_with_googles_first_and_the_default_first_of_all(): void
     {
         $this->assertSame([
             'google/gemini-2.5-flash',
             'google/gemini-2.5-flash-lite',
             'google/gemini-2.5-pro',
+            'google/gemma-4-31b-it:free',
+            'google/gemma-4-26b-a4b-it:free',
             'openai/gpt-4o-mini',
             'openai/gpt-4.1-mini',
             'openai/gpt-4o',
@@ -37,9 +39,9 @@ class AiModelTest extends TestCase
 
         foreach (AiModel::cases() as $model) {
             // `maker/model`, and short enough for `seo_suggestions.model` and
-            // the `test-model` rule, both of which stop at 64.
-            $this->assertMatchesRegularExpression('#^(openai|google|anthropic)/[a-z0-9.-]+$#', $model->value);
-            $this->assertLessThanOrEqual(64, strlen($model->value));
+            // the `test-model` rule, both of which stop at 100.
+            $this->assertMatchesRegularExpression('#^(openai|google|anthropic)/[a-z0-9.:-]+$#', $model->value);
+            $this->assertLessThanOrEqual(100, strlen($model->value));
             // The maker is in the label, because the id is not what an editor reads.
             $maker = ['openai' => '(OpenAI)', 'google' => '(Google)', 'anthropic' => '(Anthropic)'][strstr($model->value, '/', true)];
             $this->assertStringEndsWith($maker, $model->label());
@@ -47,6 +49,12 @@ class AiModelTest extends TestCase
             // An OpenAI or Anthropic model says what it needs at OpenRouter; a Google one does not ask for it.
             $this->assertSame(str_starts_with($model->value, 'openai/'), str_contains($model->description(), 'Needs an OpenAI key'));
             $this->assertSame(str_starts_with($model->value, 'anthropic/'), str_contains($model->description(), 'Needs an Anthropic key'));
+            // A free model says so, and says what free costs.
+            if (str_ends_with($model->value, ':free')) {
+                $this->assertStringContainsString('free on OpenRouter', $model->description());
+                $this->assertStringContainsString('per-day limits', $model->description());
+                $this->assertStringContainsString('train', $model->description());
+            }
             // Words about the trade, never a price that would be stale in a week.
             $this->assertDoesNotMatchRegularExpression('/[$₹€£]|\d+\s*(cents?|paise)/u', $model->description());
         }
@@ -60,20 +68,24 @@ class AiModelTest extends TestCase
         ));
 
         $this->assertSame(['google/gemini-2.5-flash', 'google/gemini-2.5-pro'], $thinking);
+        $this->assertFalse(AiModel::Gemma431BFree->thinks());
+        $this->assertFalse(AiModel::Gemma426BFree->thinks());
     }
 
     public function test_an_unknown_stored_value_is_offered_back_and_never_replaced(): void
     {
-        $this->assertCount(10, AiModel::options());
-        $this->assertCount(10, AiModel::options('google/gemini-2.5-pro'));
-        $this->assertCount(10, AiModel::options(''));
+        $this->assertCount(12, AiModel::options());
+        $this->assertCount(12, AiModel::options('google/gemini-2.5-pro'));
+        $this->assertCount(12, AiModel::options(''));
 
         $options = AiModel::options('somebody/their-own-model');
 
-        $this->assertCount(11, $options);
-        $this->assertSame('somebody/their-own-model', $options[10]['value']);
-        $this->assertSame('somebody/their-own-model', $options[10]['label']);
-        $this->assertStringContainsString('exactly as written', $options[10]['description']);
+        $this->assertCount(13, $options);
+        $this->assertSame('somebody/their-own-model', $options[12]['value']);
+        $this->assertSame('somebody/their-own-model', $options[12]['label']);
+        $this->assertStringContainsString('exactly as written', $options[12]['description']);
+        // Flagged, so the console draws it as "Another OpenRouter model…" and not as a second row.
+        $this->assertTrue($options[12]['custom']);
         $this->assertSame(['value', 'label', 'description'], array_keys($options[0]));
     }
 

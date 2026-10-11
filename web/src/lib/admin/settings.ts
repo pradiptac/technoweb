@@ -123,7 +123,7 @@ export type SettingRow = {
    * `schema_type_options` follows, because two hand-written copies of one list
    * of strings is exactly the drift nothing type-checks across the wire.
    */
-  options?: { value: string; label: string; description: string }[] | null;
+  options?: { value: string; label: string; description: string; custom?: boolean }[] | null;
 };
 
 export type SettingGroups = Record<string, SettingRow[]>;

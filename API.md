@@ -5310,7 +5310,11 @@ the key and the model test), Google's first:
 `google/gemini-2.5-pro`, then `openai/gpt-4o-mini`, `openai/gpt-4.1-mini`,
 `openai/gpt-4o`, `openai/gpt-4.1`, and since 0.164.0 Anthropic's
 `anthropic/claude-haiku-5.5`, `anthropic/claude-sonnet-5.5`,
-`anthropic/claude-opus-5.5` — all of which read pictures, which alt
+`anthropic/claude-opus-5.5`, and since 0.165.0 two free Google models,
+`google/gemma-4-31b-it:free` and `google/gemma-4-26b-a4b-it:free` (listed after
+the Gemini ones; free at OpenRouter with tight per-minute and per-day limits,
+free providers may keep prompts for training, and a free model can be
+withdrawn — "Test this model" is the check) — all of which read pictures, which alt
 text needs. **An Anthropic model needs an Anthropic key, or credit, in the
 OpenRouter account**, the OpenAI rule. The default is a Google model because a Google AI Studio key is
 free to create and, added at OpenRouter, is enough to call it; **an OpenAI
@@ -5319,6 +5323,24 @@ OpenAI option's `description` says so. A blank `seo_ai_model` falls through
 to `chatbot_model`, a blank `chatbot_model` to `AI_MODEL`, and that to the
 default. A stored value outside the list is still kept, offered back and
 sent exactly as written.
+
+**Any OpenRouter model id may be typed** (0.165.0). `PATCH /admin/settings` for
+`seo_ai_model` and `chatbot_model`, and the `model` of `POST
+/admin/seo/ai/test-model` (now `max:100`), accept a value outside `AiModel` when
+it matches `^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._:-]*$`, is at most 100
+characters, **and** is on OpenRouter's live list (`GET
+https://openrouter.ai/api/v1/models`, no key, 10 s timeout, cached for an hour
+by `App\Support\Chat\OpenRouterModels`). A bad shape is a 422 ("That is not a
+model id. Copy it from openrouter.ai/models…"); a well-formed id the list lacks
+is a 422 on the row ("OpenRouter has no model called “…”. Copy the id from
+openrouter.ai/models."), and for `test-model` on `model`, before any call is
+made. **When the list cannot be fetched the id is accepted on its shape alone**
+(a failure is remembered for a minute). The value already stored always passes.
+The `options` row for a stored id outside the list carries `custom: true`, and
+`GET /admin/seo/ai/models` adds `meta.custom` — whether either saved model is
+outside the list. `seo_suggestions.model` is 100 characters.
+
+**Each request is pinned to the maker's own provider, with no fallback** (`OpenRouterProvider::routing()`): `google/*` (`:free` included) is sent with `provider: {only: ["google-ai-studio"], allow_fallbacks: false}`, `anthropic/*` with `anthropic` and `openai/*` with `openai`; a model from any other maker is sent unpinned. It exists because OpenRouter once routed a request away from the client's own (BYOK) key and charged the OpenRouter wallet. The consequence for a typed id: an account-level guardrail at OpenRouter that allows only those three providers refuses a model from another maker (a free NVIDIA one, say) with OpenRouter's own words — Test this model shows them.
 
 **The `MoveAiToOpenRouter` upgrade step** (0.116.0) renames a stored bare id
 — `gpt-4o-mini` → `openai/gpt-4o-mini`, the same model under OpenRouter's

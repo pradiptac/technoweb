@@ -27,7 +27,7 @@ import { saveSettingsAction, type SettingsFormState } from "./actions";
 import {
   GROUP_TITLES, HIDDEN, LABELS, STANDALONE_GROUPS, SYSTEM_SCREEN, orderFields, screenFor, sectionFor, type SettingsScreen,
 } from "./settings-copy";
-import { ChoiceField, onOffNotes, ServerLimits, SettingColourField, SettingSwitchField } from "./settings-fields";
+import { ChoiceField, ModelField, onOffNotes, ServerLimits, SettingColourField, SettingSwitchField } from "./settings-fields";
 import type { PaymentsMeta, SettingGroups, UploadLimits } from "@/lib/admin";
 import type { BackupDriveStatus, InboundMailStatus, MailStatus, MessagingStatus } from "@/types/api";
 import { MessagingPanel } from "./messaging-panel";
@@ -333,7 +333,10 @@ function GroupPanel({
           }
 
           if (row.options?.length) {
-            const choice = (
+            const isModel = row.key === "seo_ai_model" || row.key === "chatbot_model";
+            const choice = isModel ? (
+              <ModelField key={row.key} id={id} label={meta.label} value={row.value} options={row.options} />
+            ) : (
               <ChoiceField
                 key={row.key}
                 id={id}

@@ -11,6 +11,7 @@ use App\Jobs\RunSeoSuggestion;
 use App\Models\SeoSuggestion;
 use App\Support\Chat\AiProvider;
 use App\Support\Chat\ChatSettings;
+use App\Support\Chat\OpenRouterModels;
 use App\Support\QueueHealth;
 use App\Support\Seo\Ai\SeoAiSettings;
 use App\Support\Seo\Ai\SeoAssistant;
@@ -287,6 +288,9 @@ class SeoAiController extends Controller
                 'seo_model' => SeoAiSettings::model(),
                 'chatbot_model' => ChatSettings::model(),
                 'key_configured' => filled(ChatSettings::apiKey()),
+                // Whether either saved model is one typed in rather than listed.
+                'custom' => AiModel::tryFromValue(SeoAiSettings::model()) === null
+                    || AiModel::tryFromValue(ChatSettings::model()) === null,
             ],
         ]);
     }
@@ -321,8 +325,15 @@ class SeoAiController extends Controller
     public function testModel(Request $request, AiProvider $provider): JsonResponse
     {
         $data = $request->validate([
-            'model' => ['nullable', 'string', 'max:64'],
+            'model' => ['nullable', 'string', 'max:'.OpenRouterModels::MAX_LENGTH],
         ]);
+
+        // A typed id is proved to exist before a call is spent on it.
+        $named = trim((string) ($data['model'] ?? ''));
+
+        if ($named !== '' && ($refusal = OpenRouterModels::refusalFor($named)) !== null) {
+            return response()->json(['message' => $refusal, 'errors' => ['model' => [$refusal]]], 422);
+        }
 
         if (! filled(SeoAiSettings::apiKey())) {
             $message = 'No OpenRouter key is configured. Add one in Settings → API keys.';

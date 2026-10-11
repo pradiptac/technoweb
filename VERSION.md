@@ -21,6 +21,35 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.165.0 — 2026-10-11
+
+**Free OpenRouter models, and any OpenRouter model by its id.**
+
+- **Two free models in the list** (Settings → API keys, all three model
+  pickers): Gemma 4 31B and Gemma 4 26B, both `:free` at OpenRouter, after
+  Google's Gemini and before OpenAI. Both read pictures and take
+  `response_format`. Their descriptions say plainly that they are free with
+  tight per-minute and per-day limits, that free providers may keep prompts
+  for training, and that a free model can disappear — press Test this model.
+  The default is still Gemini 2.5 Flash.
+- **"Another OpenRouter model…"** is the last option of the SEO model, the
+  website assistant's model and the "Model to test" picker. It reveals a box
+  for any id on openrouter.ai/models. The API accepts a typed id when it has
+  the shape `maker/model` (up to 100 characters) **and** OpenRouter's public
+  list has it (`GET /api/v1/models`, no key, 10 s timeout, held an hour,
+  `App\Support\Chat\OpenRouterModels`); an id not on the list is a 422 on the
+  row, and a list that cannot be fetched accepts the id on its shape alone, so
+  OpenRouter being down never blocks a save. `test-model` applies the same
+  rule before it spends a call. A saved id from outside the list shows as the
+  custom option with its id in the box.
+- **Requests are pinned to the maker's own provider** (`google/*` to Google AI
+  Studio, `anthropic/*`, `openai/*`; `allow_fallbacks: false`; other makers
+  unpinned), after OpenRouter routed a request away from the client's own key
+  and charged its wallet. A typed id from a maker the account's guardrail does
+  not allow is refused at OpenRouter.
+- `seo_suggestions.model` widened from 64 to 100 characters.
+  `GET /admin/seo/ai/models` gains `meta.custom`.
+
 ## 0.164.0 — 2026-10-11
 
 **Site import, part 2: posts and products, the AI fallback, and the site's

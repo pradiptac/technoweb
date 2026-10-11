@@ -133,6 +133,7 @@ class OpenRouterProvider implements AiProvider
                      * must keep sending the second one.
                      */
                     'response_format' => $options['response_format'] ?? null,
+                    'provider' => self::routing($model),
                 ], fn ($v) => $v !== null));
         } catch (\Throwable $e) {
             Log::warning('The AI provider could not be reached', ['error' => $e->getMessage()]);
@@ -223,6 +224,40 @@ class OpenRouterProvider implements AiProvider
         }
 
         return $timeout;
+    }
+
+    /**
+     * Which OpenRouter providers a request may go to, keyed by the model's maker.
+     *
+     * The client's own keys sit inside OpenRouter (BYOK): Google AI Studio,
+     * Anthropic and OpenAI. Left to itself OpenRouter may route a request to
+     * another provider of the same model — Google Vertex, a reseller — or fall
+     * back to one when the client's key is refused or rate-limited, and that
+     * request is **paid from the OpenRouter wallet**. It happened (2026-10-11).
+     * So a model from one of those three makers is pinned to that maker's own
+     * provider with fallbacks off: under the client's key or not at all, and a
+     * refusal comes back in OpenRouter's words ("No endpoints found…") through
+     * `refused()`, which is the right outcome — an error on screen rather than
+     * a charge nobody saw.
+     *
+     * A free Gemma model (`google/…:free`) is served by Google AI Studio too,
+     * so the same rule holds. A model from any other maker is sent with no
+     * restriction: no key of the client's can serve it, and the account-level
+     * guardrail at OpenRouter (Google AI Studio, Anthropic, OpenAI only) is
+     * what refuses it.
+     *
+     * @return array{only: list<string>, allow_fallbacks: bool}|null
+     */
+    public static function routing(string $model): ?array
+    {
+        $provider = match (strtolower((string) strstr($model, '/', true))) {
+            'google' => 'google-ai-studio',
+            'anthropic' => 'anthropic',
+            'openai' => 'openai',
+            default => null,
+        };
+
+        return $provider === null ? null : ['only' => [$provider], 'allow_fallbacks' => false];
     }
 
     /**
