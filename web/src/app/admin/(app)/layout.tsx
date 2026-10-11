@@ -23,6 +23,7 @@ import { NewSincePoller } from "./new-since";
 import { TableView } from "./table-view";
 import { brandName } from "@/lib/brand";
 import { TopBar } from "@/components/app-shell/top-bar";
+import { PageEnter } from "@/components/ui/page-enter";
 import { AccountMenu } from "@/components/app-shell/account-menu";
 
 /**
@@ -91,7 +92,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <NewSincePoller />
       {/* `data-console` scopes the table rules in globals.css (density, the
           sticky header) to this area: the portal draws `.admin-table`s too. */}
-      <div data-console className="flex min-h-screen flex-col bg-surface">
+      <div data-console data-motion-page="fade" className="flex min-h-screen flex-col bg-surface">
         <TopBar
           width={CONSOLE_WIDTH}
           brand={
@@ -190,7 +191,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <AdminNav nav={renderNav(staff.roles.map((r) => r.slug))} />
           {/* The <main> landmark lives here, not around the nav: the root
               layout no longer supplies one, and the skip link targets it. */}
-          <main id="main" className="min-w-0">{children}</main>
+          <main id="main" className="min-w-0"><PageEnter transition="fade">{children}</PageEnter></main>
         </Container>
 
         {/*

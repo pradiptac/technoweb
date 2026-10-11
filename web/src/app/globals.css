@@ -5184,3 +5184,35 @@ html[data-builder-preview] [data-edit]:focus {
   html[data-console-nav="rail"] [data-console] nav[aria-label="Admin sections"] .rail-flyout :is(a, button) { justify-content: flex-start; }
   html[data-console-nav="rail"] [data-console] nav[aria-label="Admin sections"] .rail-flyout .rail-label { position: static; width: auto; height: auto; overflow: hidden; clip-path: none; }
 }
+
+/* Console 2.0 motion (docs/console-portal.md). The existing tokens only.
+   The command palette and every keyboard-initiated action are deliberately
+   absent: something used a hundred times a day must never make anybody wait.
+   The route fade is `PageEnter` under `data-motion-page="fade"` (the admin
+   layout stamps it), shortened from the public 320ms. Rows arrive once per
+   insertion — a `from`-only keyframe, so the resting state is the row's own
+   and nothing is hidden outside the guard. Subtle (lib/console-prefs.ts)
+   keeps opacity and drops movement; so does reduced motion, by the guard. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-console] .page-enter.page-enter-active { animation-duration: 160ms; }
+  [data-console] :is(.btn, [data-press]) { transition-property: color, background-color, border-color, outline-color, box-shadow, opacity, scale; }
+  [data-console] :is(.btn, [data-press]):active { scale: .97; transition-duration: var(--duration-fast); }
+  [data-console] main table.admin-table tbody tr:nth-child(-n+12) { animation: console-row var(--duration-slow) var(--ease-brand) both; animation-delay: calc(var(--row, 0) * 40ms); }
+  [data-console] main table.admin-table tbody tr:nth-child(2) { --row: 1; }
+  [data-console] main table.admin-table tbody tr:nth-child(3) { --row: 2; }
+  [data-console] main table.admin-table tbody tr:nth-child(4) { --row: 3; }
+  [data-console] main table.admin-table tbody tr:nth-child(5) { --row: 4; }
+  [data-console] main table.admin-table tbody tr:nth-child(6) { --row: 5; }
+  [data-console] main table.admin-table tbody tr:nth-child(7) { --row: 6; }
+  [data-console] main table.admin-table tbody tr:nth-child(8) { --row: 7; }
+  [data-console] main table.admin-table tbody tr:nth-child(9) { --row: 8; }
+  [data-console] main table.admin-table tbody tr:nth-child(10) { --row: 9; }
+  [data-console] main table.admin-table tbody tr:nth-child(11) { --row: 10; }
+  [data-console] main table.admin-table tbody tr:nth-child(12) { --row: 11; }
+  @keyframes console-row { from { opacity: 0; translate: 0 6px; } }
+  @keyframes console-fade { from { opacity: 0; } }
+  html[data-console-motion="subtle"] [data-console] main table.admin-table tbody tr:nth-child(-n+12) { animation-name: console-fade; }
+}
+html[data-console-motion="subtle"] [data-console] [data-nav-pill] { transition-duration: 0s; }
+html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active { scale: none; }
+@media (prefers-reduced-motion: reduce) { [data-console] [data-nav-pill] { transition-duration: 0s; } }

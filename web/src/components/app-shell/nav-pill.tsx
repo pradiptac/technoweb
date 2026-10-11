@@ -47,6 +47,13 @@ export function NavPill({ box, className }: { box: PillBox; className?: string }
         className,
       )}
       style={{ translate: `0 ${box?.y ?? 0}px`, height: box?.h ?? 0, opacity: box ? 1 : 0 }}
+      // While it travels, the rows drop their own fill so the glide shows; at
+      // rest the active row paints its own ground again — which is what the
+      // contrast audit reads, since it walks ancestors and the pill is a
+      // sibling behind the row.
+      onTransitionRun={(e) => e.currentTarget.parentElement?.setAttribute("data-moving", "")}
+      onTransitionEnd={(e) => e.currentTarget.parentElement?.removeAttribute("data-moving")}
+      onTransitionCancel={(e) => e.currentTarget.parentElement?.removeAttribute("data-moving")}
     />
   );
 }
