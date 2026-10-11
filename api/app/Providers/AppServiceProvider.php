@@ -19,6 +19,7 @@ use App\Models\ContentType;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\CustomFieldGroup;
+use App\Models\DetailTemplate;
 use App\Models\DigitalCode;
 use App\Models\Download;
 use App\Models\DownloadCategory;
@@ -248,6 +249,8 @@ class AppServiceProvider extends ServiceProvider
             'slider' => Slider::class,
             'content_block' => ContentBlock::class,
             'saved_section' => SavedSection::class,
+            // Bound in an admin route (0.161.0, detail-page templates).
+            'detail_template' => DetailTemplate::class,
             // Custom fields (docs/custom-content.md): the group is bound in
             // an admin route; a value's `fieldable` is one of the aliases above.
             'custom_field_group' => CustomFieldGroup::class,

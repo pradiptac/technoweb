@@ -30,6 +30,7 @@ export * from "./media";
 export * from "./messaging";
 export * from "./newsletter";
 export * from "./pages";
+export * from "./detail-templates";
 export * from "./preview-links";
 export * from "./revisions";
 export * from "./seo";

@@ -1609,6 +1609,57 @@ list is empty, is dropped. `faq_schema` counts the visible custom questions
 of `faq` sections beside the FAQs and question blocks — still one
 `FAQPage`, absent under two entries. The body is still sent.
 
+## Detail templates
+
+How every page of one kind of record is laid out (0.161.0,
+`docs/page-builder.md` "Detail templates"). Seven kinds: `solution`, `service`,
+`industry`, `case_study`, `product`, `store_product`, `blog_post`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/detail-templates/options` | `role:content_manager,store_manager`. The page builder's own options (`GET /admin/pages/builder`'s `data`, so an account that cannot reach it can still build) plus `detail_templates`: `types[]` — the kinds **this account owns** — each `{value, label, noun, role, tag, today[], blocks[{value, label, blurb, heading, limit}]}` (`today` the record blocks in the order that kind's page draws them now; `label` what that kind knows the block by; `heading`/`limit` whether the block honours that setting on that kind), `required_block` (`record_body`) and `record_block_types[]`. **Declared above `{detailTemplate}`** |
+| `GET` | `/admin/detail-templates/records` | `?type=` (required), `?q=`. Up to fifty `{id, title, slug}` by title, for the preview's picker. 403 for a kind the account does not own |
+| `POST` | `/admin/detail-templates/preview` | `type`, `record_id`, `blocks`. The blocks validated exactly as a save is, around the record's public read **whatever its status** (a draft included), without its structured data. `{data: {type, record, detail_template: {id: 0, sections}}}`. Writes nothing. 422 on `record_id` for a record that has gone. Throttled 60/min |
+| `GET` / `POST` | `/admin/detail-templates` | `GET`: `?type=`, `?per_page=`; only the kinds the account owns, by kind, active first. `POST`: `type`, `name` (120), `blocks` (1–40). **201**, always inactive whatever is sent |
+| `GET` / `PATCH` / `DELETE` | `/admin/detail-templates/{id}` | Bound by **id**. `type` is prohibited on `PATCH`. Deleting the active template puts its kind's pages back to the layout they have in code |
+| `POST` | `/admin/detail-templates/{id}/activate` | Makes this the kind's template and deactivates the others of the kind, in one transaction |
+| `POST` | `/admin/detail-templates/{id}/deactivate` | |
+
+**Roles.** The routes sit behind `role:content_manager,store_manager`; the
+controller narrows by kind: `store_product` is a store manager's, the other six a
+content manager's, an administrator has all, and another kind is a 403 (and
+absent from the list and the options).
+
+**A template** is `{id, type, type_label, name, is_active, count, cache_tag,
+author, updated_at}` and, on a read, create, update, activate and deactivate,
+`blocks` as stored and `blocks_media` (a URL for every stored `*_path`).
+`cache_tag` is the public tag a change should purge (`solutions`, `services`,
+`industries`, `case-studies`, `products`, `store-products`, `blog`).
+
+**Record blocks.** `blocks[].type` may be any section type the body area
+accepts — a `hero` and a `theme_section` are refused, as is a `faq` section
+reading "this page's FAQs" — and fourteen `record_*` types that **only a template
+accepts**: `record_hero`, `record_body`, `record_highlights`, `record_specs`,
+`record_gallery`, `record_custom_fields`, `record_answer_blocks`, `record_faqs`,
+`record_related`, `record_enquiry`, `record_buy`, `record_downloads`,
+`record_reviews`, `record_comments`. A record block's `data` is `heading`
+(≤ 160) and `limit` (1–12) and nothing else; its `background`, `style` and
+`reveal` are not stored. Refused on `blocks.N.type`: a record block on a page, a
+record's body area, the library or the page preview; one the kind has no part for
+("A service page has no “Record buy panel” to place."); the same one twice. Refused
+on `blocks`: no `record_body`; on `blocks.N.hidden`: a hidden one.
+
+**The public read.** `GET /solutions/{slug}`, `/services/{slug}`,
+`/industries/{slug}`, `/case-studies/{slug}`, `/products/{slug}`,
+`/store/products/{slug}` and `/blog/{slug}` gain `detail_template`:
+`{id, sections}` — the ordinary sections presented as a builder page's are
+(hidden ones gone, a path a URL, a live list resolved), the record blocks as
+`{id, type, background: null, reveal: null, style: null, data}` — **only on the
+record's own page and only while a template is active for the kind**; with none
+the key is absent. A list row and a record nested in another's read never carry
+it. The website draws each record block from the record it already has. The active
+template is held five minutes and forgotten on any change.
+
 ## Engineer visits
 
 A customer asks for an engineer on site with up to three preferred times; the

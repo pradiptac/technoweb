@@ -53,7 +53,7 @@ mkdirSync(out, { recursive: true });
 
 const ROUTES = [
   "/", "/solutions", "/solutions/networking", "/services", "/services/web-hosting",
-  "/industries", "/industries/manufacturing", "/products", "/products/switches",
+  "/industries", "/industries/manufacturing", "/products", "/products/switches", "/products/cisco-cbs350-24t-4g",
   "/blog", "/case-studies", "/knowledge-base", "/about", "/contact", "/careers",
   "/brands", "/locations", "/store", "/cart", "/search?q=switch", "/privacy",
   "/team", "/clients", "/certifications", "/support", "/resources",

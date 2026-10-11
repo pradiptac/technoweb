@@ -50,6 +50,8 @@ class ServiceResource extends JsonResource
             // this record's own page only, and only while it is laid out as
             // sections. The body above is still sent.
             'sections' => $this->publicSections($this->includeSchema),
+            // The kind's active detail template (0.161.0): on this record's own page only; absent when none is active.
+            'detail_template' => $this->publicDetailTemplate('service', $this->includeSchema),
             'faqs' => FaqResource::collection($this->whenLoaded('faqs')),
             // The published blocks, in order, with the heading each renders under.
             'answer_blocks' => $this->publicAnswerBlocks(),

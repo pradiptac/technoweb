@@ -35,6 +35,8 @@ class CaseStudyResource extends JsonResource
             // this record's own page only, and only while it is laid out as
             // sections. The body above is still sent.
             'sections' => $this->publicSections($this->includeSchema),
+            // The kind's active detail template (0.161.0): on this record's own page only; absent when none is active.
+            'detail_template' => $this->publicDetailTemplate('case_study', $this->includeSchema),
             'results' => $this->results,
             'cover_image' => $this->cover_image_path ? MediaUrl::for($this->cover_image_path) : null,
             'cover_image_alt' => MediaMeta::alt($this->cover_image_path),

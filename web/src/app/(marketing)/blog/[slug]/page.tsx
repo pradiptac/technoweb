@@ -1,31 +1,22 @@
-import Image from "next/image";
-import { focalStyle } from "@/lib/focal";
-import { blurProps } from "@/lib/blur";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { RecordSections, laidOutAsSections } from "@/components/page-sections/record-sections";
 import { CtaBand } from "@/components/ui/cta-band";
-import { Breadcrumbs } from "@/components/ui/page-hero";
-import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { ArticleMap, ReadingProgress } from "@/components/ui/article-map";
 import { withHeadingIds } from "@/lib/headings";
-import { ArticleMeta } from "@/components/ui/article-meta";
 import { BlogSidebar } from "@/components/blog/blog-sidebar";
-import { CategoryChips } from "@/components/blog/category-chips";
 import { CategoryStrip } from "@/components/blog/category-strip";
-import { PostGrid } from "@/components/blog/post-grid";
 import { PostNav } from "@/components/blog/post-nav";
-import { ShareLinks } from "@/components/ui/share-links";
-import { Comments } from "@/components/blog/comments";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
 import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { RelatedEntities } from "@/components/content/related-entities";
 import { ApiError, publicApi } from "@/lib/api";
-import { JsonLd, SITE, buildMetadata } from "@/lib/seo";
+import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { getSiteSettings } from "@/lib/settings";
-import type { BlogPost, BlogTaxonomy, PublicComment } from "@/types/api";
+import type { BlogPost } from "@/types/api";
+import { BlogBody, BlogComments, BlogFooter, BlogHead, BlogRelatedStories, loadBlogContext } from "@/components/detail-template/blog-parts";
+import { BlogTemplate } from "@/components/detail-template/blog-template";
 
 async function load(slug: string): Promise<BlogPost | null> {
   try {
@@ -88,6 +79,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   if (!post) notFound();
 
+  // An active detail template lays the page out (0.161.0, docs/page-builder.md "Detail templates"); with none, the page below is unchanged.
+  if (post.detail_template) return <BlogTemplate post={post} />;
+
   const settings = await getSiteSettings();
 
   /*
@@ -98,36 +92,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
    * the page down with them — the rule `Notifier` follows for mail and
    * `LeadIntake` for an enquiry.
    */
-  const [taxonomy, related, latest, comments] = await Promise.all([
-    publicApi.blogTaxonomy().then((r) => r.data).catch((): BlogTaxonomy | null => null),
-    post.categories?.length
-      ? publicApi
-        .posts(`?category=${post.categories[0].slug}&per_page=5`)
-        .then((r) => r.data)
-        .catch((): BlogPost[] => [])
-      : Promise.resolve([] as BlogPost[]),
-    // The newest, to fill the row when the category is short of four. A
-    // "related stories" row with one card in it is a row that says the blog
-    // is small; the cached front-page listing costs nothing to read.
-    publicApi.posts("?per_page=6").then((r) => r.data).catch((): BlogPost[] => []),
-    /*
-     * Caught like the rest, and **null on failure rather than an empty list**.
-     *
-     * The two are different claims: an empty list says "nobody has commented",
-     * which is a statement about the article, and null says "we could not
-     * find out", which is a statement about us. Rendering the first for the
-     * second would put "Comments" and a form on a page whose comments we
-     * simply failed to load.
-     */
-    publicApi
-      .postComments(slug)
-      .catch((): { data: PublicComment[]; meta: { open: boolean; total: number } } | null => null),
-  ]);
-
-  // Never the article somebody is already reading, and never one twice:
-  // the same category first, then the newest until there are four.
-  const seen = new Set<number>([post.id]);
-  const alsoRead = [...related, ...latest].filter((p) => !seen.has(p.id) && seen.add(p.id)).slice(0, 4);
+  const { taxonomy, alsoRead, comments } = await loadBlogContext(post, slug);
 
   // Anchors on the sections, for the map and for links into the post.
   const { html: body, headings } = withHeadingIds(post.body ?? "");
@@ -142,45 +107,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   // The article's heading: where it is, its title, who wrote it, its picture, the share row.
   const head = (
     <>
-      <Breadcrumbs crumbs={crumbs} />
-
-      <CategoryChips categories={post.categories} className="mt-5" />
-
-      <h1 className="display-2 mt-4">{post.title}</h1>
-      {post.excerpt && <p className="lede mt-4">{post.excerpt}</p>}
-
-      <ArticleMeta
-        className="mt-5 border-t border-line pt-5"
-        date={post.published_at}
-        readingMinutes={post.reading_minutes}
-        author={post.author?.name}
-      />
-
-      {post.cover_image && (
-        <div data-aos="fade-up" className="mt-7">
-          {/*
-            The one image on the site with no fixed-height well; it
-            carries the 4:3 every picture on the blog is cropped to, so
-            nothing shifts while it loads. (The share image is generated
-            separately at 1200x630 and does not read this file.)
-          */}
-          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-line">
-            <Image
-              src={post.cover_image}
-              alt={post.cover_image_alt ?? ""}
-              fill
-              sizes="(min-width: 1024px) 60vw, 100vw"
-              priority
-              className="object-cover"
-              style={focalStyle(post.cover_image_focus)} {...blurProps(post.cover_image_blur)}
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="mt-6 border-y border-line py-4">
-        <ShareLinks url={`${SITE.url}/blog/${post.slug}`} title={post.title} />
-      </div>
+      <BlogHead post={post} crumbs={crumbs} />
     </>
   );
 
@@ -200,37 +127,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       */}
       <PostNav previous={post.previous} next={post.next} />
 
-      {/*
-        Comments, inside the article column so they sit at the reader's
-        measure rather than the page's, and above the "all articles"
-        footer: a conversation belongs with the thing it is about.
+      <BlogComments post={post} comments={comments} />
 
-        Rendered when the post takes comments, or when it has some
-        already. Not merely when the fetch succeeded: the endpoint
-        answers 200 whether comments are enabled or not, so gating on
-        that put a "Comments — comments are closed on this post" heading
-        under **every** article on an install with the shipped default
-        (`comments_enabled` is off), which is a block explaining the
-        absence of a feature nobody had switched on.
-
-        The second half of the condition is what keeps a closed thread
-        readable: closing comments on an old post must not delete the
-        conversation that happened on it.
-      */}
-      {comments !== null && (comments.meta.open || comments.meta.total > 0) && (
-        <Comments
-          slug={post.slug}
-          comments={comments.data}
-          total={comments.meta.total}
-          open={comments.meta.open}
-        />
-      )}
-
-      <footer className="mt-8">
-        <Link href="/blog" className="inline-block py-1 text-14 font-semibold text-brand-ink hover:underline">
-          ← All articles
-        </Link>
-      </footer>
+      <BlogFooter />
     </>
   );
 
@@ -243,11 +142,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     />
   );
 
-  const relatedStories = alsoRead.length > 0 ? (
-    <div className="mt-14">
-      <PostGrid posts={alsoRead} heading="Related stories" id="related-stories" />
-    </div>
-  ) : null;
+  const relatedStories = <BlogRelatedStories alsoRead={alsoRead} />;
 
   return (
     <>
@@ -294,15 +189,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                 thing that is actually *read* still wants a reading width, which
                 is what that cap is for.
               */}
-              <div data-aos="fade-up" className="mt-8">
-                {/*
-                  The one `Prose` on the site without the 68ch measure. The
-                  column beside the sidebar is the measure here — asked for,
-                  so a post fills the room the layout gives it rather than
-                  stopping two thirds of the way across it.
-                */}
-                {body && <ProseWithShortcodes html={body} className="max-w-none" />}
-              </div>
+              <BlogBody body={body} />
 
               {after}
             </article>

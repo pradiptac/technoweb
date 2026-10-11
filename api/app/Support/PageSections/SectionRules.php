@@ -594,6 +594,28 @@ final class SectionRules
             PageSectionType::Saved => [
                 'saved_id' => ['required', 'integer'],
             ],
+            // Record blocks (0.161.0): parts of a record's own page. They hold
+            // no content of their own — the website draws each from the record
+            // — only a heading to override where the block draws one, and a
+            // count where it lists. `DetailTemplates::FIELDS` says which block
+            // honours which on which kind; the rules are the same for all fourteen.
+            PageSectionType::RecordHero,
+            PageSectionType::RecordBody,
+            PageSectionType::RecordHighlights,
+            PageSectionType::RecordSpecs,
+            PageSectionType::RecordGallery,
+            PageSectionType::RecordCustomFields,
+            PageSectionType::RecordAnswerBlocks,
+            PageSectionType::RecordFaqs,
+            PageSectionType::RecordRelated,
+            PageSectionType::RecordEnquiry,
+            PageSectionType::RecordBuy,
+            PageSectionType::RecordDownloads,
+            PageSectionType::RecordReviews,
+            PageSectionType::RecordComments => [
+                'heading' => ['nullable', 'string', 'max:160'],
+                'limit' => ['nullable', 'integer', 'min:1', 'max:12'],
+            ],
         };
     }
 
@@ -627,6 +649,11 @@ final class SectionRules
         $out = [];
 
         foreach (PageSectionType::cases() as $type) {
+            // A record block's heading is an override the template screen sets; there is no page to edit it on.
+            if ($type->isRecordBlock()) {
+                continue;
+            }
+
             $fields = [];
 
             foreach (self::for($type) as $key => $rules) {
@@ -857,7 +884,7 @@ final class SectionRules
      * Checks no rule can express: files that exist, references that are
      * published, a background that means something, ids that are unique.
      */
-    public static function after(Validator $validator, mixed $blocks, string $prefix = 'blocks'): void
+    public static function after(Validator $validator, mixed $blocks, string $prefix = 'blocks', bool $allowRecordBlocks = false): void
     {
         if (! is_array($blocks)) {
             return;
@@ -903,6 +930,15 @@ final class SectionRules
             $type = PageSectionType::tryFrom((string) ($block['type'] ?? ''));
             $data = $block['data'] ?? null;
             if (! $type || ! is_array($data)) {
+                continue;
+            }
+
+            // Parts of a record's own page mean something only inside a detail
+            // template (`DetailTemplates`); a page, a record's body area and
+            // the library have no record to draw them from.
+            if ($type->isRecordBlock() && ! $allowRecordBlocks) {
+                $validator->errors()->add("{$at}.type", 'This part of a record’s page can only be placed in a detail template.');
+
                 continue;
             }
 
@@ -1202,6 +1238,22 @@ final class SectionRules
             if (is_array($block['background'] ?? null)) {
                 $background = ThemeOptions::background('this section', $block['background']);
                 unset($background['enabled']);
+            }
+
+            // A record block is drawn by the record's own page, which brings its
+            // own ground and spacing: none of the section chrome is stored for it.
+            if ($type->isRecordBlock()) {
+                $out[] = [
+                    'id' => (string) $block['id'],
+                    'type' => $type->value,
+                    'hidden' => filter_var($block['hidden'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'background' => null,
+                    'reveal' => null,
+                    'style' => null,
+                    'data' => (object) $data,
+                ];
+
+                continue;
             }
 
             $out[] = [

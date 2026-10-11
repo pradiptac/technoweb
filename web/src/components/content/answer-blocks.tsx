@@ -177,20 +177,26 @@ function Body({ group }: { group: Group }) {
 }
 
 export function AnswerBlocks({
-  blocks, faqs = [], className,
+  blocks, faqs = [], className, part = "all",
 }: {
   blocks?: PublicAnswerBlock[] | null;
   /** The record's FAQs, merged into the questions group — see above. */
   faqs?: Faq[];
   className?: string;
+  /**
+   * A detail template (0.161.0) may place the two halves apart: `answers` is
+   * every kind but the questions, `questions` the FAQs and question blocks as
+   * one accordion. `all`, the default, is the page as it has always drawn it.
+   */
+  part?: "all" | "answers" | "questions";
 }) {
   const groups = group(blocks ?? []);
   const questions = groups.find((g) => g.kind === "question");
-  const sections = groups.filter((g) => g.kind !== "question");
+  const sections = part === "questions" ? [] : groups.filter((g) => g.kind !== "question");
 
   // The FAQs first and the question blocks after them: the order
   // `StructuredData::answerFaqs()` lists them in `faq_schema`.
-  const asked: QuestionItem[] = [
+  const asked: QuestionItem[] = part === "answers" ? [] : [
     ...faqs.map((f) => ({ key: `faq-${f.id}`, question: f.question, answer: f.answer })),
     ...(questions?.items ?? []).map((b, i) => ({
       key: `block-${i}`,

@@ -21,6 +21,27 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.161.0 — 2026-10-11
+
+**Detail templates: lay out every page of one kind once.**
+
+- **Content → Detail templates.** For solutions, services, industries, case
+  studies, catalogue products, shop products and blog posts, an editor builds
+  how the page is arranged in the section builder, mixing ordinary sections
+  with the parts of the page itself — heading, body, highlights, specification,
+  pictures, details, answers, questions, related lists, enquiry form, the shop's
+  buy panel, downloads, reviews and comments — and switches it on. Start from
+  the layout a page has today, preview on any record of the kind, switch off and
+  every page is back to what it was. One template is on per kind.
+- Content managers own six kinds; store managers the shop's. The parts a kind
+  does not have are never offered, and the API refuses them.
+- The public detail reads carry `detail_template` only on the record's own page
+  and only while a template is on. With none, every page renders exactly as it
+  did: the routes' pieces were moved unchanged into shared components.
+- Verified by a before/after production build: 36 routes' HTML (a catalogue
+  product added to `html-snapshot.mjs` for this) differ only in the CSS hash
+  and one post's modified time.
+
 ## 0.160.0 — 2026-10-10
 
 **Arrange a theme's header and footer.**

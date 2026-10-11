@@ -70,6 +70,8 @@ class ProductResource extends JsonResource
             // this record's own page only, and only while it is laid out as
             // sections. The body above is still sent.
             'sections' => $this->publicSections($this->includeSchema),
+            // The kind's active detail template (0.161.0): on this record's own page only; absent when none is active.
+            'detail_template' => $this->publicDetailTemplate('store_product', $this->includeSchema),
             'specifications' => $this->when($detail, $this->specifications),
             'features' => $this->when($detail, $this->features),
             // Two buyer's questions, stated where they are asked. Detail

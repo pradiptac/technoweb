@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { MoveButton, ReorderButtons } from "@/components/admin/reorder-buttons";
 import { IconChevronDown, IconEye, IconEyeOff, IconLayers } from "@/components/icons-ui";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,7 @@ import { reinsert, useDragReorder } from "@/lib/hooks/use-drag-reorder";
 import { REVISION_LOAD_EVENT } from "@/lib/revisions";
 import { cn } from "@/lib/utils";
 import type { SectionBackground } from "@/themes/options";
-import type { PageBuilderOptions, PageSectionType, SectionPreset, StoredSection } from "@/types/api";
+import type { DetailTemplateKind, PageBuilderOptions, PageSectionType, SectionPreset, StoredSection } from "@/types/api";
 import { specFor, type InlinePath } from "@/components/page-sections/inline-fields";
 import { BlockEditorProvider, getIn, setIn, type Json, type Obj, type Path } from "../../blocks/editors/shared";
 import { BackgroundField } from "./background-field";
@@ -22,6 +22,7 @@ import { StyleField } from "./style-field";
 import { PreviewDialog } from "./preview-dialog";
 import { LivePreview } from "./live-preview";
 import { SectionEditor, blankData, summaryOf } from "./section-editors";
+import { RecordBlockEditor } from "./record-block-editor";
 import { SectionAssistant } from "./section-assistant";
 import { libraryBlocksAction, saveToLibraryAction, sectionsFromBodyAction } from "../library-actions";
 
@@ -103,7 +104,7 @@ const HISTORY = 50;
 /** The one list a section drag moves within. */
 const SECTIONS = "sections";
 
-export function SectionBuilder({ sections, setSections, options, media, errors, pageId, inLibrary = false, readBody }: {
+export function SectionBuilder({ sections, setSections, options, media, errors, pageId, inLibrary = false, readBody, kind, previewSlot }: {
   sections: StoredSection[];
   setSections: Dispatch<SetStateAction<StoredSection[]>>;
   options: PageBuilderOptions;
@@ -118,6 +119,17 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
    * because the body editor is uncontrolled.
    */
   readBody?: () => string;
+  /**
+   * A detail template (0.161.0, docs/page-builder.md "Detail templates"): the
+   * kind of record being laid out, with the record blocks it may place — the
+   * API's list, offered under "Add a section" and drawn on their cards as
+   * the label that kind of page knows each by. There is no live preview and
+   * no Preview dialog here (they present a page's sections, which a template
+   * is not), so `previewSlot` is the template screen's own: the stack drawn
+   * around a chosen record.
+   */
+  kind?: DetailTemplateKind;
+  previewSlot?: ReactNode;
 }) {
   const toast = useToast();
   const [open, setOpen] = useState<Set<string>>(() => new Set(sections.length <= 3 ? sections.map((s) => s.id) : []));
@@ -252,14 +264,15 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
   const errs = previewErrors ?? errors;
 
   const labelOf = useCallback(
-    (type: string) => options.section_types.find((t) => t.value === type)?.label ?? (type === "saved" ? "Saved section" : type),
-    [options.section_types],
+    (type: string) => kind?.blocks.find((b) => b.value === type)?.label
+      ?? options.section_types.find((t) => t.value === type)?.label ?? (type === "saved" ? "Saved section" : type),
+    [options.section_types, kind],
   );
 
   /* The live preview, and the section it should be showing. */
   const live = useSyncExternalStore(subscribeLive, liveState, () => "00");
   const wide = live[0] === "1";
-  const showLive = wide && live[1] === "1";
+  const showLive = !kind && wide && live[1] === "1";
   const [focus, setFocus] = useState<{ id: string } | null>(null);
 
   const toggle = (id: string, force?: boolean) => {
@@ -283,8 +296,8 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
     });
   }, []);
 
-  const add = (type: PageSectionType) => {
-    const section: StoredSection = { id: crypto.randomUUID(), type, hidden: false, background: null, data: blankData(type) };
+  const add = (type: PageSectionType | string) => {
+    const section: StoredSection = { id: crypto.randomUUID(), type, hidden: false, background: null, data: kind?.blocks.some((b) => b.value === type) ? {} : blankData(type as PageSectionType) };
     apply((prev) => [...prev, section]);
     toggle(section.id, true);
     setPicking(false);
@@ -305,6 +318,7 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
     });
 
   const duplicate = (i: number) => {
+    if (kind?.blocks.some((b) => b.value === sections[i]?.type)) return;
     const id = crypto.randomUUID();
     apply((prev) => [...prev.slice(0, i + 1), { ...structuredClone(prev[i]), id }, ...prev.slice(i + 1)]);
     toggle(id, true);
@@ -448,7 +462,7 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
         {/* A template is a whole page to start from; a record's body area is not one. */}
         {!inLibrary && !options.in_record && <Button type="button" size="sm" variant="ghost" onClick={() => setSaving({ kind: "template" })} disabled={!sections.length}>Save as template</Button>}
         <span className="ml-auto text-12 text-faint">Drag a section by its handle, or use its arrows.</span>
-        {wide && (
+        {wide && !kind && (
           <Button type="button" size="sm" variant={showLive ? "secondary" : "ghost"} aria-pressed={showLive} onClick={() => setLivePref(!showLive)}>
             {showLive ? "Hide live preview" : "Show live preview"}
           </Button>
@@ -515,7 +529,9 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
             targetProps={dnd.target(SECTIONS, i)}
             onCopy={() => copy(section)}
             linkedName={section.type === "saved" ? libraryName(section.data.saved_id) : undefined}
-            onSaveToLibrary={inLibrary ? undefined : () => setSaving({ kind: "section", index: i })}
+            onSaveToLibrary={inLibrary || kind ? undefined : () => setSaving({ kind: "section", index: i })}
+            recordBlock={kind?.blocks.find((b) => b.value === section.type)}
+            canCopy={!kind || !kind.blocks.some((b) => b.value === section.type)}
             onDetach={() => detach(i)}
             key={section.id}
             section={section}
@@ -542,8 +558,8 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <Button type="button" variant="secondary" onClick={() => setPicking(true)}>Add a section</Button>
-        <PreviewDialog sections={sections} pageId={pageId} onErrors={setPreviewErrors} />
-        {pageId && (
+        {kind ? previewSlot : <PreviewDialog sections={sections} pageId={pageId} onErrors={setPreviewErrors} />}
+        {pageId && !kind && (
           <Link href={`/admin/pages/${pageId}/preview`} className="py-2 text-13-5 font-semibold text-brand-ink hover:underline">
             Preview the saved page
           </Link>
@@ -575,6 +591,30 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
             </ul>
           </div>
         )}
+        {kind && (
+          <div className="mb-5">
+            <p className="mb-1 text-12-5 font-semibold uppercase tracking-[.08em] text-muted">This {kind.noun} page’s own parts</p>
+            <p className="mb-2 text-12-5 text-muted">Drawn from each {kind.noun} — one of each per template, so a part already placed is not offered again.</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {kind.blocks.filter((b) => !sections.some((s) => s.type === b.value)).map((b) => (
+                <button
+                  key={b.value}
+                  type="button"
+                  data-record-block={b.value}
+                  onClick={() => add(b.value)}
+                  className="flex flex-col gap-1 rounded-lg border border-brand-ink/30 bg-card p-3.5 text-left transition-colors duration-(--duration-base) hover:border-brand-300"
+                >
+                  <span className="text-14 font-semibold">{b.label}</span>
+                  <span className="text-12-5 text-muted">{b.blurb}</span>
+                </button>
+              ))}
+              {kind.blocks.every((b) => sections.some((s) => s.type === b.value)) && (
+                <p className="text-12-5 text-muted">Every part of this page is already in the template.</p>
+              )}
+            </div>
+          </div>
+        )}
+        {kind && <p className="mb-2 text-12-5 font-semibold uppercase tracking-[.08em] text-muted">Sections</p>}
         <div className="grid gap-2 sm:grid-cols-2">
           {options.section_types.filter((t) => t.value !== "saved").map((t) => (
             <button
@@ -670,8 +710,11 @@ function SaveToLibrary({ saving, label, onClose, onSave }: {
 function SectionCard({
   section, index, count, label, expanded, errors, options, media, onToggle, onMove, onDuplicate, onHide, onRemove, patch, patchStep,
   dragging, dropBefore, dropAfter, handleProps, targetProps, onCopy, linkedName, onSaveToLibrary, onDetach,
-  epoch, onAssistant, onUndo,
+  epoch, onAssistant, onUndo, recordBlock, canCopy,
 }: {
+  /** The record block this card is, in a detail template — its settings, from the API. */
+  recordBlock?: DetailTemplateKind["blocks"][number];
+  canCopy: boolean;
   epoch: number;
   onAssistant: (data: Record<string, unknown>) => void;
   onUndo: () => void;
@@ -728,7 +771,7 @@ function SectionCard({
     () => ({ content: section.data as Obj, set, setStep, err, anyErr, media, brands: [], idPrefix, epoch }),
     [section.data, set, setStep, err, anyErr, media, idPrefix, epoch],
   );
-  const assistant = !linked && options.ai_section?.types.includes(section.type) ? options.ai_section : null;
+  const assistant = !linked && !recordBlock && options.ai_section?.types.includes(section.type) ? options.ai_section : null;
 
   return (
     <li
@@ -767,15 +810,17 @@ function SectionCard({
         {section.hidden && <Badge tone="closed">Hidden</Badge>}
         {bad && <Badge tone="urgent">{mine.length} to fix</Badge>}
         <ReorderButtons index={index} count={count} subject={`section ${index + 1}`} onMove={onMove} onRemove={onRemove} dense>
-          <MoveButton label={`Duplicate section ${index + 1}`} onClick={onDuplicate}><IconLayers className="size-3.5" /></MoveButton>
+          {!recordBlock && <MoveButton label={`Duplicate section ${index + 1}`} onClick={onDuplicate}><IconLayers className="size-3.5" /></MoveButton>}
           {!linked && onSaveToLibrary && (
             <MoveButton label={`Save section ${index + 1} to the library`} onClick={onSaveToLibrary}>
               <svg aria-hidden viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12v18l-6-4-6 4z" /></svg>
             </MoveButton>
           )}
-          <MoveButton label={`Copy section ${index + 1} to paste on another page`} onClick={onCopy}>
-            <svg aria-hidden viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h8" /></svg>
-          </MoveButton>
+          {canCopy && (
+            <MoveButton label={`Copy section ${index + 1} to paste on another page`} onClick={onCopy}>
+              <svg aria-hidden viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h8" /></svg>
+            </MoveButton>
+          )}
           <MoveButton label={section.hidden ? `Show section ${index + 1}` : `Hide section ${index + 1}`} onClick={onHide}>
             {section.hidden ? <IconEyeOff className="size-3.5" /> : <IconEye className="size-3.5" />}
           </MoveButton>
@@ -792,7 +837,12 @@ function SectionCard({
           {section.hidden && (
             <p className="mb-3 text-12-5 text-faint">Hidden: kept with the page and left off the public site.</p>
           )}
-          {linked ? (
+          {recordBlock ? (
+            /* A part of the record's own page: drawn by the website from the record, so it has only its settings. */
+            <BlockEditorProvider value={ctx}>
+              <RecordBlockEditor spec={recordBlock} />
+            </BlockEditorProvider>
+          ) : linked ? (
             /* A linked library section: what it is, where to change it, and the way out. */
             <div className="rounded-lg border border-brand-ink/25 bg-brand-50 p-4">
               <p className="text-13-5 text-ink">
@@ -817,7 +867,7 @@ function SectionCard({
           </BlockEditorProvider>
           </>
           )}
-          {!linked && (<>
+          {!linked && !recordBlock && (<>
           <RevealField
             id={`${idPrefix}-reveal`}
             value={section.reveal ?? null}

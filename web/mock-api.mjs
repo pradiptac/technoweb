@@ -2402,6 +2402,119 @@ const SECTION_PRESETS = [
 ];
 /* The section library: kept in memory for the run, like the mock's other writes. */
 const savedSections = [];
+/*
+ * Detail-page templates (0.161.0, docs/page-builder.md "Detail templates").
+ * Mirrors `App\Support\DetailTemplates` — the kinds, the record blocks each may
+ * place with the label that kind knows it by, the layout each page has today —
+ * and the rules of `DetailTemplateRequest`: the body once, no block twice, none
+ * on a kind that has no part for it, record blocks nowhere else. The mock's one
+ * account is an administrator, so every kind is on offer.
+ */
+const DT_KINDS = {
+  solution: { label: 'Solutions', noun: 'solution', role: 'content_manager', tag: 'solutions', rows: () => solutions, title: 'title' },
+  service: { label: 'Services', noun: 'service', role: 'content_manager', tag: 'services', rows: () => services, title: 'title' },
+  industry: { label: 'Industries', noun: 'industry', role: 'content_manager', tag: 'industries', rows: () => industries, title: 'name' },
+  case_study: { label: 'Case studies', noun: 'case study', role: 'content_manager', tag: 'case-studies', rows: () => caseStudies, title: 'title' },
+  product: { label: 'Catalogue products', noun: 'product', role: 'content_manager', tag: 'products', rows: () => products, title: 'name' },
+  store_product: { label: 'Shop products', noun: 'shop product', role: 'store_manager', tag: 'store-products', rows: () => storeProducts, title: 'name' },
+  blog_post: { label: 'Blog posts', noun: 'blog post', role: 'content_manager', tag: 'blog', rows: () => posts, title: 'title' },
+};
+const ALL_KINDS = Object.keys(DT_KINDS);
+const DT_BLOCKS = {
+  record_hero: { label: 'Heading', kinds: ALL_KINDS, blurb: 'The record’s heading, summary and breadcrumbs, drawn the way the theme draws its page headings.' },
+  record_body: { label: 'Body', kinds: ALL_KINDS, blurb: 'The record’s written body — or its sections. Every template has exactly one.' },
+  record_highlights: { label: 'Highlights', kinds: ['solution', 'case_study', 'product', 'store_product'], blurb: 'The list of points the record carries: benefits, key features, results.', heading: ['solution', 'case_study', 'product', 'store_product'] },
+  record_specs: { label: 'Specification', kinds: ['product', 'store_product'], blurb: 'The specification sheet, as a table.', heading: ['product', 'store_product'] },
+  record_gallery: { label: 'Pictures', kinds: ['product', 'case_study'], blurb: 'The record’s pictures, drawn as its page draws them.' },
+  record_custom_fields: { label: 'Details', kinds: ALL_KINDS, blurb: 'The custom fields filled in for this record.', heading: ALL_KINDS },
+  record_answer_blocks: { label: 'Answers', kinds: ['solution', 'service', 'industry', 'product', 'store_product', 'blog_post'], blurb: 'The record’s answer blocks — and its FAQs unless a questions block is placed too.' },
+  record_faqs: { label: 'Questions', kinds: ['solution', 'service', 'industry', 'product', 'store_product', 'blog_post'], blurb: 'The record’s FAQs and question blocks as one list of questions that open.' },
+  record_related: { label: 'Related', kinds: ALL_KINDS, blurb: 'What the record is connected to, and the lists its page draws beside or under its body.', limit: ['product', 'store_product', 'blog_post'] },
+  record_enquiry: { label: 'Enquiry form', kinds: ['solution', 'service', 'product'], blurb: 'The enquiry form the record’s page carries.', heading: ['solution', 'service', 'product'] },
+  record_buy: { label: 'Pictures and buy panel', kinds: ['store_product'], blurb: 'The pictures and the buy panel, exactly as the shop page draws them, as one block.' },
+  record_downloads: { label: 'Downloads', kinds: ['product', 'store_product'], blurb: 'The datasheets, drivers and firmware attached to the record.', heading: ['product', 'store_product'] },
+  record_reviews: { label: 'Reviews', kinds: ['store_product'], blurb: 'The customers’ reviews and the form to leave one.' },
+  record_comments: { label: 'Comments', kinds: ['blog_post'], blurb: 'The comments under the article, and the form to add one.' },
+};
+const DT_TODAY = {
+  solution: ['record_hero', 'record_body', 'record_highlights', 'record_custom_fields', 'record_answer_blocks', 'record_related'],
+  service: ['record_hero', 'record_body', 'record_custom_fields', 'record_answer_blocks', 'record_related', 'record_enquiry'],
+  industry: ['record_hero', 'record_body', 'record_custom_fields', 'record_answer_blocks', 'record_related'],
+  case_study: ['record_hero', 'record_highlights', 'record_gallery', 'record_body', 'record_custom_fields', 'record_related'],
+  product: ['record_hero', 'record_gallery', 'record_body', 'record_highlights', 'record_specs', 'record_downloads', 'record_custom_fields', 'record_answer_blocks', 'record_enquiry', 'record_related'],
+  store_product: ['record_hero', 'record_buy', 'record_highlights', 'record_specs', 'record_body', 'record_downloads', 'record_custom_fields', 'record_answer_blocks', 'record_reviews', 'record_related'],
+  blog_post: ['record_hero', 'record_body', 'record_custom_fields', 'record_answer_blocks', 'record_comments', 'record_related'],
+};
+const detailTemplates = [];
+const dtResource = (t, detail) => ({
+  id: t.id, type: t.type, type_label: DT_KINDS[t.type].label, name: t.name, is_active: t.is_active, count: t.blocks.length,
+  cache_tag: DT_KINDS[t.type].tag, author: 'Mock admin', updated_at: t.updated_at,
+  ...(detail ? { blocks: t.blocks, blocks_media: {} } : {}),
+});
+const dtOptions = () => ({
+  types: ALL_KINDS.map((value) => {
+    const k = DT_KINDS[value];
+    return {
+      value, label: k.label, noun: k.noun, role: k.role, tag: k.tag, today: DT_TODAY[value],
+      blocks: Object.entries(DT_BLOCKS).filter(([, b]) => b.kinds.includes(value)).map(([block, b]) => ({
+        value: block, label: b.label, blurb: b.blurb, heading: (b.heading ?? []).includes(value), limit: (b.limit ?? []).includes(value),
+      })),
+    };
+  }),
+  required_block: 'record_body',
+  record_block_types: Object.entries(DT_BLOCKS).map(([value, b]) => ({ value, label: b.label, blurb: b.blurb })),
+});
+/** The rules of `DetailTemplates::after` and `SectionRules::after`, in the shape of a 422's errors; null when the stack is good. */
+function dtErrors(type, blocks) {
+  const errors = {};
+  const add = (key, message) => { (errors[key] ??= []).push(message); };
+  const seen = new Set();
+  let body = 0;
+  blocks.forEach((b, i) => {
+    const spec = DT_BLOCKS[b.type];
+    if (!spec) {
+      if (!SECTION_TYPES.some((t) => t.value === b.type) && b.type !== 'saved') add(`blocks.${i}.type`, 'That is not a kind of section this site can draw.');
+      if (b.type === 'hero' || b.type === 'theme_section') add(`blocks.${i}.type`, 'This page already opens with its own heading, so a hero cannot be used here.');
+      return;
+    }
+    if (!spec.kinds.includes(type)) { add(`blocks.${i}.type`, `A ${DT_KINDS[type].noun} page has no “${spec.label}” to place.`); return; }
+    if (seen.has(b.type)) add(`blocks.${i}.type`, `“${spec.label}” is already in this template; a page draws it once.`);
+    seen.add(b.type);
+    if (b.type === 'record_body') { body += 1; if (b.hidden) add(`blocks.${i}.hidden`, 'The record body cannot be hidden: without it the page would have no content.'); }
+  });
+  if (body === 0) add('blocks', 'Every template places the record body once — add it from “Add a section”.');
+  return Object.keys(errors).length ? errors : null;
+}
+/** What a record block is stored as: no ground, no style, no reveal — the settings it honours and nothing else. */
+const dtNormalise = (blocks) => blocks.map((b) => (b.type in DT_BLOCKS
+  ? { id: b.id, type: b.type, hidden: Boolean(b.hidden), background: null, reveal: null, style: null,
+      data: { ...(b.data?.heading ? { heading: String(b.data.heading) } : {}), ...(b.data?.limit ? { limit: Number(b.data.limit) } : {}) } }
+  : b));
+const dtActive = (type) => detailTemplates.find((t) => t.type === type && t.is_active) ?? null;
+const dtPresent = (id, blocks) => ({ id, sections: presentSections(blocks) });
+/**
+ * A public detail read gains `detail_template` when its kind has an active one — added to the body
+ * the route sends, so no route had to learn of it. Only a record's own page (the detail path).
+ */
+function injectDetailTemplate(req, res, p) {
+  if (req.method !== 'GET') return;
+  const m = p.match(/^\/(solutions|services|industries|case-studies|products|store\/products|blog)\/([a-z0-9-]+)$/);
+  const type = m && { solutions: 'solution', services: 'service', industries: 'industry', 'case-studies': 'case_study', products: 'product', 'store/products': 'store_product', blog: 'blog_post' }[m[1]];
+  const active = type && dtActive(type);
+  if (!active) return;
+  const end = res.end.bind(res);
+  res.end = (chunk, ...rest) => {
+    try {
+      const body = JSON.parse(chunk);
+      if (body?.data && typeof body.data === 'object' && !Array.isArray(body.data) && res.statusCode === 200) {
+        body.data.detail_template = dtPresent(active.id, active.blocks);
+        chunk = JSON.stringify(body);
+      }
+    } catch { /* not JSON: leave it */ }
+    return end(chunk, ...rest);
+  };
+}
+
 const savedResource = (x, detail) => ({
   id: x.id, kind: x.kind, name: x.name, description: x.description,
   type: x.kind === 'section' ? (x.blocks[0]?.type ?? null) : null,
@@ -2930,6 +3043,7 @@ for (const rows of [solutions, services, industries, productCategories, products
 createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname.replace('/api/v1', '');
+  injectDetailTemplate(req, res, p);
   const bearer = (req.headers.authorization || '').replace('Bearer ', '');
   const auth = bearer === TOKEN || bearer === IMPERSONATION_TOKEN;
   const isStaff = bearer === STAFF_TOKEN;
@@ -4140,6 +4254,74 @@ createServer(async (req, res) => {
           return json(res, 200, { data: savedResource(item, true) });
         }
         if (req.method === 'DELETE') { savedSections.splice(savedSections.indexOf(item), 1); res.writeHead(204); return res.end(); }
+      }
+    }
+    /* Detail-page templates (0.161.0). The declared-above-{id} routes first, as the API declares them. */
+    if (p === '/admin/detail-templates/options' && req.method === 'GET') {
+      return json(res, 200, { data: { ...BUILDER_OPTIONS, library: { sections: [], templates: [] }, detail_templates: dtOptions() } });
+    }
+    if (p === '/admin/detail-templates/records' && req.method === 'GET') {
+      const kind = DT_KINDS[url.searchParams.get('type')];
+      if (!kind) return json(res, 422, { message: 'The selected type is invalid.', errors: { type: ['The selected type is invalid.'] } });
+      const q = (url.searchParams.get('q') ?? '').toLowerCase();
+      const rows = kind.rows().filter((r) => !q || String(r[kind.title]).toLowerCase().includes(q)).slice(0, 50)
+        .map((r) => ({ id: r.id, title: String(r[kind.title]), slug: r.slug ?? null }));
+      return json(res, 200, { data: rows });
+    }
+    if (p === '/admin/detail-templates/preview' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const kind = DT_KINDS[body.type];
+      const blocks = Array.isArray(body.blocks) ? body.blocks : [];
+      const errors = kind && dtErrors(body.type, blocks);
+      if (!kind || errors) return json(res, 422, { message: 'The given data was invalid.', errors: errors ?? { type: ['The selected type is invalid.'] } });
+      const row = kind.rows().find((r) => r.id === Number(body.record_id));
+      if (!row) return json(res, 422, { message: 'That record no longer exists.' });
+      return json(res, 200, { data: { type: body.type, record: { ...row, ...answerContent([], [], {}) }, detail_template: dtPresent(0, dtNormalise(blocks)) } });
+    }
+    if (p === '/admin/detail-templates' && req.method === 'GET') {
+      const type = url.searchParams.get('type');
+      const rows = detailTemplates.filter((t) => !type || t.type === type).map((t) => dtResource(t, false));
+      return json(res, 200, { data: rows, meta: { current_page: 1, last_page: 1, per_page: 100, total: rows.length }, links: {} });
+    }
+    if (p === '/admin/detail-templates' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const blocks = Array.isArray(body.blocks) ? body.blocks : [];
+      if (!DT_KINDS[body.type]) return json(res, 422, { message: 'The selected type is invalid.', errors: { type: ['The selected type is invalid.'] } });
+      if (!String(body.name ?? '').trim()) return json(res, 422, { message: 'The name field is required.', errors: { name: ['The name field is required.'] } });
+      const errors = dtErrors(body.type, blocks);
+      if (errors) return json(res, 422, { message: 'The given data was invalid.', errors });
+      const t = { id: detailTemplates.length ? Math.max(...detailTemplates.map((x) => x.id)) + 1 : 1, type: body.type, name: body.name, blocks: dtNormalise(blocks), is_active: false, updated_at: new Date().toISOString() };
+      detailTemplates.push(t);
+      return json(res, 201, { data: dtResource(t, true) });
+    }
+    {
+      const m = p.match(/^\/admin\/detail-templates\/(\d+)(?:\/(activate|deactivate))?$/);
+      if (m) {
+        const t = detailTemplates.find((x) => x.id === Number(m[1]));
+        if (!t) return json(res, 404, { message: 'Not found.' });
+        if (m[2] && req.method === 'POST') {
+          if (m[2] === 'activate') {
+            for (const o of detailTemplates) if (o.type === t.type) o.is_active = o.id === t.id;
+          } else {
+            t.is_active = false;
+          }
+          t.updated_at = new Date().toISOString();
+          return json(res, 200, { data: dtResource(t, true) });
+        }
+        if (req.method === 'GET') return json(res, 200, { data: dtResource(t, true) });
+        if (req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          if ('type' in body) return json(res, 422, { message: 'The type field is prohibited.', errors: { type: ['The type field is prohibited.'] } });
+          if ('blocks' in body) {
+            const errors = dtErrors(t.type, Array.isArray(body.blocks) ? body.blocks : []);
+            if (errors) return json(res, 422, { message: 'The given data was invalid.', errors });
+            t.blocks = dtNormalise(body.blocks);
+          }
+          if ('name' in body) t.name = body.name;
+          t.updated_at = new Date().toISOString();
+          return json(res, 200, { data: dtResource(t, true) });
+        }
+        if (req.method === 'DELETE') { detailTemplates.splice(detailTemplates.indexOf(t), 1); res.writeHead(204); return res.end(); }
       }
     }
     // The assistant on a section (0.127.0): refused, as it is with no key.

@@ -123,6 +123,12 @@ class ContentController extends Controller
 
     public function industry(Industry $industry): JsonResource
     {
+        return $this->presentIndustry($industry);
+    }
+
+    /** The industry's public read — also what a detail template's preview draws from. */
+    public function presentIndustry(Industry $industry): JsonResource
+    {
         $industry->load(['solutions', 'faqs', 'publishedAnswerBlocks', 'seo', 'customValues.field.group']);
         EntityLinks::attach($industry);
 

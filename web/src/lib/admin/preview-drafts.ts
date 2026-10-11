@@ -21,7 +21,14 @@ import type { PageSection } from "@/types/api";
  * process shares it; a restart loses the drafts, which costs one more press
  * of Preview.
  */
-type Draft = { owner: string; sections: PageSection[]; expires: number };
+type Draft = { owner: string; sections: PageSection[]; expires: number; subject?: PreviewSubject };
+
+/**
+ * A detail template's preview (0.161.0) is the template drawn around one
+ * record: the record's public read as the API sent it (`type` is its kind),
+ * kept with the presented sections. A page's preview has none.
+ */
+export type PreviewSubject = { type: string; record: Record<string, unknown> };
 
 const TTL_MS = 10 * 60 * 1000;
 /*
@@ -34,20 +41,25 @@ const store = ((globalThis as { __twPreviewDrafts?: Map<string, Draft> }).__twPr
 
 const ownerOf = (token: string) => createHash("sha256").update(token).digest("hex");
 
-export function keepPreviewDraft(token: string, sections: PageSection[]): string {
+export function keepPreviewDraft(token: string, sections: PageSection[], subject?: PreviewSubject): string {
   const now = Date.now();
   for (const [id, draft] of store) if (draft.expires < now) store.delete(id);
   while (store.size >= MAX) store.delete(store.keys().next().value as string);
 
   const id = randomBytes(16).toString("hex");
-  store.set(id, { owner: ownerOf(token), sections, expires: now + TTL_MS });
+  store.set(id, { owner: ownerOf(token), sections, expires: now + TTL_MS, subject });
 
   return id;
 }
 
 export function readPreviewDraft(id: string, token: string): PageSection[] | null {
+  return readPreviewDraftFull(id, token)?.sections ?? null;
+}
+
+/** The draft with its subject — set only by a detail template's preview. */
+export function readPreviewDraftFull(id: string, token: string): { sections: PageSection[]; subject?: PreviewSubject } | null {
   const draft = /^[a-f0-9]{32}$/.test(id) ? store.get(id) : undefined;
   if (!draft || draft.expires < Date.now() || draft.owner !== ownerOf(token)) return null;
 
-  return draft.sections;
+  return { sections: draft.sections, subject: draft.subject };
 }

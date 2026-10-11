@@ -89,6 +89,15 @@ A full CMS for the people who write, without a developer in the loop.
   written text. Only the body changes — the page keeps its heading, related
   lists, FAQs and closing band — and the written text is kept for switching
   back.
+- **Detail templates**: how every page of one kind of record is laid out, built
+  once from sections and the parts of the page itself — its heading, body,
+  highlights, specification, pictures, answers, questions, related lists,
+  enquiry form, shop buy panel, downloads, reviews and comments. For solutions,
+  services, industries, case studies, catalogue products, shop products and blog
+  posts. Start from the layout the page has today, move a part, add a section of
+  your own, preview it on any record of that kind (a draft included), and switch
+  it on; switch it off and every page is back to the layout it had. One template
+  is on at a time for each kind of page.
 - **A section page builder**: a page laid out as a stack of ready sections —
   hero, text, picture or video with text, features, live lists from the
   catalogue, content blocks, sliders, galleries, forms, questions, logo

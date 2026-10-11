@@ -1730,6 +1730,143 @@ knowing: deleting a catalogue product (soft delete) takes its history with it,
 since nothing lists a trashed row; and a landing page's `path` is not
 watched, so restoring an older `title` never moves a URL.
 
+## Detail templates (0.161.0)
+
+**How every page of one kind of record is laid out, built once.** The client's
+"template builder", settled as *detail-page templates per record type*: an editor
+lays out, in the section builder, how every solution page (or every service page,
+…) is arranged, mixing ordinary sections with **record blocks** — the parts of the
+page itself (its heading, body, specification, buy panel) — and switches it on.
+Seven kinds: `solution`, `service`, `industry`, `case_study`, `product` (the
+catalogue), `store_product` and `blog_post`. Not pages (the builder already is
+one), not events, vacancies, entries or knowledge articles; the table is
+`App\Support\DetailTemplates`, and adding a kind is a row in it, a route's
+branch and a view.
+
+### Stored, and at most one active
+
+`detail_templates` (`type` a morph alias, `name`, `blocks` the builder's stored
+shape, `is_active`). `DetailTemplate::activate()` deactivates the others of the
+kind in the same transaction, row by row so the model events (and with them the
+cache) fire; created templates are always inactive; `type` is fixed once saved.
+The public reads ask for the kind's active template on **every** detail request,
+so `DetailTemplates::active()` holds `{id, blocks}` (or `false`) for five minutes
+under `detail_template.active.<alias>` and `saved`/`deleted` forget it.
+
+### Record blocks
+
+`PageSectionType` gains fourteen `record_*` cases. **`options()` no longer lists
+them** — it is what a page, a record's body area and the library offer — and
+`recordOptions()` does; `isRecordBlock()` is what every rule asks. Each holds two
+optional settings and nothing else (`heading`, `limit` 1–12); `normalise()` stores
+no background, style or reveal for one, since the record's page brings its own
+ground and spacing. **The API never presents a record block's content**: the
+template's read carries `{id, type, data}` and the **website** draws each from the
+record the route already loaded.
+
+| Block | Draws | Kinds (label that kind knows it by) |
+|---|---|---|
+| `record_hero` | the theme's page heading — the page's one `h1` | all seven |
+| `record_body` | the written body, or the record's own `sections` when `body_layout` is `sections` (required, once, not hidden) | all seven |
+| `record_highlights` | the list of points | solution (Benefits), case study (Results), product (Key features), shop product (What you get) |
+| `record_specs` | the specification table | product, shop product |
+| `record_gallery` | pictures | product (the pictures *and* the panel beside them), case study (the cover) |
+| `record_custom_fields` | the custom fields | all seven |
+| `record_answer_blocks` | the answer blocks, with the FAQs merged in **unless** `record_faqs` is also placed | all but case study |
+| `record_faqs` | FAQs and question blocks as one accordion (`AnswerBlocks part="questions"`) | all but case study |
+| `record_related` | the record's links (`RelatedEntities`) and the lists its page draws: a solution's technologies, hardware and industries; an industry's solutions; a case study's way back; related hardware; "You may also like" and the recently viewed; a blog post's neighbours, related stories and footer link | all seven |
+| `record_enquiry` | the enquiry form, knowing which record it is about | solution, service, product |
+| `record_buy` | the filter strip, the pictures and the buy panel **as one block** — the sticky two-row area kept | shop product |
+| `record_downloads` | the downloads centre's files | product, shop product |
+| `record_reviews` | reviews and the form | shop product |
+| `record_comments` | comments and the form | blog post |
+
+`heading` is honoured, where the part draws a heading of its own, by highlights,
+specs, custom fields, downloads and enquiry; `limit` by `record_related` on a
+product, a shop product and a blog post. `DetailTemplates::FIELDS` says which on
+which kind and the options carry it per block, so a control the page has no use
+for is never drawn.
+
+### Rules
+
+`SectionRules::after()` takes `$allowRecordBlocks` (default **false**): a record
+block on a page, in a record's body area, in the library and in the page preview is
+a 422 on `blocks.N.type`. `DetailTemplates::after()` runs `RecordSections::after`
+(the same exclusions as a body area: no `hero`, no `theme_section`, no "this
+page's FAQs") with them allowed, then: a block the kind has no part for is refused;
+none twice; **`record_body` exactly once** (422 on `blocks` when absent, on
+`blocks.N.type` when repeated, on `blocks.N.hidden` when hidden).
+
+### The public read
+
+The seven resources gain `detail_template` — `{id, sections}`, the ordinary
+sections presented by `SectionPresenter` as everywhere and the record blocks passed
+through — **only on the record's own page** (`withSchema()`, the 0.129 rule: never
+on a list row or a nested record) **and only while a template is active**. With
+none the key is **absent**, not null, so a page without one reads byte for byte as
+it did. A draft's share link carries it too, being the same read.
+
+### The website
+
+Each of the seven routes branches immediately after its 404:
+`if (x.detail_template) return <XTemplate … />`. With no template active the route
+is its old self — **this release moved the route's pieces into
+`components/detail-template/*-parts.tsx` verbatim** (`SolutionHero`,
+`ProductTop`, `StoreBuyGrid`, `BlogHead`, `loadStoreProductContext`, …) so the
+route and the template draw each part from one piece of code; with no template the
+HTML is what it was (to be proved by a before-and-after build and an HTML diff,
+`scripts/probes/html-snapshot.mjs`). `DetailTemplateStack` (`stack.tsx`) groups consecutive ordinary sections
+into one `PageSections` run (`ownsH1={false}`), hands each record block to the
+kind's view, and **puts the kind's own heading first when the template leaves
+`record_hero` out** — one `h1`, always. The route's closing band and its JSON-LD
+(the record's `schema`, the one `faq_schema`) stay the page's own; the band is
+dropped when the template ends on a `cta`. Cache: the console purges the kind's
+collection tag (`cache_tag` on every template it reads) on a save, a switch and a
+delete.
+
+What a template does not carry: a blog post's sidebar and the heading map beside
+its text; a catalogue product's `#enquire` anchor works only where `record_enquiry`
+is placed; an in-page menu is sticky within its run, not across a record block.
+
+### The console
+
+**Content → Detail templates** (`/admin/detail-templates`, `content_manager` or
+`store_manager`; the API narrows by kind — `store_product` is the store manager's,
+an administrator has all). The list shows, per kind, which template its pages use;
+**New template** chooses the kind and *Today's layout* (the record blocks in the
+order the page draws them now — `meta` `today` per kind, the API's) or *the body
+alone*. The editor is the section builder with the kind's record blocks offered
+under "Add a section" (the API's `detail_templates.types[].blocks`; a part already
+placed is not offered), a card per block with only its settings, no style,
+background or Appear on a record block, and no live preview. **Preview on a
+{kind}** posts the typed blocks and a chosen record to
+`POST /admin/detail-templates/preview` (the rules a save runs, nothing written)
+and frames `/admin/draft-preview/{id}`, which draws the kind's own template view
+around that record — a draft record included — with pasted code a placeholder.
+**Switch on / off** act on the saved template and wait for a save. A store
+manager's builder options come from `GET /admin/detail-templates/options` (the
+page builder's read under their role); the media picker is a content manager's
+route, so a store manager lays out with parts and sections that need no library
+picture.
+
+Not built: history for a template (`Revisions` is a registry of share-link kinds;
+a template is not one), a template per category, and conditional templates.
+
+### API
+
+`GET /admin/detail-templates/options`, `…/records?type=&q=`, `POST …/preview`
+(declared above `{detailTemplate}`), `GET|POST /admin/detail-templates`,
+`GET|PATCH|DELETE …/{id}`, `POST …/{id}/activate`, `POST …/{id}/deactivate`. See
+`API.md`.
+
+`tests/Feature/DetailTemplateTest.php` pins: record blocks refused on a page, a
+record's body area, the library and the page preview; refused on a kind with no
+part for them; the body once; one active per kind; the public read carrying the
+template only when active and only on the detail read, on all seven kinds; the
+cache forgotten on a save, a switch and a delete; role narrowing both ways; the
+preview writing nothing; the options' `today` being placeable. `scripts/probes/
+detail-templates.mjs` drives it in a browser.
+
 ## Tests
 
 `tests/Feature/ContentRevisionTest.php` — page history (0.145.0): creation and

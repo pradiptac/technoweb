@@ -93,7 +93,7 @@ const ADMIN_ROUTES = [
   // sat on it unnoticed. The builder behind it has the same history.
   "/admin/menus",
   "/admin/jobs", "/admin/jobs/new", "/admin/jobs/reference", "/admin/applications",
-  "/admin/knowledge-base", "/admin/case-studies", "/admin/pages", "/admin/pages/library", "/admin/faqs",
+  "/admin/knowledge-base", "/admin/case-studies", "/admin/pages", "/admin/pages/library", "/admin/detail-templates", "/admin/detail-templates/new", "/admin/faqs",
   "/admin/faqs/new", "/admin/media", "/admin/products", "/admin/products/new",
   "/admin/product-categories", "/admin/brands", "/admin/solutions",
   "/admin/services", "/admin/industries", "/admin/seo", "/admin/redirects", "/admin/not-found",

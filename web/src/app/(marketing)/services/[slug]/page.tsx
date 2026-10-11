@@ -1,19 +1,18 @@
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
-import { ButtonLink } from "@/components/ui/button";
 import { CtaBand } from "@/components/ui/cta-band";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
 import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { RelatedEntities } from "@/components/content/related-entities";
-import { PageHero } from "@/components/ui/page-hero";
 import { RecordSections, hasEntityLinks, laidOutAsSections } from "@/components/page-sections/record-sections";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
-import { EnquiryForm } from "@/components/forms/enquiry-form";
-import { IconArrowRight } from "@/components/icons";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { Service } from "@/types/api";
+import { ServiceHero } from "@/components/detail-template/service-parts";
+import { ServiceTemplate } from "@/components/detail-template/service-template";
+import { EnquiryCard } from "@/components/forms/enquiry-card";
 
 async function load(slug: string): Promise<Service | null> {
   try {
@@ -68,6 +67,9 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
 
   if (!service) notFound();
 
+  // An active detail template lays the page out (0.161.0, docs/page-builder.md "Detail templates"); with none, the page below is unchanged.
+  if (service.detail_template) return <ServiceTemplate service={service} />;
+
   const faqs = service.faqs ?? [];
   const crumbs = [
     { name: "Services", path: "/services" },
@@ -85,40 +87,11 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   const hasDetails = (service.custom_fields?.length ?? 0) > 0 || (service.answer_blocks?.length ?? 0) > 0
     || faqs.length > 0 || hasEntityLinks(service.entity);
 
-  const enquiry = (
-    <div className="rounded-xl border border-line-strong bg-surface p-6 lg:sticky lg:top-24">
-      <h2 className="text-17">Ask about {service.title.toLowerCase()}</h2>
-      <p className="mt-1.5 mb-5 text-13-5 text-muted">
-        No sales sequence — an engineer reads it and replies.
-      </p>
-      <EnquiryForm source={`service:${service.slug}`} subject={service.title} compact />
-    </div>
-  );
+  const enquiry = <EnquiryCard source={`service:${service.slug}`} subject={service.title} name={service.title.toLowerCase()} />;
 
   return (
     <>
-      <PageHero
-        section="services"
-        kicker="Web service"
-        title={service.title}
-        lede={service.summary}
-        crumbs={crumbs}
-      >
-        <div className="flex flex-wrap gap-3">
-          {/*
-            The label holds a name of any length, so below `sm` it may wrap:
-            "Enquire about domain registration" is 348px on one line, 6px past
-            a 360px screen's gutters (the 0.129.0 probe measured it).
-          */}
-          <ButtonLink href={`/contact?subject=${encodeURIComponent(service.title)}`} className="max-w-full whitespace-normal text-center sm:whitespace-nowrap">
-            Enquire about {service.title.toLowerCase()} <IconArrowRight />
-          </ButtonLink>
-          {/* An engineer on site, with this service preselected (docs/visits.md). */}
-          <ButtonLink href={`/book-a-visit?service=${encodeURIComponent(service.slug)}`} variant="secondary">
-            Book a site visit
-          </ButtonLink>
-        </div>
-      </PageHero>
+      <ServiceHero service={service} crumbs={crumbs} />
 
       {laidOut && <RecordSections sections={service.sections ?? []} crumbs={crumbs} />}
 

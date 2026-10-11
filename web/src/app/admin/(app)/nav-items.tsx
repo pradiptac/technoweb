@@ -313,6 +313,8 @@ export const NAV: NavItem[] = [
       { role: "content_manager", href: "/admin/pages", label: "Pages", icon: IconLayers },
       // Saved sections and page templates (docs/page-builder.md "The library").
       { role: "content_manager", href: "/admin/pages/library", label: "Section library", icon: IconBox },
+      // How every page of one kind of record is laid out (docs/page-builder.md "Detail templates"). The shop's are a store manager's, so the row takes both roles and the API narrows by kind.
+      { role: "content_manager,store_manager", href: "/admin/detail-templates", label: "Detail templates", icon: IconGrid },
       { role: "content_manager", href: "/admin/faqs", label: "FAQs", icon: IconLifebuoy },
       // The downloads centre (docs/downloads.md). Its categories are a screen
       // under it, reached from its header — one row serves both, by the

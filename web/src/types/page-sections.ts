@@ -414,6 +414,8 @@ export type PageBuilderOptions = {
    * and the length the save holds it to. The API's, read off its own rules.
    */
   inline_fields?: Record<string, { path: string; max: number; widget?: string }[]>;
+  /** Detail templates (0.161.0): only on `GET /admin/detail-templates/options`. */
+  detail_templates?: DetailTemplateOptions;
   /** The custom layout section (0.147.0): its widgets with every field, the row and column settings and the limits. Optional for an older API. */
   layout?: LayoutOptions;
   /** Custom code (0.158.0): whether this account may run it on the page itself. Optional for an older API, which has the section not at all. */
@@ -437,6 +439,46 @@ export type PageBuilderOptions = {
   in_record?: boolean;
 };
 
+/**
+ * `GET /admin/detail-templates/options` → `detail_templates` (0.161.0): the
+ * kinds of record this account may lay out, the blocks each may place — with
+ * the label that kind of page knows each by, and which of the two settings
+ * it honours — and the layout the page has today. All the API's.
+ */
+export type DetailTemplateKind = {
+  value: string;
+  label: string;
+  noun: string;
+  role: string;
+  /** The public cache tag a save purges. */
+  tag: string;
+  /** Record block types in the order the page draws them now — what "Start from today's layout" seeds. */
+  today: RecordBlockType[];
+  blocks: { value: RecordBlockType; label: string; blurb: string; heading: boolean; limit: boolean }[];
+};
+
+export type DetailTemplateOptions = {
+  types: DetailTemplateKind[];
+  required_block: RecordBlockType;
+  record_block_types: { value: RecordBlockType; label: string; blurb: string }[];
+};
+
+/** A detail template as the console reads it (`/admin/detail-templates`). */
+export type AdminDetailTemplate = {
+  id: number;
+  type: string;
+  type_label: string;
+  name: string;
+  is_active: boolean;
+  count: number;
+  cache_tag: string | null;
+  author?: string | null;
+  updated_at: string | null;
+  /** Detail only. */
+  blocks?: StoredSection[];
+  blocks_media?: Record<string, string>;
+};
+
 /** What a record's page draws in its body area (0.129.0). */
 export type RecordBodyLayout = "body" | "sections";
 
@@ -449,6 +491,37 @@ export type RecordBodyLayout = "body" | "sections";
  * way; the written body is still sent.
  */
 export type RecordSectionsRead = { sections?: PageSection[] };
+
+/**
+ * Parts of a record's own page that only a detail template places (0.161.0,
+ * docs/page-builder.md "Detail templates"). The API never presents their
+ * content: a block arrives as `{id, type, data}` and the website draws it
+ * from the record the route already loaded. `data` is the two little settings
+ * a block may carry — the words over it and a count.
+ */
+export type RecordBlockType =
+  | "record_hero" | "record_body" | "record_highlights" | "record_specs" | "record_gallery"
+  | "record_custom_fields" | "record_answer_blocks" | "record_faqs" | "record_related"
+  | "record_enquiry" | "record_buy" | "record_downloads" | "record_reviews" | "record_comments";
+
+export type RecordBlockSection = {
+  id: string;
+  type: RecordBlockType;
+  background: null;
+  reveal?: null;
+  style?: null;
+  data: { heading?: string; limit?: number };
+};
+
+/** An active template's stack on a record's page: ordinary sections presented, record blocks passed through. */
+export type DetailTemplateRead = { id: number; sections: (PageSection | RecordBlockSection)[] };
+
+/** The public read of a record whose kind has an active detail template — present only on its own page. */
+export type DetailTemplated = { detail_template?: DetailTemplateRead };
+
+export function isRecordBlock(section: PageSection | RecordBlockSection): section is RecordBlockSection {
+  return section.type.startsWith("record_");
+}
 
 /** The same record as the console reads it: the choice on every row, the list on a detail read. */
 export type AdminRecordSections = {

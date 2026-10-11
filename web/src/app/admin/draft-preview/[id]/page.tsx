@@ -3,7 +3,8 @@ import { BuilderPreviewBridge } from "@/components/page-sections/builder-preview
 import { PageSections } from "@/components/page-sections/page-sections";
 import { SectionsFrame } from "@/components/page-sections/sections-frame";
 import { getToken } from "@/lib/admin-auth";
-import { readPreviewDraft } from "@/lib/admin/preview-drafts";
+import { readPreviewDraftFull } from "@/lib/admin/preview-drafts";
+import { TemplatePreviewView } from "@/components/detail-template/preview";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 
@@ -27,7 +28,19 @@ export default async function DraftPreviewPage({ params }: { params: Promise<{ i
   if (!token) notFound();
 
   const { id } = await params;
-  const sections = readPreviewDraft(id, token);
+  const draft = readPreviewDraftFull(id, token);
+  const sections = draft?.sections ?? null;
+
+  // A detail template's preview (0.161.0): the template drawn around one record, whose own heading is the page's `h1`.
+  if (draft?.subject) {
+    return (
+      <main id="main">
+        <SectionsFrame>
+          <TemplatePreviewView type={draft.subject.type} record={draft.subject.record} sections={draft.sections} />
+        </SectionsFrame>
+      </main>
+    );
+  }
 
   return (
     <main id="main">

@@ -114,6 +114,27 @@ enum PageSectionType: string
      * so an edit to it reaches every page that places it.
      */
     case Saved = 'saved';
+    /*
+     * Record blocks (0.161.0, docs/page-builder.md "Detail templates"): parts
+     * of a record's own page — its heading, its body, its specification, its
+     * buy panel — that only a **detail template** may place. The API never
+     * presents their content; the website draws each from the record the
+     * route already loaded. `isRecordBlock()` is what every other rule asks.
+     */
+    case RecordHero = 'record_hero';
+    case RecordBody = 'record_body';
+    case RecordHighlights = 'record_highlights';
+    case RecordSpecs = 'record_specs';
+    case RecordGallery = 'record_gallery';
+    case RecordCustomFields = 'record_custom_fields';
+    case RecordAnswerBlocks = 'record_answer_blocks';
+    case RecordFaqs = 'record_faqs';
+    case RecordRelated = 'record_related';
+    case RecordEnquiry = 'record_enquiry';
+    case RecordBuy = 'record_buy';
+    case RecordDownloads = 'record_downloads';
+    case RecordReviews = 'record_reviews';
+    case RecordComments = 'record_comments';
 
     public function label(): string
     {
@@ -154,6 +175,20 @@ enum PageSectionType: string
             self::Layout => 'Custom layout',
             self::CustomCode => 'Custom code',
             self::Saved => 'Saved section',
+            self::RecordHero => 'Record heading',
+            self::RecordBody => 'Record body',
+            self::RecordHighlights => 'Record highlights',
+            self::RecordSpecs => 'Record specification',
+            self::RecordGallery => 'Record pictures',
+            self::RecordCustomFields => 'Record details',
+            self::RecordAnswerBlocks => 'Record answers',
+            self::RecordFaqs => 'Record questions',
+            self::RecordRelated => 'Record related',
+            self::RecordEnquiry => 'Record enquiry form',
+            self::RecordBuy => 'Record buy panel',
+            self::RecordDownloads => 'Record downloads',
+            self::RecordReviews => 'Record reviews',
+            self::RecordComments => 'Record comments',
         };
     }
 
@@ -202,20 +237,61 @@ enum PageSectionType: string
             self::Layout => 'Rows and columns you arrange yourself, filled with headings, text, pictures, buttons, icon boxes, questions and lists.',
             self::CustomCode => 'HTML, CSS and script pasted in as it is, such as the widget a vendor supplies, a booking tool, a calculator. It runs in a sandboxed frame that cannot reach the rest of the page.',
             self::Saved => 'A section from the library, kept in step with it: edit it once and every page that places it changes.',
+            self::RecordHero => 'The record’s heading, summary and breadcrumbs, drawn the way the theme draws its page headings. It carries the page’s one title.',
+            self::RecordBody => 'The record’s written body — or, when the record is laid out as sections, those sections. Every template has exactly one.',
+            self::RecordHighlights => 'The list of points the record carries: benefits, key features, results.',
+            self::RecordSpecs => 'The specification sheet, as a table.',
+            self::RecordGallery => 'The record’s pictures, drawn as its page draws them.',
+            self::RecordCustomFields => 'The custom fields filled in for this record.',
+            self::RecordAnswerBlocks => 'The record’s answer blocks — definition, who it is for, key facts, steps — and its FAQs unless a questions block is placed too.',
+            self::RecordFaqs => 'The record’s FAQs and question blocks as one list of questions that open.',
+            self::RecordRelated => 'What the record is connected to: the lists beside or under its body, and its related links.',
+            self::RecordEnquiry => 'The enquiry form the record’s page carries, already knowing which record it is about.',
+            self::RecordBuy => 'The pictures and the buy panel — price, stock, options, basket — exactly as the shop page draws them, as one block.',
+            self::RecordDownloads => 'The datasheets, drivers and firmware attached to the record.',
+            self::RecordReviews => 'The customers’ reviews and the form to leave one.',
+            self::RecordComments => 'The comments under the article, and the form to add one.',
         };
     }
 
+    /** Whether this is a part of a record's own page, which only a detail template may place. */
+    public function isRecordBlock(): bool
+    {
+        return str_starts_with($this->value, 'record_');
+    }
+
     /**
-     * The list, as the console's picker draws it.
+     * The list, as the console's picker draws it — the sections a page, a
+     * record's body area and the library may hold. Record blocks are not in
+     * it: they belong to detail templates alone (`recordOptions()`).
      *
      * @return list<array{value: string, label: string, blurb: string}>
      */
     public static function options(): array
     {
+        return self::describe(array_values(array_filter(self::cases(), fn (self $c) => ! $c->isRecordBlock())));
+    }
+
+    /**
+     * The record blocks, for a detail template's picker.
+     *
+     * @return list<array{value: string, label: string, blurb: string}>
+     */
+    public static function recordOptions(): array
+    {
+        return self::describe(array_values(array_filter(self::cases(), fn (self $c) => $c->isRecordBlock())));
+    }
+
+    /**
+     * @param  list<self>  $cases
+     * @return list<array{value: string, label: string, blurb: string}>
+     */
+    private static function describe(array $cases): array
+    {
         return array_map(fn (self $c) => [
             'value' => $c->value,
             'label' => $c->label(),
             'blurb' => $c->blurb(),
-        ], self::cases());
+        ], $cases);
     }
 }

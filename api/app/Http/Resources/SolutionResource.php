@@ -41,6 +41,8 @@ class SolutionResource extends JsonResource
             // this record's own page only, and only while it is laid out as
             // sections. The body above is still sent.
             'sections' => $this->publicSections($this->includeSchema),
+            // The kind's active detail template (0.161.0): on this record's own page only; absent when none is active.
+            'detail_template' => $this->publicDetailTemplate('solution', $this->includeSchema),
             'benefits' => $this->when($detail, $this->benefits),
             'technologies' => $this->when($detail, $this->technologies),
             'status' => $this->status?->value,

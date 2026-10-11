@@ -140,7 +140,7 @@ export type ProductCategory = AnswerContent & {
   seo?: Seo | null;
 };
 
-export type Product = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & {
+export type Product = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & import("./page-sections").DetailTemplated & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -173,7 +173,7 @@ export type Product = PublicCustomFields & AnswerContent & import("./page-sectio
   seo?: Seo | null;
 };
 
-export type Solution = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & {
+export type Solution = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & import("./page-sections").DetailTemplated & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -200,7 +200,7 @@ export type Solution = PublicCustomFields & AnswerContent & import("./page-secti
   seo?: Seo | null;
 };
 
-export type Service = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & {
+export type Service = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & import("./page-sections").DetailTemplated & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -290,7 +290,7 @@ export type AnswerContent = {
   faq_schema?: SchemaGraph;
 };
 
-export type Industry = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & {
+export type Industry = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & import("./page-sections").DetailTemplated & {
   id: number;
   name: string;
   slug: string;
@@ -306,7 +306,7 @@ export type Industry = PublicCustomFields & AnswerContent & import("./page-secti
 };
 
 /** A case study carries `entity` and `faq_schema` like the rest, and has no answer blocks or FAQs of its own. */
-export type CaseStudy = PublicCustomFields & Pick<AnswerContent, "entity" | "faq_schema"> & import("./page-sections").RecordSectionsRead & {
+export type CaseStudy = PublicCustomFields & Pick<AnswerContent, "entity" | "faq_schema"> & import("./page-sections").RecordSectionsRead & import("./page-sections").DetailTemplated & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -345,7 +345,7 @@ export type KnowledgeArticle = PublicCustomFields & AnswerContent & import("./pa
   seo?: Seo | null;
 };
 
-export type BlogPost = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & {
+export type BlogPost = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & import("./page-sections").DetailTemplated & {
   /** JSON-LD for this record, on detail responses only. */
   schema?: SchemaGraph;
   id: number;
@@ -1862,7 +1862,7 @@ export type AdminStoreCategory = {
 };
 
 /** What the storefront reads. No stock count — see the API resource. */
-export type StoreProduct = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & {
+export type StoreProduct = PublicCustomFields & AnswerContent & import("./page-sections").RecordSectionsRead & import("./page-sections").DetailTemplated & {
   id: number;
   name: string;
   slug: string;

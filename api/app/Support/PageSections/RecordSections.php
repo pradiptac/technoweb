@@ -94,9 +94,9 @@ final class RecordSections
     }
 
     /** The page builder's checks, then what a body area cannot hold. */
-    public static function after(Validator $validator, mixed $blocks): void
+    public static function after(Validator $validator, mixed $blocks, bool $allowRecordBlocks = false): void
     {
-        SectionRules::after($validator, $blocks);
+        SectionRules::after($validator, $blocks, 'blocks', $allowRecordBlocks);
         CustomCodeGuard::check($validator, $blocks);
 
         if (! is_array($blocks)) {

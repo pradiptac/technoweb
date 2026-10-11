@@ -1,12 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
-import { PageHero } from "@/components/ui/page-hero";
 import { RecordSections, laidOutAsSections } from "@/components/page-sections/record-sections";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
-import { ArrowLink } from "@/components/ui/button";
-import { Card, CardHead } from "@/components/ui/card";
 import { AnswerBlocks } from "@/components/content/answer-blocks";
 import { CustomFieldDetails } from "@/components/content/custom-field-details";
 import { RelatedEntities } from "@/components/content/related-entities";
@@ -14,6 +10,8 @@ import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { Industry } from "@/types/api";
+import { IndustryHero, IndustrySolutions } from "@/components/detail-template/industry-parts";
+import { IndustryTemplate } from "@/components/detail-template/industry-template";
 
 async function load(slug: string): Promise<Industry | null> {
   try {
@@ -68,7 +66,9 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
 
   if (!industry) notFound();
 
-  const solutions = industry.solutions ?? [];
+  // An active detail template lays the page out (0.161.0, docs/page-builder.md "Detail templates"); with none, the page below is unchanged.
+  if (industry.detail_template) return <IndustryTemplate industry={industry} />;
+
   const crumbs = [
     { name: "Industries", path: "/industries" },
     { name: industry.name, path: `/industries/${industry.slug}` },
@@ -79,13 +79,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
 
   return (
     <>
-      <PageHero
-        section="industries"
-        kicker="Industry"
-        title={`Infrastructure for ${industry.name.toLowerCase()}`}
-        lede={industry.summary}
-        crumbs={crumbs}
-      />
+      <IndustryHero industry={industry} crumbs={crumbs} />
 
       {laidOut && <RecordSections sections={industry.sections ?? []} crumbs={crumbs} />}
 
@@ -98,30 +92,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
         <AnswerBlocks blocks={industry.answer_blocks} faqs={industry.faqs ?? []} className="mb-14" />
         <RelatedEntities entity={industry.entity} className="mb-14" />
 
-        {solutions.length > 0 && (
-          <section>
-            <h2 className="display-3 mb-6">Where we usually start</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {solutions.map((s) => {
-                return (
-                  <Card key={s.id} beam>
-                    <CardHead iconName={s.icon} className="text-17">{s.title}</CardHead>
-                    <p className="text-14-5 leading-[1.58] text-muted">{s.summary}</p>
-                    <ArrowLink href={`/solutions/${s.slug}`} className="mt-4">Read more</ArrowLink>
-                  </Card>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        <p className="mt-12 text-14-5 text-muted">
-          Not sure which applies to you?{" "}
-          <Link href="/contact" className="font-semibold text-brand-ink hover:underline">
-            Describe your setup
-          </Link>{" "}
-          and we will tell you what we would look at first.
-        </p>
+        <IndustrySolutions industry={industry} />
       </Container>
 
       <CtaBand />

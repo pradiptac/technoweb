@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Concerns;
 
+use App\Support\DetailTemplates;
 use App\Support\PageSections\RecordSections;
 
 /**
@@ -40,6 +41,21 @@ trait IncludesSections
         return $this->when(
             $isPage && RecordSections::inUse($this->resource),
             fn () => RecordSections::present($this->resource),
+        );
+    }
+
+    /**
+     * The active detail template for this kind of record (0.161.0,
+     * `DetailTemplates`), when this resource is the page: `{id, sections}`
+     * with the ordinary sections presented and the record blocks passed as
+     * `{id, type, data}`. Absent — not null — when none is active, so a page
+     * without one reads byte for byte as it did.
+     */
+    protected function publicDetailTemplate(string $type, bool $isPage): mixed
+    {
+        return $this->when(
+            $isPage && DetailTemplates::active($type) !== null,
+            fn () => DetailTemplates::publicRead($type),
         );
     }
 }

@@ -487,6 +487,57 @@ sections exactly as on a page, then save.
 - Categories do not have a Sections tab: their description is a line in the
   heading, not a body.
 
+### Detail templates: laying out every page of one kind
+
+Sections on a record change one record's body. A **detail template** changes
+how **every** solution page, service page, industry page, case study, product
+page, shop product page or blog post is arranged, in one place. You build it
+once and switch it on.
+
+Open **Content → Detail templates**. Each kind of page has its own part of the
+list, saying which template its pages use now — or "the layout the page has
+today". **New template** asks for the kind and a name, and where to start:
+
+- **Today's layout** puts the parts of the page into the builder in the order
+  the page draws them now. Move one, add a section, and you have a new layout.
+- **The body alone** starts with only the record's written body.
+
+The builder works as it does on a page, with one addition. Under **Add a
+section** there is a group headed with the kind of page — "This service page's
+own parts" — holding **the parts of the page itself**: its heading, its body,
+its highlights (benefits, key features, results), the specification, the
+pictures, the details you added as custom fields, the answers and the
+questions, the related links and lists, the enquiry form, the shop's buy panel,
+downloads, reviews and comments. Which of them a kind of page has is decided by
+the page; a part it does not have is not offered.
+
+- **A part is drawn from each record.** Nothing is typed into it; its card says
+  what it draws and offers only what it can use — some take a heading of your
+  own, "Related" takes a count.
+- **Each part is placed once.** A part already in the template is not offered
+  again. The **Record body** is required and cannot be hidden: without it a
+  page would have nothing to say.
+- **If you leave the heading out**, the page still starts with its own, so
+  every page keeps its one title.
+- **Your sections stand between the parts.** Text, features, a call to action,
+  a content block and the rest are placed anywhere in the stack. A hero, the
+  theme's own sections and "this page's FAQs" are not offered, as for a record's
+  body.
+- **The closing band stays**, unless the template ends on a call to action of
+  its own.
+
+**Preview on a …** draws the template as it is typed, unsaved, around any
+record of that kind you choose — a draft too — by the site's own pages. Save,
+then **Switch on**. From then on every page of that kind follows the template;
+**Switch off** gives every page back the layout it had, and **Delete template**
+does the same if it was on. Only one template of a kind is on at a time; switching
+another on switches the first off.
+
+Content managers lay out the catalogue's and the blog's pages; store managers
+lay out the shop's product page. An administrator does all. A blog post laid
+out by a template has no sidebar and no list of headings, which belong to the
+default layout.
+
 ### Going back to an earlier version
 
 A page remembers its last thirty saved versions, and so does each item in the

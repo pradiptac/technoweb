@@ -50,6 +50,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             require __DIR__.'/api/admin-content-manager.php';
             require __DIR__.'/api/admin-preview-links.php';
             require __DIR__.'/api/admin-revisions.php';
+            require __DIR__.'/api/admin-detail-templates.php';
         });
     });
 });
