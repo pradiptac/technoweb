@@ -4,6 +4,8 @@ import { useEffect, useState, useTransition } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Alert, Field, FileInput, Input, Select } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { BrandPanel } from "./brand-panel";
 import { DeliveryStatus } from "../../newsletter/campaigns/delivery-status";
 import { Count } from "../../newsletter/subscribers/import/count";
 import { Progress, Radio, StepsTable } from "../wordpress/wordpress-wizard";
@@ -14,7 +16,7 @@ import {
   type SiteImportActionResult,
 } from "./actions";
 import type {
-  QueueHealth, SiteImport, SiteImportDecisions, SiteImportSection, SiteImportSource,
+  QueueHealth, SiteImport, SiteImportDecisions, SiteImportKind, SiteImportSection, SiteImportSource,
 } from "@/types/api";
 
 /**
@@ -57,6 +59,19 @@ const n = (value: number) => value.toLocaleString("en-IN");
 const PHASES: Record<string, string> = {
   crawl: "Reading pages", zip: "Unpacking the ZIP", chrome: "Telling the site's header and footer from its content", done: "Finishing",
 };
+
+/** What a page may become, if the API did not say. */
+const KIND_FALLBACK: { value: SiteImportKind; label: string }[] = [
+  { value: "page", label: "Page" }, { value: "post", label: "Blog post" }, { value: "product", label: "Catalogue product" }, { value: "skip", label: "Leave out" },
+];
+
+/** The kinds already chosen, 0.163.0's list of pages left out included. */
+function storedKinds(item: SiteImport): Record<string, SiteImportKind> {
+  return {
+    ...Object.fromEntries((item.decisions?.skip ?? []).map((path) => [path, "skip" as SiteImportKind])),
+    ...(item.decisions?.kinds ?? {}),
+  };
+}
 
 /** A section type as a person reads it. */
 function typeLabel(type: string, count: number): string {
@@ -183,6 +198,9 @@ export function SiteImportWizard({
         <StepsTable steps={item.result.steps} done />
         <div className="flex flex-wrap gap-2">
           <ButtonLink href="/admin/pages" size="sm" variant="secondary">Pages</ButtonLink>
+          {item.result.steps.some((s) => s.key === "posts" && s.create + s.update > 0) && <ButtonLink href="/admin/blog" size="sm" variant="secondary">Blog posts</ButtonLink>}
+          {item.result.steps.some((s) => s.key === "products" && s.create + s.update > 0) && <ButtonLink href="/admin/products" size="sm" variant="secondary">Products</ButtonLink>}
+          {item.result.steps.some((s) => s.key === "brand" && s.update > 0) && <ButtonLink href="/admin/settings" size="sm" variant="secondary">Appearance</ButtonLink>}
           <ButtonLink href="/admin/menus" size="sm" variant="secondary">Menus</ButtonLink>
           <ButtonLink href="/admin/media" size="sm" variant="secondary">Media</ButtonLink>
           <ButtonLink href="/admin/redirects" size="sm" variant="secondary">Redirects</ButtonLink>
@@ -222,7 +240,16 @@ export function SiteImportWizard({
   // -------------------------------------------------------------- review
   if (step === "review" && item?.analysis) {
     const options = item.analysis.decisions;
-    const skip = decisions.skip ?? item.decisions?.skip ?? [];
+    const kinds = decisions.kinds ?? storedKinds(item);
+    const kindChoices = options.kinds ?? KIND_FALLBACK;
+    const ai = decisions.ai_assist ?? options.ai_assist?.value ?? false;
+    const brand = options.brand;
+    const brandChoice = {
+      accept: decisions.brand?.accept ?? brand?.accept ?? false,
+      colours: decisions.brand?.colours ?? brand?.use_colours ?? true,
+      fonts: decisions.brand?.fonts ?? brand?.use_fonts ?? true,
+    };
+    const aiPlaced = item.analysis.pages.reduce((sum, p) => sum + (p.ai ?? 0), 0);
     const menus = decisions.menus ?? item.decisions?.menus ?? (options.menus ?? []).filter((m) => m.value).map((m) => m.key);
     const homepage = decisions.set_homepage ?? item.decisions?.set_homepage ?? false;
     const dirty = Object.keys(decisions).length > 0;
@@ -312,6 +339,35 @@ export function SiteImportWizard({
             </fieldset>
           )}
 
+          {options.ai_assist && (
+            <fieldset>
+              <legend className="mb-1 text-13 font-semibold">Pages the rules cannot place</legend>
+              <label className="flex items-start gap-2 text-13">
+                <Switch className="mt-px" checked={ai && options.ai_assist.available} disabled={busy || !options.ai_assist.available}
+                  onChange={(e) => setDecisions({ ...decisions, ai_assist: e.currentTarget.checked })} />
+                <span>
+                  <span className="font-semibold">Use AI to place what the rules could not</span>
+                  <span className="block text-12-5 text-muted">
+                    {options.ai_assist.available
+                      ? "A block with enough words and shape, and a page the rules cannot sort into page, post or product, is shown to the AI assistant as plain text and placed in a section. It may only use the block's own words, and it counts against the assistant's daily limit. Off, those blocks stay text and those pages stay pages."
+                      : `Not available: ${options.ai_assist.reason ?? "the AI assistant is not set up."}`}
+                  </span>
+                </span>
+              </label>
+            </fieldset>
+          )}
+
+          {brand && (
+            <BrandPanel
+              brand={brand}
+              accept={brandChoice.accept}
+              colours={brandChoice.colours}
+              fonts={brandChoice.fonts}
+              busy={busy}
+              onChange={(next) => setDecisions({ ...decisions, brand: { ...brandChoice, ...next } })}
+            />
+          )}
+
           <div>
             <Button type="button" variant="secondary" size="sm" disabled={busy || !dirty} pending={busy && dirty}
               onClick={() => act(() => saveSiteDecisionsAction(item.id, decisions), () => setDecisions({}))}>
@@ -325,7 +381,8 @@ export function SiteImportWizard({
         <section>
           <h2 className="mb-2 text-13-5 font-semibold">Pages ({n(item.analysis.pages.length)})</h2>
           <p className="measure mb-2 text-12-5 text-muted">
-            Tick <em>Leave out</em> on a page you do not want, then apply your choices. Each page is laid out in sections you can rearrange in the builder.
+            Each page is a page, a blog post or a catalogue product, found from what it says about itself. Change it where it is wrong, or leave a page out, then apply your choices. Everything is laid out in sections you can rearrange in the builder.
+            {aiPlaced > 0 && <> The AI placed {n(aiPlaced)} section{aiPlaced === 1 ? "" : "s"}; they are marked, so look at those first.</>}
           </p>
           <div className="mb-2 max-w-sm">
             <Field label="Find a page" htmlFor="site-filter" className="mb-0">
@@ -337,21 +394,35 @@ export function SiteImportWizard({
               <thead>
                 <tr className="border-b border-line text-left text-11 uppercase tracking-[.05em] text-muted">
                   <th scope="col" className="px-3 py-2">Page</th>
-                  <th scope="col" className="px-3 py-2">Becomes</th>
+                  <th scope="col" className="px-3 py-2">It becomes</th>
+                  <th scope="col" className="px-3 py-2">Result</th>
                   <th scope="col" className="px-3 py-2">Sections</th>
-                  <th scope="col" className="px-3 py-2">Leave out</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.slice(0, shown).map((page) => {
-                  const left = skip.includes(page.path);
+                  const kind = kinds[page.path] ?? page.kind ?? "page";
                   return (
                     <tr key={page.path} className="border-b border-line align-top last:border-0">
                       <td data-label="Page" className="px-3 py-1.5">
                         <span className="block font-semibold">{page.title}</span>
                         <span className="font-mono text-12-5 text-muted">{page.path}</span>
                       </td>
-                      <td data-label="Becomes" className="px-3 py-1.5">
+                      <td data-label="It becomes" className="px-3 py-1.5">
+                        <Select
+                          aria-label={`What ${page.title} becomes`}
+                          className="min-w-[9rem] text-13"
+                          value={kind}
+                          disabled={busy}
+                          onChange={(e) => setDecisions({ ...decisions, kinds: { ...kinds, [page.path]: e.currentTarget.value as SiteImportKind } })}
+                        >
+                          {kindChoices.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
+                        </Select>
+                        {kinds[page.path] === undefined && page.by && page.by !== "rules" && (
+                          <span className="mt-1 block text-12 text-muted">{page.by === "ai" ? "Chosen by the AI" : "Your choice"}</span>
+                        )}
+                      </td>
+                      <td data-label="Result" className="px-3 py-1.5">
                         <Badge tone={page.action === "skip" ? "urgent" : page.action === "update" ? "progress" : "resolved"} dot={false}>
                           {page.action === "skip" ? "skipped" : page.action === "update" ? "update" : "new draft"}
                         </Badge>
@@ -362,16 +433,9 @@ export function SiteImportWizard({
                           <>
                             {n(page.sections)}
                             <span className="block text-muted">{Object.entries(page.types).map(([t, c]) => typeLabel(t, c)).join(", ")}</span>
+                            {(page.ai ?? 0) > 0 && <Badge tone="progress" dot={false} className="mt-1">AI placed {n(page.ai)}</Badge>}
                           </>
                         )}
-                      </td>
-                      <td data-label="Leave out" className="px-3 py-1.5">
-                        <input
-                          type="checkbox" className="size-4 accent-brand-600"
-                          aria-label={`Leave out ${page.title}`}
-                          checked={left}
-                          onChange={(e) => setDecisions({ ...decisions, skip: e.target.checked ? [...skip, page.path] : skip.filter((p) => p !== page.path) })}
-                        />
                       </td>
                     </tr>
                   );

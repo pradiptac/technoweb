@@ -64,7 +64,7 @@ class SeoAiModelsTest extends TestCase
 
     // ---- GET seo/ai/models ---------------------------------------------------
 
-    public function test_the_models_endpoint_lists_the_seven_and_says_what_is_in_use(): void
+    public function test_the_models_endpoint_lists_the_ten_and_says_what_is_in_use(): void
     {
         $this->key();
         $this->setting('seo_ai_model', 'google/gemini-2.5-flash');
@@ -88,6 +88,9 @@ class SeoAiModelsTest extends TestCase
             'openai/gpt-4.1-mini',
             'openai/gpt-4o',
             'openai/gpt-4.1',
+            'anthropic/claude-haiku-5.5',
+            'anthropic/claude-sonnet-5.5',
+            'anthropic/claude-opus-5.5',
         ], array_column($response->json('data'), 'value'));
 
         $this->assertSame('Gemini 2.5 Flash (Google)', collect($response->json('data'))->firstWhere('value', 'google/gemini-2.5-flash')['label']);
@@ -112,9 +115,9 @@ class SeoAiModelsTest extends TestCase
             ->assertJsonPath('meta.seo_model', 'anthropic/some-other-model')
             ->json('data');
 
-        $this->assertCount(8, $data);
-        $this->assertSame('anthropic/some-other-model', $data[7]['value']);
-        $this->assertStringContainsString('Set outside this list', $data[7]['description']);
+        $this->assertCount(11, $data);
+        $this->assertSame('anthropic/some-other-model', $data[10]['value']);
+        $this->assertStringContainsString('Set outside this list', $data[10]['description']);
     }
 
     public function test_with_no_key_and_nothing_chosen_it_says_so_and_falls_through(): void
@@ -131,7 +134,7 @@ class SeoAiModelsTest extends TestCase
             ->assertJsonPath('meta.seo_model', 'google/gemini-2.5-flash')
             ->assertJsonPath('meta.chatbot_model', 'google/gemini-2.5-flash')
             ->assertJsonPath('data.0.value', 'google/gemini-2.5-flash')
-            ->assertJsonCount(7, 'data');
+            ->assertJsonCount(10, 'data');
     }
 
     public function test_the_models_endpoint_is_the_seo_managers_and_an_administrators(): void

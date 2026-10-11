@@ -1068,26 +1068,59 @@ three redirects checked hop by hop, credentials never sent to another host.
 
 ## Importing a website (`role:admin`)
 
-A site with no API, from a live address or an uploaded ZIP (0.163.0): scan,
-review, commit. See `docs/site-import.md`.
+A site with no API, from a live address or an uploaded ZIP (0.163.0; sorting
+pages into pages, blog posts and products, the AI fallback and the site's
+colours and fonts, 0.164.0): scan, review, commit. See `docs/site-import.md`.
 
 | Method | Path | Notes |
 |---|---|---|
 | `GET` | `/admin/imports/site` | The last twenty imports, newest first. `meta.active` — the import in flight, ready or failed, in full, or null; `meta.delivering`; `meta.sections` (`pages`, `menus`, `redirects`); `meta.chunk_bytes` (1,572,864 — the piece size an upload is sliced to); `meta.limits` `{depth, pages, zip_bytes}` |
 | `POST` | `/admin/imports/site/upload` | One piece of a ZIP, appended in order: multipart `name` (`*.zip`, 120), `index`, `total`, `chunk` (≤ `meta.chunk_bytes`). `index` 0 starts again; the last piece is checked to begin `PK` and renamed into place. `{data: {received, complete, file}}`. 422 on `chunk` over the ZIP cap (200 MB) or not a ZIP. Held at `site-imports/uploads/{user id}-{name}` on the private disk. Throttled 600/min |
 | `POST` | `/admin/imports/site` | Starts a scan. `source` `url` or `zip`; `start_url` (required for `url`; https is assumed when nothing is said; http is allowed), `zip` (the `name` just uploaded), `depth` 0–6 (default 3), `max_pages` 1–1000 (default 300), `sections[]` of `pages`, `menus`, `redirects` (default all; pages are always imported). **202**. 422 on `start_url` for a private, numeric or unresolvable host, on `zip` for an upload that is gone or while another import is in flight, and on `queue` when nothing drains the queue. A `ready` import of any site is cancelled. Throttled 6/min |
-| `GET` | `/admin/imports/site/{id}` | The import: `status` (`pending`, `scanning`, `analysing`, `ready`, `running`, `completed`, `failed`, `cancelled`, `expired`), `source`, `site_url` (the start address, or the ZIP's name), `settings`, `decisions`, `progress` `{phase (crawl, zip, chrome), pages, queued, requests, current, capped, zip_files, analyse_step, analyse_percent, commit_step, commit_percent}`, `site` once read `{name, url, pages, home_path, chrome_blocks, menus {primary: n, footer: n}, capped, skipped[{reason, count, examples}], notes[]}`, `analysis` once analysed `{steps[], notices[], pages[], decisions, analysed_at}`, `result`, `can_resume` |
-| `PATCH` | `/admin/imports/site/{id}` | `decisions` — `set_homepage` (bool), `menus` (a subset of the keys the review offers, `primary` / `footer`), `skip` (old paths to leave out, each beginning `/`). `ready` only; **202**, the dry run re-runs. A list is replaced, not merged |
+| `GET` | `/admin/imports/site/{id}` | The import: `status` (`pending`, `scanning`, `analysing`, `ready`, `running`, `completed`, `failed`, `cancelled`, `expired`), `source`, `site_url` (the start address, or the ZIP's name), `settings`, `decisions`, `progress` `{phase (crawl, zip, assets, chrome), pages, queued, requests, current, capped, zip_files, analyse_step, analyse_percent, commit_step, commit_percent}`, `site` once read `{name, url, pages, home_path, chrome_blocks, menus {primary: n, footer: n}, capped, skipped[{reason, count, examples}], notes[]}`, `analysis` once analysed `{steps[], notices[], pages[], decisions, analysed_at}`, `result`, `can_resume` |
+| `PATCH` | `/admin/imports/site/{id}` | `decisions` — `set_homepage` (bool), `menus` (a subset of the keys the review offers, `primary` / `footer`), `kinds` (`{old path: page \| post \| product \| skip}`, each path beginning `/`, replaced as a whole), `ai_assist` (bool), `brand` (`{accept, colours, fonts}`, booleans, merged key by key), and 0.163.0's `skip` (old paths to leave out) as an alias that adds `skip` entries to `kinds`. `ready` only; **202**, the dry run re-runs. A list is replaced, not merged. A kind outside the four is a 422 on `kinds` |
 | `POST` | `/admin/imports/site/{id}/commit` | `ready`, or `failed` with a commit cursor (resume). **202**. Throttled 6/min |
 | `DELETE` | `/admin/imports/site/{id}` | Cancels a scan or a commit, or discards a review; deletes the harvest and the ZIP. What a commit already wrote stays. 422 on a completed import |
 
 **`analysis.steps`** is the WordPress import's shape (`{key, label, create,
 update, skip, warn, reasons[{reason, count, kind, examples}]}`) for keys `pages`,
-`media`, `page_parts`, `menus`, `links` and `redirects`. **`analysis.pages`** is
-one row per page read: `{path, title, action (create, update, skip), sections,
-types {section type: n}, note}`. **`analysis.decisions`** is what the review
-offers: `set_homepage {value, page {path, title} | null}` and `menus[{key,
-label, items, value}]`.
+`posts`, `products`, `media`, `page_parts`, `menus`, `links`, `redirects` and
+(only when the brand was accepted) `brand`. **`analysis.pages`** is one row per
+page read: `{path, title, action (create, update, skip), sections, types
+{section type: n}, ai (how many sections the AI placed), kind (what it becomes),
+detected (what was found), by (rules, ai, you), note}`. **`analysis.decisions`**
+is what the review offers: `set_homepage {value, page {path, title} | null}`,
+`menus[{key, label, items, value}]`, `kinds[{value, label}]`, `ai_assist {value,
+available, reason}` and `brand {found, sheets, colours {primary, secondary,
+accent, background, text, topbar: "#rrggbb" or null}, fonts {display, body: {family,
+id (a vendored face) | null, custom {regular, bold} | null} | null}, accept,
+use_colours, use_fonts}`.
+
+**A page is a page, a post or a product** (`PageKind`): structured data
+(`BlogPosting`/`Article`/`NewsArticle`… or `Product`), `og:type`, an `<article>`
+with a `<time>` and an author, a `/blog/…` or `/news/…` address, or a SKU beside
+a specification table decide first; a page with some of the signs and not enough
+is *ambiguous* and goes to the AI when `ai_assist` is on and the assistant is
+available (a page otherwise). A post becomes a draft `BlogPost` (`body_layout`
+`sections`, the date from the page, the cover from `og:image`, the excerpt from
+the meta description) and a product a draft catalogue `Product` (no price, the
+spec table as `specifications` in order, its pictures, the meta description as the
+summary). The map keys are `page`, `post` and `product`; a redirect, a link and
+a menu item point at wherever each landed.
+
+**`ai_assist`** defaults to on only while the SEO assistant is switched on with a
+key. It shares that assistant's model, key and daily cap (`seo_ai_daily_cap`), counts one
+run per block used, is bounded to `SITE_IMPORT_AI_MAX_BLOCKS` (150) asks per
+import, and keeps every answer in the import's ledger, so the commit makes the
+review's sections without asking again — including the blocks a limit stopped.
+The model is shown text, never markup, and an answer is used only if it passes
+the section's rules and is the block's own words.
+
+**`brand`** is never applied unless `brand.accept` is true. The commit then
+writes `theme` (`custom`), the six `theme_*` colours and `theme_font_display` /
+`theme_font_body` through `SettingController::update()` — the settings screen's
+own validation — and a font that arrived as a WOFF2 file into a free custom font
+slot. A role the stylesheets did not settle is left alone.
 
 **Everything arrives as a draft** (`pages.template` `builder`, `status` draft),
 menus unassigned, nothing mailed. The import map is `wordpress_import_map`,
@@ -5275,8 +5308,11 @@ the `integrations` group since 0.116.0, drawn on Settings → API keys beside
 the key and the model test), Google's first:
 `google/gemini-2.5-flash` (**the default**), `google/gemini-2.5-flash-lite`,
 `google/gemini-2.5-pro`, then `openai/gpt-4o-mini`, `openai/gpt-4.1-mini`,
-`openai/gpt-4o`, `openai/gpt-4.1` — all of which read pictures, which alt
-text needs. The default is a Google model because a Google AI Studio key is
+`openai/gpt-4o`, `openai/gpt-4.1`, and since 0.164.0 Anthropic's
+`anthropic/claude-haiku-5.5`, `anthropic/claude-sonnet-5.5`,
+`anthropic/claude-opus-5.5` — all of which read pictures, which alt
+text needs. **An Anthropic model needs an Anthropic key, or credit, in the
+OpenRouter account**, the OpenAI rule. The default is a Google model because a Google AI Studio key is
 free to create and, added at OpenRouter, is enough to call it; **an OpenAI
 model needs an OpenAI key, or credit, in the OpenRouter account**, and each
 OpenAI option's `description` says so. A blank `seo_ai_model` falls through

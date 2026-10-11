@@ -384,7 +384,10 @@ class SiteImportTest extends TestCase
         return $path;
     }
 
-    /** Upload a file in two pieces, as the console does, and return the name it is started with. */
+    /**
+     * Upload a file in two pieces, as the console does, and return the name it is started with.
+     * The fields are strings because a browser's multipart body carries nothing else.
+     */
     private function upload(string $path, string $name = 'site.zip'): string
     {
         $bytes = (string) file_get_contents($path);
@@ -392,7 +395,7 @@ class SiteImportTest extends TestCase
 
         foreach ([substr($bytes, 0, $half), substr($bytes, $half)] as $i => $piece) {
             $chunk = UploadedFile::fake()->createWithContent('chunk', $piece);
-            $this->asAdmin()->post(self::API.'/upload', ['name' => $name, 'index' => $i, 'total' => 2, 'chunk' => $chunk], ['Accept' => 'application/json'])
+            $this->asAdmin()->post(self::API.'/upload', ['name' => $name, 'index' => (string) $i, 'total' => '2', 'chunk' => $chunk], ['Accept' => 'application/json'])
                 ->assertOk()->assertJsonPath('data.complete', $i === 1);
         }
 

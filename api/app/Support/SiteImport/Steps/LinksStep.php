@@ -2,13 +2,16 @@
 
 namespace App\Support\SiteImport\Steps;
 
+use App\Models\BlogPost;
 use App\Models\Page;
+use App\Models\Product;
 use App\Support\Import\LinkRewriter;
 use App\Support\SiteImport\Context;
 use App\Support\SiteImport\Paths;
 use App\Support\WordPress\ImportMap;
 use App\Support\WordPress\Outcome;
 use Closure;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Links between imported pages, pointed at their new addresses: a link to
@@ -53,7 +56,8 @@ class LinksStep extends Step
         foreach (PagesStep::mapped($ctx) as $row) {
             $page = ImportMap::resolve($row);
 
-            if (! $page instanceof Page || ! is_array($page->blocks) || $page->blocks === []) {
+            // A page, a blog post or a product; nothing else is ours to rewrite.
+            if (! ($page instanceof Page || $page instanceof BlogPost || $page instanceof Product)) {
                 continue;
             }
 
@@ -64,10 +68,23 @@ class LinksStep extends Step
                 continue;
             }
 
-            $rewritten = LinkRewriter::sections($page->blocks, $map);
+            $blocks = is_array($page->blocks) ? $page->blocks : [];
+            $rewritten = LinkRewriter::sections($blocks, $map);
+            $changed = $rewritten !== $blocks;
 
-            if ($rewritten !== $page->blocks) {
+            if ($changed) {
                 $page->blocks = $rewritten;
+            }
+
+            // The written body a post or product keeps beside its sections.
+            $column = $page instanceof BlogPost ? 'body' : ($page instanceof Product ? 'description' : null);
+
+            if ($column !== null && filled($page->{$column}) && ($html = LinkRewriter::html((string) $page->{$column}, $map)) !== $page->{$column}) {
+                $page->{$column} = $html;
+                $changed = true;
+            }
+
+            if ($changed) {
                 $page->save();
                 $ctx->map->put(PagesStep::HASH, $row->source_id, $page, PagesStep::fingerprint($page));
                 $ctx->report->count($this->key(), 'update');
@@ -88,7 +105,7 @@ class LinksStep extends Step
             foreach (PagesStep::mapped($ctx) as $row) {
                 $page = ImportMap::resolve($row);
 
-                if ($page instanceof Page) {
+                if ($page instanceof Model && method_exists($page, 'publicPath')) {
                     $paths[(string) $row->source_id] = $page->publicPath();
                 }
             }

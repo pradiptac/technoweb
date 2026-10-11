@@ -46,6 +46,16 @@ final class Context implements PartsHost
      */
     public array $rows = [];
 
+    /**
+     * What kind of record each page became, by old path: the kind in force
+     * (`kind`), the one the signs or the AI pointed at (`detected`) and who
+     * settled it (`by`: rules, ai or you). Worked out by the pages step for
+     * every page and read by the posts and products steps.
+     *
+     * @var array<string, array{kind: string, detected: string, by: string}>
+     */
+    public array $kinds = [];
+
     /** @var array<string, ?string> address => library path, for this run */
     private array $fetched = [];
 
@@ -80,6 +90,27 @@ final class Context implements PartsHost
     public function decision(string $key, mixed $default = null): mixed
     {
         return $this->import->decision($key, $default);
+    }
+
+    /**
+     * Whether the AI may be used in this run: the review's `ai_assist`, which
+     * is on by default only while the assistant is available, and only while
+     * it is.
+     */
+    public function aiOn(): bool
+    {
+        return AiSections::available() && (bool) $this->decision('ai_assist', true);
+    }
+
+    public function aiLedger(): AiLedger
+    {
+        return $this->memo('ai-ledger', fn () => AiLedger::for($this->import));
+    }
+
+    /** The page's AI placer for one page (it counts what it made), or null when the AI is off. */
+    public function ai(): ?AiSections
+    {
+        return $this->aiOn() ? new AiSections($this->import, $this->aiLedger()) : null;
     }
 
     /** @return array<string, mixed> what the scan found out about the site */

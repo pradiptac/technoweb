@@ -16,11 +16,12 @@ final class Redirects
     /**
      * @param  array<string, string>  $pairs  old path => new path
      * @param  callable(string, bool): void  $counted  called with the old path and whether the row is new
+     * @param  ?callable(string): bool  $live  whether this site serves the address itself (default `live()`)
      */
-    public static function write(array $pairs, callable $counted, ?callable $skip = null): void
+    public static function write(array $pairs, callable $counted, ?callable $skip = null, ?callable $live = null): void
     {
         foreach ($pairs as $from => $to) {
-            if ($from === $to || ($skip !== null && $skip($from)) || self::live($from)) {
+            if ($from === $to || ($skip !== null && $skip($from)) || ($live ?? self::live(...))($from)) {
                 continue;
             }
 

@@ -150,6 +150,11 @@ final class ZipSource
                 $state->pages++;
             } else {
                 Storage::disk(Harvest::DISK)->put(self::filesDir($import).'/'.$relative, $bytes);
+
+                // A stylesheet is also read for the site's colours and fonts (`Brand`).
+                if ($extension === 'css' && strlen($bytes) <= 1_500_000) {
+                    $harvest->append($import, 'assets', [['url' => Paths::ZIP_ORIGIN.'/'.$relative, 'css' => mb_convert_encoding($bytes, 'UTF-8', 'UTF-8')]]);
+                }
             }
         }
 

@@ -2,12 +2,15 @@
 
 namespace App\Support\SiteImport\Steps;
 
-use App\Models\Page;
+use App\Models\BlogPost;
+use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Support\Import\Redirects;
 use App\Support\SiteImport\Context;
 use App\Support\SiteImport\Paths;
 use App\Support\WordPress\ImportMap;
 use App\Support\WordPress\Outcome;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * A 301 from every imported page's old address to its new one, so the old
@@ -50,6 +53,27 @@ class RedirectsStep extends Step
 
     public function write(Context $ctx, array $record, Outcome $outcome): void {}
 
+    /**
+     * Whether this site already serves an old address. A path directly under
+     * `/blog` or `/products` is taken only when a post, product or category has
+     * that slug (a post's old address in that folder is the usual one to
+     * redirect); anything else is `Redirects::live()`'s call.
+     */
+    private static function taken(string $path): bool
+    {
+        $segments = explode('/', trim($path, '/'));
+
+        if (count($segments) === 2 && $segments[0] === 'blog') {
+            return BlogPost::query()->where('slug', $segments[1])->exists();
+        }
+
+        if (count($segments) === 2 && $segments[0] === 'products') {
+            return Product::withTrashed()->where('slug', $segments[1])->exists() || ProductCategory::query()->where('slug', $segments[1])->exists();
+        }
+
+        return Redirects::live($path);
+    }
+
     public function finish(Context $ctx): void
     {
         $pairs = [];
@@ -57,7 +81,7 @@ class RedirectsStep extends Step
         foreach (PagesStep::mapped($ctx) as $row) {
             $page = ImportMap::resolve($row);
 
-            if (! $page instanceof Page) {
+            if (! $page instanceof Model || ! method_exists($page, 'publicPath')) {
                 continue;
             }
 
@@ -71,6 +95,6 @@ class RedirectsStep extends Step
             }
         }
 
-        Redirects::write($pairs, fn (string $from, bool $created) => $ctx->report->count($this->key(), $created ? 'create' : 'update'));
+        Redirects::write($pairs, fn (string $from, bool $created) => $ctx->report->count($this->key(), $created ? 'create' : 'update'), live: self::taken(...));
     }
 }

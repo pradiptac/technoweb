@@ -34,6 +34,16 @@ return [
     /* The largest single file the media step will download, in bytes. */
     'max_media_bytes' => 50 * 1024 * 1024,
 
+    /* The site's own stylesheets read for its colours and fonts (a URL import). */
+    'max_stylesheets' => 12,
+
+    /*
+     * The most blocks and ambiguous pages the AI is asked about in one
+     * import, whatever the daily cap allows. A very large site would
+     * otherwise spend a day's budget on one review.
+     */
+    'ai_max_blocks' => (int) env('SITE_IMPORT_AI_MAX_BLOCKS', 150),
+
     /* How long a scanned, unreviewed import is kept before its harvest is deleted. */
     'ready_days' => 3,
 

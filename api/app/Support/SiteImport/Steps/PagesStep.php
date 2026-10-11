@@ -3,24 +3,31 @@
 namespace App\Support\SiteImport\Steps;
 
 use App\Enums\PublishStatus;
+use App\Models\BlogPost;
 use App\Models\ContentType;
 use App\Models\Page;
+use App\Models\Product;
 use App\Models\Setting;
 use App\Models\WordPressImportMapping;
 use App\Support\HtmlSanitiser;
 use App\Support\PageSections\SectionRules;
 use App\Support\ReservedSlugs;
 use App\Support\Revisions;
+use App\Support\SiteImport\AiSections;
 use App\Support\SiteImport\Context;
+use App\Support\SiteImport\Decisions;
+use App\Support\SiteImport\PageKind;
 use App\Support\SiteImport\PageReader;
 use App\Support\SiteImport\Paths;
 use App\Support\WordPress\Harvest;
 use App\Support\WordPress\Outcome;
 use App\Support\WordPress\Rendered\Dom;
 use App\Support\WordPress\Rendered\Parts;
+use App\Support\WordPress\Rendered\Piece;
 use App\Support\WordPress\Rendered\RenderedSections;
 use App\Support\WordPress\Seo;
 use DOMText;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 /**
@@ -31,17 +38,26 @@ use Illuminate\Support\Str;
  * recognisers added (`siteRecognisers()`): a hero, a picture beside words,
  * a grid of cards, statistics, questions, a quote, a call to action, a form,
  * a map, a video; everything else gathers into text sections, split at the
- * main headings. Each must pass its section's rules or it stays text, so
- * nothing is lost and nothing invalid is stored.
+ * main headings — and a text section with enough words and shape to be more
+ * than prose is offered to the AI (`AiSections`) when the review allows it.
+ * Each must pass its section's rules or it stays text, so nothing is lost
+ * and nothing invalid is stored.
+ *
+ * **This step is also where every page is sorted** (0.164.0): it reads each
+ * page, settles what it is (`PageKind`, then the review's say-so) and notes
+ * it in `Context::kinds`. A page that is a blog post or a catalogue product
+ * is handed on — `PostsStep` and `ProductsStep` extend this class, take the
+ * records of their kind and write a `BlogPost` or a `Product` from the same
+ * sections.
  *
  * A page's address becomes its slug (`/services/web-design` →
  * `services-web-design`) and the old address is redirected by the redirects
- * step. A slug is never changed on a second run; a page edited here since it
- * was imported is left as it is (`edited()`).
+ * step. A slug is never changed on a second run; a record edited here since
+ * it was imported is left as it is (`edited()`).
  */
 class PagesStep extends Step
 {
-    /** The map's type for the fingerprint of what the import last wrote to a page. */
+    /** The map's type for the fingerprint of what the import last wrote to a record. */
     public const HASH = 'page_hash';
 
     public function key(): string
@@ -59,9 +75,58 @@ class PagesStep extends Step
         return 'page';
     }
 
+    /** The kind of record this step writes. */
+    protected function kind(): string
+    {
+        return PageKind::PAGE;
+    }
+
+    /** @return class-string<Page|BlogPost|Product> */
+    protected function modelClass(): string
+    {
+        return Page::class;
+    }
+
+    /** The slug an old address would like. */
+    protected function wantedSlug(string $path): string
+    {
+        return Paths::slug($path);
+    }
+
+    protected function slugTaken(string $slug): bool
+    {
+        return Page::query()->where('slug', $slug)->exists() || ReservedSlugs::reserved($slug) || ContentType::query()->where('slug', $slug)->exists();
+    }
+
+    /**
+     * The read page, readied for this kind of record.
+     *
+     * @param  array<string, mixed>  $read
+     * @return array<string, mixed>
+     */
+    protected function prepare(array $read): array
+    {
+        return $read;
+    }
+
+    /**
+     * What the AI may place on this kind of record: sections of an ordinary
+     * page only. An article is prose, and a product's words are its
+     * description — neither is for a model to re-lay-out.
+     */
+    protected function assistant(Context $ctx): ?AiSections
+    {
+        return $ctx->ai();
+    }
+
     public function records(Context $ctx): iterable
     {
-        return Harvest::read($ctx->import, 'pages');
+        foreach (Harvest::read($ctx->import, 'pages') as $record) {
+            // The pages step sees every page and sorts it; the others take their own.
+            if ($this->kind() === PageKind::PAGE || ($ctx->kinds[(string) $record['path']]['kind'] ?? null) === $this->kind()) {
+                yield $record;
+            }
+        }
     }
 
     public function plan(Context $ctx, array $record): Outcome
@@ -70,15 +135,24 @@ class PagesStep extends Step
         $read = $this->read($ctx, $record);
         $label = $read['title'] !== '' ? $read['title'] : ($read['h1'] !== '' ? $read['h1'] : $path);
 
-        if (in_array($path, (array) $ctx->decision('skip', []), true)) {
-            return $this->row($ctx, $path, $label, Outcome::skip($label, 'Left out in the review.'));
+        if ($this->kind() === PageKind::PAGE) {
+            $kind = $this->sort($ctx, $path, $read);
+
+            if ($kind === PageKind::SKIP) {
+                return $this->row($ctx, $path, $label, Outcome::skip($label, 'Left out in the review.'));
+            }
+
+            // A post or a product: the step for it writes it and shows its row.
+            if ($kind !== PageKind::PAGE) {
+                return Outcome::delegated($label);
+            }
         }
 
         if ($read['text'] === 0 && ! str_contains($read['html'], '<img')) {
             return $this->row($ctx, $path, $label, Outcome::skip($label, 'Has nothing on it once the site\'s header, menu and footer are taken away.'));
         }
 
-        $existing = $ctx->map->model('page', $path, Page::class);
+        $existing = $ctx->map->model($this->mapType() ?? 'page', $path, $this->modelClass());
         $outcome = Outcome::upsert($existing !== null, $label, [
             'path' => $path,
             'title' => $label,
@@ -87,7 +161,7 @@ class PagesStep extends Step
         ]);
 
         if ($existing === null) {
-            $wanted = Paths::slug($path);
+            $wanted = $this->wantedSlug($path);
             $slug = $this->freeSlug($wanted);
             $outcome->data['slug'] = $slug;
 
@@ -100,13 +174,16 @@ class PagesStep extends Step
             $outcome->warn('Edited here since it was imported, so it is left as it is.');
         } else {
             // A dry pass: nothing fetched or created, the parts counted, and what came across named.
-            [$rows] = $this->layout($ctx, $read, $label, $path, writes: false);
+            [$rows, , $ai] = $this->layout($ctx, $read, $label, $path, writes: false);
             $outcome->data['sections'] = count($rows);
+            $outcome->data['ai'] = $ai;
             $outcome->data['types'] = array_count_values(array_map(fn (array $r) => (string) $r['type'], $rows));
 
             if ($rows === []) {
                 return $this->row($ctx, $path, $label, Outcome::skip($label, 'Has nothing on it once the site\'s header, menu and footer are taken away.'));
             }
+
+            $this->warnings($ctx, $outcome, $read);
         }
 
         if ($ctx->dryRun && $read['og_image'] !== null) {
@@ -126,33 +203,54 @@ class PagesStep extends Step
         $label = $outcome->label;
         $read = $this->read($ctx, $record);
         [$rows] = $this->layout($ctx, $read, $label, $path, writes: true);
-        $blocks = SectionRules::normalise($rows);
+        // `normalise()` leaves objects where a section keeps a map; the records read the blocks as arrays.
+        $blocks = json_decode((string) json_encode(SectionRules::normalise($rows)), true);
 
-        $page = $outcome->data['existing'] ? Page::query()->find($outcome->data['existing']) : null;
-        $page ??= new Page;
+        $model = $outcome->data['existing'] ? $this->modelClass()::query()->find((int) $outcome->data['existing']) : null;
+        $model ??= new ($this->modelClass());
 
-        $page->fill([
-            'title' => Str::limit((string) $outcome->data['title'], 250, ''),
+        $this->fill($ctx, $model, $read, $label, $blocks, $outcome->data);
+        $model->save();
+
+        Seo::save($model, $this->seo($ctx, $read, $label));
+
+        $ctx->map->put($this->mapType() ?? 'page', $path, $model, (string) $record['url']);
+        $ctx->map->put(self::HASH, $path, $model, self::fingerprint($model));
+    }
+
+    /**
+     * Set the record's columns from the page. The common part is here: the
+     * sections, the draft status, the slug of a new record.
+     *
+     * @param  Page|BlogPost|Product  $model
+     * @param  array<string, mixed>  $read
+     * @param  array<int, array<string, mixed>>  $blocks
+     * @param  array<string, mixed>  $data  the plan's
+     */
+    protected function fill(Context $ctx, Model $model, array $read, string $label, array $blocks, array $data): void
+    {
+        $model->fill([
+            'title' => Str::limit((string) $data['title'], 250, ''),
             'template' => 'builder',
             'blocks' => $blocks,
-            'status' => $page->exists ? $page->status : PublishStatus::Draft,
+            'status' => $model->exists ? $model->status : PublishStatus::Draft,
         ]);
 
-        if (! $page->exists) {
-            $page->slug = $outcome->data['slug'];
+        if (! $model->exists) {
+            $model->slug = $data['slug'];
         }
-
-        $page->save();
-
-        Seo::save($page, $this->seo($ctx, $read, $label));
-
-        $ctx->map->put('page', $path, $page, (string) $record['url']);
-        $ctx->map->put(self::HASH, $path, $page, self::fingerprint($page));
     }
+
+    /**
+     * Something worth saying about this one record in the review.
+     *
+     * @param  array<string, mixed>  $read
+     */
+    protected function warnings(Context $ctx, Outcome $outcome, array $read): void {}
 
     public function finish(Context $ctx): void
     {
-        if (! $ctx->decision('set_homepage', false)) {
+        if ($this->kind() !== PageKind::PAGE || ! $ctx->decision('set_homepage', false)) {
             return;
         }
 
@@ -164,33 +262,63 @@ class PagesStep extends Step
         }
     }
 
-    /** What the import wrote to a page, as a hash: compared next time to see whether anyone has edited it. */
-    public static function fingerprint(Page $page): string
+    /**
+     * What the import wrote to a record, as a hash: compared next time to see
+     * whether anyone has edited it. Its title (or name) and its sections.
+     */
+    public static function fingerprint(Model $model): string
     {
         // MySQL's JSON column reorders object keys, so the blocks are compared in a canonical order.
-        return sha1((string) json_encode(Revisions::canonical([$page->title, $page->blocks])));
+        return sha1((string) json_encode(Revisions::canonical([$model->getAttribute('title') ?? $model->getAttribute('name'), $model->getAttribute('blocks')])));
     }
 
     /**
-     * Whether a page the import made has been changed here since: its title
+     * Whether a record the import made has been changed here since: its title
      * or sections no longer hash to what the import last wrote.
      */
-    private function edited(Context $ctx, Page $page, string $path): bool
+    private function edited(Context $ctx, Model $model, string $path): bool
     {
         $stored = $ctx->map->get(self::HASH, $path)['url'] ?? null;
 
-        return $stored !== null && $stored !== self::fingerprint($page);
+        return $stored !== null && $stored !== self::fingerprint($model);
+    }
+
+    /**
+     * Settle what a page becomes, once per page, and note it: the review's
+     * choice if there is one, else the rules, else — for the ambiguous — the
+     * AI, when it may be asked.
+     *
+     * @param  array<string, mixed>  $read
+     */
+    private function sort(Context $ctx, string $path, array $read): string
+    {
+        $detected = PageKind::detect((array) $read['facts'], $path);
+        $by = 'rules';
+
+        if (! $detected['certain'] && $ctx->aiOn() && ($asked = PageKind::ask($ctx->import, $ctx->aiLedger(), $path, $read, (array) $read['facts'])) !== null) {
+            $detected['kind'] = $asked;
+            $by = 'ai';
+        }
+
+        $decided = Decisions::kindFor($ctx, $path);
+        $ctx->kinds[$path] = [
+            'kind' => $decided ?? $detected['kind'],
+            'detected' => $detected['kind'],
+            'by' => $decided !== null && $decided !== $detected['kind'] ? 'you' : $by,
+        ];
+
+        return $ctx->kinds[$path]['kind'];
     }
 
     /**
      * @param  array<string, mixed>  $record
-     * @return array{title: string, h1: string, description: string, og_image: ?string, noindex: bool, html: string, text: int, url: string}
+     * @return array<string, mixed> `PageReader`'s page, readied for this kind of record
      */
-    private function read(Context $ctx, array $record): array
+    protected function read(Context $ctx, array $record): array
     {
         $site = $ctx->site();
 
-        return PageReader::read($record, (array) ($site['chrome'] ?? []), $site['name'] ?? null, $ctx);
+        return $this->prepare(PageReader::read($record, (array) ($site['chrome'] ?? []), $site['name'] ?? null, $ctx));
     }
 
     /**
@@ -200,17 +328,19 @@ class PagesStep extends Step
      * picture is "planned", markup is left as it is, and `Parts` only counts.
      *
      * @param  array<string, mixed>  $read
-     * @return array{0: list<array<string, mixed>>, 1: Parts}
+     * @return array{0: list<array<string, mixed>>, 1: Parts, 2: int} the sections, the parts, and how many the AI placed
      */
-    private function layout(Context $ctx, array $read, string $label, string $path, bool $writes): array
+    protected function layout(Context $ctx, array $read, string $label, string $path, bool $writes): array
     {
         $parts = new Parts($ctx, $path, $label, $writes);
         $media = fn (string $src) => $writes ? $ctx->media($src, $label) : $ctx->planMedia($src, $label);
         $body = fn (string $html) => $this->body($ctx, $html, $label, $writes);
-        $walker = new RenderedSections($body, $media, $parts, RenderedSections::siteRecognisers());
+        $ai = $this->assistant($ctx);
+        $assist = $ai === null ? null : fn (Piece $piece, bool $opening) => $ai->place($piece, $opening, $media);
+        $walker = new RenderedSections($body, $media, $parts, RenderedSections::siteRecognisers(), $assist);
         $rows = $walker->toSections(self::offered($read['html']));
 
-        return [$this->documentLinks($ctx, $rows, $label, $writes), $parts];
+        return [$this->documentLinks($ctx, $rows, $label, $writes), $parts, $ai->made ?? 0];
     }
 
     /**
@@ -354,7 +484,7 @@ class PagesStep extends Step
      * @param  array<string, mixed>  $read
      * @return array<string, mixed>
      */
-    private function seo(Context $ctx, array $read, string $label): array
+    protected function seo(Context $ctx, array $read, string $label): array
     {
         $seo = [];
 
@@ -382,7 +512,7 @@ class PagesStep extends Step
         $slug = $wanted;
         $i = 2;
 
-        while (Page::query()->where('slug', $slug)->exists() || ReservedSlugs::reserved($slug) || ContentType::query()->where('slug', $slug)->exists()) {
+        while ($this->slugTaken($slug)) {
             $slug = $wanted.'-'.$i++;
         }
 
@@ -393,12 +523,18 @@ class PagesStep extends Step
     private function row(Context $ctx, string $path, string $label, Outcome $outcome): Outcome
     {
         if ($ctx->dryRun) {
+            $kind = $ctx->kinds[$path] ?? ['kind' => $this->kind(), 'detected' => $this->kind(), 'by' => 'rules'];
+
             $ctx->rows[] = [
                 'path' => $path,
                 'title' => Str::limit($label, 120, '…'),
                 'action' => $outcome->action,
                 'sections' => (int) ($outcome->data['sections'] ?? 0),
                 'types' => (array) ($outcome->data['types'] ?? []),
+                'ai' => (int) ($outcome->data['ai'] ?? 0),
+                'kind' => $kind['kind'],
+                'detected' => $kind['detected'],
+                'by' => $kind['by'],
                 'note' => $outcome->reason ?? ($outcome->warnings[0] ?? null),
             ];
         }
@@ -407,7 +543,7 @@ class PagesStep extends Step
     }
 
     /**
-     * Every page this import has mapped, with the model.
+     * Every page, post and product this import has mapped, with the model.
      *
      * @return iterable<WordPressImportMapping>
      */
@@ -415,7 +551,7 @@ class PagesStep extends Step
     {
         return WordPressImportMapping::query()
             ->where('site', $ctx->import->site)
-            ->where('source_type', 'page')
+            ->whereIn('source_type', ['page', 'post', 'product'])
             ->lazyById(200);
     }
 }

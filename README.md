@@ -1834,6 +1834,15 @@ long it waits between two requests to one host. A ZIP is uploaded in pieces like
 a release, so the host's own upload limit does not apply; it is unpacked to
 `storage/app/private/site-imports/` and deleted when the import ends.
 
+**0.164.0** sorts each page into a page, a blog post or a catalogue product,
+adds an optional AI fallback for what the rules cannot place, and offers the old
+site's colours and fonts (applied only if ticked in the review). The AI shares
+the SEO assistant's switch, OpenRouter key and daily limit (Settings → SEO
+defaults, API keys); `SITE_IMPORT_AI_MAX_BLOCKS` (default 150) caps what one
+import may ask it. No new table: run `php artisan migrate --force` as usual and
+nothing else changes. The site's own stylesheets are read into the harvest, so
+it needs the same outbound access the pages do.
+
 ## Importing subscribers from a website
 
 Campaign → Subscribers → **From a website** reads a site to a chosen depth —
@@ -2096,7 +2105,9 @@ above it is as it was.
 - **Models offered** (`App\Enums\AiModel`, OpenRouter ids):
   `google/gemini-2.5-flash` (default), `google/gemini-2.5-flash-lite`,
   `google/gemini-2.5-pro`, `openai/gpt-4o-mini`, `openai/gpt-4.1-mini`,
-  `openai/gpt-4o`, `openai/gpt-4.1`. A stored value outside the list is still
+  `openai/gpt-4o`, `openai/gpt-4.1`, `anthropic/claude-haiku-5.5`,
+  `anthropic/claude-sonnet-5.5`, `anthropic/claude-opus-5.5` (0.164.0; an
+  Anthropic key added at OpenRouter). A stored value outside the list is still
   kept and sent as written.
 - **Test the model after saving the key.** "Test this model" on Settings →
   API keys sends one short real request for the chosen model through the

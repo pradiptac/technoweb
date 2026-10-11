@@ -361,8 +361,11 @@ dropdown shows them:
 | `openai/gpt-4.1-mini` | |
 | `openai/gpt-4o` | |
 | `openai/gpt-4.1` | |
+| `anthropic/claude-haiku-5.5` | an Anthropic key at OpenRouter |
+| `anthropic/claude-sonnet-5.5` | the same |
+| `anthropic/claude-opus-5.5` | the same; several times Sonnet's cost |
 
-All seven accept images, which is a requirement and not a coincidence:
+All ten accept images, which is a requirement and not a coincidence:
 `AltText` sends a picture to whichever model is chosen, so a text-only model
 on the list would break one feature and say so only when somebody pressed the
 button. `seo_ai_model` falls through to the chatbot's model and then `.env`

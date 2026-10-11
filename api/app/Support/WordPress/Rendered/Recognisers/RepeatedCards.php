@@ -17,8 +17,9 @@ use Illuminate\Support\Str;
  *
  * Careful to claim nothing else: the siblings must be at least 80% one shape
  * with a heading each, short (a card, not an article), and the block must hold
- * no form. The cards' pictures are not kept — a features item has an icon and
- * no photograph — and the review says so.
+ * no form. A card's picture rides along as `photo`: a features item has an
+ * icon and no photograph, so the importer draws a pictured set as a layout
+ * section (a card per column) instead.
  */
 final class RepeatedCards implements Recogniser
 {
@@ -71,6 +72,11 @@ final class RepeatedCards implements Recogniser
         }
 
         $item = ['title' => $title];
+
+        // The picture comes along: the importer draws a pictured card as a layout column.
+        if (($photo = Structure::image($card)) !== null) {
+            $item['photo'] = $photo;
+        }
 
         if ($body !== '' && $body !== $title) {
             $item['body'] = $body;

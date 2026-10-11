@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
  */
 final class ScanState
 {
-    /** crawl | zip | chrome | done */
+    /** crawl | zip | assets | chrome | done */
     public string $phase = 'crawl';
 
     /** @var list<array{url: string, depth: int}> */
@@ -29,6 +29,11 @@ final class ScanState
 
     /** @var array<string, float> */
     public array $lastFetch = [];
+
+    /** @var list<string> the site's own stylesheets the crawl met, for `Brand` */
+    public array $css = [];
+
+    public int $cssNext = 0;
 
     public int $pages = 0;
 

@@ -71,8 +71,11 @@ final class RenderedSections
      * @param  Closure(string): ?string  $body  markup → cleaned markup
      * @param  Closure(string): ?string  $media  a picture's address → library path
      */
-    /** @param  list<Recogniser>|null  $recognisers  what to look for; the WordPress builders' by default */
-    public function __construct(private Closure $body, private Closure $media, private ?Parts $parts = null, ?array $recognisers = null)
+    /**
+     * @param  list<Recogniser>|null  $recognisers  what to look for; the WordPress builders' by default
+     * @param  Closure(Piece, bool): ?list<array<string, mixed>>|null  $assist  asked about a text piece (and whether it opens the page) before it is left as text; the site import's AI fallback, nothing for WordPress
+     */
+    public function __construct(private Closure $body, private Closure $media, private ?Parts $parts = null, ?array $recognisers = null, private ?Closure $assist = null)
     {
         $this->recognisers = $recognisers ?? self::recognisers();
     }
@@ -90,8 +93,10 @@ final class RenderedSections
         return [
             ...self::recognisers(),
             new R\GenericHero,
+            new R\HeroBlock,
             new R\MapEmbed,
             new R\VideoEmbed,
+            new R\VimeoEmbed,
             new R\QuoteBlock,
             new R\LogoStrip,
             new R\StatsRow,
@@ -332,8 +337,10 @@ final class RenderedSections
     public function rows(array $pieces): array
     {
         $rows = [];
-        foreach ($pieces as $piece) {
-            $made = $piece->kind === 'text' ? $this->text($piece->heading, $piece->html) : $this->sections($piece);
+        foreach ($pieces as $i => $piece) {
+            $made = $piece->kind === 'text'
+                ? ($this->assist !== null ? ($this->assist)($piece, $i === 0) : null) ?? $this->text($piece->heading, $piece->html)
+                : $this->sections($piece);
             if ($made === null) {
                 // Not a section after all: kept as the markup it was.
                 $made = $this->text($piece->heading, $piece->html);
@@ -350,6 +357,8 @@ final class RenderedSections
         $heading = $piece->heading !== null ? Str::limit($piece->heading, 157, '…') : null;
         $kicker = $piece->data['kicker'] ?? null;
         $d = $piece->data;
+        // A card's picture is for the layout drawing of a pictured set; a features item has none.
+        $plain = array_map(fn (array $item) => array_diff_key($item, ['photo' => 1]), $piece->items);
 
         $rows = match ($piece->kind) {
             'hero' => [self::row('hero', array_filter([
@@ -384,12 +393,12 @@ final class RenderedSections
                 'items' => $items,
             ])), $chunks = array_chunk($piece->items, 8), array_keys($chunks)),
             'faq' => array_map(fn (array $items, int $i) => self::row('faq', array_filter(['heading' => $i === 0 ? $heading : null, 'source' => 'custom', 'items' => $items])), $chunks = array_chunk($piece->items, 30), array_keys($chunks)),
-            'features' => array_map(fn (array $items, int $i) => self::row('features', array_filter([
+            'features' => $this->pictured($piece->items, $heading, $kicker) ?? array_map(fn (array $items, int $i) => self::row('features', array_filter([
                 'kicker' => $i === 0 ? $kicker : null,
                 'heading' => $i === 0 ? $heading : null,
                 'columns' => count($items) > 1 ? self::columns(count($items)) : null,
                 'items' => $items,
-            ])), $chunks = array_chunk($piece->items, 12), array_keys($chunks)),
+            ])), $chunks = array_chunk($plain, 12), array_keys($chunks)),
             'checklist' => array_map(fn (array $items, int $i) => self::row('checklist', array_filter([
                 'kicker' => $i === 0 ? $kicker : null,
                 'heading' => $i === 0 ? $heading : null,
@@ -429,6 +438,81 @@ final class RenderedSections
         }
 
         return $rows;
+    }
+
+    /**
+     * A set of cards that mostly have pictures (the generic recogniser's), as
+     * a **layout** section: a features item has an icon and no photograph, but
+     * a layout column can hold a picture, a heading, words and a link, so a
+     * card keeps what it showed. Nine cards a section, three or four to a row;
+     * one that the layout's rules refuse falls back to a features section.
+     *
+     * @param  list<array<string, mixed>>  $items
+     * @return list<array<string, mixed>>|null
+     */
+    private function pictured(array $items, ?string $heading, ?string $kicker): ?array
+    {
+        if (count(array_filter($items, fn (array $i) => isset($i['photo']))) * 2 < count($items)) {
+            return null;
+        }
+
+        $sections = [];
+
+        foreach (array_chunk($items, 9) as $n => $chunk) {
+            $perRow = count($chunk) === 2 ? 2 : (count($chunk) % 4 === 0 ? 4 : 3);
+            $rows = array_map(fn (array $group) => [
+                'id' => self::token(),
+                'columns' => array_map(fn (array $item) => ['surface' => 'card', 'widgets' => $this->card($item)], $group),
+            ], array_chunk($chunk, $perRow));
+
+            $row = self::row('layout', array_filter([
+                'kicker' => $n === 0 ? $kicker : null,
+                'heading' => $n === 0 ? $heading : null,
+                'rows' => $rows,
+            ]));
+
+            // The layout's own rules, field by field, as a save would run them.
+            if (Validator::make(['blocks' => [$row]], SectionRules::forPayload([$row]))->fails()) {
+                return null;
+            }
+
+            $sections[] = $row;
+        }
+
+        return $sections;
+    }
+
+    /**
+     * One card's widgets: its picture, its title, its words and its link.
+     *
+     * @param  array<string, mixed>  $item
+     * @return list<array<string, mixed>>
+     */
+    private function card(array $item): array
+    {
+        $widgets = [];
+
+        if (isset($item['photo']) && ($path = ($this->media)((string) $item['photo'])) !== null) {
+            $widgets[] = ['id' => self::token(), 'type' => 'image', 'image_path' => $path, 'ratio' => '16:9'];
+        }
+
+        $widgets[] = ['id' => self::token(), 'type' => 'heading', 'text' => Str::limit((string) $item['title'], 157, '…'), 'size' => 's'];
+
+        if (trim((string) ($item['body'] ?? '')) !== '' && ($html = ($this->body)('<p>'.e((string) $item['body']).'</p>')) !== null) {
+            $widgets[] = ['id' => self::token(), 'type' => 'text', 'html' => $html];
+        }
+
+        if (isset($item['href'])) {
+            $widgets[] = ['id' => self::token(), 'type' => 'button', 'label' => Str::limit((string) ($item['link_label'] ?? 'Learn more'), 37, '…'), 'href' => $item['href'], 'variant' => 'link'];
+        }
+
+        return $widgets;
+    }
+
+    /** A widget's or row's id: eight lower-case letters and digits, as the console mints them. */
+    private static function token(): string
+    {
+        return Str::lower(Str::random(8));
     }
 
     /**

@@ -91,6 +91,7 @@ final class SiteCrawler
                 'html' => $html,
             ]]);
             $state->pages++;
+            StyleSheets::note($state, $html, $url, $start);
 
             if ($item['depth'] < (int) ($settings['depth'] ?? 3)) {
                 $this->follow($state, $item['depth'], EmailExtractor::links($html, $url), $start);

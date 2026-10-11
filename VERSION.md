@@ -21,6 +21,62 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.164.0 — 2026-10-11
+
+**Site import, part 2: posts and products, the AI fallback, and the site's
+colours and fonts.**
+
+- **Pages are sorted.** Each page the import reads is a page, a **blog post**
+  or a **catalogue product** — found from what it says about itself (its
+  structured data, `og:type`, an article with a date and an author, a `/blog/…`
+  or `/news/…` address, a SKU beside a specification table) and changeable in the
+  review with a select on every row (which also says whether the rules, the AI or
+  you decided; **Leave out** is one of the choices, and the old "leave out" list
+  still works). A post arrives as a draft blog post with the same sections, its
+  publication date, cover picture and excerpt; a product as a draft catalogue
+  product with no price, its spec table as the specification sheet, its pictures
+  and summary. Menus, links and redirects follow wherever each page landed; a
+  `.html` post address now redirects even though `/blog` is a route.
+- **An AI fallback for what the rules cannot place.** A block with enough words
+  and shape that would stay plain text is shown to the AI assistant **as text,
+  never markup**, and placed in a section — but only if the section uses the
+  block's own words (anything reworded or invented is refused). It shares the
+  SEO assistant's switch, key, model and daily limit, counts one run per block
+  used, and is off with no key or when you turn it off in the review. The
+  review's counts are the import's: every answer is kept, so importing asks
+  nothing more. The page table shows how many sections the AI placed on each
+  page, with a badge. Pages the rules find ambiguous are put to it too.
+- **The site's colours and fonts.** The import reads the stylesheets and shows
+  six swatches and the two typefaces, with a preview of your site wearing them.
+  **Nothing changes unless you tick "Use this look for this site"**; then Import
+  sets the Appearance colours and fonts through the settings screen's own rules,
+  and installs a font file the old site served into a free custom font slot
+  (never over a font you uploaded).
+- **Three part-1 gaps closed.** A banner with no `<h1>` (classed hero, masthead,
+  banner, jumbotron…) with a headline and a button is a hero; a set of cards that
+  have pictures keeps them, as a layout section with a card to a column; a Vimeo
+  player is kept in a text section.
+- Internally: `AiSections`, `AiLedger`, `Outline`, `PageKind`, `Specs`, `Brand`,
+  `StyleSheets` (the crawl now reads the site's own CSS, phase `assets`),
+  `Steps\{Posts,Products,Brand}Step` (the first two extend `PagesStep`),
+  `Recognisers\{HeroBlock,VimeoEmbed}`; `PageDraft::guide()` / `data()` are
+  public; `Redirects::write()` takes a `live` check; the decisions gain `kinds`,
+  `ai_assist` and `brand`. Docs: `docs/site-import.md`, `API.md`, manual
+  chapter 27.
+
+**Also in this release.**
+
+- Claude models in the AI model lists (Settings → API keys): Claude Haiku 5.5,
+  Sonnet 5.5 and Opus 5.5, as OpenRouter ids. Like the OpenAI models, they
+  answer only with an Anthropic key, or credit, in the OpenRouter account —
+  press "Test this model" after choosing one.
+- Uploading a ZIP in pieces never finished, on Site import and on System →
+  Updates: a browser sends every multipart field as text, and the upload
+  compared "0" with 0. Both now read the piece numbers as numbers; a test
+  for each posts them as text, the way a browser does.
+
+---
+
 ## 0.163.0 — 2026-10-11
 
 **Import a website that is not WordPress.**
@@ -51,9 +107,9 @@ Entries are newest first. Dates are the day the work landed on
 - **Importing again updates what it made** and never changes a page's address;
   a page you have edited here since is left alone. The home page becomes the
   site's only if you tick it.
-- Not in this release (0.164.0): an AI fallback for blocks the rules cannot
-  place, classifying pages as posts or products, and reading the site's brand
-  colours and fonts.
+- Not in this release (done in 0.164.0): an AI fallback for blocks the rules
+  cannot place, classifying pages as posts or products, and reading the site's
+  brand colours and fonts.
 - Internally: the WordPress import's reusable parts moved to
   `App\Support\Import` (`PartsHost`, `LinkRewriter`, `Redirects`,
   `MediaDownload`) and `Harvest` takes either import — its tests pass unchanged.

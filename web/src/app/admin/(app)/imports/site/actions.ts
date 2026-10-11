@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { ApiError } from "@/lib/api";
 import {
@@ -41,10 +41,24 @@ export async function startSiteImportAction(payload: Record<string, unknown>): P
   }
 }
 
-/** What the screen polls. Null when the request failed — the screen keeps what it had. */
+/**
+ * What the screen polls. Null when the request failed — the screen keeps what it had.
+ *
+ * An import that applied the old site's colours and fonts has changed the
+ * settings behind every public page, behind the API's back as far as the
+ * website's cache is concerned: the poll that sees it finish purges
+ * `settings` — the purge a settings save makes — so the site wears them at
+ * once rather than when the revalidate window runs out.
+ */
 export async function pollSiteImportAction(id: number): Promise<SiteImport | null> {
   try {
-    return await getSiteImport(id);
+    const item = await getSiteImport(id);
+
+    if (item.status === "completed" && item.result?.steps.some((s) => s.key === "brand" && s.update > 0)) {
+      updateTag("settings");
+    }
+
+    return item;
   } catch {
     return null;
   }

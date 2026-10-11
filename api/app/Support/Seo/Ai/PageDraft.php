@@ -247,9 +247,12 @@ final class PageDraft
      * Each type's fields in plain words. A `match` over `TYPES` with no
      * default, so a type cannot be offered without being described.
      *
+     * Public since 0.164.0: the site import's `AiSections` asks the model for
+     * one section in this same vocabulary and reads it back through `data()`.
+     *
      * @param  value-of<self::TYPES>  $type
      */
-    private static function guide(string $type, bool $pictures, bool $icons): string
+    public static function guide(string $type, bool $pictures, bool $icons): string
     {
         $icon = $icons ? 'icon? (a name from the icon list), ' : '';
         $sources = implode(', ', array_map(fn ($k, $label) => '"'.$k.'" ('.$label.')', array_keys(SectionRules::CARD_SOURCES), SectionRules::CARD_SOURCES));
@@ -354,7 +357,7 @@ final class PageDraft
 
     // ---- reading the answer --------------------------------------------------
 
-    private static function str(mixed $v, int $max): string
+    public static function str(mixed $v, int $max): string
     {
         return is_scalar($v) ? mb_substr(trim((string) $v), 0, $max) : '';
     }
@@ -428,7 +431,7 @@ final class PageDraft
 
     /**
      * One section's `data` in the stored shape, or the reason it cannot be
-     * made.
+     * made. Public since 0.164.0, for `AiSections` (see `guide()`).
      *
      * @param  array<string, mixed>  $s
      * @param  list<array{title: string, path: string}>  $links
@@ -436,7 +439,7 @@ final class PageDraft
      * @param  list<string>  $icons
      * @return array<string, mixed>|string
      */
-    private static function data(string $type, array $s, array $links, array $library, array $icons): array|string
+    public static function data(string $type, array $s, array $links, array $library, array $icons): array|string
     {
         $picture = function (mixed $n) use ($library): ?string {
             $n = is_numeric($n) ? (int) $n : 0;

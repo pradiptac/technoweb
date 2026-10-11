@@ -63,9 +63,11 @@ namespace App\Enums;
  *
  * Read a picture. `AltText` sends one to whichever model is chosen, so a
  * text-only model on this list would be a model that breaks one feature and
- * says so only when somebody presses the button. All seven accept images.
+ * says so only when somebody presses the button. All ten accept images.
  *
- * Written September 2026, moved to OpenRouter ids October 2026. Reviewing it
+ * Written September 2026, moved to OpenRouter ids October 2026; Anthropic's
+ * three added 2026-10-11 (the client keeps an Anthropic key at OpenRouter;
+ * Claude does not think unless asked, so none is marked `thinks()`). Reviewing it
  * is a two-line change plus a test run.
  */
 enum AiModel: string
@@ -80,6 +82,9 @@ enum AiModel: string
     case Gpt41Mini = 'openai/gpt-4.1-mini';
     case Gpt4o = 'openai/gpt-4o';
     case Gpt41 = 'openai/gpt-4.1';
+    case ClaudeHaiku55 = 'anthropic/claude-haiku-5.5';
+    case ClaudeSonnet55 = 'anthropic/claude-sonnet-5.5';
+    case ClaudeOpus55 = 'anthropic/claude-opus-5.5';
 
     /**
      * What a blank setting and a blank `AI_MODEL` both mean.
@@ -102,6 +107,9 @@ enum AiModel: string
             self::Gpt41Mini => 'GPT-4.1 mini (OpenAI)',
             self::Gpt4o => 'GPT-4o (OpenAI)',
             self::Gpt41 => 'GPT-4.1 (OpenAI)',
+            self::ClaudeHaiku55 => 'Claude Haiku 5.5 (Anthropic)',
+            self::ClaudeSonnet55 => 'Claude Sonnet 5.5 (Anthropic)',
+            self::ClaudeOpus55 => 'Claude Opus 5.5 (Anthropic)',
         };
     }
 
@@ -123,6 +131,9 @@ enum AiModel: string
             self::Gpt41Mini => 'OpenAI’s all-rounder, better at following a brief than 4o mini. Needs an OpenAI key, or credit, in the OpenRouter account.',
             self::Gpt4o => 'Stronger on analysis and rewriting copy, at several times the cost of mini. Needs an OpenAI key, or credit, in the OpenRouter account.',
             self::Gpt41 => 'The best judgement of OpenAI’s four, and their most expensive. Worth it for content work, wasteful for a meta description. Needs an OpenAI key, or credit, in the OpenRouter account.',
+            self::ClaudeHaiku55 => 'Anthropic’s quickest and cheapest. Good for titles, descriptions, alt text and the website assistant. Needs an Anthropic key, or credit, in the OpenRouter account.',
+            self::ClaudeSonnet55 => 'Anthropic’s all-rounder: careful with a brief and good at writing copy and laying out pages. Needs an Anthropic key, or credit, in the OpenRouter account.',
+            self::ClaudeOpus55 => 'Anthropic’s strongest, at several times Sonnet’s cost. For page drafts and difficult imports, wasteful for a meta description. Needs an Anthropic key, or credit, in the OpenRouter account.',
         };
     }
 

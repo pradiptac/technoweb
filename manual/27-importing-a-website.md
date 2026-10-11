@@ -18,11 +18,22 @@ contact form — and it keeps every other word as ordinary text. It will not get
 everything right. **Everything arrives as a draft**, so nothing is on your live
 site until you have looked at it and published it.
 
+Three things go further than that, and each is yours to switch off:
+
+- A page that is really a **blog post** or a **product** becomes one — a draft
+  post in your blog, a draft product in your catalogue — instead of a page.
+- Where the rules cannot tell what a block of a page is, the **AI assistant**
+  (if it is set up) can place it in a section.
+- The old site's **colours and fonts** are shown, and applied to your site only
+  if you say so.
+
 ## What comes across
 
 | | |
 |---|---|
 | **Pages** | Each page becomes a draft page laid out in sections. The site's own header, menu and footer are recognised (they repeat on most pages) and left out of the pages, so they are not repeated down your new site |
+| **Blog posts** | A page that says it is an article (its own markup, or an address under `/blog/` or `/news/`) becomes a draft blog post: the same sections, the date it was published, its share picture as the cover, its description as the excerpt. The author is not kept — posts here are written by your staff accounts |
+| **Products** | A page with a SKU and a specification table (or marked up as a product) becomes a draft product in the catalogue: its pictures, its description as the summary and its table as the specification sheet. The catalogue has no prices, so none is read; choose the brand and category afterwards |
 | **Pictures and files** | The pictures a page shows, and PDFs and other documents it links to on the same site, are copied into the media library, with their descriptions (alt text) |
 | **Search-engine details** | The page title, description, share picture, and "do not index" if the page said so. The old site's own "canonical" address is never copied |
 | **Forms** | A contact form becomes a form of its own, placed in the page. Submissions go to your sales address and the leads list |
@@ -32,9 +43,10 @@ site until you have looked at it and published it.
 
 What does not come across, and the review says so: scripts and styling (the
 page is drawn in your site's own theme, not the old design), the pictures
-inside a row of cards (a card keeps its heading, text and link), videos other
-than YouTube and MP4 files, maps other than Google's, and anything on a page
-the importer could not tell apart from furniture.
+inside a row of cards are kept only where the cards have pictures (they then
+become a layout section, a card to a column); videos other than YouTube, Vimeo
+and MP4 files, maps other than Google's, and anything on a page the importer
+could not tell apart from furniture do not come across as sections.
 
 ## Before you start
 
@@ -70,13 +82,53 @@ the importer could not tell apart from furniture.
      imported page is a draft, and the home page changes only when you publish
      it;
    - **Menus found** — which of the header and footer menus to bring;
-   - **Leave out** on any page you do not want.
+   - **Use AI to place what the rules could not** — on only when the AI
+     assistant is switched on with a key (Settings → SEO defaults and API
+     keys); off, those blocks stay ordinary text. See below;
+   - **Colours and fonts** — the six colours and two typefaces the old site
+     used, with a **Preview** of your site wearing them. Off until you tick
+     **Use this look for this site**; see below;
+   - in the page table, **It becomes** on every page: a page, a blog post, a
+     catalogue product, or **Leave out**. It is already set from what the page
+     says about itself; change it where it is wrong. A note says when the AI or
+     you chose it.
    After changing a choice, press **Apply choices and recount** — the counts you
    see are always exactly what the import will do.
 6. Press **Import N records**. It runs in the background with a progress bar.
    If it is interrupted, **Resume** carries on from where it stopped.
 7. When it finishes, open **Pages**, look at each draft in the builder, tidy
    it, and publish it. Check **Media**, **Menus** and **Redirects** too.
+
+### The AI assistant's part
+
+The rules place the common shapes. A block with plenty of words and some shape
+of its own (a few sub-headings with paragraphs, a list, pictures and links) that
+they could not place is shown to the AI assistant **as plain text**, never the
+page's code, and it chooses a section for it (a features row, steps, a list of
+questions, a call to action…). It may use **only the block's own words** — if
+what it writes changes the words, or invents any, the block stays text. A page
+with some signs of being a post or a product but not enough is put to it too.
+
+Each answer is used once: the review's choices are exactly what is imported,
+and importing does not ask again. It counts against the assistant's **daily
+limit**, so a large site may place some blocks and leave the rest as text — the
+review shows how many sections the AI placed on each page, with a badge, so you
+can look at those first.
+
+### Colours and fonts
+
+The import reads the old site's stylesheets: buttons and links give the main
+colour, `body` gives the background and text, the header gives the top bar. A
+colour the stylesheets do not settle is left empty, and whites and greys are
+never taken as a brand colour. The fonts are matched by name to the ones your
+site has; a font file the old site served for a family you do not have can be
+installed in a free **custom font** slot (never over a font you uploaded
+yourself).
+
+**Nothing changes on your site unless you tick *Use this look for this site***.
+Then Import sets Appearance to *Your own colours* with those colours and fonts,
+exactly as if you had chosen them on the Appearance screen, and you can change
+any of it there afterwards.
 
 **Discard** throws a reviewed import away. A read that is not imported within
 three days is discarded automatically.

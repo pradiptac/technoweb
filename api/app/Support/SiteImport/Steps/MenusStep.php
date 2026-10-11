@@ -145,8 +145,11 @@ class MenusStep extends Step
         if (preg_match('#^https?://#i', $href) && Paths::sameSite($href, $ctx->siteUrl())) {
             $path = Paths::normalise($href);
 
-            if (($id = $ctx->map->targetId('page', $path)) !== null) {
-                return ['type' => 'page', 'target_type' => 'page', 'target_id' => $id, 'url' => null];
+            // A page, a blog post or a product that was imported: a record reference, so it follows a slug change.
+            foreach (['page' => 'page', 'post' => 'blog_post', 'product' => 'product'] as $source => $alias) {
+                if (($id = $ctx->map->targetId($source, $path)) !== null) {
+                    return ['type' => $alias, 'target_type' => $alias, 'target_id' => $id, 'url' => null];
+                }
             }
 
             // Not imported: its old path, which the redirects cannot answer but a person can see.

@@ -118,6 +118,9 @@ seven models offered (`App\Enums\AiModel`):
 | `openai/gpt-4.1-mini` | the same |
 | `openai/gpt-4o` | the same |
 | `openai/gpt-4.1` | the same |
+| `anthropic/claude-haiku-5.5` | an Anthropic key, or credit |
+| `anthropic/claude-sonnet-5.5` | the same |
+| `anthropic/claude-opus-5.5` | the same |
 
 A stored value outside the list is kept and sent exactly as written — the
 rule `AiModel` exists to keep, since substituting a model bills somebody for

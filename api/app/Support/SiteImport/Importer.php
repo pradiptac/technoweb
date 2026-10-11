@@ -38,9 +38,12 @@ final class Importer
     {
         return [
             new Steps\PagesStep,
+            new Steps\PostsStep,
+            new Steps\ProductsStep,
             new Steps\MenusStep,
             new Steps\LinksStep,
             new Steps\RedirectsStep,
+            new Steps\BrandStep,
         ];
     }
 
@@ -49,11 +52,14 @@ final class Importer
     {
         return [
             'pages' => 'Pages',
+            'posts' => 'Blog posts',
+            'products' => 'Catalogue products',
             Context::MEDIA_STEP => 'Files and pictures',
             Parts::STEP => Parts::LABEL,
             'menus' => 'Menus',
             'links' => 'Links between pages',
             'redirects' => 'Redirects from old addresses',
+            'brand' => 'Colours and fonts',
         ];
     }
 
@@ -74,6 +80,13 @@ final class Importer
         $ctx = new Context($import, $dryRun, Report::fromArray((array) ($cursor['report'] ?? [])));
         $ctx->map->restorePlanned((array) ($cursor['planned'] ?? []));
         $ctx->rows = array_values((array) ($cursor['rows'] ?? []));
+        $ctx->kinds = (array) ($cursor['kinds'] ?? []);
+
+        // A fresh recount asks again about what a limit stopped last time.
+        if ($dryRun && $cursor === []) {
+            $ctx->aiLedger()->forgetStopped();
+        }
+
         $steps = self::steps();
 
         for ($i = (int) ($cursor['step'] ?? 0), $offset = (int) ($cursor['offset'] ?? 0); $i < count($steps); $i++, $offset = 0) {
@@ -111,6 +124,12 @@ final class Importer
         }
 
         if ($dryRun) {
+            $placed = array_sum(array_column($ctx->rows, 'ai'));
+
+            if ($placed > 0) {
+                $ctx->report->notice("The AI placed {$placed} section".($placed === 1 ? '' : 's').' that the rules could not. They are marked in the page table: look at those first.');
+            }
+
             $import->update(['analysis' => array_merge($import->analysis ?? [], [
                 'steps' => $ctx->report->steps(self::labels()),
                 'notices' => $ctx->report->notices(),
@@ -128,7 +147,7 @@ final class Importer
     {
         $outcome = $step->plan($ctx, $record);
 
-        if ($outcome->writes() && ($type = $step->mapType()) !== null) {
+        if ($outcome->writes() && $outcome->action !== Outcome::DELEGATED && ($type = $step->mapType()) !== null) {
             $ctx->map->plan($type, $step->identity($record));
         }
 
@@ -140,7 +159,8 @@ final class Importer
     {
         $outcome = $step->plan($ctx, $record);
 
-        if ($outcome->writes()) {
+        // Written by another step (a post is not a page): nothing for this one to do.
+        if ($outcome->writes() && $outcome->action !== Outcome::DELEGATED) {
             try {
                 DB::transaction(fn () => $step->write($ctx, $record, $outcome));
             } catch (Throwable $e) {
@@ -155,7 +175,7 @@ final class Importer
 
     private function checkpoint(SiteImport $import, Context $ctx, string $slot, int $step, int $offset): void
     {
-        $cursor = ['step' => $step, 'offset' => $offset, 'report' => $ctx->report->toArray(), 'planned' => $ctx->map->planned()];
+        $cursor = ['step' => $step, 'offset' => $offset, 'report' => $ctx->report->toArray(), 'planned' => $ctx->map->planned(), 'kinds' => $ctx->kinds];
 
         if ($ctx->dryRun) {
             $cursor['rows'] = $ctx->rows;

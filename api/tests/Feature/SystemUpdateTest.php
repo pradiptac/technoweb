@@ -9,6 +9,7 @@ use App\Support\System\AppVersion;
 use App\Support\System\UpdateMode;
 use App\Support\System\Updater;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 use ZipArchive;
@@ -138,6 +139,25 @@ class SystemUpdateTest extends TestCase
         }
 
         return $run;
+    }
+
+    public function test_a_package_uploaded_in_pieces_is_put_together_from_string_fields(): void
+    {
+        // A browser's multipart body carries every field as text; '0' === 0 is false.
+        $bytes = 'PK'.str_repeat('x', 100);
+        $admin = $this->admin();
+        foreach ([substr($bytes, 0, 50), substr($bytes, 50)] as $i => $piece) {
+            $this->actingAs($admin, 'sanctum')
+                ->post('/api/v1/admin/system/updates/upload', [
+                    'name' => 'pieces.zip', 'index' => (string) $i, 'total' => '2',
+                    'chunk' => UploadedFile::fake()->createWithContent('chunk', $piece),
+                ], ['Accept' => 'application/json'])
+                ->assertOk()
+                ->assertJsonPath('data.complete', $i === 1);
+        }
+
+        $this->assertSame($bytes, file_get_contents($this->home.'/updates/pieces.zip'));
+        $this->assertFileDoesNotExist($this->home.'/updates/pieces.zip.part');
     }
 
     public function test_a_signed_release_is_listed_with_its_changelog(): void

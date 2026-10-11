@@ -61,6 +61,9 @@ class SiteImportController extends Controller
             'total' => ['required', 'integer', 'min:1', 'max:'.(int) ceil((int) config('site_import.zip.max_bytes') / UpdateController::CHUNK_BYTES) + 1],
             'chunk' => ['required', 'file', 'max:'.(int) ceil(UpdateController::CHUNK_BYTES / 1024)],
         ]);
+        // A multipart body carries every field as text: '0' === 0 is false.
+        $data['index'] = (int) $data['index'];
+        $data['total'] = (int) $data['total'];
 
         $disk = Storage::disk('local');
         $stored = self::stored($request, $data['name']);
@@ -175,7 +178,7 @@ class SiteImportController extends Controller
             throw ValidationException::withMessages(['status' => 'Only an import waiting for review can be changed.']);
         }
 
-        $decisions = Decisions::validate((array) $request->input('decisions', []));
+        $decisions = Decisions::validate((array) $request->input('decisions', []), $siteImport->decisions ?? []);
         $progress = $siteImport->progress ?? [];
         unset($progress['analyse']);
 

@@ -78,6 +78,9 @@ class UpdateController extends Controller
             'total' => ['required', 'integer', 'min:1', 'max:2000'],
             'chunk' => ['required', 'file', 'max:'.(int) ceil(self::CHUNK_BYTES / 1024)],
         ]);
+        // A multipart body carries every field as text: '0' === 0 is false.
+        $data['index'] = (int) $data['index'];
+        $data['total'] = (int) $data['total'];
 
         if (! is_dir($dir)) {
             mkdir($dir, 0755, true);

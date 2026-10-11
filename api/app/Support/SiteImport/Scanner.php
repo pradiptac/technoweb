@@ -12,7 +12,8 @@ use RuntimeException;
  *
  * Phases, each resumable from `state.json`: **crawl** (a live URL, by
  * `SiteCrawler`) or **zip** (an upload, by `ZipSource`) write every page into
- * `pages.jsonl`; **chrome** then tallies, page by page, the blocks that could
+ * `pages.jsonl`; **assets** (a URL import only) reads the site's own
+ * stylesheets for `Brand`; **chrome** then tallies, page by page, the blocks that could
  * be the site's header, menu and footer, and when the tally is complete picks
  * the ones repeated across most pages (`Chrome`), reads the site's name out of
  * its titles, and reads the header's and footer's menus off the home page.
@@ -37,6 +38,14 @@ final class Scanner
 
             if ($state->pages === 0) {
                 throw new RuntimeException($this->nothing($state));
+            }
+
+            $state->phase = $import->source === 'zip' ? 'chrome' : 'assets';
+        }
+
+        if ($state->phase === 'assets') {
+            if ((new StyleSheets)->run($import, $state, $harvest, $deadline) === StyleSheets::PAUSED) {
+                return self::PAUSED;
             }
 
             $state->phase = 'chrome';
@@ -119,6 +128,7 @@ final class Scanner
             'pages' => $state->pages,
             'home_path' => $home['path'] ?? null,
             'chrome' => $repeated,
+            'brand' => Brand::detect($import),
             'chrome_removed' => $removed,
             'menus' => $menus,
             'skipped' => $state->skipped,

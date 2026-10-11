@@ -4,6 +4,7 @@ namespace App\Support\WordPress\Rendered\Recognisers;
 
 use App\Support\LinkPattern;
 use App\Support\WordPress\Rendered\Dom;
+use App\Support\WordPress\Rendered\Piece;
 use DOMElement;
 use Illuminate\Support\Str;
 
@@ -194,5 +195,82 @@ final class Structure
         }
 
         return $text;
+    }
+
+    /**
+     * A hero from a block and the line that is its headline: the headline, one
+     * line under it, perhaps a short line above, a picture (an `<img>` or a
+     * background image) and up to two buttons — and **nothing else**. Every
+     * word of the block must be one of those, or it is the start of a page and
+     * its paragraphs are text. Shared by `GenericHero` (the `<h1>`) and
+     * `HeroBlock` (a banner with no `<h1>`).
+     */
+    public static function hero(DOMElement $el, DOMElement $headline): ?Piece
+    {
+        $heading = Dom::text($headline);
+        $total = Dom::text($el);
+
+        if (mb_strlen($total) > 520
+            || count(Dom::tags($el, 'h1', 'h2', 'h3')) > 3
+            || Dom::firstTag($el, 'form', 'table', 'ul', 'ol') !== null
+            || $el->getElementsByTagName('img')->length > 1
+            || self::plainLinks($el) > 0) {
+            return null;
+        }
+
+        $kicker = '';
+        $lede = '';
+        $seen = false;
+
+        foreach (Dom::descendants($el) as $node) {
+            if ($node->isSameNode($headline)) {
+                $seen = true;
+
+                continue;
+            }
+
+            $text = Dom::text($node);
+
+            if ($text === '' || $text === $heading || self::kids($node) !== [] || self::inside($node, $headline, $el)
+                || ! in_array(strtolower($node->tagName), ['p', 'div', 'span', 'small', 'h2', 'h3', 'h4', 'h5', 'h6'], true)) {
+                continue;
+            }
+
+            if (! $seen && $kicker === '' && mb_strlen($text) <= 80) {
+                $kicker = $text;
+            } elseif ($seen && $lede === '') {
+                $lede = $text;
+            } else {
+                // A second line of words has nowhere to go in a hero.
+                return null;
+            }
+        }
+
+        $buttons = self::buttons($el);
+        $kept = mb_strlen($heading) + mb_strlen($kicker) + mb_strlen($lede)
+            + array_sum(array_map(fn (array $b) => mb_strlen($b['label']), $buttons));
+
+        if (mb_strlen($total) - $kept > 6 || mb_strlen($lede) > 400) {
+            return null;
+        }
+
+        return new Piece('hero', data: array_filter([
+            'kicker' => $kicker !== '' ? $kicker : null,
+            'heading' => $heading,
+            'lede' => $lede !== '' ? $lede : null,
+            'image' => self::image($el) ?? self::background($el),
+        ]) + $buttons, html: Dom::html($el));
+    }
+
+    /** Whether a node sits inside the headline or a link or button below `$stop`. */
+    private static function inside(DOMElement $node, DOMElement $headline, DOMElement $stop): bool
+    {
+        for ($n = $node->parentNode; $n instanceof DOMElement && ! $n->isSameNode($stop); $n = $n->parentNode) {
+            if ($n->isSameNode($headline) || in_array(strtolower($n->tagName), ['a', 'button'], true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
