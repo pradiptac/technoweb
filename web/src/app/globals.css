@@ -5162,3 +5162,25 @@ html[data-builder-preview] [data-edit]:focus {
 [data-panel="topbar"] [data-menu-badge="beta"] { --badge-ink: var(--color-topbar-beta); }
 [data-panel="topbar"] [data-menu-badge="soon"] { --badge-ink: var(--color-topbar-muted); }
 [data-panel="topbar"] [data-menu-badge="new"]  { --badge-ink: var(--color-topbar-new); }
+
+/* Console 2.0 — the sidebar folded to its icon rail (docs/console-portal.md).
+   `html[data-console-nav="rail"]` is set before paint (lib/console-prefs.ts),
+   so a folded sidebar never paints expanded first. From `lg` only: below it
+   the sidebar is the drawer, and folding means nothing there. A label is
+   visually hidden rather than removed, so it stays the row's accessible
+   name. The flyout shows on hover and on focus, so the keyboard reaches
+   every screen the pointer does. */
+@media (width >= 64rem) {
+  html[data-console-nav="rail"] [data-console] [data-console-grid] { grid-template-columns: 64px minmax(0, 1fr); }
+  html[data-console-nav="rail"] [data-console] nav[aria-label="Admin sections"] { padding-right: 0.5rem; }
+  html[data-console-nav="rail"] [data-console] nav[aria-label="Admin sections"] :is(.rail-hide, [data-rail-group] > ul, [data-rail-group] > hr) { display: none; }
+  html[data-console-nav="rail"] [data-console] nav[aria-label="Admin sections"] .rail-label {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  html[data-console-nav="rail"] [data-console] nav[aria-label="Admin sections"] :is(a, button) { justify-content: center; }
+  html[data-console-nav="rail"] [data-console] nav[aria-label="Admin sections"] .rail-badge { position: absolute; top: 1px; right: 2px; margin: 0; padding-inline: 0.3rem; }
+  html[data-console-nav="rail"] [data-console] [data-rail-group] > button > svg:last-child { display: none; }
+  html[data-console-nav="rail"] [data-console] [data-rail-group]:is(:hover, :focus-within) > .rail-flyout { display: block; }
+  html[data-console-nav="rail"] [data-console] nav[aria-label="Admin sections"] .rail-flyout :is(a, button) { justify-content: flex-start; }
+  html[data-console-nav="rail"] [data-console] nav[aria-label="Admin sections"] .rail-flyout .rail-label { position: static; width: auto; height: auto; overflow: hidden; clip-path: none; }
+}

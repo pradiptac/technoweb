@@ -85,14 +85,25 @@ await go("/admin/tickets");
 const pill = nav.locator("[data-nav-pill]");
 ok(await pill.count() === 1, "nav pill present");
 if (await pill.count() === 1) {
-  const readY = () => pill.evaluate((el) => getComputedStyle(el).translate);
-  const before = await readY();
+  // Every frame's y from the click until it settles: a navigation on the dev
+  // server takes an unknown time to commit, so a fixed-delay sample can land
+  // before it starts. A glide shows at least one y strictly between the ends.
+  await pill.evaluate((el) => {
+    window.__pillYs = [];
+    const t0 = performance.now();
+    const tick = () => {
+      // `translate` computes to "0px" for y = 0 and "0px 71px" otherwise.
+      window.__pillYs.push(parseFloat(getComputedStyle(el).translate.split(" ")[1] ?? "0"));
+      if (performance.now() - t0 < 4000) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
   await nav.getByRole("link", { name: /^Dashboard$/ }).click();
-  await page.waitForTimeout(90);
-  const mid = await readY();
-  await page.waitForTimeout(800);
-  const after = await readY();
-  ok(mid !== before && mid !== after, `pill moves through a middle value (${before} → ${mid} → ${after})`);
+  await page.waitForTimeout(4300);
+  const ys = await page.evaluate(() => window.__pillYs);
+  const start = ys[0], end = ys[ys.length - 1];
+  const between = ys.some((y) => y > Math.min(start, end) + 0.5 && y < Math.max(start, end) - 0.5);
+  ok(start !== end && between, `pill glides through a middle value (${start} → ${end}, ${new Set(ys).size} distinct)`);
 }
 
 // (5) Subtle stops the pill's transition

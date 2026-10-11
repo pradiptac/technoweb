@@ -186,7 +186,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           rather than sitting flush against the labels. The tree itself is the
           same 176px it always was.
         */}
-        <Container className={`${CONSOLE_WIDTH} grid flex-1 gap-6 py-5 lg:grid-cols-[196px_1fr] lg:gap-7`}>
+        <Container data-console-grid className={`${CONSOLE_WIDTH} grid flex-1 gap-6 py-5 lg:grid-cols-[216px_minmax(0,1fr)] lg:gap-7`}>
           <AdminNav nav={renderNav(staff.roles.map((r) => r.slug))} />
           {/* The <main> landmark lives here, not around the nav: the root
               layout no longer supplies one, and the skip link targets it. */}

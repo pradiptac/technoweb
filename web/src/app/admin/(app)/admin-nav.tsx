@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { IconChevronDown, IconClose, IconMenu } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
+import { NAV_ROW, NAV_ROW_ACTIVE, NAV_ROW_IDLE } from "@/components/app-shell/nav-classes";
+import { NavPill, usePillBox } from "@/components/app-shell/nav-pill";
+import { setConsoleNav, useConsoleNav } from "@/lib/console-prefs";
 // Types only: a value import here would drag the icon map into the client
 // bundle, which is the one thing nav-items.tsx exists to prevent.
 import type { NavEntry, NavRow } from "./nav-items";
@@ -57,9 +60,8 @@ function groupArrived(item: Extract<NavEntry, { kind: "group" }>, arrived: Retur
   return item.links.reduce((n, l) => n + (NEW_SINCE_ROUTES[l.href] ? arrived[NEW_SINCE_ROUTES[l.href]] : 0), 0);
 }
 
-const row =
-  "flex w-full items-center gap-2 rounded px-2 py-[7px] text-13 font-medium " +
-  "whitespace-nowrap transition-colors [&_svg]:size-4 [&_svg]:shrink-0";
+/** The row look is shared with the portal (Console 2.0, `app-shell/nav-classes.ts`). */
+const row = NAV_ROW;
 
 export function AdminNav({ nav }: { nav: NavEntry[] }) {
   const pathname = usePathname();
@@ -74,6 +76,7 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
   const [filter, setFilter] = useState("");
 
   const term = filter.trim().toLowerCase();
+  const folded = useConsoleNav() === "rail";
 
   // Follow the route: arriving inside a section opens it, and leaving for one
   // that belongs to no section closes what was open. Adjusting during render
@@ -90,6 +93,8 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
   }
 
   const onHref = activeHref(nav, pathname);
+  const listRef = useRef<HTMLDivElement>(null);
+  const pill = usePillBox(listRef, `${onHref}|${open}|${term}|${folded}`);
   const current =
     nav.find((i) => i.kind === "group" && i.links.some((l) => l.href === onHref))
     ?? nav.find((i) => i.kind === "link" && i.href === onHref);
@@ -116,9 +121,7 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
               // has to be the first thing the eye lands on. White on
               // brand-600 measures 7.5:1, so the fill can be this strong
               // without costing legibility.
-              active
-                ? "bg-brand-600 font-semibold text-brand-on shadow-1"
-                : "text-muted hover:bg-surface-2 hover:text-ink",
+              active ? NAV_ROW_ACTIVE : NAV_ROW_IDLE,
             )}
           >
             {/* The hue is a variable the class reads, not a style on the
@@ -127,11 +130,13 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
             <span aria-hidden className={cn("contents", !active && "[&_svg]:text-(--neon)")} style={{ "--neon": hue } as React.CSSProperties}>
               {icon}
             </span>
-            {label}
+            {/* Visually hidden on the folded rail, not removed: it stays the
+                link's accessible name there (globals.css, "icon rail"). */}
+            <span className="rail-label truncate">{label}</span>
             {/* What arrived on this queue since the console was opened — see new-since.tsx. */}
             {NEW_SINCE_ROUTES[href] && arrived[NEW_SINCE_ROUTES[href]] > 0 && (
               <span
-                className={cn("ml-auto rounded-full px-1.5 py-px text-10-5 font-semibold tabular-nums", active ? "bg-card text-brand-ink" : "bg-brand-600 text-brand-on")}
+                className={cn("rail-badge ml-auto rounded-full px-1.5 py-px text-10-5 font-semibold tabular-nums", active ? "bg-card text-brand-ink" : "bg-brand-600 text-brand-on")}
                 aria-label={`${arrived[NEW_SINCE_ROUTES[href]]} new`}
               >
                 {arrived[NEW_SINCE_ROUTES[href]]}
@@ -168,10 +173,10 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
         Nothing matches “{filter.trim()}”.
       </p>
     ) : (
-      <ul className="grid gap-0.5">{links(matches, false)}</ul>
+      <ul className="relative grid gap-0.5">{links(matches, false)}</ul>
     )
   ) : (
-    <ul className="grid gap-0.5">
+    <ul className="relative grid gap-0.5">
       {nav.map((item) => {
         if (item.kind === "link") return links([item], false)[0];
 
@@ -181,7 +186,7 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
         const waiting = expanded ? 0 : groupArrived(item, arrived);
 
         return (
-          <li key={item.id} className="min-w-0">
+          <li key={item.id} data-rail-group className="relative min-w-0">
             {/* A hairline, and nothing a screen reader has to hear about —
                 the grouping it draws is already carried by the sections
                 themselves. Inset by the row padding so it lines up with the
@@ -194,6 +199,8 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
               aria-expanded={expanded}
               aria-controls={panelId}
               onClick={() => setOpen((cur) => (cur === item.id ? null : item.id))}
+              // On the folded rail the flyout follows focus; Escape lets it go.
+              onKeyDown={(e) => { if (e.key === "Escape") e.currentTarget.blur(); }}
               className={cn(
                 row, "cursor-pointer text-left",
                 // The section holding the current page stays marked whether
@@ -211,11 +218,11 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
               <span aria-hidden className="contents [&_svg]:text-(--neon)" style={{ "--neon": item.hue } as React.CSSProperties}>
                 {item.icon}
               </span>
-              {item.label}
+              <span className="rail-label truncate">{item.label}</span>
               {/* The rows' "new since" counts, summed, while the group is shut. */}
               {waiting > 0 && (
                 <span
-                  className="ml-auto rounded-full bg-brand-600 px-1.5 py-px text-10-5 font-semibold tabular-nums text-brand-on"
+                  className="rail-badge ml-auto rounded-full bg-brand-600 px-1.5 py-px text-10-5 font-semibold tabular-nums text-brand-on"
                   aria-label={`${waiting} new`}
                 >
                   {waiting}
@@ -232,6 +239,22 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
             <ul id={panelId} hidden={!expanded} className="mt-0.5 grid gap-0.5">
               {links(item.links, true)}
             </ul>
+
+            {/* The folded rail's view of this section: shown by globals.css on
+                hover or focus, only while folded. `pl-2` rather than a margin,
+                so the pointer crossing the gap never leaves the hover area. */}
+            {folded && (
+              <div
+                data-flyout
+                className="rail-flyout absolute top-0 left-full z-40 hidden pl-2"
+                onKeyDown={(e) => { if (e.key === "Escape") (document.activeElement as HTMLElement | null)?.blur(); }}
+              >
+                <div className="w-56 rounded-xl border border-line-strong bg-card p-2 shadow-3">
+                  <p className="px-2 pb-1 text-12 font-semibold text-muted">{item.label}</p>
+                  <ul className="grid gap-0.5">{links(item.links, false)}</ul>
+                </div>
+              </div>
+            )}
           </li>
         );
       })}
@@ -305,7 +328,7 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
           it is not keyboard reachable. Escape clears it too, which is what
           the fingers already in the field will try first.
         */}
-        <div className="relative mb-2">
+        <div className="rail-hide relative mb-2">
           <label htmlFor={`${base}-filter`} className="sr-only">Filter sections</label>
           <input
             id={`${base}-filter`}
@@ -334,7 +357,20 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
           )}
         </div>
 
-        {tree}
+        <div ref={listRef} data-pill={pill ? "on" : undefined} className="group/navlist relative">
+          <NavPill box={pill} />
+          {tree}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setConsoleNav(folded ? "full" : "rail")}
+          aria-label={folded ? "Unfold the sidebar" : "Fold the sidebar"}
+          className="mt-3 hidden w-full items-center gap-2 rounded-lg px-2.5 py-[7px] text-12-5 text-faint transition-colors hover:bg-surface-2 hover:text-ink lg:flex"
+        >
+          <IconChevronDown aria-hidden className={cn("size-4 transition-[rotate] duration-(--duration-base)", folded ? "-rotate-90" : "rotate-90")} />
+          <span className="rail-label">Fold</span>
+        </button>
       </div>
     </nav>
   );
