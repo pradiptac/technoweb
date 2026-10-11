@@ -10,6 +10,7 @@ import { IconTicket, IconClock, IconUsers, IconBox, IconPen, IconMail, IconTools
 import { istDate } from "@/lib/visit-dates";
 import { StatTile, type Tone } from "@/components/admin/stat-tile";
 import { Card } from "@/components/ui/card";
+import { Panel } from "@/components/app-shell/panel";
 import { TicketArrivals, TicketFigures, TicketVolume } from "./metrics";
 import { DashboardCustomise } from "./dashboard-customise";
 import { arrange, dashboardCookie, parseView, type DashboardView, type GroupKey, type WidgetKey } from "@/lib/dashboard-view";
@@ -360,8 +361,7 @@ async function DashboardBody({ volume }: { volume?: string }) {
     arrivals: dashboard.metrics.arrivals && <TicketArrivals metrics={dashboard.metrics} />,
 
     status: (
-      <Card as="section" interactive={false} padding="sm">
-        <h2 className="mb-3 text-13 font-semibold">Every ticket, by status</h2>
+      <Panel title="Every ticket, by status" icon={<IconTicket />}>
         {breakdownTotal === 0 ? (
           <p className="text-13 text-muted">No tickets yet, so there is nothing to break down.</p>
         ) : (
@@ -378,13 +378,12 @@ async function DashboardBody({ volume }: { volume?: string }) {
             }))}
           />
         )}
-      </Card>
+      </Panel>
     ),
 
     pipeline: funnel && (
-      <Card as="section" interactive={false} padding="sm">
-        <h2 className="text-13 font-semibold">Sales pipeline</h2>
-        <p className="mb-3 text-12 text-muted">
+      <Panel title="Sales pipeline" icon={<IconMail />}>
+        <p className="-mt-1 mb-3 text-12 text-muted">
           What happened to the leads that arrived in the last {funnel.days} days. Spam is left out.
         </p>
         <Funnel
@@ -394,7 +393,7 @@ async function DashboardBody({ volume }: { volume?: string }) {
             { label: "Won", value: funnel.won, href: "/admin/leads?status=won" },
           ]}
         />
-      </Card>
+      </Panel>
     ),
 
     /* Recent tickets used to sit beside this. It was the queue with a
