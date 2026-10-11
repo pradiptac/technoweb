@@ -21,6 +21,35 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.162.0 — 2026-10-11
+
+**A better page-template library.**
+
+- **Apply a template to any page.** Above the builder's sections, **Apply a
+  template** opens the list of page templates. On a page that already has
+  sections you can **Add at the end** or **Replace all sections** — which asks
+  first and says how many would go. The sections are copied in, the whole thing
+  is one Undo, and nothing is saved until you press Save. An empty page uses the
+  same list ("Choose a template").
+- **Categories and previews.** A template can be filed under a category
+  (landing page, about, services, product, contact, event, other) when it is
+  saved or later; the library screen filters by it. **Preview** on any template
+  shows it drawn by the real site in your theme, in the picker and on the
+  library screen. No thumbnails — a preview is drawn when asked for.
+- **Five starter templates** — landing page, about, services, contact and event
+  — come with every install and are added to existing ones on update, written
+  in bracketed placeholder words. They are made only when missing, so one you
+  have edited is never overwritten.
+- API: `saved_sections.category` (migration), `?category=` filter,
+  `meta.categories`; `StarterTemplateSeeder`, upgrade step
+  `SeedStarterTemplates`. Probe `template-library.mjs`.
+- **Fixed: one Undo now takes back the whole insert.** Adding, pasting,
+  applying a preset, a library copy or a template opens a card whose editor
+  tidies its data as it mounts, and that tidy was a second history step — the
+  first Undo only undid it. It now joins the insert's step.
+
+---
+
 ## 0.161.0 — 2026-10-11
 
 **Detail templates: lay out every page of one kind once.**

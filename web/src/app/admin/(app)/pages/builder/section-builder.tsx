@@ -20,6 +20,7 @@ import { BlockEditorProvider, getIn, setIn, type Json, type Obj, type Path } fro
 import { BackgroundField } from "./background-field";
 import { StyleField } from "./style-field";
 import { PreviewDialog } from "./preview-dialog";
+import { TemplatePicker } from "./template-picker";
 import { LivePreview } from "./live-preview";
 import { SectionEditor, blankData, summaryOf } from "./section-editors";
 import { RecordBlockEditor } from "./record-block-editor";
@@ -134,8 +135,10 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
   const toast = useToast();
   const [open, setOpen] = useState<Set<string>>(() => new Set(sections.length <= 3 ? sections.map((s) => s.id) : []));
   const [picking, setPicking] = useState(false);
+  const [choosing, setChoosing] = useState(false);
   const [library, setLibrary] = useState(options.library?.sections ?? []);
   const [saving, setSaving] = useState<{ kind: "section" | "template"; index?: number } | null>(null);
+  const templates = options.library?.templates ?? [];
   const libraryName = useCallback((id: unknown) => library.find((l) => l.id === Number(id))?.name ?? "a library section", [library]);
 
 
@@ -185,6 +188,8 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
     },
     [sections, setSections],
   );
+  // A card opened by an insert tidies its data as its editor mounts; that patch joins the insert's step, or one Undo only undoes the tidy.
+  const joinTidy = useCallback((id: string) => { lastPush.current = { key: `patch:${id}`, at: Date.now() }; }, []);
   const undo = useCallback(() => {
     if (!past.length) return;
     setFuture((f) => [sections, ...f].slice(0, HISTORY));
@@ -250,6 +255,7 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
       return;
     }
     apply((prev) => [...prev, section]);
+    joinTidy(section.id);
     toggle(section.id, true);
     toast({ tone: "ok", title: `${labelOf(section.type)} pasted at the end` });
   };
@@ -299,6 +305,7 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
   const add = (type: PageSectionType | string) => {
     const section: StoredSection = { id: crypto.randomUUID(), type, hidden: false, background: null, data: kind?.blocks.some((b) => b.value === type) ? {} : blankData(type as PageSectionType) };
     apply((prev) => [...prev, section]);
+    joinTidy(section.id);
     toggle(section.id, true);
     setPicking(false);
   };
@@ -306,6 +313,7 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
   const applyPreset = (preset: SectionPreset) => {
     const fresh = preset.sections.map((s) => ({ ...structuredClone(s), id: crypto.randomUUID() }) as StoredSection);
     apply(() => fresh);
+    if (fresh[0]) joinTidy(fresh[0].id);
     setOpen(new Set(fresh.slice(0, 1).map((s) => s.id)));
   };
 
@@ -403,15 +411,24 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
     if (!blocks?.length) { toast({ tone: "err", title: "That library section could not be read" }); return; }
     const copies = fresh(blocks);
     apply((prev) => [...prev, ...copies]);
+    joinTidy(copies[0].id);
     copies.forEach((c) => toggle(c.id, true));
     setPicking(false);
   };
-  const applyTemplate = async (id: number) => {
+  /*
+   * A page template (0.162.0): its sections copied in with fresh ids, added
+   * after the page's own or in place of all of them. One `apply`, so one Undo
+   * step puts the page back; nothing is saved until the page is.
+   */
+  const applyTemplate = async (id: number, mode: "add" | "replace") => {
     const blocks = await libraryBlocksAction(id);
     if (!blocks?.length) { toast({ tone: "err", title: "That template could not be read" }); return; }
     const copies = fresh(blocks);
-    apply(() => copies);
-    setOpen(new Set(copies.slice(0, 1).map((s) => s.id)));
+    const adding = mode === "add" && sections.length > 0;
+    apply((prev) => (adding ? [...prev, ...copies] : copies));
+    joinTidy(copies[0].id);
+    setOpen(adding ? (prev) => new Set([...prev, copies[0].id]) : new Set(copies.slice(0, 1).map((s) => s.id)));
+    toast({ tone: "ok", title: `${copies.length} section${copies.length === 1 ? "" : "s"} ${adding ? "added at the end" : "from the template"}`, body: "Not saved yet — press Save on the page. Undo takes them out again." });
   };
   /*
    * "This page's content" (0.109.0): the body the page already has — written
@@ -461,6 +478,7 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
         <Button type="button" size="sm" variant="ghost" onClick={paste}>Paste a section</Button>
         {/* A template is a whole page to start from; a record's body area is not one. */}
         {!inLibrary && !options.in_record && <Button type="button" size="sm" variant="ghost" onClick={() => setSaving({ kind: "template" })} disabled={!sections.length}>Save as template</Button>}
+        {templates.length > 0 && <Button type="button" size="sm" variant="ghost" onClick={() => setChoosing(true)}>Apply a template</Button>}
         <span className="ml-auto text-12 text-faint">Drag a section by its handle, or use its arrows.</span>
         {wide && !kind && (
           <Button type="button" size="sm" variant={showLive ? "secondary" : "ghost"} aria-pressed={showLive} onClick={() => setLivePref(!showLive)}>
@@ -483,19 +501,14 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
         </section>
       )}
 
-      {sections.length === 0 && (options.library?.templates.length ?? 0) > 0 && (
+      {sections.length === 0 && templates.length > 0 && (
         <section className="mb-6">
           <h2 className="mb-1 text-15 font-semibold">Start from a template</h2>
-          <p className="mb-3 text-13 text-muted">A page your team saved — every section is copied, so this page can change without changing it.</p>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {options.library!.templates.map((t) => (
-              <button key={t.id} type="button" onClick={() => applyTemplate(t.id)}
-                className="flex flex-col gap-1 rounded-lg border border-line-strong bg-card p-4 text-left transition-colors duration-(--duration-base) hover:border-brand-300">
-                <span className="text-14 font-semibold">{t.name}</span>
-                <span className="text-12-5 text-muted">{t.description || `${t.count} section${t.count === 1 ? "" : "s"}`}</span>
-              </button>
-            ))}
-          </div>
+          <p className="mb-3 text-13 text-muted">
+            {templates.length} page template{templates.length === 1 ? "" : "s"}, by category, each with a preview. Every section is copied,
+            so this page can change without changing the template.
+          </p>
+          <Button type="button" size="sm" variant="secondary" onClick={() => setChoosing(true)}>Choose a template</Button>
         </section>
       )}
 
@@ -630,14 +643,24 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
         </div>
       </Modal>
 
+      <TemplatePicker
+        open={choosing}
+        onClose={() => setChoosing(false)}
+        templates={templates}
+        categories={options.library?.categories ?? []}
+        sectionCount={sections.length}
+        onApply={applyTemplate}
+      />
+
       <SaveToLibrary
         saving={saving}
+        categories={options.library?.categories ?? []}
         label={saving?.kind === "section" && saving.index !== undefined ? labelOf(sections[saving.index]?.type ?? "") : ""}
         onClose={() => setSaving(null)}
-        onSave={async (name, description, link) => {
+        onSave={async (name, description, link, category) => {
           if (!saving) return null;
           const blocks = saving.kind === "section" && saving.index !== undefined ? [sections[saving.index]] : sections;
-          const result = await saveToLibraryAction({ kind: saving.kind, name, description: description || null, blocks });
+          const result = await saveToLibraryAction({ kind: saving.kind, name, description: description || null, category: saving.kind === "template" ? category || null : undefined, blocks });
           if (!result.ok || !result.id) return result.error ?? "It could not be saved.";
           if (saving.kind === "section") {
             setLibrary((l) => [...l, { id: result.id!, name, type: blocks[0]?.type ?? null }]);
@@ -656,14 +679,16 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
 }
 
 /** Name a section or the whole page for the library. */
-function SaveToLibrary({ saving, label, onClose, onSave }: {
+function SaveToLibrary({ saving, label, categories, onClose, onSave }: {
   saving: { kind: "section" | "template"; index?: number } | null;
   label: string;
+  categories: { value: string; label: string }[];
   onClose: () => void;
-  onSave: (name: string, description: string, link: boolean) => Promise<string | null>;
+  onSave: (name: string, description: string, link: boolean, category: string) => Promise<string | null>;
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
   const [link, setLink] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -684,6 +709,14 @@ function SaveToLibrary({ saving, label, onClose, onSave }: {
             <Input id="library-description" value={description} maxLength={300} onChange={(e) => setDescription(e.target.value)} />
           </Field>
         )}
+        {template && categories.length > 0 && (
+          <Field label="Category" htmlFor="library-category" variant="float-static">
+            <Select id="library-category" value={category} onChange={(e) => setCategory(e.target.value)}>
+              <option value="">No category</option>
+              {categories.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </Select>
+          </Field>
+        )}
         {!template && (
           <label className="mb-4 flex items-start gap-2 text-13-5">
             <input type="checkbox" checked={link} onChange={(e) => setLink(e.target.checked)} className="mt-1 size-4 accent-brand-600" />
@@ -693,10 +726,10 @@ function SaveToLibrary({ saving, label, onClose, onSave }: {
         <div className="flex gap-2">
           <Button type="button" pending={busy} disabled={!name.trim() || busy} onClick={async () => {
             setBusy(true);
-            const problem = await onSave(name.trim(), description.trim(), link);
+            const problem = await onSave(name.trim(), description.trim(), link, category);
             setBusy(false);
             setError(problem);
-            if (!problem) { setName(""); setDescription(""); }
+            if (!problem) { setName(""); setDescription(""); setCategory(""); }
           }}>
             Save
           </Button>

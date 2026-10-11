@@ -200,7 +200,8 @@ To build a page:
 1. On the Builder tab, press **Add a section** and pick a section type. While
    the page is empty you can instead choose, under **Start from**, *Landing
    page*, *Service page* or *About page* — a ready set of sections with
-   placeholder words to replace.
+   placeholder words to replace — or press **Choose a template** to start from
+   one of your page templates (see "Page templates" below).
 2. Fill in the section's fields. Each section can be collapsed, moved up or
    down, duplicated, hidden or removed. A removal can be undone from the
    notice that appears, while it is on screen.
@@ -226,6 +227,31 @@ Things worth knowing about the builder:
   just not shown until you switch back.
 - The page's usual closing call-to-action band is left out if your last
   section is already a CTA banner.
+
+#### Page templates
+
+A **page template** is a whole stack of sections kept so you can start a page
+from it again. Five come with the product, written in bracketed placeholder
+words such as *[Your headline]* — a landing page, an about page, a services
+page, a contact page and an event page — and you can add your own.
+
+- **Save as template** (above the sections) keeps the page you are building.
+  Give it a name, a short description and a **Category** — landing page, about,
+  services, product, contact, event or other — so it is easy to find.
+- **Apply a template** (also above the sections, and **Choose a template** on
+  an empty page) opens the list. Pick a category to narrow it. Each template
+  shows how many sections it holds, and **Preview** draws it the way the site
+  would, in your current theme, without touching your page.
+- On a page that already has sections you choose **Add at the end**, which puts
+  the template's sections after yours, or **Replace all sections**, which first
+  asks you to confirm and tells you how many of yours would go.
+- Either way the template's sections are *copied* into the page, so changing the
+  page never changes the template. **Nothing is saved until you press Save**,
+  and **Undo** takes the whole template out again in one step.
+- Templates are managed under **Content → Section library**: filter them by
+  category, preview, rename, change the category or delete one. The five
+  starters can be edited or deleted like any other; deleting one does not
+  bring it back.
 
 #### Shaped edges, moving backgrounds and the in-page menu
 

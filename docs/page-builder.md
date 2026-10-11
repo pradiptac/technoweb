@@ -613,8 +613,69 @@ public pages place it linked short of reading them all, and the tag is the one
 every page fetch carries. The screen uses the same `SectionBuilder` with
 `inLibrary`, which hides Save to library and Save as template.
 
+### The template library (0.162.0)
+
+A page template is more than a stack to start an empty page from now:
+
+- **A category.** `saved_sections.category` (nullable, `string(24)`, indexed)
+  is one of `SavedSection::CATEGORIES` — `landing`, `about`, `services`,
+  `product`, `contact`, `event`, `other` — and the API sends the list
+  (`SavedSection::categoryOptions()` as `meta.categories` on the index and
+  `library.categories` on `GET /admin/pages/builder`; TypeScript lists none).
+  422 on `category` outside it. It belongs to **templates**: on a section the
+  request is accepted and the column stays null, and `PATCH` changes it only
+  on a template (`category: null` files it under none). `GET
+  /admin/saved-sections?category=` filters; the library screen's **Template
+  category** select (a `FilterBar`) is that filter and the table has a
+  Category column. **Save as template** asks for it; the template's own edit
+  screen has a select. A category is filing, not content, so it is not in a
+  version of the item (`Revisions`).
+- **Apply a template to any page.** The builder's toolbar has **Apply a
+  template** whenever the install has templates (a library item's own editor
+  and a record's body area are handed `templates: []`, so neither shows it);
+  the empty page's old grid of template cards became a **Choose a template**
+  button that opens the same picker. `TemplatePicker` lists the templates with
+  category chips (only categories something is filed under), each with its
+  name, description, category badge, section count and **Preview**. On a page
+  with sections each row offers **Add at the end** and **Replace all
+  sections**; on an empty page the one button is **Use this template**.
+  Replace is not immediate: the dialog shows a `role=alertdialog` "Replace *N*
+  sections with “…”?" naming how many go, and only its **Replace N sections**
+  button acts. Both copy the template's blocks with fresh section ids (the
+  existing `fresh()`/`libraryBlocksAction` path — a template's linked sections
+  stay links) **through one `apply()`**, so one Undo puts the page back. The
+  dialog and the toast say that nothing is saved until the page is.
+- **Preview** is the unsaved-draft path, not JSX from an action
+  (`previewLibraryAction`): the detail read already returns the presented
+  `sections`, so the action keeps them with `keepPreviewDraft()` and
+  `TemplatePreview` frames `/admin/draft-preview/{id}` in an `xl` `Modal`.
+  The picker stays open under the preview — a `Modal` told to close
+  programmatically also calls its `onClose`, so hiding the picker would have
+  closed it for good. The library screen has the same button on every row,
+  section or template. **No thumbnails**: a preview is drawn on demand, and
+  a picture per template would mean a headless browser on the server for a
+  gallery.
+- **Starter templates.** `StarterTemplateSeeder` makes five, **create-only by
+  name** (a template with that name, edited or not, is left alone):
+  *Starter: landing page*, *about page*, *services page*, *contact page* and
+  *event page*, each filed under its category. They use only sections that
+  need no record, picture or other library item — `hero` (centred),
+  `rich_text`, `features`, `steps`, `checklist`, `faq` (custom), `stats`
+  (figures), `cta`, `columns`, `timeline`, `countdown` — and every word is a
+  bracketed placeholder (`[Your headline]`). They are normalised through
+  `SectionRules::normalise()`, and `SavedSectionLibraryTest` posts each one
+  back through the save endpoint to prove it passes a save's rules.
+  `InstallSeeder` runs it (so every install, demo or not, and
+  `DatabaseSeeder` through it); an update runs only the settings and role
+  seeders, so the upgrade step `SeedStarterTemplates`
+  (`2026-10-11-seed-starter-templates`) runs it once on an existing install —
+  and the wizard marks it done on a fresh one. The event starter's countdown
+  date is sixty days after the seeding, a placeholder to set.
+
 `role:content_manager`; the sidebar row is Content → Section library.
-Probe: `scripts/probes/section-library.mjs` (creates one section and one
+Probes: `scripts/probes/template-library.mjs` (a throwaway page: Apply →
+Add at the end → Undo → Replace → Undo → Preview, nothing saved) and
+`scripts/probes/section-library.mjs` (creates one section and one
 template through the real buttons, places the section linked on a throwaway
 page, and deletes all three).
 

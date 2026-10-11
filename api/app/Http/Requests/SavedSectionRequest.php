@@ -49,6 +49,8 @@ class SavedSectionRequest extends FormRequest
                 : ['prohibited'],
             'name' => [$creating ? 'required' : 'sometimes', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:300'],
+            // Templates only (0.162.0); on a section it is ignored, not refused.
+            'category' => ['nullable', 'string', Rule::in(array_keys(SavedSection::CATEGORIES))],
             'blocks' => [$creating ? 'required' : 'sometimes', 'array', 'min:1', 'max:'.SectionRules::MAX_SECTIONS],
         ];
     }

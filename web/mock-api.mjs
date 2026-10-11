@@ -2401,7 +2401,24 @@ const SECTION_PRESETS = [
   ] },
 ];
 /* The section library: kept in memory for the run, like the mock's other writes. */
-const savedSections = [];
+/* The categories a page template files under (0.162.0), as SavedSection::CATEGORIES sends them. */
+const TEMPLATE_CATEGORIES = [
+  { value: 'landing', label: 'Landing page' }, { value: 'about', label: 'About' }, { value: 'services', label: 'Services' },
+  { value: 'product', label: 'Product' }, { value: 'contact', label: 'Contact' }, { value: 'event', label: 'Event' }, { value: 'other', label: 'Other' },
+];
+const starterBlock = (type, data) => ({ id: crypto.randomUUID(), type, hidden: false, background: null, data });
+/* Two of the five starters StarterTemplateSeeder makes, enough for the picker to have something to choose. */
+const savedSections = [
+  { id: 1, kind: 'template', name: 'Starter: landing page', category: 'landing', description: 'Headline, three benefits, how it works, figures, questions and a closing call to action.', updated_at: '2026-10-11T00:00:00.000Z', blocks: [
+    starterBlock('hero', { heading: '[Your headline]', lede: '[One or two sentences on what you offer and who it is for.]', layout: 'centered' }),
+    starterBlock('rich_text', { heading: '[Why choose us]', body: '<p>[A paragraph.]</p>' }),
+    starterBlock('cta', { heading: '[Ready to start?]', tone: 'brand', primary: { label: '[Get in touch]', href: '/contact' } }),
+  ] },
+  { id: 2, kind: 'template', name: 'Starter: about page', category: 'about', description: 'Who you are, what you stand for, your story as a timeline and a way to get in touch.', updated_at: '2026-10-11T00:00:00.000Z', blocks: [
+    starterBlock('hero', { heading: '[About us]', lede: '[One sentence on who you are.]', layout: 'centered' }),
+    starterBlock('rich_text', { heading: '[Our story]', body: '<p>[Who you are, when you started and why.]</p>' }),
+  ] },
+];
 /*
  * Detail-page templates (0.161.0, docs/page-builder.md "Detail templates").
  * Mirrors `App\Support\DetailTemplates` — the kinds, the record blocks each may
@@ -2517,6 +2534,8 @@ function injectDetailTemplate(req, res, p) {
 
 const savedResource = (x, detail) => ({
   id: x.id, kind: x.kind, name: x.name, description: x.description,
+  category: x.kind === 'template' ? (x.category ?? null) : null,
+  category_label: x.kind === 'template' ? (TEMPLATE_CATEGORIES.find((c) => c.value === x.category)?.label ?? null) : null,
   type: x.kind === 'section' ? (x.blocks[0]?.type ?? null) : null,
   type_label: x.kind === 'section' ? (SECTION_TYPES.find((t) => t.value === x.blocks[0]?.type)?.label ?? null) : null,
   count: x.blocks.length, author: 'Mock editor', updated_at: x.updated_at,
@@ -4221,23 +4240,31 @@ createServer(async (req, res) => {
     if (p === '/admin/pages/builder' && req.method === 'GET') {
       return json(res, 200, { data: { ...BUILDER_OPTIONS, library: {
         sections: savedSections.filter((x) => x.kind === 'section').map(({ id, name, blocks }) => ({ id, name, type: blocks[0]?.type ?? null })),
-        templates: savedSections.filter((x) => x.kind === 'template').map(({ id, name, description, blocks }) => ({ id, name, description, count: blocks.length })),
+        templates: savedSections.filter((x) => x.kind === 'template').map(({ id, name, description, blocks, category }) => ({
+          id, name, description, count: blocks.length, category: category ?? null,
+          category_label: TEMPLATE_CATEGORIES.find((c) => c.value === category)?.label ?? null,
+        })),
+        categories: TEMPLATE_CATEGORIES,
       } } });
     }
 
     /* The section library and page templates (docs/page-builder.md "The library"). */
     if (p === '/admin/saved-sections' && req.method === 'GET') {
       const kind = url.searchParams.get('kind');
-      const rows = savedSections.filter((x) => !kind || x.kind === kind).map((x) => savedResource(x, false));
-      return json(res, 200, { data: rows, meta: { current_page: 1, last_page: 1, per_page: 100, total: rows.length }, links: {} });
+      const category = url.searchParams.get('category');
+      const rows = savedSections.filter((x) => (!kind || x.kind === kind) && (!category || x.category === category)).map((x) => savedResource(x, false));
+      return json(res, 200, { data: rows, meta: { current_page: 1, last_page: 1, per_page: 100, total: rows.length, categories: TEMPLATE_CATEGORIES }, links: {} });
     }
     if (p === '/admin/saved-sections' && req.method === 'POST') {
       const body = await readJsonBody(req);
       const blocks = Array.isArray(body.blocks) ? body.blocks : [];
+      if (body.category && !TEMPLATE_CATEGORIES.some((c) => c.value === body.category)) {
+        return json(res, 422, { message: 'Check the library item.', errors: { category: ['The selected category is invalid.'] } });
+      }
       if (!body.name || !['section', 'template'].includes(body.kind) || !blocks.length || (body.kind === 'section' && blocks.length !== 1)) {
         return json(res, 422, { message: 'Check the library item.', errors: { blocks: ['A section is one section; a template is one or more.'] } });
       }
-      const item = { id: savedSections.length ? Math.max(...savedSections.map((x) => x.id)) + 1 : 1, kind: body.kind, name: body.name, description: body.description ?? null, blocks, updated_at: new Date().toISOString() };
+      const item = { id: savedSections.length ? Math.max(...savedSections.map((x) => x.id)) + 1 : 1, kind: body.kind, name: body.name, description: body.description ?? null, category: body.kind === 'template' ? (body.category ?? null) : null, blocks, updated_at: new Date().toISOString() };
       savedSections.push(item);
       return json(res, 201, { data: savedResource(item, true) });
     }
@@ -4249,7 +4276,11 @@ createServer(async (req, res) => {
         if (req.method === 'GET') return json(res, 200, { data: savedResource(item, true) });
         if (req.method === 'PATCH') {
           const body = await readJsonBody(req);
+          if (body.category && !TEMPLATE_CATEGORIES.some((c) => c.value === body.category)) {
+            return json(res, 422, { message: 'Check the library item.', errors: { category: ['The selected category is invalid.'] } });
+          }
           for (const k of ['name', 'description', 'blocks']) if (k in body) item[k] = body[k];
+          if ('category' in body && item.kind === 'template') item.category = body.category ?? null;
           item.updated_at = new Date().toISOString();
           return json(res, 200, { data: savedResource(item, true) });
         }

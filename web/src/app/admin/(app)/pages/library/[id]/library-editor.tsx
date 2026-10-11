@@ -4,7 +4,7 @@ import { useEffect, useState, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import { FormActions, SaveStatus } from "@/components/admin/form-actions";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Input } from "@/components/ui/input";
+import { Alert, Field, Input, Select } from "@/components/ui/input";
 import { formatDate } from "@/lib/dates";
 import { REVISION_LOAD_EVENT, type RevisionLoad } from "@/lib/revisions";
 import { useSaveStatus } from "@/lib/hooks/use-save-status";
@@ -22,6 +22,7 @@ export function LibraryEditor({ item, options }: { item: SavedSection; options: 
   const router = useRouter();
   const [name, setName] = useState(item.name);
   const [description, setDescription] = useState(item.description ?? "");
+  const [category, setCategory] = useState(item.category ?? "");
   const [sections, setSectionsState] = useState<StoredSection[]>(item.blocks ?? []);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const { dirty, saving, message, touch, run } = useSaveStatus();
@@ -51,6 +52,7 @@ export function LibraryEditor({ item, options }: { item: SavedSection; options: 
     const result = await updateLibraryAction(item.id, {
       name: name.trim(),
       description: template ? (description.trim() || null) : undefined,
+      category: template ? (category || null) : undefined,
       blocks: sections,
     });
     setErrors(result.fieldErrors ?? {});
@@ -67,6 +69,14 @@ export function LibraryEditor({ item, options }: { item: SavedSection; options: 
         {template && (
           <Field label="Description (optional)" htmlFor="library-description" error={errors.description?.[0]}>
             <Input id="library-description" value={description} maxLength={300} onChange={(e) => { setDescription(e.target.value); touch(); }} />
+          </Field>
+        )}
+        {template && (options.library?.categories?.length ?? 0) > 0 && (
+          <Field label="Category" htmlFor="library-category" variant="float-static" error={errors.category?.[0]}>
+            <Select id="library-category" value={category} onChange={(e) => { setCategory(e.target.value); touch(); }}>
+              <option value="">No category</option>
+              {options.library!.categories!.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </Select>
           </Field>
         )}
       </div>

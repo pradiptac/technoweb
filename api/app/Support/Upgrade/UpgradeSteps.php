@@ -22,6 +22,7 @@ final class UpgradeSteps
         Steps\DeriveMeetingPrefix::class,
         Steps\MoveAiToOpenRouter::class,
         Steps\RetireDownloadsPage::class,
+        Steps\SeedStarterTemplates::class,
     ];
 
     /** @return list<UpgradeStep> */

@@ -1,15 +1,18 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/admin/page-header";
+import type { ReactNode } from "react";
+import { FilterBar, FilterField, PageHeader } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
-import { ButtonLink } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { Select } from "@/components/ui/input";
 import { getSavedSections } from "@/lib/admin";
 import { formatDate } from "@/lib/dates";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { requireScreen } from "@/lib/admin-screen";
-import type { SavedSection } from "@/types/api";
+import type { SavedSection, TemplateCategory } from "@/types/api";
 import { DeleteLibraryButton } from "./delete-button";
+import { PreviewLibraryButton } from "./preview-button";
 
 export const metadata = buildMetadata({ title: "Section library", path: "/admin/pages/library", seo: noIndex });
 
@@ -18,12 +21,25 @@ export const metadata = buildMetadata({ title: "Section library", path: "/admin/
  * "The library"). Items are made in the page builder — Save to library on a
  * section, Save as template on a page — and edited and deleted here.
  */
-export default async function SectionLibraryPage() {
+export default async function SectionLibraryPage({ searchParams }: { searchParams: Promise<{ category?: string }> }) {
   await requireScreen();
+  const { category } = await searchParams;
 
-  let items: SavedSection[];
+  let sections: SavedSection[];
+  let templates: SavedSection[];
+  let categories: TemplateCategory[];
+  let total: number;
   try {
-    items = (await getSavedSections({ per_page: 100 })).data;
+    // The filter is the API's: `?category=` narrows the templates, which are the only items that have one.
+    const [s, t, all] = await Promise.all([
+      getSavedSections({ kind: "section", per_page: 100 }),
+      getSavedSections({ kind: "template", category: category || undefined, per_page: 100 }),
+      category ? getSavedSections({ kind: "template", per_page: 1 }) : null,
+    ]);
+    sections = s.data;
+    templates = t.data;
+    categories = t.meta.categories ?? [];
+    total = sections.length + (all ? all.meta.total : templates.length);
   } catch {
     return (
       <ErrorState title="We could not load the library">
@@ -31,9 +47,6 @@ export default async function SectionLibraryPage() {
       </ErrorState>
     );
   }
-
-  const sections = items.filter((i) => i.kind === "section");
-  const templates = items.filter((i) => i.kind === "template");
 
   return (
     <>
@@ -47,7 +60,7 @@ export default async function SectionLibraryPage() {
         </div>
       </PageHeader>
 
-      {items.length === 0 ? (
+      {total === 0 ? (
         <EmptyState illustration="document" title="Nothing saved yet">
           Open a builder page and press the bookmark on a section to save it here, or Save as template to keep the
           whole page as a starting point.
@@ -55,17 +68,32 @@ export default async function SectionLibraryPage() {
       ) : (
         <div className="grid gap-8">
           <LibraryTable title="Sections" items={sections} empty="No sections saved yet." />
-          <LibraryTable title="Page templates" items={templates} empty="No page templates saved yet." />
+          <LibraryTable title="Page templates" items={templates} empty={category ? "No page templates in that category." : "No page templates saved yet."}
+            filter={categories.length > 0 && (
+              <FilterBar action="/admin/pages/library">
+                <FilterField label="Template category" htmlFor="category">
+                  <Select id="category" name="category" defaultValue={category ?? ""}>
+                    <option value="">All categories</option>
+                    {categories.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </Select>
+                </FilterField>
+                <div className="flex gap-2">
+                  <Button type="submit" size="sm">Apply</Button>
+                  {category && <ButtonLink href="/admin/pages/library" variant="ghost" size="sm">Clear</ButtonLink>}
+                </div>
+              </FilterBar>
+            )} />
         </div>
       )}
     </>
   );
 }
 
-function LibraryTable({ title, items, empty }: { title: string; items: SavedSection[]; empty: string }) {
+function LibraryTable({ title, items, empty, filter }: { title: string; items: SavedSection[]; empty: string; filter?: ReactNode }) {
   return (
     <section>
       <h2 className="mb-2 text-15 font-semibold">{title}</h2>
+      {filter}
       {items.length === 0 ? (
         <p className="text-13 text-muted">{empty}</p>
       ) : (
@@ -75,6 +103,7 @@ function LibraryTable({ title, items, empty }: { title: string; items: SavedSect
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Name</th>
                 <th scope="col" className="px-3 py-1.5">Contains</th>
+                {items.some((i) => i.kind === "template") && <th scope="col" className="px-3 py-1.5">Category</th>}
                 <th scope="col" className="px-3 py-1.5">Saved by</th>
                 <th scope="col" className="px-3 py-1.5">Updated</th>
                 <th scope="col" className="px-3 py-1.5"><span className="sr-only">Actions</span></th>
@@ -94,10 +123,14 @@ function LibraryTable({ title, items, empty }: { title: string; items: SavedSect
                       ? <Badge tone="progress">{item.type_label ?? "Section"}</Badge>
                       : <span className="text-muted">{item.count} section{item.count === 1 ? "" : "s"}</span>}
                   </td>
+                  {item.kind === "template" && <td data-label="Category" className="px-3 py-2 text-muted">{item.category_label ?? "—"}</td>}
                   <td data-label="Saved by" className="px-3 py-2 text-muted">{item.author ?? "—"}</td>
                   <td data-label="Updated" className="px-3 py-2 text-muted">{item.updated_at ? formatDate(item.updated_at) : "—"}</td>
                   <td data-label="Actions" className="px-3 py-2 text-right">
-                    <DeleteLibraryButton id={item.id} name={item.name} />
+                    <span className="inline-flex flex-wrap justify-end gap-1">
+                      <PreviewLibraryButton id={item.id} name={item.name} />
+                      <DeleteLibraryButton id={item.id} name={item.name} />
+                    </span>
                   </td>
                 </tr>
               ))}

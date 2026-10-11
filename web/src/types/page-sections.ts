@@ -404,7 +404,9 @@ export type PageBuilderOptions = {
   /** The section library and the page templates (0.106.0). Optional for an older API. */
   library?: {
     sections: { id: number; name: string; type: string | null }[];
-    templates: { id: number; name: string; description: string | null; count: number }[];
+    templates: { id: number; name: string; description: string | null; count: number; category: string | null; category_label: string | null }[];
+    /** The categories a page template files under (0.162.0), the API's list. Optional for an older API. */
+    categories?: TemplateCategory[];
   };
   /** The assistant on a section (0.127.0). Optional for an older API, which has none. */
   ai_section?: AiSectionOptions;
@@ -566,12 +568,18 @@ export type AiDraftResult = {
 
 export type AiDraftLength = "short" | "standard" | "long";
 
+/** What a page template is for (0.162.0). */
+export type TemplateCategory = { value: string; label: string };
+
 /** A library item (`/admin/saved-sections`, 0.106.0). */
 export type SavedSection = {
   id: number;
   kind: "section" | "template";
   name: string;
   description: string | null;
+  /** Templates only (0.162.0); null on a section and on a template filed under none. */
+  category?: string | null;
+  category_label?: string | null;
   type: string | null;
   type_label: string | null;
   count: number;
@@ -580,6 +588,8 @@ export type SavedSection = {
   /** Detail only. */
   blocks?: StoredSection[];
   blocks_media?: Record<string, string>;
+  /** The public shape, for a preview. */
+  sections?: PageSection[];
   linked_from?: { id: number; title: string; kind: "page" | "template" | "solution" | "service" | "industry" | "case_study"
       | "blog_post" | "knowledge_article" | "product" | "store_product" | "event" | "job_opening" | "entry";
   }[];

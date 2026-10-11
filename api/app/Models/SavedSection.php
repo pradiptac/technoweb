@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $kind
  * @property string $name
  * @property string|null $description
+ * @property string|null $category
  * @property list<array<string, mixed>> $blocks
  * @property int|null $created_by
  */
@@ -25,6 +26,28 @@ class SavedSection extends Model
     public const KIND_SECTION = 'section';
 
     public const KIND_TEMPLATE = 'template';
+
+    /**
+     * What a page template is for (0.162.0), the only list of them: the API
+     * sends it, the console draws it, and a template files under one or none.
+     *
+     * @var array<string, string>
+     */
+    public const CATEGORIES = [
+        'landing' => 'Landing page',
+        'about' => 'About',
+        'services' => 'Services',
+        'product' => 'Product',
+        'contact' => 'Contact',
+        'event' => 'Event',
+        'other' => 'Other',
+    ];
+
+    /** @return list<array{value: string, label: string}> */
+    public static function categoryOptions(): array
+    {
+        return array_map(fn ($value, $label) => ['value' => $value, 'label' => $label], array_keys(self::CATEGORIES), self::CATEGORIES);
+    }
 
     /**
      * The record types whose body area can hold sections, by the kind a
@@ -47,7 +70,7 @@ class SavedSection extends Model
         'entry' => [Entry::class, 'title'],
     ];
 
-    protected $fillable = ['kind', 'name', 'description', 'blocks', 'created_by'];
+    protected $fillable = ['kind', 'name', 'description', 'category', 'blocks', 'created_by'];
 
     protected function casts(): array
     {

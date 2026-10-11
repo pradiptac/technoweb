@@ -42,6 +42,8 @@ class InstallSeeder extends Seeder
              * a mailing list is a claim about somebody's consent.
              */
             NewsletterTemplateSeeder::class,
+            // Five starter page templates (0.162.0); create-only by name.
+            StarterTemplateSeeder::class,
         ]);
     }
 }

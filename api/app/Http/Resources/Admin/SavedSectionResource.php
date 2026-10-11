@@ -30,6 +30,8 @@ class SavedSectionResource extends JsonResource
             'kind' => $this->kind,
             'name' => $this->name,
             'description' => $this->description,
+            'category' => $this->category,
+            'category_label' => $this->category ? SavedSection::CATEGORIES[$this->category] ?? null : null,
             'type' => $type?->value,
             'type_label' => $type?->label(),
             'count' => count($blocks),

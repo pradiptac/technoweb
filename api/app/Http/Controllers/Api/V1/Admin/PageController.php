@@ -188,7 +188,11 @@ class PageController extends Controller
                 'sections' => SavedSection::query()->where('kind', SavedSection::KIND_SECTION)->orderBy('name')->get()
                     ->map(fn (SavedSection $s) => ['id' => $s->id, 'name' => $s->name, 'type' => $s->blocks[0]['type'] ?? null])->values(),
                 'templates' => SavedSection::query()->where('kind', SavedSection::KIND_TEMPLATE)->orderBy('name')->get()
-                    ->map(fn (SavedSection $s) => ['id' => $s->id, 'name' => $s->name, 'description' => $s->description, 'count' => count($s->blocks ?? [])])->values(),
+                    ->map(fn (SavedSection $s) => [
+                        'id' => $s->id, 'name' => $s->name, 'description' => $s->description, 'count' => count($s->blocks ?? []),
+                        'category' => $s->category, 'category_label' => $s->category ? SavedSection::CATEGORIES[$s->category] ?? null : null,
+                    ])->values(),
+                'categories' => SavedSection::categoryOptions(),
             ],
             'hero_layouts' => [
                 ['value' => 'centered', 'label' => 'Centred', 'blurb' => 'The words centred on the section’s ground; no picture needed.'],

@@ -3,7 +3,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { query, token } from "./_shared";
 import type {
   AdminPage, AdminFaq, AiDraftAvailability, AiDraftLength, AiDraftResult, AiSectionMode, AnswerBlock, FaqOwnerGroup, PageBuilderOptions, PageSection, Paginated, PublishStatus,
-  SavedSection, SeoOverride, StoredSection,
+  SavedSection, SeoOverride, StoredSection, TemplateCategory,
 } from "@/types/api";
 
 export type FaqPayload = Partial<{
@@ -149,10 +149,10 @@ export async function deletePage(id: number): Promise<void> {
 }
 
 /* The section library and page templates (0.106.0, docs/page-builder.md "The library"). */
-export type SavedSectionPayload = { kind?: "section" | "template"; name?: string; description?: string | null; blocks?: StoredSection[] };
+export type SavedSectionPayload = { kind?: "section" | "template"; name?: string; description?: string | null; category?: string | null; blocks?: StoredSection[] };
 
-export async function getSavedSections(params: { kind?: string; q?: string; page?: number; per_page?: number } = {}): Promise<Paginated<SavedSection>> {
-  return apiFetch<Paginated<SavedSection>>(`/admin/saved-sections${query(params)}`, { token: await token() });
+export async function getSavedSections(params: { kind?: string; category?: string; q?: string; page?: number; per_page?: number } = {}): Promise<Paginated<SavedSection> & { meta: { categories?: TemplateCategory[] } }> {
+  return apiFetch<Paginated<SavedSection> & { meta: { categories?: TemplateCategory[] } }>(`/admin/saved-sections${query(params)}`, { token: await token() });
 }
 
 export async function getSavedSection(id: number): Promise<SavedSection> {

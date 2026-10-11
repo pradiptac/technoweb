@@ -28,12 +28,14 @@ class SavedSectionController extends Controller
         $items = SavedSection::query()
             ->with('author:id,name')
             ->when($request->filled('kind'), fn ($q) => $q->where('kind', $request->string('kind')))
+            ->when($request->filled('category'), fn ($q) => $q->where('category', $request->string('category')))
             ->when($request->filled('q'), fn ($q) => $q->where('name', 'like', '%'.addcslashes($request->string('q')->value(), '%_\\').'%'))
             ->orderBy('kind')->orderBy('name')
             ->paginate(min($request->integer('per_page', 50), 100))
             ->withQueryString();
 
         return SavedSectionResource::collection($items)->additional(['meta' => [
+            'categories' => SavedSection::categoryOptions(),
             'kinds' => [
                 ['value' => SavedSection::KIND_SECTION, 'label' => 'Section', 'blurb' => 'One section, placed on pages linked (edit once, every page changes) or as a copy.'],
                 ['value' => SavedSection::KIND_TEMPLATE, 'label' => 'Page template', 'blurb' => 'A whole stack of sections a new page can start from.'],
@@ -52,6 +54,8 @@ class SavedSectionController extends Controller
             'kind' => $request->validated('kind'),
             'name' => $request->validated('name'),
             'description' => $request->validated('description'),
+            // A section has no category; only a template files under one.
+            'category' => $request->validated('kind') === SavedSection::KIND_TEMPLATE ? $request->validated('category') : null,
             'blocks' => self::normalised($request->validated('blocks')),
             'created_by' => $request->user()?->getKey(),
         ]);
@@ -62,6 +66,9 @@ class SavedSectionController extends Controller
     public function update(SavedSectionRequest $request, SavedSection $savedSection): JsonResource
     {
         $attributes = collect($request->validated())->only(['name', 'description'])->all();
+        if ($request->has('category') && $savedSection->kind === SavedSection::KIND_TEMPLATE) {
+            $attributes['category'] = $request->validated('category');
+        }
         if ($request->has('blocks')) {
             $attributes['blocks'] = self::normalised($request->validated('blocks'));
         }

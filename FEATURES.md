@@ -117,6 +117,13 @@ A full CMS for the people who write, without a developer in the loop.
   to the code. Only an administrator can let it run on the page itself. The
   console shows a labelled placeholder in its previews, and every save that
   adds or changes one is written to the activity log.
+- **A page-template library**: save a page as a template, file it under a
+  category (landing page, about, services, product, contact, event, other),
+  and apply it to any page later — added after the sections already there or
+  replacing them all, after a confirmation that says how many go, and as one
+  Undo. Every template can be previewed, drawn by the real site, before it is
+  used. Five starters (landing, about, services, contact, event) come with every
+  install, written in bracketed placeholder words.
 - **A custom layout section**: rows of one to four columns filled with
   headings, text, buttons, pictures, spaces, rules, icon boxes, questions that
   open and lists — and, since 0.149.0, a video (a YouTube link or a library

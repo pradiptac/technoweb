@@ -3,7 +3,9 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { ApiError } from "@/lib/api";
+import { getToken } from "@/lib/admin-auth";
 import { createSavedSection, deleteSavedSection, getSavedSection, sectionsFromBody, updateSavedSection, type SavedSectionPayload } from "@/lib/admin";
+import { keepPreviewDraft } from "@/lib/admin/preview-drafts";
 import type { StoredSection } from "@/types/api";
 
 /**
@@ -71,6 +73,27 @@ export async function libraryBlocksAction(id: number): Promise<StoredSection[] |
     return (await getSavedSection(id)).blocks ?? [];
   } catch {
     return null;
+  }
+}
+
+/**
+ * A library item drawn as the public site draws it (0.162.0): the sections
+ * the API presents for it are kept as a draft preview for this session
+ * (`keepPreviewDraft`) and the dialog frames `/admin/draft-preview/{id}` —
+ * the unsaved-preview path, never JSX from an action. Nothing is written.
+ */
+export async function previewLibraryAction(id: number): Promise<{ draft?: string; error?: string }> {
+  const token = await getToken();
+  if (!token) redirect("/admin/login");
+  try {
+    const sections = (await getSavedSection(id)).sections ?? [];
+    if (!sections.length) return { error: "Nothing to show — every section in it is hidden or no longer available." };
+
+    return { draft: keepPreviewDraft(token, sections) };
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) redirect("/admin/login");
+
+    return { error: "The preview could not be drawn. Try again shortly." };
   }
 }
 

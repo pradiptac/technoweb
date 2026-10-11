@@ -35,7 +35,7 @@ export default async function EditLibraryItemPage({ params }: { params: Promise<
   const options: PageBuilderOptions = {
     ...builder,
     library: item.kind === "template" && builder.library
-      ? { sections: builder.library.sections, templates: [] }
+      ? { sections: builder.library.sections, templates: [], categories: builder.library.categories }
       : undefined,
   };
 
