@@ -24,7 +24,7 @@ export default async function PortalDownloadsPage() {
     downloads = (await publicApi.downloads("?access=customers&per_page=100")).data;
   } catch {
     return (
-      <ErrorState title="We could not load your downloads">
+      <ErrorState level={1} title="We could not load your downloads">
         Try again shortly, or raise a ticket and we will send you the file.
       </ErrorState>
     );

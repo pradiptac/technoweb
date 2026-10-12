@@ -30,7 +30,7 @@ export default async function PortalOrdersPage() {
     orders = await getMyOrders();
   } catch {
     return (
-      <ErrorState title="We could not load your orders">
+      <ErrorState level={1} title="We could not load your orders">
         Try again shortly, or call us and we will look them up.
       </ErrorState>
     );

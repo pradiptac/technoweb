@@ -34,7 +34,7 @@ export default async function TicketsPage({
     result = await getTickets({ status: params.status, page: Number(params.page) || 1 });
   } catch {
     return (
-      <ErrorState title="We could not load your tickets">
+      <ErrorState level={1} title="We could not load your tickets">
         The support system is not responding. Try again shortly.
       </ErrorState>
     );

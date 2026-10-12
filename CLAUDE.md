@@ -3062,7 +3062,8 @@ Console 2.0 (0.166.0) and Portal 2.0 (0.167.0): the glass bar, the account menu,
 - The hero band is `brand-900 → accent-900` with white text only — the pair `npm run themes` checks for every palette; `dark-muted` is not gated there. Its title is a `<p>`; the page keeps its `h1`.
 - The entrance is stamped before paint on a full load of `/admin` or `/portal`, once a session; `<Entrance>` marks it seen and clears it — an attribute set after hydration blanks a painted page.
 - The console's motion is its own block under `[data-console]` (press, a 160ms route fade, the first 12 rows arriving); Subtle drops movement; the palette and keyboard actions never animate; the public `motion_*` settings never reach the console.
-- `StatTile` is a raised card with the tone's wash in its icon disc and a counting figure; the prop API is unchanged.
+- `StatTile` is a raised card with the tone's wash in its icon disc; its figure counts only when `countable()` says it is a plain count or percentage — never a price, an "x of y", a timing or an Indian-grouped figure, which `CountUp` would regroup in threes. The prop API is unchanged.
+- A rail flyout is lifted onto the screen when it opens (`placeFlyout`) and capped at the viewport's height; a portal error or not-found page names itself (`ErrorState level={1}`, or a hidden `h1`).
 - The Activity panel reads `/admin/activity` for an administrator and the newest tickets for the desk; it is a `WIDGETS` key (eight panels).
 - The portal (0.167.0): the console's bar with the site's logo, every page its own `h1` (headings under it moved up a level); the home's reads each `.catch` alone, a tile with nothing is left out and the tiles take as many columns as there are; the hero's booking buttons follow `visits_enabled`/`meetings_enabled`.
 - `npm run audit` signs in to the portal and audits it when `PORTAL_LOGIN_EMAIL`/`PORTAL_LOGIN_PASSWORD` are set — nothing checked the portal's contrast before.

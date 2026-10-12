@@ -84,6 +84,21 @@ if (await fold.count() === 1) {
   await page.keyboard.press("Escape");
   await page.waitForTimeout(250);
   ok(!(await flyout.isVisible()), "Escape closes the flyout");
+
+  // The lowest section's flyout stays on a laptop-height screen (review, 2026-10-12):
+  // anchored at its row's top it ran past the bottom of a 768px viewport.
+  await page.setViewportSize({ width: 1280, height: 700 });
+  await page.waitForTimeout(300);
+  const lastGroup = nav.locator("[data-rail-group]").last();
+  await lastGroup.locator("> button").focus();
+  await page.waitForTimeout(300);
+  const fit = await lastGroup.locator("[data-flyout] > div").evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return { top: Math.round(r.top), bottom: Math.round(r.bottom), vh: window.innerHeight };
+  }).catch(() => null);
+  ok(fit !== null && fit.top >= 0 && fit.bottom <= fit.vh, `the last section's flyout fits the screen (${JSON.stringify(fit)})`);
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.getByRole("button", { name: /Unfold the sidebar/ }).click();
   await page.waitForTimeout(400);
   ok(await page.evaluate(() => !document.documentElement.dataset.consoleNav), "unfolding clears the attribute");

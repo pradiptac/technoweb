@@ -26,7 +26,7 @@ export default async function PortalMeetingPage({ params }: { params: Promise<{ 
     if (error instanceof ApiError && error.status === 404) notFound();
 
     return (
-      <ErrorState title="We could not load that meeting">
+      <ErrorState level={1} title="We could not load that meeting">
         Try again shortly, or call us and we will look it up.
       </ErrorState>
     );

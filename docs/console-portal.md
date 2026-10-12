@@ -72,6 +72,8 @@ Subtle keeps opacity and drops movement. The public `motion_*` settings
 never reach the console. The command palette and keyboard actions are never
 animated.
 
+**The stat tile counts only plain figures.** `lib/countable.ts`: a count or a percentage, ungrouped or grouped in threes. A price, an "x of y", a timing or an Indian-grouped figure is shown as it is — `CountUp` regroups in threes, so `₹1,23,456` would have been left as `₹123,456` (review, 2026-10-12).
+
 **The stat tile is a raised card.** `bg-card shadow-2`, edged in its tone,
 with the tone's `*-soft` wash moved into the icon disc. The figure counts
 through `CountUp`, which leaves a non-number alone. The prop API did not

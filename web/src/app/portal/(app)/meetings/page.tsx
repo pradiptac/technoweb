@@ -18,7 +18,7 @@ export default async function PortalMeetingsPage() {
     meetings = await getMyMeetings();
   } catch {
     return (
-      <ErrorState title="We could not load your meetings">
+      <ErrorState level={1} title="We could not load your meetings">
         Try again shortly, or call us and we will look them up.
       </ErrorState>
     );

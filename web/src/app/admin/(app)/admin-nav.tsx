@@ -63,6 +63,25 @@ function groupArrived(item: Extract<NavEntry, { kind: "group" }>, arrived: Retur
 /** The row look is shared with the portal (Console 2.0, `app-shell/nav-classes.ts`). */
 const row = NAV_ROW;
 
+/**
+ * Keeps a folded rail's flyout on screen. Anchored at its row's top, the
+ * lower sections' flyouts (Site, SEO, System) ran past the bottom of a
+ * laptop-height window inside a sticky panel nothing could scroll (review,
+ * 2026-10-12). Measured on the next frame, once `:hover`/`:focus-within`
+ * has shown it, and lifted by exactly the overflow — never above the top.
+ */
+function placeFlyout(li: HTMLElement) {
+  const fly = li.querySelector<HTMLElement>("[data-flyout]");
+  if (!fly) return;
+  fly.style.top = "0px";
+  requestAnimationFrame(() => {
+    const card = fly.firstElementChild?.getBoundingClientRect();
+    if (!card || card.height === 0) return;
+    const over = card.bottom - (window.innerHeight - 8);
+    if (over > 0) fly.style.top = `${-Math.min(over, card.top - 8)}px`;
+  });
+}
+
 export function AdminNav({ nav }: { nav: NavEntry[] }) {
   const pathname = usePathname();
   const arrived = useNewSince();
@@ -186,7 +205,11 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
         const waiting = expanded ? 0 : groupArrived(item, arrived);
 
         return (
-          <li key={item.id} data-rail-group className="relative min-w-0">
+          <li
+            key={item.id} data-rail-group className="relative min-w-0"
+            onPointerEnter={folded ? (e) => placeFlyout(e.currentTarget) : undefined}
+            onFocus={folded ? (e) => placeFlyout(e.currentTarget) : undefined}
+          >
             {/* A hairline, and nothing a screen reader has to hear about —
                 the grouping it draws is already carried by the sections
                 themselves. Inset by the row padding so it lines up with the
@@ -249,7 +272,7 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
                 className="rail-flyout absolute top-0 left-full z-40 hidden pl-2"
                 onKeyDown={(e) => { if (e.key === "Escape") (document.activeElement as HTMLElement | null)?.blur(); }}
               >
-                <div className="w-56 rounded-xl border border-line-strong bg-card p-2 shadow-3">
+                <div className="max-h-[calc(100dvh-1rem)] w-56 overflow-y-auto rounded-xl border border-line-strong bg-card p-2 shadow-3">
                   <p className="px-2 pb-1 text-12 font-semibold text-muted">{item.label}</p>
                   <ul className="grid gap-0.5">{links(item.links, false)}</ul>
                 </div>

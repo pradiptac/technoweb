@@ -48,6 +48,11 @@ for (const path of ["/portal", "/portal/orders", "/portal/tickets", "/portal/dow
   const n = await page.locator("h1").count();
   ok(n === 1, `${path}: exactly one h1 (${n})`);
 }
+// A reference nobody has: the not-found page still names itself (review,
+// 2026-10-12 — the layout's h1 went, and only the success paths gained one).
+await go(page, "/portal/tickets/TW-2026-99999");
+ok(await page.locator("h1").count() === 1, `ticket not found: exactly one h1 (${await page.locator("h1").count()})`);
+
 await go(page, "/portal");
 ok(await page.locator("[data-hero-band]").count() === 1, "hero band present");
 ok(await page.locator("[data-portal-tile]").count() >= 1, "at least one live tile");

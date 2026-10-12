@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Sparkline } from "@/components/charts/sparkline";
 import { CountUp } from "@/components/ui/count-up";
+import { countable } from "@/lib/countable";
 import type { ChartTone } from "@/components/charts/tones";
 import type { SVGProps } from "react";
 
@@ -126,7 +127,7 @@ export function StatTile({
     <>
       <div className="flex items-center justify-between gap-2">
         <p className={cn("shrink-0 font-display text-19 leading-none font-semibold tracking-[-.02em] tabular-nums", t.value)}>
-          <CountUp value={value} />
+          {countable(value) ? <CountUp value={value} /> : value}
         </p>
         {spark && <Sparkline values={spark} tone={SPARK_TONE[tone]} className="h-5 min-w-0 flex-1" />}
         <span aria-hidden className={cn("hidden size-7 shrink-0 place-items-center rounded-lg sm:grid", t.disc, t.value)}>
@@ -149,7 +150,7 @@ export function StatTile({
           of a 390px screen is a number shouting across an empty card.
         */}
         <p className={cn("font-display text-22 leading-none font-semibold tracking-[-.02em] tabular-nums sm:text-[26px]", t.value)}>
-          <CountUp value={value} />
+          {countable(value) ? <CountUp value={value} /> : value}
         </p>
         {/*
           The label stays `text-ink-2` rather than taking the tone. Six numbers
