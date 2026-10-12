@@ -852,7 +852,7 @@ default install greeted nobody.
 `chatbot_name`, `chatbot_welcome`, `chatbot_quick_actions`, `chatbot_fallback`,
 `chatbot_auto_open`, `chatbot_auto_open_delay`, `chatbot_whatsapp_number`, and
 the widget's appearance — `chatbot_colour` (`#rrggbb` or blank, lower-cased),
-`chatbot_background` (the thread's ground, same shape), `chatbot_icon`, `chatbot_font_size` and `chatbot_animation` (choices the admin
+`chatbot_background` (the thread's ground, same shape), `chatbot_header` (the panel's top bar, same shape; blank is the theme's brand colour), `chatbot_icon`, `chatbot_font_size` and `chatbot_animation` (choices the admin
 index lists as `options` and `PATCH` refuses outside of) and `chatbot_show_name` — are
 named in `ChatSettings::PUBLIC_KEYS`, because the widget is drawn before anybody
 speaks. The model, the context window, the spend ceiling, the intake questions

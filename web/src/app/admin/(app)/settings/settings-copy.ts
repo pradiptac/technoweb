@@ -114,6 +114,10 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Assistant background",
     hint: "The colour behind the conversation, between the header and the message box. Blank uses the palest brand tint from Colour palette. The bubbles stay white cards on it; anything drawn straight on the colour takes a text colour worked out to stay readable.",
   },
+  chatbot_header: {
+    label: "Assistant header colour",
+    hint: "The bar across the top of the panel, behind the assistant's name. Blank uses the theme's own colour from Colour palette. The name, the line under it and the close button take a text colour worked out to stay readable on whatever you choose.",
+  },
   chatbot_animation: {
     label: "Animation",
     hint: "How the button bids for attention until somebody opens it. Every style stops once the panel has been opened, and none plays for a visitor who has asked for reduced motion.",
@@ -1159,7 +1163,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
     it asks, decide where a conversation can be carried on, then the ceilings.
     Alphabetical put the daily cap second.
   */
-  chatbot: ["chatbot_enabled", "chatbot_name", "chatbot_show_name", "chatbot_colour", "chatbot_icon", "chatbot_font_size", "chatbot_background", "chatbot_animation",
+  chatbot: ["chatbot_enabled", "chatbot_name", "chatbot_show_name", "chatbot_colour", "chatbot_icon", "chatbot_font_size", "chatbot_header", "chatbot_background", "chatbot_animation",
             "chatbot_welcome", "chatbot_fallback",
             "chatbot_quick_actions", "chatbot_auto_open", "chatbot_auto_open_delay",
             "chatbot_intake_enabled", "chatbot_smart_intake", "chatbot_intake_questions",

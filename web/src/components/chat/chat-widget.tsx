@@ -88,6 +88,8 @@ export type ChatLook = {
   accent: { bg: string; ink: string } | null;
   /** The thread's ground and an ink that reads on it, or null for the palette's `brand-50`. */
   background: { bg: string; ink: string } | null;
+  /** The header bar and an ink that reads on it, or null for the palette's brand fill. */
+  header: { bg: string; ink: string } | null;
 };
 
 const TEXT_PX: Record<ChatLook["fontSize"], string> = { small: "13px", medium: "14px", large: "16px" };
@@ -112,6 +114,7 @@ export function ChatWidget({
   const lookStyle = {
     ...(look.accent ? { "--chat-accent": look.accent.bg, "--chat-accent-ink": look.accent.ink } : {}),
     ...(look.background ? { "--chat-bg": look.background.bg, "--chat-bg-ink": look.background.ink } : {}),
+    ...(look.header ? { "--chat-head": look.header.bg, "--chat-head-ink": look.header.ink } : {}),
     "--chat-text": TEXT_PX[look.fontSize],
   } as React.CSSProperties;
   const [messages, setMessages] = useState<Message[]>([]);
@@ -422,8 +425,14 @@ export function ChatWidget({
           "motion-reduce:transition-none motion-reduce:translate-y-0 motion-reduce:scale-100",
         )}
       >
-        <header className="flex items-center gap-3 border-b border-line px-4 py-3">
-          <span className="flex size-8 items-center justify-center rounded-full bg-(--chat-accent) text-(--chat-accent-ink)">
+        {/*
+          The header is painted in `--chat-head` (2026-10-12): the theme's
+          brand by default, or the colour chosen under Assistant → Settings,
+          every word in its derived ink. The mark's disc inverts the pair, so
+          it stays a disc on a header the same colour as the launcher.
+        */}
+        <header className="flex items-center gap-3 bg-(--chat-head) px-4 py-3 text-(--chat-head-ink)">
+          <span className="flex size-8 items-center justify-center rounded-full bg-(--chat-head-ink) text-(--chat-head)">
             <AssistantMark icon={look.icon} className="size-4" />
           </span>
           <span className="min-w-0 flex-1">
@@ -435,7 +444,7 @@ export function ChatWidget({
             <span className="block truncate text-13 font-semibold">
               {opening?.name ?? look.name}
             </span>
-            <span className="block text-12 text-muted">Answers from this website</span>
+            <span className="block text-12">Answers from this website</span>
           </span>
 
           {/*
@@ -463,7 +472,7 @@ export function ChatWidget({
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="-mr-1 rounded p-1.5 text-muted transition-colors hover:bg-surface-2 hover:text-ink"
+            className="-mr-1 rounded p-1.5 transition-opacity hover:opacity-75"
           >
             <span className="sr-only">Close</span>
             <IconClose className="size-4" />

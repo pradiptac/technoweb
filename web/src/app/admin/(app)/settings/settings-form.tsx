@@ -317,7 +317,7 @@ function GroupPanel({
           */
           // A colour with no fixed choices: the picker beside the hex.
           // `chatbot_background` is a colour under a name that does not say so.
-          if ((row.key.endsWith("_colour") || row.key === "chatbot_background") && !row.options?.length) {
+          if ((row.key.endsWith("_colour") || row.key === "chatbot_background" || row.key === "chatbot_header") && !row.options?.length) {
             return (
               <SettingColourField key={row.key} id={id} label={meta.label} hint={meta.hint} defaultValue={row.value ?? ""} />
             );

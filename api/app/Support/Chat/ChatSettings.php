@@ -57,6 +57,7 @@ class ChatSettings
         'chatbot_show_name',
         'chatbot_animation',
         'chatbot_background',
+        'chatbot_header',
     ];
 
     /** The launcher's glyph: ids the frontend draws; the console offers exactly these. */

@@ -3381,7 +3381,7 @@ createServer(async (req, res) => {
     // only when Settings → Homepage names a published builder page, and absent
     // is the theme's own homepage, which is what CI should build and audit.
     // The homepage figures and the assistant's look, as the seeder ships them.
-    stats_size: 'medium', chatbot_animation: 'burst', chatbot_background: '',
+    stats_size: 'medium', chatbot_animation: 'burst', chatbot_background: '', chatbot_header: '',
     reviews_kicker: 'Reviews', reviews_heading: 'What our customers say',
     store_shipping_service: 'Standard Shipping', store_transit_days_min: '3', store_transit_days_max: '7',
     // Delivery charges (0.142.0), live so the screen's changes reach the product page and trust strip.

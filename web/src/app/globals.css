@@ -2733,6 +2733,10 @@ summary:focus-visible {
     /* The thread's ground and its ink; Settings → Assistant → Background overrides both inline. */
     --chat-bg: var(--color-brand-50);
     --chat-bg-ink: var(--color-ink);
+    /* The panel's header: the theme's brand fill under its own ink unless
+       Assistant → Settings chooses a colour (lib/chat-look.ts derives that ink). */
+    --chat-head: var(--color-brand-600);
+    --chat-head-ink: var(--color-brand-on);
   }
 
   /*

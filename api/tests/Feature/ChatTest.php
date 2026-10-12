@@ -781,8 +781,10 @@ class ChatTest extends TestCase
         $this->setting('chatbot_icon', 'chat');
         $this->setting('chatbot_font_size', 'medium');
         $this->setting('chatbot_show_name', '1', 'boolean');
+        $this->setting('chatbot_header', '#0f766e');
 
         $data = $this->getJson('/api/v1/settings')->assertOk()->json('data');
+        $this->assertSame('#0f766e', $data['chatbot_header'] ?? null, 'the header is drawn before anybody speaks, so public');
 
         $this->assertArrayHasKey('chatbot_enabled', $data);
         // The widget's appearance is drawn before anybody speaks, so public.
@@ -820,6 +822,11 @@ class ChatTest extends TestCase
         $save(['chatbot_background' => '#F5F0FF'])->assertOk();
         $this->assertSame('#f5f0ff', Setting::get('chatbot_background'));
         $save(['chatbot_background' => 'lilac'])->assertUnprocessable()->assertJsonValidationErrors('settings.0.value');
+        // The panel's header (2026-10-12): blank is the theme colour, a colour is checked and lower-cased.
+        $this->setting('chatbot_header', null);
+        $save(['chatbot_header' => '#0F766E'])->assertOk();
+        $this->assertSame('#0f766e', Setting::get('chatbot_header'));
+        $save(['chatbot_header' => 'teal'])->assertUnprocessable()->assertJsonValidationErrors('settings.0.value');
         $save(['chatbot_colour' => ''])->assertOk();
         $this->assertNull(Setting::get('chatbot_colour'), 'blank means the brand colour');
 

@@ -270,6 +270,18 @@ ground — the typing dots, now `currentColor` — reads on it; every bubble
 is a card and keeps its own ink. The console draws it with the colour
 control by name, since the key does not end in `_colour`.
 
+## The header has a colour setting (2026-10-12)
+
+`chatbot_header`, the same shape and the same rules as the background:
+a hex or blank, public, checked and lower-cased by the API. Blank paints
+the header in the theme's brand fill (`--color-brand-600`) under
+`--color-brand-on`, the pair `npm run themes` checks for every palette.
+This changed the default look, at the client's request: the header had
+been the white card. A chosen colour lands as `--chat-head` with
+`--chat-head-ink` derived beside it. The name, the line under it and the
+close button all take that ink. The mark's disc inverts the pair, so it
+stays a disc on a header the colour of the launcher.
+
 ## The launcher's animation is a setting, and there are eleven (2026-09-17)
 
 `chatbot_animation`, public with the rest of the appearance, offered from
