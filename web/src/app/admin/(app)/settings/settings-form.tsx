@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FormActions } from "@/components/admin/form-actions";
 import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
+import { settingImageSpec } from "@/lib/image-specs";
 import { ClearSecretButton } from "./clear-secret-button";
 import { Tabs } from "@/components/admin/tabs";
 import { ThemePicker } from "./theme-picker";
@@ -438,6 +439,7 @@ function GroupPanel({
                     picture, the drop zone and both action links.
                   */
                   description={meta.hint}
+                  spec={settingImageSpec(row.key)}
                   /*
                     `contain`, not `cover`. Each of these is a mark
                     rather than a photograph: cropping a 600x81 logo into

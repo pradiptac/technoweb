@@ -5,6 +5,7 @@ import $ from "jquery";
 import "summernote/dist/summernote-lite";
 import "summernote/dist/summernote-lite.css";
 import { uploadMediaFile } from "@/lib/media-upload";
+import { useCropBeforeUpload } from "./crop-before-upload";
 import { MediaBrowser } from "./media-browser";
 import { LayoutPicker, type LayoutOption } from "./layout-picker";
 
@@ -150,6 +151,10 @@ export function RichTextEditor({
   // dependency array — the point is that it tracks whatever the latest render
   // produced.
   useEffect(() => { onChangeRef.current = onChange; });
+  // The crop step before a picture goes into the body (0.169.0).
+  const { prepare } = useCropBeforeUpload();
+  const prepareRef = useRef(prepare);
+  useEffect(() => { prepareRef.current = prepare; });
 
   /*
     The initial body, likewise read once. This is `defaultValue` semantics: an
@@ -396,7 +401,13 @@ export function RichTextEditor({
           become base64 inside the body. See `insertUploads` and `uploadMediaFile`.
         */
         onImageUpload(files: FileList) {
-          void insertUploads($el, el, Array.from(files));
+          void (async () => {
+            // The caret, kept across the crop dialog, which takes focus.
+            $el.summernote("saveRange");
+            const ready = await prepareRef.current(Array.from(files), "body");
+            $el.summernote("restoreRange");
+            if (ready?.length) await insertUploads($el, el, ready);
+          })();
         },
         /*
           Deleting an image from a body does **not** delete the file.

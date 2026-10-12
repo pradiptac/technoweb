@@ -89,7 +89,8 @@ export function BrandForm({
           <CoverField
             name="logo_path"
             label="Logo"
-            hint="PNG or SVG with a transparent background. Around 400 x 200 px; it is shown small and never cropped."
+            spec="brand_logo"
+            hint="SVG or a transparent PNG. Shown small and never cropped."
             defaultPath={brand?.logo_path ?? null}
             defaultUrl={brand?.logo ?? null}
           />

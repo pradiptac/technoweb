@@ -139,7 +139,8 @@ export function EntryForm({
       node: (
         <div key="media">
           <CoverField label="Picture" name="image_path"
-            hint="Drawn at the top of the page and on the archive tile, cropped to 1200 x 630."
+            spec="cover"
+            hint="Drawn at the top of the page and on the archive tile."
             defaultPath={entry?.image_path ?? null} defaultUrl={entry?.image ?? null} />
           {err("image_path") && <p className="-mt-3 mb-4 text-12-5 text-err">{err("image_path")}</p>}
         </div>

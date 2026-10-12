@@ -147,7 +147,8 @@ export function TemplateEditor({ template, meta }: { template?: MessageTemplate;
           <CoverField
             name="media_path" label={channel === "push" ? "Notification image" : "Picture"}
             defaultPath={template?.media_path ?? null} defaultUrl={template?.media_url ?? null}
-            hint={channel === "whatsapp" ? "A header image. It must match what WhatsApp approved — a template approved with text only will not take one." : "JPG or PNG. Shown above the message."}
+            spec="message"
+            hint={channel === "whatsapp" ? "A header image. It must match what WhatsApp approved — a template approved with text only will not take one." : "Shown above the message."}
             onPathChange={(p) => setHasPicture(Boolean(p))}
           />
 

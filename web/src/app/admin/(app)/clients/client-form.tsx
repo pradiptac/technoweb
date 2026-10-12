@@ -77,7 +77,8 @@ export function ClientForm({
             label="Logo"
             defaultPath={client?.logo_path ?? null}
             defaultUrl={client?.logo ?? null}
-            hint="SVG or PNG with a transparent background. It is shown contained, never cropped, and as a white silhouette in dark mode."
+            spec="client_logo"
+            hint="SVG or a transparent PNG. Shown whole, and as a white silhouette in dark mode."
           />
         </aside>
       </div>

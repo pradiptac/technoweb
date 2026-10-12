@@ -2510,6 +2510,7 @@ Upload paths, limits, the SVG sanitiser, in-place edits, the bin, alt text.
 - A media URL carries `?v=<updated_at>`; a path never does.
 - An in-place edit archives the previous bytes *before* it runs.
 - An in-place edit also moves the file's public address (`?v=<revision>`, `MediaUrl`, 0.124.0) — see `docs/cdn.md`.
+- Crop before upload (0.169.0, `docs/media.md` "Crop before upload"): `lib/image-specs.ts` is the one list of what each picture is drawn as (the frontend's, on purpose) and `imageHint()` the line under every image field — a caller's `hint` says what the picture is for and never repeats dimensions; every `uploadMediaFile` caller awaits `useCropBeforeUpload().prepare(files, spec)` first (JPEG/PNG/WebP only; Cancel → null, nothing uploaded; a queue for several), and the crop is drawn in the browser onto a canvas the size of the *output* from `createImageBitmap(file, {imageOrientation: "from-image"})`, never up-scaled, so only the result is stored and no API changed. `CropStage` is the one crop surface (frame over a zooming, panning picture; Free resizes by `data-handle` corners) — the library's server crop uses it too. `scripts/probes/crop-before-upload.mjs`.
 - Deleting a media file fills a bin and keeps the bytes.
 - A bulk route must be declared above `media/{id}`.
 - GD sets two traps and both are invisible in a screenshot.
@@ -3070,6 +3071,7 @@ Console 2.0 (0.166.0) and Portal 2.0 (0.167.0): the glass bar, the account menu,
 - The portal (0.167.0): the console's bar with the site's logo, every page its own `h1` (headings under it moved up a level); the home's reads each `.catch` alone, a tile with nothing is left out and the tiles take as many columns as there are; the hero's booking buttons follow `visits_enabled`/`meetings_enabled`.
 - `npm run audit` signs in to the portal and audits it when `PORTAL_LOGIN_EMAIL`/`PORTAL_LOGIN_PASSWORD` are set — nothing checked the portal's contrast before.
 - The account menu's item icons are rendered by the server layout and passed in (`AccountItem.icon`): a client import of `@/components/icons` ships the whole map.
+- "AI Powered" (0.169.0) is `.ai-badge` in the version chip: a brand→accent wash under gradient ink (graded inks, so the audit passes it), one `::after` sweep on load and on hover inside the reduced-motion guard, none under Subtle; `IconSparkle` is in `icons-ui.tsx`.
 
 ### Help, tours, Simple view and empty states — `docs/help-and-tours.md`
 

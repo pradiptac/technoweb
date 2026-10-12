@@ -137,7 +137,7 @@ export function CategoryForm({
           <CoverField
             label="Category image"
             name="image_path"
-            hint="PNG, JPG, GIF or WebP. A landscape image around 1600 x 900 px."
+            spec="category"
             defaultPath={category?.image_path ?? null}
             defaultUrl={category?.image ?? null}
           />

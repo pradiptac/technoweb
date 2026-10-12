@@ -177,7 +177,8 @@ export function ServiceForm({
           <CoverField
             label="Service picture"
             name="image_path"
-            hint="PNG, JPG or WebP, landscape, around 1600 x 1000 px. Shown on the service's card — as the whole card where its category draws pictures as backgrounds."
+            spec="service"
+            hint="Shown on the service's card — as the whole card where its category draws pictures as backgrounds."
             defaultPath={service?.image_path ?? null}
             defaultUrl={service?.image ?? null}
           />

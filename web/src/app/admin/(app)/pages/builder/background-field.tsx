@@ -98,6 +98,7 @@ export function BackgroundField({ value, onChange, error, idPrefix, media }: {
         <CoverField
           name={`_media_${id("image")}`}
           label="Picture"
+          spec="hero"
           defaultPath={bg.image_path ?? null}
           defaultUrl={bg.image_path ? media[bg.image_path] ?? bg.image_url ?? null : null}
           onPathChange={(p) => set({ image_path: p ?? undefined })}

@@ -774,7 +774,7 @@ function WidgetFields({ widget, info, path }: { widget: Widget; info: LayoutWidg
 function FieldInput({ field, path, widgetId }: { field: LayoutField; path: Path; widgetId: string }): ReactNode {
   switch (field.kind) {
     case "html": return <HtmlInput field={field} path={path} widgetId={widgetId} />;
-    case "path": return <ImagePath path={path} label={field.label} />;
+    case "path": return <ImagePath path={path} label={field.label} hint={field.hint ?? undefined} />;
     case "video": return <VideoPath path={path} label={field.label} />;
     case "youtube": return <Text path={path} label={field.label} placeholder="https://www.youtube.com/watch?v=…" required={field.required} hint="A watch, share or embed link. Nothing is loaded from YouTube until a visitor presses play." />;
     case "ref": return <RecordPick field={field} path={path} />;

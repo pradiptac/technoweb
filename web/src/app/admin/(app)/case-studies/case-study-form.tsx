@@ -146,7 +146,8 @@ export function CaseStudyForm({
 
         <div>
           <CoverField
-            hint="PNG, JPG, GIF or WebP. 1200 x 630 px — the ratio the case study page and its share card both use."
+            spec="cover"
+            hint="The case study page and its share card both use this shape."
             defaultPath={study?.cover_image_path ?? null}
             defaultUrl={study?.cover_image ?? null}
           />

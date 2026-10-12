@@ -105,7 +105,8 @@ export function PopupForm({ popup, meta }: { popup?: AdminPopup; meta: PopupMeta
         defaultPath={popup?.image_path ?? null}
         defaultUrl={popup?.image ?? null}
         description="Optional when there is a message below. With both, the picture sits above the message."
-        hint={meta.sizes.find((s) => s.value === size)?.blurb ?? "PNG, JPG, GIF, WebP or SVG."}
+        spec="popup"
+        hint={meta.sizes.find((s) => s.value === size)?.blurb}
       />
 
       {/*

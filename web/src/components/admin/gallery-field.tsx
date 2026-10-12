@@ -7,6 +7,8 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { uploadMediaFile } from "@/lib/media-upload";
 import { ReorderButtons } from "@/components/admin/reorder-buttons";
+import { useCropBeforeUpload } from "@/components/admin/crop-before-upload";
+import { imageHint, type ImageSpec, type ImageSpecKey } from "@/lib/image-specs";
 
 const MAX = 12;
 
@@ -23,12 +25,15 @@ type Shot = { path: string; url: string };
  * why reordering matters and is spelled out rather than left to be guessed.
  */
 export function GalleryField({
-  defaultPaths, defaultUrls, error,
+  defaultPaths, defaultUrls, error, spec = "product",
 }: {
   defaultPaths: string[];
   defaultUrls: string[];
   error?: string;
+  /** The shape the pictures are drawn at (0.169.0). */
+  spec?: ImageSpecKey | ImageSpec;
 }) {
+  const { prepare, limits } = useCropBeforeUpload();
   const [shots, setShots] = useState<Shot[]>(
     defaultPaths.map((path, i) => ({ path, url: defaultUrls[i] ?? "" })),
   );
@@ -53,7 +58,10 @@ export function GalleryField({
     batch — awaiting `startUpload` itself would not, since it returns void.
     Each upload is the browser's own request, so its progress is real.
   */
-  const upload = (files: File[]) =>
+  const upload = async (chosen: File[]) => {
+    // The crop step first, one picture after another; Cancel uploads nothing.
+    const files = await prepare(chosen, spec);
+    if (!files?.length) return;
     startUpload(async () => {
       setUploadError(null);
       const failures: string[] = [];
@@ -77,6 +85,7 @@ export function GalleryField({
         setUploadError(failures.length === 1 ? failures[0] : `${failures.length} failed. ${failures[0]}`);
       }
     });
+  };
 
   const move = (i: number, by: number) =>
     setShots((s) => {
@@ -135,7 +144,7 @@ export function GalleryField({
             multiple
             accept=".png,.jpg,.jpeg,.gif,.webp,.svg"
             label="Select images…"
-            hint={`PNG, JPG, GIF, WebP or SVG. ${MAX - shots.length} slot${MAX - shots.length === 1 ? "" : "s"} left.`}
+            hint={`${imageHint(spec, limits)} · ${MAX - shots.length} slot${MAX - shots.length === 1 ? "" : "s"} left`}
             progress={pending ? { done, total, label: current, percent } : null}
             onFiles={(files) => {
               /*
@@ -151,7 +160,7 @@ export function GalleryField({
               const batch = files.slice(0, MAX - shots.length);
               setTotal(batch.length);
               setDone(0);
-              upload(batch);
+              void upload(batch);
             }}
           />
 
@@ -170,6 +179,7 @@ export function GalleryField({
 
           <MediaBrowser
             open={browsing}
+            spec={spec}
             onClose={() => setBrowsing(false)}
             onPick={(image) => setShots((current) => (
               // Already here, or the gallery is full: both are no-ops rather

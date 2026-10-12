@@ -21,6 +21,32 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.169.0 — 2026-10-12
+
+**Every picture the right size, and "AI Powered".** Two client requests.
+
+- **Crop before upload.** Choosing a JPG, PNG or WebP for any image field —
+  a cover, a logo, a slide, a team photo, a product gallery, a picture in a
+  body, the media library itself — opens a crop window first, on the shape
+  the field needs (locked where it must be one shape: favicon, app icon, QR
+  code, share image), with zoom (slider, Ctrl + scroll, pinch) and drag.
+  **Crop & upload** stores only the cropped picture, already sized for the
+  field and never enlarged; **Use whole image** uploads it as it is;
+  **Cancel** uploads nothing. Several pictures are shown one after another.
+  SVG, GIF and other files go straight up. The media library's own Crop
+  gained the same zoom.
+- **Every image field says what to upload**: "Best at 1200 × 630 px
+  (1.91 : 1) · JPG, PNG or WebP · up to 5 MB", the size taken from one list
+  of what each picture is drawn as (`web/src/lib/image-specs.ts`) and the
+  limit from the library's settings. Several stale hints were corrected on
+  the way — a team photo is drawn 4:5, not 4:3.
+- **"AI Powered"** in the console's version chip, with a sparkle and one
+  light sweep when the console loads (none under reduced motion).
+
+No API change. `docs/media.md` "Crop before upload", `docs/console-portal.md`.
+
+---
+
 ## 0.168.0 — 2026-10-12
 
 **Simple to use.** The second release of the 2.0 roadmap: the console explains

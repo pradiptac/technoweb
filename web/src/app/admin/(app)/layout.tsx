@@ -26,8 +26,11 @@ import { brandName } from "@/lib/brand";
 import { TopBar } from "@/components/app-shell/top-bar";
 import { HelpDrawer } from "@/components/admin/help-drawer";
 import { IconAccessCard, IconBook, IconExternal } from "@/components/icons";
+import { IconSparkle } from "@/components/icons-ui";
 import { PageEnter } from "@/components/ui/page-enter";
 import { AccountMenu } from "@/components/app-shell/account-menu";
+import { CropBeforeUploadProvider } from "@/components/admin/crop-before-upload";
+import { getUploadLimitKb } from "@/lib/admin/media";
 
 /**
  * Every route under this layout requires a staff session. The login page
@@ -56,7 +59,7 @@ import { AccountMenu } from "@/components/app-shell/account-menu";
 const CONSOLE_WIDTH = "w-[95%]";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [staff, settings] = await Promise.all([getCurrentStaff(), getSiteSettings()]);
+  const [staff, settings, uploadKb] = await Promise.all([getCurrentStaff(), getSiteSettings(), getUploadLimitKb()]);
 
   if (!staff) redirect("/admin/login");
 
@@ -92,6 +95,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <ToastProvider okDuration={noticeMs}>
       <AlertsAsToastsProvider>
+      <CropBeforeUploadProvider maxKb={uploadKb}>
       <NewSincePoller />
       {/* First-visit guided tours (0.168.0); reads the search params. */}
       <Suspense fallback={null}>
@@ -128,7 +132,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 the value is available to anybody who wants it.
               */}
               <span
-                title={`Console · version ${APP_VERSION}`}
+                title={`Console · version ${APP_VERSION} · AI Powered`}
                 className={cn(
                   "hidden items-center gap-1 rounded-full border border-line-strong bg-surface-2",
                   "py-[2px] pr-[4px] pl-2 text-[9.5px] font-semibold tracking-[.08em] text-muted uppercase",
@@ -138,6 +142,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 Console
                 <span className="rounded-full bg-card px-1 py-px text-[8.5px] font-medium tracking-normal text-faint">
                   {VERSION_LABEL}
+                </span>
+                {/* What the product is now (0.169.0, the client's ask): the
+                    SEO assistant, the chat, the drafts. `.ai-badge` in
+                    globals.css — a wash, gradient ink and one sweep. */}
+                <span className="ai-badge" data-ai-badge>
+                  <IconSparkle width={11} height={11} aria-hidden />
+                  <span className="ai-badge-text">AI Powered</span>
                 </span>
               </span>
             </Link>
@@ -235,6 +246,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
       {/* Suspense: useSearchParams needs one, and this renders nothing. */}
       <Suspense fallback={null}><ToastFromParams /></Suspense>
+      </CropBeforeUploadProvider>
       </AlertsAsToastsProvider>
     </ToastProvider>
   );

@@ -91,7 +91,8 @@ export function TeamMemberForm({ member, meta }: { member?: AdminTeamMember; met
             accept=".png,.jpg,.jpeg,.webp"
             defaultPath={member?.photo_path ?? null}
             defaultUrl={member?.photo ?? null}
-            hint="Landscape, face centred — the card crops to 4:3. Without one, initials are shown."
+            spec="team"
+            hint="Portrait, face centred. Without one, initials are shown."
           />
         </aside>
       </div>

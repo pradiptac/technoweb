@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import { FileDrop, type UploadProgress } from "@/components/ui/file-drop";
 import { uploadMediaFile } from "@/lib/media-upload";
 import { MediaBrowser } from "@/components/admin/media-browser";
+import { useCropBeforeUpload } from "@/components/admin/crop-before-upload";
+import { imageHint, type ImageSpec, type ImageSpecKey } from "@/lib/image-specs";
 
 type UploadState = { error?: string; path?: string; url?: string };
 const initial: UploadState = {};
@@ -22,7 +24,7 @@ const initial: UploadState = {};
 export function CoverField({
   defaultPath, defaultUrl, name = "cover_image_path", label = "Cover image",
   accept = ".png,.jpg,.jpeg,.gif,.webp,.svg",
-  hint = "PNG, JPG, GIF, WebP or SVG. Around 1200 x 800 px is plenty.",
+  hint, spec,
   description, className,
   onPathChange,
 }: {
@@ -33,7 +35,14 @@ export function CoverField({
   label?: string;
   /** Widened for video slides, which pick an MP4 rather than an image. */
   accept?: string;
+  /** Overrides the line built from `spec`. */
   hint?: string;
+  /**
+   * The shape and size this picture is drawn at (`lib/image-specs.ts`): the
+   * hint under the drop zone says it, and the crop step that opens before an
+   * upload starts on — or is locked to — its ratio (0.169.0).
+   */
+  spec?: ImageSpecKey | ImageSpec;
   /**
    * A line under the label saying what this image is for.
    *
@@ -68,6 +77,12 @@ export function CoverField({
   const [state, setState] = useState<UploadState>(initial);
   const [progress, setProgress] = useState<UploadProgress | null>(null);
   const pending = progress !== null;
+  const { prepare, limits } = useCropBeforeUpload();
+  const isVideo = accept.includes("mp4");
+  // The caller's sentence (what the picture is for), then what to upload.
+  const line = isVideo
+    ? hint ?? "An MP4 or WebM video."
+    : [hint, imageHint(spec, limits)].filter(Boolean).join(" ");
   // Derived, not synced: a fresh upload wins over the saved cover, and
   // clearing wins over both. Mirroring the action result into state with an
   // effect would just be a slower way to say the same thing.
@@ -173,12 +188,15 @@ export function CoverField({
       <FileDrop
         accept={accept}
         label={`Select ${label.toLowerCase()}…`}
-        hint={hint}
+        hint={line}
         // One file, measured in bytes: the percentage is the picture going up.
         progress={progress}
-        onFiles={(files) => {
-          const file = files[0];
-          if (!file || pending) return;
+        onFiles={async (files) => {
+          const picked = files[0];
+          if (!picked || pending) return;
+          // The crop step first (a JPEG, PNG or WebP); Cancel uploads nothing.
+          const file = (await prepare([picked], spec))?.[0];
+          if (!file) return;
           // Uploaded the moment a file is chosen — one less button to press,
           // and the preview updates immediately.
           setCleared(false);
@@ -245,6 +263,7 @@ export function CoverField({
         open={browsing}
         onClose={() => setBrowsing(false)}
         onPick={(image) => { setCleared(false); setPicked({ path: image.path, url: image.url }); }}
+        spec={spec}
       />
 
     </div>

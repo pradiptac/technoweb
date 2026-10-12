@@ -9,6 +9,7 @@ import { MediaBrowser } from "@/components/admin/media-browser";
 import { ReorderButtons } from "@/components/admin/reorder-buttons";
 import { IconField } from "@/components/admin/icon-field-lazy";
 import { cn } from "@/lib/utils";
+import type { ImageSpecKey } from "@/lib/image-specs";
 
 /**
  * The pieces every block editor is made of.
@@ -177,7 +178,7 @@ export function Choice({ path, label, options, hint, fallback }: {
   );
 }
 
-export function ImagePath({ path, label, hint }: { path: Path; label: string; hint?: string }) {
+export function ImagePath({ path, label, hint, spec = "body" }: { path: Path; label: string; hint?: string; spec?: ImageSpecKey }) {
   const { content, set, err, media, idPrefix } = useBlock();
   const value = getIn(content, path);
   const stored = typeof value === "string" ? value : null;
@@ -188,6 +189,7 @@ export function ImagePath({ path, label, hint }: { path: Path; label: string; hi
         name={`_media_${idFor(path, idPrefix)}`}
         label={label}
         hint={hint}
+        spec={spec}
         defaultPath={stored}
         defaultUrl={stored ? media[stored] ?? null : null}
         onPathChange={(p) => set(path, p ?? undefined)}

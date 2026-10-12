@@ -383,7 +383,8 @@ export function EventForm({ event, meta, builder }: {
         {/* ------------------------------------------------------------- Media */}
         <div className="max-w-[520px]">
           <CoverField
-            hint="PNG, JPG, GIF or WebP. 1200 x 630 px — the ratio the event's page and its share card both use."
+            spec="cover"
+            hint="The event's page and its share card both use this shape."
             description="The picture on the event's card and at the top of its page. An event without one is drawn on the theme's own ground."
             defaultPath={event?.cover_image_path ?? null}
             defaultUrl={event?.cover_image ?? null}

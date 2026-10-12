@@ -280,7 +280,8 @@ export function PaymentsPanel({ meta, rows }: { meta: PaymentsMeta; rows: Settin
             <CoverField
               name="setting__upi_qr_path"
               label="UPI QR code"
-              hint="PNG or SVG, square — around 600 x 600 px. It is shown uncropped, because a cropped QR code cannot be scanned."
+              spec="qr"
+              hint="Shown whole: crop exactly to the code's edge, never into it, or it cannot be scanned."
               defaultPath={stored("upi_qr_path")?.value ?? null}
               defaultUrl={stored("upi_qr_path")?.url ?? null}
               /*

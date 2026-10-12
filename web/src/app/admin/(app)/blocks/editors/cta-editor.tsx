@@ -48,7 +48,7 @@ export function CtaEditor({ layout }: { layout: string }) {
 
       {layout === "split" && (
         <>
-          <ImagePath path={["image_path"]} label="Picture" hint="Shown beside the words; about 1200 × 900 px." />
+          <ImagePath path={["image_path"]} label="Picture" spec="gallery" hint="Shown beside the words." />
           <Choice path={["image_side"]} label="Picture side" fallback="right" options={[{ value: "right", label: "Right" }, { value: "left", label: "Left" }]} />
         </>
       )}
@@ -126,7 +126,7 @@ export function CtaEditor({ layout }: { layout: string }) {
             <Text path={["ios_url"]} label="App Store link (optional)" />
             <Text path={["android_url"]} label="Google Play link (optional)" />
           </Row>
-          <ImagePath path={["qr_path"]} label="QR code image" hint="Upload the QR code for the app link — a square PNG or SVG." />
+          <ImagePath path={["qr_path"]} label="QR code image" spec="qr" hint="The QR code for the app link." />
         </>
       )}
     </>

@@ -120,7 +120,8 @@ export function StoreCategoryForm({ category, kinds }: { category?: AdminStoreCa
               <CoverField
                 name="icon_path"
                 label="Icon"
-                hint="A square 3D icon, transparent PNG or SVG, around 256 x 256 px."
+                spec="store_icon"
+                hint="A square 3D icon, a transparent PNG or SVG."
                 defaultPath={category?.icon_path ?? null}
                 defaultUrl={category?.icon_url ?? null}
               />
@@ -128,7 +129,8 @@ export function StoreCategoryForm({ category, kinds }: { category?: AdminStoreCa
               <CoverField
                 name="image_path"
                 label="Image"
-                hint="PNG, JPG, GIF or WebP. Around 1200 x 800 px. Used when the page is shared."
+                spec="share"
+                hint="Used when the page is shared."
                 defaultPath={category?.image_path ?? null}
                 defaultUrl={category?.image_url ?? null}
               />

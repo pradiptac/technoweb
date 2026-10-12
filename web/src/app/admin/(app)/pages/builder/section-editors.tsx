@@ -344,7 +344,7 @@ export function SectionEditor({ type, sectionId, options }: {
           <Text path={["kicker"]} label="Kicker" hint="A few words over the heading. Optional." />
           <Text path={["heading"]} label="Heading" required hint="First on the page, this is the page’s own title (its h1)." />
           <Text path={["lede"]} label="Lede" multiline />
-          <ImagePath path={["image_path"]} label="Picture" hint={layout === "centered" ? "Not drawn in the centred layout." : "Needed for the split and cover layouts."} />
+          <ImagePath path={["image_path"]} label="Picture" spec="hero" hint={layout === "centered" ? "Not drawn in the centred layout." : "Needed for the split and cover layouts."} />
           {layout === "cover" && (
             <VideoPath path={["video_path"]} label="Background video"
               hint="Optional. An MP4 or WebM that loops silently behind the words; the picture above is shown until it plays, and instead of it for visitors who ask for less motion. Keep it short and small — under 10 MB." />
@@ -377,7 +377,7 @@ export function SectionEditor({ type, sectionId, options }: {
               { value: "right", label: "Right" }, { value: "left", label: "Left" },
             ]} />
           </Row>
-          {kind === "image" && <ImagePath path={["image_path"]} label="Picture" />}
+          {kind === "image" && <ImagePath path={["image_path"]} label="Picture" spec="gallery" />}
           {kind === "youtube" && <Text path={["youtube"]} label="YouTube link" placeholder="https://www.youtube.com/watch?v=…" hint="Played only when somebody presses it, from youtube-nocookie.com." />}
           {kind === "mp4" && <VideoPath path={["video_path"]} label="Video" />}
           <Buttons />
@@ -515,7 +515,7 @@ export function SectionEditor({ type, sectionId, options }: {
             <Text path={["name"]} label="Who said it" required />
             <Text path={["role"]} label="Their role" />
           </Row>
-          <ImagePath path={["photo_path"]} label="Photo" hint="Optional. Drawn as a small circle." />
+          <ImagePath path={["photo_path"]} label="Photo" spec="team" hint="Optional. Drawn as a small circle." />
         </>
       );
 
@@ -600,7 +600,7 @@ export function SectionEditor({ type, sectionId, options }: {
                 <Text path={[...p, "heading"]} label="Heading in the panel" />
               </Row>
               <Text path={[...p, "body"]} label="Words" multiline required hint="Plain text; a blank line starts a new paragraph." />
-              <ImagePath path={[...p, "image_path"]} label="Picture" hint="Optional. Shown beside the words from laptop width, in 4:3." />
+              <ImagePath path={[...p, "image_path"]} label="Picture" spec="gallery" hint="Optional. Shown beside the words from laptop width." />
             </>
           )} />
         </>
@@ -615,7 +615,7 @@ export function SectionEditor({ type, sectionId, options }: {
             <>
               <Text path={[...p, "title"]} label="Title" required />
               <Text path={[...p, "body"]} label="Words" multiline required hint="Plain text; a blank line starts a new paragraph." />
-              <ImagePath path={[...p, "image_path"]} label="Picture" hint="Required. Shown while this step is in view; pictures of one shape change most smoothly." />
+              <ImagePath path={[...p, "image_path"]} label="Picture" spec="gallery" hint="Required. Shown while this step is in view; pictures of one shape change most smoothly." />
             </>
           )} />
         </>
@@ -691,8 +691,8 @@ export function SectionEditor({ type, sectionId, options }: {
           <Text path={["heading"]} label="Heading" />
           <Text path={["lede"]} label="Lede" multiline />
           <Row>
-            <ImagePath path={["before_path"]} label="Before" hint="Both pictures are drawn 16:10; take them from the same spot." />
-            <ImagePath path={["after_path"]} label="After" />
+            <ImagePath path={["before_path"]} label="Before" spec="before_after" hint="Take both from the same spot." />
+            <ImagePath path={["after_path"]} label="After" spec="before_after" />
           </Row>
           <Row cols={3}>
             <Text path={["before_label"]} label="Before — label" placeholder="Before" />
@@ -714,7 +714,7 @@ export function SectionEditor({ type, sectionId, options }: {
                 <Text path={[...p, "name"]} label="Who said it" required />
                 <Text path={[...p, "role"]} label="Their role" />
               </Row>
-              <ImagePath path={[...p, "photo_path"]} label="Photo" hint="Optional. Without one, their initial is drawn." />
+              <ImagePath path={[...p, "photo_path"]} label="Photo" spec="team" hint="Optional. Without one, their initial is drawn." />
             </>
           )} />
         </>

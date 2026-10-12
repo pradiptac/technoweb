@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { UploadProgress } from "@/components/ui/file-drop";
 import { uploadMediaFile } from "@/lib/media-upload";
+import { useCropBeforeUpload } from "@/components/admin/crop-before-upload";
 
 type Outcome = { tone: "ok" | "err"; text: string };
 
@@ -50,14 +51,19 @@ export function UploadProvider({ folderId, children }: { folderId?: string; chil
   // A ref, not state: two drops in quick succession must not interleave, and
   // the guard has to be read synchronously at the top of the handler.
   const busy = useRef(false);
+  const { prepare } = useCropBeforeUpload();
 
   const upload = useCallback((incoming: FileList | File[]) => {
-    const files = Array.from(incoming);
-    if (!files.length || busy.current) return;
+    const chosen = Array.from(incoming);
+    if (!chosen.length || busy.current) return;
 
     busy.current = true;
     setMessage(null);
     void (async () => {
+      // Pictures through the crop step first (free shape: the library is not
+      // a field); Cancel uploads nothing.
+      const files = await prepare(chosen);
+      if (!files?.length) { busy.current = false; return; }
       const failed: string[] = [];
 
       /*
@@ -113,7 +119,7 @@ export function UploadProvider({ folderId, children }: { folderId?: string; chil
         setMessage({ tone: "err", text: `${ok} uploaded, ${failed.length} failed. ${failed[0]}` });
       }
     })();
-  }, [folderId, router]);
+  }, [folderId, router, prepare]);
 
   return (
     <Ctx.Provider value={{ upload, progress, pending: progress !== null, message }}>

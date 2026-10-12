@@ -85,6 +85,14 @@ gets the eight newest tickets. A failure leaves the panel out. It is a
 `WIDGETS` key, so it can be hidden and reordered like the rest;
 `dashboard-view.mjs` counts eight panels.
 
+**"AI Powered" sits in the version chip (0.169.0, the client's ask).** A pill
+after the version — a sparkle and the words — in `.ai-badge` (globals.css):
+a `brand-50` → `accent-50` wash under gradient ink (`brand-ink` →
+`accent-ink`, the stops the audit grades), and one light sweep when the
+console loads and on hovering the logo, drawn by `::after` so the ground the
+audit reads never moves. Inside the reduced-motion guard; Subtle drops the
+sweep. From `sm` with the chip; `IconSparkle` lives in `icons-ui.tsx`.
+
 ## The portal (0.167.0)
 
 **The portal's bar is the console's, with the site's own logo.** The "Support

@@ -417,7 +417,8 @@ function SectionRow({
                   defaultUrl={value?.image_url ?? null}
                   name={`${id}-picture`}
                   label="Picture"
-                  hint="A wide photograph, 1920px across or more."
+                  spec="hero"
+                  hint="A wide photograph."
                   onPathChange={(path) => patch({ image_path: path ?? undefined })}
                 />
               </div>

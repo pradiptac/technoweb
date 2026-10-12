@@ -51,6 +51,24 @@ export type MediaListResponse = Paginated<MediaItem> & {
   meta: Paginated<MediaItem>["meta"] & { library?: MediaLibraryMeta };
 };
 
+/**
+ * The largest picture an upload may be, in KB — the library's own limit or
+ * php.ini's, whichever is lower — for the hint under every image field and
+ * the crop step's size check (0.169.0). Null when this account cannot read
+ * the library (a 403) or the API did not answer: the hint then states no size.
+ */
+export async function getUploadLimitKb(): Promise<number | null> {
+  try {
+    const res = await getMediaList({ per_page: 1 });
+    const lib = res.meta.library;
+    if (!lib) return null;
+    const kb = [lib.max_kb, lib.php_ceiling_kb].filter((n) => n > 0);
+    return kb.length ? Math.min(...kb) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getMediaFolders() {
   const res = await apiFetch<{ data: MediaFolder[] }>("/admin/media-folders", { token: await token() });
   return res.data;

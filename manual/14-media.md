@@ -32,8 +32,34 @@ script is removed. A file that cannot be read as a proper SVG is refused.
   (its sub-folders are not kept). Each file shows its own progress bar.
 - When you are **choosing** an image for a field and upload a single file, it
   is picked for you. Upload several and they simply join the library.
-- Uploads are stored exactly as they arrive — your originals are never
-  re-compressed.
+- Every image field says the size it is best at — for example "Best at
+  1200 × 630 px (1.91 : 1) · JPG, PNG or WebP · up to 5 MB" under a blog
+  post's cover — so you know what to upload before you choose.
+
+### Cropping before you upload
+
+When you choose a JPG, PNG or WebP picture, a **crop window opens first**,
+before anything is uploaded:
+
+- It starts on the **shape the field needs** ("this field"), and a field
+  that must be one shape — a favicon, a QR code, a share image — offers only
+  that shape. Elsewhere you can pick Free, the picture's Original shape,
+  1:1, 4:3, 16:9, 3:4 or 9:16.
+- **Zoom** with the slider, Ctrl + scroll or a pinch, and **drag** the
+  picture to choose what is inside the frame. Under Free, drag the frame's
+  corners. From the keyboard: arrows move, + and − zoom.
+- **Crop & upload** uploads only the cropped picture, already sized for the
+  field (never enlarged). If your crop is smaller than the recommended size,
+  the window says so — it will still work, but may look soft.
+- **Use whole image** uploads the picture exactly as it is. **Cancel**
+  uploads nothing.
+- Choosing several pictures at once (a product gallery, the library) shows
+  them one after another, with **Upload the rest as they are** to skip the
+  remaining ones.
+- SVG logos, GIFs and other files go straight up — they are not cropped.
+
+A picture you upload whole is stored exactly as it arrived; your original is
+never re-compressed.
 
 ## Finding files
 
@@ -56,7 +82,7 @@ Right-click a file (or use its menu) for:
 | View | A full-screen preview |
 | Download | Downloads it under its human file name |
 | Edit details | File name, alt text, description, tags, folder, focal point |
-| Crop | Crop to a free shape or a fixed ratio (1:1, 4:3, 16:9 and so on) |
+| Crop | Crop to a free shape or a fixed ratio (1:1, 4:3, 16:9 and so on), with zoom |
 | Resize | A new width and height, and optional square thumbnails (90, 120 or 180 px) |
 | Edit image | Rotate, flip, brightness, contrast, greyscale |
 | Overwrite | Replace the file with a new upload at the same address |

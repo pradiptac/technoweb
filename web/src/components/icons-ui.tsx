@@ -33,6 +33,14 @@ export const IconSignOut = (p: P) => (
   </svg>
 );
 
+/** Sparkle: the "AI Powered" badge's mark (0.169.0). */
+export const IconSparkle = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M12 3.5 13.9 9a2 2 0 0 0 1.2 1.2l5.4 1.8-5.4 1.8a2 2 0 0 0-1.2 1.2L12 20.5 10.1 15a2 2 0 0 0-1.2-1.2L3.5 12l5.4-1.8A2 2 0 0 0 10.1 9z" />
+    <path d="M19 3v3M17.5 4.5h3" />
+  </svg>
+);
+
 export const IconCart = (p: P) => (
   <svg {...base} {...p}>
     <circle cx="9" cy="20" r="1.4" /><circle cx="18" cy="20" r="1.4" />

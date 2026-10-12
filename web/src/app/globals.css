@@ -5253,6 +5253,55 @@ html[data-console-motion="subtle"] [data-console] [data-nav-pill] { transition-d
 html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active { scale: none; }
 @media (prefers-reduced-motion: reduce) { [data-console] [data-nav-pill] { transition-duration: 0s; } }
 
+/* "AI Powered" (0.169.0, docs/console-portal.md): the badge in the console's
+   version chip. A brand → accent wash under gradient ink — the audit takes a
+   gradient text's stops as its colours, and both are graded inks — and one
+   light sweep when the console loads and on hover, drawn by `::after` so the
+   ground the audit reads never changes. Inside the reduced-motion guard;
+   Subtle keeps the badge and drops the sweep. Tokens only. */
+.ai-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--color-brand-ink) 30%, transparent);
+  background-image: linear-gradient(100deg, var(--color-brand-50), var(--color-accent-50));
+  background-color: var(--color-card);
+  padding: 1px 6px 1px 5px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--color-brand-ink);
+}
+.ai-badge svg { color: var(--color-accent-ink); flex: none; }
+.ai-badge-text {
+  color: var(--color-brand-ink);
+  background-image: linear-gradient(90deg, var(--color-brand-ink), var(--color-accent-ink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ai-badge::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 30%, color-mix(in oklab, var(--color-card) 75%, transparent) 50%, transparent 70%);
+    translate: -110% 0;
+    animation: ai-sweep 1400ms var(--ease-brand) 900ms 1 both;
+  }
+  .group\/logo:hover .ai-badge::after { animation: ai-sweep-again 900ms var(--ease-brand) 1 both; }
+  .ai-badge svg { animation: ai-twinkle 1400ms var(--ease-brand) 900ms 1 both; }
+  @keyframes ai-sweep { from { translate: -110% 0; } to { translate: 110% 0; } }
+  @keyframes ai-sweep-again { from { translate: -110% 0; } to { translate: 110% 0; } }
+  @keyframes ai-twinkle { 0%, 100% { scale: 1; rotate: 0deg; } 45% { scale: 1.25; rotate: 20deg; } }
+  html[data-console-motion="subtle"] .ai-badge::after,
+  html[data-console-motion="subtle"] .ai-badge svg { animation: none; }
+}
+
 /* Console 2.0 entrance — the dashboard and the portal home, once a session
    (components/app-shell/entrance.tsx; the root layout stamps the attribute
    before paint). Hero wash, then the tiles rise; the figures count and the
