@@ -151,7 +151,14 @@ export function helpIdsFor(path: string, all: { id: string; chapter: string }[])
   const clean = path.split(/[?#]/)[0]!.replace(/\/+$/, "") || "/admin";
   const hit = best(HELP_ROUTES, clean);
   // The bare /admin row is the dashboard's, not a catch-all for every screen.
-  if (hit && (hit.prefix !== "/admin" || clean === "/admin")) return hit.sections;
+  // Only ids help.json still has: a heading renamed in the manual must fall
+  // back to the chapter, never empty the drawer.
+  const known = new Set(all.map((s) => s.id));
+  const listed = hit && (hit.prefix !== "/admin" || clean === "/admin") ? hit.sections.filter((id) => known.has(id)) : [];
+  if (listed.length) return listed;
+  // Listed, but every id has gone: the chapter those ids were in.
+  const gone = hit && hit.sections[0] ? hit.sections[0].split("#")[0] : null;
+  if (gone && all.some((s) => s.chapter === gone)) return all.filter((s) => s.chapter === gone).slice(0, 3).map((s) => s.id);
   const area = best(CHAPTER_FOR_PREFIX, clean);
   return area ? all.filter((s) => s.chapter === area.chapter).slice(0, 3).map((s) => s.id) : [];
 }

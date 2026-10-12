@@ -30,6 +30,11 @@ lacks(markdownToHtml("<script>alert(1)</script>"), "<script>", "raw html escaped
 lacks(markdownToHtml("[x](javascript:alert(1))"), "javascript:", "javascript link dropped");
 lacks(markdownToHtml('[x](https://a.test" onmouseover="y)'), 'onmouseover="', "quote in url cannot break out");
 
+lacks(markdownToHtml("[x](//evil.test/a)"), "href", "a protocol-relative link is dropped");
+lacks(markdownToHtml("[x](/\\evil.test)"), "href", "a backslash-host link is dropped");
+has(markdownToHtml("[x](https://a.test/**b**)"), 'href="https://a.test/**b**"', "emphasis markers in an address are left alone");
+eq(markdownToHtml('[x](https://a.test/"q)'), "<p>x</p>", "a quote in an address drops the link");
+
 const secs = splitSections("# The support desk\n\nIntro.\n\n## The ticket queue\n\nText **here**.\n\n### Statuses\n\nMore.\n\n## Saved replies\n\nLast.", "08-tickets");
 eq(secs.map((s) => s.id).join(","), "08-tickets#overview,08-tickets#the-ticket-queue,08-tickets#saved-replies", "section ids");
 eq(secs[1].chapterTitle, "The support desk", "chapter title");

@@ -112,7 +112,9 @@ export function FormActions({
     const form = ref.current?.closest("form");
     if (!form) return;
 
-    const touched = () => { dirtyRef.current = true; };
+    // A control marked `data-no-dirty` (Simple view's switch) is a view
+    // preference, not an edit.
+    const touched = (e: Event) => { if (!(e.target as Element | null)?.closest?.("[data-no-dirty]")) dirtyRef.current = true; };
     const saved = () => { dirtyRef.current = false; };
 
     form.addEventListener("input", touched);

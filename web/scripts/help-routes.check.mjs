@@ -24,4 +24,12 @@ for (const p of ["/admin", "/admin/tickets", "/admin/tickets/TW-2026-00001", "/a
 const t = helpIdsFor("/admin/tickets/TW-2026-00001", sections);
 if (t[0] !== "08-tickets#working-a-ticket") { failed++; console.error(`FAIL a ticket's page should open on working-a-ticket, got ${t[0]}`); }
 
+// A heading renamed in the manual: the listed id is gone from help.json, and
+// the screen must fall back to its chapter rather than show nothing.
+const without = sections.filter((s) => s.id !== "08-tickets#the-ticket-queue" && s.id !== "08-tickets#saved-replies");
+const fell = helpIdsFor("/admin/tickets", without);
+if (!fell.length || !fell.every((id) => without.some((s) => s.id === id) && id.startsWith("08-tickets#"))) {
+  failed++; console.error(`FAIL a renamed heading should fall back to the chapter, got ${JSON.stringify(fell)}`);
+} else console.log(`ok   a renamed heading falls back → ${fell.join(", ")}`);
+
 process.exit(failed ? 1 : 0);

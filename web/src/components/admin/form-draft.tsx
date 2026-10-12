@@ -122,7 +122,7 @@ export function FormDraft() {
     } catch { /* nothing to offer */ }
 
     let dirty = false;
-    const touched = () => { dirty = true; };
+    const touched = (e: Event) => { if (!(e.target as Element | null)?.closest?.("[data-no-dirty]")) dirty = true; };
     const save = () => {
       if (!dirty) return;
       dirty = false;

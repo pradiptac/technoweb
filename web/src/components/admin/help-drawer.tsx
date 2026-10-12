@@ -74,7 +74,7 @@ export function HelpDrawer() {
       if (e.key !== "?" || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
       const t = e.target as HTMLElement | null;
       if (t?.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])")) return;
-      if (document.querySelector("dialog[open]")) return;
+      if (document.querySelector("dialog[open], [data-tour-card]")) return;
       e.preventDefault();
       show();
     };
@@ -190,6 +190,9 @@ export function HelpDrawer() {
             </div>
           ) : (
             <div onClick={onLinkClick} className="grid gap-6">
+              {shown.length === 0 && !failed && (
+                <p className="text-13 text-muted">No help for this screen yet. Search the manual above.</p>
+              )}
               {shown.map((s) => (
                 <section key={s.id}>
                   <p className="text-12 text-muted">{s.chapterTitle}</p>

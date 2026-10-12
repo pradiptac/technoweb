@@ -22,7 +22,8 @@ function link(text, url) {
     return `<a href="#help:${id}" data-help-link="${id}">${text}</a>`;
   }
   if (/^https:\/\/[^\s"<>]+$/.test(u)) return `<a href="${u}" target="_blank" rel="noopener">${text}</a>`;
-  if (/^(\/[^\s"<>]*|#[a-z0-9-]+)$/.test(u)) return `<a href="${u}">${text}</a>`;
+  // A site path, never `//host` or `/\host`, which a browser reads as another site.
+  if (/^(\/(?![/\\])[^\s"<>\\]*|#[a-z0-9-]+)$/.test(u)) return `<a href="${u}">${text}</a>`;
   return text;
 }
 
@@ -32,9 +33,17 @@ function inline(raw) {
     codes.push(c);
     return `\u0000${codes.length - 1}\u0000`;
   });
-  // The URL was escaped with the rest; a quote in it is &quot; and fails link()'s patterns.
-  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, t, u) => link(t, u.replace(/&amp;/g, "&")));
+  // The URL was escaped with the rest and is un-escaped for link()'s patterns,
+  // which refuse a quote, so nothing typed in an address can leave the
+  // attribute. A finished link is held back like code, so emphasis cannot
+  // reach into its address.
+  const links = [];
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, t, u) => {
+    links.push(link(t, u.replace(/&quot;/g, '"').replace(/&amp;/g, "&")));
+    return `\u0001${links.length - 1}\u0001`;
+  });
   s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/(^|[^*\w])\*([^*\s][^*]*)\*(?!\w)/g, "$1<em>$2</em>");
+  s = s.replace(/\u0001(\d+)\u0001/g, (_, i) => links[Number(i)]);
   return s.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${codes[Number(i)]}</code>`);
 }
 

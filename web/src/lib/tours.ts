@@ -33,8 +33,8 @@ export const TOURS: Record<string, TourDef> = {
     ],
   },
   builder: {
-    // The builder tab is drawn on a page form; its steps are hidden, so
-    // skipped, until the Builder tab is the one open.
+    // The builder tab is drawn on a page form: the tour waits for its first
+    // step, on the Builder tab, and starts when that tab is opened.
     match: (p) => /^\/admin\/pages\/\d+$/.test(p),
     steps: [
       { target: '[data-tour="add-section"]', title: "Add a section", body: "Pick from heroes, features, galleries, forms and more — or apply a whole template." },
@@ -63,7 +63,7 @@ export const TOURS: Record<string, TourDef> = {
     steps: [
       { target: '[data-tour="hero-actions"]', title: "Get help fast", body: "Raise a ticket, or book a visit or a meeting." },
       { target: '[data-tour="portal-tiles"]', title: "What's happening", body: "Your open tickets, orders on the way and your next appointment." },
-      { target: '[data-tour="portal-help"]', title: "Find answers", body: "Search the knowledge base before raising a ticket." },
+      { target: "#portal-help", title: "Find answers", body: "Search the knowledge base before raising a ticket." },
     ],
   },
 };

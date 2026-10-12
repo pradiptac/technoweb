@@ -48,6 +48,21 @@ if (await sw.count() === 1) {
   ok(await page.locator("[aria-invalid='true'], [role=alert]").count() >= 1, "a save with no title shows its error");
   ok(await page.locator('input[name="title"]').isEditable(), "the form is still usable");
 
+  // Flipping the switch is not an edit: no leave warning, no draft kept.
+  await go("/admin/blog/new");
+  let asked = 0;
+  const onDialog = (d) => { asked++; void d.accept(); };
+  page.on("dialog", onDialog);
+  await page.getByRole("switch", { name: "Simple view" }).uncheck({ force: true });
+  await page.getByRole("switch", { name: "Simple view" }).check({ force: true });
+  await page.waitForTimeout(11000); // past FormDraft's ten-second save
+  await page.locator('nav[aria-label="Admin sections"] a[href="/admin"]').first().click();
+  await page.waitForURL(`${BASE}/admin`, { timeout: 30000 }).catch(() => {});
+  page.off("dialog", onDialog);
+  ok(asked === 0, `flipping Simple view does not trigger the leave warning (${asked} asked)`);
+  await go("/admin/blog/new");
+  ok(await page.getByRole("button", { name: "Restore" }).count() === 0, "and leaves no draft to restore");
+
   // An error on the hidden SEO tab: the tab comes back and opens.
   await go("/admin/blog/new");
   await page.locator('input[name="title"]').fill("Simple view probe — never saved");

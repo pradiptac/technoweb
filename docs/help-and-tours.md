@@ -67,11 +67,18 @@ would be a file system call on a request path.
 - `components/ui/tour.tsx`, mounted by the console and portal layouts in a
   `Suspense`. It starts once per browser (`tw_tour:<id>` = `done` in
   `localStorage`; a storage that throws counts as seen) from 768px wide,
-  **after the screen has filled in** — every target present, or the count
-  still for a second, at most six — because the dashboard streams its panels
-  after its shell (the first cut started at 1.2s and found 3 of 5 steps).
+  **only once its first step's target is on screen**, then **after the
+  screen has filled in** — every target present, or the count still for two
+  seconds, at most eight — because the dashboard streams its panels after its
+  shell (the first cut started at 1.2s and found 3 of 5 steps). The first-step
+  rule is what keeps the builder's tour from starting, and being used up, on
+  the Content tab: it starts when the Builder tab is opened, URL or click.
   It never starts over an open dialog. "Take the tour" in the help drawer
   replays it (`tw:tour-start`).
+- Each step finds its target again when shown and is passed over if it has
+  gone; another screen ends the tour unmarked (adjusted during render, keyed
+  on path and query); while a dialog is open over it (the palette) the tour
+  leaves Escape and Tab alone, and `?` does not open the drawer over a tour.
 - One fixed frame with a huge shadow dims the page around the target; the
   card sits below it or above. **Nothing moves between steps** — Next and Back
   must feel instant; the card fades in once (`.tour-card`, inside the

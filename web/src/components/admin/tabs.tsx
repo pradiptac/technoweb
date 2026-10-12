@@ -223,7 +223,7 @@ export function Tabs({
         })}
       </div>
       {anyAdvanced && (
-        <label className="mb-1.5 ml-auto flex items-center gap-2 py-1 text-12-5 font-medium text-muted">
+        <label data-no-dirty className="mb-1.5 ml-auto flex items-center gap-2 py-1 text-12-5 font-medium text-muted">
           <Switch checked={simple} onChange={(e) => setConsoleSimple(e.target.checked)} />
           Simple view
         </label>

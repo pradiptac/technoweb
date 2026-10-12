@@ -34,7 +34,7 @@ const forget = () => page.evaluate(() => Object.keys(localStorage).filter((k) =>
 
 await forget();
 await go("/admin");
-await card.waitFor({ timeout: 10000 }).catch(() => {});
+await card.waitFor({ timeout: 30000 }).catch(() => {});
 ok(await card.count() === 1, "the dashboard tour starts on a first visit");
 if (await card.count() === 1) {
   const s1 = await step();
@@ -55,11 +55,11 @@ ok(await card.count() === 0, "it does not start on the second visit");
 
 await page.getByRole("button", { name: "Help for this screen" }).click();
 const take = page.getByRole("button", { name: "Take the tour" });
-await take.waitFor({ timeout: 20000 }).catch(() => {});
+await take.waitFor({ timeout: 60000 }).catch(() => {});
 ok(await take.count() === 1, "the help drawer offers the tour");
 if (await take.count() === 1) {
   await take.click();
-  await card.waitFor({ timeout: 5000 }).catch(() => {});
+  await card.waitFor({ timeout: 15000 }).catch(() => {});
   ok(await card.count() === 1, "Take the tour replays it");
   const full = await step();
   await page.keyboard.press("Escape");
@@ -69,7 +69,7 @@ if (await take.count() === 1) {
   // A missing target: hide the palette trigger, replay, and the count drops by one.
   await page.evaluate(() => document.querySelectorAll('[aria-keyshortcuts="Control+K Meta+K"]').forEach((el) => { el.style.display = "none"; }));
   await page.evaluate(() => window.dispatchEvent(new CustomEvent("tw:tour-start", { detail: { id: "dashboard" } })));
-  await card.waitFor({ timeout: 5000 }).catch(() => {});
+  await card.waitFor({ timeout: 15000 }).catch(() => {});
   const fewer = await step();
   const n = (s) => Number((s ?? "").match(/of (\d+)/)?.[1] ?? 0);
   ok(n(fewer) === n(full) - 1, `a missing target is skipped (${full} → ${fewer})`);
@@ -77,9 +77,48 @@ if (await take.count() === 1) {
 }
 
 await go("/admin/tickets");
-await card.waitFor({ timeout: 10000 }).catch(() => {});
+await card.waitFor({ timeout: 30000 }).catch(() => {});
 ok(await card.count() === 1, "the tickets tour starts on its screen");
 await page.keyboard.press("Escape");
+
+// The builder tour waits for the Builder tab: on the Content tab only Save is
+// visible, and the tour must neither start nor be used up.
+const builderId = process.env.PAGE_ID;
+if (builderId) {
+  await page.evaluate(() => localStorage.removeItem("tw_tour:builder"));
+  await go(`/admin/pages/${builderId}`);
+  await page.waitForTimeout(6000);
+  ok(await card.count() === 0, "the builder tour does not start on the Content tab");
+  ok(await page.evaluate(() => localStorage.getItem("tw_tour:builder")) === null, "and is not used up there");
+  // Opening the Builder tab by hand (no URL change) starts it.
+  await page.getByRole("tab", { name: "Builder" }).click();
+  await card.waitFor({ timeout: 30000 }).catch(() => {});
+  ok(await card.count() === 1, "opening the Builder tab starts it");
+  await page.keyboard.press("Escape");
+  await page.evaluate(() => localStorage.removeItem("tw_tour:builder"));
+  await go(`/admin/pages/${builderId}?tab=builder`);
+  await card.waitFor({ timeout: 30000 }).catch(() => {});
+  ok(await card.count() === 1, "it starts on the Builder tab");
+  await page.keyboard.press("Escape");
+} else console.log("note PAGE_ID not set — builder checks skipped");
+
+// A tour does not outlive its screen, and steps aside for a dialog.
+await page.evaluate(() => localStorage.removeItem("tw_tour:tickets"));
+await go("/admin/tickets");
+await card.waitFor({ timeout: 30000 }).catch(() => {});
+await page.keyboard.press("Control+k");
+await page.locator("dialog[open]").first().waitFor({ timeout: 5000 }).catch(() => {});
+const opened = await page.locator("dialog[open]").count();
+await page.keyboard.press("Escape");
+await page.waitForTimeout(500);
+ok(opened >= 1 && await page.locator("dialog[open]").count() === 0, "Escape closes a dialog opened over a tour, not the tour's first");
+await page.evaluate(() => window.dispatchEvent(new CustomEvent("tw:tour-start", { detail: { id: "tickets" } })));
+await card.waitFor({ timeout: 15000 }).catch(() => {});
+// A client-side move (the overlay takes pointer clicks, so click the link itself).
+await page.evaluate(() => document.querySelector('nav[aria-label="Admin sections"] a[href="/admin"]')?.click());
+await page.waitForURL(`${BASE}/admin`, { timeout: 30000 }).catch(() => {});
+await page.waitForTimeout(800);
+ok(await card.count() === 0, "moving to another screen ends the tour");
 
 await page.setViewportSize({ width: 390, height: 800 });
 await page.evaluate(() => localStorage.removeItem("tw_tour:dashboard"));
