@@ -446,17 +446,24 @@ To repeat the install from scratch: stop Node and the scheduler, delete
 | System → Updates refuses this zip | It is a test build (`worktree` in the name). To try updating on this PC only, add `RELEASE_ALLOW_TEST_BUILDS=true` on a new line in `C:\altis\config\api.env`. Never on a customer's server. |
 
 **Updating through the console on this PC.** There is no Passenger here to
-restart the website, and Windows will not rename the `web` folder while Node is
-running from it (the update stops at *Finishing the API* with "Could not rename
-web to web.prev"). So:
+restart the website, and Windows will not rename a folder a program is using:
+the update stops at *Finishing the API* with "Could not rename web to web.prev"
+while Node runs from `C:ltis\web` (and so does a Command Prompt whose current
+folder is inside it). The console itself is served by that Node, so stopping it
+also takes away the **Try this step again** button. Swap the folders by hand:
 
-1. When the update screen reaches *Finishing the API* — or stops there — press
-   Ctrl+C in window 1 to stop Node, then press **Try this step again**. The
-   step carries on from where it stopped.
-2. When it says *Restarting the website*, start Node again in window 1 (with
-   the `NODE_EXTRA_CA_CERTS` line), run step 6.4 again, and repeat the `mklink`
-   of step 6.3 (the junction is lost when the `api` folder is replaced). The
-   update then finishes by itself.
+1. In window 1 press Ctrl+C, then leave the folder and swap:
+   ```
+   cd /d C:ltis
+   ren web web.prev
+   ren web.new web
+   ```
+   (If a `web.prev` is already there from an earlier update, `rmdir /S /Q web.prev` first.)
+2. Run step 6.4 again (and 6.5 if you use it) on the new folder, and repeat the
+   `mklink` of step 6.3 — the junction went with the old `api` folder.
+3. Start Node again as in step 9, open System → Updates and press **Try this
+   step again**. It sees the folders already swapped, finds the website on the
+   new version, refreshes the pages and finishes.
 
 ---
 
