@@ -15,7 +15,8 @@
     "themes": "node --experimental-strip-types scripts/theme-contrast.mjs",
     "themes:check": "node --experimental-strip-types scripts/themes-check.mjs",
     "theme-shots": "node --experimental-strip-types scripts/theme-shots.mjs",
-    "neon": "node scripts/neon-contrast.mjs"
+    "neon": "node scripts/neon-contrast.mjs",
+    "help": "node scripts/build-help.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
