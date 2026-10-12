@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { IconChevronDown, IconClose, IconMenu } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
 import { NAV_ROW, NAV_ROW_ACTIVE, NAV_ROW_IDLE } from "@/components/app-shell/nav-classes";
@@ -154,12 +154,7 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
             <span className="rail-label truncate">{label}</span>
             {/* What arrived on this queue since the console was opened — see new-since.tsx. */}
             {NEW_SINCE_ROUTES[href] && arrived[NEW_SINCE_ROUTES[href]] > 0 && (
-              <span
-                className={cn("rail-badge ml-auto rounded-full px-1.5 py-px text-10-5 font-semibold tabular-nums", active ? "bg-card text-brand-ink" : "bg-brand-600 text-brand-on")}
-                aria-label={`${arrived[NEW_SINCE_ROUTES[href]]} new`}
-              >
-                {arrived[NEW_SINCE_ROUTES[href]]}
-              </span>
+              <NewBadge count={arrived[NEW_SINCE_ROUTES[href]]} active={active} />
             )}
           </Link>
         </li>
@@ -399,5 +394,33 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
         </button>
       </div>
     </nav>
+  );
+}
+
+/**
+ * A queue's "N new" badge. When a poll raises the count it pops once
+ * (`data-bumped`, globals.css, 0.171.0) — never on the first render, since
+ * only a rise after mount sets the attribute, and not under Subtle.
+ */
+function NewBadge({ count, active }: { count: number; active: boolean }) {
+  const prev = useRef(count);
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    const rose = count > prev.current;
+    prev.current = count;
+    if (!rose || !el) return;
+    el.dataset.bumped = "";
+    const t = window.setTimeout(() => { delete el.dataset.bumped; }, 400);
+    return () => window.clearTimeout(t);
+  }, [count]);
+  return (
+    <span
+      ref={ref}
+      className={cn("rail-badge ml-auto rounded-full px-1.5 py-px text-10-5 font-semibold tabular-nums", active ? "bg-card text-brand-ink" : "bg-brand-600 text-brand-on")}
+      aria-label={`${count} new`}
+    >
+      {count}
+    </span>
   );
 }

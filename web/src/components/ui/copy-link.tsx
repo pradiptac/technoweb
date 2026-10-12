@@ -44,7 +44,7 @@ export function CopyLink({ url, className }: { url: string; className?: string }
         title="Copy link"
         className={className}
       >
-        {state === "done" ? <IconCheck className="size-4" aria-hidden /> : <IconLink className="size-4" aria-hidden />}
+        {state === "done" ? <span data-copied="" className="inline-grid"><IconCheck className="size-4" aria-hidden /></span> : <IconLink className="size-4" aria-hidden />}
       </button>
       <span role="status" className="sr-only">
         {state === "done" ? "Link copied to the clipboard." : state === "failed" ? "The link could not be copied." : ""}

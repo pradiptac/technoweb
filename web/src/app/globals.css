@@ -5394,3 +5394,59 @@ html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active
   @keyframes k-blink { 50% { opacity: 0; } }
   @keyframes k-rot-in { from { opacity: 0; translate: 0 .4em; } }
 }
+
+/*
+ * Small interactions (0.171.0, docs/motion.md "Small interactions") —
+ * `motion_micro`, stamped as `data-motion-micro` on the marketing and portal
+ * wrappers; the console's half is keyed on [data-console] and dropped under
+ * Subtle. Movement lives only inside the reduced-motion guard. Two
+ * properties here are not transforms, by name: a body link's underline
+ * thickness and offset (it already carries an underline; this only changes
+ * its weight), and the refused field's ring. The arrow's 3px nudge is
+ * horizontal but stays inside its own button's padding, so the document
+ * never widens.
+ */
+[data-motion-micro="lively"] [data-prose] a {
+  text-decoration-thickness: 1px; text-underline-offset: 2px;
+  transition: text-decoration-thickness var(--duration-fast) var(--ease-brand), text-underline-offset var(--duration-fast) var(--ease-brand), color var(--duration-fast) var(--ease-brand);
+}
+[data-motion-micro="lively"] [data-prose] a:is(:hover, :focus-visible) { text-decoration-thickness: 2px; text-underline-offset: 3px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  :is([data-motion-micro="lively"], [data-console]) :is(.btn, a, button) svg[data-icon="arrow-right"] { transition: translate var(--duration-fast) var(--ease-brand); }
+  :is([data-motion-micro="lively"], [data-console]) :is(.btn, a, button):is(:hover, :focus-visible) svg[data-icon="arrow-right"] { translate: 3px 0; }
+
+  :is([data-motion-micro="lively"], [data-console]) [data-switch]::after { transition-timing-function: cubic-bezier(.34, 1.56, .64, 1); }
+
+  :is([data-motion-micro="lively"], [data-console]) input:is([type="checkbox"]:not([role="switch"]), [type="radio"]):checked { animation: micro-pop 160ms var(--ease-brand); }
+
+  :is([data-motion-micro="lively"], [data-console]) [data-copied] { transition: scale var(--duration-base) var(--ease-brand), opacity var(--duration-base) var(--ease-brand); }
+  @starting-style {
+    :is([data-motion-micro="lively"], [data-console]) [data-copied] { scale: .8; opacity: 0; }
+  }
+
+  :is([data-motion-micro="lively"], [data-console]) :is(input, select, textarea)[aria-invalid="true"] { animation: field-refused 600ms var(--ease-brand) 1; }
+
+  html[data-console-motion="subtle"] [data-console] :is(.btn, a, button):is(:hover, :focus-visible) svg[data-icon="arrow-right"] { translate: none; }
+  html[data-console-motion="subtle"] [data-console] [data-switch]::after { transition-timing-function: var(--ease-brand); }
+  html[data-console-motion="subtle"] [data-console] :is(input:checked, [data-copied], [aria-invalid="true"]) { animation: none; }
+
+  @keyframes micro-pop { from { scale: .85; } }
+  @keyframes field-refused { from { outline: 6px solid color-mix(in oklab, var(--color-err) 35%, transparent); outline-offset: 0; } to { outline: 6px solid transparent; outline-offset: 6px; } }
+}
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  [data-motion-micro="lively"] [data-tile] [data-tile-icon] { transition: scale var(--duration-base) var(--ease-brand); }
+  [data-motion-micro="lively"] [data-tile]:hover [data-tile-icon] { scale: 1.08; }
+}
+
+/* The console's "Saved ✓" (form-actions.tsx) and the new-items badge pop (admin-nav.tsx), 0.171.0. */
+[data-console] button[data-saved-swap] { position: relative; }
+[data-console] button[data-saved-swap] > :not([data-saved]) { visibility: hidden; }
+[data-console] [data-saved] { position: absolute; inset: 0; display: grid; place-items: center; white-space: nowrap; visibility: visible; background: inherit; border-radius: inherit; }
+@media (prefers-reduced-motion: no-preference) {
+  [data-console] [data-saved] { animation: saved-in 200ms var(--ease-brand); }
+  [data-console] [data-bumped] { animation: badge-bump 300ms var(--ease-brand); }
+  html[data-console-motion="subtle"] [data-console] :is([data-saved], [data-bumped]) { animation: none; }
+  @keyframes saved-in { from { opacity: 0; scale: .9; } }
+  @keyframes badge-bump { 50% { scale: 1.25; } }
+}

@@ -69,7 +69,7 @@ export const IconClose = (p: P) => (
   <svg {...base} strokeWidth={2} {...p}><path d="M6 6l12 12M18 6 6 18" /></svg>
 );
 export const IconArrowRight = (p: P) => (
-  <svg {...base} strokeWidth={2} {...p}><path d="M4.8 12h14.4M13.2 6l6 6-6 6" /></svg>
+  <svg {...base} strokeWidth={2} data-icon="arrow-right" {...p}><path d="M4.8 12h14.4M13.2 6l6 6-6 6" /></svg>
 );
 export const IconSearch = (p: P) => (
   <svg {...base} {...p}><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.4-4.4" /></svg>

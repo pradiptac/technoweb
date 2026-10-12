@@ -34,7 +34,7 @@ export function CopyText({ text, label = "Copy", what = "The command" }: { text:
   return (
     <>
       <Button type="button" size="sm" variant="secondary" onClick={copy}>
-        {state === "done" ? "Copied" : state === "failed" ? "Select it and copy by hand" : label}
+        {state === "done" ? <span data-copied="">Copied</span> : state === "failed" ? "Select it and copy by hand" : label}
       </Button>
       <span role="status" className="sr-only">
         {state === "done" ? `${what} was copied to the clipboard.` : state === "failed" ? `${what} could not be copied.` : ""}
