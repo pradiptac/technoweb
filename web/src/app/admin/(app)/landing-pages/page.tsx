@@ -5,6 +5,7 @@ import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { getLandingPages } from "@/lib/admin";
@@ -32,6 +33,7 @@ type SearchParams = { status?: string; kind?: string; q?: string; page?: string;
 export default async function LandingPagesPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q || params.status || params.kind);
 
   let result: Awaited<ReturnType<typeof getLandingPages>>;
   try {
@@ -100,7 +102,7 @@ export default async function LandingPagesPage({ searchParams }: { searchParams:
       </FilterBar>
 
       {rows.length === 0 ? (
-        <EmptyState title="No landing pages yet">
+        <EmptyState title={filtered ? "No landing pages match those filters" : "No landing pages yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/landing-pages" noun="landing page" />}>
           Nothing has been created. “Find opportunities” lists the combinations
           the catalogue actually supports — which is a much shorter list than
           every combination it could produce, and deliberately so.

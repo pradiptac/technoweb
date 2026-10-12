@@ -4,6 +4,7 @@ import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-head
 import { ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconImage } from "@/components/icons";
@@ -33,6 +34,7 @@ export default async function AdminPopupsPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q || params.status);
 
   let result;
   try {
@@ -80,7 +82,7 @@ export default async function AdminPopupsPage({
       </FilterBar>
 
       {result.data.length === 0 ? (
-        <EmptyState icon={<IconImage />} title="No popups yet">
+        <EmptyState icon={<IconImage />} title={filtered ? "No popups match those filters" : "No popups yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/popups" newHref="/admin/popups/new" noun="popup" />}>
           Upload a picture, tick the sections it belongs on, and publish it.
         </EmptyState>
       ) : (

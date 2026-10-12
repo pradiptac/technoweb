@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Badge } from "@/components/ui/badge";
 import { IconMail } from "@/components/icons";
 import { getNewsletterSequences } from "@/lib/admin";
@@ -51,7 +52,7 @@ export default async function SequencesPage() {
       </PageHeader>
 
       {sequences.length === 0 ? (
-        <EmptyState icon={<IconMail />} title="No sequences yet">
+        <EmptyState icon={<IconMail />} title="No sequences yet" action={<EmptyListAction filtered={false} clearHref="/admin/newsletter/sequences" newHref="/admin/newsletter/sequences/new" noun="sequence" />}>
           Make one, add its steps, and switch it on. New subscribers — or new members of the
           group you choose — are enrolled as they arrive.
         </EmptyState>

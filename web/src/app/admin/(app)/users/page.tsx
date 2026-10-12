@@ -3,6 +3,7 @@ import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconUsers } from "@/components/icons";
@@ -80,7 +81,7 @@ export default async function AdminStaffPage({
       </FilterBar>
 
       {staff.length === 0 ? (
-        <EmptyState icon={<IconUsers />} title={filtered ? "No accounts match those filters" : "No staff accounts"}>
+        <EmptyState icon={<IconUsers />} title={filtered ? "No accounts match those filters" : "No staff accounts"} action={<EmptyListAction filtered={filtered} clearHref="/admin/users" newHref="/admin/users/new" noun="staff account" />}>
           {filtered ? "Try a different term, or clear the filters." : "Add the first one to let somebody else in."}
         </EmptyState>
       ) : (

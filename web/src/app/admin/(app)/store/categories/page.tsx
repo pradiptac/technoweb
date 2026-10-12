@@ -4,6 +4,7 @@ import { bulkStoreCategoriesAction } from "../actions";
 import { PageHeader } from "@/components/admin/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Badge } from "@/components/ui/badge";
 import { IconLayers } from "@/components/icons";
 import { getStoreCategories } from "@/lib/admin";
@@ -44,7 +45,7 @@ export default async function StoreCategoriesPage() {
       </PageHeader>
 
       {categories.length === 0 ? (
-        <EmptyState icon={<IconLayers />} title="No categories yet">
+        <EmptyState icon={<IconLayers />} title="No categories yet" action={<EmptyListAction filtered={false} clearHref="/admin/store/categories" newHref="/admin/store/categories/new" noun="category" />}>
           Products can be sold without one — a category is a way of arranging the listing, not a
           requirement.
         </EmptyState>

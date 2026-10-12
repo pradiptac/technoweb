@@ -3,6 +3,7 @@ import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconPen } from "@/components/icons";
@@ -75,7 +76,7 @@ export default async function MessageTemplatesPage({ searchParams }: { searchPar
       </FilterBar>
 
       {result.data.length === 0 ? (
-        <EmptyState icon={<IconPen />} title={filtered ? "No templates match that filter" : "No templates yet"}>
+        <EmptyState icon={<IconPen />} title={filtered ? "No templates match that filter" : "No templates yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/messaging/templates" newHref="/admin/messaging/templates/new" noun="template" />}>
           {filtered ? "Clear the filter to see the rest." : "Write one for each thing you want to say — an order update, a basket reminder — then switch it on under Automations."}
         </EmptyState>
       ) : (

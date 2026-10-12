@@ -5,6 +5,7 @@ import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { iconMap, IconBuilding, type IconName } from "@/components/icons";
 import { getIndustryList } from "@/lib/admin";
@@ -33,6 +34,7 @@ export default async function AdminIndustriesPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q);
 
   let result: Paginated<AdminIndustry> | null = null;
   try {
@@ -69,7 +71,7 @@ export default async function AdminIndustriesPage({
       </FilterBar>
 
       {industries.length === 0 ? (
-        <EmptyState icon={<IconBuilding />} title={params.q ? "No industries match that search" : "No industries yet"}>
+        <EmptyState icon={<IconBuilding />} title={filtered ? "No industries match that search" : "No industries yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/industries" newHref="/admin/industries/new" noun="industry" />}>
           {params.q
             ? "Try a different term, or clear the search."
             : "Sectors the site speaks to. Case studies and solutions both reference them."}

@@ -3,6 +3,7 @@ import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-head
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { IconBook } from "@/components/icons";
 import { getBlogCategoryList } from "@/lib/admin";
@@ -25,6 +26,7 @@ export default async function BlogCategoriesPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q);
 
   const list = await getBlogCategoryList({
     q: params.q,
@@ -57,7 +59,7 @@ export default async function BlogCategoriesPage({
       </FilterBar>
 
       {list.data.length === 0 ? (
-        <EmptyState icon={<IconBook />} title="No categories yet">
+        <EmptyState icon={<IconBook />} title={filtered ? "No categories match that search" : "No categories yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/blog-categories" newHref="/admin/blog-categories/new" noun="category" />}>
           Add one, then file articles under it from the post editor.
         </EmptyState>
       ) : (

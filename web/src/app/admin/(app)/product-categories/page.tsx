@@ -5,6 +5,7 @@ import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { iconMap, IconSwitch, type IconName } from "@/components/icons";
 import { getProductCategoryList } from "@/lib/admin";
@@ -35,6 +36,7 @@ export default async function AdminProductCategoriesPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q);
 
   let result: Paginated<AdminProductCategory> | null = null;
   try {
@@ -77,7 +79,7 @@ export default async function AdminProductCategoriesPage({
       </FilterBar>
 
       {categories.length === 0 ? (
-        <EmptyState icon={<IconSwitch />} title={params.q ? "No categories match that search" : "No categories yet"}>
+        <EmptyState icon={<IconSwitch />} title={filtered ? "No categories match that search" : "No categories yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/product-categories" newHref="/admin/product-categories/new" noun="category" />}>
           {params.q
             ? "Try a different term, or clear the search."
             : "How the catalogue is grouped. Each one gets its own /products/… listing page."}

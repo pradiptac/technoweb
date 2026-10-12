@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { iconMap, IconLayers, type IconName } from "@/components/icons";
 import { getServiceCategoryList } from "@/lib/admin";
@@ -87,7 +88,7 @@ export default async function AdminServiceCategoriesPage({
       </FilterBar>
 
       {categories.length === 0 ? (
-        <EmptyState icon={<IconLayers />} title={hasFilters ? "No categories match that search" : "No service categories yet"}>
+        <EmptyState icon={<IconLayers />} title={hasFilters ? "No categories match that search" : "No service categories yet"} action={<EmptyListAction filtered={hasFilters} clearHref="/admin/service-categories" newHref="/admin/service-categories/new" noun="service category" />}>
           {hasFilters
             ? "Try a different term, or clear the filters."
             : "Each category is a tab on the homepage's services section and on /services."}

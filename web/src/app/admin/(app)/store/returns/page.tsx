@@ -5,6 +5,7 @@ import { SortTh } from "@/components/admin/sort-th";
 import { ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { RETURN_TONE } from "@/components/store/order-returns";
@@ -80,7 +81,7 @@ export default async function AdminReturnsPage({ searchParams }: { searchParams:
       </FilterBar>
 
       {result.data.length === 0 ? (
-        <EmptyState illustration="inbox" title={filtered ? "No returns match" : "No returns yet"}>
+        <EmptyState illustration="inbox" title={filtered ? "No returns match those filters" : "No returns yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/store/returns" noun="return" />}>
           {filtered
             ? "Try fewer filters."
             : "When a customer asks to return something from a delivered order, it appears here and you are emailed."}

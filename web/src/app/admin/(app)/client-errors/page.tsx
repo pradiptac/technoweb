@@ -3,6 +3,7 @@ import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-head
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { getClientErrors, type ClientErrorList } from "@/lib/admin";
@@ -36,6 +37,7 @@ export default async function ClientErrorsPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q || params.area || params.all === "1");
 
   let result: ClientErrorList;
 
@@ -90,8 +92,8 @@ export default async function ClientErrorsPage({
       </FilterBar>
 
       {result.data.length === 0 ? (
-        <EmptyState title="Nothing has failed">
-          {params.q || params.area || params.all
+        <EmptyState title={filtered ? "No reports match those filters" : "Nothing has failed"} action={<EmptyListAction filtered={filtered} clearHref="/admin/client-errors" noun="report" />}>
+          {filtered
             ? "No report matches that filter."
             : "No JavaScript error has been reported. That is the result you want here — this list fills itself only when something breaks in somebody's browser."}
         </EmptyState>

@@ -6,6 +6,7 @@ import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-head
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconSwitch } from "@/components/icons";
@@ -142,7 +143,7 @@ export default async function StoreProductsPage({
       </FilterBar>
 
       {products.length === 0 ? (
-        <EmptyState icon={<IconSwitch />} title={filtered ? "Nothing matches those filters" : "The shop is empty"}>
+        <EmptyState icon={<IconSwitch />} title={filtered ? "Nothing matches those filters" : "The shop is empty"} action={<EmptyListAction filtered={filtered} clearHref="/admin/store/products" newHref="/admin/store/products/new" noun="product" />}>
           {filtered
             ? "Try a different term, or clear the filters."
             : "Add what you sell. Each product gets its own page under /store/products."}

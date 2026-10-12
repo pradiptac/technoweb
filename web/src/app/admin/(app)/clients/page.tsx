@@ -5,6 +5,7 @@ import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-head
 import { ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconBuilding } from "@/components/icons";
@@ -22,6 +23,7 @@ export default async function AdminClientsPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q || params.status);
 
   let result;
   try {
@@ -68,7 +70,7 @@ export default async function AdminClientsPage({
       </FilterBar>
 
       {result.data.length === 0 ? (
-        <EmptyState icon={<IconBuilding />} title="No clients yet">
+        <EmptyState icon={<IconBuilding />} title={filtered ? "No clients match those filters" : "No clients yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/clients" newHref="/admin/clients/new" noun="client" />}>
           Add a client with their logo, and tick Featured to put them on the homepage.
         </EmptyState>
       ) : (

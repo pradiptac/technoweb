@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { IconGrid } from "@/components/icons";
 import { getMeetingTypes } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
@@ -43,7 +44,7 @@ export default async function MeetingTypesPage() {
       </PageHeader>
 
       {types.length === 0 ? (
-        <EmptyState icon={<IconGrid />} title="No meeting types yet">
+        <EmptyState icon={<IconGrid />} title="No meeting types yet" action={<EmptyListAction filtered={false} clearHref="/admin/meetings/types" newHref="/admin/meetings/types/new" noun="meeting type" />}>
           Add one — a product demo, a consultation — and the booking page offers it.
         </EmptyState>
       ) : (

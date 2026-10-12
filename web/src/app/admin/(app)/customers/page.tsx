@@ -4,6 +4,7 @@ import { SortTh } from "@/components/admin/sort-th";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { IconUsers } from "@/components/icons";
 import { getCustomers } from "@/lib/admin";
@@ -131,7 +132,7 @@ export default async function AdminCustomersPage({
       </FilterBar>
 
       {customers.length === 0 ? (
-        <EmptyState icon={<IconUsers />} title={filtered ? "No accounts match those filters" : "No portal accounts yet"}>
+        <EmptyState icon={<IconUsers />} title={filtered ? "No accounts match those filters" : "No portal accounts yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/customers" noun="account" />}>
           {filtered
             ? "Try a different term, or clear the filters."
             : "Accounts appear here when somebody registers, or when one is created with the artisan command."}

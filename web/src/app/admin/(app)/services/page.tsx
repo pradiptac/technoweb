@@ -7,6 +7,7 @@ import { SortTh } from "@/components/admin/sort-th";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { iconMap, IconGlobe, type IconName } from "@/components/icons";
 import { getServiceCategoryOptions, getServices } from "@/lib/admin";
@@ -99,7 +100,7 @@ export default async function AdminServicesPage({
       </FilterBar>
 
       {services.length === 0 ? (
-        <EmptyState icon={<IconGlobe />} title={hasFilters ? "No services match those filters" : "No services yet"}>
+        <EmptyState icon={<IconGlobe />} title={hasFilters ? "No services match those filters" : "No services yet"} action={<EmptyListAction filtered={hasFilters} clearHref="/admin/services" newHref="/admin/services/new" noun="service" />}>
           {hasFilters
             ? "Try a different combination, or clear the filters."
             : "Web, hardware and installation services — each filed under a service category."}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { getNotFoundList, type NotFoundList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
@@ -89,7 +90,7 @@ export default async function MissingPagesPage({
       </FilterBar>
 
       {result.data.length === 0 ? (
-        <EmptyState title={showIgnored ? "Nothing is ignored" : "No missing pages"}>
+        <EmptyState title={params.q ? "No address matches that search" : showIgnored ? "Nothing is ignored" : "No missing pages"} action={<EmptyListAction filtered={Boolean(params.q || showIgnored)} clearHref="/admin/not-found" noun="address" />}>
           {params.q
             ? "No address matches that search."
             : showIgnored

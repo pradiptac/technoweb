@@ -4,6 +4,7 @@ import { SortTh } from "@/components/admin/sort-th";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge, orderStatusTone } from "@/components/ui/badge";
 import { IconBox } from "@/components/icons";
@@ -140,7 +141,7 @@ export default async function StoreOrdersPage({
       {courierActive && orders.length > 0 && <ManifestBar orders={orders.map((o) => ({ id: o.id, number: o.order_number }))} />}
 
       {orders.length === 0 ? (
-        <EmptyState icon={<IconBox />} title={filtered ? "Nothing matches those filters" : "No orders yet"}>
+        <EmptyState icon={<IconBox />} title={filtered ? "Nothing matches those filters" : "No orders yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/store/orders" noun="order" />}>
           {filtered ? "Try a different term, or clear the filters." : "Orders placed in the shop appear here."}
         </EmptyState>
       ) : (

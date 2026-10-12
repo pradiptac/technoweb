@@ -1,6 +1,7 @@
 import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-header";
 import { Input } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { IconClose } from "@/components/icons";
 import { getNewsletterSuppressions, type SuppressionList } from "@/lib/admin";
@@ -19,6 +20,7 @@ export default async function UnsubscribesPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q);
 
   let result: SuppressionList;
 
@@ -56,7 +58,7 @@ export default async function UnsubscribesPage({
       </FilterBar>
 
       {result.data.length === 0 ? (
-        <EmptyState icon={<IconClose />} title="Nobody has unsubscribed">
+        <EmptyState icon={<IconClose />} title={filtered ? "No address matches that search" : "Nobody has unsubscribed"} action={<EmptyListAction filtered={filtered} clearHref="/admin/newsletter/unsubscribes" noun="address" />}>
           When somebody does, they appear here permanently — including if their subscriber
           record is later deleted.
         </EmptyState>

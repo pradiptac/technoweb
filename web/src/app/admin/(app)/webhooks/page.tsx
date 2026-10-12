@@ -3,6 +3,7 @@ import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconPlug } from "@/components/icons";
@@ -71,7 +72,7 @@ export default async function AdminWebhooksPage({
       </FilterBar>
 
       {hooks.length === 0 ? (
-        <EmptyState icon={<IconPlug />} title={filtered ? "No webhooks match that filter" : "No webhooks yet"}>
+        <EmptyState icon={<IconPlug />} title={filtered ? "No webhooks match that filter" : "No webhooks yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/webhooks" newHref="/admin/webhooks/new" noun="webhook" />}>
           {filtered
             ? "Clear the filter to see the rest."
             : "Add one to have a CRM, a chat channel or an automation told the moment a lead or an order arrives."}

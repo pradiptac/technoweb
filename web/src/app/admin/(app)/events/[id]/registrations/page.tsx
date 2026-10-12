@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { IconClock, IconProjector, IconUsers } from "@/components/icons";
 import { IconCheck, IconClose, IconDownload } from "@/components/icons-ui";
@@ -214,6 +215,7 @@ export default async function EventRegistrationsPage({
         <EmptyState
           icon={filtered ? <IconUsers /> : <IconProjector />}
           title={filtered ? "Nobody matches those filters" : "Nobody has registered yet"}
+          action={<EmptyListAction filtered={filtered} clearHref={base} noun="registration" />}
         >
           {filtered
             ? "Try a different term, or clear the filters."

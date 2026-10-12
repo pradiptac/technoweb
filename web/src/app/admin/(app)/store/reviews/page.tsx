@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Stars } from "@/components/store/stars";
 import { ApiError } from "@/lib/api";
@@ -116,7 +117,7 @@ export default async function AdminStoreReviewsPage({ searchParams }: { searchPa
       </FilterBar>
 
       {reviews.length === 0 ? (
-        <EmptyState title={filtered ? "Nothing matches that" : "Nothing is waiting"}>
+        <EmptyState title={filtered ? "Nothing matches those filters" : "Nothing is waiting"} action={<EmptyListAction filtered={filtered} clearHref="/admin/store/reviews" noun="review" />}>
           {filtered
             ? "No review matches that filter."
             : "Every review has been dealt with. New ones arrive here and stay off the shop until you publish them."}

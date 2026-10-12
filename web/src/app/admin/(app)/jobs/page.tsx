@@ -6,6 +6,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Badge } from "@/components/ui/badge";
 import { IconTeam } from "@/components/icons";
 import { getJobOpenings } from "@/lib/admin";
@@ -90,7 +91,7 @@ export default async function AdminJobsPage({
       </FilterBar>
 
       {jobs.length === 0 ? (
-        <EmptyState icon={<IconTeam />} title={filtered ? "No vacancies match those filters" : "No vacancies yet"}>
+        <EmptyState icon={<IconTeam />} title={filtered ? "No vacancies match those filters" : "No vacancies yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/jobs" newHref="/admin/jobs/new" noun="vacancy" />}>
           {filtered
             ? "Try a different term, or clear the filters."
             : "Post one and it appears on /careers as soon as it is published."}

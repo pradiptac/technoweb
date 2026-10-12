@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconShop } from "@/components/icons";
@@ -27,6 +28,7 @@ export default async function AdminBrandsPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q);
 
   let result: Paginated<AdminBrand> | null = null;
   try {
@@ -67,7 +69,7 @@ export default async function AdminBrandsPage({
       </FilterBar>
 
       {brands.length === 0 ? (
-        <EmptyState icon={<IconShop />} title={params.q ? "No brands match that search" : "No brands yet"}>
+        <EmptyState icon={<IconShop />} title={filtered ? "No brands match that search" : "No brands yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/brands" newHref="/admin/brands/new" noun="brand" />}>
           {params.q
             ? "Try a different term, or clear the search."
             : "Manufacturers you supply. They become filter options on the product listing."}

@@ -3,6 +3,7 @@ import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-head
 import { ButtonLink } from "@/components/ui/button";
 import { Input, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { IconPen } from "@/components/icons";
@@ -20,6 +21,7 @@ export default async function AdminFormsPage({
 }) {
   await requireScreen();
   const params = await searchParams;
+  const filtered = Boolean(params.q);
 
   let result: Awaited<ReturnType<typeof getFormList>>;
   try {
@@ -63,7 +65,7 @@ export default async function AdminFormsPage({
       </FilterBar>
 
       {result.data.length === 0 ? (
-        <EmptyState icon={<IconPen />} title="No forms yet">
+        <EmptyState icon={<IconPen />} title={filtered ? "No forms match that search" : "No forms yet"} action={<EmptyListAction filtered={filtered} clearHref="/admin/forms" newHref="/admin/forms/new" noun="form" />}>
           Create one, add fields, then paste its shortcode wherever it belongs.
         </EmptyState>
       ) : (
