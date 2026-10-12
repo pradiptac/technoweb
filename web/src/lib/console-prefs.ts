@@ -12,6 +12,8 @@ import { useSyncExternalStore } from "react";
  */
 export const NAV_KEY = "tw_console_nav";
 export const MOTION_KEY = "tw_console_motion";
+/** Simple view (0.168.0): entity forms hide their SEO, AEO and custom-field tabs. */
+export const SIMPLE_KEY = "tw_console_simple";
 
 export type ConsoleNav = "full" | "rail";
 export type ConsoleMotion = "full" | "subtle";
@@ -29,7 +31,7 @@ function read(key: string, on: string): boolean {
   try { return localStorage.getItem(key) === on; } catch { return false; }
 }
 
-function write(key: string, on: string, value: boolean, attr: "consoleNav" | "consoleMotion") {
+function write(key: string, on: string, value: boolean, attr: "consoleNav" | "consoleMotion" | "consoleSimple") {
   try { if (value) localStorage.setItem(key, on); else localStorage.removeItem(key); } catch { /* the attribute still applies for this visit */ }
   if (value) document.documentElement.dataset[attr] = on; else delete document.documentElement.dataset[attr];
   announce();
@@ -44,3 +46,8 @@ export function useConsoleMotion(): ConsoleMotion {
   return useSyncExternalStore(subscribe, () => (read(MOTION_KEY, "subtle") ? "subtle" : "full"), () => "full");
 }
 export function setConsoleMotion(v: ConsoleMotion) { write(MOTION_KEY, "subtle", v === "subtle", "consoleMotion"); }
+
+export function useConsoleSimple(): boolean {
+  return useSyncExternalStore(subscribe, () => read(SIMPLE_KEY, "1"), () => false);
+}
+export function setConsoleSimple(on: boolean) { write(SIMPLE_KEY, "1", on, "consoleSimple"); }

@@ -5193,6 +5193,12 @@ html[data-builder-preview] [data-edit]:focus {
 [data-panel="topbar"] [data-menu-badge="soon"] { --badge-ink: var(--color-topbar-muted); }
 [data-panel="topbar"] [data-menu-badge="new"]  { --badge-ink: var(--color-topbar-new); }
 
+/* Simple view (docs/help-and-tours.md): an entity form's SEO, AEO and
+   custom-field tabs are hidden, by CSS on the attribute the root layout
+   stamps before paint, so the strip never flashes them. Never the open tab,
+   and never one holding a validation error. The panels stay mounted. */
+html[data-console-simple] [role="tablist"] [data-advanced]:not([aria-selected="true"]):not([data-has-error]) { display: none; }
+
 /* Console 2.0 — the sidebar folded to its icon rail (docs/console-portal.md).
    `html[data-console-nav="rail"]` is set before paint (lib/console-prefs.ts),
    so a folded sidebar never paints expanded first. From `lg` only: below it
