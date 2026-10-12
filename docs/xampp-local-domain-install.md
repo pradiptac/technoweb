@@ -448,13 +448,13 @@ To repeat the install from scratch: stop Node and the scheduler, delete
 **Updating through the console on this PC.** There is no Passenger here to
 restart the website, and Windows will not rename a folder a program is using:
 the update stops at *Finishing the API* with "Could not rename web to web.prev"
-while Node runs from `C:ltis\web` (and so does a Command Prompt whose current
+while Node runs from `C:\altis\web` (and so does a Command Prompt whose current
 folder is inside it). The console itself is served by that Node, so stopping it
 also takes away the **Try this step again** button. Swap the folders by hand:
 
 1. In window 1 press Ctrl+C, then leave the folder and swap:
    ```
-   cd /d C:ltis
+   cd /d C:\altis
    ren web web.prev
    ren web.new web
    ```
