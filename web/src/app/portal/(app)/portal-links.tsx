@@ -10,7 +10,7 @@ import type { PortalLink } from "./portal-nav";
  * markup by the time they reach `PortalNav` (a client component) — see the
  * note there. This module has no `"use client"` and must not gain one.
  */
-export function portalLinks(): PortalLink[] {
+export function portalLinks(counts: { openTickets?: number } = {}): PortalLink[] {
   const glyph = "size-4 shrink-0";
   return [
     { href: "/portal", label: "Dashboard", exact: true, icon: <IconGrid className={glyph} /> },
@@ -19,7 +19,7 @@ export function portalLinks(): PortalLink[] {
     { href: "/portal/orders", label: "My orders", icon: <IconBox className={glyph} /> },
     // Beside the orders: what somebody means to buy sits next to what they bought.
     { href: "/portal/wishlist", label: "My wishlist", icon: <IconHeart className={glyph} /> },
-    { href: "/portal/tickets", label: "My tickets", icon: <IconTicket className={glyph} /> },
+    { href: "/portal/tickets", label: "My tickets", icon: <IconTicket className={glyph} />, count: counts.openTickets || undefined },
     { href: "/portal/tickets/new", label: "Submit a ticket", icon: <IconHeadset className={glyph} /> },
     // Engineer visits (2026-09-26): after tickets, the other way to get help.
     { href: "/portal/visits", label: "My visits", icon: <IconWrench className={glyph} /> },

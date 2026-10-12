@@ -54,7 +54,7 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
       </p>
 
       <div className="mb-5 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">{order.order_number}</h2>
+        <h1 className="display-3">{order.order_number}</h1>
         <Badge tone={TONE[order.status] ?? "closed"}>{order.status_label}</Badge>
       </div>
 

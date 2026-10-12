@@ -38,7 +38,7 @@ export default async function PortalOrdersPage() {
 
   return (
     <>
-      <h2 className="display-3 mb-1">Your orders</h2>
+      <h1 className="display-3 mb-1">Your orders</h1>
       <p className="measure mb-6 text-14 text-muted">
         Everything bought through the shop with this address. An order placed before you had an
         account is still reachable by the link in its confirmation email.
@@ -53,7 +53,7 @@ export default async function PortalOrdersPage() {
       ) : (
         <ul className="grid gap-3">
           {orders.data.map((order) => (
-            <li key={order.order_number} className="rounded-lg border border-line-strong bg-card p-4">
+            <li key={order.order_number} className="rounded-xl border border-line-strong bg-card p-4 shadow-1">
               <div className="flex flex-wrap items-center gap-3">
                 <Link
                   href={`/portal/orders/${order.order_number}`}

@@ -28,7 +28,7 @@ export default async function PortalMeetingsPage() {
     <>
       <div className="mb-6 flex flex-wrap items-end gap-3">
         <div className="min-w-0">
-          <h2 className="display-3 mb-1">Your meetings</h2>
+          <h1 className="display-3 mb-1">Your meetings</h1>
           <p className="measure text-14 text-muted">
             Video calls you have booked while signed in. A meeting booked without signing in is
             reachable from the link in its email.
@@ -49,7 +49,7 @@ export default async function PortalMeetingsPage() {
       ) : (
         <ul className="grid gap-3">
           {meetings.data.map((meeting) => (
-            <li key={meeting.reference} className="rounded-lg border border-line-strong bg-card p-4">
+            <li key={meeting.reference} className="rounded-xl border border-line-strong bg-card p-4 shadow-1">
               <div className="flex flex-wrap items-center gap-3">
                 <Link href={`/portal/meetings/${meeting.reference}`} className="font-mono text-13-5 font-medium hover:underline">
                   {meeting.reference}

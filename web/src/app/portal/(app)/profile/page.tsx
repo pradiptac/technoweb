@@ -18,7 +18,7 @@ export default async function ProfilePage() {
   return (
     <>
       <div className="mb-6">
-        <h2 className="display-3">My profile</h2>
+        <h1 className="display-3">My profile</h1>
         <p className="mt-1.5 text-14-5 text-muted">
           Keep your contact details current — this is where we call when something needs
           confirming on site.

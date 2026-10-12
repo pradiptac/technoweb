@@ -34,7 +34,7 @@ export default async function PortalDownloadsPage() {
     <>
       <div className="mb-6 flex flex-wrap items-end gap-3">
         <div className="min-w-0">
-          <h2 className="display-3 mb-1">Downloads</h2>
+          <h1 className="display-3 mb-1">Downloads</h1>
           <p className="measure text-14 text-muted">
             Firmware, software and documents kept for customers. Datasheets and everything else that
             is open to everybody are in the downloads centre.

@@ -1,9 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { NAV_ROW, NAV_ROW_ACTIVE, NAV_ROW_IDLE } from "@/components/app-shell/nav-classes";
+import { NavPill, usePillBox } from "@/components/app-shell/nav-pill";
 
 /**
  * A row of the portal's navigation, with its glyph already rendered.
@@ -17,18 +19,25 @@ import { cn } from "@/lib/utils";
  * React serialises the markup, which is how `lib/navigation.ts` hands the
  * header its identity tiles.
  */
-export type PortalLink = { href: string; label: string; exact?: boolean; icon: ReactNode };
+export type PortalLink = { href: string; label: string; exact?: boolean; icon: ReactNode; count?: number };
 
 export function PortalNav({ links, knowledgeBaseIcon }: { links: PortalLink[]; knowledgeBaseIcon: ReactNode }) {
   const pathname = usePathname();
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  // The console's sliding pill (Console 2.0, app-shell/nav-pill.tsx), from
+  // `lg`: below it the links are a horizontal scroller and the active row
+  // keeps its own fill.
+  const listRef = useRef<HTMLDivElement>(null);
+  const pill = usePillBox(listRef, pathname);
 
   // min-w-0 for the same reason as admin-nav: without it this grid item will
   // not shrink, and the row of links overflows the page on a narrow screen.
   return (
     <nav aria-label="Portal" className="min-w-0 lg:sticky lg:top-24">
+      <div ref={listRef} className="group/navlist relative">
+      <NavPill box={pill} className="hidden lg:block" />
       <ul className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
         {links.map((l) => (
           <li key={l.href} className="shrink-0">
@@ -36,10 +45,8 @@ export function PortalNav({ links, knowledgeBaseIcon }: { links: PortalLink[]; k
               href={l.href}
               aria-current={isActive(l.href, l.exact) ? "page" : undefined}
               className={cn(
-                "flex items-center gap-2.5 rounded px-3.5 py-2.5 text-sm font-medium transition-colors duration-(--duration-base)",
-                isActive(l.href, l.exact)
-                  ? "bg-brand-50 text-brand-ink"
-                  : "text-muted hover:bg-surface-2 hover:text-ink",
+                NAV_ROW, "group/row px-3.5 py-2.5 text-sm",
+                isActive(l.href, l.exact) ? NAV_ROW_ACTIVE : NAV_ROW_IDLE,
               )}
             >
               {/*
@@ -50,10 +57,19 @@ export function PortalNav({ links, knowledgeBaseIcon }: { links: PortalLink[]; k
               */}
               {l.icon}
               {l.label}
+              {l.count ? (
+                <span
+                  className="ml-auto rounded-full bg-brand-600 px-1.5 py-px text-10-5 font-semibold tabular-nums text-brand-on group-aria-[current=page]/row:bg-card group-aria-[current=page]/row:text-brand-ink"
+                  aria-label={`${l.count} open`}
+                >
+                  {l.count}
+                </span>
+              ) : null}
             </Link>
           </li>
         ))}
       </ul>
+      </div>
 
       <div className="mt-6 hidden rounded-lg border border-line-strong bg-surface p-4 lg:block">
         <p className="text-13 leading-normal text-muted">
