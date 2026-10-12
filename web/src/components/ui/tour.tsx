@@ -143,7 +143,8 @@ export function Tour() {
     if (!step) return;
     // Gone since the tour started (a list refreshed, a panel closed): pass it.
     const el = document.querySelector(step.target);
-    if (!visible(el)) { move(1); return; }
+    // Passed on the next frame, never from the effect's own body (react-hooks/set-state-in-effect).
+    if (!visible(el)) { const f = requestAnimationFrame(() => move(1)); return () => cancelAnimationFrame(f); }
     el.scrollIntoView({ block: "center" });
     const place = () => {
       const now = document.querySelector(step.target);
