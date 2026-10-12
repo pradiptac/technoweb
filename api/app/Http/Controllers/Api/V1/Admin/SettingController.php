@@ -240,6 +240,16 @@ class SettingController extends Controller
      * console builds its select from `options`, the rule `stats_size` and
      * `schema_type_options` follow.
      */
+    /** A homepage hero's heading effect (0.171.0); `default` follows Motion → Hero heading. */
+    public const HERO_KINETIC = [
+        ['value' => 'default', 'label' => 'As the Motion settings say', 'description' => 'Whatever Motion → Hero heading is set to.'],
+        ['value' => 'none', 'label' => 'None', 'description' => 'The heading is simply there.'],
+        ['value' => 'rotate', 'label' => 'Rotating words', 'description' => 'The last word cycles through the words below, once, then rests on the original.'],
+        ['value' => 'type', 'label' => 'Typewriter', 'description' => 'The heading types itself in once.'],
+        ['value' => 'decode', 'label' => 'Decode', 'description' => 'Each letter flickers through random characters and settles.'],
+        ['value' => 'highlight', 'label' => 'Highlight', 'description' => 'A marker stroke draws itself under a word — the one below, or the last word.'],
+    ];
+
     public const STAT_ANIMATIONS = [
         ['value' => 'none', 'label' => 'None', 'description' => 'The figures are simply there.'],
         ['value' => 'count', 'label' => 'Count up', 'description' => 'Each number counts up from zero over a second and a half, keeping its sign, unit and decimal places. The default, and what every other figure on the site does.'],
@@ -325,6 +335,7 @@ class SettingController extends Controller
             'home_pricing_block' => self::blockOptions(ContentBlockType::Pricing),
             'home_stack_block' => self::blockOptions(ContentBlockType::Stack),
             'stats_animation' => self::STAT_ANIMATIONS,
+            'hero_kinetic' => self::HERO_KINETIC,
             'chatbot_model' => AiModel::options(
                 (string) Setting::query()->where('key', 'chatbot_model')->value('value'),
             ),
@@ -716,7 +727,7 @@ class SettingController extends Controller
     {
         // The sign-in screen's three ids ride on the same rule: same shape,
         // same list-on-the-frontend reasoning (login-backdrop-choices.ts).
-        $ids = ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_hero', 'motion_cards', 'motion_progress', 'login_backdrop', 'login_intensity', 'login_speed'];
+        $ids = ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_hero', 'motion_cards', 'motion_progress', 'motion_headline', 'motion_micro', 'login_backdrop', 'login_intensity', 'login_speed'];
 
         foreach ($request->input('settings', []) as $i => $row) {
             $key = $row['key'] ?? '';
@@ -877,6 +888,16 @@ class SettingController extends Controller
             }
             if ($key === 'stats_size' && filled($value) && ! in_array($value, array_column(self::STAT_SIZES, 'value'), true)) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a size from the list.']);
+            }
+            if ($key === 'hero_kinetic' && filled($value) && ! in_array($value, array_column(self::HERO_KINETIC, 'value'), true)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose an effect from the list.']);
+            }
+            if ($key === 'hero_kinetic_words' && filled($value)) {
+                $lines = array_values(array_filter(array_map('trim', preg_split('/\R/', (string) $value) ?: []), fn ($l) => $l !== ''));
+                if (count($lines) > 6 || collect($lines)->contains(fn ($l) => mb_strlen($l) > 40)) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'Up to six words or short phrases, one per line.']);
+                }
+                $rows[$i]['value'] = implode("\n", $lines);
             }
             if ($key === 'stats_animation' && filled($value) && ! in_array($value, array_column(self::STAT_ANIMATIONS, 'value'), true)) {
                 throw ValidationException::withMessages([

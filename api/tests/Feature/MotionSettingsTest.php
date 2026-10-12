@@ -55,7 +55,7 @@ class MotionSettingsTest extends TestCase
         ]);
     }
 
-    public function test_the_six_keys_are_seeded_public_and_default_to_the_site_as_it_was(): void
+    public function test_every_key_is_seeded_public_and_default_to_the_site_as_it_was(): void
     {
         $public = $this->getJson('/api/v1/settings')->assertOk()->json('data');
 
@@ -68,6 +68,9 @@ class MotionSettingsTest extends TestCase
             'motion_hero' => 'grid',
             'motion_cards' => 'lift',
             'motion_progress' => 'none',
+            'motion_headline' => 'none',
+            // Lively by default — the client's exception (0.171.0).
+            'motion_micro' => 'lively',
         ];
 
         foreach ($defaults as $key => $value) {
@@ -122,7 +125,7 @@ class MotionSettingsTest extends TestCase
 
         $this->assertArrayHasKey('motion', $groups);
         $this->assertEqualsCanonicalizing(
-            ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_splash', 'motion_hero', 'motion_cards', 'motion_progress'],
+            ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_splash', 'motion_hero', 'motion_cards', 'motion_progress', 'motion_headline', 'motion_micro'],
             collect($groups['motion'])->pluck('key')->all(),
         );
     }

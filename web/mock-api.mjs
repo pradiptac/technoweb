@@ -3371,7 +3371,7 @@ createServer(async (req, res) => {
     meetings_enabled: '1', meeting_slot_step: '30', meeting_min_notice_hours: '4', meeting_max_days: '30',
     push_api_key: 'AIzaMockKey000000000000000000000000000', push_project_id: 'technoware-push',
     push_messaging_sender_id: '123456789012', push_app_id: '1:123456789012:web:0a1b2c3d4e5f', push_vapid_key: 'BMockVapidKey',
-    motion_reveal: 'lift', motion_buttons: 'lift', motion_page: 'none', motion_loader: 'none', motion_splash: '0', motion_hero: 'grid', motion_progress: 'none',
+    motion_reveal: 'lift', motion_buttons: 'lift', motion_page: 'none', motion_loader: 'none', motion_splash: '0', motion_hero: 'grid', motion_progress: 'none', motion_headline: 'none', motion_micro: 'lively', hero_kinetic: 'default',
     login_backdrop: 'image', login_intensity: 'medium', login_speed: 'normal', stats_animation: 'count',
     // The site theme. CI builds against this mock, and `classic` is also the
     // fallback for a missing key — so leaving it out would hide nothing and
@@ -5049,6 +5049,7 @@ createServer(async (req, res) => {
           s('motion_reveal', 'lift', { group: 'motion' }), s('motion_buttons', 'lift', { group: 'motion' }), s('motion_page', 'none', { group: 'motion' }),
           s('motion_loader', 'none', { group: 'motion' }), s('motion_splash', '0', { group: 'motion', type: 'boolean' }), s('motion_hero', 'grid', { group: 'motion' }),
           s('motion_progress', 'none', { group: 'motion' }),
+          s('motion_headline', 'none', { group: 'motion' }), s('motion_micro', 'lively', { group: 'motion' }),
         ],
         themes: [s('site_theme', 'classic', { group: 'themes' }), s('site_theme_options', null, { group: 'themes', type: 'text' })],
         announcement: [

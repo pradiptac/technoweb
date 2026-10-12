@@ -40,6 +40,10 @@ class SettingsSeeder extends Seeder
             ['group' => 'homepage', 'key' => 'hero_kicker', 'value' => 'Networking · Servers · Security · Surveillance', 'type' => 'string'],
             ['group' => 'homepage', 'key' => 'hero_heading', 'value' => 'Technology infrastructure that keeps your business connected.', 'type' => 'string'],
             ['group' => 'homepage', 'key' => 'hero_lede', 'value' => 'We design, deploy and support the networks, servers and security systems your operations run on — engineered properly the first time, then maintained by a support desk that actually answers.', 'type' => 'text'],
+            // The homepage hero's heading effect (0.171.0): `default` follows motion_headline;
+            // the words are rotating alternatives or the word to underline.
+            ['group' => 'homepage', 'key' => 'hero_kinetic', 'value' => 'default', 'type' => 'string'],
+            ['group' => 'homepage', 'key' => 'hero_kinetic_words', 'value' => null, 'type' => 'text'],
             // Four "value|label" pairs, one per line. A pair per line rather
             // than four settings each, because they are edited together and
             // an editor should be able to drop one without leaving a gap.
@@ -787,6 +791,12 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             // A reading-progress bar along the top of public pages (0.114.0):
             // `none` or `bar`, off unless somebody chooses it.
             ['group' => 'motion', 'key' => 'motion_progress', 'value' => 'none', 'type' => 'string'],
+            // How a hero's heading arrives (0.171.0, docs/motion.md "Kinetic headings"):
+            // an id from motion-choices.ts's KINETIC_SITE, still unless chosen.
+            ['group' => 'motion', 'key' => 'motion_headline', 'value' => 'none', 'type' => 'string'],
+            // Small interactions (0.171.0): Lively by default — the client's deliberate
+            // exception to "the site as it moved before"; each effect is a few pixels.
+            ['group' => 'motion', 'key' => 'motion_micro', 'value' => 'lively', 'type' => 'string'],
 
             /*
              * The site theme: which folder under `web/src/themes/` builds the
