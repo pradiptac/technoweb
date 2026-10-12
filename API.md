@@ -4710,6 +4710,11 @@ to the first of each list, which is the site as it moved before the group
 existed. `motion_splash` is `0` or `1` and is refused otherwise. They apply
 to the public site and the customer portal; the console reads none of them.
 
+**Two motion keys were added in 0.171.0**, checked for shape like the rest:
+
+- **`motion_headline`**: how a hero's heading arrives — `none` (the default), `type`, `decode` or `highlight`. `rotate` needs a hero's own word list, so the frontend never offers it site-wide and resolves it as `none` here.
+- **`motion_micro`**: small interactions — `lively` (**the default**, the client's exception to the first-entry rule) or `none`.
+
 **The `login` group is public and holds four rows** — the sign-in screens
 render before anybody is authenticated. `login_backdrop` is `image` or one
 of eight animation ids, `login_intensity` and `login_speed` are ids too; all
@@ -4767,6 +4772,21 @@ offered as `options` (the theme's homepage, then every published builder
 page by title) and a 422 on anything else. It is not on the public
 `/settings` map; **`homepage_page_slug`** is, derived on every read and
 present only while the id still names a published builder page.
+
+**`hero_kinetic` and `hero_kinetic_words`** (`homepage` group, public, 0.171.0) are the homepage hero's heading effect.
+
+- **`hero_kinetic`** is `default` (follow `motion_headline`; seeded), `none`, `rotate`, `type`, `decode` or `highlight`. It is offered as `options`, and anything else is a 422 on the row.
+- **`hero_kinetic_words`** holds the rotating alternatives, or the word to underline, one per line:
+  - at most six lines of at most 40 characters each, else a 422 "Up to six words or short phrases, one per line.";
+  - blank lines are dropped before it is stored;
+  - blank is absent from the public map.
+
+A builder `hero` section takes the same pair as `data.kinetic` and `data.kinetic_words`:
+
+- **`kinetic`** is checked for the shape of an id (`^[a-z][a-z0-9-]{1,31}$`); `default` and blank are not stored.
+- **`kinetic_words`** is at most 300 characters and held to the same six × 40 rule (422 on `blocks.N.data.kinetic_words`). It is not an inline-editable field.
+
+Both reads pass the pair through unchanged.
 
 **Header and footer parts (0.160.0).** Each theme's object in `site_theme_options`
 also takes `header` and `footer`: `{parts: {<id>: {on: bool}}, order: [<id>…]}`,

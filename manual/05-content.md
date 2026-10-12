@@ -181,7 +181,7 @@ The section types are:
 
 | Section | What it shows |
 |---|---|
-| Hero | The opening band: heading, line of text, picture, up to two buttons |
+| Hero | The opening band: heading, line of text, picture, up to two buttons — and, if you like, a moving heading (rotating words, typewriter, decode or highlight; chapter 15, "Moving hero headings") |
 | Text | A heading and a body from the editor |
 | Picture or video with text | Media on one side, words and buttons on the other |
 | Features | Up to twelve short points with icons, in two to four columns |

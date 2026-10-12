@@ -527,3 +527,71 @@ query. Both are in the server's HTML, so nothing waits on JavaScript. The
 grid modes (rise, wipe, pulse, flicker, deal) render the list once already
 and carry no still copy. `.strip-wrap` sets a wrapped list two to a row
 below 40rem.
+
+## Kinetic headings (0.171.0, 2026-10-13)
+
+A hero's heading can move: **rotating words**, **typewriter**, **decode** or
+**highlight**.
+
+- `KINETIC` in `lib/motion-choices.ts` is the list.
+- `lib/kinetic.ts` resolves which effect a heading plays, through `kineticFor(site, override, words)`:
+  - `default` or blank follows `motion_headline`;
+  - an unknown id is `none`;
+  - rotate with no words is `none`, so the site-wide choice (`KINETIC_SITE`) never offers rotate.
+- Words are one per line, at most six of 40 characters each. The API checks this on the setting and on a builder hero alike.
+
+**Two choke points.**
+- `HeroTitle` (`lib/hero-heading.tsx`) serves every theme's homepage hero. It resolves `hero_kinetic` → `motion_headline` itself, from the cached settings, so no theme threads a prop.
+- The classic hero passes `text` and `lastWordClassName`, because it splits its last word into a coloured span.
+- The builder's `HeroSection` reads the section's own `kinetic` and `kinetic_words`.
+- Both render `components/ui/kinetic-text.tsx`.
+
+**The server HTML is the finished heading.**
+- A `sr-only` copy carries the words. The animated copy is `aria-hidden`, split into word spans (`whitespace-nowrap`, so a word never breaks between letters) and letter spans.
+- Every box is its final size from the first frame:
+  - a letter is hidden by opacity;
+  - a decode glyph is drawn by `::after { content: attr(data-g) }` over a transparent final glyph;
+  - the rotating slot is an `inline-grid` with every word in one cell, and `max-width: 100%` lets a long word wrap rather than run past 320px.
+- `kinetic-type.mjs` samples the h1's box ten times while each effect plays, and fails on a pixel of movement.
+
+**The hidden start state is CSS inside `prefers-reduced-motion: no-preference` *and* `scripting: enabled`.**
+- No-JS and reduced-motion visitors get the finished heading, with no flash.
+- The island stamps `data-kinetic-armed` on mount. An island that never armed (a failed chunk, a hydration error) is revealed by a 3s failsafe animation keyed on `:not([data-kinetic-armed])`.
+- The probe proves the failsafe by making `IntersectionObserver` throw and stripping the attribute.
+
+**Automated browsers see the final state** unless `localStorage.tw_kinetic_force === "1"`, the tours' rule. The audits therefore grade finished text, never a half-typed or scrambled heading.
+
+**Rotating words**
+- They turn through the list once and rest on the original word.
+- They pause under the pointer and in a hidden tab, and carry a Pause button inside the heading (WCAG 2.2.2).
+- So that the heading's accessible name is the words alone, it names itself by `aria-labelledby` pointing at the `sr-only` copy: `k-hero-title` on the homepage, `k-<section id>` in the builder.
+
+`kinetic_words` is in `SectionRules::NOT_INLINE`. Its words are not one run on the page, so the live preview must not offer to edit them in place.
+
+## Small interactions (0.171.0, 2026-10-13)
+
+`motion_micro` is **Lively** (the default) or **None**. `motionAttrs()` stamps it as `data-motion-micro` on the marketing and portal wrappers.
+
+**Lively is the default by the client's choice.** It is the one deliberate exception to "the first entry is the site as it moved before", justified because every effect is a few pixels or a few hundred milliseconds. The console's half is keyed on `[data-console]` and drops movement under Subtle (`docs/console-portal.md`).
+
+**Arrows nudge.**
+- `IconArrowRight` carries `data-icon="arrow-right"`. In a `.btn`, a link or a button, it moves `translate: 3px 0` on hover or focus-visible.
+- The movement is horizontal but stays inside its own button's padding, so the document never widens.
+
+**Body links thicken.**
+- A link in `Prose` (`data-prose`) goes from a 1px to a 2px underline.
+- `text-decoration-thickness` and `text-underline-offset` are the first of two named non-transform properties here. The link always kept its underline.
+
+**Smaller effects**
+- **Switches spring:** an overshoot curve on the thumb's `translate`.
+- **Tick boxes and radios pop:** `scale` .85 → 1 on `:checked`.
+- **Copy confirms:** `[data-copied]` arrives through `@starting-style` in `CopyLink` and `CopyText`.
+- **A tile's icon** scales to 1.08 under a fine pointer.
+
+**A refused field rings once.**
+- `[aria-invalid="true"]` plays an outline that expands and fades.
+- It is an outline, not a box-shadow, because the field already draws its ring with a box-shadow. This is the second named non-transform property.
+
+Field focus is unchanged: the `field` class already transitions its ring.
+
+`scripts/probes/micro-interactions.mjs` samples each effect. Its console half runs only with credentials. Run probes with `BASE=http://localhost:3000`: `shared.mjs` defaults to `127.0.0.1`, which is a different cookie host from a probe's own default.

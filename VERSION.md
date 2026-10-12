@@ -21,6 +21,39 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.171.0 — 2026-10-13
+
+**Headings that move, and small touches that answer.** Release A4 of the 2.0 roadmap.
+
+- **Moving hero headings.** A hero's heading can arrive in one of four ways:
+  - **Typewriter:** it types itself in.
+  - **Decode:** each letter flickers and settles.
+  - **Highlight:** a marker stroke draws under a word.
+  - **Rotating words:** its last word turns into each word you list, once, then rests. A small pause button sits beside it while it moves.
+- **Where you set it:**
+  - The site-wide choice is **Site → Settings → Motion → Hero heading**.
+  - The homepage hero has its own under **Site → Settings → Homepage**.
+  - Every page-builder hero has one on its card.
+- **Who sees what.** The words are always on the page as plain text, for search engines and screen readers. Visitors who asked for less motion see the heading still.
+- **Small interactions,** on by default (**Site → Settings → Motion → Small interactions**):
+  - arrows in buttons nudge forward;
+  - links in text thicken their underline;
+  - switches spring and tick boxes pop;
+  - Copy buttons confirm;
+  - a card's icon lifts;
+  - a field the server refused rings once.
+- **In the console:**
+  - the Save button turns into "Saved ✓" for a moment after a save;
+  - a queue's "new" count pops when something arrives;
+  - your account's Subtle motion turns the movement off.
+- **Fixed:**
+  - At tablet width (768px) the console's top bar ran past the screen. The "AI Powered" badge now shows from laptop width up.
+  - A guided tour could trip a code check (a fix to 0.168.0).
+
+On a checkout, run `php artisan db:seed --class=SettingsSeeder` for the new settings. The updater does it on its own. Module notes: `docs/motion.md` ("Kinetic headings", "Small interactions") and `docs/console-portal.md`.
+
+---
+
 ## 0.170.0 — 2026-10-13
 
 **The support network.** A client request: service centres on a map.

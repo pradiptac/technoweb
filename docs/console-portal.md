@@ -140,3 +140,18 @@ contrast.
   - no overflow at 360 and 1280
   - the Activity panel
 - `web/scripts/probes/portal-home.mjs` covers the portal (0.167.0).
+
+## Saved on the button, a badge that pops (0.171.0)
+
+**"Saved ✓"**
+- **The signal.** The toast provider dispatches `window` `tw:saved` on every `ok` toast and remembers the moment (`lastOkToastAt()`).
+- **Which bar takes it.** `FormActions` keeps the time of the last submit **at module scope**, not in the component: a create redirects to the record's edit screen, and that screen's bar is a new instance.
+- **When it shows.** For 1.6s on the submit button, when an `ok` toast arrives within 15s of a submit, or arrived less than 3s before the bar mounted. The second case exists because the redirected screen's toast can fire before its bar starts listening.
+- **How it draws.** DOM only, as a `[data-saved]` overlay with the button's own background, because a `Button`'s label is a bare text node.
+- The toast is still what announces it.
+
+**The badge pop.** `NewBadge` in `admin-nav.tsx` sets `data-bumped` for 400ms when a poll raises a queue's count. It never fires on first render, and not under Subtle.
+
+**Under Subtle** the console drops the arrow nudge, the switch spring, the tick-box pop and the copy, refused-field and Saved animations. Colour and ring feedback stay.
+
+**The AI badge** is drawn from `lg`. Drawn from `sm`, it pushed the bar 95px past a 768px screen.

@@ -223,9 +223,34 @@ move. The console keeps its own quieter motion whatever you choose.
 | **While the next page loads** | What shows while it loads | None, Bar, Pulse |
 | **First-visit splash** | A small loader for about a second on the first page of a visit | Off, On |
 | **Behind a heading** | The backdrop behind the homepage hero, plain page headings and the closing band | Grid, Aurora, Dots, Plain |
+| **Hero heading** | How a hero's heading arrives when the page opens | None, Typewriter, Decode, Highlight |
+| **Small interactions** | Links, arrows, switches, tick boxes, copy buttons and card icons answering the pointer with a small movement | Lively (the default), None |
 
 A section's own **Appear** choice (above) overrides **Sections arriving** for
 that section.
+
+### Moving hero headings
+
+A hero's heading can arrive in one of four ways:
+
+- **Typewriter** — the heading types itself in once, with a caret that fades
+  when it finishes.
+- **Decode** — each letter flickers through random characters and settles,
+  left to right. It suits the more technical themes.
+- **Highlight** — a marker stroke draws itself under one word: the last word,
+  or the word you name.
+- **Rotating words** — the heading's last word turns into each word you list,
+  once, then rests on its own word. A small pause button sits beside the
+  heading while it moves. Because it needs a list of words, it is chosen on
+  a hero, not site-wide.
+
+**Hero heading** above sets the effect for every hero that does not choose its
+own. The homepage hero chooses its own under **Site → Settings → Homepage →
+Hero headline effect**, with the words under **Effect words** (one per line,
+up to six). A page-builder hero has the same two settings on its card (see
+chapter 5). The words are always on the page as plain text for search engines
+and screen readers, and visitors who asked their device for less motion see
+the heading still.
 
 ## Page banners
 
