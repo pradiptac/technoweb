@@ -81,7 +81,7 @@ export function DashboardCustomise({ view, available, groups }: {
       {/* 32px, not the `sm` button's 44: this row held only the title, and a
           taller control would push the whole dashboard down to make room. The
           page's placeholder for it is the same height. */}
-      <Button type="button" variant="secondary" size="sm" className="ml-auto h-8 px-3 py-0" onClick={start}>
+      <Button type="button" variant="secondary" size="sm" className="ml-auto h-8 px-3 py-0" onClick={start} data-tour="customise">
         <IconSliders className="size-4" />
         Customise
         {changed && <span className="sr-only"> — this dashboard has been rearranged</span>}

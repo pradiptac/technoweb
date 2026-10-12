@@ -125,6 +125,7 @@ export default async function PortalHome() {
                proportion rule); one or two tiles lie on their side, the icon
                beside the figure, rather than stretching a tall card wide. */
             <ul
+              data-tour="portal-tiles"
               className="mb-7 grid grid-cols-2 gap-3 max-lg:[&>li:last-child:nth-child(odd)]:col-span-2 lg:grid-cols-[repeat(var(--tiles),minmax(0,1fr))]"
               style={{ "--tiles": tiles.length } as CSSProperties}
             >
@@ -158,7 +159,7 @@ export default async function PortalHome() {
                 <ActivityFeed items={activity} empty="Nothing yet. Updates on your tickets, orders and bookings appear here." />
               </div>
             </Card>
-            <Card as="section" interactive={false} padding="sm" className="rounded-xl shadow-2">
+            <Card as="section" id="portal-help" interactive={false} padding="sm" className="rounded-xl shadow-2">
               <h2 className="text-15 font-semibold">Need help?</h2>
               <form action="/knowledge-base" method="get" className="mt-3">
                 <label htmlFor="kb-q" className="sr-only">Search the knowledge base</label>

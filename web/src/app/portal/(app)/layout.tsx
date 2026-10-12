@@ -13,6 +13,7 @@ import { PortalClosed } from "@/components/portal/portal-closed";
 import { motionAttrs, motionFor } from "@/lib/motion-choices";
 import { PageEnter } from "@/components/ui/page-enter";
 import { RouteProgress } from "@/components/ui/route-progress";
+import { Tour } from "@/components/ui/tour";
 import { logoutAction } from "../actions";
 import { PortalNav } from "./portal-nav";
 import { ImpersonationBanner } from "./impersonation-banner";
@@ -76,6 +77,10 @@ export default async function PortalLayout({ children }: { children: React.React
             <RouteProgress style={motion.loader as "bar" | "pulse"} />
           </Suspense>
         )}
+        {/* The portal's first-visit tour (0.168.0); reads the search params. */}
+        <Suspense fallback={null}>
+          <Tour />
+        </Suspense>
         {impersonated && <ImpersonationBanner customer={customer} />}
         {/*
           Console 2.0's glass bar, in the portal (0.167.0): the website's own

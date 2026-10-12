@@ -3152,6 +3152,10 @@ summary:focus-visible {
   @starting-style {
     dialog.dialog-motion[data-side][open] { opacity: 0; scale: 1; translate: 100% 0; }
   }
+  /* A guided tour's card (0.168.0) fades in once when the tour starts; it is
+     keyed on the tour, so moving between steps never replays it. */
+  .tour-card { animation: tour-in var(--duration-base) var(--ease-brand) both; }
+  @keyframes tour-in { from { opacity: 0; translate: 0 4px; } }
 }
 
 /* -------------------------------------------------------- arrivals

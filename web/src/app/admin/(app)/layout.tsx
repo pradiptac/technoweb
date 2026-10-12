@@ -20,6 +20,7 @@ import { AdminNav } from "./admin-nav";
 import { palettePages, renderNav } from "./nav-items";
 import { CommandPalette } from "./command-palette";
 import { NewSincePoller } from "./new-since";
+import { Tour } from "@/components/ui/tour";
 import { TableView } from "./table-view";
 import { brandName } from "@/lib/brand";
 import { TopBar } from "@/components/app-shell/top-bar";
@@ -92,6 +93,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <ToastProvider okDuration={noticeMs}>
       <AlertsAsToastsProvider>
       <NewSincePoller />
+      {/* First-visit guided tours (0.168.0); reads the search params. */}
+      <Suspense fallback={null}>
+        <Tour />
+      </Suspense>
       {/* `data-console` scopes the table rules in globals.css (density, the
           sticky header) to this area: the portal draws `.admin-table`s too. */}
       <div data-console data-motion-page="fade" className="flex min-h-screen flex-col bg-surface">

@@ -570,7 +570,7 @@ export function SectionBuilder({ sections, setSections, options, media, errors, 
       </ol>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <Button type="button" variant="secondary" onClick={() => setPicking(true)}>Add a section</Button>
+        <Button type="button" variant="secondary" onClick={() => setPicking(true)} data-tour="add-section">Add a section</Button>
         {kind ? previewSlot : <PreviewDialog sections={sections} pageId={pageId} onErrors={setPreviewErrors} />}
         {pageId && !kind && (
           <Link href={`/admin/pages/${pageId}/preview`} className="py-2 text-13-5 font-semibold text-brand-ink hover:underline">

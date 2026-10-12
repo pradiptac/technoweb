@@ -64,7 +64,7 @@ export function Upload({ folderId }: { folderId?: string }) {
 
   return (
     <div className="flex items-end gap-1.5">
-      <Button type="button" size="sm" onClick={() => pick(files.current)} disabled={progress !== null}>
+      <Button type="button" size="sm" onClick={() => pick(files.current)} disabled={progress !== null} data-tour="upload">
         Upload
       </Button>
       <Button

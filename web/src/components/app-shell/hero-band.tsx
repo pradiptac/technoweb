@@ -35,7 +35,7 @@ export function HeroBand({ title, summary, actions, className }: {
       {/* White, not `dark-muted`: the theme gate checks white on both stops
           for every palette (scripts/theme-contrast.mjs) and nothing else. */}
       {summary && <p className="mt-1.5 text-14-5 text-white">{summary}</p>}
-      {actions && <div className="mt-5 flex flex-wrap gap-2">{actions}</div>}
+      {actions && <div data-tour="hero-actions" className="mt-5 flex flex-wrap gap-2">{actions}</div>}
     </section>
   );
 }
