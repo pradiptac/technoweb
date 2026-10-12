@@ -121,19 +121,30 @@ export default async function PortalHome() {
       ) : (
         <>
           {tiles.length > 0 && (
-            <ul className="mb-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            /* As many columns as there are tiles, never a half-empty row (the
+               proportion rule); one or two tiles lie on their side, the icon
+               beside the figure, rather than stretching a tall card wide. */
+            <ul
+              className="mb-7 grid grid-cols-2 gap-3 max-lg:[&>li:last-child:nth-child(odd)]:col-span-2 lg:grid-cols-[repeat(var(--tiles),minmax(0,1fr))]"
+              style={{ "--tiles": tiles.length } as CSSProperties}
+            >
               {tiles.map((t, i) => (
                 <li key={t.key} data-entrance-item style={{ "--i": i } as CSSProperties} className="min-w-0">
                   <Link
                     href={t.href}
                     data-portal-tile
-                    className="flex h-full flex-col rounded-xl border border-line-strong bg-card p-4 shadow-2 transition-[translate,box-shadow] duration-(--duration-base) hover:shadow-3 motion-safe:hover:-translate-y-px"
+                    className={cn(
+                      "flex h-full flex-col rounded-xl border border-line-strong bg-card p-4 shadow-2 transition-[translate,box-shadow] duration-(--duration-base) hover:shadow-3 motion-safe:hover:-translate-y-px",
+                      tiles.length <= 2 && "lg:flex-row lg:items-center lg:gap-4",
+                    )}
                   >
-                    <span aria-hidden className={cn("mb-3 grid size-10 place-items-center rounded-lg bg-surface-2 [&_svg]:size-5", t.tone)}>
+                    <span aria-hidden className={cn("mb-3 grid size-10 shrink-0 place-items-center rounded-lg bg-surface-2 [&_svg]:size-5", tiles.length <= 2 && "lg:mb-0", t.tone)}>
                       <t.icon />
                     </span>
-                    <span className="font-display text-[26px] leading-none font-bold tracking-[-.03em]">{t.value}</span>
-                    <span className="mt-1.5 text-13 text-muted">{t.label}</span>
+                    <span className="min-w-0">
+                      <span className="block font-display text-[26px] leading-none font-bold tracking-[-.03em]">{t.value}</span>
+                      <span className="mt-1.5 block text-13 text-muted">{t.label}</span>
+                    </span>
                   </Link>
                 </li>
               ))}

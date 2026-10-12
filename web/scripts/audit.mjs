@@ -54,6 +54,20 @@ import {
  * Included only when credentials are set, so the command still works without
  * them; `mobile-audit.mjs` has always done it this way.
  */
+/*
+ * The signed-in customer portal (Portal 2.0, 0.167.0). Audited only when
+ * PORTAL_LOGIN_EMAIL / PORTAL_LOGIN_PASSWORD are set — there is no seeded
+ * portal account — and signed in through the portal's own form, the way the
+ * console is. Until then nothing checked the portal's contrast at all: the
+ * phone audit covers its layout and not its colours.
+ */
+const PORTAL_EMAIL = process.env.PORTAL_LOGIN_EMAIL ?? "";
+const PORTAL_PASSWORD = process.env.PORTAL_LOGIN_PASSWORD ?? "";
+const PORTAL_ROUTES = [
+  "/portal", "/portal/orders", "/portal/wishlist", "/portal/tickets", "/portal/tickets/new",
+  "/portal/visits", "/portal/meetings", "/portal/downloads", "/portal/profile",
+];
+
 const ADMIN_ROUTES = [
   "/admin", "/admin/tickets", "/admin/tickets/saved-replies", "/admin/tickets/saved-replies/new",
   "/admin/customers", "/admin/blog", "/admin/blog/new",
@@ -295,6 +309,7 @@ const DEFAULT_ROUTES = [
   "/events", "/events?when=past",
   "/downloads",
   ...(haveAdminCredentials ? ADMIN_ROUTES : []),
+  ...(PORTAL_EMAIL && PORTAL_PASSWORD ? PORTAL_ROUTES : []),
 ];
 
 /** Routes whose correct answer is 404 rather than 200. */
@@ -935,6 +950,22 @@ const PREPARE = {
   },
 };
 
+let customerLoggedIn = false;
+async function signInCustomer() {
+  if (customerLoggedIn) return;
+
+  await desktop.goto(`${BASE}/portal/login`, { waitUntil: "load", timeout: 180000 });
+  await switchToPasswordForm(desktop);
+  await desktop.fill("#email", PORTAL_EMAIL);
+  await desktop.fill("#password", PORTAL_PASSWORD);
+  await Promise.all([
+    desktop.waitForURL((u) => !u.pathname.startsWith("/portal/login"), { timeout: 180000 }),
+    desktop.click('button[type="submit"]'),
+  ]);
+
+  customerLoggedIn = true;
+}
+
 async function signIn() {
   if (staffLoggedIn) return;
 
@@ -1092,6 +1123,17 @@ for (const route of routes) {
       await signIn();
     } catch (e) {
       problems.push(`${route}: admin login failed — ${e.message.split("\n")[0]}`);
+      failures++;
+      continue;
+    }
+  }
+
+  const PUBLIC_PORTAL = ["/portal/login", "/portal/register", "/portal/forgot-password", "/portal/reset-password", "/portal/verify-email"];
+  if (route.startsWith("/portal") && !PUBLIC_PORTAL.some((p) => route.startsWith(p)) && PORTAL_EMAIL && !customerLoggedIn) {
+    try {
+      await signInCustomer();
+    } catch (e) {
+      problems.push(`${route}: portal login failed — ${e.message.split("\n")[0]}`);
       failures++;
       continue;
     }

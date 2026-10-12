@@ -97,7 +97,7 @@ export default async function TicketsPage({
                     <StatusBadge status={t.status} />
                   </span>
                 </div>
-                <h3 className="mt-2 text-15-5">{t.subject}</h3>
+                <h2 className="mt-2 text-15-5">{t.subject}</h2>
                 <p className="mt-1.5 text-13 text-muted">
                   {t.category?.name ?? "Uncategorised"} · raised {formatDate(t.created_at)}
                   {t.assigned_to ? ` · ${t.assigned_to.name}` : " · not yet assigned"}

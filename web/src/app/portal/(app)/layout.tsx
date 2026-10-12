@@ -22,6 +22,7 @@ import { pushConfigFrom } from "@/lib/push";
 import { brandName } from "@/lib/brand";
 import { Logo } from "@/components/layout/logo";
 import { TopBar } from "@/components/app-shell/top-bar";
+import { IconAccessCard, IconGlobe } from "@/components/icons";
 import { AccountMenu } from "@/components/app-shell/account-menu";
 import { getTicketSummary } from "@/lib/portal";
 
@@ -104,8 +105,8 @@ export default async function PortalLayout({ children }: { children: React.React
             name={customer.name}
             detail={customer.company ?? customer.email}
             items={[
-              { label: "My profile", href: "/portal/profile" },
-              { label: "Back to site", href: "/" },
+              { label: "My profile", href: "/portal/profile", icon: <IconAccessCard /> },
+              { label: "Back to site", href: "/", icon: <IconGlobe /> },
             ]}
             signOut={logoutAction}
           />

@@ -56,7 +56,7 @@ export default async function PortalDownloadsPage() {
           </span>
         </EmptyState>
       ) : (
-        <DownloadList rows={downloads.map(downloadRow)} headingLevel={3} />
+        <DownloadList rows={downloads.map(downloadRow)} headingLevel={2} />
       )}
     </>
   );

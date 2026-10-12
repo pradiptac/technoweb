@@ -23,6 +23,7 @@ import { NewSincePoller } from "./new-since";
 import { TableView } from "./table-view";
 import { brandName } from "@/lib/brand";
 import { TopBar } from "@/components/app-shell/top-bar";
+import { IconAccessCard, IconExternal } from "@/components/icons";
 import { PageEnter } from "@/components/ui/page-enter";
 import { AccountMenu } from "@/components/app-shell/account-menu";
 
@@ -156,8 +157,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             name={staff.name}
             detail={roles || null}
             items={[
-              { label: "Your account", href: "/admin/profile" },
-              { label: "View site", href: "/", external: true },
+              { label: "Your account", href: "/admin/profile", icon: <IconAccessCard /> },
+              { label: "View site", href: "/", external: true, icon: <IconExternal /> },
             ]}
             signOut={logoutAction}
           />

@@ -3064,6 +3064,9 @@ Console 2.0 (0.166.0) and Portal 2.0 (0.167.0): the glass bar, the account menu,
 - The console's motion is its own block under `[data-console]` (press, a 160ms route fade, the first 12 rows arriving); Subtle drops movement; the palette and keyboard actions never animate; the public `motion_*` settings never reach the console.
 - `StatTile` is a raised card with the tone's wash in its icon disc and a counting figure; the prop API is unchanged.
 - The Activity panel reads `/admin/activity` for an administrator and the newest tickets for the desk; it is a `WIDGETS` key (eight panels).
+- The portal (0.167.0): the console's bar with the site's logo, every page its own `h1` (headings under it moved up a level); the home's reads each `.catch` alone, a tile with nothing is left out and the tiles take as many columns as there are; the hero's booking buttons follow `visits_enabled`/`meetings_enabled`.
+- `npm run audit` signs in to the portal and audits it when `PORTAL_LOGIN_EMAIL`/`PORTAL_LOGIN_PASSWORD` are set — nothing checked the portal's contrast before.
+- The account menu's item icons are rendered by the server layout and passed in (`AccountItem.icon`): a client import of `@/components/icons` ships the whole map.
 
 ## Conventions
 

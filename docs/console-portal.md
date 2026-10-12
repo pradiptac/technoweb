@@ -83,6 +83,41 @@ gets the eight newest tickets. A failure leaves the panel out. It is a
 `WIDGETS` key, so it can be hidden and reordered like the rest;
 `dashboard-view.mjs` counts eight panels.
 
+## The portal (0.167.0)
+
+**The portal's bar is the console's, with the site's own logo.** The "Support
+portal" heading is gone. Every portal page names itself with its own `h1`
+(the twelve `display-3` titles were promoted from `h2`), and headings under
+it moved up a level with them: a ticket's subject in the list, "Conversation",
+and the downloads list (`headingLevel={2}`).
+
+**Each read on the home page fails on its own.** The `.catch()` is inside the
+`Promise.all`, so a refused read (meetings switched off answers 403) drops one
+tile and never the page.
+
+**A tile with nothing to show is left out, never drawn as a zero.** The tiles
+take as many columns as there are (`--tiles`), so a row is never half empty.
+One or two tiles lie on their side from `lg`, the icon beside the figure.
+Below `lg` the grid is two across, and an odd last tile spans the row. A
+customer with nothing at all gets one "Here's what you can do" empty state.
+
+**The hero's buttons follow the switches.** "Book a visit" shows only with
+`visits_enabled` on and "Book a meeting" only with `meetings_enabled` on.
+"Raise a ticket" always shows. The visible greeting is the band's; the page's
+`h1` is a visually hidden "Dashboard".
+
+**The clock is read outside the component.** `soonest()` lives at module
+level because `react-hooks/purity` refuses `Date.now()` in a component body.
+
+**The account menu's icons come from the server.** `AccountItem.icon` is
+rendered in each layout from `@/components/icons` and passed in as an
+element, because a client import of that module ships the whole map.
+
+**`npm run audit` covers the portal when `PORTAL_LOGIN_EMAIL` and
+`PORTAL_LOGIN_PASSWORD` are set.** It signs in through the portal's own form
+and audits nine signed-in routes. Until 0.167.0 nothing checked the portal's
+contrast.
+
 ## Probes
 
 - `web/scripts/probes/console-shell.mjs` checks:

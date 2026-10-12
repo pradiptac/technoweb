@@ -21,6 +21,38 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.167.0 — 2026-10-12
+
+**Portal 2.0: a customer portal that looks like the product.** The second
+release of the 2.0 roadmap. Module note: `docs/console-portal.md`.
+
+- **The console's glass bar, in the portal**, carrying the website's own logo
+  (the portal had none, only a heading saying "Support portal"), the
+  browser-notifications bell, and the account menu with My profile, Back to
+  site and Sign out. The "View as" banner still sits above it.
+- **A brand-lit home.** "Hello Neel · Meridian Foods", one line about what
+  comes next (the next visit or meeting, else the latest order), and buttons
+  to raise a ticket and — when those features are switched on — to book a
+  visit or a meeting. Below it:
+  - a tile for each thing that is actually happening (open tickets and how
+    many await the customer, orders on the way, the next appointment, saved
+    items that got cheaper)
+  - one timeline of recent activity across tickets, orders, visits and
+    meetings
+  - a knowledge-base search
+
+  A tile with nothing to show is left out, never shown as a zero, and the
+  tiles always fill their row. A new customer sees one "Here's what you can
+  do" panel instead.
+- **The sidebar slides** like the console's, and **My tickets carries a count**
+  of what is open.
+- **Each page names itself** with its own heading, and the list rows lift
+  under the pointer instead of tinting.
+- **Icons on the account menu's items** in both the console and the portal.
+- **The audit now checks the portal** when given a customer to sign in as
+  (`PORTAL_LOGIN_EMAIL`/`PORTAL_LOGIN_PASSWORD`). It found two heading jumps,
+  fixed here.
+
 ## 0.166.0 — 2026-10-12
 
 **Console 2.0: a brand-lit console that moves.** The first release of the

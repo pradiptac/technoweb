@@ -112,7 +112,7 @@ export default async function TicketDetailPage({
 
       {ticket.events && <TicketTrail events={ticket.events} status={ticket.status} />}
 
-      <h3 className="mb-3 text-17">Conversation</h3>
+      <h2 className="mb-3 text-17">Conversation</h2>
       <ThreadRefresh count={ticket.messages?.length ?? 0} open={!isClosed} company={company} />
       <TicketThread
         reference={ticket.reference}

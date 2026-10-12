@@ -1,11 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { IconChevronDown, IconSignOut } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
 
-export type AccountItem = { label: string; href: string; external?: boolean };
+/**
+ * `icon` arrives already rendered from the server layout — a glyph from
+ * `@/components/icons` would put the whole icon map in this client bundle.
+ */
+export type AccountItem = { label: string; href: string; external?: boolean; icon?: ReactNode };
+
+const ITEM = "flex items-center gap-2.5 rounded px-3 py-2 text-13 hover:bg-surface-2";
+const GLYPH = "grid size-4 shrink-0 place-items-center text-muted [&_svg]:size-4";
 
 function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "?";
@@ -73,11 +80,13 @@ export function AccountMenu({ name, detail, items, signOut }: {
           {items.map((i) => (
             <li key={i.href}>
               {i.external ? (
-                <a href={i.href} target="_blank" rel="noopener" className="block rounded px-3 py-2 text-13 hover:bg-surface-2">
+                <a href={i.href} target="_blank" rel="noopener" className={ITEM}>
+                  {i.icon && <span aria-hidden className={GLYPH}>{i.icon}</span>}
                   {i.label}<span className="sr-only"> (opens in a new tab)</span>
                 </a>
               ) : (
-                <Link href={i.href} onClick={() => setOpen(false)} className="block rounded px-3 py-2 text-13 hover:bg-surface-2">
+                <Link href={i.href} onClick={() => setOpen(false)} className={ITEM}>
+                  {i.icon && <span aria-hidden className={GLYPH}>{i.icon}</span>}
                   {i.label}
                 </Link>
               )}
@@ -85,8 +94,8 @@ export function AccountMenu({ name, detail, items, signOut }: {
           ))}
         </ul>
         <form action={signOut} className="border-t border-line pt-1">
-          <button type="submit" className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-13 font-semibold hover:bg-surface-2">
-            <IconSignOut aria-hidden className="size-4" /> Sign out
+          <button type="submit" className={`${ITEM} w-full text-left font-semibold`}>
+            <span aria-hidden className={GLYPH}><IconSignOut /></span> Sign out
           </button>
         </form>
       </div>
