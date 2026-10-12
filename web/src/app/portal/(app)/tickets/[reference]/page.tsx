@@ -85,12 +85,12 @@ export default async function TicketDetailPage({
           <PriorityBadge priority={ticket.priority} />
           <StatusBadge status={ticket.status} />
         </div>
-        <h2 className="display-3 mt-3">{ticket.subject}</h2>
+        <h1 className="display-3 mt-3">{ticket.subject}</h1>
       </div>
 
       {/* Where the ticket is, as a journey; a merged ticket's journey is the other one's. */}
       {!merged && (
-        <div className="mb-6 rounded-lg border border-line-strong bg-card p-4 sm:p-5">
+        <div className="mb-6 rounded-xl border border-line-strong bg-card p-4 shadow-1 sm:p-5">
           <Stepper label="Ticket progress" steps={ticketSteps(ticket.status)} />
         </div>
       )}

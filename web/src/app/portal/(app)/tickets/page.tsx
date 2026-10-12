@@ -45,7 +45,7 @@ export default async function TicketsPage({
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">My tickets</h2>
+        <h1 className="display-3">My tickets</h1>
         <div className="ml-auto"><NewTicketButton /></div>
       </div>
 
@@ -87,7 +87,7 @@ export default async function TicketsPage({
             <li key={t.id}>
               <Link
                 href={`/portal/tickets/${t.reference}`}
-                className="block rounded-lg border border-line-strong bg-card p-4.5 transition-colors duration-(--duration-base) hover:border-brand-300 hover:bg-brand-50"
+                className="block rounded-xl border border-line-strong bg-card p-4.5 shadow-1 transition-[translate,box-shadow,border-color] duration-(--duration-base) hover:border-brand-ink/30 hover:shadow-2 motion-safe:hover:-translate-y-px"
               >
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                   <span className="font-mono text-xs text-muted">{t.reference}</span>
