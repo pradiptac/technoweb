@@ -235,7 +235,7 @@ function renderSection(
   const reveal = sectionReveal(section.reveal, STILL.has(section.type) ? null : "fade-up");
 
   switch (section.type) {
-    case "hero": return <HeroSection data={section.data} first={first} crumbs={crumbs} eager={eager} revealId={section.reveal} />;
+    case "hero": return <HeroSection data={section.data} first={first} crumbs={crumbs} eager={eager} revealId={section.reveal} sectionId={section.id} />;
     case "rich_text": return <RichTextSection data={section.data} reveal={reveal} />;
     case "media_text": return <MediaTextSection data={section.data} eager={eager} reveal={reveal} />;
     case "features": return <FeaturesSection data={section.data} reveal={reveal} />;

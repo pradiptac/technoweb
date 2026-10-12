@@ -107,7 +107,7 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
               `@layer components` — that is exactly what the layer is for.
             */}
             {/* Uncapped, filling its own column — see the note in `PageHero`. */}
-            <HeroTitle className="display-1 mt-5.5 text-[clamp(34px,1.9vw+11px,43px)] text-balance">
+            <HeroTitle className="display-1 mt-5.5 text-[clamp(34px,1.9vw+11px,43px)] text-balance" text={heading} lastWordClassName="text-brand-ink">
               {heading.slice(0, heading.trimEnd().lastIndexOf(" "))}{" "}
               <span className="text-brand-ink">
                 {heading.trimEnd().slice(heading.trimEnd().lastIndexOf(" ") + 1)}

@@ -7,6 +7,9 @@ import { sectionReveal } from "@/lib/motion-choices";
 import { cn } from "@/lib/utils";
 import type { HeroSectionData } from "@/types/api";
 import { HeroVideo } from "./hero-video";
+import { getSiteSettings } from "@/lib/settings";
+import { kineticFor } from "@/lib/kinetic";
+import { KineticText } from "@/components/ui/kinetic-text";
 import { SectionButtons } from "./section-parts";
 
 /**
@@ -33,15 +36,26 @@ import { SectionButtons } from "./section-parts";
  * The picture is eager on the first two sections, where it is the largest
  * paint, and lazy below — `SectionBg`'s rule.
  */
-export function HeroSection({ data, first, crumbs, eager, revealId }: {
+export async function HeroSection({ data, first, crumbs, eager, revealId, sectionId }: {
   data: HeroSectionData;
   first: boolean;
   crumbs: Crumb[];
   eager: boolean;
   /** The section's stored `reveal`, resolved here because the default depends on the layout. */
   revealId?: string | null;
+  /** The section's id: the heading's `sr-only` copy is named after it, so two heroes never share one. */
+  sectionId: string;
 }) {
   const Heading = first ? "h1" : "h2";
+  // The heading's effect (0.171.0, docs/motion.md "Kinetic headings"): the
+  // section's own, or Motion → Hero heading when it follows the site.
+  const settings = await getSiteSettings();
+  const kinetic = kineticFor(settings.motion_headline, data.kinetic, data.kinetic_words);
+  const titleId = `k-${sectionId}`;
+  const title = kinetic.effect === "none"
+    ? data.heading
+    : <KineticText text={data.heading} effect={kinetic.effect} words={kinetic.words} id={titleId} />;
+  const labelled = kinetic.effect === "rotate" ? titleId : undefined;
   const layout = data.layout ?? "centered";
   const picture = data.image
     ? (sizes: string, className?: string) => (
@@ -75,7 +89,7 @@ export function HeroSection({ data, first, crumbs, eager, revealId }: {
           {trail && <div className="mb-8"><Breadcrumbs crumbs={crumbs} onBanner /></div>}
           <div className="max-w-3xl">
             {data.kicker && <span className="text-11-5 font-semibold uppercase tracking-[.13em] text-dark-muted-brand">{data.kicker}</span>}
-            <Heading className={cn("display-1 text-balance text-dark-ink", data.kicker && "mt-4")}>{data.heading}</Heading>
+            <Heading className={cn("display-1 text-balance text-dark-ink", data.kicker && "mt-4")} aria-labelledby={labelled}>{title}</Heading>
             {data.lede && <p className="lede mt-5 text-dark-ink">{data.lede}</p>}
             <SectionButtons primary={data.primary} secondary={data.secondary} onDark />
           </div>
@@ -87,7 +101,7 @@ export function HeroSection({ data, first, crumbs, eager, revealId }: {
   const words = (center: boolean) => (
     <>
       {data.kicker && <span className="text-11-5 font-semibold uppercase tracking-[.13em] text-secondary-ink">{data.kicker}</span>}
-      <Heading className={cn("display-1 text-balance", data.kicker && "mt-4")}>{data.heading}</Heading>
+      <Heading className={cn("display-1 text-balance", data.kicker && "mt-4")} aria-labelledby={labelled}>{title}</Heading>
       {data.lede && <p className={cn("lede mt-5", center && "mx-auto max-w-3xl")}>{data.lede}</p>}
       <SectionButtons primary={data.primary} secondary={data.secondary} center={center} />
     </>

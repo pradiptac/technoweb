@@ -5345,3 +5345,46 @@ html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active
   @keyframes hero-tile { from { opacity: 0; translate: 0 8px; } }
   html[data-console-motion="subtle"][data-entrance] :is([data-hero-wash], [data-entrance-item]) { animation-name: hero-in; }
 }
+
+/*
+ * Kinetic headings (0.171.0, docs/motion.md "Kinetic headings") —
+ * `components/ui/kinetic-text.tsx`. The finished heading is the default:
+ * every rule that hides anything sits inside no-preference *and*
+ * `scripting: enabled`, and an island that never armed (no JS ran, a chunk
+ * failed) is revealed by a 3s failsafe. Letters keep their boxes; a decode
+ * glyph is drawn over a transparent final one; the rotating slot holds
+ * every word in one grid cell, so it is as wide as the widest, and may wrap
+ * (`max-width: 100%`) rather than run past a phone's edge.
+ */
+.kinetic [data-k-char] { position: relative; }
+.k-slot { display: inline-grid; max-width: 100%; justify-items: start; vertical-align: baseline; }
+.k-slot > [data-k-alt] { grid-area: 1 / 1; }
+.k-slot > [data-k-alt]:not([data-cur]) { visibility: hidden; }
+.k-markword { position: relative; display: inline-block; white-space: nowrap; }
+.k-mark { position: absolute; left: -2%; width: 104%; bottom: -.14em; height: .34em; overflow: visible; pointer-events: none; }
+.k-mark path {
+  fill: none; stroke: var(--color-brand-600); stroke-opacity: .55; stroke-width: 3; stroke-linecap: round;
+  vector-effect: non-scaling-stroke; stroke-dasharray: 1; stroke-dashoffset: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  .kinetic:is([data-kinetic="type"], [data-kinetic="decode"]):not([data-kinetic-done]) [data-k-char]:not([data-on]) { opacity: 0; }
+  .kinetic:is([data-kinetic="type"], [data-kinetic="decode"]):not([data-kinetic-done]):not([data-kinetic-armed]) [data-k-char]:not([data-on]) {
+    animation: k-failsafe 1ms 3s forwards;
+  }
+  .kinetic[data-kinetic="highlight"]:not([data-kinetic-done]) .k-mark path { stroke-dashoffset: 1; }
+  .kinetic[data-kinetic="highlight"]:not([data-kinetic-done]):not([data-kinetic-armed]) .k-mark path { animation: k-failsafe-draw 1ms 3s forwards; }
+  .kinetic[data-kinetic="highlight"][data-kinetic-run] .k-mark path { animation: k-draw 700ms 250ms var(--ease-brand) forwards; }
+  .kinetic [data-k-char][data-s] { -webkit-text-fill-color: transparent; }
+  .kinetic [data-k-char][data-s]::after { content: attr(data-g); position: absolute; left: 0; top: 0; -webkit-text-fill-color: currentColor; }
+  .kinetic [data-k-char][data-caret]::after {
+    content: ""; position: absolute; right: -.06em; top: .12em; bottom: .12em; width: .06em;
+    background: currentColor; animation: k-blink 1s steps(1) infinite;
+  }
+  .kinetic[data-kinetic-run] [data-k-alt][data-cur] { animation: k-rot-in 420ms var(--ease-brand); }
+  @keyframes k-failsafe { to { opacity: 1; } }
+  @keyframes k-failsafe-draw { to { stroke-dashoffset: 0; } }
+  @keyframes k-draw { to { stroke-dashoffset: 0; } }
+  @keyframes k-blink { 50% { opacity: 0; } }
+  @keyframes k-rot-in { from { opacity: 0; translate: 0 .4em; } }
+}
