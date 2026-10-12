@@ -32,8 +32,9 @@ await signInAsStaff(page);
 
 const open = async () => {
   await page.goto(`${BASE}/admin`, { waitUntil: "load", timeout: 180000 });
-  await page.waitForSelector("[data-dashboard-row], main [role='status']:not(.animate-pulse)", { timeout: 120000 });
-  await page.waitForSelector("[data-dashboard-row]", { timeout: 120000 });
+  // The rows alone: a field's empty live region (role=status) sits in main too
+  // and, matched first, held the wait until it timed out (0.171.0).
+  await page.locator("[data-dashboard-row]:visible").first().waitFor({ timeout: 240000 });
   await page.waitForTimeout(1500);
 };
 const rows = () => page.evaluate(() => [...document.querySelectorAll("[data-dashboard-row]")].map((row) => ({
