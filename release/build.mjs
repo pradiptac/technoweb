@@ -237,6 +237,11 @@ fs.writeFileSync(
 
 /* -------------------------------------------------------------------- web */
 
+// The console's help drawer is built from manual/ (docs/help-and-tours.md):
+// a manual edited without `npm run help` would ship stale help, so refuse.
+log("Web: help.json is current with manual/");
+run("node scripts/build-help.mjs --check", path.join(ROOT, "web"));
+
 log("Web: npm ci + portable build");
 
 const webStage = path.join(STAGE, "web");

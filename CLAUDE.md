@@ -164,6 +164,7 @@ Contents:
   - CDNs and versioned media URLs — `docs/cdn.md`
   - The downloads centre — `docs/downloads.md`
   - The console and portal shell — `docs/console-portal.md`
+  - Help, tours, Simple view and empty states — `docs/help-and-tours.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -3069,6 +3070,17 @@ Console 2.0 (0.166.0) and Portal 2.0 (0.167.0): the glass bar, the account menu,
 - The portal (0.167.0): the console's bar with the site's logo, every page its own `h1` (headings under it moved up a level); the home's reads each `.catch` alone, a tile with nothing is left out and the tiles take as many columns as there are; the hero's booking buttons follow `visits_enabled`/`meetings_enabled`.
 - `npm run audit` signs in to the portal and audits it when `PORTAL_LOGIN_EMAIL`/`PORTAL_LOGIN_PASSWORD` are set — nothing checked the portal's contrast before.
 - The account menu's item icons are rendered by the server layout and passed in (`AccountItem.icon`): a client import of `@/components/icons` ships the whole map.
+
+### Help, tours, Simple view and empty states — `docs/help-and-tours.md`
+
+The "simple to use" layer (0.168.0): the console's "?" drawer built from the manual, first-visit tours, a Simple view switch on entity forms, a next step under every empty list.
+
+- The help is `manual/` converted at commit time into `web/src/content/help.json` (`npm run help`); `build-help.mjs --check` fails a stale file and `release/build.mjs` runs it. The converter escapes before it adds markup and keeps only https, site-path, anchor and manual-chapter links (`help-convert.check.mjs`).
+- `lib/help-routes.ts` maps a screen to section ids (`*` is one segment, most literal match wins, an unlisted screen falls back to its chapter); `help-routes.check.mjs` fails an id `help.json` does not have — rename both together.
+- `GET /api/admin/help` (staff only, `no-store`) is the only reader; the drawer is `Modal size="side"`, the "?" from `sm`, "Help for this screen" in the account menu below it (`AccountItem.event`/`phoneOnly`), the `?` key except in a field, `tw:help` from anywhere.
+- A tour step's `target` is a CSS selector (an existing hook, else `data-tour`); a missing or hidden target is skipped; auto-start waits for the screen to fill in, once per browser (`tw_tour:<id>`), from 768px, never over a dialog, and never in an automated browser unless `tw_tour_force` = 1.
+- Simple view hides `TabDef.advanced` tabs (set by `buildFormTabs` only: `seo`, `aeo`, a `custom_fields` group) by CSS on `html[data-console-simple]`, stamped before paint — never the open tab or one with an error; panels stay mounted.
+- An empty console list takes `EmptyListAction`: "Clear filters" when the page's own filter params are set, "Add the first …" when it has a `new` route.
 
 ## Conventions
 

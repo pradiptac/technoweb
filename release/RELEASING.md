@@ -32,7 +32,10 @@ customer to do any of that.
    `## X.Y.Z — YYYY-MM-DD` entry at the top of `VERSION.md`. Write that entry
    for the customer's administrator: it is shown on System → Updates before
    they press Apply.
-3. **Update the manual** (`manual/`) if a screen changed.
+3. **Update the manual** (`manual/`) if a screen changed, then run
+   `npm run help` from `web/` and commit `web/src/content/help.json` with it —
+   the console's help drawer is built from the manual, and `build.mjs` refuses
+   to build while the two disagree.
 4. **Merge to `main`.**
 5. **Build.** Either run the workflow under Actions → Release → "Run workflow"
    on `main` and download the artifact, or build here:

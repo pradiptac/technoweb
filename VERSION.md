@@ -21,6 +21,34 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.168.0 — 2026-10-12
+
+**Simple to use.** The second release of the 2.0 roadmap: the console explains
+itself. Module note: `docs/help-and-tours.md`.
+
+- **Help on every screen.** A "?" button in the console bar (or press `?`;
+  on a phone it is "Help for this screen" in your account menu) opens this
+  screen's part of the manual in a panel at the side: search the whole manual,
+  follow its links without leaving the panel, open the whole chapter. It is
+  the same manual that ships in the zip, so the two always agree.
+- **Guided tours** on the screens people meet first — the dashboard, the
+  ticket queue, the page builder, the media library, Settings and the
+  customer portal's home: a few steps, once per browser, skippable, and
+  replayable from the help panel ("Take the tour"). Not on phones.
+- **Simple view.** A switch beside an edit form's tabs hides SEO, AEO and
+  custom fields for people who never touch them — remembered per browser,
+  and a tab is never hidden while it holds a mistake to fix. Nothing is lost
+  on save.
+- **Every empty list says what to do next**: "Add the first …", or "Clear
+  filters" when your filters hid everything.
+- **Also since 0.167.0:** the Themes screen lays each homepage section's
+  settings side by side across the row; the assistant's panel header takes
+  the theme's colour, or one you choose under Assistant → Settings. "Your
+  account" is in the account menu only — it was in the sidebar too.
+- For whoever builds releases: `release/build.mjs` now refuses to build while
+  `web/src/content/help.json` is out of date with `manual/` — run
+  `npm run help` from `web/` after editing the manual.
+
 ## 0.167.0 — 2026-10-12
 
 **Portal 2.0: a customer portal that looks like the product.** The second
