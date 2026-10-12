@@ -96,6 +96,29 @@ export const PROGRESS: MotionChoice[] = [
   { id: "bar", label: "Bar", note: "A thin line along the top of the page fills as the reader scrolls down it." },
 ];
 
+/** A hero heading's effect (0.171.0) — `lib/kinetic.ts` resolves it. */
+export const KINETIC: MotionChoice[] = [
+  { id: "none", label: "None", note: "The heading is simply there. The current behaviour." },
+  { id: "rotate", label: "Rotating words", note: "The last word cycles through a list, once, then rests on the original. Set per hero." },
+  { id: "type", label: "Typewriter", note: "The heading types itself in once, with a caret that fades when it finishes." },
+  { id: "decode", label: "Decode", note: "Each letter flickers through random characters and settles, left to right." },
+  { id: "highlight", label: "Highlight", note: "A marker stroke draws itself under the last word — or a word a hero names." },
+];
+
+/** What the site-wide default may be: rotating words needs a hero's own list. */
+export const KINETIC_SITE: MotionChoice[] = KINETIC.filter((c) => c.id !== "rotate");
+
+/**
+ * Small interactions (`motion_micro`, 0.171.0). **Lively is first and the
+ * default** — the client's deliberate exception to "the first entry is the
+ * site as it moved before": each effect is a few pixels or a few hundred
+ * milliseconds (globals.css, "Small interactions").
+ */
+export const MICRO: MotionChoice[] = [
+  { id: "lively", label: "Lively", note: "Links, arrows, switches, tick boxes, copy buttons and card icons answer the pointer with a small movement." },
+  { id: "none", label: "None", note: "Colour changes only. Nothing moves." },
+];
+
 export type HeroVariant = "grid" | "aurora" | "dots" | "none";
 
 export const HEROS: (MotionChoice & { id: HeroVariant })[] = [
@@ -171,6 +194,8 @@ export type Motion = {
   hero: HeroVariant;
   cards: string;
   progress: string;
+  headline: string;
+  micro: string;
 };
 
 const pick = (list: MotionChoice[], id: string | undefined): string =>
@@ -187,6 +212,8 @@ export function motionFor(settings: Record<string, string | undefined>): Motion 
     hero: pick(HEROS, settings.motion_hero) as HeroVariant,
     cards: pick(CARDS, settings.motion_cards),
     progress: pick(PROGRESS, settings.motion_progress),
+    headline: pick(KINETIC_SITE, settings.motion_headline),
+    micro: pick(MICRO, settings.motion_micro),
   };
 }
 
@@ -202,5 +229,6 @@ export function motionAttrs(m: Motion): Record<string, string> {
     "data-motion-hero": m.hero,
     "data-motion-cards": m.cards,
     "data-motion-progress": m.progress,
+    "data-motion-micro": m.micro,
   };
 }
