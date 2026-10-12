@@ -3,7 +3,8 @@
 import { useLayoutEffect, useState, type RefObject } from "react";
 import { cn } from "@/lib/utils";
 
-export type PillBox = { y: number; h: number } | null;
+/** `instant` is the first placement after there was none: drawn in place, never slid in. */
+export type PillBox = { y: number; h: number; instant: boolean } | null;
 
 /**
  * Where the active row sits inside a list, so one pill can slide to it
@@ -22,7 +23,7 @@ export function usePillBox(list: RefObject<HTMLElement | null>, key: string | un
       const row = el.querySelector<HTMLElement>("[aria-current='page']");
       if (!row || row.offsetParent === null) { setBox(null); return; }
       const y = row.getBoundingClientRect().top - el.getBoundingClientRect().top;
-      setBox((b) => (b && b.y === y && b.h === row.offsetHeight ? b : { y, h: row.offsetHeight }));
+      setBox((b) => (b && b.y === y && b.h === row.offsetHeight ? b : { y, h: row.offsetHeight, instant: b === null }));
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -46,7 +47,10 @@ export function NavPill({ box, className }: { box: PillBox; className?: string }
         "transition-[translate,height,opacity] duration-(--duration-base) ease-brand",
         className,
       )}
-      style={{ translate: `0 ${box?.y ?? 0}px`, height: box?.h ?? 0, opacity: box ? 1 : 0 }}
+      // The first placement is not animated: on a full load the pill would
+      // otherwise slide down from the top of the list as the page hydrates,
+      // and the rows' fill would be gone for that slide (the audit caught it).
+      style={{ translate: `0 ${box?.y ?? 0}px`, height: box?.h ?? 0, opacity: box ? 1 : 0, transitionProperty: box?.instant ? "none" : undefined }}
       // While it travels, the rows drop their own fill so the glide shows; at
       // rest the active row paints its own ground again — which is what the
       // contrast audit reads, since it walks ancestors and the pill is a

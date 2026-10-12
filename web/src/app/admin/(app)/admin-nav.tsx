@@ -310,7 +310,10 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
       <div
         id={`${base}-drawer`}
         className={cn(
-          "mt-2 lg:mt-0 lg:sticky lg:top-[68px]",
+          // `lg:z-20`: a sticky box is its own stacking context, so without a
+          // z-index of its own the folded rail's flyouts painted under the
+          // page content beside them (the client, 2026-10-12). Below the bar's 30.
+          "mt-2 lg:mt-0 lg:sticky lg:top-[68px] lg:z-20",
           drawer ? "block" : "hidden lg:block",
         )}
       >

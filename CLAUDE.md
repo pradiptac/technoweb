@@ -163,6 +163,7 @@ Contents:
   - Events — `docs/events.md`
   - CDNs and versioned media URLs — `docs/cdn.md`
   - The downloads centre — `docs/downloads.md`
+  - The console and portal shell — `docs/console-portal.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -3050,6 +3051,19 @@ Datasheets, drivers and firmware by category on `/downloads`, attachable to cata
 - `/downloads` was a seeded CMS page: `PageSeeder` no longer makes it, `downloads` is in `ReservedSlugs`, and the `RetireDownloadsPage` upgrade step renames an existing page to a draft `downloads-page` **through the query builder** (no 301), turns menu items into `section` items and deletes any redirect *from* `/downloads`. A custom content type with that slug is not moved — its list page is shadowed.
 - `scripts/probes/downloads.mjs` drives the upload, the public page, the sign-in redirect and a customer's fetch. A probe's screenshot passes `caret: "initial"`: Playwright's default sets an inline style on every input, and one taken mid-hydration logs a mismatch that is the probe's own.
 - Portal pages title themselves with `h2`: the portal layout's "Support portal" is the page's one `h1` (orders, wishlist, visits and meetings each had a second until 0.131.0).
+
+### The console and portal shell — `docs/console-portal.md`
+
+Console 2.0 (0.166.0) and Portal 2.0 (0.167.0): the glass bar, the account menu, the sidebar's sliding pill and icon rail, the hero band, the entrance; shared pieces in `components/app-shell/`.
+
+- The fold and motion choices are `localStorage` (`tw_console_nav`, `tw_console_motion`), stamped on `<html>` by the root layout's pre-paint script like density; `lib/console-prefs.ts` writes them — change the keys in both places.
+- The active nav row keeps its own fill except while the pill travels (`data-moving` from the pill's transition events): the audit reads ancestors, and the sibling pill is invisible to it (1.06:1 with a transparent resting row).
+- The rail is CSS from `lg` only; labels are visually hidden, not removed (they are the rows' names — never add `aria-label`, it hides the "N new" badge); a flyout shows on hover **and** focus, Escape blurs.
+- The hero band is `brand-900 → accent-900` with white text only — the pair `npm run themes` checks for every palette; `dark-muted` is not gated there. Its title is a `<p>`; the page keeps its `h1`.
+- The entrance is stamped before paint on a full load of `/admin` or `/portal`, once a session; `<Entrance>` marks it seen and clears it — an attribute set after hydration blanks a painted page.
+- The console's motion is its own block under `[data-console]` (press, a 160ms route fade, the first 12 rows arriving); Subtle drops movement; the palette and keyboard actions never animate; the public `motion_*` settings never reach the console.
+- `StatTile` is a raised card with the tone's wash in its icon disc and a counting figure; the prop API is unchanged.
+- The Activity panel reads `/admin/activity` for an administrator and the newest tickets for the desk; it is a `WIDGETS` key (eight panels).
 
 ## Conventions
 

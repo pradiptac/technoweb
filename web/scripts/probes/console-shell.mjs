@@ -72,6 +72,15 @@ if (await fold.count() === 1) {
   await page.waitForTimeout(250);
   const flyout = nav.locator("[data-rail-group]").first().locator("[data-flyout]");
   ok(await flyout.isVisible(), "flyout opens when a rail icon has focus");
+  // On top of the page, not under it: the sticky sidebar is its own stacking
+  // context and once lost to the dashboard's hero (the client, 2026-10-12).
+  const onTop = await flyout.evaluate((el) => {
+    const r = el.querySelector("div")?.getBoundingClientRect();
+    if (!r) return false;
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(r.height / 2, 40));
+    return Boolean(hit && el.contains(hit));
+  });
+  ok(onTop, "the flyout paints above the page content");
   await page.keyboard.press("Escape");
   await page.waitForTimeout(250);
   ok(!(await flyout.isVisible()), "Escape closes the flyout");

@@ -21,6 +21,40 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.166.0 — 2026-10-12
+
+**Console 2.0: a brand-lit console that moves.** The first release of the
+2.0 roadmap (look and feel first). Spec:
+`docs/superpowers/specs/2026-10-12-console-portal-2-design.md`; module note:
+`docs/console-portal.md`.
+
+- **Glass top bar.** Translucent over the page, with a hairline only once
+  the page has scrolled. Your name, "Your account", "View site" (still a new
+  tab) and Sign out are in one **account menu** behind an initials disc, which
+  frees the bar at 320px.
+- **The sidebar redrawn.** The active row is a pill that **slides** to the
+  page you open. A **Fold** button at the bottom shrinks it to a 64px icon
+  rail, remembered in this browser and applied before the page paints, so it
+  never flashes open. Pointing at or tabbing to a folded icon opens that
+  section's flyout; Escape closes it.
+- **The dashboard opens on a hero band** in the theme's own colours: "Good
+  evening, Priya", one line of what is waiting (overdue tickets, open
+  tickets, new leads, visits to confirm, meetings today, only what your role
+  can see), and up to three buttons. The tiles are raised cards with a
+  coloured icon disc and a figure that counts up; the panels share one raised
+  surface. On the first visit of a session the band fades in, the tiles rise
+  one after another and the figures count; after that the dashboard simply
+  appears.
+- **Activity panel** on the dashboard: the activity log for administrators,
+  the newest tickets for the support desk. Hide or reorder it under Customise,
+  like the other panels.
+- **Quick, quiet motion throughout the console**: buttons press in, pages
+  cross-fade in 160ms, list rows ease in once. The command palette and
+  keyboard shortcuts stay instant.
+- **Motion: Full / Subtle** on Your account, per browser. Subtle keeps the
+  fades and drops all movement; somebody whose system asks for less motion
+  gets that whatever is chosen.
+
 ## 0.165.0 — 2026-10-11
 
 **Free OpenRouter models, and any OpenRouter model by its id.**
