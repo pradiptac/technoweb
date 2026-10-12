@@ -315,7 +315,13 @@ function SectionRow({
   const moved = band && band.stops.some((s, i) => s.toLowerCase() !== stops[i]!.toLowerCase());
 
   return (
-    <div className={cn("grid gap-3 rounded-lg border border-line-strong bg-card p-3.5 md:grid-cols-[auto_170px_180px_1fr] md:items-start", !enabled && "opacity-70")}>
+    /*
+      One line per section (the client, 2026-10-12): the controls, the name,
+      then every setting side by side across the row's width — the picture,
+      colours and gradient fields flow into the same grid rather than
+      stacking under a narrow column.
+    */
+    <div className={cn("grid gap-3 rounded-lg border border-line-strong bg-card p-3.5 md:grid-cols-[8.75rem_minmax(9rem,13rem)_minmax(0,1fr)] md:items-start", !enabled && "opacity-70")}>
       <div className="flex items-center gap-2 pt-1.5">
         <ReorderButtons index={index} count={count} subject={label} onMove={onMove} dense />
         {/* The hero cannot be switched off (the client's rule, 2026-09-17: a
@@ -331,19 +337,19 @@ function SectionRow({
         )}
       </div>
       <div className="flex items-center gap-2.5 pt-2">
-        <span
+        {kind !== "default" && <span
           aria-hidden
           className="size-6 shrink-0 rounded-md border border-line-strong"
           style={
             kind === "gradient" && stops.length === 2
               ? { backgroundImage: `linear-gradient(${value?.angle ?? 135}deg, ${stops[0]}, ${stops[1]})` }
               : kind === "page" ? { backgroundColor: "var(--color-page)" }
-                : kind !== "default" && stops[0] ? { backgroundColor: stops[0] } : undefined
+                : stops[0] ? { backgroundColor: stops[0] } : undefined
           }
-        />
+        />}
         <span className="text-13-5 font-semibold text-ink">{label}</span>
       </div>
-      <div className="grid gap-3">
+      <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(11.5rem,1fr))]">
         <Field label="Background" htmlFor={`${id}-kind`} variant="float-static" className="mb-0">
           <Select
             id={`${id}-kind`}
@@ -389,9 +395,8 @@ function SectionRow({
             </Select>
           </Field>
         )}
-      </div>
       {kind !== "default" && kind !== "page" && kind !== "scene" && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <>
           <ColourInput id={`${id}-c1`} label={kind === "image" ? "Overlay colour" : kind === "gradient" ? "First colour" : "Colour"} value={value?.colour ?? ""} onChange={(v) => patch({ colour: v })} />
           {kind === "gradient" && (
             <>
@@ -403,10 +408,10 @@ function SectionRow({
           )}
           {kind === "image" && (
             <>
-              <Field label={`Overlay strength: ${value?.overlay ?? 60}%`} htmlFor={`${id}-ov`} variant="above" className="mb-0" hint="How much of the overlay colour sits over the picture. The words are graded against the colour, so more is safer.">
+              <Field label={`Overlay strength: ${value?.overlay ?? 60}%`} htmlFor={`${id}-ov`} variant="above" className="col-span-full mb-0 sm:col-span-2" hint="How much of the overlay colour sits over the picture. The words are graded against the colour, so more is safer.">
                 <input id={`${id}-ov`} type="range" min={0} max={90} step={5} value={value?.overlay ?? 60} onChange={(e) => patch({ overlay: Number(e.target.value) })} className="w-full accent-brand-600" />
               </Field>
-              <div className="sm:col-span-2">
+              <div className="col-span-full">
                 <CoverField
                   defaultPath={value?.image_path ?? null}
                   defaultUrl={value?.image_url ?? null}
@@ -419,12 +424,13 @@ function SectionRow({
             </>
           )}
           {moved && (
-            <p className="text-12 text-muted sm:col-span-2">
+            <p className="col-span-full text-12 text-muted">
               Adjusted to {band!.stops.map((s) => <code key={s} className="font-mono text-11-5"> {s}</code>)} on the site so the words stay readable.
             </p>
           )}
-        </div>
+        </>
       )}
+      </div>
     </div>
   );
 }
