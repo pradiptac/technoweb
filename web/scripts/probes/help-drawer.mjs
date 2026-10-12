@@ -59,14 +59,28 @@ if (await button.count() === 1) {
   await drawer.getByRole("searchbox").fill("");
   await page.waitForTimeout(800);
 
+  // "Open the chapter" lists the chapter in place, with Back.
+  await drawer.getByRole("button", { name: /^Open the chapter/ }).click();
+  await drawer.getByRole("button", { name: "Back" }).waitFor({ timeout: 15000 }).catch(() => {});
+  ok(await drawer.locator("section").count() > 2, `Open the chapter lists the chapter (${await drawer.locator("section").count()} sections)`);
+  await drawer.getByRole("button", { name: "Back" }).click().catch(() => {});
+  await page.waitForTimeout(500);
+
+  // A section that links to another chapter: the link opens in place.
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent("tw:help", { detail: { section: "04-first-steps#7-staff" } })));
+  await drawer.locator("a[data-help-link]").first().waitFor({ timeout: 15000 }).catch(() => {});
   const inner = drawer.locator("a[data-help-link]").first();
+  ok(await inner.count() === 1, "tw:help opens a named section");
   if (await inner.count()) {
+    const before = await drawer.locator("section h3").first().textContent();
     await inner.click();
-    await drawer.getByRole("button", { name: "Back" }).waitFor({ timeout: 15000 }).catch(() => {});
-    ok(await drawer.getByRole("button", { name: "Back" }).count() === 1, "a manual link opens in place with a Back button");
+    await page.waitForFunction((b) => document.querySelector("[data-help-drawer] section h3")?.textContent !== b, before, { timeout: 15000 }).catch(() => {});
+    const after = await drawer.locator("section h3").first().textContent();
+    ok(after !== before, `a manual link opens its section in place (${before} → ${after})`);
     await drawer.getByRole("button", { name: "Back" }).click().catch(() => {});
-    await page.waitForTimeout(600);
-  } else console.log("note no manual links in this screen's sections");
+    await page.waitForTimeout(500);
+    ok((await drawer.locator("section h3").first().textContent()) === before, "Back returns");
+  }
 
   await page.keyboard.press("Escape");
   await page.waitForTimeout(600);
@@ -81,7 +95,7 @@ await page.waitForTimeout(800);
 ok(await page.locator("dialog[open][data-help-drawer]").count() === 1, "the ? key opens the drawer");
 await page.keyboard.press("Escape");
 await page.waitForTimeout(500);
-const field = page.locator("main input[type=search], main input[type=text]").first();
+const field = page.locator("input[name=q]").first();
 if (await field.count()) {
   await field.click();
   await page.keyboard.press("Shift+Slash");

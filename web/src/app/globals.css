@@ -3130,6 +3130,28 @@ summary:focus-visible {
   @starting-style {
     dialog.dialog-motion[open]::backdrop { opacity: 0; }
   }
+  /* The side sheet (the help drawer, 0.168.0) slides in from the right edge
+     rather than growing in place; `translate`, never `transform` (the v4 trap). */
+  dialog.dialog-motion[data-side] {
+    scale: 1;
+    translate: 100% 0;
+    transition:
+      opacity var(--duration-exit) var(--ease-exit),
+      translate var(--duration-exit) var(--ease-exit),
+      display var(--duration-exit) allow-discrete,
+      overlay var(--duration-exit) allow-discrete;
+  }
+  dialog.dialog-motion[data-side][open] {
+    translate: 0 0;
+    transition:
+      opacity var(--duration-slow) var(--ease-brand),
+      translate var(--duration-slow) var(--ease-brand),
+      display var(--duration-slow) allow-discrete,
+      overlay var(--duration-slow) allow-discrete;
+  }
+  @starting-style {
+    dialog.dialog-motion[data-side][open] { opacity: 0; scale: 1; translate: 100% 0; }
+  }
 }
 
 /* -------------------------------------------------------- arrivals

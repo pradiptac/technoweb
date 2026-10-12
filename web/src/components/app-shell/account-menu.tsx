@@ -9,7 +9,13 @@ import { cn } from "@/lib/utils";
  * `icon` arrives already rendered from the server layout — a glyph from
  * `@/components/icons` would put the whole icon map in this client bundle.
  */
-export type AccountItem = { label: string; href: string; external?: boolean; icon?: ReactNode };
+/**
+ * A row in the menu. `event` makes it a button that announces that window
+ * event instead of a link (the console's "Help for this screen", 0.168.0),
+ * and `phoneOnly` draws it below `sm` only — for chrome the bar has no room
+ * for on a phone.
+ */
+export type AccountItem = { label: string; href: string; external?: boolean; icon?: ReactNode; event?: string; phoneOnly?: boolean };
 
 const ITEM = "flex items-center gap-2.5 rounded px-3 py-2 text-13 hover:bg-surface-2";
 const GLYPH = "grid size-4 shrink-0 place-items-center text-muted [&_svg]:size-4";
@@ -78,8 +84,17 @@ export function AccountMenu({ name, detail, items, signOut }: {
         </div>
         <ul className="py-1">
           {items.map((i) => (
-            <li key={i.href}>
-              {i.external ? (
+            <li key={i.href} className={i.phoneOnly ? "sm:hidden" : undefined}>
+              {i.event ? (
+                <button
+                  type="button"
+                  onClick={() => { setOpen(false); window.dispatchEvent(new CustomEvent(i.event!)); }}
+                  className={`${ITEM} w-full text-left`}
+                >
+                  {i.icon && <span aria-hidden className={GLYPH}>{i.icon}</span>}
+                  {i.label}
+                </button>
+              ) : i.external ? (
                 <a href={i.href} target="_blank" rel="noopener" className={ITEM}>
                   {i.icon && <span aria-hidden className={GLYPH}>{i.icon}</span>}
                   {i.label}<span className="sr-only"> (opens in a new tab)</span>

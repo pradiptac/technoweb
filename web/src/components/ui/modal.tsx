@@ -42,10 +42,12 @@ const WIDTH = {
   lg: "max-w-[46rem]",
   /** A whole page at a desktop width — the page builder's draft preview (2026-09-26). */
   xl: "max-w-[min(96vw,80rem)]",
+  /** A full-height sheet against the right edge — the console's help drawer (0.168.0). */
+  side: "max-w-[28rem]",
 } as const;
 
 export function Modal({
-  open, onClose, title, description, children, footer, labelledBy, size = "md",
+  open, onClose, title, description, children, footer, labelledBy, size = "md", dataAttr,
 }: {
   open: boolean;
   onClose: () => void;
@@ -58,6 +60,8 @@ export function Modal({
   /** Overrides the generated id, when a caller already labels its heading. */
   labelledBy?: string;
   size?: keyof typeof WIDTH;
+  /** Stamps `data-<name>` on the dialog, for a probe or a stylesheet to find it. */
+  dataAttr?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   /*
@@ -104,6 +108,8 @@ export function Modal({
     <dialog
       ref={ref}
       aria-labelledby={labelledBy ?? headingId}
+      data-side={size === "side" ? "" : undefined}
+      {...(dataAttr ? { [`data-${dataAttr}`]: "" } : {})}
       /*
         Clicking the backdrop closes it. The check is which element the press
         landed on: the backdrop is painted by the dialog itself, so a click
@@ -118,12 +124,15 @@ export function Modal({
       className={cn(
         // The element is its own positioning context in the top layer; these
         // centre it and keep it off the edges of a small screen.
-        "m-auto w-[calc(100vw-2rem)] rounded-xl border border-line-strong bg-card p-0 text-ink shadow-float",
+        "border-line-strong bg-card p-0 text-ink shadow-float",
+        size === "side"
+          ? // The whole height of the window, flush with its right edge.
+            "m-0 ml-auto h-dvh max-h-dvh w-[min(28rem,100vw)] rounded-none border-0 border-l"
+          : // `max-height` with the body scrolling, rather than letting the sheet
+            // grow: a record failing every check would otherwise run past the top
+            // and bottom of a phone with its close button off-screen.
+            "m-auto max-h-[min(38rem,calc(100dvh-4rem))] w-[calc(100vw-2rem)] rounded-xl border",
         WIDTH[size],
-        // `max-height` with the body scrolling, rather than letting the sheet
-        // grow: a record failing every check would otherwise run past the top
-        // and bottom of a phone with its close button off-screen.
-        "max-h-[min(38rem,calc(100dvh-4rem))]",
         "backdrop:bg-dark/50 backdrop:backdrop-blur-[2px]",
         // Enter and exit, shared with the popup and the lightbox — see the
         // `dialogs` block in globals.css.

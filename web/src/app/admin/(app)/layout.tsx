@@ -23,7 +23,8 @@ import { NewSincePoller } from "./new-since";
 import { TableView } from "./table-view";
 import { brandName } from "@/lib/brand";
 import { TopBar } from "@/components/app-shell/top-bar";
-import { IconAccessCard, IconExternal } from "@/components/icons";
+import { HelpDrawer } from "@/components/admin/help-drawer";
+import { IconAccessCard, IconBook, IconExternal } from "@/components/icons";
 import { PageEnter } from "@/components/ui/page-enter";
 import { AccountMenu } from "@/components/app-shell/account-menu";
 
@@ -145,6 +146,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <CommandPalette pages={palettePages(staff.roles.map((r) => r.slug))} />
           {/* Renders nothing on a screen with no table, and from `md` only. */}
           <TableView />
+          {/* The manual for this screen (0.168.0); reads the search params. */}
+          <Suspense fallback={null}>
+            <HelpDrawer />
+          </Suspense>
           <SchemeToggle area="console" className="sm:mr-1.5" />
 
           {/* "View site" is always a new tab (the client, 2026-09-28):
@@ -159,6 +164,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             items={[
               { label: "Your account", href: "/admin/profile", icon: <IconAccessCard /> },
               { label: "View site", href: "/", external: true, icon: <IconExternal /> },
+              { label: "Help for this screen", href: "#help", event: "tw:help", phoneOnly: true, icon: <IconBook /> },
             ]}
             signOut={logoutAction}
           />
