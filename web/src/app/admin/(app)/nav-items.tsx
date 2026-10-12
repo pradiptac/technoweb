@@ -564,22 +564,6 @@ export const NAV: NavItem[] = [
       { role: "admin", href: "/admin/client-errors", label: "JavaScript errors", icon: IconAlert },
     ],
   },
-  /*
-    Your own account, at the top level rather than inside Site.
-
-    It is reached from your name in the header, which is hidden below `sm` — at
-    320px that link had truncated to a 20px ellipsis and was pushing Sign out
-    off the screen, so it is not a control there in any useful sense. Without
-    this entry the screen would be unreachable on a phone entirely, which is
-    where somebody is most likely to be changing their own password in a hurry.
-
-    It sat inside Site, which was harmless while everybody saw all of Site and
-    became strange the moment the sidebar started filtering: a campaign manager
-    reaches nothing else in that section, so they were shown a group called
-    "Site" containing only their own account. It is not site configuration; it
-    is the one row that belongs to no role because every role has one.
-  */
-  { kind: "link", href: "/admin/profile", label: "Your account", icon: IconUsers },
 ];
 
 
@@ -747,7 +731,10 @@ export function palettePages(roles: string[]): { label: string; href: string; gr
   );
   const open = new Set(screens.map((s) => s.href));
   const reachable = (r: { href: string }) => open.has(r.href.split(/[?#]/)[0]);
-  return [...screens, ...PALETTE_SECTIONS.filter(reachable), ...settingsPages().filter(reachable)];
+  // Your own account is in the account menu, not the sidebar (2026-10-12:
+  // the row and the menu item were the same link twice); every role has it.
+  const account = { label: "Your account", href: "/admin/profile" };
+  return [...screens, account, ...PALETTE_SECTIONS.filter(reachable), ...settingsPages().filter(reachable)];
 }
 
 /**
