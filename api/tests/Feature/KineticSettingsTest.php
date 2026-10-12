@@ -8,6 +8,7 @@ use App\Models\Setting;
 use App\Models\User;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /** 0.171.0: the hero heading effect and the small interactions (docs/motion.md). */
@@ -79,5 +80,33 @@ class KineticSettingsTest extends TestCase
             ->assertUnprocessable()->assertJsonValidationErrors('settings.0.value');
         $this->save(['hero_kinetic_words' => str_repeat('x', 41)])
             ->assertUnprocessable()->assertJsonValidationErrors('settings.0.value');
+    }
+
+    private function heroPage(array $data)
+    {
+        return $this->actingAs($this->admin(), 'sanctum')->postJson('/api/v1/admin/pages', [
+            'title' => 'Kinetic test page', 'template' => 'builder', 'status' => 'draft',
+            'blocks' => [[
+                'id' => (string) Str::uuid(), 'type' => 'hero', 'hidden' => false, 'background' => null,
+                'data' => array_merge(['heading' => 'We keep networks running', 'layout' => 'centered'], $data),
+            ]],
+        ]);
+    }
+
+    public function test_a_builder_hero_keeps_its_effect_and_words(): void
+    {
+        $res = $this->heroPage(['kinetic' => 'rotate', 'kinetic_words' => "servers\nstorage"])->assertCreated();
+        $this->assertSame('rotate', $res->json('data.blocks.0.data.kinetic'));
+        $this->assertSame("servers\nstorage", $res->json('data.blocks.0.data.kinetic_words'));
+    }
+
+    public function test_a_builder_hero_refuses_a_bad_effect_or_too_many_words_and_does_not_store_default(): void
+    {
+        $this->heroPage(['kinetic' => 'Spin It'])->assertUnprocessable()->assertJsonValidationErrors('blocks.0.data.kinetic');
+        $this->heroPage(['kinetic' => 'rotate', 'kinetic_words' => implode("\n", array_fill(0, 7, 'w'))])
+            ->assertUnprocessable()->assertJsonValidationErrors('blocks.0.data.kinetic_words');
+        $res = $this->heroPage(['kinetic' => 'default', 'kinetic_words' => ''])->assertCreated();
+        $this->assertArrayNotHasKey('kinetic', $res->json('data.blocks.0.data'));
+        $this->assertArrayNotHasKey('kinetic_words', $res->json('data.blocks.0.data'));
     }
 }

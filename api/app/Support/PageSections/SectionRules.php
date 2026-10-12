@@ -289,6 +289,10 @@ final class SectionRules
                 // stays required: it is the poster, and what a visitor who
                 // asked for less motion sees. Cover only — `checkData` says so.
                 'video_path' => ['nullable', 'string', 'max:255'],
+                // The heading's effect (0.171.0): an id checked for shape — the
+                // list is motion-choices.ts's KINETIC — and the words it needs.
+                'kinetic' => ['nullable', 'string', 'regex:/^[a-z][a-z0-9-]{1,31}$/'],
+                'kinetic_words' => ['nullable', 'string', 'max:300'],
                 ...self::button('primary', $at),
                 ...self::button('secondary', $at),
             ],
@@ -632,7 +636,7 @@ final class SectionRules
      * (it chooses what is listed, and is drawn nowhere), a link that is
      * reduced to an id, and the rich-text bodies, which keep their editor.
      */
-    private const NOT_INLINE = ['youtube', 'category', 'department', 'body', 'columns.*.body', 'html'];
+    private const NOT_INLINE = ['youtube', 'category', 'department', 'body', 'columns.*.body', 'html', 'kinetic_words'];
 
     /**
      * The plain-text fields an editor may change on the page itself, in the
@@ -1044,6 +1048,13 @@ final class SectionRules
                         $media('video_path', 'video/');
                     }
                 }
+                $words = $data['kinetic_words'] ?? null;
+                if (is_string($words) && $words !== '') {
+                    $lines = array_values(array_filter(array_map('trim', preg_split('/\R/', $words) ?: []), fn ($l) => $l !== ''));
+                    if (count($lines) > 6 || collect($lines)->contains(fn ($l) => mb_strlen($l) > 40)) {
+                        $validator->errors()->add("{$at}.kinetic_words", 'Up to six words or short phrases, one per line.');
+                    }
+                }
                 break;
             case PageSectionType::MediaText:
                 if ($mediaKind === 'image') {
@@ -1195,6 +1206,15 @@ final class SectionRules
             foreach (['rule', 'call', 'group'] as $bool) {
                 if (isset($data[$bool])) {
                     $data[$bool] = filter_var($data[$bool], FILTER_VALIDATE_BOOLEAN);
+                }
+            }
+            // A hero's heading effect: following the site is never stored.
+            if ($type === PageSectionType::Hero) {
+                if (($data['kinetic'] ?? null) === 'default' || ($data['kinetic'] ?? null) === '') {
+                    unset($data['kinetic']);
+                }
+                if (($data['kinetic_words'] ?? null) === '' || ($data['kinetic_words'] ?? false) === null) {
+                    unset($data['kinetic_words']);
                 }
             }
             // The defaults are never stored: a frame, sized by its content.

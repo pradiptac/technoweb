@@ -58,6 +58,10 @@ export type HeroSectionData = Picture<"image"> & {
    * over it once it plays, and never plays for reduced motion or Save-Data.
    */
   video?: string | null;
+  /** The heading's effect (0.171.0, `lib/kinetic.ts`); absent follows Motion → Hero heading. */
+  kinetic?: string | null;
+  /** Rotating words' alternatives, or the word to underline — one per line. */
+  kinetic_words?: string | null;
 };
 
 export type RichTextSectionData = { heading?: string; body: string };
