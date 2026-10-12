@@ -57,6 +57,7 @@ export function blankData(type: PageSectionType): Record<string, unknown> {
     case "flow": return { heading: "", items: [{}, {}] };
     case "subnav": return { label: "On this page" };
     case "product_videos": return { heading: "Shop the videos", limit: 8 };
+    case "support_network": return { heading: "Find a centre near you" };
     case "layout": return blankLayout();
     case "custom_code": return {};
     default: return {};
@@ -811,6 +812,20 @@ export function SectionEditor({ type, sectionId, options }: {
             with that section&rsquo;s heading. To add a section to the menu, open it, go to Style and give it an Anchor.
             The menu needs at least two, stays at the top of the screen as the page scrolls, and takes no background or
             style of its own.
+          </p>
+        </>
+      );
+
+    case "support_network":
+      // The support network (0.170.0): the map and the centres, live.
+      return (
+        <>
+          <Head />
+          <Choice path={["country"]} label="Open on" fallback=""
+            options={[{ value: "", label: "Every country" }, ...(options.support_countries ?? [])]} />
+          <p className="-mt-2 mb-4 text-12-5 text-faint">
+            A live list: the centres from <Link href="/admin/support-centres" className="font-semibold text-brand-ink underline">Site → Support network</Link>,
+            pinned on a map with their addresses and telephone numbers. Drawn nothing while no centre is shown.
           </p>
         </>
       );

@@ -38,6 +38,8 @@ export type PageSectionType =
   | "subnav"
   /** The shop's "shop the videos" row (0.140.0): a live list, resolved by the API through `VideoShelf`. */
   | "product_videos"
+  /** The support network's map and centres (0.170.0), live from the API. */
+  | "support_network"
   /** A library section placed linked (0.106.0): stored as `{saved_id}`, drawn as the library's section. */
   | "saved";
 
@@ -277,6 +279,13 @@ export type ProductVideosSectionData = {
   items: import("./store-merch").VideoShelfRow[];
 };
 
+export type SupportNetworkSectionData = {
+  kicker?: string | null; heading?: string | null; lede?: string | null;
+  /** Open on this country (ISO alpha-2). */
+  country?: string | null;
+  centres: import("./support").SupportCentre[];
+};
+
 export type FlowItem = { icon?: string | null; title: string; note?: string | null };
 export type FlowSectionData = {
   kicker?: string | null; heading?: string | null; lede?: string | null;
@@ -370,6 +379,7 @@ export type PageSection =
   | Of<"flow", FlowSectionData>
   | Of<"subnav", SubnavSectionData>
   | Of<"product_videos", ProductVideosSectionData>
+  | Of<"support_network", SupportNetworkSectionData>
   | Of<"layout", LayoutSectionData>
   | Of<"custom_code", CustomCodeSectionData>;
 
@@ -401,6 +411,8 @@ export type PageBuilderOptions = {
   store_categories: { id: number; name: string; slug: string }[];
   /** The downloads centre's shelves a downloads section may name (0.131.0). Optional for an older API. */
   download_categories?: { id: number; name: string; slug: string }[];
+  /** The countries with a support centre, for a support network section (0.170.0). */
+  support_countries?: { value: string; label: string }[];
   /** The section library and the page templates (0.106.0). Optional for an older API. */
   library?: {
     sections: { id: number; name: string; type: string | null }[];

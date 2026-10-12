@@ -42,7 +42,7 @@ const PUBLIC_ROUTES = [
   "/", "/solutions", "/solutions/networking", "/services", "/services/web-hosting",
   "/industries", "/industries/manufacturing", "/products", "/products/switches",
   "/products/cisco-cbs350-24t-4g", "/resources", "/blog", "/case-studies",
-  "/team", "/clients", "/certifications",
+  "/team", "/clients", "/certifications", "/support-network",
   "/knowledge-base", "/about", "/contact", "/support", "/privacy", "/terms", "/returns", "/shipping",
   "/book-a-visit",
   // The installed app's offline page (docs/pwa.md), which the service worker serves in place of any page not yet saved.
@@ -106,6 +106,7 @@ const ADMIN_ROUTES = [
   "/admin/blocks/cta/showcase", "/admin/blocks/stats/showcase", "/admin/blocks/pricing/showcase", "/admin/blocks/stack/showcase",
   "/admin/team-members", "/admin/team-members/new", "/admin/clients", "/admin/clients/new",
   "/admin/certifications", "/admin/certifications/new",
+  "/admin/support-centres", "/admin/support-centres/new",
   /*
     The form builder, which this list did not name until it grew two blocks of
     pre-formatted code — an iframe snippet and a whole HTML form — each of

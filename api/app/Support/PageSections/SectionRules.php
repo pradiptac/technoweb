@@ -15,6 +15,7 @@ use App\Models\SavedSection;
 use App\Models\Slider;
 use App\Models\StoreCategory;
 use App\Support\Blocks\BlockRules;
+use App\Support\Countries;
 use App\Support\Store\VideoShelf;
 use App\Support\ThemeOptions;
 use App\Support\YouTube;
@@ -560,6 +561,13 @@ final class SectionRules
                 'category_id' => ['nullable', 'integer'],
                 'limit' => ['nullable', 'integer', 'min:1', 'max:24'],
                 'shape' => ['nullable', Rule::in(VideoShelf::SHAPES)],
+            ],
+            // The support network, live (0.170.0): optionally opened on a country.
+            PageSectionType::SupportNetwork => [
+                'kicker' => ['nullable', 'string', 'max:80'],
+                'heading' => $heading,
+                'lede' => $lede,
+                'country' => ['nullable', 'string', 'size:2', Rule::in(array_keys(Countries::ALL))],
             ],
             // One of the active theme's homepage sections, by id. Checked for
             // the shape of an id only, the rule `site_theme` and the section

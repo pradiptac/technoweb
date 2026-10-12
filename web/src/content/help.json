@@ -2031,6 +2031,54 @@
    "title": "Good to know",
    "html": "<ul><li><strong>Page addresses.</strong> A page's old address becomes its address here with the slashes turned into hyphens: <code>/services/web-design</code> becomes <code>/services-web-design</code>. If your site already uses an address (<code>/about</code>, <code>/contact</code> and <code>/blog</code> are built in), the imported page gets the next free one (<code>/about-2</code>) and <strong>no redirect is made over the address your site already serves</strong> — the review says which.</li><li><strong>Pictures</strong> are copied from wherever they were on the old site, including other websites' pictures it showed. A picture that cannot be fetched, or is not a type the media library accepts, is named in the review.</li><li><strong>Importing again.</strong> Run the import again before you switch domains to pick up changes; it <strong>updates</strong> what it created rather than copying it, and never changes a page's address. A page you have edited here since the first import is <strong>left alone</strong> and listed.</li><li><strong>A page with nothing on it</strong> once the header, menu and footer are taken away is skipped and named.</li><li>Only one import can run at a time.</li><li><strong>Nothing is emailed</strong> to anyone by the import.</li><li>The import is not an exact copy of a design. The point of it is that the words, pictures, links and structure are in your site, ready to arrange.</li></ul>",
    "text": "Page addresses. A page's old address becomes its address here with the slashes turned into hyphens: /services/web-design becomes /services-web-design . If your site already uses an address ( /about , /contact and /blog are built in), the imported page gets the next free one ( /about-2 ) and no redirect is made over the address your site already serves — the review says which. Pictures are copied from wherever they were on the old site, including other websites' pictures it showed. A picture that cannot be fetched, or is not a type the media library accepts, is named in the review. Importing again. Run the import again before you switch domains to pick up changes; it updates what it created rather than copying it, and never changes a page's address. A page you have edited here since the first import is left alone and listed. A page with nothing on it once the header, menu and footer are taken away is skipped and named. Only one import can run at a time. Nothing is emailed to anyone by the import. The import is not an exact copy of a design. The point of it is that the words, pictures, links and structure are in your site, ready to arrange."
+  },
+  {
+   "id": "28-support-network#overview",
+   "chapter": "28-support-network",
+   "chapterTitle": "The support network: service centres on a map",
+   "title": "Overview",
+   "html": "<p><em>Who can use this: Administrator.</em></p><p><strong>Site → Support network</strong> is where you list your service centres, offices and service partners. Each one has an address, a telephone number and a pin on a map. Your website shows them all on the <strong>Support network</strong> page (<code>/support-network</code>), country by country and city by city, on a map you can zoom into one country.</p>",
+   "text": "Who can use this: Administrator. Site → Support network is where you list your service centres, offices and service partners. Each one has an address, a telephone number and a pin on a map. Your website shows them all on the Support network page ( /support-network ), country by country and city by city, on a map you can zoom into one country."
+  },
+  {
+   "id": "28-support-network#adding-a-centre",
+   "chapter": "28-support-network",
+   "chapterTitle": "The support network: service centres on a map",
+   "title": "Adding a centre",
+   "html": "<p>Press <strong>New centre</strong>. A centre has three tabs.</p><ul><li><strong>Details</strong>: the name visitors know it by, its telephone numbers, email and opening hours, and what kind of place it is (service centre, office or service partner). <strong>Shown on the website</strong> takes it off the page without deleting it.</li><li><strong>Location</strong>: the country, state, city and address. The list on the website is grouped by country and then by city. To put the centre on the map, do one of these:<ul><li>press the map where the centre is;</li><li>type its latitude and longitude;</li><li>paste a Google Maps link and press <strong>Use link</strong>. The coordinates are read from the link on your computer; nothing is sent anywhere. A centre without a pin is still listed, just not drawn on the map.</li></ul></li><li><strong>Staff</strong>: the people who work there. Add a staff member, give them a title such as &quot;Field engineer&quot;, and choose whether their name is <strong>on the website</strong>. Only the name and title are ever shown — never a staff member's email or mobile.</li></ul><p>Press <strong>Save centre</strong>. The website shows the change at once.</p>",
+   "text": "Press New centre . A centre has three tabs. Details : the name visitors know it by, its telephone numbers, email and opening hours, and what kind of place it is (service centre, office or service partner). Shown on the website takes it off the page without deleting it. Location : the country, state, city and address. The list on the website is grouped by country and then by city. To put the centre on the map, do one of these: press the map where the centre is; type its latitude and longitude; paste a Google Maps link and press Use link . The coordinates are read from the link on your computer; nothing is sent anywhere. A centre without a pin is still listed, just not drawn on the map. Staff : the people who work there. Add a staff member, give them a title such as \"Field engineer\", and choose whether their name is on the website . Only the name and title are ever shown — never a staff member's email or mobile. Press Save centre . The website shows the change at once."
+  },
+  {
+   "id": "28-support-network#staff-and-centres",
+   "chapter": "28-support-network",
+   "chapterTitle": "The support network: service centres on a map",
+   "title": "Staff and centres",
+   "html": "<p>A staff member can be tagged to more than one centre. On <strong>System → Staff</strong> each person's centres are listed, and the number in a centre's Staff column opens the staff list filtered to that centre.</p>",
+   "text": "A staff member can be tagged to more than one centre. On System → Staff each person's centres are listed, and the number in a centre's Staff column opens the staff list filtered to that centre."
+  },
+  {
+   "id": "28-support-network#the-map",
+   "chapter": "28-support-network",
+   "chapterTitle": "The support network: service centres on a map",
+   "title": "The map",
+   "html": "<p>The map is drawn by your website itself: there are no map tiles from another company, nothing is loaded from Google, and no cookie is set. India's boundary is drawn as India officially shows it. Each centre's card has a <strong>Directions</strong> link that opens Google Maps only when somebody presses it.</p><p>When all your centres are in one country, the map opens zoomed to that country. With centres in several countries, visitors can choose a country above the map.</p>",
+   "text": "The map is drawn by your website itself: there are no map tiles from another company, nothing is loaded from Google, and no cookie is set. India's boundary is drawn as India officially shows it. Each centre's card has a Directions link that opens Google Maps only when somebody presses it. When all your centres are in one country, the map opens zoomed to that country. With centres in several countries, visitors can choose a country above the map."
+  },
+  {
+   "id": "28-support-network#on-other-pages",
+   "chapter": "28-support-network",
+   "chapterTitle": "The support network: service centres on a map",
+   "title": "On other pages",
+   "html": "<p>The <strong>Support network</strong> section in the page builder puts the same map and centres on any page. It can open on one country. Add the page to your menus with the <strong>Support network</strong> item; it hides itself while no centre is shown.</p>",
+   "text": "The Support network section in the page builder puts the same map and centres on any page. It can open on one country. Add the page to your menus with the Support network item; it hides itself while no centre is shown."
+  },
+  {
+   "id": "28-support-network#things-to-know",
+   "chapter": "28-support-network",
+   "chapterTitle": "The support network: service centres on a map",
+   "title": "Things to know",
+   "html": "<ul><li>Deleting a centre does not change the staff accounts tagged to it.</li><li>A demo install comes with three sample centres named &quot;Sample …&quot;. Delete them before you go live.</li></ul>",
+   "text": "Deleting a centre does not change the staff accounts tagged to it. A demo install comes with three sample centres named \"Sample …\". Delete them before you go live."
   }
  ]
 }

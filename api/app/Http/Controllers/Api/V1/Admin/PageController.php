@@ -23,6 +23,8 @@ use App\Models\ProductCategory;
 use App\Models\SavedSection;
 use App\Models\Slider;
 use App\Models\StoreCategory;
+use App\Models\SupportCentre;
+use App\Support\Countries;
 use App\Support\CustomFields\CustomFields;
 use App\Support\PageSections\BodySections;
 use App\Support\PageSections\LayoutRules;
@@ -227,6 +229,9 @@ class PageController extends Controller
             'store_categories' => StoreCategory::query()->orderBy('name')->get(['id', 'name', 'slug']),
             // A downloads section reading the centre may name one shelf (0.131.0).
             'download_categories' => DownloadCategory::query()->active()->ordered()->get(['id', 'name', 'slug']),
+            // A support network section may open on a country that has a centre (0.170.0).
+            'support_countries' => SupportCentre::query()->active()->distinct()->orderBy('country_code')->pluck('country_code')
+                ->map(fn (string $c) => ['value' => $c, 'label' => Countries::name($c) ?? $c])->values(),
         ]]);
     }
 

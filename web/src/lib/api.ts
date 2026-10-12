@@ -20,6 +20,7 @@ import type {
   EventAvailability, EventDetail, EventRegistration, EventRegistrationPayload, EventRegistrationResult, EventSummary,
 } from "@/types/events";
 import type { Download, DownloadCategoryList } from "@/types/downloads";
+import type { SupportNetworkResponse } from "@/types/support";
 
 /**
  * Nothing in the preview store means an ordinary request, and then this is
@@ -380,6 +381,9 @@ export const publicApi = {
   clients: () => apiFetch<Collection<Client>>("/clients", { revalidate: 600, tags: ["clients"] }),
   certifications: () =>
     apiFetch<Collection<Certification>>("/certifications", { revalidate: 600, tags: ["certifications"] }),
+  /** The support network (0.170.0, docs/support-network.md); `meta.schema` is the page's graph. */
+  supportCentres: () =>
+    apiFetch<SupportNetworkResponse>("/support-centres", { revalidate: 600, tags: ["support-centres"] }),
 
   /**
    * Every popup that is live right now, for the whole site.

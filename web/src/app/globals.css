@@ -5253,6 +5253,35 @@ html[data-console-motion="subtle"] [data-console] [data-nav-pill] { transition-d
 html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active { scale: none; }
 @media (prefers-reduced-motion: reduce) { [data-console] [data-nav-pill] { transition-duration: 0s; } }
 
+/* The support network's map (0.170.0, docs/support-network.md): outlines in
+   tokens, so it follows the palette and the scheme; a pin keeps its size on
+   screen however far the map is zoomed (`--s` is the zoom, set by the server
+   for the first paint and by the island after); the zoom glides only with
+   motion allowed. The SVG is aria-hidden — the cards are the content. */
+.support-land {
+  fill: color-mix(in oklab, var(--color-brand-600) 12%, var(--color-card));
+  stroke: var(--color-card);
+  stroke-width: .6;
+  vector-effect: non-scaling-stroke;
+}
+.support-land[data-has-centre] { fill: color-mix(in oklab, var(--color-brand-600) 30%, var(--color-card)); }
+[data-map-zoom] { transform-box: view-box; transform-origin: 0 0; }
+.support-pin { cursor: pointer; }
+.support-pin-halo { r: calc(10px / (var(--s, 1) * var(--px, 1))); fill: color-mix(in oklab, var(--color-brand-600) 28%, transparent); }
+.support-pin-dot {
+  r: calc(4.5px / (var(--s, 1) * var(--px, 1)));
+  fill: var(--color-brand-600);
+  stroke: var(--color-card);
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+}
+.support-pin[data-active] .support-pin-dot { fill: var(--color-accent-600); r: calc(6.5px / (var(--s, 1) * var(--px, 1))); }
+.support-pin[data-active] .support-pin-halo { fill: color-mix(in oklab, var(--color-accent-600) 32%, transparent); r: calc(15px / (var(--s, 1) * var(--px, 1))); }
+@media (prefers-reduced-motion: no-preference) {
+  [data-map-zoom] { transition: transform 700ms var(--ease-brand); }
+  .support-pin circle { transition: r var(--duration-base) var(--ease-brand), fill var(--duration-base) var(--ease-brand); }
+}
+
 /* "AI Powered" (0.169.0, docs/console-portal.md): the badge in the console's
    version chip. A brand → accent wash under gradient ink — the audit takes a
    gradient text's stops as its colours, and both are graded inks — and one

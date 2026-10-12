@@ -37,6 +37,7 @@ update. `config/` and `storage/` are yours: an update never touches them.
 | Making the site faster with a CDN | [25 — Using a CDN](25-using-a-cdn.md) |
 | Offering datasheets, drivers and firmware | [26 — Downloads](26-downloads.md) |
 | Bringing in a site that is not WordPress | [27 — Importing a website](27-importing-a-website.md) |
+| Showing your service centres on a map | [28 — The support network](28-support-network.md) |
 
 ## The two addresses
 

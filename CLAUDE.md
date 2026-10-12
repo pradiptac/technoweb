@@ -164,6 +164,7 @@ Contents:
   - CDNs and versioned media URLs — `docs/cdn.md`
   - The downloads centre — `docs/downloads.md`
   - The console and portal shell — `docs/console-portal.md`
+  - The support network — `docs/support-network.md`
   - Help, tours, Simple view and empty states — `docs/help-and-tours.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
@@ -3055,6 +3056,16 @@ Datasheets, drivers and firmware by category on `/downloads`, attachable to cata
 - `scripts/probes/downloads.mjs` drives the upload, the public page, the sign-in redirect and a customer's fetch. A probe's screenshot passes `caret: "initial"`: Playwright's default sets an inline style on every input, and one taken mid-hydration logs a mismatch that is the probe's own.
 - Portal pages title themselves with `h2`: the portal layout's "Support portal" is the page's one `h1` (orders, wishlist, visits and meetings each had a second until 0.131.0).
 
+### The support network — `docs/support-network.md`
+
+Service centres on a map, country by country, with the staff who work at each (0.170.0).
+
+- `support_centres` is its own table, not the SEO `locations` tree (`location_id` links them); `support_centre_user` tags staff with a title and `is_public`; CRUD is `role:admin` because it tags staff; `App\Support\Countries` is the one country list (generated from ICU, committed).
+- The public read shows staff **by name and title only**, never their email or mobile, and only active accounts marked to show; `meta.schema` is an `ItemList` of `LocalBusiness` nodes (each a real address).
+- The map is drawn from committed data — Natural Earth's **India point-of-view** outlines, Miller, `content/world-map.ts` by `scripts/build-world-map.mjs` — with no tiles, no third party, no cookie and no CSP change; `project()`/`unproject()` are the same arithmetic as the outlines.
+- `SupportNetwork` is server-rendered (outlines, pins, cards; the SVG `aria-hidden`, every action on a card); `SupportNetworkControls` writes only a transform, `--s`/`--px` and attributes, so the outlines stay out of the client bundle; a pin's `r` is divided by the zoom and the screen scale so it keeps its size.
+- Also a builder section (`support_network`), a menu site section dropped while none is shown, the sitemap and `llms.txt`; `scripts/probes/support-network.mjs`, `SupportCentreTest`.
+
 ### The console and portal shell — `docs/console-portal.md`
 
 Console 2.0 (0.166.0) and Portal 2.0 (0.167.0): the glass bar, the account menu, the sidebar's sliding pill and icon rail, the hero band, the entrance; shared pieces in `components/app-shell/`.
@@ -3288,6 +3299,9 @@ Google sign-in for staff (customers' Google sign-in, 0.133.0, stays).
     only): one placeholder YouTube video (Big Buck Bunny, the sample builder
     page's stand-in) on each of the first three published shop products, so
     the "shop the videos" row shows. Delete them before launch.
+  - The three sample support centres from `SampleSupportCentreSeeder`
+    (0.170.0, demo only): "Sample …" names, invented addresses and
+    telephone numbers, no staff. Delete them before launch.
   - The placeholder hardware and installation services from
     `SampleServiceSeeder` (2026-09-29, demo only), filed under the two
     service categories beside Web services: every word invented — and the

@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\Download;
 use App\Models\Event;
 use App\Models\JobOpening;
+use App\Models\SupportCentre;
 use App\Models\TeamMember;
 
 /**
@@ -83,6 +84,8 @@ class SiteSection
         'downloads' => ['label' => 'Downloads', 'path' => '/downloads'],
 
         'support' => ['label' => 'Support', 'path' => '/support'],
+        // Service centres on a map (0.170.0, docs/support-network.md).
+        'support_network' => ['label' => 'Support network', 'path' => '/support-network'],
         'contact' => ['label' => 'Contact', 'path' => '/contact'],
         // The engineer visit request form (2026-09-26, docs/visits.md).
         'book_visit' => ['label' => 'Book a site visit', 'path' => '/book-a-visit'],
@@ -171,6 +174,7 @@ class SiteSection
             // Past or upcoming: a page of what has been on is still a page.
             'events' => Event::published()->exists(),
             'downloads' => Download::published()->exists(),
+            'support_network' => SupportCentre::query()->active()->exists(),
             default => true,
         };
     }

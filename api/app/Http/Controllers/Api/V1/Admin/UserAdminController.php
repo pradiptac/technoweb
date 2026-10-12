@@ -38,7 +38,7 @@ class UserAdminController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $users = User::query()
-            ->with('roles')
+            ->with(['roles', 'supportCentres:id,name'])
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = $request->string('q')->value();
                 $q->where(fn ($w) => $w->where('name', 'like', "%{$term}%")
@@ -49,6 +49,8 @@ class UserAdminController extends Controller
                 $q->whereHas('roles', fn ($r) => $r->where('slug', $slug));
             })
             ->when($request->filled('active'), fn ($q) => $q->where('is_active', $request->boolean('active')))
+            // Staff at one support centre (docs/support-network.md).
+            ->when($request->filled('centre'), fn ($q) => $q->whereHas('supportCentres', fn ($c) => $c->where('support_centres.id', $request->integer('centre'))))
             ->orderBy('name')
             ->paginate(min($request->integer('per_page', 40), 100))
             ->withQueryString();
@@ -70,7 +72,7 @@ class UserAdminController extends Controller
 
     public function show(User $user): JsonResource
     {
-        return new StaffUserResource($user->load('roles'));
+        return new StaffUserResource($user->load(['roles', 'supportCentres:id,name']));
     }
 
     public function store(StoreUserRequest $request): JsonResponse

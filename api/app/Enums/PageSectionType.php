@@ -87,6 +87,8 @@ enum PageSectionType: string
      * `VideoShelf`'s, resolved when the page is read.
      */
     case ProductVideos = 'product_videos';
+    /** The support network's map and centres (0.170.0, docs/support-network.md), live. */
+    case SupportNetwork = 'support_network';
     /**
      * One of the active theme's own homepage sections (2026-10-06, 0.113.0):
      * the hero, the solutions, the partner strip… — stored as the section's
@@ -171,6 +173,7 @@ enum PageSectionType: string
             self::Flow => 'Diagram',
             self::Subnav => 'In-page menu',
             self::ProductVideos => 'Product videos',
+            self::SupportNetwork => 'Support network',
             self::ThemeSection => 'From the theme',
             self::Layout => 'Custom layout',
             self::CustomCode => 'Custom code',
@@ -231,6 +234,7 @@ enum PageSectionType: string
             self::Story => 'Two to six steps that scroll past a picture held in place, the picture changing with each step — a product tour, a process, a project told in stages.',
             self::Flow => 'A row of connected steps — a network, a process, how data moves — whose connecting lines draw themselves as the page scrolls.',
             self::ProductVideos => 'A row of the shop’s product videos, each with its product under it — picture, name, price and an Add to basket button. Whole shop or one category; it follows the videos on the products.',
+            self::SupportNetwork => 'Your service centres on a map, with their addresses and telephone numbers — every country, or opened on one. It follows Site → Support network as it changes.',
             self::ThemeSection => 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.',
             self::Subnav => 'A strip of links to the sections of this page, which stays at the top of the screen as it scrolls. '
                 .'It lists every section you have given an anchor to (Style → Anchor), in page order.',

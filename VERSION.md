@@ -21,6 +21,28 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.170.0 — 2026-10-13
+
+**The support network.** A client request: service centres on a map.
+
+- **Site → Support network** lists your service centres, offices and
+  service partners — address, telephones, email, opening hours — and the
+  staff who work at each, with a title and whether their name is shown.
+- **The `/support-network` page** shows them on a map drawn by the website
+  itself (no map tiles, nothing from Google, no cookie; India's boundary as
+  India shows it) and in a list grouped by country and city. Choose a
+  country to zoom in; press a pin to find its card. Each card has a
+  Directions link. A network in one country opens zoomed to it.
+- **Place a pin** by pressing the map in the console, typing coordinates, or
+  pasting a Google Maps link (read on your computer, nothing sent).
+- **Staff** screen: a Centre column, and a filter by centre.
+- The same map as a **page-builder section**, a **menu item** (hidden while
+  no centre is shown), and in the sitemap and `llms.txt`.
+
+Run `php artisan migrate`. Module note: `docs/support-network.md`.
+
+---
+
 ## 0.169.0 — 2026-10-12
 
 **Every picture the right size, and "AI Powered".** Two client requests.

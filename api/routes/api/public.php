@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\ClientErrorController;
 use App\Http\Controllers\Api\V1\CompanyController;
+use App\Http\Controllers\Api\V1\SupportCentreController;
 use App\Http\Controllers\Api\V1\CompanySuggestionController;
 use App\Http\Controllers\Api\V1\ContentBlockController;
 use App\Http\Controllers\Api\V1\ContentController;
@@ -376,6 +377,8 @@ Route::get('case-studies/{caseStudy}', [ContentController::class, 'caseStudy'])-
  * every render. No detail routes: these are lists.
  */
 Route::get('team', [CompanyController::class, 'team'])->name('team.index');
+// The support network (0.170.0, docs/support-network.md).
+Route::get('support-centres', [SupportCentreController::class, 'index'])->name('support-centres.index');
 Route::get('clients', [CompanyController::class, 'clients'])->name('clients.index');
 Route::get('certifications', [CompanyController::class, 'certifications'])->name('certifications.index');
 

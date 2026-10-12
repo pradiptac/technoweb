@@ -1475,6 +1475,8 @@ export type AdminStaff = {
   is_active: boolean;
   roles?: { slug: string; label: string }[];
   role_slugs?: string[];
+  /** The support centres this person is shown at (0.170.0). */
+  support_centres?: { id: number; name: string }[];
   created_at?: string;
   /** Returned once, by create only, and never readable again. */
   generated_password?: string | null;

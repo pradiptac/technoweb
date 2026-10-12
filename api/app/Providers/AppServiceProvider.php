@@ -240,6 +240,7 @@ class AppServiceProvider extends ServiceProvider
             'brand' => Brand::class,
             'canned_reply' => CannedReply::class,
             'certification' => Certification::class,
+            'support_centre' => \App\Models\SupportCentre::class,
             'client' => Client::class,
             'coupon' => Coupon::class,
             'gallery' => Gallery::class,

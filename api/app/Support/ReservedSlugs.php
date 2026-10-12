@@ -40,6 +40,8 @@ final class ReservedSlugs
         // The downloads centre (0.131.0, docs/downloads.md). A CMS page was
         // seeded at this address until then; `RetireDownloadsPage` moves it.
         'downloads',
+        // The support network (0.170.0, docs/support-network.md).
+        'support-network',
         // The application root.
         'admin', 'api', 'embed', 'portal', 'push', 'theme-preview', 'indexnow',
         'favicon.ico', 'sitemap.xml', 'robots.txt', 'llms.txt', 'llms-full.txt',
@@ -52,7 +54,7 @@ final class ReservedSlugs
         'blocks', 'galleries', 'forms', 'menus', 'settings', 'redirects', 'landing-pages',
         'enquiries', 'chat', 'auth', 'companies', 'client-errors', 'messaging', 'tickets',
         'ticket-attachments', 'ticket-categories', 'orders', 'payments', 'wishlist', 'my', 'visits',
-        'download-categories',
+        'download-categories', 'support-centres',
     ];
 
     /** Words a server, a crawler or the framework already means something by. */

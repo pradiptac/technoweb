@@ -10,7 +10,7 @@ import {
   IconProjector, IconSearch, IconTruck,
 } from "@/components/icons";
 // A chrome glyph, which lives in `icons-ui` and is not re-exported by the map.
-import { IconDownload } from "@/components/icons-ui";
+import { IconDownload, IconMapPin } from "@/components/icons-ui";
 
 /**
  * The console's sidebar, as data. Rendered by `admin-nav.tsx`, which is a
@@ -449,6 +449,8 @@ export const NAV: NavItem[] = [
       { role: "admin", href: "/admin/info-bar", label: "Info bar", icon: IconMegaphone },
       { role: "admin", href: "/admin/themes", label: "Themes", icon: IconLayers },
       { role: "admin", href: "/admin/site/chrome", label: "Header & footer", icon: IconLayers },
+      // The support network (0.170.0, docs/support-network.md): admin, since a centre tags staff.
+      { role: "admin", href: "/admin/support-centres", label: "Support network", icon: IconMapPin },
       { role: "admin", href: "/admin/site/settings", label: "Settings", icon: IconSliders },
       { role: "content_manager", href: "/admin/forms", label: "Forms", icon: IconMail },
     ],

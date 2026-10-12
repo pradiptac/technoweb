@@ -110,7 +110,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const [
       solutions, services, industries, categories, products,
       posts, articles, caseStudies, pages, careers,
-      storeProducts, storeCategories, storeTags, taxonomy, landing, settings, events, downloads,
+      storeProducts, storeCategories, storeTags, taxonomy, landing, settings, events, downloads, centres,
     ] = await Promise.all([
       publicApi.solutions().then((r) => r.data),
       publicApi.services().then((r) => r.data),
@@ -159,6 +159,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // The downloads centre: how many files it holds and when one last
       // changed. On its own `catch` — a failure leaves the page out, no more.
       publicApi.downloadCategories().then((r) => r.meta).catch(() => null),
+      // The support network (docs/support-network.md), on its own `catch`.
+      publicApi.supportCentres().then((r) => r.data).catch(() => []),
     ]);
 
     /*
@@ -217,6 +219,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // The downloads centre (docs/downloads.md), once it holds a file: an
       // empty one is a page that says "nothing yet", which is not worth a crawl.
       ...(downloads && downloads.total > 0 ? [entry("/downloads", 0.6, "weekly", when(downloads.updated_at))] : []),
+      // The support network, once it lists a centre; its last change is the newest centre's.
+      ...(centres.length > 0 ? [entry("/support-network", 0.6, "monthly", when(centres.map((c) => c.updated_at ?? "").sort().at(-1)))] : []),
       ...included(solutions).map((s) => entry(`/solutions/${s.slug}`, 0.8, "monthly", when(s.updated_at))),
       ...included(services).map((s) => entry(`/services/${s.slug}`, 0.7, "monthly", when(s.updated_at))),
       ...included(industries).map((i) => entry(`/industries/${i.slug}`, 0.6, "monthly", when(i.updated_at))),

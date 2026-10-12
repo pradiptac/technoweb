@@ -8,6 +8,7 @@ import type {
 import type { EventAgendaItem, EventSummary } from "@/types/events";
 import { UPCOMING_EVENTS } from "@/components/events/data";
 import type { Download } from "@/types/downloads";
+import type { SupportCentre } from "@/types/support";
 
 /**
  * `/llms.txt` and `/llms-full.txt` — the site, as an assistant reads it.
@@ -83,13 +84,15 @@ type Site = {
   events: EventSummary[];
   /** The downloads centre's files (docs/downloads.md): named, never addressed — a file is fetched from the page. */
   downloads: Download[];
+  /** The support network's centres (docs/support-network.md). */
+  centres: SupportCentre[];
   /** Custom content types (docs/custom-content.md) and their first hundred published entries each. */
   custom: { type: ContentTypeSummary; entries: ContentEntry[] }[];
 };
 
 async function load(): Promise<Site> {
   const quiet = <T,>(p: Promise<{ data: T[] }>) => p.then((r) => r.data).catch(() => [] as T[]);
-  const [settings, solutions, services, industries, categories, articles, caseStudies, posts, events, downloads] = await Promise.all([
+  const [settings, solutions, services, industries, categories, articles, caseStudies, posts, events, downloads, centres] = await Promise.all([
     getSiteSettings(),
     quiet(publicApi.solutions()),
     quiet(publicApi.services()),
@@ -100,13 +103,14 @@ async function load(): Promise<Site> {
     quiet(publicApi.posts("?per_page=20")),
     quiet(publicApi.events(UPCOMING_EVENTS)),
     quiet(publicApi.downloads("?per_page=100")),
+    quiet(publicApi.supportCentres()),
   ]);
   const types = await quiet(publicApi.contentTypes());
   const custom = await Promise.all(types.map(async (type) => ({
     type,
     entries: await publicApi.contentArchive(type.slug, "?per_page=100").then((r) => r.data).catch(() => [] as ContentEntry[]),
   })));
-  return { settings, solutions, services, industries, categories, articles, caseStudies, posts, events, downloads, custom };
+  return { settings, solutions, services, industries, categories, articles, caseStudies, posts, events, downloads, centres, custom };
 }
 
 function head(site: Site): string {
@@ -172,6 +176,17 @@ function index(site: Site): string {
         x.title,
         `/downloads?q=${encodeURIComponent(x.title)}`,
         [x.category?.name, x.version ? `version ${x.version}` : null, x.locked ? "customers only" : null, x.summary].filter(Boolean).join(" — "),
+      )),
+    ]);
+  }
+  // The support network: each centre with its city and telephone, all on one page.
+  if (site.centres.length > 0) {
+    section("Support network", [
+      line("All service centres and offices", "/support-network", "Where to find us, with addresses and telephone numbers."),
+      ...site.centres.map((c) => line(
+        c.name,
+        `/support-network#${c.slug}`,
+        [c.kind_label, [c.city, c.region, c.country].filter(Boolean).join(", "), c.phone].filter(Boolean).join(" — "),
       )),
     ]);
   }

@@ -43,6 +43,16 @@ class User extends Authenticatable
         });
     }
 
+    /**
+     * The support centres this person is shown at (docs/support-network.md).
+     *
+     * @return BelongsToMany<SupportCentre, $this>
+     */
+    public function supportCentres(): BelongsToMany
+    {
+        return $this->belongsToMany(SupportCentre::class)->withPivot(['title', 'is_public']);
+    }
+
     /** @return BelongsToMany<Role, $this> */
     public function roles(): BelongsToMany
     {

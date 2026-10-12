@@ -213,6 +213,11 @@ const OUTCOMES: Record<string, Message> = {
   "return-refunded": { tone: "ok", title: "Refund recorded", body: "It shows on the order, and the customer has been emailed the amount." },
   "return-closed": { tone: "ok", title: "Return closed", body: "Nobody was emailed." },
   "return-note-saved": { tone: "ok", title: "Note saved" },
+  "support-centre-deleted": {
+    tone: "ok",
+    title: "Centre deleted",
+    body: "It has left the support network page. The staff accounts tagged to it are unchanged.",
+  },
   "certification-deleted": {
     tone: "ok",
     title: "Certification deleted",

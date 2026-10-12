@@ -2151,6 +2151,25 @@ centre's published downloads as `items[{title, note?, version?,
 released_label?, download_id, locked?, size, extension}]` with `index_path:
 "/downloads"` — no `url` — and drops the section when there are none.
 
+## Support network (0.170.0)
+
+Service centres, offices and partners with an address, a telephone and a pin,
+and the staff who work at each. See `docs/support-network.md`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/support-centres` | Public. Active centres, country → city → order. Each: `{name, slug, kind, kind_label, country_code, country, region, city, address, phone, phone_alt, email, hours, latitude, longitude, staff: [{name, title}], updated_at}` — staff only where shown and the account is active, **never** their email or mobile. `meta.schema` is the page's `ItemList` graph (null when empty). `{data: []}` in a 200 when there are none |
+| `GET` | `/admin/support-centres` | `role:admin`. `?q=` (name, city, region), `?country=`, `?active=`, `?per_page=` (max 100). Rows add `id`, `location_id`, `sort_order`, `is_active`, `staff_count`. `meta.kinds` (`service_centre`, `office`, `partner`), `meta.countries` (`App\Support\Countries`) |
+| `POST` | `/admin/support-centres` | `name`, `slug` (blank → from the name; unique), `kind`, `country_code` (ISO alpha-2 in the list), `region`, `city`, `address`, `phone`, `phone_alt` (digits, spaces, `+()-./`), `email`, `hours`, `latitude` −90..90 and `longitude` −180..180 (both or neither — a 422 on the missing one), `location_id`, `sort_order`, `is_active`, `staff: [{user_id, title, is_public}]` (replaced wholesale; absent leaves it, `[]` clears). **201** with `meta` |
+| `GET` / `PATCH` / `DELETE` | `/admin/support-centres/{id}` | The read adds `staff: [{user_id, name, email, is_active, title, is_public}]`. Delete is **204** and leaves the staff accounts alone |
+
+`GET /admin/staff` takes `?centre=<id>` and each row carries
+`support_centres: [{id, name}]`. The page builder's `support_network`
+section stores `{kicker, heading, lede, country}`; the public read adds
+`centres` (the shape above) and drops the section while none is shown;
+`GET /admin/pages/builder` sends `support_countries: [{value, label}]`.
+`support_network` is a menu site section (dropped while no centre is shown).
+
 ## Shiprocket: booking and tracking (0.143.0)
 
 Optional courier booking for the shop's orders (`docs/store.md` "Shiprocket").

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\ActivityController;
+use App\Http\Controllers\Api\V1\Admin\SupportCentreController as AdminSupportCentreController;
 use App\Http\Controllers\Api\V1\Admin\ChatAdminController;
 use App\Http\Controllers\Api\V1\Admin\ClientErrorController as AdminClientErrorController;
 use App\Http\Controllers\Api\V1\Admin\CustomFontController;
@@ -212,6 +213,14 @@ Route::middleware('role:admin')->group(function () {
     Route::get('staff/{user:id}', [UserAdminController::class, 'show'])->name('staff.show');
     Route::patch('staff/{user:id}', [UserAdminController::class, 'update'])->name('staff.update');
     Route::delete('staff/{user:id}', [UserAdminController::class, 'destroy'])->name('staff.destroy');
+
+    // The support network's centres (0.170.0, docs/support-network.md):
+    // beside staff, because a centre tags staff accounts.
+    Route::get('support-centres', [AdminSupportCentreController::class, 'index'])->name('support-centres.index');
+    Route::post('support-centres', [AdminSupportCentreController::class, 'store'])->name('support-centres.store');
+    Route::get('support-centres/{supportCentre:id}', [AdminSupportCentreController::class, 'show'])->name('support-centres.show');
+    Route::patch('support-centres/{supportCentre:id}', [AdminSupportCentreController::class, 'update'])->name('support-centres.update');
+    Route::delete('support-centres/{supportCentre:id}', [AdminSupportCentreController::class, 'destroy'])->name('support-centres.destroy');
 
     /*
      * Outgoing webhooks: where to announce a lead, a ticket, an order.

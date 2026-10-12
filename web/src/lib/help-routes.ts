@@ -54,6 +54,7 @@ export const HELP_ROUTES: { prefix: string; sections: string[] }[] = [
   { prefix: "/admin/certifications", sections: ["06-catalogue#the-company-profile"] },
   { prefix: "/admin/landing-pages", sections: ["06-catalogue#landing-pages"] },
   { prefix: "/admin/locations", sections: ["06-catalogue#places"] },
+  { prefix: "/admin/support-centres", sections: ["28-support-network#adding-a-centre", "28-support-network#staff-and-centres"] },
 
   { prefix: "/admin/store", sections: ["07-store#overview-stock-and-reports", "07-store#opening-the-shop"] },
   { prefix: "/admin/store/orders", sections: ["07-store#orders", "07-store#nothing-marks-an-order-paid-except-a-recorded-payment"] },

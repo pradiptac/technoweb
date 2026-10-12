@@ -5,6 +5,7 @@ namespace App\Support\PageSections;
 use App\Enums\PageSectionType;
 use App\Enums\PublishStatus;
 use App\Http\Resources\ContentBlockResource;
+use App\Http\Resources\SupportCentreResource;
 use App\Http\Resources\TeamMemberResource;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
@@ -29,6 +30,7 @@ use App\Models\Slider;
 use App\Models\Solution;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
+use App\Models\SupportCentre;
 use App\Models\TeamMember;
 use App\Support\Downloads\DownloadFiles;
 use App\Support\Events\EventText;
@@ -264,6 +266,7 @@ final class SectionPresenter
             PageSectionType::Team => self::team($data),
             PageSectionType::Downloads => self::downloads($data),
             PageSectionType::ProductVideos => self::productVideos($data),
+            PageSectionType::SupportNetwork => self::supportNetwork($data),
             PageSectionType::Countdown => self::countdown($data),
             PageSectionType::Layout => LayoutPresenter::present($data),
             default => $data,
@@ -350,6 +353,23 @@ final class SectionPresenter
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>|null
      */
+    /**
+     * The support network's active centres in the public shape (staff by
+     * name and title only); none drops the section.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    private static function supportNetwork(array $data): ?array
+    {
+        $centres = SupportCentre::query()->active()
+            ->with(['staff' => fn ($q) => $q->select('users.id', 'users.name', 'users.is_active')])
+            ->inListOrder()->get();
+        $data['centres'] = SupportCentreResource::collection($centres)->resolve();
+
+        return $data['centres'] === [] ? null : $data;
+    }
+
     private static function team(array $data): ?array
     {
         $department = is_string($data['department'] ?? null) && $data['department'] !== '' ? $data['department'] : null;

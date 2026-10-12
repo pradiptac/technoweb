@@ -1,3 +1,4 @@
+import { SupportNetworkSection } from "./support-section";
 import { Fragment } from "react";
 import type { ReactNode } from "react";
 import type { Crumb } from "@/components/ui/breadcrumbs";
@@ -266,6 +267,7 @@ function renderSection(
     case "flow": return <FlowSection data={section.data} reveal={reveal} />;
     case "subnav": return <SubnavSection data={section.data} />;
     case "product_videos": return <ProductVideosSection data={section.data} reveal={reveal} />;
+    case "support_network": return <SupportNetworkSection data={section.data} reveal={reveal} />;
     case "layout": return <LayoutSection data={section.data} eager={eager} reveal={reveal} />;
     case "custom_code": return <CustomCodeSection data={section.data} run={runCode} reveal={reveal} />;
     // The active theme's own homepage section, arriving as `HomeSection` would

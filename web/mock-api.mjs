@@ -5977,6 +5977,19 @@ createServer(async (req, res) => {
   if (p === '/team') return json(res, 200, { data: team });
   if (p === '/clients') return json(res, 200, { data: clients });
   if (p === '/certifications') return json(res, 200, { data: certifications });
+  // The support network (0.170.0, docs/support-network.md): staff by name and title only.
+  if (p === '/support-centres') {
+    const centres = [
+      { name: 'Sample Kolkata Service Centre', slug: 'sample-kolkata-service-centre', kind: 'service_centre', kind_label: 'Service centre',
+        country_code: 'IN', country: 'India', region: 'West Bengal', city: 'Kolkata', address: '12 Park Street', phone: '+91 33 0000 0001',
+        phone_alt: null, email: null, hours: 'Mon–Sat, 9:30 am – 6:30 pm', latitude: 22.553, longitude: 88.352,
+        staff: [{ name: 'Asha Roy', title: 'Field engineer' }], updated_at: '2026-10-12T10:00:00+05:30' },
+      { name: 'Sample Mumbai Office', slug: 'sample-mumbai-office', kind: 'office', kind_label: 'Office',
+        country_code: 'IN', country: 'India', region: 'Maharashtra', city: 'Mumbai', address: 'Andheri East', phone: '+91 22 0000 0002',
+        phone_alt: null, email: null, hours: null, latitude: 19.1136, longitude: 72.8697, staff: [], updated_at: '2026-10-12T10:00:00+05:30' },
+    ];
+    return json(res, 200, { data: centres, meta: { schema: null } });
+  }
   // Editor-built forms. 404 for an unknown slug and for a form with no fields,
   // because the frontend's fallback depends on that being a miss.
   if (p.startsWith('/forms/')) {

@@ -22,6 +22,7 @@ use App\Models\Solution;
 use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
 use App\Models\StoreTag;
+use App\Models\SupportCentre;
 use App\Support\Events\EventText;
 use App\Support\Mail\MailBrand;
 use App\Support\Store\Fulfilment;
@@ -814,6 +815,58 @@ class StructuredData
             'areaServed' => $area,
             'telephone' => Setting::get('phone') ?: null,
             'email' => Setting::get('support_email') ?: null,
+        ]);
+    }
+
+    /**
+     * The support network page's graph (0.170.0, docs/support-network.md): an
+     * `ItemList` of the centres, each a `LocalBusiness` (`ProfessionalService`
+     * for an office or partner too — every one is a building with a phone)
+     * whose `parentOrganization` is the site's own `Organization` node. This is
+     * the physical-place case `localBusiness()`'s rule allows: each centre is
+     * an address somebody can walk into, entered as one.
+     *
+     * @param  iterable<SupportCentre>  $centres
+     */
+    public static function supportNetwork(iterable $centres): ?array
+    {
+        $items = [];
+        $i = 0;
+        foreach ($centres as $centre) {
+            $items[] = [
+                '@type' => 'ListItem',
+                'position' => ++$i,
+                'item' => array_filter([
+                    '@type' => 'LocalBusiness',
+                    'name' => $centre->name,
+                    'url' => self::url('/support-network#'.$centre->slug),
+                    'parentOrganization' => self::publisher(),
+                    'telephone' => $centre->phone ?: null,
+                    'email' => $centre->email ?: null,
+                    'openingHours' => $centre->hours ?: null,
+                    'address' => array_filter([
+                        '@type' => 'PostalAddress',
+                        'streetAddress' => $centre->address ?: null,
+                        'addressLocality' => $centre->city,
+                        'addressRegion' => $centre->region ?: null,
+                        'addressCountry' => $centre->country_code,
+                    ]),
+                    'geo' => $centre->latitude !== null && $centre->longitude !== null ? [
+                        '@type' => 'GeoCoordinates',
+                        'latitude' => $centre->latitude,
+                        'longitude' => $centre->longitude,
+                    ] : null,
+                ], fn ($v) => $v !== null),
+            ];
+        }
+        if (! $items) {
+            return null;
+        }
+
+        return self::graph([
+            '@type' => 'ItemList',
+            'name' => self::company().' — support network',
+            'itemListElement' => $items,
         ]);
     }
 
