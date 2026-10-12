@@ -1559,6 +1559,12 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
   .motion-tile:hover [data-demo="reveal-fade"]  { animation: demo-fade .6s var(--ease-brand); }
   .motion-tile:hover [data-demo="reveal-zoom"]  { animation: demo-zoom .6s var(--ease-brand); }
   .motion-tile:hover [data-demo="reveal-blur"]  { animation: demo-blur .6s var(--ease-brand); }
+  /* The hero heading tiles (0.171.0): drawings of the effect, replayed on hover. */
+  .motion-tile:hover [data-demo="kinetic-type"] { animation: demo-k-type 1.1s steps(14) both; }
+  .motion-tile:hover [data-demo="kinetic-decode"] { animation: demo-k-decode .8s steps(6) both; }
+  .motion-tile:hover [data-demo="kinetic-highlight"] > span { text-decoration: underline 3px color-mix(in oklab, var(--color-brand-600) 55%, transparent); text-underline-offset: 6px; }
+  @keyframes demo-k-type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+  @keyframes demo-k-decode { 0%, 60% { filter: blur(2px); opacity: .5; } }
   .motion-tile:hover [data-demo="reveal-assemble"] > span { animation: assemble-in .8s var(--ease-spring) backwards; }
   .motion-tile:hover [data-demo="reveal-assemble"] > span:nth-child(even) { --piece-tilt: -2deg; }
   .motion-tile:hover [data-demo="reveal-cascade"] > span  { animation: cascade-in .6s var(--ease-brand) backwards; }

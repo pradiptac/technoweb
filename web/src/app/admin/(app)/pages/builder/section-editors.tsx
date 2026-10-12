@@ -8,6 +8,7 @@ import {
 } from "../../blocks/editors/shared";
 import type { PageBuilderOptions, PageSectionType } from "@/types/api";
 import { HOME_SECTIONS } from "@/themes/options";
+import { KINETIC } from "@/lib/motion-choices";
 import { LayoutEditor, blankLayout, layoutSummary } from "./layout-editor";
 
 /**
@@ -339,12 +340,21 @@ export function SectionEditor({ type, sectionId, options }: {
   switch (type) {
     case "hero": {
       const layout = typeof content.layout === "string" ? content.layout : "centered";
+      const kinetic = typeof content.kinetic === "string" ? content.kinetic : "default";
       return (
         <>
           <HeroLayout options={options.hero_layouts} />
           <Text path={["kicker"]} label="Kicker" hint="A few words over the heading. Optional." />
           <Text path={["heading"]} label="Heading" required hint="First on the page, this is the page’s own title (its h1)." />
           <Text path={["lede"]} label="Lede" multiline />
+          <Choice path={["kinetic"]} label="Heading effect" fallback="default" options={[
+            { value: "default", label: "As the Motion settings say" },
+            ...KINETIC.map((c) => ({ value: c.id, label: c.label })),
+          ]} hint="How the heading arrives when the page opens. Still for visitors who ask for less motion." />
+          {(kinetic === "rotate" || kinetic === "highlight") && (
+            <Text path={["kinetic_words"]} label={kinetic === "rotate" ? "Words the last word turns into" : "Word to underline"} multiline={kinetic === "rotate"}
+              hint={kinetic === "rotate" ? "One per line, up to six. The heading turns through them once, then rests on its own last word." : "Blank underlines the last word."} />
+          )}
           <ImagePath path={["image_path"]} label="Picture" spec="hero" hint={layout === "centered" ? "Not drawn in the centred layout." : "Needed for the split and cover layouts."} />
           {layout === "cover" && (
             <VideoPath path={["video_path"]} label="Background video"

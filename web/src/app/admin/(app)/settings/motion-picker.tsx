@@ -5,11 +5,12 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Backdrop } from "@/components/ui/backdrop";
 import {
-  BUTTONS, CARDS, HEROS, LOADERS, PAGES, PROGRESS, REVEALS, SPLASH_NOTE,
+  BUTTONS, CARDS, HEROS, KINETIC_SITE, LOADERS, MICRO, PAGES, PROGRESS, REVEALS, SPLASH_NOTE,
   type HeroVariant, type MotionChoice,
 } from "@/lib/motion-choices";
 import { MOTION_PRESETS, type MotionPreset } from "@/lib/motion-presets";
 import type { SettingRow } from "@/lib/admin";
+import { IconArrowRight } from "@/components/icons-ui";
 
 /**
  * The Motion tab: eight choices, each a row of tiles, under a row of
@@ -43,6 +44,8 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
   const [hero, setHero] = useState(stored.motion_hero || HEROS[0].id);
   const [cards, setCards] = useState(stored.motion_cards || CARDS[0].id);
   const [progress, setProgress] = useState(stored.motion_progress || PROGRESS[0].id);
+  const [headline, setHeadline] = useState(stored.motion_headline || KINETIC_SITE[0].id);
+  const [micro, setMicro] = useState(stored.motion_micro || MICRO[0].id);
 
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -52,6 +55,7 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
       setting__motion_reveal: reveal, setting__motion_buttons: buttons, setting__motion_page: page,
       setting__motion_loader: loader, setting__motion_splash: splash, setting__motion_hero: hero,
       setting__motion_cards: cards, setting__motion_progress: progress,
+      setting__motion_headline: headline, setting__motion_micro: micro,
     };
     for (const input of el.querySelectorAll<HTMLInputElement>('input[type="radio"]')) {
       const should = input.value === chosen[input.name];
@@ -70,10 +74,12 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
   const current: Record<string, string> = {
     motion_reveal: reveal, motion_buttons: buttons, motion_page: page, motion_loader: loader,
     motion_hero: hero, motion_cards: cards, motion_progress: progress,
+    motion_headline: headline, motion_micro: micro,
   };
   const setters: Record<string, (v: string) => void> = {
     motion_reveal: setReveal, motion_buttons: setButtons, motion_page: setPage, motion_loader: setLoader,
     motion_hero: setHero, motion_cards: setCards, motion_progress: setProgress,
+    motion_headline: setHeadline, motion_micro: setMicro,
   };
   const applies = (preset: MotionPreset) => Object.entries(preset.values).every(([k, v]) => current[k] === v);
   const apply = (preset: MotionPreset) => {
@@ -138,6 +144,26 @@ export function MotionPicker({ rows }: { rows: SettingRow[] }) {
         preview={(c) => (
           <span className="flex h-14 items-center justify-center" data-motion-cards={c.id} aria-hidden>
             <span data-card data-demo={`cards-${c.id}`} className="block h-10 w-20 rounded border border-line-strong bg-card shadow-1 transition-[translate,box-shadow,transform] duration-(--duration-base) ease-brand" />
+          </span>
+        )}
+      />
+
+      <Choices
+        name="setting__motion_headline" legend="Hero heading" value={headline} onChange={setHeadline} choices={KINETIC_SITE}
+        intro="How a hero's heading arrives when the page opens. A hero can choose its own — rotating words included — in Homepage settings or on a builder hero. Still for visitors who ask for less motion. Hover a tile."
+        preview={(c) => (
+          <span className="flex h-14 items-center justify-center text-15 font-semibold text-ink" aria-hidden>
+            <span data-demo={`kinetic-${c.id}`}>Keep it <span className="text-brand-ink">running</span></span>
+          </span>
+        )}
+      />
+
+      <Choices
+        name="setting__motion_micro" legend="Small interactions" value={micro} onChange={setMicro} choices={MICRO}
+        intro="Links, arrows, switches, tick boxes, copy buttons and card icons answering the pointer with a small movement, on the website and in the customer portal. These are the live rules: hover the button."
+        preview={(c) => (
+          <span className="flex h-14 items-center justify-center" data-motion-micro={c.id}>
+            <Button type="button" size="sm" variant="secondary" tabIndex={-1}>Learn more <IconArrowRight className="size-4" /></Button>
           </span>
         )}
       />

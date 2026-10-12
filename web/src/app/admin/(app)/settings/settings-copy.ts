@@ -598,6 +598,8 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   motion_reveal: { label: "Sections arriving" },
   motion_buttons: { label: "Buttons" },
   motion_cards: { label: "Cards" },
+  motion_headline: { label: "Hero heading" },
+  motion_micro: { label: "Small interactions" },
   motion_page: { label: "Page transitions" },
   motion_loader: { label: "While the next page loads" },
   motion_progress: {
@@ -850,6 +852,8 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   hero_kicker: { label: "Hero badge", hint: "The small pill above the headline." },
   hero_heading: { label: "Hero headline", hint: "The last word is shown in the brand colour." },
   hero_lede: { label: "Hero paragraph" },
+  hero_kinetic: { label: "Hero headline effect", hint: "How the headline above arrives when the homepage opens. “As the Motion settings say” follows Site → Settings → Motion → Hero heading." },
+  hero_kinetic_words: { label: "Effect words", hint: "Rotating words: what the headline’s last word turns into, one per line, up to six. Highlight: the word to underline — blank underlines the last word." },
   hero_stats: {
     label: "Hero statistics",
     hint: "The figures under the homepage heading. Four fit the row. These are currently invented figures \u2014 replace them before launch.",
@@ -1148,7 +1152,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
   references: ["ticket_reference_prefix", "visit_reference_prefix", "meeting_reference_prefix", "order_number_prefix", "return_reference_prefix"],
   login: ["login_backdrop", "login_intensity", "login_speed", "login_image_path", "login_message"],
   // `motion_reveal` first: it is the row the form draws the whole picker on.
-  motion: ["motion_reveal", "motion_buttons", "motion_cards", "motion_page", "motion_loader", "motion_progress",
+  motion: ["motion_reveal", "motion_buttons", "motion_cards", "motion_headline", "motion_micro", "motion_page", "motion_loader", "motion_progress",
            "motion_splash", "motion_hero"],
   seo: ["default_meta_description", "default_og_image", "landing_page_cap",
         "seo_ai_enabled", "seo_ai_daily_cap",
@@ -1170,7 +1174,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
             "chatbot_whatsapp_number", "chatbot_forward_unanswered",
             "chatbot_max_message_chars", "chatbot_max_messages",
             "chatbot_context_messages", "chatbot_daily_reply_cap"],
-  homepage: ["homepage_page_id", "hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats", "stats_colour", "stats_size", "stats_animation", "home_stats_block", "home_stack_block", "home_pricing_block",
+  homepage: ["homepage_page_id", "hero_kicker", "hero_heading", "hero_lede", "hero_kinetic", "hero_kinetic_words", "hero_stats", "support_stats", "stats_colour", "stats_size", "stats_animation", "home_stats_block", "home_stack_block", "home_pricing_block",
              "why_kicker", "why_heading", "why_lede", "why_steps",
              "testimonial_enabled", "testimonial_quote", "testimonial_author", "testimonial_role",
              "amc_enabled", "amc_heading", "amc_inclusions", "amc_link_label", "amc_link_href"],
