@@ -16,8 +16,11 @@ use App\Models\ProductCategory;
 use App\Models\Service;
 use App\Models\Solution;
 use App\Models\StoreProduct;
+use App\Models\Tender;
 use App\Support\Events\EventText;
 use App\Support\HtmlSanitiser;
+use App\Support\Tenders\TenderText;
+use App\Support\Tenders\TenderWindow;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -114,6 +117,7 @@ class SearchController extends Controller
                     ->orWhere('body', 'like', $like)),
                 'title', 'body'),
             $this->events($term),
+            $this->tenders($term),
             $this->downloads($term),
             $this->entries($like),
         ])->filter(fn (?array $g) => $g !== null)->values();
@@ -214,6 +218,35 @@ class SearchController extends Controller
             'excerpt' => $this->trim($e->summary ?: $e->body),
             'path' => $e->publicPath(),
             'kicker' => EventText::dateLabel($e),
+        ]);
+    }
+
+    /**
+     * Tender notices (docs/tenders.md).
+     *
+     * Open ones first and closing soonest, then closed ones most recently
+     * first — the events' ordering, for the events' reason: a deadline is
+     * only useful in that order, and a tender that shut last spring is not
+     * what somebody searching for one wants at the top.
+     *
+     * The kicker is the state and the closing date, because two tenders for
+     * the same work a year apart are told apart by nothing else — and
+     * because "Closed" is the first thing a searcher needs to know.
+     */
+    private function tenders(string $term): ?array
+    {
+        $now = now()->toDateTimeString();
+
+        $query = Tender::query()->published()->with('category')->search($term)
+            ->orderByRaw('CASE WHEN tenders.closes_at > ? THEN 0 ELSE 1 END', [$now])
+            ->orderByRaw('CASE WHEN tenders.closes_at > ? THEN tenders.closes_at END ASC', [$now])
+            ->orderByRaw('CASE WHEN tenders.closes_at <= ? THEN tenders.closes_at END DESC', [$now]);
+
+        return $this->build('tender', 'Tenders', '/tenders', $query, fn (Tender $t) => [
+            'title' => (string) $t->title,
+            'excerpt' => $this->trim($t->summary ?: $t->description),
+            'path' => $t->publicPath(),
+            'kicker' => TenderWindow::for($t)->label().' · '.TenderText::dateLabel($t->closes_at),
         ]);
     }
 

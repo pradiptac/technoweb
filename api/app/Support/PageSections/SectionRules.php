@@ -164,6 +164,8 @@ final class SectionRules
         'store_products' => 'Products (shop)',
         // What is coming up, soonest first (docs/events.md).
         'events' => 'Upcoming events',
+        // Still taking bids, closing soonest first (docs/tenders.md).
+        'tenders' => 'Open tenders',
         // 0.126.0: three more lists the site already keeps.
         'product_categories' => 'Product categories (catalogue)',
         'store_categories' => 'Shop categories',

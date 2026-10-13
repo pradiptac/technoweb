@@ -30,6 +30,7 @@ export type PreviewKind =
   | "product"
   | "store-product"
   | "event"
+  | "tender"
   | "career"
   | "entry"
   | "landing-page";

@@ -7,10 +7,12 @@ conventions and `API.md` for the endpoint reference; this file is just
 
 **In progress:** nothing — the last slice is committed and verified.
 
-**Latest (0.98.0, 2026-09-29):** online meetings — customers book a video
-call at a free slot, a Google Calendar event and Meet link per booking, the
-console diary, hosts and types — plus service categories on the Services
-section, and the customer portal switch made real. See the last section.
+**Latest (0.174.0, 2026-10-14):** tenders — a page per notice inviting bids,
+with the window worked out from the clock, the documents, how to submit and a
+closed archive. Nothing is submitted through the site.
+
+The releases between 0.99.0 and 0.173.0 are recorded in `VERSION.md` and
+`FEATURES.md` rather than here; the phase checklists below predate them.
 
 **Branch:** work lands on `phase-3-admin-cms`. `main` is still at the end of
 Phase 2, so Phase 3 is not merged yet.

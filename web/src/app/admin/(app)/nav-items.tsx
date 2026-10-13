@@ -306,6 +306,26 @@ export const NAV: NavItem[] = [
     ],
   },
   {
+    /*
+      Tenders (0.174.0, docs/tenders.md), beside Events: a notice inviting
+      bids is a page with two dates, written by the same person who writes
+      the rest of the site, so its row is a `content_manager`'s.
+
+      Unlike Events there is no second role here and no settings screen:
+      nothing is submitted through the site, so there is nobody's queue to
+      share, and the one number the module has — how near counts as "closing
+      soon" — is a constant rather than a setting.
+
+      Never `exact` on Tenders: the edit form and the categories resolve to
+      it by the longest match.
+    */
+    kind: "group", id: "tenders", label: "Tenders", icon: IconBriefcase,
+    links: [
+      { role: "content_manager", href: "/admin/tenders", label: "Tenders", icon: IconNewspaper },
+      { role: "content_manager", href: "/admin/tenders/categories", label: "Categories", icon: IconTag },
+    ],
+  },
+  {
     kind: "group", id: "content", label: "Content", icon: IconBook,
     links: [
       { role: "content_manager", href: "/admin/knowledge-base", label: "Knowledge base", icon: IconEducation },

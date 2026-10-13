@@ -102,6 +102,7 @@ export const HELP_ROUTES: { prefix: string; sections: string[] }[] = [
   { prefix: "/admin/jobs", sections: ["19-careers#vacancies"] },
   { prefix: "/admin/applications", sections: ["19-careers#applications", "19-careers#how-long-cvs-are-kept"] },
   { prefix: "/admin/events", sections: ["24-events#adding-an-event", "24-events#registration"] },
+  { prefix: "/admin/tenders", sections: ["29-tenders#posting-a-tender", "29-tenders#the-documents"] },
   { prefix: "/admin/events/*/registrations", sections: ["24-events#registrations", "24-events#changing-an-event-after-people-have-registered"] },
   { prefix: "/admin/downloads", sections: ["26-downloads#adding-a-download", "26-downloads#categories"] },
 

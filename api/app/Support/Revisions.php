@@ -16,6 +16,7 @@ use App\Models\SavedSection;
 use App\Models\Service;
 use App\Models\Solution;
 use App\Models\StoreProduct;
+use App\Models\Tender;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
@@ -108,6 +109,7 @@ final class Revisions
         'product' => ['description'],
         'store_product' => ['description'],
         'event' => ['body'],
+        'tender' => ['description'],
         'job_opening' => ['description'],
         'entry' => ['body'],
         'landing_page' => ['intro', 'body'],
@@ -149,6 +151,9 @@ final class Revisions
             'product' => [Product::class, 'content_manager', ['name', 'slug', 'description', 'body_layout', 'blocks']],
             'store_product' => [StoreProduct::class, 'store_manager', ['name', 'slug', 'description', 'body_layout', 'blocks']],
             'event' => [Event::class, 'content_manager', ['title', 'slug', 'body', 'body_layout', 'blocks']],
+            // No sections: a tender is a notice with a scope of work, not a
+            // laid-out page, so it has no `body_layout`/`blocks` to hold.
+            'tender' => [Tender::class, 'content_manager', ['reference', 'title', 'slug', 'summary', 'description']],
             'job_opening' => [JobOpening::class, 'content_manager', ['title', 'slug', 'description', 'body_layout', 'blocks']],
             'entry' => [Entry::class, 'content_manager', ['title', 'slug', 'body', 'body_layout', 'blocks']],
             // No slug (its address is derived) and no sections: the heading and the two written passages.

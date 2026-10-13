@@ -44,6 +44,11 @@ class DemoSeeder extends Seeder
             // Three placeholder events — a seminar, a webinar and a trade
             // show — dated from today. Created only while there are none.
             SampleEventSeeder::class,
+            // Two categories and three placeholder tenders — one open, one
+            // closing within days, one closed. Created only while there are
+            // none, and never on a fresh install: a tender is an invitation
+            // to bid on a deadline somebody could act on.
+            SampleTenderSeeder::class,
             // Three shelves and three placeholder files for the downloads
             // centre, after the products they are attached to. Created only
             // while there are none.

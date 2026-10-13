@@ -2066,6 +2066,114 @@ Nothing in it reaches the public `/settings` map.
 once to each confirmed registrant of a published event starting within that
 many hours; somebody confirmed inside the window is not reminded.
 
+## Tenders
+
+Notices inviting bids (0.174.0). The rules are `docs/tenders.md`. Four public
+routes, none of which writes: a bid is not submitted here.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/tenders` | Published only. `?when=open` (default), `closed`, `upcoming` or `all` — **an unknown value is ignored, not refused**; `?category=<slug>`; `?q=` (trimmed to 100 characters, matching the reference, title, summary and scope, plus the reference with its punctuation stripped); `?page=`, `?per_page=` (max 100, default 20). Paginated. Order: open first and closing soonest, then closed and most recently closed first, ending on `id` so a page boundary cannot show one row twice |
+| `GET` | `/tender-categories` | The categories holding a published tender, in order: `{id, name, slug, description, count}`. Plain collection, **`{data: []}` in a 200** when there are none. `meta`: `total` (published tenders), `open`, `updated_at` (the newest change, for the sitemap's `lastmod`) |
+| `GET` | `/tenders/{slug}` | One notice. 404 for a draft, an archived one, one whose category is switched off, and an unknown slug. **A closed one is readable** — the archive is the point |
+| `GET` | `/tenders/{slug}/state` | `{data: {state, state_label, closes_in_label, closed}}`, `Cache-Control: no-store`. What the page's badge asks after it mounts |
+
+**`tender-categories` and `{slug}/state` are declared above `{slug}`**, or the
+slug route swallows both; the slug is bound in the controller rather than by
+route-model binding for that reason.
+
+**The row** (`TenderResource`) carries `id`, `reference`, `title`, `slug`,
+`summary`, `category` (`{name, slug}` or null), the four instants
+(`opens_at`, `closes_at`, `opening_at`, `prebid_at` — ISO 8601 with the app
+zone's offset), the four labels (`opens_label`, `closes_label`,
+`opening_label`, `prebid_label`), `fee_paise`/`fee_label`,
+`emd_paise`/`emd_label`, the window (`state`, `state_label`,
+`closes_in_label`, `closed`), `documents_count`, `is_featured`, `updated_at`
+and `seo`. **The detail** adds `description`, `prebid_place`, `documents`,
+`submission` (`{email, url, address}`), `contact` (`{name, phone, email}`) and
+`schema`. An index row carries none of those five and no graph.
+
+**Every label is the API's**, in `APP_TIMEZONE` — `closes_label` is "Tuesday
+10 November 2026, 6:00 pm IST". Nothing downstream formats a tender's date: a
+closing date is a deadline, and a date rendered in the reader's own zone is a
+bid missed by a day. The instants are for `<time dateTime=…>` and for sorting.
+
+**The state is computed, never stored.** `App\Support\Tenders\TenderWindow` is
+the one definition of `upcoming`, `open`, `closing_soon` (within
+`Tender::CLOSING_SOON_DAYS`, 3) and `closed`, and it is the state **when the
+response was read** — so a cached listing is as old as the response.
+`{slug}/state` exists because the notice's page is in the ISR cache and cannot
+say; it is `no-store` on both sides. `closes_in_label` counts **calendar days**
+in the app's zone ("3 days left", "Closes tomorrow", "Closes today"), never
+blocks of 24 hours, and is null unless the tender is open.
+
+**`fee_paise` and `emd_paise` are paise as integers**, and **null is not
+zero**: null means no fee is stated and the label is null; `0` means the
+document is free and the label reads "Free". `fee_label` groups the Indian way
+— `₹1,50,000`.
+
+**A document whose file has gone is absent**, not drawn: each is `{title,
+note?, url, size, extension?}`, resolved from a media-library path in one
+query. They are public files, so there is no streaming route and no access
+rule — anybody may bid.
+
+**The graph is a `WebPage` and nothing more**: schema.org has no tender type
+and Google has no tender rich result, so there is no `Offer` (which would say
+this company is selling something at a price) and no `validThrough` (an
+`Offer` property). It carries the name, the description, the URL,
+`datePublished`, `dateModified`, the Organization as publisher, and the
+category as `about`.
+
+### Admin — tenders (`role:content_manager`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/tenders` | `?status=`, `?when=open\|closed\|upcoming`, `?category=<id>` or `none` (filed nowhere), `?q=`, `?sort=closes\|opens\|reference\|title\|status` with `?dir=`, `?per_page=` (max 100, default 20). Default order: still open and closing soonest, then closed and most recent, ending on `id`. `meta`: `statuses`, `categories` (**every one, active or not** — a tender filed under a switched-off category must still show which), `max_documents` (10), `closing_soon_days` (3), `timezone` |
+| `POST` | `/admin/tenders` | **201** |
+| `POST` | `/admin/tenders/bulk` | `publish`, `draft`, `archive`, `delete`. **200 always**, with `updated` and `refused`. Publishing is refused per tender by the same rule an edit is held to. **Declared above `{tender:id}`** |
+| `GET`/`PATCH`/`DELETE` | `/admin/tenders/{id}` | Bound by **id** — the edit form changes the slug it is addressed by. `DELETE` answers 200 `{"message": "Tender deleted."}` and leaves the documents in the media library |
+| `POST` | `/admin/tenders/{id}/duplicate` | **201**: a draft copy, "(copy)", a free slug, and the reference suffixed `-copy` — never reused. The SEO override is not copied |
+| `GET`/`POST` | `/admin/tender-categories` | Up to 100, in order, each with `tenders_count` |
+| `GET`/`PATCH`/`DELETE` | `/admin/tender-categories/{id}` | A blank slug on an edit derives it again. Deleting keeps the tenders, unfiled |
+
+**Write rules.** `reference` is required, at most 80 characters and **unique**
+("Another tender already has that number."): it is the buyer's own number, not
+`App\Support\References`'s generated one, because it is often prescribed and is
+quoted on paperwork this application does not own. `opens_at` and `closes_at`
+are required; all four datetimes are **wall-clock `Y-m-d\TH:i` in
+`APP_TIMEZONE`**, which is what `datetime-local` posts, and come back the same
+way with `*_iso` beside them. `description` is rich text and is sanitised on
+write; every other text field is plain. `documents` is at most 10 rows of
+`{title, file_path, note}`, each `file_path` a media-library path that exists.
+
+The cross-field rules are checked against **what the tender will be**, so a
+`PATCH` naming one half is compared with the stored other half — a 422 on the
+field a person would look at:
+
+- `closes_at` after `opens_at`.
+- `opening_at` not before `closes_at` — bids are opened once they are in.
+- `prebid_at` before `closes_at` and not before `opens_at`.
+- `prebid_place` required when `prebid_at` is set.
+- **Publishing with no `submission_email`, `submission_url` or
+  `submission_address`** is a 422 on `submission_email` naming all three. A
+  draft may be as unfinished as it likes.
+
+**The admin resource** adds the stored path beside each document's URL, with
+`missing: true` when its file has gone from the library — the console says so
+rather than hiding it, because the editor is the only one who can fix it.
+`description`, `seo` and `seo_defaults` are on the read, both writes and the
+duplicate only.
+
+**Where else**: `GET /search` and `GET /admin/search` gain a `tender` group
+(the state and the closing date as the kicker, the reference searched with its
+punctuation stripped); `GET /admin/menus` offers the item type `tender` and the
+section `tenders`, both dropped until a tender is published — and a tender is
+dropped from a menu for its **publish status only**, never for its deadline;
+`GET /admin/seo?type=tender`; `GET /admin/pages/builder` offers the `cards`
+source `tenders` (**open ones only**, closing soonest first, the reference as
+the kicker and the deadline as the meta); `tenders` is a reserved slug for a
+CMS page and a content type; share links and page history take `tender`.
+
 ## Downloads
 
 The downloads centre (0.131.0): datasheets, drivers and firmware, filed by

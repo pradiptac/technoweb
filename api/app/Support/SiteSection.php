@@ -11,6 +11,7 @@ use App\Models\Event;
 use App\Models\JobOpening;
 use App\Models\SupportCentre;
 use App\Models\TeamMember;
+use App\Models\Tender;
 
 /**
  * The site's own index pages, as things a menu item can point at.
@@ -79,6 +80,8 @@ class SiteSection
         'knowledge_base' => ['label' => 'Knowledge base', 'path' => '/knowledge-base'],
         // Seminars, webinars and shows (0.118.0, docs/events.md).
         'events' => ['label' => 'Events', 'path' => '/events'],
+        // Notices inviting bids (0.174.0, docs/tenders.md).
+        'tenders' => ['label' => 'Tenders', 'path' => '/tenders'],
         // The downloads centre (0.131.0, docs/downloads.md). Until then
         // `/downloads` was a CMS page, which is why it was absent here.
         'downloads' => ['label' => 'Downloads', 'path' => '/downloads'],
@@ -173,6 +176,9 @@ class SiteSection
             'blog' => BlogPost::published()->exists(),
             // Past or upcoming: a page of what has been on is still a page.
             'events' => Event::published()->exists(),
+            // Open or closed: the archive of what this company has invited
+            // bids for is still a page.
+            'tenders' => Tender::published()->exists(),
             'downloads' => Download::published()->exists(),
             'support_network' => SupportCentre::query()->active()->exists(),
             default => true,

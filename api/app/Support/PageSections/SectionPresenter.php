@@ -32,12 +32,14 @@ use App\Models\StoreCategory;
 use App\Models\StoreProduct;
 use App\Models\SupportCentre;
 use App\Models\TeamMember;
+use App\Models\Tender;
 use App\Support\Downloads\DownloadFiles;
 use App\Support\Events\EventText;
 use App\Support\MediaMeta;
 use App\Support\MediaUrl;
 use App\Support\Money;
 use App\Support\Store\VideoShelf;
+use App\Support\Tenders\TenderText;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -619,6 +621,14 @@ final class SectionPresenter
             // coming up loses the section, like any empty list.
             'events' => Event::published()->upcoming()->orderBy('starts_at')->orderBy('id')->limit($limit)->get()
                 ->map(fn (Event $e) => self::tile($e->title, $e->summary, $e->publicPath(), $e->cover_image_path, null, EventText::dateLabel($e), EventText::place($e))),
+            // Open ones only, closing soonest first: the kicker is the
+            // reference and the meta the deadline, both the API's own
+            // labels. A page with nothing open loses the section, like any
+            // empty list — which is right here, because a row of closed
+            // tenders invites a bid nobody can make.
+            'tenders' => Tender::published()->open()->with('category')
+                ->orderBy('closes_at')->orderBy('id')->limit($limit)->get()
+                ->map(fn (Tender $t) => self::tile($t->title, $t->summary, $t->publicPath(), null, null, $t->reference, TenderText::deadlineLabel($t->closes_at))),
             'product_categories' => ProductCategory::query()->orderBy('sort_order')->orderBy('name')->limit($limit)->get()
                 ->map(fn (ProductCategory $c) => self::tile($c->name, $c->description, "/products/{$c->slug}", $c->image_path, $c->icon)),
             'store_categories' => StoreCategory::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->limit($limit)->get()
@@ -644,6 +654,7 @@ final class SectionPresenter
             'products' => $category ? "/products/{$category}" : '/products',
             'store_products' => $category ? "/store/categories/{$category}" : '/store',
             'events' => '/events',
+            'tenders' => '/tenders',
             'product_categories' => '/products',
             'store_categories' => '/store',
             'vacancies' => '/careers',

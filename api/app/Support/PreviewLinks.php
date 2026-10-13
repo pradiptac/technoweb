@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\ContentTypeController;
 use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\LandingPageController;
 use App\Http\Controllers\Api\V1\StoreController;
+use App\Http\Controllers\Api\V1\TenderController;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\Entry;
@@ -23,6 +24,7 @@ use App\Models\Product;
 use App\Models\Service;
 use App\Models\Solution;
 use App\Models\StoreProduct;
+use App\Models\Tender;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -70,6 +72,7 @@ final class PreviewLinks
             'product' => [Product::class, 'content_manager'],
             'store_product' => [StoreProduct::class, 'store_manager'],
             'event' => [Event::class, 'content_manager'],
+            'tender' => [Tender::class, 'content_manager'],
             'job_opening' => [JobOpening::class, 'content_manager'],
             'entry' => [Entry::class, 'content_manager'],
             'landing_page' => [LandingPage::class, 'seo_manager'],
@@ -162,6 +165,7 @@ final class PreviewLinks
             $record instanceof Product => app(CatalogueController::class)->presentProduct($record),
             $record instanceof StoreProduct => app(StoreController::class)->presentProduct($record),
             $record instanceof Event => app(EventController::class)->present($record),
+            $record instanceof Tender => app(TenderController::class)->present($record),
             $record instanceof JobOpening => app(CareersController::class)->present($record),
             $record instanceof Entry => app(ContentTypeController::class)->present($record, $record->contentType),
             $record instanceof LandingPage => app(LandingPageController::class)->present($record),

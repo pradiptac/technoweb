@@ -2095,6 +2095,78 @@
    "title": "Things to know",
    "html": "<ul><li>Deleting a centre does not change the staff accounts tagged to it.</li><li>A demo install comes with three sample centres named &quot;Sample …&quot;. Delete them before you go live.</li></ul>",
    "text": "Deleting a centre does not change the staff accounts tagged to it. A demo install comes with three sample centres named \"Sample …\". Delete them before you go live."
+  },
+  {
+   "id": "29-tenders#overview",
+   "chapter": "29-tenders",
+   "chapterTitle": "Tenders: inviting bids",
+   "title": "Overview",
+   "html": "<p><em>Who can use this: Content manager and Administrator.</em></p><p><strong>Tenders</strong> is where you post the notices you invite bids on. Each one gets its own page on your website with the tender number, what you are buying, the closing date and the documents to download.</p><p>Bidders submit the way the notice tells them — by email, by post, or on a portal you name. <strong>Nothing is submitted through your website</strong>, so there is no queue of bids here to work through.</p><p>A tender that has closed stays on your site as a record of what you have tendered for. It is marked <strong>Closed</strong>, and the Tenders page keeps it under the <strong>Closed</strong> filter.</p>",
+   "text": "Who can use this: Content manager and Administrator. Tenders is where you post the notices you invite bids on. Each one gets its own page on your website with the tender number, what you are buying, the closing date and the documents to download. Bidders submit the way the notice tells them — by email, by post, or on a portal you name. Nothing is submitted through your website , so there is no queue of bids here to work through. A tender that has closed stays on your site as a record of what you have tendered for. It is marked Closed , and the Tenders page keeps it under the Closed filter."
+  },
+  {
+   "id": "29-tenders#posting-a-tender",
+   "chapter": "29-tenders",
+   "chapterTitle": "Tenders: inviting bids",
+   "title": "Posting a tender",
+   "html": "<p>Press <strong>New tender</strong>. The form has five tabs.</p><ol><li><strong>Content</strong> — the tender number, the title, a one-sentence summary and the scope of work. The status, the category and whether it is featured are in the column beside them.</li><li><strong>Dates and fees</strong> — when it opens, the last date for submission, and the optional pre-bid meeting, bid opening date, document fee and EMD.</li><li><strong>Documents</strong> — the tender pack.</li><li><strong>How to bid</strong> — where a bid is sent, and who to ask about the tender.</li><li><strong>SEO</strong> — the page's title and description for search engines, as on every other page.</li></ol><p>Nothing is on your website until you set the status to <strong>Published</strong>.</p><h3>The tender number</h3><p>Type it exactly as you issue it — <code>TW/2026/014</code>. It is kept as typed, because it is what a bidder quotes back to you.</p><p><strong>No two tenders may have the same number.</strong> If you try, the form says so.</p><p>Bidders can search for a tender by its number and the punctuation does not matter: <code>TW/2026/014</code>, <code>TW 2026 014</code> and <code>tw2026014</code> all find it.</p><h3>The dates</h3><p>Every time you enter is in your own timezone, and every bidder sees it in your timezone whatever their computer is set to — so a deadline of six in the evening is six in the evening for everybody.</p><ul><li><strong>Opens for bids</strong> and <strong>Last date for submission</strong> are both needed.</li><li><strong>Pre-bid meeting</strong> is optional. If you give a time, give a place with it.</li><li><strong>Bids opened</strong> is optional, and must be on or after the closing date.</li></ul><p>The page shows <strong>Open</strong>, <strong>Closing soon</strong>, <strong>Closed</strong> or <strong>Opens soon</strong> by itself, from these dates and the clock. There is nothing to switch over when a tender closes: it closes on the minute you said, on its own, and the page says so even to somebody who had it open beforehand.</p><p>A tender is marked <strong>Closing soon</strong> inside three days of its closing date.</p><h3>The fees</h3><p>Both are in <strong>rupees</strong>, and both are optional.</p><ul><li><strong>Leave it blank</strong> if your notice does not state one. Nothing is shown.</li><li><strong>Enter 0</strong> for a tender document that is free. The page reads <em>Free</em>.</li></ul>",
+   "text": "Press New tender . The form has five tabs. Content — the tender number, the title, a one-sentence summary and the scope of work. The status, the category and whether it is featured are in the column beside them. Dates and fees — when it opens, the last date for submission, and the optional pre-bid meeting, bid opening date, document fee and EMD. Documents — the tender pack. How to bid — where a bid is sent, and who to ask about the tender. SEO — the page's title and description for search engines, as on every other page. Nothing is on your website until you set the status to Published . The tender number Type it exactly as you issue it — TW/2026/014 . It is kept as typed, because it is what a bidder quotes back to you. No two tenders may have the same number. If you try, the form says so. Bidders can search for a tender by its number and the punctuation does not matter: TW/2026/014 , TW 2026 014 and tw2026014 all find it. The dates Every time you enter is in your own timezone, and every bidder sees it in your timezone whatever their computer is set to — so a deadline of six in the evening is six in the evening for everybody. Opens for bids and Last date for submission are both needed. Pre-bid meeting is optional. If you give a time, give a place with it. Bids opened is optional, and must be on or after the closing date. The page shows Open , Closing soon , Closed or Opens soon by itself, from these dates and the clock. There is nothing to switch over when a tender closes: it closes on the minute you said, on its own, and the page says so even to somebody who had it open beforehand. A tender is marked Closing soon inside three days of its closing date. The fees Both are in rupees , and both are optional. Leave it blank if your notice does not state one. Nothing is shown. Enter 0 for a tender document that is free. The page reads Free ."
+  },
+  {
+   "id": "29-tenders#the-documents",
+   "chapter": "29-tenders",
+   "chapterTitle": "Tenders: inviting bids",
+   "title": "The documents",
+   "html": "<p>On the <strong>Documents</strong> tab, press <strong>Add a document</strong> for each file in the pack: the notice itself, the bill of quantities, a corrigendum. Up to ten.</p><p>Each one is a file from your media library — browse for it, or upload it in the dialog. Give it a name a bidder will understand (&quot;Tender document&quot;, &quot;Bill of quantities&quot;) and, if it helps, a one-line note (&quot;Read this first&quot;).</p><p>Use the arrows to put them in the order a bidder should read them.</p><p><strong>These files are public</strong>, like the notice itself — anybody may bid, so anybody may download the pack. Do not put anything confidential here.</p><p>If a file is ever deleted from the media library, the document disappears from the website rather than leaving a broken button, and this screen marks the row so you can fix it.</p><p><strong>Deleting a tender does not delete its documents.</strong> They stay in your media library, because the same pack is often attached to two tenders.</p>",
+   "text": "On the Documents tab, press Add a document for each file in the pack: the notice itself, the bill of quantities, a corrigendum. Up to ten. Each one is a file from your media library — browse for it, or upload it in the dialog. Give it a name a bidder will understand (\"Tender document\", \"Bill of quantities\") and, if it helps, a one-line note (\"Read this first\"). Use the arrows to put them in the order a bidder should read them. These files are public , like the notice itself — anybody may bid, so anybody may download the pack. Do not put anything confidential here. If a file is ever deleted from the media library, the document disappears from the website rather than leaving a broken button, and this screen marks the row so you can fix it. Deleting a tender does not delete its documents. They stay in your media library, because the same pack is often attached to two tenders."
+  },
+  {
+   "id": "29-tenders#how-a-bid-is-submitted",
+   "chapter": "29-tenders",
+   "chapterTitle": "Tenders: inviting bids",
+   "title": "How a bid is submitted",
+   "html": "<p>Fill in at least one of the three:</p><ul><li><strong>Email a bid to</strong> — an address.</li><li><strong>Bidding portal</strong> — a link, if bids go through one.</li><li><strong>Post or deliver to</strong> — the address a sealed bid is sent to. Line breaks are kept as you type them.</li></ul><p><strong>You cannot publish a tender with none of the three.</strong> A notice nobody can answer is worse than no notice, so the form refuses it and says so.</p><p>Underneath, name <strong>who to ask about this tender</strong> — a person, a telephone number and an email address. All optional; the page leaves out what you have not filled in.</p>",
+   "text": "Fill in at least one of the three: Email a bid to — an address. Bidding portal — a link, if bids go through one. Post or deliver to — the address a sealed bid is sent to. Line breaks are kept as you type them. You cannot publish a tender with none of the three. A notice nobody can answer is worse than no notice, so the form refuses it and says so. Underneath, name who to ask about this tender — a person, a telephone number and an email address. All optional; the page leaves out what you have not filled in."
+  },
+  {
+   "id": "29-tenders#categories",
+   "chapter": "29-tenders",
+   "chapterTitle": "Tenders: inviting bids",
+   "title": "Categories",
+   "html": "<p><strong>Tenders → Categories</strong> is a short list: Networking, Annual maintenance, whatever suits your work. It is what the filter on your Tenders page offers.</p><p>A tender sits in one category, or none.</p><ul><li><strong>Switch a category off</strong> and it disappears from the website, along with every tender in it. Nothing is deleted.</li><li><strong>Delete a category</strong> and its tenders stay, filed under none. Find them again with the <strong>Filed nowhere</strong> filter on the Tenders list.</li></ul><p>A category with nothing published in it is not offered as a filter, so a visitor never presses one and gets an empty page.</p>",
+   "text": "Tenders → Categories is a short list: Networking, Annual maintenance, whatever suits your work. It is what the filter on your Tenders page offers. A tender sits in one category, or none. Switch a category off and it disappears from the website, along with every tender in it. Nothing is deleted. Delete a category and its tenders stay, filed under none. Find them again with the Filed nowhere filter on the Tenders list. A category with nothing published in it is not offered as a filter, so a visitor never presses one and gets an empty page."
+  },
+  {
+   "id": "29-tenders#next-year-s-tender",
+   "chapter": "29-tenders",
+   "chapterTitle": "Tenders: inviting bids",
+   "title": "Next year's tender",
+   "html": "<p>Press <strong>Duplicate</strong> on a tender. You get a draft copy with the same scope, fees and documents.</p><p>Two things to change on the copy: the <strong>tender number</strong>, which is given a <code>-copy</code> suffix so you notice it, and the <strong>dates</strong>.</p>",
+   "text": "Press Duplicate on a tender. You get a draft copy with the same scope, fees and documents. Two things to change on the copy: the tender number , which is given a -copy suffix so you notice it, and the dates ."
+  },
+  {
+   "id": "29-tenders#putting-tenders-on-another-page",
+   "chapter": "29-tenders",
+   "chapterTitle": "Tenders: inviting bids",
+   "title": "Putting tenders on another page",
+   "html": "<p>A tender's notice always has its own page. You can also show the open ones somewhere else:</p><ul><li>In the <strong>page builder</strong>, add a <strong>Cards</strong> section and choose <strong>Open tenders</strong> as its source. Only open tenders are shown, closing soonest first — a row of closed tenders would invite a bid nobody can make.</li><li>In a <strong>menu</strong>, add either the <strong>Tenders</strong> site section (the whole list) or a single tender. A menu entry disappears on its own if you unpublish the tender; a closed one stays, because its page still works.</li></ul>",
+   "text": "A tender's notice always has its own page. You can also show the open ones somewhere else: In the page builder , add a Cards section and choose Open tenders as its source. Only open tenders are shown, closing soonest first — a row of closed tenders would invite a bid nobody can make. In a menu , add either the Tenders site section (the whole list) or a single tender. A menu entry disappears on its own if you unpublish the tender; a closed one stays, because its page still works."
+  },
+  {
+   "id": "29-tenders#sharing-a-draft-before-you-publish",
+   "chapter": "29-tenders",
+   "chapterTitle": "Tenders: inviting bids",
+   "title": "Sharing a draft before you publish",
+   "html": "<p>Press <strong>Share a draft</strong> on the tender. You get a private link anybody can open without signing in — for a colleague or a legal review — that expires when you say. The page looks exactly as it will when published.</p>",
+   "text": "Press Share a draft on the tender. You get a private link anybody can open without signing in — for a colleague or a legal review — that expires when you say. The page looks exactly as it will when published."
+  },
+  {
+   "id": "29-tenders#page-history",
+   "chapter": "29-tenders",
+   "chapterTitle": "Tenders: inviting bids",
+   "title": "Page history",
+   "html": "<p>Every save is kept. Press <strong>History</strong> on a tender to see what changed and when, to look at an older version, or to load one back into the form. Loading one back does not publish it: you still press Save.</p>",
+   "text": "Every save is kept. Press History on a tender to see what changed and when, to look at an older version, or to load one back into the form. Loading one back does not publish it: you still press Save."
   }
  ]
 }

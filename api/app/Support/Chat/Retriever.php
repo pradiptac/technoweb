@@ -14,9 +14,11 @@ use App\Models\Page;
 use App\Models\Service;
 use App\Models\Solution;
 use App\Models\StoreProduct;
+use App\Models\Tender;
 use App\Support\Events\EventText;
 use App\Support\HtmlSanitiser;
 use App\Support\MediaUrl;
+use App\Support\Tenders\TenderText;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -116,6 +118,7 @@ class Retriever
             self::blog($terms),
             self::pages($terms),
             self::events($terms),
+            self::tenders($terms),
             self::entries($terms),
         ]);
 
@@ -604,6 +607,44 @@ class Retriever
                 'excerpt' => trim(EventText::when($e).' — '.EventText::place($e).'. '
                     .self::excerpt(filled($e->summary) ? $e->summary : $e->body)),
                 'url' => $e->publicPath(),
+                'meta' => [],
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Tender notices (docs/tenders.md).
+     *
+     * **Open ones only.** A closed tender answers a question nobody asked:
+     * somebody asking the assistant about tenders wants one they can still
+     * bid on, and offering a notice that shut last spring reads as an
+     * invitation. The archive is on the site for a reader who goes looking.
+     *
+     * The excerpt leads with the reference and the deadline, because those
+     * are the answer, and it is built from the labels the page shows.
+     */
+    private static function tenders(array $terms): array
+    {
+        $rows = self::match(Tender::query()->published()->open(), $terms, ['reference', 'title', 'summary'])
+            ->orderBy('closes_at')
+            ->limit(self::PER_GROUP)
+            ->get();
+
+        $out = [];
+        foreach ($rows as $t) {
+            if (! $t instanceof Tender) {
+                continue;
+            }
+
+            $out[] = [
+                'type' => 'tender',
+                'label' => 'Tender',
+                'title' => (string) $t->title,
+                'excerpt' => trim($t->reference.' — closes '.TenderText::deadlineLabel($t->closes_at).'. '
+                    .self::excerpt(filled($t->summary) ? $t->summary : $t->description)),
+                'url' => $t->publicPath(),
                 'meta' => [],
             ];
         }

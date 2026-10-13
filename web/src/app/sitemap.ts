@@ -4,6 +4,7 @@ import { publicApi } from "@/lib/api";
 import { getSiteSettings } from "@/lib/settings";
 import type { Paginated } from "@/types/api";
 import type { EventSummary } from "@/types/events";
+import type { TenderSummary } from "@/types/tenders";
 
 /**
  * Built from the API, not from a hard-coded list — otherwise the sitemap
@@ -93,6 +94,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // The events index. Its own pages follow further down, one per published
     // event, past ones included — a past event stays readable and stays linked.
     entry("/events", 0.6, "weekly"),
+    // The tenders index. Its own pages follow further down, one per
+    // published notice, closed ones included — a closed tender stays
+    // readable and stays linked, because the archive is the point.
+    entry("/tenders", 0.6, "weekly"),
     entry("/brands", 0.6, "monthly"),
     entry("/locations", 0.6, "monthly"),
     // The shop. Absent from this list until now, along with every product and
@@ -110,7 +115,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const [
       solutions, services, industries, categories, products,
       posts, articles, caseStudies, pages, careers,
-      storeProducts, storeCategories, storeTags, taxonomy, landing, settings, events, downloads, centres,
+      storeProducts, storeCategories, storeTags, taxonomy, landing, settings, events, tenders, downloads, centres,
     ] = await Promise.all([
       publicApi.solutions().then((r) => r.data),
       publicApi.services().then((r) => r.data),
@@ -156,6 +161,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         all((q) => publicApi.events(`${q}&when=upcoming`), 50),
         all((q) => publicApi.events(`${q}&when=past`), 50),
       ]).then((lists) => lists.flat()).catch(() => [] as EventSummary[]),
+      /*
+       * Tenders, open and closed, in the two reads the API offers — the same
+       * shape as the events above and for the same reason: a closed notice
+       * is still a page, and leaving the archive out of the sitemap would
+       * drop every tender the moment its deadline passed. On its own
+       * `catch`: a failure leaves tenders out and costs the rest nothing.
+       */
+      Promise.all([
+        all((q) => publicApi.tenders(`${q}&when=open`), 50),
+        all((q) => publicApi.tenders(`${q}&when=closed`), 50),
+      ]).then((lists) => lists.flat()).catch(() => [] as TenderSummary[]),
       // The downloads centre: how many files it holds and when one last
       // changed. On its own `catch` — a failure leaves the page out, no more.
       publicApi.downloadCategories().then((r) => r.meta).catch(() => null),
@@ -195,6 +211,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       "/case-studies": newest(caseStudies),
       "/careers": newest(careers),
       "/events": newest(events),
+      "/tenders": newest(tenders),
       "/store": newest([...storeProducts, ...storeCategories]),
     };
 
@@ -232,6 +249,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...included(careers).map((j) => entry(`/careers/${j.slug}`, 0.6, "weekly", when(j.updated_at ?? j.published_at))),
       // An event that is over changes rarely; one still to come may move.
       ...included(events).map((e) => entry(`/events/${e.slug}`, e.is_past ? 0.4 : 0.6, e.is_past ? "yearly" : "weekly", when(e.updated_at))),
+      // A closed notice changes no more, so it is yearly and lower —
+      // the events line's reasoning, with `closed` in place of `is_past`.
+      ...included(tenders).map((t) => entry(`/tenders/${t.slug}`, t.closed ? 0.4 : 0.6, t.closed ? "yearly" : "weekly", when(t.updated_at))),
       /*
        * The store. `store_products` and `store_categories` both carry a
        * real SEO override now -- `StoreProduct` has since gained `HasSeo`,

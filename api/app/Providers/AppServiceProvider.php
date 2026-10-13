@@ -82,7 +82,10 @@ use App\Models\StoreCategory;
 use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
 use App\Models\StoreTag;
+use App\Models\SupportCentre;
 use App\Models\TeamMember;
+use App\Models\Tender;
+use App\Models\TenderCategory;
 use App\Models\Ticket;
 use App\Models\TicketAttachment;
 use App\Models\TicketCategory;
@@ -240,7 +243,7 @@ class AppServiceProvider extends ServiceProvider
             'brand' => Brand::class,
             'canned_reply' => CannedReply::class,
             'certification' => Certification::class,
-            'support_centre' => \App\Models\SupportCentre::class,
+            'support_centre' => SupportCentre::class,
             'client' => Client::class,
             'coupon' => Coupon::class,
             'gallery' => Gallery::class,
@@ -319,6 +322,12 @@ class AppServiceProvider extends ServiceProvider
             // is bound in an admin route and is the source of a lead.
             'event' => Event::class,
             'event_registration' => EventRegistration::class,
+            // Tenders (docs/tenders.md): a tender carries SEO, which is
+            // polymorphic, and a menu item may point at one; both it and its
+            // category are bound in admin routes, so the activity log can
+            // name what was deleted.
+            'tender' => Tender::class,
+            'tender_category' => TenderCategory::class,
             // The downloads centre (docs/downloads.md): both are bound in
             // admin routes, so the activity log can name what was deleted.
             // A return (docs/store.md "Returns"): bound in admin routes.

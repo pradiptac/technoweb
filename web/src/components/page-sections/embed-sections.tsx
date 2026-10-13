@@ -37,6 +37,9 @@ import { blurProps } from "@/lib/blur";
 const KIND: Record<string, string> = {
   solutions: "solutions", services: "services", industries: "industries", case_studies: "case-studies",
   blog: "posts", knowledge: "articles", products: "products", store_products: "products",
+  // Both lists the API offers that are not catalogue records; without an
+  // entry here a section of them falls back to the generic "related" idiom.
+  events: "events", tenders: "tenders",
 };
 
 /**

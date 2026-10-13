@@ -161,6 +161,7 @@ Contents:
   - The installable website (PWA) — `docs/pwa.md`
   - Look and feel: textures, illustrations, progress, onboarding — `docs/look-and-feel.md`
   - Events — `docs/events.md`
+  - Tenders — `docs/tenders.md`
   - CDNs and versioned media URLs — `docs/cdn.md`
   - The downloads centre — `docs/downloads.md`
   - The console and portal shell — `docs/console-portal.md`
@@ -3027,6 +3028,23 @@ Seminars, webinars and trade shows with a page each and optional free registrati
 - `technoware:remind-events` every fifteen minutes, claimed by a conditional UPDATE; `event_reminder_hours` 0 sends none. Seven emails in the catalogue; `event.registered` webhook; every registration (staff-added too) files a lead, channel `event`.
 - `events`, and every other frontend top-level route, is refused as a **CMS page's** slug since 0.118.0 (`ReservedSlugs::pageSlugRule()`, only when the slug is changing) — it used to be checked for content types alone.
 
+### Tenders — `docs/tenders.md`
+
+Notices inviting bids (0.174.0): a reference, a scope of work, the window, the documents and how to submit. A notice board — nothing is submitted through the site.
+
+- **A closing date is a deadline, and every rule here follows from that.** `App\Support\Tenders\TenderWindow` is the **one** definition of `upcoming`/`open`/`closing_soon`/`closed`, computed from the clock and never stored; `scopeOpen`/`scopeClosed` are its SQL twins and `isOpen`/`isClosed` its PHP ones.
+- The notice's page is ISR-cached, so its badge is a client island re-asking `/api/tenders/{slug}/state` (`no-store`) after mount — a cached page would otherwise tell a bidder a closed tender is open. The index is **dynamic** (it reads `searchParams`, the downloads centre's shape) so it needs none; `revalidate` is **60s, not 120**, because the number is "how long a listing may be wrong about a deadline".
+- **Calendar days, not 24-hour blocks**: counting in blocks calls a 6pm deadline tomorrow "0 days" at 7pm today and "1" at 5pm today.
+- Every label is the API's (`App\Support\Tenders\TenderText`) — not one `toLocaleDateString` in the module, console included.
+- `reference` is the company's own number, unique, typed — never `App\Support\References`; searched with its punctuation stripped (`TW 2026 014` finds `TW/2026/014`), and **not** copied by Duplicate.
+- Documents are a JSON list of media-library paths, resolved in one query, **dropped from the public read when the file has gone** and shown as `missing` in the console. Public by nature, which is why none of the downloads centre's private-disk machinery is here — and migrating would be the cost if one ever must be restricted.
+- **Publishing with no email, link or postal address is a 422** naming all three; checked against what the tender will be, so a PATCH clearing the last one is refused, and the bulk Publish uses the same words.
+- A closed tender **stays on the site** and stays linked (`MenuItemType::url()` drops a tender for its status only, never its deadline); the builder's cards and the assistant show open ones alone.
+- Money is paise, collected in rupees; **null is "not stated" and 0 is "Free"**, and `TenderText::money()` groups the Indian way.
+- The category is the `DownloadCategory` shape — not `Sluggable`, `is_active` hides its tenders through `scopePublished`, `nullOnDelete` leaves them unfiled, and `?category=none` finds them.
+- The graph is a `WebPage` and nothing more: schema.org has no tender type, and an `Offer` would say this company is selling something.
+- `MenuItemType::url()` needed a `Tender` branch — without it a menu item on a draft linked to a 404. `TenderAdminTest`'s wiring tests found it.
+
 ### CDNs and versioned media URLs — `docs/cdn.md`
 
 A media CDN setting for files a browser fetches itself, a site that is safe behind a proxying CDN, and an address that changes when a file's bytes do (0.124.0).
@@ -3307,6 +3325,12 @@ Google sign-in for staff (customers' Google sign-in, 0.133.0, stays).
   - The three sample support centres from `SampleSupportCentreSeeder`
     (0.170.0, demo only): "Sample …" names, invented addresses and
     telephone numbers, no staff. Delete them before launch.
+  - The three sample tenders and two categories from `SampleTenderSeeder`
+    (0.174.0, demo only): "Sample …" titles and `SAMPLE/…` numbers, invented
+    fees, an EMD and an `example.com` submission address, dated from the day
+    they were seeded so one is open, one closing soon and one closed. **The
+    sharpest case on this list**: a tender is an invitation to bid, with a
+    deadline and a fee somebody could act on. Delete them before launch.
   - The placeholder hardware and installation services from
     `SampleServiceSeeder` (2026-09-29, demo only), filed under the two
     service categories beside Web services: every word invented — and the

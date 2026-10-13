@@ -12,6 +12,7 @@ export type PreviewType =
   | "product"
   | "store_product"
   | "event"
+  | "tender"
   | "job_opening"
   | "entry"
   | "landing_page";

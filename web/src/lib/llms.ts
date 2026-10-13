@@ -7,6 +7,8 @@ import type {
 } from "@/types/api";
 import type { EventAgendaItem, EventSummary } from "@/types/events";
 import { UPCOMING_EVENTS } from "@/components/events/data";
+import { OPEN_TENDERS } from "@/components/tenders/data";
+import type { TenderSummary } from "@/types/tenders";
 import type { Download } from "@/types/downloads";
 import type { SupportCentre } from "@/types/support";
 
@@ -82,6 +84,12 @@ type Site = {
   posts: BlogPost[];
   /** What is coming up (docs/events-contract.md). Past events are left out: an assistant asked "what is on" should not be handed last year. */
   events: EventSummary[];
+  /**
+   * What is open for bids (docs/tenders.md). Closed notices are left out:
+   * an assistant asked "are you tendering for anything" must not answer
+   * with a deadline that has passed — that reads as an invitation.
+   */
+  tenders: TenderSummary[];
   /** The downloads centre's files (docs/downloads.md): named, never addressed — a file is fetched from the page. */
   downloads: Download[];
   /** The support network's centres (docs/support-network.md). */
@@ -92,7 +100,7 @@ type Site = {
 
 async function load(): Promise<Site> {
   const quiet = <T,>(p: Promise<{ data: T[] }>) => p.then((r) => r.data).catch(() => [] as T[]);
-  const [settings, solutions, services, industries, categories, articles, caseStudies, posts, events, downloads, centres] = await Promise.all([
+  const [settings, solutions, services, industries, categories, articles, caseStudies, posts, events, tenders, downloads, centres] = await Promise.all([
     getSiteSettings(),
     quiet(publicApi.solutions()),
     quiet(publicApi.services()),
@@ -102,6 +110,7 @@ async function load(): Promise<Site> {
     quiet(publicApi.caseStudies()),
     quiet(publicApi.posts("?per_page=20")),
     quiet(publicApi.events(UPCOMING_EVENTS)),
+    quiet(publicApi.tenders(OPEN_TENDERS)),
     quiet(publicApi.downloads("?per_page=100")),
     quiet(publicApi.supportCentres()),
   ]);
@@ -110,7 +119,7 @@ async function load(): Promise<Site> {
     type,
     entries: await publicApi.contentArchive(type.slug, "?per_page=100").then((r) => r.data).catch(() => [] as ContentEntry[]),
   })));
-  return { settings, solutions, services, industries, categories, articles, caseStudies, posts, events, downloads, centres, custom };
+  return { settings, solutions, services, industries, categories, articles, caseStudies, posts, events, tenders, downloads, centres, custom };
 }
 
 function head(site: Site): string {
@@ -166,6 +175,14 @@ function index(site: Site): string {
       ...site.events.map((x) => line(x.title, `/events/${x.slug}`, eventLine(x))),
     ]);
   }
+  // Open tenders, each led by its number and its deadline — the two facts
+  // somebody asking about a tender is asking for.
+  if (site.tenders.length > 0) {
+    section("Tenders", [
+      line("All tenders", "/tenders", "Notices inviting bids, with closing dates and documents."),
+      ...site.tenders.map((x) => line(x.title, `/tenders/${x.slug}`, tenderLine(x))),
+    ]);
+  }
   // The downloads centre: each file by name, with what it is. Every line
   // points at the centre — a file has no page of its own, and its address is
   // handed out by the page, not published.
@@ -211,6 +228,11 @@ function eventLine(event: EventSummary): string {
   const place = [event.venue_name, event.venue_city].filter(Boolean).join(", ");
   const where = [event.format_label, place].filter(Boolean).join(", ");
   return [`${event.date_label}, ${event.time_label} — ${where}.`, event.summary].filter(Boolean).join(" ");
+}
+
+/** "TW/2026/014 — closes Tuesday 10 November 2026, 6:00 pm IST. …" */
+function tenderLine(tender: TenderSummary): string {
+  return [`${tender.reference} — closes ${tender.closes_label}.`, tender.summary].filter(Boolean).join(" ");
 }
 
 /** An event's agenda as a list under its own heading, or nothing. */

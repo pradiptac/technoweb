@@ -20,6 +20,7 @@ const NOUN: Record<PreviewType, string> = {
   product: "product",
   store_product: "product",
   event: "event",
+  tender: "tender",
   job_opening: "vacancy",
   entry: "entry",
   landing_page: "landing page",

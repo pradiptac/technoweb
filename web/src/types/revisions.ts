@@ -9,7 +9,7 @@ import type { StoredSection } from "./page-sections";
 export type RevisionType =
   | "page" | "saved_section"
   | "blog_post" | "knowledge_article" | "case_study" | "solution" | "service" | "product"
-  | "store_product" | "event" | "job_opening" | "entry" | "landing_page";
+  | "store_product" | "event" | "tender" | "job_opening" | "entry" | "landing_page";
 
 /** One row of the list: no snapshot, which is the heavy part. */
 export type RevisionRow = {

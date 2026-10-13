@@ -25,6 +25,7 @@ use App\Models\Solution;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
 use App\Models\StoreTag;
+use App\Models\Tender;
 use App\Support\AeoScore;
 use App\Support\EntityLinks;
 use App\Support\GeoScore;
@@ -130,6 +131,13 @@ class SeoController extends Controller
          * rest, and none of those is body copy.
          */
         'event' => [Event::class, 'title', 'events', 'Events', ['faqs'], ['body'], 150],
+        /*
+         * Tenders (0.174.0, docs/tenders.md): a page per notice at
+         * `/tenders/{slug}`, in the sitemap, emitting a `WebPage` graph. A
+         * hundred and fifty words is a complete notice — the dates, the fee
+         * and the documents carry the rest, and none of those is body copy.
+         */
+        'tender' => [Tender::class, 'title', 'tenders', 'Tenders', [], ['description'], 150],
     ];
 
     /** The bands `?aeo=` and `?geo=` may ask for. */

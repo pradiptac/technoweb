@@ -449,6 +449,31 @@ A chatbot that answers from your own pages and never invents.
 - **Download counts** per file, and a builder section that lists the
   centre's files live.
 
+## 12c. Tenders
+
+- **A page per tender** — the tender number, the scope of work, the window it
+  is open for, the fees and the documents — and a `/tenders` list of what is
+  open, with a **Closed** archive of what has been.
+- **The dates decide the state**: Open, Closing soon, Closed or Opens soon,
+  worked out from the clock rather than switched over by hand, with "3 days
+  left" beside it. A page left open before the deadline brings itself up to
+  date.
+- **Everything in the site's own timezone**, for every reader — a deadline of
+  six in the evening is six in the evening whatever their computer says.
+- **Optional** pre-bid meeting with its place, bid opening date, tender
+  document fee and EMD. A blank fee is "not stated"; zero reads *Free*.
+- **The tender pack**: up to ten documents from the media library, in order,
+  public like the notice itself.
+- **A notice nobody can answer cannot be published** — an email address, a
+  portal link or a postal address, at least one of the three.
+- **Categories** filter the page; switching one off hides its tenders,
+  deleting one leaves them unfiled.
+- **Found by its number however it is punctuated**, in site search and in the
+  console's palette. Also a builder Cards section (open ones only), a menu
+  entry, a sitemap entry and something the website assistant can answer with.
+- **Nothing is submitted through the site**, by the client's decision: bids
+  go the way each notice says.
+
 ## 13. Company profile
 
 - **Team** — people with a designation, department, photo, bio, optional

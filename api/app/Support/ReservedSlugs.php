@@ -42,6 +42,8 @@ final class ReservedSlugs
         'downloads',
         // The support network (0.170.0, docs/support-network.md).
         'support-network',
+        // Tenders (0.174.0, docs/tenders.md).
+        'tenders',
         // The application root.
         'admin', 'api', 'embed', 'portal', 'push', 'theme-preview', 'indexnow',
         'favicon.ico', 'sitemap.xml', 'robots.txt', 'llms.txt', 'llms-full.txt',

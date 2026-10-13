@@ -21,6 +21,7 @@ use App\Models\Role;
 use App\Models\Service;
 use App\Models\Solution;
 use App\Models\StoreProduct;
+use App\Models\Tender;
 use App\Models\User;
 use App\Support\PreviewLinks;
 use Illuminate\Database\Eloquent\Model;
@@ -42,7 +43,7 @@ class PreviewLinkTest extends TestCase
 
     private const TYPES = [
         'page', 'blog_post', 'knowledge_article', 'case_study', 'solution', 'service',
-        'product', 'store_product', 'event', 'job_opening', 'entry', 'landing_page',
+        'product', 'store_product', 'event', 'tender', 'job_opening', 'entry', 'landing_page',
     ];
 
     // ------------------------------------------------------------- helpers
@@ -104,6 +105,11 @@ class PreviewLinkTest extends TestCase
                 'starts_at' => '2026-12-12 15:00:00', 'online_url' => 'https://meet.example.test/secret-room',
                 'registration_mode' => 'none',
             ] + $status),
+            'tender' => Tender::create([
+                'reference' => 'TW/2026/PREVIEW', 'title' => 'A draft tender', 'slug' => 'a-draft-tender', 'summary' => 'x',
+                'opens_at' => '2026-12-01 10:00:00', 'closes_at' => '2026-12-20 18:00:00',
+                'submission_email' => 'tenders@example.test',
+            ] + $status),
             'job_opening' => JobOpening::create(['title' => 'A draft vacancy', 'slug' => 'a-draft-vacancy', 'summary' => 'x'] + $status),
             'entry' => Entry::create([
                 'content_type_id' => ContentType::create([
@@ -134,6 +140,7 @@ class PreviewLinkTest extends TestCase
             'product' => "/api/v1/products/{$record->slug}",
             'store_product' => "/api/v1/store/products/{$record->slug}",
             'event' => "/api/v1/events/{$record->slug}",
+            'tender' => "/api/v1/tenders/{$record->slug}",
             'job_opening' => "/api/v1/careers/{$record->slug}",
             'entry' => '/api/v1/types/partner-stories/'.$record->slug,
             'landing_page' => '/api/v1/landing-pages/lookup?path='.urlencode((string) $record->path),
@@ -233,6 +240,7 @@ class PreviewLinkTest extends TestCase
             'product' => Product::firstOrFail(),
             'store_product' => StoreProduct::firstOrFail(),
             'event' => Event::firstOrFail(),
+            'tender' => Tender::firstOrFail(),
             'job_opening' => JobOpening::firstOrFail(),
             'entry' => Entry::firstOrFail(),
             'landing_page' => LandingPage::firstOrFail(),

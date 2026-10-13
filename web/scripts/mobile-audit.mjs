@@ -51,6 +51,7 @@ const PUBLIC_ROUTES = [
   "/book-a-meeting", "/book-a-meeting?type=product-demo",
   // Events (docs/events.md): the list of cards, upcoming and past.
   "/events", "/events?when=past",
+  "/tenders", "/tenders?when=closed",
   "/search", "/search?q=switch",
   "/this-page-does-not-exist",   // the 404
   "/careers",
@@ -151,6 +152,7 @@ const ADMIN_ROUTES = [
   // on the command line: `node scripts/mobile-audit.mjs /admin/events/1
   // /admin/events/1/registrations`.
   "/admin/events", "/admin/events/new", "/admin/events/settings",
+  "/admin/tenders", "/admin/tenders/new", "/admin/tenders/categories",
   "/admin/downloads", "/admin/downloads/new", "/admin/downloads/categories", "/admin/downloads/categories/new",
   "/admin/settings/tickets/callback", "/admin/store/settings/zoho/callback",
   // The store: its own catalogue, its own role, and the table with the most

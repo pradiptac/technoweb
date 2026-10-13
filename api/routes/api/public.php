@@ -11,7 +11,6 @@ use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\ClientErrorController;
 use App\Http\Controllers\Api\V1\CompanyController;
-use App\Http\Controllers\Api\V1\SupportCentreController;
 use App\Http\Controllers\Api\V1\CompanySuggestionController;
 use App\Http\Controllers\Api\V1\ContentBlockController;
 use App\Http\Controllers\Api\V1\ContentController;
@@ -40,6 +39,8 @@ use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SliderController;
 use App\Http\Controllers\Api\V1\StockNoticeController;
 use App\Http\Controllers\Api\V1\StoreController;
+use App\Http\Controllers\Api\V1\SupportCentreController;
+use App\Http\Controllers\Api\V1\TenderController;
 use App\Http\Controllers\Api\V1\TicketSurveyController;
 use App\Http\Controllers\Api\V1\VisitController;
 use App\Http\Controllers\Api\V1\WishlistController;
@@ -617,6 +618,26 @@ Route::get('download-categories', [DownloadController::class, 'categories'])->na
 Route::get('downloads/{download}/file', [DownloadController::class, 'file'])
     ->where('download', '[0-9]+')
     ->middleware('throttle:60,1')->name('downloads.file');
+
+/*
+ * Tenders (0.174.0, docs/tenders.md): a notice inviting bids. The list, the
+ * categories, the notice and its state — nothing writes, because a bid is
+ * not submitted here.
+ *
+ * `tender-categories` and `tenders/{slug}/state` are declared **above**
+ * `tenders/{slug}`, or the slug route swallows both: it is bound in the
+ * controller by slug rather than by route-model binding for that reason.
+ *
+ * `state` exists because the notice's page is in the ISR cache, so the badge
+ * it renders is the state at render time. The page re-asks this, uncached,
+ * after it mounts — otherwise a cached page tells a bidder that a tender
+ * which shut yesterday is still open.
+ */
+Route::get('tenders', [TenderController::class, 'index'])->name('tenders.index');
+Route::get('tender-categories', [TenderController::class, 'categories'])->name('tender-categories.index');
+Route::get('tenders/{slug}/state', [TenderController::class, 'state'])
+    ->middleware('throttle:60,1')->name('tenders.state');
+Route::get('tenders/{slug}', [TenderController::class, 'show'])->name('tenders.show');
 
 /*
  * Online meetings (2026-09-29, docs/meetings.md). A booking, unlike a visit:

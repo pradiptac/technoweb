@@ -20,7 +20,7 @@ export type PreviewLinkState = { link?: PreviewLink | null; error?: string };
 
 const TYPES: readonly PreviewType[] = [
   "page", "blog_post", "knowledge_article", "case_study", "solution", "service",
-  "product", "store_product", "event", "job_opening", "entry", "landing_page",
+  "product", "store_product", "event", "tender", "job_opening", "entry", "landing_page",
 ];
 
 export async function previewLinkAction(_prev: PreviewLinkState, formData: FormData): Promise<PreviewLinkState> {

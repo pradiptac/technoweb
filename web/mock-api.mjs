@@ -2019,6 +2019,208 @@ const adminReturn = (r, detail = false) => ({
   } : {}),
 });
 
+
+/* ----------------------------- tenders (docs/tenders.md) ------------------
+ *
+ * A notice inviting bids. The dates are fixed rather than relative to today,
+ * so a snapshot of the mock is the same answer every run — and the state
+ * below is computed from them against the real clock, exactly as the API
+ * does, because a stored "open" would be the one thing this module must not
+ * have.
+ */
+const tenderCategories = [
+  { id: 1, name: 'Networking', slug: 'networking', description: 'Switching, wireless and structured cabling.', sort_order: 1, is_active: true },
+  { id: 2, name: 'Annual maintenance', slug: 'annual-maintenance', description: 'Maintenance and support contracts.', sort_order: 2, is_active: true },
+];
+
+const tenders = [
+  {
+    id: 1, reference: 'TW/2026/014', title: 'Campus network refresh',
+    slug: 'campus-network-refresh',
+    summary: 'Supply, installation and commissioning of switching and wireless for a three-building campus.',
+    description: '<p>The scope of work, the quantities and the standards.</p>',
+    tender_category_id: 1, status: 'published', is_featured: true, sort_order: 0,
+    opens_at: '2026-10-16T10:00:00+05:30', closes_at: '2026-12-10T18:00:00+05:30',
+    opening_at: '2026-12-11T11:00:00+05:30', prebid_at: '2026-11-20T11:00:00+05:30',
+    prebid_place: 'Conference room 2, ground floor',
+    fee_paise: 250000, emd_paise: 15000000,
+    submission_email: 'tenders@example.test', submission_url: null,
+    submission_address: 'Procurement desk\nKolkata 700091',
+    contact_name: 'A Person', contact_phone: '+91 98765 43210', contact_email: 'tenders@example.test',
+    documents: [{ title: 'Tender document', file_path: 'media/tenders/pack.pdf', note: 'Read this first' }],
+    seo: null, created_at: '2026-10-10T10:00:00+05:30', updated_at: '2026-10-16T10:00:00+05:30',
+  },
+  {
+    id: 2, reference: 'TW/2025/031', title: 'Structured cabling for a new floor',
+    slug: 'structured-cabling-new-floor',
+    summary: 'Category 6A cabling, racks and passive components for one floor.',
+    description: '<p>Closed. Kept for the record.</p>',
+    tender_category_id: 1, status: 'published', is_featured: false, sort_order: 0,
+    opens_at: '2025-11-01T10:00:00+05:30', closes_at: '2025-12-01T18:00:00+05:30',
+    opening_at: '2025-12-02T11:00:00+05:30', prebid_at: null, prebid_place: null,
+    fee_paise: 150000, emd_paise: 1500000,
+    submission_email: 'tenders@example.test', submission_url: null, submission_address: null,
+    contact_name: null, contact_phone: null, contact_email: null,
+    documents: [],
+    seo: null, created_at: '2025-10-20T10:00:00+05:30', updated_at: '2025-12-01T18:00:00+05:30',
+  },
+];
+
+const tenderFiles = { 'media/tenders/pack.pdf': { size: 204800, extension: 'pdf' } };
+
+const IST = 'Asia/Kolkata';
+
+/** "Friday 16 October 2026" — the API's `dateLabel`. */
+const tenderDate = (iso) => iso === null ? null
+  : new Date(iso).toLocaleDateString('en-GB', { timeZone: IST, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+/** "Thursday 10 December 2026, 6:00 pm IST" — a deadline carries its time. */
+const tenderDeadline = (iso) => {
+  if (iso === null) return null;
+  const date = new Date(iso).toLocaleDateString('en-GB', { timeZone: IST, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const time = new Date(iso).toLocaleTimeString('en-GB', { timeZone: IST, hour: 'numeric', minute: '2-digit', hour12: true });
+  return `${date}, ${time.replace(/\s?([ap])m/i, (_, x) => ` ${x.toLowerCase()}m`)} IST`;
+};
+
+/** "20 November 2026, 11:00 am IST" — shorter, for a meeting. */
+const tenderMoment = (iso) => {
+  if (iso === null) return null;
+  const date = new Date(iso).toLocaleDateString('en-GB', { timeZone: IST, day: 'numeric', month: 'long', year: 'numeric' });
+  const time = new Date(iso).toLocaleTimeString('en-GB', { timeZone: IST, hour: 'numeric', minute: '2-digit', hour12: true });
+  return `${date}, ${time.replace(/\s?([ap])m/i, (_, x) => ` ${x.toLowerCase()}m`)} IST`;
+};
+
+/** "₹1,50,000" — rupees grouped the Indian way; "Free" for nothing to pay. */
+const tenderMoney = (paise) => {
+  if (paise === null || paise === undefined) return null;
+  if (paise === 0) return 'Free';
+  const rupees = Math.floor(paise / 100);
+  const pence = paise % 100;
+  const digits = String(rupees);
+  let whole = digits;
+  if (digits.length > 3) {
+    const last = digits.slice(-3);
+    let rest = digits.slice(0, -3);
+    const groups = [];
+    while (rest.length > 2) { groups.unshift(rest.slice(-2)); rest = rest.slice(0, -2); }
+    if (rest) groups.unshift(rest);
+    whole = `${groups.join(',')},${last}`;
+  }
+  return `₹${whole}${pence === 0 ? '' : `.${String(pence).padStart(2, '0')}`}`;
+};
+
+const TENDER_CLOSING_SOON_DAYS = 3;
+
+/** The window, computed from the clock — never stored. `App\Support\Tenders\TenderWindow`. */
+const tenderWindow = (t, now = new Date()) => {
+  const closes = new Date(t.closes_at);
+  const opens = new Date(t.opens_at);
+  if (closes <= now) return { state: 'closed', state_label: 'Closed', closes_in_label: null, closed: true };
+  if (opens > now) return { state: 'upcoming', state_label: 'Opens soon', closes_in_label: null, closed: false };
+  // Calendar days in IST, not blocks of 24 hours — see TenderWindow.
+  const day = (d) => Date.parse(new Date(d).toLocaleDateString('en-CA', { timeZone: IST }));
+  const days = Math.round((day(closes) - day(now)) / 86400000);
+  const label = days === 0 ? 'Closes today' : days === 1 ? 'Closes tomorrow' : `${days} days left`;
+  return days <= TENDER_CLOSING_SOON_DAYS
+    ? { state: 'closing_soon', state_label: 'Closing soon', closes_in_label: label, closed: false }
+    : { state: 'open', state_label: 'Open', closes_in_label: label, closed: false };
+};
+
+const tenderCategoryOf = (t) => {
+  const c = tenderCategories.find((x) => x.id === t.tender_category_id);
+  return c ? { name: c.name, slug: c.slug } : null;
+};
+
+/** The documents resolved: one whose file has gone is **dropped**. */
+const tenderDocuments = (t) => (t.documents ?? [])
+  .map((d) => {
+    const file = tenderFiles[d.file_path];
+    if (!file) return null;
+    return {
+      title: d.title, ...(d.note ? { note: d.note } : {}),
+      url: `http://127.0.0.1:8899/storage/${d.file_path}`,
+      size: file.size, ...(file.extension ? { extension: file.extension } : {}),
+    };
+  })
+  .filter(Boolean);
+
+const tenderRow = (t) => ({
+  id: t.id, reference: t.reference, title: t.title, slug: t.slug, summary: t.summary,
+  category: tenderCategoryOf(t),
+  opens_at: t.opens_at, closes_at: t.closes_at, opening_at: t.opening_at, prebid_at: t.prebid_at,
+  opens_label: tenderDate(t.opens_at), closes_label: tenderDeadline(t.closes_at),
+  opening_label: tenderMoment(t.opening_at), prebid_label: tenderMoment(t.prebid_at),
+  fee_paise: t.fee_paise, fee_label: tenderMoney(t.fee_paise),
+  emd_paise: t.emd_paise, emd_label: tenderMoney(t.emd_paise),
+  ...tenderWindow(t),
+  documents_count: tenderDocuments(t).length,
+  is_featured: t.is_featured,
+  updated_at: t.updated_at,
+  seo: null,
+});
+
+const publicTender = (t) => ({
+  ...tenderRow(t),
+  description: t.description, prebid_place: t.prebid_place,
+  documents: tenderDocuments(t),
+  submission: { email: t.submission_email, url: t.submission_url, address: t.submission_address },
+  contact: { name: t.contact_name, phone: t.contact_phone, email: t.contact_email },
+  schema: {
+    '@context': 'https://schema.org', '@type': 'WebPage', name: t.title,
+    url: `http://localhost:3000/tenders/${t.slug}`,
+  },
+});
+
+/** The console's shape: the stored path beside the URL, and `missing`. */
+const adminTenderDocuments = (t) => (t.documents ?? []).map((d) => {
+  const file = tenderFiles[d.file_path];
+  return {
+    title: d.title, note: d.note ?? null, file_path: d.file_path,
+    url: file ? `http://127.0.0.1:8899/storage/${d.file_path}` : null,
+    size: file ? file.size : null, extension: file ? file.extension : null,
+    missing: !file,
+  };
+});
+
+const adminTender = (t, detail = false) => {
+  const wall = (iso) => iso === null ? null : new Date(iso).toLocaleString('sv-SE', { timeZone: IST }).slice(0, 16).replace(' ', 'T');
+  const category = tenderCategories.find((c) => c.id === t.tender_category_id);
+  return {
+    id: t.id, reference: t.reference, title: t.title, slug: t.slug, summary: t.summary,
+    ...(detail ? { description: t.description } : {}),
+    tender_category_id: t.tender_category_id,
+    category: category ? { id: category.id, name: category.name, is_active: category.is_active } : null,
+    status: t.status, status_label: t.status === 'published' ? 'Published' : t.status === 'archived' ? 'Archived' : 'Draft',
+    is_featured: t.is_featured, sort_order: t.sort_order,
+    opens_at: wall(t.opens_at), closes_at: wall(t.closes_at),
+    opening_at: wall(t.opening_at), prebid_at: wall(t.prebid_at),
+    opens_at_iso: t.opens_at, closes_at_iso: t.closes_at,
+    opens_label: tenderDate(t.opens_at), closes_label: tenderDeadline(t.closes_at),
+    prebid_place: t.prebid_place,
+    ...tenderWindow(t),
+    fee_paise: t.fee_paise, fee_label: tenderMoney(t.fee_paise),
+    emd_paise: t.emd_paise, emd_label: tenderMoney(t.emd_paise),
+    submission_email: t.submission_email, submission_url: t.submission_url, submission_address: t.submission_address,
+    contact_name: t.contact_name, contact_phone: t.contact_phone, contact_email: t.contact_email,
+    documents: adminTenderDocuments(t), documents_count: tenderDocuments(t).length,
+    public_path: `/tenders/${t.slug}`, admin_path: `/admin/tenders/${t.id}`,
+    ...(detail ? { seo: t.seo, seo_defaults: { title: t.title, description: t.summary, schema_type: 'WebPage' } } : {}),
+    created_at: t.created_at, updated_at: t.updated_at,
+  };
+};
+
+const tenderMeta = () => ({
+  statuses: [
+    { value: 'draft', label: 'Draft' },
+    { value: 'published', label: 'Published' },
+    { value: 'archived', label: 'Archived' },
+  ],
+  categories: tenderCategories.map((c) => ({ id: c.id, name: c.name, is_active: c.is_active })),
+  max_documents: 10,
+  closing_soon_days: TENDER_CLOSING_SOON_DAYS,
+  timezone: 'IST',
+});
+
 const paginate = (rows) => ({
   data: rows,
   links:{ first:null, last:null, prev:null, next:null },
@@ -2736,6 +2938,8 @@ const BUILDER_OPTIONS = {
     { value: 'products', label: 'Products (catalogue)' }, { value: 'store_products', label: 'Products (shop)' },
     // Upcoming events, soonest first (docs/events-contract.md).
     { value: 'events', label: 'Events' },
+    // Open tenders, closing soonest first (docs/tenders.md).
+    { value: 'tenders', label: 'Open tenders' },
     // 0.126.0: categories, vacancies, and one `entry:<type-slug>` per active content type (none in the mock).
     { value: 'product_categories', label: 'Product categories (catalogue)' }, { value: 'store_categories', label: 'Shop categories' },
     { value: 'vacancies', label: 'Open vacancies' },
@@ -3501,7 +3705,7 @@ createServer(async (req, res) => {
        both lists), and one of 900 to 999 is refused in words — which is what lets the
        bar's in-place refusal list be driven. */
     {
-      const bulk = p.match(/^\/admin\/(blog-posts|knowledge-articles|case-studies|solutions|services|pages|products|events|job-openings|downloads|landing-pages|store\/products|content-types\/[a-z0-9-]+\/entries|industries|brands|product-categories|service-categories|store\/categories)\/bulk$/);
+      const bulk = p.match(/^\/admin\/(blog-posts|knowledge-articles|case-studies|solutions|services|pages|products|events|tenders|job-openings|downloads|landing-pages|store\/products|content-types\/[a-z0-9-]+\/entries|industries|brands|product-categories|service-categories|store\/categories)\/bulk$/);
       if (bulk && req.method === 'POST') {
         const body = await readJsonBody(req);
         const deleteOnly = /^(industries|brands|product-categories|service-categories|store\/categories)$/.test(bulk[1]);
@@ -3837,7 +4041,123 @@ createServer(async (req, res) => {
       }
     }
 
-    if (p === '/admin/events' && req.method === 'GET') {
+    /* Tenders (docs/tenders.md). `bulk` is matched by the shared route above. */
+  if (p === '/admin/tenders' && req.method === 'GET') {
+    const now = new Date();
+    const when = url.searchParams.get('when');
+    const status = url.searchParams.get('status');
+    const category = url.searchParams.get('category');
+    const term = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+
+    const rows = tenders
+      .filter((t) => !status || t.status === status)
+      .filter((t) => {
+        if (!when) return true;
+        const w = tenderWindow(t, now).state;
+        if (when === 'open') return w === 'open' || w === 'closing_soon';
+        if (when === 'closed') return w === 'closed';
+        return w === 'upcoming';
+      })
+      .filter((t) => {
+        if (!category) return true;
+        if (category === 'none') return t.tender_category_id === null;
+        return String(t.tender_category_id) === category;
+      })
+      .filter((t) => !term || `${t.reference} ${t.title} ${t.summary ?? ''}`.toLowerCase().includes(term))
+      .sort((a, b) => {
+        const ac = new Date(a.closes_at) > now, bc = new Date(b.closes_at) > now;
+        if (ac !== bc) return ac ? -1 : 1;
+        return ac ? a.closes_at.localeCompare(b.closes_at) : b.closes_at.localeCompare(a.closes_at);
+      });
+
+    const page = paginate(rows.map((t) => adminTender(t)));
+    page.meta.per_page = 20;
+    return json(res, 200, { ...page, meta: { ...page.meta, ...tenderMeta() } });
+  }
+  if (p === '/admin/tenders' && req.method === 'POST') {
+    const body = await readJsonBody(req);
+    const id = Math.max(0, ...tenders.map((t) => t.id)) + 1;
+    const made = {
+      id, documents: [], seo: null, is_featured: false, sort_order: 0, status: 'draft',
+      opening_at: null, prebid_at: null, prebid_place: null,
+      fee_paise: null, emd_paise: null,
+      submission_email: null, submission_url: null, submission_address: null,
+      contact_name: null, contact_phone: null, contact_email: null,
+      tender_category_id: null, description: null, summary: null,
+      ...body,
+      slug: body.slug || String(body.title ?? 'tender').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    };
+    tenders.push(made);
+    return json(res, 201, { data: adminTender(made, true), meta: tenderMeta() });
+  }
+  {
+    const m = p.match(/^\/admin\/tenders\/(\d+)(\/duplicate)?$/);
+    if (m) {
+      const tender = tenders.find((t) => t.id === Number(m[1]));
+      if (!tender) return json(res, 404, { message: 'Not found.' });
+
+      if (m[2] && req.method === 'POST') {
+        const id = Math.max(0, ...tenders.map((t) => t.id)) + 1;
+        const copy = {
+          ...tender, id, status: 'draft', is_featured: false,
+          title: `${tender.title} (copy)`, slug: `${tender.slug}-copy-${id}`,
+          // Never the same number: a tender number is the one field nobody
+          // else can guess for you.
+          reference: `${tender.reference}-copy`, seo: null,
+        };
+        tenders.push(copy);
+        return json(res, 201, { data: adminTender(copy, true), meta: tenderMeta() });
+      }
+      if (req.method === 'GET') return json(res, 200, { data: adminTender(tender, true), meta: tenderMeta() });
+      if (req.method === 'PATCH') {
+        Object.assign(tender, await readJsonBody(req), { updated_at: new Date().toISOString() });
+        return json(res, 200, { data: adminTender(tender, true), meta: tenderMeta() });
+      }
+      if (req.method === 'DELETE') {
+        tenders.splice(tenders.indexOf(tender), 1);
+        return json(res, 200, { message: 'Tender deleted.' });
+      }
+    }
+  }
+  if (p === '/admin/tender-categories' && req.method === 'GET') {
+    const rows = [...tenderCategories]
+      .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+      .map((c) => ({ ...c, tenders_count: tenders.filter((t) => t.tender_category_id === c.id).length, updated_at: null }));
+    return json(res, 200, paginate(rows));
+  }
+  if (p === '/admin/tender-categories' && req.method === 'POST') {
+    const body = await readJsonBody(req);
+    const id = Math.max(0, ...tenderCategories.map((c) => c.id)) + 1;
+    const made = {
+      id, description: null, sort_order: 0, is_active: true, ...body,
+      slug: body.slug || String(body.name ?? 'category').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+    };
+    tenderCategories.push(made);
+    return json(res, 201, { data: { ...made, tenders_count: 0, updated_at: null } });
+  }
+  {
+    const m = p.match(/^\/admin\/tender-categories\/(\d+)$/);
+    if (m) {
+      const category = tenderCategories.find((c) => c.id === Number(m[1]));
+      if (!category) return json(res, 404, { message: 'Not found.' });
+      const shape = () => ({ ...category, tenders_count: tenders.filter((t) => t.tender_category_id === category.id).length, updated_at: null });
+
+      if (req.method === 'GET') return json(res, 200, { data: shape() });
+      if (req.method === 'PATCH') {
+        Object.assign(category, await readJsonBody(req));
+        return json(res, 200, { data: shape() });
+      }
+      if (req.method === 'DELETE') {
+        // The tenders stay, filed under none — `nullOnDelete`.
+        tenders.forEach((t) => { if (t.tender_category_id === category.id) t.tender_category_id = null; });
+        tenderCategories.splice(tenderCategories.indexOf(category), 1);
+        res.statusCode = 204;
+        return res.end();
+      }
+    }
+  }
+  if (p === '/admin/events' && req.method === 'GET') {
       const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
       const status = url.searchParams.get('status');
       const when = url.searchParams.get('when');
@@ -6881,6 +7201,76 @@ createServer(async (req, res) => {
     if (row.access === 'customers') return json(res, 401, { message:'Sign in to the customer portal to download this file.', reason:'sign_in_required' });
     row.download_count += 1;
     return json(res, 200, { data: { url: `http://127.0.0.1:8899/storage/${row.file_path}` } });
+  }
+  if (p === '/tenders' && req.method === 'GET') {
+    const now = new Date();
+    const when = ['open', 'closed', 'upcoming', 'all'].includes(url.searchParams.get('when'))
+      ? url.searchParams.get('when') : 'open';
+    const term = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+    const category = url.searchParams.get('category');
+    const compact = term.replace(/[^a-z0-9]/g, '');
+
+    const rows = tenders
+      .filter((t) => t.status === 'published')
+      .filter((t) => {
+        const w = tenderWindow(t, now).state;
+        if (when === 'open') return w === 'open' || w === 'closing_soon';
+        if (when === 'closed') return w === 'closed';
+        if (when === 'upcoming') return w === 'upcoming';
+        return true;
+      })
+      .filter((t) => !category || tenderCategoryOf(t)?.slug === category)
+      .filter((t) => {
+        if (!term) return true;
+        const hay = `${t.reference} ${t.title} ${t.summary ?? ''} ${t.description ?? ''}`.toLowerCase();
+        // The reference, with its punctuation stripped — nobody types the slashes.
+        return hay.includes(term)
+          || (compact.length >= 3 && t.reference.toLowerCase().replace(/[^a-z0-9]/g, '').includes(compact));
+      })
+      // Open first and soonest, then closed and most recent — two keys,
+      // because the halves want opposite directions.
+      .sort((a, b) => {
+        const ac = new Date(a.closes_at) > now, bc = new Date(b.closes_at) > now;
+        if (ac !== bc) return ac ? -1 : 1;
+        return ac
+          ? a.closes_at.localeCompare(b.closes_at)
+          : b.closes_at.localeCompare(a.closes_at);
+      });
+
+    const page = paginate(rows.map(tenderRow));
+    page.meta.per_page = 20;
+    return json(res, 200, page);
+  }
+  if (p === '/tender-categories' && req.method === 'GET') {
+    const published = tenders.filter((t) => t.status === 'published');
+    const rows = tenderCategories
+      .filter((c) => c.is_active && published.some((t) => t.tender_category_id === c.id))
+      .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+      .map((c) => ({
+        id: c.id, name: c.name, slug: c.slug, description: c.description,
+        count: published.filter((t) => t.tender_category_id === c.id).length,
+      }));
+    return json(res, 200, {
+      data: rows,
+      meta: {
+        total: published.length,
+        open: published.filter((t) => !tenderWindow(t).closed).length,
+        updated_at: published.map((t) => t.updated_at).sort().pop() ?? null,
+      },
+    });
+  }
+  {
+    const m = p.match(/^\/tenders\/([a-z0-9-]+)(\/state)?$/);
+    if (m && req.method === 'GET') {
+      const tender = tenders.find((t) => t.slug === m[1] && t.status === 'published');
+      if (!tender) return json(res, 404, { message: 'Not found.' });
+      if (m[2]) {
+        // Never cached: it is the answer the cached page cannot give.
+        res.setHeader('Cache-Control', 'no-store');
+        return json(res, 200, { data: tenderWindow(tender) });
+      }
+      return json(res, 200, { data: publicTender(tender) });
+    }
   }
   if (p === '/events' && req.method === 'GET') {
     const past = url.searchParams.get('when') === 'past';

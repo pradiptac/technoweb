@@ -18,6 +18,7 @@ import ServicePage from "@/app/(marketing)/services/[slug]/page";
 import ProductOrCategoryPage from "@/app/(marketing)/products/[slug]/page";
 import StoreProductPage from "@/app/(marketing)/store/products/[slug]/page";
 import EventPage from "@/app/(marketing)/events/[slug]/page";
+import TenderPage from "@/app/(marketing)/tenders/[slug]/page";
 import JobPage from "@/app/(marketing)/careers/[slug]/page";
 import BrandLandingPage from "@/app/(marketing)/brands/[...rest]/page";
 import LocationLandingPage from "@/app/(marketing)/locations/[...rest]/page";
@@ -93,6 +94,8 @@ function plan(preview: DraftPreview): { kind: PreviewKind; key: string; render: 
       return slug ? { kind: "store-product", key: slug, render: () => <StoreProductPage params={params({ slug })} /> } : null;
     case "event":
       return slug ? { kind: "event", key: slug, render: () => <EventPage params={params({ slug })} /> } : null;
+    case "tender":
+      return slug ? { kind: "tender", key: slug, render: () => <TenderPage params={params({ slug })} /> } : null;
     case "job_opening":
       return slug ? { kind: "career", key: slug, render: () => <JobPage params={params({ slug })} /> } : null;
     case "entry":

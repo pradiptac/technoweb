@@ -14,9 +14,11 @@ use App\Models\Order;
 use App\Models\Page;
 use App\Models\Product;
 use App\Models\StoreProduct;
+use App\Models\Tender;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Support\Events\EventText;
+use App\Support\Tenders\TenderText;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -157,6 +159,25 @@ class SearchController extends Controller
                         'label' => $e->title,
                         'sub' => implode(' · ', array_filter([EventText::dateLabel($e), self::label($e->getAttribute('status'))])),
                         'admin_path' => $e->adminPath(),
+                    ]),
+            ];
+
+            // Tenders (docs/tenders.md), by reference or title — a tender
+            // is looked for by its number far more often than its words, so
+            // the model's own `search` scope is used and the punctuation of
+            // a reference does not have to be typed.
+            $groups[] = [
+                'type' => 'tender', 'label' => 'Tenders',
+                'items' => Tender::query()->search($term)
+                    ->orderByDesc('closes_at')->limit(self::PER_GROUP)->get()
+                    ->map(fn (Tender $t) => [
+                        'label' => $t->title,
+                        'sub' => implode(' · ', array_filter([
+                            $t->reference,
+                            TenderText::dateLabel($t->closes_at),
+                            self::label($t->getAttribute('status')),
+                        ])),
+                        'admin_path' => $t->adminPath(),
                     ]),
             ];
 

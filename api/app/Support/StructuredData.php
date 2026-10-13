@@ -23,9 +23,11 @@ use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
 use App\Models\StoreTag;
 use App\Models\SupportCentre;
+use App\Models\Tender;
 use App\Support\Events\EventText;
 use App\Support\Mail\MailBrand;
 use App\Support\Store\Fulfilment;
+use App\Support\Tenders\TenderText;
 
 /**
  * Every JSON-LD block this site emits, built where the data is.
@@ -616,6 +618,47 @@ class StructuredData
             'organizer' => self::publisher(),
             'performer' => $speakers,
             'url' => $url,
+            'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => $url],
+        ]);
+    }
+
+    /* ----------------------------------------------------------- tenders */
+
+    /**
+     * A tender notice (0.174.0, `docs/tenders.md`).
+     *
+     * **A `WebPage` and nothing more, deliberately.** Schema.org has no
+     * tender or request-for-quotation type, and Google has no tender rich
+     * result — so there is nothing richer to emit that would be true.
+     * Reaching for `Offer` would be the worst of the options: it says
+     * somebody is selling something at a price, and a tender is this company
+     * asking others to quote.
+     *
+     * So the node claims what a notice actually is: a page, with a name, a
+     * description, when it went up, when it last changed, who published it,
+     * and what it is about. `validThrough` is not here either: it is an
+     * `Offer` property, and putting the closing date on a type that does not
+     * define it is markup a validator reports rather than reads.
+     */
+    public static function tender(Tender $tender): array
+    {
+        $url = self::url($tender->publicPath());
+
+        return self::graph([
+            '@type' => SchemaTypes::resolve('WebPage', $tender->seo?->schema_type),
+            'name' => $tender->title,
+            'description' => $tender->summary
+                ? HtmlSanitiser::toText($tender->summary)
+                : ($tender->description ? str(HtmlSanitiser::toText($tender->description))->limit(200)->value() : null),
+            'url' => $url,
+            'datePublished' => TenderText::iso($tender->opens_at),
+            'dateModified' => TenderText::iso($tender->updated_at),
+            'publisher' => self::publisher(),
+            // The category, when one is loaded — the only thing about a
+            // tender that is a subject rather than a date or a rule.
+            'about' => $tender->relationLoaded('category') && $tender->category !== null
+                ? ['@type' => 'Thing', 'name' => $tender->category->name]
+                : null,
             'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => $url],
         ]);
     }

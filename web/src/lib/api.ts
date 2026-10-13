@@ -20,6 +20,7 @@ import type {
   EventAvailability, EventDetail, EventRegistration, EventRegistrationPayload, EventRegistrationResult, EventSummary,
 } from "@/types/events";
 import type { Download, DownloadCategoryList } from "@/types/downloads";
+import type { TenderCategoryList, TenderDetail, TenderSummary, TenderWindow } from "@/types/tenders";
 import type { SupportNetworkResponse } from "@/types/support";
 
 /**
@@ -505,6 +506,34 @@ export const publicApi = {
     ),
 
   /*
+   * Tenders (docs/tenders.md).
+   *
+   * **Sixty seconds, not the events' hundred and twenty**, and that number
+   * is the whole of the caching decision here. A cached response holds the
+   * state the API computed when it was fetched, so staleness is measured in
+   * how long a listing may be wrong about a deadline — and a tender stops
+   * being open because the clock moved, not because an editor saved
+   * anything. A minute is the most a page may claim a closed tender is
+   * taking bids; the notice's own page closes the rest of that gap by
+   * re-asking `tenderState()` after it mounts.
+   *
+   * A search is never cached, the rule the downloads' and the catalogue's
+   * `?q=` follow: the key space is unbounded, so caching it fills the cache
+   * with single-use entries and serves a stale empty result for the window.
+   */
+  tenders: (query = "", cache = true) =>
+    apiFetch<Paginated<TenderSummary>>(`/tenders${query}`, cache ? { revalidate: 60, tags: ["tenders"] } : {}),
+  tenderCategories: () =>
+    apiFetch<TenderCategoryList>("/tender-categories", { revalidate: 60, tags: ["tenders"] }),
+  tender: (slug: string) =>
+    previewOr<TenderDetail>("tender", slug, () =>
+      apiFetch<Single<TenderDetail>>(`/tenders/${encodeURIComponent(slug)}`, {
+        revalidate: 60,
+        tags: ["tenders", `tender:${slug}`],
+      }),
+    ),
+
+  /*
    * The downloads centre (docs/downloads.md). The unfiltered list and the
    * shelves are cached and tagged `downloads`, which every console save
    * purges; a search is never cached (`cache: false`) — the rule the
@@ -635,6 +664,21 @@ export const publicApi = {
 
   ticketCategories: () =>
     apiFetch<{ data: { id: number; name: string }[] }>("/ticket-categories", { revalidate: 3600, tags: ["ticket-categories"] }),
+};
+
+/**
+ * The one tender read that is never cached: whether a notice is taking bids
+ * at this moment (docs/tenders.md).
+ *
+ * Apart from `publicApi` for the events' reason — nothing here may enter an
+ * ISR render, because a `no-store` fetch inside a page that exports
+ * `generateStaticParams` is a 500 rather than a fallback. The notice's page
+ * is in that cache and so renders the state it was built with; this is what
+ * its badge asks afterwards, from a route handler.
+ */
+export const tenderApi = {
+  state: (slug: string) =>
+    apiFetch<{ data: TenderWindow }>(`/tenders/${encodeURIComponent(slug)}/state`),
 };
 
 /**

@@ -21,6 +21,22 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.174.0 — 2026-10-14
+
+**Tenders.** A notice board for the work you invite bids on.
+
+- **A page per tender** at `/tenders/<name>`: the tender number, what you are buying, the dates, the fees and the documents to download. Bidders submit the way the notice says — by email, by post or on a portal you name — and nothing is submitted through your site.
+- **The dates do the work.** Enter when it opens and the last date for submission, and the page says **Open**, **Closing soon**, **Closed** or **Opens soon** by itself, with "3 days left" beside it. There is nothing to switch over when a tender closes, and a page somebody left open beforehand brings itself up to date.
+- **Everything in your own timezone**, for every reader whatever their computer is set to — a deadline of six in the evening is six in the evening for everybody.
+- **Optional:** a pre-bid meeting with its place, a bid opening date, the tender document fee and the EMD. A fee left blank shows nothing; a fee of 0 reads *Free*.
+- **The tender pack:** up to ten documents from your media library, in the order a bidder should read them. They are public, like the notice.
+- **A notice nobody can answer cannot be published** — an email address, a bidding portal link or a postal address, at least one.
+- **A closed tender stays on your site** as a record of what you have tendered for, under the **Closed** filter.
+- **Categories** (Tenders → Categories) are what the filter on the page offers. Switch one off and its tenders come off the site; delete one and they stay, filed under none.
+- **Search finds a tender by its number however it is punctuated** — `TW/2026/014`, `TW 2026 014` and `tw2026014` all find it.
+- **Duplicate** gives you next year's tender as a draft, with the number marked so you change it.
+- Also available as a **Cards** section in the page builder (open ones only) and as a menu entry, in search, in the sitemap and to the website assistant.
+
 ## 0.173.0 — 2026-10-13
 
 **Your colours, from your logo.** Release A6 of the 2.0 roadmap.

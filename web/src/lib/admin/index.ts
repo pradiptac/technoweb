@@ -24,6 +24,7 @@ export * from "./support-centres";
 export * from "./content-types";
 export * from "./custom-fields";
 export * from "./events";
+export * from "./tenders";
 export * from "./forms";
 export * from "./knowledge-base";
 export * from "./leads";

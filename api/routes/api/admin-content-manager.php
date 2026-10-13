@@ -34,6 +34,8 @@ use App\Http\Controllers\Api\V1\Admin\ServiceController as AdminServiceControlle
 use App\Http\Controllers\Api\V1\Admin\SliderController as AdminSliderController;
 use App\Http\Controllers\Api\V1\Admin\SolutionController as AdminSolutionController;
 use App\Http\Controllers\Api\V1\Admin\TeamMemberController as AdminTeamMemberController;
+use App\Http\Controllers\Api\V1\Admin\TenderCategoryController as AdminTenderCategoryController;
+use App\Http\Controllers\Api\V1\Admin\TenderController as AdminTenderController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -59,6 +61,37 @@ Route::middleware('role:content_manager')->group(function () {
     Route::patch('events/{event:id}', [AdminEventController::class, 'update'])->name('events.update');
     Route::delete('events/{event:id}', [AdminEventController::class, 'destroy'])->name('events.destroy');
     Route::post('events/{event:id}/duplicate', [AdminEventController::class, 'duplicate'])->name('events.duplicate');
+
+    /*
+     * Tenders (0.174.0, docs/tenders.md). A notice inviting bids is a page
+     * with two dates, so it is content — and nothing is submitted through
+     * the site, so there is no second role here the way events have one for
+     * the people who register.
+     *
+     * Bound by **id**, not slug — the edit form changes the slug it is
+     * addressed by. `duplicate` makes a draft copy, which is how next
+     * year's tender is made from last year's.
+     *
+     * `tenders/bulk` is declared **above** `tenders/{tender:id}`, or `{id}`
+     * binds the literal string "bulk" and answers 404 from model binding —
+     * the `media/move` trap, which reads as a missing record rather than as
+     * a routing mistake.
+     */
+    Route::get('tenders', [AdminTenderController::class, 'index'])->name('tenders.index');
+    Route::post('tenders', [AdminTenderController::class, 'store'])->name('tenders.store');
+    Route::post('tenders/bulk', [AdminTenderController::class, 'bulk'])->middleware('throttle:30,1')->name('tenders.bulk');
+    Route::get('tenders/{tender:id}', [AdminTenderController::class, 'show'])->name('tenders.show');
+    Route::patch('tenders/{tender:id}', [AdminTenderController::class, 'update'])->name('tenders.update');
+    Route::delete('tenders/{tender:id}', [AdminTenderController::class, 'destroy'])->name('tenders.destroy');
+    Route::post('tenders/{tender:id}/duplicate', [AdminTenderController::class, 'duplicate'])->name('tenders.duplicate');
+
+    // Taxonomy for the above: a name, an order and a switch. Deleting one
+    // leaves its tenders unfiled (`nullOnDelete`).
+    Route::get('tender-categories', [AdminTenderCategoryController::class, 'index'])->name('tender-categories.index');
+    Route::post('tender-categories', [AdminTenderCategoryController::class, 'store'])->name('tender-categories.store');
+    Route::get('tender-categories/{tender_category}', [AdminTenderCategoryController::class, 'show'])->name('tender-categories.show');
+    Route::patch('tender-categories/{tender_category}', [AdminTenderCategoryController::class, 'update'])->name('tender-categories.update');
+    Route::delete('tender-categories/{tender_category}', [AdminTenderCategoryController::class, 'destroy'])->name('tender-categories.destroy');
 
     /*
      * Vacancies are content: a careers page is a page. The people
