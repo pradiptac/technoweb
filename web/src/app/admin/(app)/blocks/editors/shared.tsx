@@ -260,6 +260,40 @@ export function NumberChoice({ path, label, options, placeholder, hint }: {
   );
 }
 
+/**
+ * A Lottie animation or a 3D model from the library (0.172.0) — `CoverField`
+ * browsing its own half of the library, with "Or paste a link".
+ */
+function MotionPath({ path, label, kind, hint }: { path: Path; label: string; kind: "lottie" | "model"; hint?: string }) {
+  const { content, set, err, media, idPrefix } = useBlock();
+  const value = getIn(content, path);
+  const stored = typeof value === "string" ? value : null;
+  const message = err(path);
+  return (
+    <div>
+      <CoverField
+        name={`_media_${idPrefix ?? "b"}-${path.join("-")}`}
+        label={label}
+        kind={kind}
+        accept={kind === "lottie" ? ".json,.lottie" : ".glb"}
+        hint={hint}
+        defaultPath={stored}
+        defaultUrl={stored ? media[stored] ?? null : null}
+        onPathChange={(p) => set(path, p ?? undefined)}
+      />
+      {message && <p className="-mt-3 mb-4 text-12-5 text-err">{message}</p>}
+    </div>
+  );
+}
+
+export function LottiePath({ path, label = "Animation", hint }: { path: Path; label?: string; hint?: string }) {
+  return <MotionPath path={path} label={label} kind="lottie" hint={hint} />;
+}
+
+export function ModelPath({ path, label = "3D model", hint }: { path: Path; label?: string; hint?: string }) {
+  return <MotionPath path={path} label={label} kind="model" hint={hint} />;
+}
+
 const VIDEO_HINT = "An MP4 from the media library. Keep it short and small — it loads when somebody presses play.";
 
 /** A video from the library — the slide repeater's picker, widened to MP4. */

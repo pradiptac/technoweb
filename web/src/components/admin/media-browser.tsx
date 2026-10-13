@@ -1,5 +1,6 @@
 "use client";
 
+import type { MediaKind } from "./media-browser-actions";
 import { useEffect, useState, useTransition } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Input, Select } from "@/components/ui/input";
@@ -35,7 +36,7 @@ export function MediaBrowser({
    * almost every caller wants; `"file"` is the documents tab, which is where a
    * newsletter's PDF attachment comes from.
    */
-  kind?: "image" | "file";
+  kind?: MediaKind;
   title?: string;
   accept?: string;
   /** The field's picture spec, for the crop step and the hint (0.169.0). */
@@ -175,7 +176,11 @@ export function MediaBrowser({
       title={title ?? "Insert from the media library"}
       description={kind === "file"
         ? "Choose a document. It is attached under the name shown here."
-        : "Choose an image to place at the cursor. Alt text comes with the file."}
+        : kind === "lottie"
+          ? "Choose a Lottie animation (.json or .lottie)."
+          : kind === "model"
+            ? "Choose a 3D model (.glb)."
+            : "Choose an image to place at the cursor. Alt text comes with the file."}
     >
       <div className="mb-4 flex flex-wrap gap-2">
         <Input
@@ -210,7 +215,7 @@ export function MediaBrowser({
           multiple
           accept={accept ?? ".png,.jpg,.jpeg,.gif,.webp,.svg"}
           onFiles={(files) => { void upload(Array.from(files)); }}
-          label={uploading ? "Uploading…" : kind === "file" ? "Upload a document…" : "Upload an image…"}
+          label={uploading ? "Uploading…" : kind === "file" ? "Upload a document…" : kind === "lottie" ? "Upload an animation…" : kind === "model" ? "Upload a 3D model…" : "Upload an image…"}
           hint={kind === "image" ? `${imageHint(spec, limits)}. It goes into the library, to be found and reused later.` : "It goes into the library, so it can be found and reused later."}
           progress={uploading}
         />

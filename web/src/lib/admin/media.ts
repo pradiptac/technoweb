@@ -238,3 +238,18 @@ export async function deleteMedia(id: number): Promise<void> {
   await apiFetch<void>(`/admin/media/${id}`, { method: "DELETE", token: await token() });
 }
 
+/**
+ * Copies a file at a public address into the library (0.172.0,
+ * `POST /admin/media/import-url`): the API downloads it once, through
+ * `SafeHttp`, and checks it exactly as an upload — so a pasted LottieFiles or
+ * Sketchfab link becomes a library file and no visitor's browser ever fetches
+ * from that site.
+ */
+export async function importMediaUrl(url: string): Promise<MediaItem> {
+  const res = await apiFetch<{ data: MediaItem }>("/admin/media/import-url", {
+    method: "POST",
+    token: await token(),
+    body: { url },
+  });
+  return res.data;
+}

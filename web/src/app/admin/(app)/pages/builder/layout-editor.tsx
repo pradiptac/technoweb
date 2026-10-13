@@ -11,7 +11,7 @@ import { Field, Select } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { LayoutField, LayoutOptions, LayoutWidgetSpec } from "@/types/api";
 import {
-  Choice, IconPick, ImagePath, NumberChoice, Repeater, Text, Toggle, VideoPath, getIn, useBlock, type Json, type Path,
+  Choice, IconPick, ImagePath, LottiePath, ModelPath, NumberChoice, Repeater, Text, Toggle, VideoPath, getIn, useBlock, type Json, type Path,
 } from "../../blocks/editors/shared";
 
 /**
@@ -776,6 +776,8 @@ function FieldInput({ field, path, widgetId }: { field: LayoutField; path: Path;
     case "html": return <HtmlInput field={field} path={path} widgetId={widgetId} />;
     case "path": return <ImagePath path={path} label={field.label} hint={field.hint ?? undefined} />;
     case "video": return <VideoPath path={path} label={field.label} />;
+    case "lottie": return <LottiePath path={path} label={field.label} />;
+    case "model": return <ModelPath path={path} label={field.label} />;
     case "youtube": return <Text path={path} label={field.label} placeholder="https://www.youtube.com/watch?v=…" required={field.required} hint="A watch, share or embed link. Nothing is loaded from YouTube until a visitor presses play." />;
     case "ref": return <RecordPick field={field} path={path} />;
     case "icon": return <IconPick path={path} label={field.label} />;

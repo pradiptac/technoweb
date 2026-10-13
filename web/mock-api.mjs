@@ -2394,6 +2394,8 @@ const SECTION_TYPES = [
   { value: 'product_videos', label: 'Product videos', blurb: 'A row of the shop’s product videos, each with its product under it — picture, name, price and an Add to basket button. Whole shop or one category; it follows the videos on the products.' },
   { value: 'layout', label: 'Custom layout', blurb: 'Rows and columns you arrange yourself, filled with headings, text, pictures, buttons, icon boxes, questions and lists.' },
   { value: 'custom_code', label: 'Custom code', blurb: 'HTML, CSS and script pasted in as it is, such as the widget a vendor supplies, a booking tool, a calculator. It runs in a sandboxed frame that cannot reach the rest of the page.' },
+  { value: 'lottie', label: 'Animation', blurb: 'A Lottie animation from the media library, played when it comes into view — once, or looping with a pause button.' },
+  { value: 'model', label: '3D model', blurb: 'A 3D model (.glb) from the media library that visitors can turn with a finger or the mouse, turning slowly by itself.' },
   { value: 'theme_section', label: 'From the theme', blurb: 'One of the theme’s own homepage sections — the hero, the solutions, the partners, the closing band — drawn the way the active theme draws it, and changing when the theme does.' },
 ];
 /* The AI page builder's refusal while the AI SEO assistant is off (0.116.0) — the API's sentence. */
@@ -2597,6 +2599,16 @@ const LAYOUT_OPTIONS = {
       { key: 'poster_path', kind: 'path', label: 'Cover picture (optional)', max: 255, required: false },
       lf.choice('ratio', 'Shape', '16:9', { '16:9': 'Wide, 16 : 9', '4:3': '4 : 3', '1:1': 'Square', '9:16': 'Tall, 9 : 16' }),
       lf.text('caption', 'Caption (optional)', 200)] },
+    /* 0.172.0: an animation and a 3D model, as LayoutRules::widgets() describes them. */
+    { value: 'lottie', label: 'Animation', blurb: 'A Lottie animation from the media library, played when it comes into view.', fields: [
+      { key: 'file_path', kind: 'lottie', label: 'Animation', max: 255, required: true },
+      lf.text('alt', 'What it shows (optional)', 200),
+      lf.choice('loop', 'Loop', 'no', { no: 'Play once', yes: 'Loop, with a pause button' })] },
+    { value: 'model', label: '3D model', blurb: 'A 3D model (.glb) visitors can turn.', fields: [
+      { key: 'file_path', kind: 'model', label: '3D model', max: 255, required: true },
+      { key: 'alt', kind: 'text', label: 'What it shows', max: 200, required: true },
+      { key: 'poster_path', kind: 'path', label: 'Poster (optional)', max: 255, required: false },
+      lf.choice('rotate', 'Turn by itself', 'yes', { yes: 'Yes', no: 'No' })] },
     /* 0.154.0: the four containers, as LayoutRules::widgets() describes them; child_types is every widget but a container and the embeds. */
     { value: 'box', label: 'Box', blurb: 'A framed area holding other widgets: a card, a raised card or a tinted panel.', fields: [
       lf.choice('surface', 'Look', 'card', { card: 'Card', raised: 'Raised card', tint: 'Tinted panel' }),
@@ -2818,6 +2830,16 @@ function presentSections(blocks) {
         video: rest.layout === 'cover' ? url(video_path) : null,
       } };
     }
+    /* An animation and a 3D model (0.172.0): the file a URL, a Lottie's format and width ÷ height. */
+    if (b.type === 'lottie' || b.type === 'model') {
+      const { file_path, poster_path, ...rest } = b.data ?? {};
+      if (!file_path) return null;
+      const url = (p) => `http://127.0.0.1:8899/storage/${p}`;
+      const extra = b.type === 'lottie'
+        ? { format: file_path.endsWith('.lottie') ? 'lottie' : 'json', ratio: 1 }
+        : { poster: poster_path ? url(poster_path) : null, poster_alt: poster_path ? '' : null };
+      return { id: b.id, type: b.type, background: b.background, reveal: b.reveal ?? null, style: b.style ?? null, data: { ...rest, file: url(file_path), ...extra } };
+    }
     /* The shop's product videos (0.140.0): the tiles `VideoShelf` builds; none drops the section, as the API does. */
     if (b.type === 'product_videos') {
       const { category_id, limit, ...rest } = b.data ?? {};
@@ -2846,6 +2868,13 @@ function presentSections(blocks) {
           const { video_path, poster_path, ...rest } = w;
           if (w.source === 'mp4' ? !video_path : !w.youtube) return null;
           return { ...rest, ...(video_path ? { video: url(video_path) } : {}), ...(poster_path ? { poster: url(poster_path), poster_alt: '' } : {}) };
+        }
+        if (w.type === 'lottie' || w.type === 'model') {
+          const { file_path, poster_path, ...rest } = w;
+          if (!file_path) return null;
+          return w.type === 'lottie'
+            ? { ...rest, file: url(file_path), format: file_path.endsWith('.lottie') ? 'lottie' : 'json', ratio: 1 }
+            : { ...rest, file: url(file_path), ...(poster_path ? { poster: url(poster_path), poster_alt: '' } : {}) };
         }
         if (w.type !== 'image') return w;
         if (!w.image_path) return null;

@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { IconCheck } from "@/components/icons-ui";
 import { ProductVideoPlayer } from "@/components/product/product-video";
+import { LottiePlayer } from "@/components/ui/lottie-player";
+import { ModelStage } from "@/components/ui/model-stage";
 import { ArrowLink, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { QuestionAccordion } from "@/components/ui/faq";
@@ -156,6 +158,28 @@ export function Widget({
             />
           </div>
           {widget.caption && <figcaption className={cn("mt-2 text-13-5 leading-snug text-muted", WRAP)}>{widget.caption}</figcaption>}
+        </figure>
+      );
+    }
+
+    case "lottie": {
+      // An animation (0.172.0): its box takes the file's own width ÷ height.
+      if (!widget.file) return null;
+      return (
+        <figure data-widget="lottie" data-layout-widget={widget.id} className={cn("m-0 min-w-0", gone)}>
+          <div className="w-full" style={{ aspectRatio: String(widget.ratio && widget.ratio > 0 ? widget.ratio : 1) }}>
+            <LottiePlayer file={widget.file} format={widget.format ?? "json"} loop={widget.loop === true || widget.loop === "yes"} alt={widget.alt} />
+          </div>
+        </figure>
+      );
+    }
+
+    case "model": {
+      // A 3D model (0.172.0) at a fixed height, turning slowly unless Rotate is off.
+      if (!widget.file) return null;
+      return (
+        <figure data-widget="model" data-layout-widget={widget.id} className={cn("m-0 h-90 min-w-0", gone)}>
+          <ModelStage file={widget.file} alt={widget.alt || "3D model"} poster={widget.poster} posterAlt={widget.poster_alt} rotate={!(widget.rotate === false || widget.rotate === "no")} />
         </figure>
       );
     }

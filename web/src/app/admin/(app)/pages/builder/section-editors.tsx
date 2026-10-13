@@ -4,7 +4,7 @@ import Link from "next/link";
 import { EditorField } from "@/components/admin/editor-field";
 import { Field, Select, Textarea } from "@/components/ui/input";
 import {
-  Choice, FilePath, IconPick, ImagePath, NumberChoice, NumberInput, Repeater, Row, Text, Toggle, VideoPath, getIn, useBlock, type Path,
+  Choice, FilePath, IconPick, ImagePath, LottiePath, ModelPath, NumberChoice, NumberInput, Repeater, Row, Text, Toggle, VideoPath, getIn, useBlock, type Path,
 } from "../../blocks/editors/shared";
 import type { PageBuilderOptions, PageSectionType } from "@/types/api";
 import { HOME_SECTIONS } from "@/themes/options";
@@ -38,6 +38,8 @@ export function blankData(type: PageSectionType): Record<string, unknown> {
     case "faq": return { source: "custom", items: [{}] };
     case "logos": return { source: "clients" };
     case "video": return { source: "youtube" };
+    case "lottie": return { size: "m", align: "center" };
+    case "model": return { height: "m", rotate: true };
     case "divider": return { size: "medium", rule: true };
     case "stats": return { display: "figures", columns: 4, items: [{}, {}, {}] };
     case "steps": return { layout: "vertical", items: [{}, {}, {}] };
@@ -545,6 +547,42 @@ export function SectionEditor({ type, sectionId, options }: {
         </>
       );
     }
+
+    case "lottie":
+      return (
+        <>
+          <Text path={["heading"]} label="Heading" />
+          <Text path={["lede"]} label="Lede" multiline />
+          <LottiePath path={["file_path"]} label="Animation" />
+          <Text path={["alt"]} label="What it shows" hint="Read out by a screen reader. Leave blank if it is decoration only." />
+          <Row>
+            <Choice path={["size"]} label="Size" fallback="m" options={[
+              { value: "s", label: "Small" }, { value: "m", label: "Medium" }, { value: "l", label: "Large" },
+            ]} />
+            <Choice path={["align"]} label="Position" fallback="center" options={[
+              { value: "center", label: "Centred" }, { value: "start", label: "On the left" },
+            ]} />
+          </Row>
+          <Toggle path={["loop"]} label="Loop" hint="Plays once when it comes into view unless this is on; a looping animation gets a pause button. Still for visitors who ask for less motion." />
+        </>
+      );
+
+    case "model":
+      return (
+        <>
+          <Text path={["heading"]} label="Heading" />
+          <Text path={["lede"]} label="Lede" multiline />
+          <ModelPath path={["file_path"]} label="3D model" />
+          <Text path={["alt"]} label="What it shows" required hint="Read out by a screen reader, and shown if the model cannot load." />
+          <ImagePath path={["poster_path"]} label="Poster (optional)" hint="Shown until the model has loaded. A picture of the model works best." />
+          <Row>
+            <Choice path={["height"]} label="Height" fallback="m" options={[
+              { value: "s", label: "Small" }, { value: "m", label: "Medium" }, { value: "l", label: "Large" },
+            ]} />
+          </Row>
+          <Toggle path={["rotate"]} label="Turn slowly by itself" hint="Visitors can always drag it round. Still for visitors who ask for less motion." />
+        </>
+      );
 
     case "divider":
       return (

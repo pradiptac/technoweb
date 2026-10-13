@@ -10,6 +10,7 @@ import type { PageSection } from "@/types/api";
 import type { SectionDeviceStyle, SectionStyle } from "@/types/page-sections";
 import { cn } from "@/lib/utils";
 import { HeroSection } from "./hero-section";
+import { LottieSection, ModelSection } from "./motion-sections";
 import {
   DividerSection, FeaturesSection, MediaTextSection, RichTextSection, TestimonialSection, VideoSection,
 } from "./content-sections";
@@ -237,6 +238,8 @@ function renderSection(
   switch (section.type) {
     case "hero": return <HeroSection data={section.data} first={first} crumbs={crumbs} eager={eager} revealId={section.reveal} sectionId={section.id} still={marked} />;
     case "rich_text": return <RichTextSection data={section.data} reveal={reveal} />;
+    case "lottie": return <LottieSection data={section.data} reveal={reveal} />;
+    case "model": return <ModelSection data={section.data} reveal={reveal} />;
     case "media_text": return <MediaTextSection data={section.data} eager={eager} reveal={reveal} />;
     case "features": return <FeaturesSection data={section.data} reveal={reveal} />;
     case "cards": return <CardsSection data={section.data} eager={eager} reveal={reveal} />;

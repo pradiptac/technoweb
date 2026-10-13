@@ -40,6 +40,8 @@ export type PageSectionType =
   | "product_videos"
   /** The support network's map and centres (0.170.0), live from the API. */
   | "support_network"
+  /** A Lottie animation and a 3D model from the media library (0.172.0). */
+  | "lottie" | "model"
   /** A library section placed linked (0.106.0): stored as `{saved_id}`, drawn as the library's section. */
   | "saved";
 
@@ -96,6 +98,16 @@ export type EmbedSectionData = { heading?: string; lede?: string; slug: string }
 export type FaqSectionData = { heading?: string; source: "page" | "custom"; items: { question: string; answer: string }[] };
 export type LogosSectionData = { heading?: string; source: "clients" | "brands" };
 export type TestimonialSectionData = Picture<"photo"> & { quote: string; name: string; role?: string };
+/** A Lottie animation (0.172.0): the file, its format and its width ÷ height, from the media row. */
+export type LottieSectionData = {
+  heading?: string; lede?: string; file: string; format: "json" | "lottie"; ratio: number;
+  alt?: string | null; loop?: boolean; size?: "s" | "m" | "l"; align?: "center" | "start";
+};
+/** A 3D model (0.172.0): a binary glTF, a description, an optional poster. */
+export type ModelSectionData = {
+  heading?: string; lede?: string; file: string; alt: string;
+  poster?: string | null; poster_alt?: string | null; rotate?: boolean; height?: "s" | "m" | "l";
+};
 export type VideoSectionData = { heading?: string; source: "youtube" | "mp4"; youtube?: string | null; video?: string | null; caption?: string };
 export type DividerSectionData = { size?: "small" | "medium" | "large"; rule?: boolean };
 
@@ -188,7 +200,10 @@ export type LayoutLeaf =
   | {
       type: "video"; source?: "youtube" | "mp4"; youtube?: string; video?: string; poster?: string; poster_alt?: string;
       ratio?: "16:9" | "4:3" | "1:1" | "9:16"; caption?: string;
-    };
+    }
+  /** A Lottie animation and a 3D model (0.172.0); `loop`/`rotate` are the widget's yes/no choices. */
+  | { type: "lottie"; file?: string; format?: "json" | "lottie"; ratio?: number; alt?: string; loop?: "yes" | "no" | boolean }
+  | { type: "model"; file?: string; alt?: string; poster?: string; poster_alt?: string; rotate?: "yes" | "no" | boolean };
 /**
  * The four container widgets (0.154.0): each holds `slots`, and a slot holds
  * ordinary widgets — one level, never another container, form, slider or gallery.
@@ -221,7 +236,7 @@ export type LayoutSectionData = Head & { rows: LayoutRow[] };
  */
 export type LayoutField = {
   key: string;
-  kind: "text" | "html" | "choice" | "bool" | "link" | "path" | "icon" | "youtube" | "video" | "ref";
+  kind: "text" | "html" | "choice" | "bool" | "link" | "path" | "icon" | "youtube" | "video" | "ref" | "lottie" | "model";
   label: string;
   max?: number;
   required?: boolean;
@@ -385,7 +400,9 @@ export type PageSection =
   | Of<"product_videos", ProductVideosSectionData>
   | Of<"support_network", SupportNetworkSectionData>
   | Of<"layout", LayoutSectionData>
-  | Of<"custom_code", CustomCodeSectionData>;
+  | Of<"custom_code", CustomCodeSectionData>
+  | Of<"lottie", LottieSectionData>
+  | Of<"model", ModelSectionData>;
 
 /** A section as stored and edited: paths and ids, and whatever the type's fields are. */
 export type StoredSection = {
