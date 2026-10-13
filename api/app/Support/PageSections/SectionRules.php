@@ -1210,10 +1210,10 @@ final class SectionRules
             }
             // A hero's heading effect: following the site is never stored.
             if ($type === PageSectionType::Hero) {
-                if (($data['kinetic'] ?? null) === 'default' || ($data['kinetic'] ?? null) === '') {
+                if (array_key_exists('kinetic', $data) && in_array($data['kinetic'], [null, '', 'default'], true)) {
                     unset($data['kinetic']);
                 }
-                if (($data['kinetic_words'] ?? null) === '' || ($data['kinetic_words'] ?? false) === null) {
+                if (array_key_exists('kinetic_words', $data) && in_array($data['kinetic_words'], [null, ''], true)) {
                     unset($data['kinetic_words']);
                 }
             }

@@ -403,7 +403,9 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
  * only a rise after mount sets the attribute, and not under Subtle.
  */
 function NewBadge({ count, active }: { count: number; active: boolean }) {
-  const prev = useRef(count);
+  // From zero: the badge mounts when a queue goes from nothing to something,
+  // which is the arrival most worth a pop (counts start at zero per console load).
+  const prev = useRef(0);
   const ref = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -412,7 +414,7 @@ function NewBadge({ count, active }: { count: number; active: boolean }) {
     if (!rose || !el) return;
     el.dataset.bumped = "";
     const t = window.setTimeout(() => { delete el.dataset.bumped; }, 400);
-    return () => window.clearTimeout(t);
+    return () => { window.clearTimeout(t); delete el.dataset.bumped; };
   }, [count]);
   return (
     <span

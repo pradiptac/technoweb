@@ -86,7 +86,7 @@ export async function PageSections({ sections, crumbs, ownsH1 = true, marked = f
   return (
     <div data-page-sections>
       {sections.map((section, i) => {
-        const node = renderSection(section, { first: ownsH1 && i === 0, eager: i <= 1, crumbs, themeId: theme.manifest.id, runCode });
+        const node = renderSection(section, { first: ownsH1 && i === 0, eager: i <= 1, crumbs, themeId: theme.manifest.id, runCode, marked });
         if (!node) return null;
 
         // An in-page menu is drawn bare: its `<nav>` is `position: sticky`,
@@ -226,7 +226,7 @@ const STILL: ReadonlySet<string> = new Set(["content_block", "logos", "divider",
 
 function renderSection(
   section: PageSection,
-  { first, eager, crumbs, themeId, runCode }: { first: boolean; eager: boolean; crumbs: Crumb[]; themeId: string; runCode: boolean },
+  { first, eager, crumbs, themeId, runCode, marked }: { first: boolean; eager: boolean; crumbs: Crumb[]; themeId: string; runCode: boolean; marked: boolean },
 ): ReactNode {
   // How the section arrives: the editor's choice, or what the type did before
   // there was one — a band rises; a content block, a logo strip and a divider
@@ -235,7 +235,7 @@ function renderSection(
   const reveal = sectionReveal(section.reveal, STILL.has(section.type) ? null : "fade-up");
 
   switch (section.type) {
-    case "hero": return <HeroSection data={section.data} first={first} crumbs={crumbs} eager={eager} revealId={section.reveal} sectionId={section.id} />;
+    case "hero": return <HeroSection data={section.data} first={first} crumbs={crumbs} eager={eager} revealId={section.reveal} sectionId={section.id} still={marked} />;
     case "rich_text": return <RichTextSection data={section.data} reveal={reveal} />;
     case "media_text": return <MediaTextSection data={section.data} eager={eager} reveal={reveal} />;
     case "features": return <FeaturesSection data={section.data} reveal={reveal} />;

@@ -105,6 +105,8 @@ class KineticSettingsTest extends TestCase
         $this->heroPage(['kinetic' => 'Spin It'])->assertUnprocessable()->assertJsonValidationErrors('blocks.0.data.kinetic');
         $this->heroPage(['kinetic' => 'rotate', 'kinetic_words' => implode("\n", array_fill(0, 7, 'w'))])
             ->assertUnprocessable()->assertJsonValidationErrors('blocks.0.data.kinetic_words');
+        $blank = $this->heroPage(['kinetic' => '', 'kinetic_words' => ''])->assertCreated();
+        $this->assertArrayNotHasKey('kinetic', $blank->json('data.blocks.0.data'), 'a blank effect (null after the middleware) is not stored');
         $res = $this->heroPage(['kinetic' => 'default', 'kinetic_words' => ''])->assertCreated();
         $this->assertArrayNotHasKey('kinetic', $res->json('data.blocks.0.data'));
         $this->assertArrayNotHasKey('kinetic_words', $res->json('data.blocks.0.data'));

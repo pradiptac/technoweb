@@ -95,6 +95,10 @@ try {
     const p = await c.newPage();
     await signInAsStaff(p);
     await p.goto(`${BASE}/admin/blog/new`, { waitUntil: "load", timeout: 240000 });
+    // A refused save (no title) must not show "Saved".
+    await p.locator('[data-form-actions] button[type="submit"]').first().click();
+    await p.waitForTimeout(6000);
+    ok(await p.locator("[data-form-actions] [data-saved]").count() === 0, 'a refused save shows no "Saved"');
     const title = `micro-probe-${Date.now()}`;
     await p.locator('input[name="title"]').fill(title);
     await p.locator('[data-form-actions] button[type="submit"]').first().click();

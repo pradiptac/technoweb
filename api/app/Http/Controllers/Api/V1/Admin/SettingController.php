@@ -240,6 +240,13 @@ class SettingController extends Controller
      * console builds its select from `options`, the rule `stats_size` and
      * `schema_type_options` follow.
      */
+    public const STAT_ANIMATIONS = [
+        ['value' => 'none', 'label' => 'None', 'description' => 'The figures are simply there.'],
+        ['value' => 'count', 'label' => 'Count up', 'description' => 'Each number counts up from zero over a second and a half, keeping its sign, unit and decimal places. The default, and what every other figure on the site does.'],
+        ['value' => 'rise', 'label' => 'Rise', 'description' => 'Each figure rises into place as it fades in, one after another along the row.'],
+        ['value' => 'flip', 'label' => 'Flip', 'description' => 'Each character turns in like a split-flap board, one after another.'],
+    ];
+
     /** A homepage hero's heading effect (0.171.0); `default` follows Motion → Hero heading. */
     public const HERO_KINETIC = [
         ['value' => 'default', 'label' => 'As the Motion settings say', 'description' => 'Whatever Motion → Hero heading is set to.'],
@@ -248,13 +255,6 @@ class SettingController extends Controller
         ['value' => 'type', 'label' => 'Typewriter', 'description' => 'The heading types itself in once.'],
         ['value' => 'decode', 'label' => 'Decode', 'description' => 'Each letter flickers through random characters and settles.'],
         ['value' => 'highlight', 'label' => 'Highlight', 'description' => 'A marker stroke draws itself under a word — the one below, or the last word.'],
-    ];
-
-    public const STAT_ANIMATIONS = [
-        ['value' => 'none', 'label' => 'None', 'description' => 'The figures are simply there.'],
-        ['value' => 'count', 'label' => 'Count up', 'description' => 'Each number counts up from zero over a second and a half, keeping its sign, unit and decimal places. The default, and what every other figure on the site does.'],
-        ['value' => 'rise', 'label' => 'Rise', 'description' => 'Each figure rises into place as it fades in, one after another along the row.'],
-        ['value' => 'flip', 'label' => 'Flip', 'description' => 'Each character turns in like a split-flap board, one after another.'],
     ];
 
     private static function optionsFor(string $key): ?array

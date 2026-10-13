@@ -36,7 +36,7 @@ import { SectionButtons } from "./section-parts";
  * The picture is eager on the first two sections, where it is the largest
  * paint, and lazy below — `SectionBg`'s rule.
  */
-export async function HeroSection({ data, first, crumbs, eager, revealId, sectionId }: {
+export async function HeroSection({ data, first, crumbs, eager, revealId, sectionId, still = false }: {
   data: HeroSectionData;
   first: boolean;
   crumbs: Crumb[];
@@ -45,12 +45,17 @@ export async function HeroSection({ data, first, crumbs, eager, revealId, sectio
   revealId?: string | null;
   /** The section's id: the heading's `sr-only` copy is named after it, so two heroes never share one. */
   sectionId: string;
+  /**
+   * The builder's live preview draws the heading still: its in-place editing
+   * finds a field by its words, and a kinetic heading holds them twice.
+   */
+  still?: boolean;
 }) {
   const Heading = first ? "h1" : "h2";
   // The heading's effect (0.171.0, docs/motion.md "Kinetic headings"): the
   // section's own, or Motion → Hero heading when it follows the site.
   const settings = await getSiteSettings();
-  const kinetic = kineticFor(settings.motion_headline, data.kinetic, data.kinetic_words);
+  const kinetic = still ? { effect: "none" as const, words: [] } : kineticFor(settings.motion_headline, data.kinetic, data.kinetic_words);
   const titleId = `k-${sectionId}`;
   const title = kinetic.effect === "none"
     ? data.heading

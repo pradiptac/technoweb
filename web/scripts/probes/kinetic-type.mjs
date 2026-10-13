@@ -71,9 +71,9 @@ try {
   const rotateUrl = await make(`kinetic-probe-rotate-${stamp}`, [
     hero("We keep networks running", "rotate", "servers\nstorage and security"),
     filler(),
-    hero("Support that answers fast", "highlight", "answers"),
+    hero("Support that answers fast and properly every time", "highlight", "answers fast and properly"),
   ]);
-  const typeUrl = await make(`kinetic-probe-type-${stamp}`, [hero("Infrastructure engineered properly", "type")]);
+  const typeUrl = await make(`kinetic-probe-type-${stamp}`, [hero("Telecommunications infrastructure engineered properly", "type")]);
   const decodeUrl = await make(`kinetic-probe-decode-${stamp}`, [hero("Infrastructure engineered properly", "decode")]);
 
   // Server HTML: the whole heading inside the h1.
@@ -184,7 +184,11 @@ try {
     await page.goto(`${BASE}${rotateUrl}`, { waitUntil: "load", timeout: 240000 });
     await page.waitForTimeout(6000);
     const sw = await page.evaluate(() => document.documentElement.scrollWidth);
-    ok(sw <= 320, `320px: no sideways scroll (${sw})`);
+    ok(sw <= 320, `320px: no sideways scroll with a long rotating word or a long highlighted phrase (${sw})`);
+    await page.goto(`${BASE}${typeUrl}`, { waitUntil: "load", timeout: 240000 });
+    await page.waitForTimeout(4000);
+    const sw2 = await page.evaluate(() => document.documentElement.scrollWidth);
+    ok(sw2 <= 320, `320px: a long word in a typed heading wraps rather than scrolling (${sw2})`);
     await c.close();
   }
 

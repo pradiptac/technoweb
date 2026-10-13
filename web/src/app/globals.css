@@ -5373,7 +5373,7 @@ html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active
 .k-slot { display: inline-grid; max-width: 100%; justify-items: start; vertical-align: baseline; }
 .k-slot > [data-k-alt] { grid-area: 1 / 1; }
 .k-slot > [data-k-alt]:not([data-cur]) { visibility: hidden; }
-.k-markword { position: relative; display: inline-block; white-space: nowrap; }
+.k-markword { position: relative; display: inline-block; max-width: 100%; }
 .k-mark { position: absolute; left: -2%; width: 104%; bottom: -.14em; height: .34em; overflow: visible; pointer-events: none; }
 .k-mark path {
   fill: none; stroke: var(--color-brand-600); stroke-opacity: .55; stroke-width: 3; stroke-linecap: round;
@@ -5388,7 +5388,7 @@ html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active
   .kinetic[data-kinetic="highlight"]:not([data-kinetic-done]) .k-mark path { stroke-dashoffset: 1; }
   .kinetic[data-kinetic="highlight"]:not([data-kinetic-done]):not([data-kinetic-armed]) .k-mark path { animation: k-failsafe-draw 1ms 3s forwards; }
   .kinetic[data-kinetic="highlight"][data-kinetic-run] .k-mark path { animation: k-draw 700ms 250ms var(--ease-brand) forwards; }
-  .kinetic [data-k-char][data-s] { -webkit-text-fill-color: transparent; }
+  .kinetic [data-k-char][data-s] { -webkit-text-fill-color: transparent; clip-path: inset(0); }
   .kinetic [data-k-char][data-s]::after { content: attr(data-g); position: absolute; left: 0; top: 0; -webkit-text-fill-color: currentColor; }
   .kinetic [data-k-char][data-caret]::after {
     content: ""; position: absolute; right: -.06em; top: .12em; bottom: .12em; width: .06em;
@@ -5425,7 +5425,8 @@ html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active
 
   :is([data-motion-micro="lively"], [data-console]) [data-switch]::after { transition-timing-function: cubic-bezier(.34, 1.56, .64, 1); }
 
-  :is([data-motion-micro="lively"], [data-console]) input:is([type="checkbox"]:not([role="switch"]), [type="radio"]):checked { animation: micro-pop 160ms var(--ease-brand); }
+  :is([data-motion-micro="lively"], [data-console]) input:is([type="checkbox"]:not([role="switch"]), [type="radio"]):checked:focus-visible,
+  :is([data-motion-micro="lively"], [data-console]) input:is([type="checkbox"]:not([role="switch"]), [type="radio"]):checked:active { animation: micro-pop 160ms var(--ease-brand); }
 
   :is([data-motion-micro="lively"], [data-console]) [data-copied] { transition: scale var(--duration-base) var(--ease-brand), opacity var(--duration-base) var(--ease-brand); }
   @starting-style {

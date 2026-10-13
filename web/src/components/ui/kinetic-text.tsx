@@ -63,6 +63,12 @@ export function KineticText({ text, effect, words, id, lastWordClassName }: {
     // `useMotionOk` reads false until it has asked; this effect runs again when it answers.
     if (!motionOk) return;
     if (automated()) { el.dataset.kineticDone = ""; return; }
+    // Hydration slower than the 3s failsafe: the words are already showing,
+    // and hiding them to type them again would be a flash. Rotate never hides.
+    if (effect !== "rotate" && performance.now() > 3000 && el.getBoundingClientRect().top < window.innerHeight) {
+      el.dataset.kineticDone = "";
+      return;
+    }
 
     let cancelled = false;
     const timers: ReturnType<typeof setTimeout>[] = [];
@@ -137,7 +143,7 @@ export function KineticText({ text, effect, words, id, lastWordClassName }: {
   const steps = useRef(0);
   useEffect(() => {
     const el = ref.current;
-    if (!running || !playing || !el) return;
+    if (!running || !playing || !motionOk || !el) return;
     let held = false;
     const hold = () => { held = true; };
     const go = () => { held = false; };
@@ -150,19 +156,19 @@ export function KineticText({ text, effect, words, id, lastWordClassName }: {
       setCur(next);
       if (next === 0) {
         el.dataset.kineticDone = "";
-        delete el.dataset.kineticRun;
+        window.setTimeout(() => { delete el.dataset.kineticRun; }, 450);
         setRunning(false);
       }
     }, ROTATE_DWELL);
     return () => { clearInterval(t); el.removeEventListener("pointerenter", hold); el.removeEventListener("pointerleave", go); };
-  }, [running, playing, alts.length]);
+  }, [running, playing, motionOk, alts.length]);
 
   const lettered = (s: string): ReactNode => {
     const parts = s.split(/(\s+)/);
     let lastIdx = -1;
     parts.forEach((p, i) => { if (p.trim() !== "") lastIdx = i; });
     return parts.map((p, i) => (p.trim() === "" ? <Fragment key={i}>{p}</Fragment> : (
-      <span key={i} className={cn("whitespace-nowrap", i === lastIdx && lastWordClassName)}>
+      <span key={i} className={cn(i === lastIdx && lastWordClassName)}>
         {Array.from(p).map((ch, k) => <span key={k} data-k-char="">{ch}</span>)}
       </span>
     )));
@@ -212,7 +218,7 @@ export function KineticText({ text, effect, words, id, lastWordClassName }: {
           tabIndex={running ? undefined : -1}
           className={cn(
             "k-pause ml-2 inline-grid size-7 place-items-center rounded-full border border-line-strong bg-card align-middle text-ink",
-            !running && "invisible",
+            !running && "pointer-events-none opacity-0 focus-visible:opacity-100",
           )}
         >
           {playing ? (

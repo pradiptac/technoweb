@@ -149,6 +149,9 @@ export function FormActions({
   useEffect(() => {
     const onSaved = () => {
       if (Date.now() - lastSubmitAt > 15000) return;
+      // Used once: a second `ok` toast, or another screen opened straight
+      // after, is not this save.
+      lastSubmitAt = 0;
       const button = ref.current?.querySelector<HTMLButtonElement>('button[type="submit"]');
       if (!button || button.querySelector("[data-saved]")) return;
       const label = document.createElement("span");
@@ -159,11 +162,13 @@ export function FormActions({
       button.append(label);
       window.setTimeout(() => { label.remove(); delete button.dataset.savedSwap; }, 1600);
     };
+    const onRefused = () => { lastSubmitAt = 0; };
     window.addEventListener("tw:saved", onSaved);
+    window.addEventListener("tw:refused", onRefused);
     // A create redirects here and its toast may be raised before this bar
     // is listening: take one that arrived a moment ago.
     if (Date.now() - lastOkToastAt() < 3000) onSaved();
-    return () => window.removeEventListener("tw:saved", onSaved);
+    return () => { window.removeEventListener("tw:saved", onSaved); window.removeEventListener("tw:refused", onRefused); };
   }, []);
 
   // Ctrl/⌘ S.

@@ -119,6 +119,9 @@ export function ToastProvider({ children, okDuration = null }: { children: React
     if (tone === "ok" && typeof window !== "undefined") {
       okAt = Date.now();
       window.dispatchEvent(new CustomEvent("tw:saved", { detail: { title: input.title } }));
+    } else if ((tone === "err" || tone === "warn") && typeof window !== "undefined") {
+      // A refusal ends the wait for a "Saved" (form-actions.tsx).
+      window.dispatchEvent(new CustomEvent("tw:refused"));
     }
   }, []);
 
