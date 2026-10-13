@@ -568,6 +568,11 @@ A hero's heading can move: **rotating words**, **typewriter**, **decode** or
 
 `kinetic_words` is in `SectionRules::NOT_INLINE`. Its words are not one run on the page, so the live preview must not offer to edit them in place.
 
+**Two things the rerun after the review fixes measured** (0.172.0, both regressions from that pass):
+
+- **A lettered heading has no break opportunity of its own.** Each letter is its own inline box, so a single long word cannot break and ran 30px past a 320px screen — the probe measured `scrollWidth` 350. The two effects that split a word into letters carry `overflow-wrap: anywhere`, which lets the line break between letter boxes; that is the same thing as breaking inside the word, because the word *is* the boxes. Removing `whitespace-nowrap` (the fix for the wide case) did not cover this, since a word with no space in it has nowhere to wrap.
+- **A button hidden with `opacity-0` is still a button.** Under reduced motion the words never move, and the Pause button was rendered anyway with `pointer-events-none opacity-0 focus-visible:opacity-100` — a 28px box that a screen reader and the probe both find, and that the audit's tap-target check would read as a target. It is not rendered at all unless `useMotionOk()` has answered yes. That hook answers false until it has asked, which is what the server renders too, so the first client render agrees with the HTML and there is no mismatch.
+
 ## Small interactions (0.171.0, 2026-10-13)
 
 `motion_micro` is **Lively** (the default) or **None**. `motionAttrs()` stamps it as `data-motion-micro` on the marketing and portal wrappers.
