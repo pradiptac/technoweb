@@ -152,6 +152,31 @@ everywhere — the public site, the customer portal and the console.
   of the nineteen are for headlines only, so the body list is shorter).
 - A preview below the fields shows the choice in both light and dark.
 
+### Colours from your logo
+
+Under **Custom colours** there is a button, **Take our colours from the
+logo**. Press it and we read the logo you uploaded under
+**Settings → General** and offer up to three palettes made from its colours:
+the colour there is most of, the boldest one, and the darkest one. Press the
+one you like and its colours drop into the boxes above — **nothing changes on
+the site until you save**.
+
+Worth knowing:
+
+- It fills **Primary**, **Secondary**, **Accent** and the **top bar**. Your
+  Background and Text are left alone, because a logo says nothing about the
+  colour of the page behind it.
+- **A logo with one colour** is still used: that colour becomes Primary and
+  the other two are worked out from it. The screen says when it has done that.
+- **A black, white or grey logo** has no colour to take, and it says so rather
+  than making the site grey.
+- Whatever it offers, every colour is still adjusted to stay readable, exactly
+  as a colour you type is.
+
+You can also do this from a picture that is not your logo: open it in
+**Content → Media**, press **Edit**, and use *Make the site's colours from
+this*. That is for administrators, since the colours are a site setting.
+
 ### Your own fonts
 
 If your company has its own typeface, open **Your own fonts** under the two

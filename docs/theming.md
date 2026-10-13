@@ -195,3 +195,101 @@ heading under `/theme-preview/classic` for that reason.
 repository's own WOFF2 files, chooses it, and checks the declaration, the
 computed family, that the browser loaded the face, the file's origin, type
 and cache, the preload, and that removing it puts everything back.
+
+## Brand from a logo (0.173.0)
+
+An editor presses one button and the palette comes from the company's logo.
+Three readings of the same file, offered as tiles; the one they press fills
+the Custom colours fields and **Save is what applies it**.
+
+**The API reads the logo, not the browser.** All three places that offer this
+already have the file on the API's disk, and a browser cannot read it: the
+logo is served from the API's origin, so a canvas drawn from it is tainted
+and a `fetch` of it is refused — the wall 0.172.0's players hit. Reading it
+in PHP is one implementation that also works in the setup wizard, where there
+is no React at all.
+
+**Two readers, because a logo is as often a vector as a picture.** GD cannot
+read SVG, and most logos in this product are SVG.
+
+| File | How |
+|---|---|
+| PNG, JPG, WebP, GIF | `Placeholder`'s own GD branch — the same header read, the same megapixel refusal, the same `imagecreatefrom*` — resampled to 96px on the long side, pixels bucketed to the nearest 16 and counted, each bucket reported as its own mean so the answer is a colour that is *in* the picture |
+| SVG | `DOMDocument` with `LIBXML_NONET`, as `SvgSanitiser` loads: `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color`, from attributes, from a `style` attribute and from a `<style>` block |
+
+Three things each reader gets right because they were got wrong first in
+thought:
+
+- **A transparent pixel is not a colour.** GD's alpha runs 0 opaque to 127
+  clear, the opposite way round from CSS; over half clear is skipped. Without
+  it, black-at-alpha-0 is the most common value in every logo with a margin
+  and leads every reading.
+- **A `<style>` block is where a logo usually states its colours** — the
+  common Illustrator export puts them in classes and nowhere else. Read the
+  attributes alone and a plainly two-tone file answers "no colour".
+- **Weight is area where a shape states one.** A `rect`, `circle` or
+  `ellipse` contributes its share of the `viewBox` rather than one element's
+  worth, so a logo whose ground is one big rect does not lose to a mark made
+  of forty small paths.
+
+**A colour is a brand colour only if it has chroma** — `BrandPalette::MIN_CHROMA`,
+0.04 in OKLCH. Measured: `#f7f7f7` is 0.003 and `#808080` is 0, while the
+palest brand colour the fifteen presets hold is over 0.05. So the white, the
+black and the greys that are most of any logo are never offered, and a black
+wordmark answers "there is nothing to take from this" rather than painting the
+site grey. **OKLCH rather than HSL**, because HSL calls `#ffff00` and
+`#000080` equally saturated, so a floor written in HSL lets a logo's
+near-white through.
+
+**What a reading fills:** Primary, Secondary, Accent and the top bar — never
+the Background or the Text. A logo says nothing about the page's ground, and
+those two are what make a site unreadable.
+
+- `used` "Most of the logo", `bold` "The boldest colour", `deep` "The darkest
+  colour". Each takes its leader as Primary and **the rest in its own order**,
+  so the boldest reading's Secondary is the second boldest, not the second
+  most used.
+- **The bar is the darkest brand colour**, which is the one that can carry
+  white text — and with only one brand colour it is **left blank**. Blank
+  means the generator derives the bar from the brand in both schemes, and
+  pinning Primary into it would throw that derivation away for nothing.
+- **One or two colours derive the rest** from Primary's hue, +150° for
+  Secondary and −40° for Accent, the relationship the presets hold. The
+  reading carries `derived` and the screen says so in a sentence.
+- Two readings that come out identical are collapsed: offering the same tile
+  twice asks an editor to choose between two identical things.
+
+**Nothing here can ship a failing contrast, and that is structural rather
+than checked.** Every hex goes to the frontend's generator, where a typed hex
+is hue intent and never a literal — it pushes each colour until it clears
+WCAG AA exactly as it does for one an editor types, and `npm run themes`
+gates that across thirty palettes. So these classes choose colours and make
+no promise about contrast, and no contrast check lives here.
+
+**It suggests and never writes**, with one exception. `POST
+/admin/settings/palette-from-logo` is `role:admin`, throttled 20/min, and a
+test asserts the settings are byte-identical after it. The exception is the
+**setup wizard**, which has no second screen to save from: there a tick
+applies the reading through `App\Support\System\LogoBrand::apply()` — out of
+the framework-free `Wizard.php` and somewhere a test can reach it, the
+`Branding::apply()` pattern.
+
+**The wizard's screen sits between Install and Start the website**, not
+beside the company's name where it belongs on screen. The site step runs
+before the environment is written and before the tables exist, so there is no
+media library to put a file in and no settings row to point at it; by the
+screen after Install, Laravel is up, and the warm step that follows renders
+the pages with whatever palette was chosen. That one step posts
+`multipart/form-data`, so the handler reads `$_POST` for it — a boundary
+cannot be written by hand, and `php://input` is not JSON there. The upload
+goes through `MediaUploader`, so the library's limits and the SVG sanitiser
+apply as they would in the console.
+
+**The media library hands a picture over as a link**,
+`/admin/themes?palette=<path>`, and only for an administrator: colours do not
+travel between screens, the screen that owns them reads them. A path rather
+than an id, because the endpoint takes a path and a second way to name a file
+is a second lookup rule to keep in step.
+
+`ColourTest`, `LogoColoursTest`, `BrandPaletteTest`, `PaletteFromLogoTest`,
+`LogoBrandTest`.

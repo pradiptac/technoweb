@@ -21,6 +21,17 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.173.0 — 2026-10-13
+
+**Your colours, from your logo.** Release A6 of the 2.0 roadmap.
+
+- **One button on Site → Themes:** *Take our colours from the logo*. We read the logo you uploaded and offer up to three palettes made from its colours — the colour there is most of, the boldest, and the darkest. Press one and the colours drop into the fields; nothing changes on the site until you save.
+- **It fills Primary, Secondary, Accent and the top bar.** Your Background and Text are left alone, because a logo says nothing about the colour of the page behind it.
+- **A one-colour logo still works:** that colour becomes Primary and the other two are worked out from it, and the screen says so. A black, white or grey logo has no colour to take, and it says that rather than making the site grey.
+- **Every colour is still adjusted to stay readable**, exactly as a colour you type in is.
+- **From any picture, too:** open it in Content → Media, press Edit, and use *Make the site's colours from this* (administrators).
+- **The setup wizard now takes your logo**, on a new optional step after the install, and offers the same palettes — so a fresh install can be your colours before anybody signs in.
+
 ## 0.172.0 — 2026-10-13
 
 **Animations and 3D models.** Release A3 of the 2.0 roadmap.

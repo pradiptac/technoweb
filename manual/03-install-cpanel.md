@@ -46,7 +46,22 @@ Use the full names in the setup.
    `AN-2026-00001`); see **System → Settings → Reference numbers** to change
    them.
 
-## 6. Start the website
+## 6. Your logo (optional)
+
+After the install finishes, the wizard offers to take your logo. Upload a
+PNG, JPG, WebP or SVG under 2 MB — a version on a transparent background
+works best — and it is saved to your media library and set as the site's
+logo.
+
+If the logo has colour in it, the wizard then offers up to three palettes
+made from it: the colour there is most of, the boldest, and the darkest.
+Press one to use it. A black, white or grey logo has no colour to take, and
+it says so.
+
+Both are optional. **Skip this** goes straight on, and you can upload the
+logo and choose colours later in the console — chapter 15.
+
+## 7. Start the website
 
 When the wizard reaches **Start the website**:
 
@@ -64,7 +79,7 @@ When the wizard reaches **Start the website**:
 If the website address was showing cPanel's default page before, that page
 goes away as soon as the application is created.
 
-## 7. Add the scheduler
+## 8. Add the scheduler
 
 **Advanced → Cron Jobs**:
 
@@ -81,7 +96,7 @@ If the wizard shows plain `php` at the start of the line, ask your host for the
 full path to PHP 8.3's command-line program, or see
 [23 — Troubleshooting](23-troubleshooting.md).
 
-## 8. Done
+## 9. Done
 
 Open the console at `https://www.example.com/admin` and sign in with the
 administrator email you gave.
