@@ -209,7 +209,14 @@ export function KineticText({ text, effect, words, id, lastWordClassName }: {
     <span ref={ref} className="kinetic" data-kinetic={effect}>
       <span id={id} className="sr-only">{text}</span>
       <span aria-hidden="true">{body}</span>
-      {effect === "rotate" && (
+      {/*
+        * Only where the words can actually move. Under reduced motion rotate
+        * never runs, and a button hidden with `opacity-0` is still a 28px box
+        * a screen reader and a probe both find — so there is none at all.
+        * `useMotionOk` answers false until it has asked, which is what the
+        * server renders too, so the first client render agrees with it.
+        */}
+      {effect === "rotate" && motionOk && (
         <button
           type="button"
           onClick={() => setPlaying((p) => !p)}

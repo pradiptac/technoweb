@@ -5370,6 +5370,14 @@ html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active
  * (`max-width: 100%`) rather than run past a phone's edge.
  */
 .kinetic [data-k-char] { position: relative; }
+/*
+ * A lettered heading has no break opportunity of its own: each letter is its
+ * own inline box, so one long word ran 30px past a 320px screen (the probe
+ * measured 350). `anywhere` lets the line break between letters, which in a
+ * heading split into letters is the same thing as breaking inside the word,
+ * and it applies to the two effects that split one.
+ */
+.kinetic:is([data-kinetic="type"], [data-kinetic="decode"]) { overflow-wrap: anywhere; }
 .k-slot { display: inline-grid; max-width: 100%; justify-items: start; vertical-align: baseline; }
 .k-slot > [data-k-alt] { grid-area: 1 / 1; }
 .k-slot > [data-k-alt]:not([data-cur]) { visibility: hidden; }
