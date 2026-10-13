@@ -11,6 +11,7 @@ use App\Enums\PaymentGateway;
 use App\Http\Controllers\Controller;
 use App\Models\ContentBlock;
 use App\Models\Coupon;
+use App\Models\Media;
 use App\Models\Page;
 use App\Models\Setting;
 use App\Support\Announcement;
@@ -21,6 +22,8 @@ use App\Support\Events\EventSettings;
 use App\Support\HtmlSanitiser;
 use App\Support\InboundMail\InboundMail;
 use App\Support\LinkPattern;
+use App\Support\Media\BrandPalette;
+use App\Support\Media\LogoColours;
 use App\Support\MediaUrl;
 use App\Support\Meetings\MeetingSettings;
 use App\Support\Messaging\ProviderOption;
@@ -41,6 +44,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -642,6 +646,61 @@ class SettingController extends Controller
         $setting->forceFill(['value' => null])->save();
 
         return response()->json(['message' => 'Credential cleared.']);
+    }
+
+    /**
+     * The three palettes a logo offers (0.173.0, `docs/theming.md` "Brand
+     * from a logo"). It reads a picture and answers colours; **it writes
+     * nothing** — the console fills the Custom colours fields and Save is
+     * what applies them, the AI assistant's rule.
+     *
+     * `role:admin` because a palette is a settings write, and settings are an
+     * administrator's. The media library is a content manager's screen, so
+     * its own button is drawn only for an account that may reach Themes.
+     */
+    public function paletteFromLogo(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'path' => ['nullable', 'string', 'max:2048'],
+        ]);
+
+        $path = trim((string) ($data['path'] ?? '')) ?: trim((string) Setting::get('logo_path', ''));
+
+        if ($path === '') {
+            throw ValidationException::withMessages([
+                'path' => ['Upload your logo first, under Settings → General.'],
+            ]);
+        }
+
+        $medium = Media::query()->where('path', $path)->first();
+
+        if (! $medium) {
+            throw ValidationException::withMessages([
+                'path' => ['That file is not in the media library.'],
+            ]);
+        }
+
+        if (! str_starts_with((string) $medium->mime, 'image/')) {
+            throw ValidationException::withMessages([
+                'path' => ['That file is not a picture, so it has no colours to read.'],
+            ]);
+        }
+
+        $absolute = Storage::disk($medium->disk ?: 'public')->path($medium->path);
+        $palette = BrandPalette::from(LogoColours::read($absolute));
+
+        if ($palette['readings'] === []) {
+            throw ValidationException::withMessages([
+                'path' => [$palette['colours'] === []
+                    ? 'That file could not be read as a picture.'
+                    : 'This logo is black, white or grey, so there is no brand colour to take from it. Type your colours in below.'],
+            ]);
+        }
+
+        return response()->json(['data' => [
+            ...$palette,
+            'from' => ['path' => $medium->path, 'url' => MediaUrl::for($medium->path)],
+        ]]);
     }
 
     /**

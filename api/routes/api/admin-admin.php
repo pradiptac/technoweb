@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\ActivityController;
-use App\Http\Controllers\Api\V1\Admin\SupportCentreController as AdminSupportCentreController;
 use App\Http\Controllers\Api\V1\Admin\ChatAdminController;
 use App\Http\Controllers\Api\V1\Admin\ClientErrorController as AdminClientErrorController;
 use App\Http\Controllers\Api\V1\Admin\CustomFontController;
@@ -14,6 +13,7 @@ use App\Http\Controllers\Api\V1\Admin\MediaCdnController;
 use App\Http\Controllers\Api\V1\Admin\MessagingSettingsController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\V1\Admin\SiteImportController;
+use App\Http\Controllers\Api\V1\Admin\SupportCentreController as AdminSupportCentreController;
 use App\Http\Controllers\Api\V1\Admin\UserAdminController;
 use App\Http\Controllers\Api\V1\Admin\WebhookController;
 use App\Http\Controllers\Api\V1\Admin\WordPressImportController;
@@ -107,6 +107,11 @@ Route::middleware('role:admin')->group(function () {
     // Clearing a credential is its own action: a blank save means
     // "unchanged", because the form can never show the current one.
     Route::post('settings/clear-secret', [AdminSettingController::class, 'clearSecret'])->name('settings.clear-secret');
+
+    // A palette read from the logo (0.173.0). It writes nothing; the console
+    // fills the colour fields and Save applies them.
+    Route::post('settings/palette-from-logo', [AdminSettingController::class, 'paletteFromLogo'])
+        ->middleware('throttle:20,1')->name('settings.palette-from-logo');
 
     /*
      * Outgoing mail: which transport, and connecting a mailbox.
