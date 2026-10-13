@@ -1,4 +1,5 @@
 import { chromium } from "playwright";
+import { signInAsStaff } from "../shared.mjs";
 
 /**
  * Colours taken from the logo (0.173.0, docs/theming.md "Brand from a logo").
@@ -6,7 +7,7 @@ import { chromium } from "playwright";
  *   BASE=http://localhost:3000 ADMIN_LOGIN_EMAIL=… ADMIN_LOGIN_PASSWORD=… node scripts/probes/logo-palette.mjs
  *
  * Uploads a two-colour SVG whose hexes it knows and sets it as the logo, then
- * on Site → Themes: the button answers tiles whose first reading leads with
+ * on Site → Settings → Colour palette: the button answers tiles whose first reading leads with
  * the colour the logo is mostly made of, pressing a tile fills the six colour
  * fields, and **the stored settings do not move** — Save is what applies it.
  * Then a grey wordmark, which must be refused in the API's own words. The
@@ -74,17 +75,20 @@ try {
   page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) errors.push(m.text().slice(0, 200)); });
 
   // Sign in through the real form, so this is the screen an editor sees.
-  await page.goto(`${BASE}/admin/login`, { waitUntil: "load", timeout: 240000 });
-  await page.locator("a:has-text('password')").first().click().catch(() => {});
-  await page.locator('input[name="email"]').fill(EMAIL);
-  await page.locator('input[type="password"]').first().fill(PASSWORD);
-  await page.locator('button[type="submit"]').first().click();
-  await page.waitForURL(/\/admin(\?|$|\/)/, { timeout: 120000 });
+  // `signInAsStaff` knows the sign-in opens on the code step and switches to
+  // the password form first; waiting for any /admin/ URL would match the
+  // login page itself and read as a sign-in that never happened.
+  await signInAsStaff(page);
 
-  await page.goto(`${BASE}/admin/themes`, { waitUntil: "load", timeout: 240000 });
+  await page.goto(`${BASE}/admin/site/settings?tab=appearance`, { waitUntil: "load", timeout: 240000 });
   // Custom colours holds the button; the panel is hidden until it is chosen.
-  await page.locator('input[type="radio"][value="custom"]').first().click();
-  ok(await page.locator("[data-logo-palette]").isVisible(), "the panel is on the Themes screen under Custom colours");
+  // The radio is `sr-only` inside its label, which is what takes the press.
+  // The wait is explicit because this screen is every public setting there is
+  // and the dev server can take a while to draw it.
+  const customLabel = page.locator('label:has(input[type="radio"][value="custom"])').first();
+  await customLabel.waitFor({ state: "visible", timeout: 180000 });
+  await customLabel.click();
+  ok(await page.locator("[data-logo-palette]").isVisible(), "the panel is under Custom colours on the palette screen");
 
   await page.locator("[data-logo-palette-read]").click();
   const tiles = page.locator("[data-logo-reading]");
@@ -92,13 +96,15 @@ try {
   ok(await tiles.count() >= 1, `the logo answers at least one reading (${await tiles.count()})`);
 
   const first = tiles.first();
-  const swatches = await first.locator("span[style*='background']").evaluateAll(
-    (els) => els.map((e) => e.getAttribute("style") ?? ""),
+  // React writes the swatch as `rgb(...)`, so compare what the browser paints.
+  const painted = await first.locator("span > span").evaluateAll(
+    (els) => els.map((e) => getComputedStyle(e).backgroundColor),
   );
-  ok(swatches.some((s) => s.includes(BLUE)), `the first reading leads with the colour the logo is mostly made of (${BLUE})`);
+  ok(painted.includes("rgb(29, 78, 216)"), `the first reading leads with the colour the logo is mostly made of (${BLUE} — painted ${painted.slice(0, 2).join(", ")})`);
 
   await first.click();
-  const field = (id) => page.locator(`#${id}`).inputValue();
+  // The fields are the settings form's, so each id carries its prefix.
+  const field = (key) => page.locator(`#setting__${key}`).inputValue();
   const primary = (await field("theme_primary")).toLowerCase();
   const secondary = (await field("theme_secondary")).toLowerCase();
   ok(primary === BLUE, `pressing a tile fills Primary (${primary})`);
@@ -111,16 +117,35 @@ try {
   );
 
   // A wordmark with no colour: refused in the API's own words.
+  //
+  // On a second page of the same context, not a reload: pressing a tile left
+  // the settings form dirty, and its leave guard stops a reload — which reads
+  // as the screen not loading rather than as the guard doing its job.
   H = await login();
   await setLogo(H, grey.path);
-  await page.reload({ waitUntil: "load", timeout: 240000 });
-  await page.locator('input[type="radio"][value="custom"]').first().click();
-  await page.locator("[data-logo-palette-read]").click();
-  const refusal = page.locator("[data-logo-palette-error]");
+  // `runBeforeUnload: false` skips the dirty form's leave guard rather than
+  // arguing with it: this page's work is done.
+  await page.close({ runBeforeUnload: false });
+  const greyPage = await ctx.newPage();
+  greyPage.on("pageerror", (e) => errors.push(e.message));
+  // Signed in again, because `login()` above minted an `admin` token and a
+  // sign-in revokes the previous token of the same name — so the API calls
+  // between the two pages killed the browser's session. Without this the
+  // page lands on /admin/login and reads as a screen that would not draw.
+  await signInAsStaff(greyPage);
+  await greyPage.goto(`${BASE}/admin/site/settings?tab=appearance`, { waitUntil: "load", timeout: 240000 });
+  // The radio is `sr-only` inside its label, which is what takes the press.
+  // The wait is explicit because this screen is every public setting there is
+  // and the dev server can take a while to draw it.
+  const greyCustomLabel = greyPage.locator('label:has(input[type="radio"][value="custom"])').first();
+  await greyCustomLabel.waitFor({ state: "visible", timeout: 180000 });
+  await greyCustomLabel.click();
+  await greyPage.locator("[data-logo-palette-read]").click();
+  const refusal = greyPage.locator("[data-logo-palette-error]");
   await refusal.waitFor({ timeout: 60000 });
   const words = (await refusal.textContent()) ?? "";
   ok(/grey/i.test(words), `a black-and-white wordmark is refused and says why — "${words.trim().slice(0, 60)}…"`);
-  ok(await page.locator("[data-logo-reading]").count() === 0, "and offers no reading");
+  ok(await greyPage.locator("[data-logo-reading]").count() === 0, "and offers no reading");
 
   ok(errors.length === 0, `nothing logged${errors.length ? ` — ${errors.slice(0, 2).join(" | ")}` : ""}`);
   await ctx.close();

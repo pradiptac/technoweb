@@ -226,10 +226,10 @@ export function EditImageDialog({ item, onClose, canTheme = false }: {
         <div className="mt-4 rounded-lg border border-line bg-surface p-3">
           <p className="text-13 font-semibold text-ink">Make the site&rsquo;s colours from this</p>
           <p className="mt-0.5 text-12-5 text-muted">
-            Opens Site &rarr; Themes with this picture&rsquo;s colours offered as palettes. Nothing changes until you save there.
+            Opens Site &rarr; Settings &rarr; Colour palette with this picture&rsquo;s colours offered. Nothing changes until you save there.
           </p>
           <Link
-            href={`/admin/themes?palette=${encodeURIComponent(target.path)}`}
+            href={`/admin/site/settings?tab=appearance&palette=${encodeURIComponent(target.path)}`}
             className="mt-2 inline-block text-13 font-semibold text-brand-ink underline decoration-from-font underline-offset-2"
           >
             Read this picture&rsquo;s colours
