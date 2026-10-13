@@ -3,7 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Support\Media\MediaUploader;
-use App\Support\UploadLimits;
+use App\Support\Media\MotionFiles;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -22,18 +22,19 @@ class StoreMediaRequest extends FormRequest
         return true;
     }
 
+    private function extension(): string
+    {
+        return strtolower($this->file('file')?->getClientOriginalExtension() ?? '');
+    }
+
     public function isVideo(): bool
     {
-        return in_array(
-            strtolower($this->file('file')?->getClientOriginalExtension() ?? ''),
-            MediaUploader::VIDEO_EXTENSIONS,
-            true,
-        );
+        return in_array($this->extension(), MediaUploader::VIDEO_EXTENSIONS, true);
     }
 
     private function maxKb(): int
     {
-        return UploadLimits::maxKb($this->isVideo());
+        return MediaUploader::maxKbFor($this->extension());
     }
 
     /**
@@ -41,12 +42,15 @@ class StoreMediaRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Lottie and 3D files are read by MotionFiles in the uploader, not by `mimes:`.
+        $motion = in_array($this->extension(), MotionFiles::EXTENSIONS, true);
+
         return [
-            'file' => [
+            'file' => array_filter([
                 'required', 'file',
-                'mimes:'.implode(',', MediaUploader::ALLOWED_EXTENSIONS),
+                $motion ? null : MediaUploader::mimesRule(),
                 'max:'.$this->maxKb(),
-            ],
+            ]),
             'alt_text' => ['nullable', 'string', 'max:255'],
             'folder_id' => ['nullable', 'integer', 'exists:media_folders,id'],
         ];
@@ -58,7 +62,7 @@ class StoreMediaRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'file.mimes' => 'Upload an image (PNG, JPG, GIF, WebP, SVG), a video (MP4, WebM) or a document (PDF, Word, Excel, CSV, TXT, ZIP).',
+            'file.mimes' => 'Upload an image (PNG, JPG, GIF, WebP, SVG), a video (MP4, WebM), a document (PDF, Word, Excel, CSV, TXT, ZIP), a Lottie animation (JSON, .lottie) or a 3D model (GLB).',
             'file.max' => 'That file is over the '.round($this->maxKb() / 1024).' MB limit.',
         ];
     }

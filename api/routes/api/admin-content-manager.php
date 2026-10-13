@@ -401,6 +401,9 @@ Route::middleware('role:content_manager')->group(function () {
     Route::post('media/move', [MediaController::class, 'move'])->name('media.move');
     Route::post('media/copy', [MediaController::class, 'copy'])->name('media.copy');
     Route::post('media/delete', [MediaController::class, 'bulkDestroy'])->name('media.bulk-destroy');
+    // A pasted link copied into the library (0.172.0); above the {medium} routes for the same reason.
+    Route::post('media/import-url', [MediaController::class, 'importUrl'])
+        ->middleware('throttle:10,1')->name('media.import-url');
 
     Route::get('media/{medium:id}/download', [MediaController::class, 'download'])->name('media.download');
     Route::post('media/{medium:id}/resize', [MediaController::class, 'resize'])->name('media.resize');

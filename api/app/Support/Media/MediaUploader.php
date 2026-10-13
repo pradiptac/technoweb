@@ -49,9 +49,26 @@ class MediaUploader
         'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg',
         'mp4', 'webm',
         'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'zip',
+        'json', 'lottie', 'glb',
     ];
 
     public const VIDEO_EXTENSIONS = ['mp4', 'webm'];
+
+    /** The `mimes:` rule's list: the three motion formats are read by `MotionFiles` instead (finfo cannot tell them). */
+    public static function mimesRule(): string
+    {
+        return 'mimes:'.implode(',', array_diff(self::ALLOWED_EXTENSIONS, MotionFiles::EXTENSIONS));
+    }
+
+    /** The size ceiling for a file of this extension, in kilobytes. */
+    public static function maxKbFor(string $ext): int
+    {
+        $ext = strtolower($ext);
+
+        return in_array($ext, MotionFiles::EXTENSIONS, true)
+            ? MotionFiles::maxKb($ext)
+            : UploadLimits::maxKb(in_array($ext, self::VIDEO_EXTENSIONS, true));
+    }
 
     /**
      * Store a validated upload and return its row.
@@ -68,21 +85,27 @@ class MediaUploader
          * never opening it: the bytes that reach the disk are already the
          * sanitised ones.
          */
-        $svg = self::isSvg($file) ? self::cleanSvg($file) : null;
+        $ext = strtolower($file->getClientOriginalExtension());
+        $motion = in_array($ext, MotionFiles::EXTENSIONS, true) ? MotionFiles::check($file->getRealPath(), $ext) : null;
+        $svg = $motion === null && self::isSvg($file) ? self::cleanSvg($file) : null;
 
-        if ($svg === null) {
+        if ($svg === null && $motion === null) {
             self::refuseOversizedRaster($file);
         }
 
         // Hashed name on a dated path: the original filename is metadata only,
-        // so a crafted name cannot influence where the file lands.
-        $path = $svg === null
-            ? $file->store('media/'.now()->format('Y/m'), 'public')
-            : self::putSanitisedSvg($svg);
+        // so a crafted name cannot influence where the file lands. A motion
+        // file keeps its checked extension (the guessed one would be txt or bin).
+        $dir = 'media/'.now()->format('Y/m');
+        $path = $motion !== null
+            ? $file->storeAs($dir, Str::random(40).'.'.$ext, 'public')
+            : ($svg === null ? $file->store($dir, 'public') : self::putSanitisedSvg($svg));
 
         // getimagesize only understands raster formats; SVG has no intrinsic
         // pixel size, so both stay null rather than being guessed at.
-        [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
+        [$width, $height] = $motion !== null
+            ? [$motion['width'], $motion['height']]
+            : (@getimagesize($file->getRealPath()) ?: [null, null]);
 
         return Media::create([
             'uploaded_by' => $userId,
@@ -90,7 +113,7 @@ class MediaUploader
             'disk' => 'public',
             'path' => $path,
             'filename' => $file->getClientOriginalName(),
-            'mime' => $file->getClientMimeType(),
+            'mime' => $motion['mime'] ?? $file->getClientMimeType(),
             'size' => $file->getSize(),
             'width' => $width,
             'height' => $height,
@@ -118,13 +141,14 @@ class MediaUploader
     {
         $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($path) ?: 'application/octet-stream';
         $file = new UploadedFile($path, $filename, $mime, null, true);
-        $video = in_array(strtolower($file->getClientOriginalExtension()), self::VIDEO_EXTENSIONS, true);
+        $ext = strtolower($file->getClientOriginalExtension());
+        $maxKb = self::maxKbFor($ext);
 
         Validator::make(['file' => $file], [
-            'file' => ['required', 'file', 'mimes:'.implode(',', self::ALLOWED_EXTENSIONS), 'max:'.UploadLimits::maxKb($video)],
+            'file' => ['required', 'file', in_array($ext, MotionFiles::EXTENSIONS, true) ? 'extensions:'.$ext : self::mimesRule(), 'max:'.$maxKb],
         ], [
             'file.mimes' => 'Not a file type the library accepts.',
-            'file.max' => 'Over the '.round(UploadLimits::maxKb($video) / 1024).' MB limit.',
+            'file.max' => 'Over the '.round($maxKb / 1024).' MB limit.',
         ])->validate();
 
         return self::store($file, $userId, $attributes);
