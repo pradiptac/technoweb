@@ -2,7 +2,7 @@ import "server-only";
 import { apiFetch, apiUpload } from "@/lib/api";
 import { token } from "./_shared";
 import type {
-  MailTemplateIndex, MailTemplateDetail, MailStatus, HunterAccount, InboundMailStatus,
+  MailTemplateIndex, MailTemplateDetail, MailStatus, HunterAccount, InboundMailStatus, LogoPalette,
 } from "@/types/api";
 
 export async function getMailStatus(): Promise<MailStatus> {
@@ -297,6 +297,17 @@ export async function testMediaCdn(): Promise<{ message: string; url: string }> 
 export async function testGoogleAnalytics(): Promise<{ property: string; days: number; pages: number }> {
   const res = await apiFetch<{ data: { property: string; days: number; pages: number } }>("/admin/settings/integrations/ga4/test", {
     method: "POST", body: {}, token: await token(),
+  });
+  return res.data;
+}
+/**
+ * The palettes the company's logo offers (0.173.0). `path` names another
+ * library file; without it the API reads the `logo_path` setting. It writes
+ * nothing — the Themes screen fills its colour fields and Save applies them.
+ */
+export async function paletteFromLogo(path?: string): Promise<LogoPalette> {
+  const res = await apiFetch<{ data: LogoPalette }>("/admin/settings/palette-from-logo", {
+    method: "POST", body: path ? { path } : {}, token: await token(),
   });
   return res.data;
 }

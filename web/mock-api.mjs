@@ -3552,6 +3552,19 @@ createServer(async (req, res) => {
     }
     /* Zoho Books (docs/store.md "Zoho Books invoices"): Store → Settings'
        panel, as an install that has not connected it. */
+    /* A palette read from the logo (0.173.0): two colours, so the two
+       readings that differ, with the bar as the darker of them. */
+    if (p === '/admin/settings/palette-from-logo' && req.method === 'POST') {
+      return json(res, 200, { data: {
+        readings: [
+          { key: 'used', label: 'Most of the logo', primary: '#1d4ed8', secondary: '#e11d48', accent: '#b91c3c', topbar: '#1d4ed8', derived: true },
+          { key: 'bold', label: 'The boldest colour', primary: '#e11d48', secondary: '#1d4ed8', accent: '#0f766e', topbar: '#1d4ed8', derived: true },
+        ],
+        colours: [{ hex: '#1d4ed8', share: 0.62 }, { hex: '#e11d48', share: 0.28 }, { hex: '#ffffff', share: 0.1 }],
+        from: { path: 'media/2026/10/logo.svg', url: 'http://127.0.0.1:8899/storage/media/2026/10/logo.svg' },
+      } });
+    }
+
     if (p === '/admin/settings/zoho-books' && req.method === 'GET') {
       return json(res, 200, { data: {
         enabled: false, ready: false,

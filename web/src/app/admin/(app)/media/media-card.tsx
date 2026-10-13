@@ -24,9 +24,11 @@ export function readableSize(bytes: number): string {
 
 export function MediaCard({
   item, returnTo, onDelete, onPreview, selected, onToggleSelect, trashed = false,
-  priority = false, tabIndex = -1, onFocusTile,
+  priority = false, tabIndex = -1, onFocusTile, canTheme = false,
 }: {
   item: MediaItem;
+  /** Passed to the Edit dialog, which offers the Themes hand-over (0.173.0). */
+  canTheme?: boolean;
   /**
    * The grid's roving tab stop: 0 on the tile the arrow keys are on, -1 on
    * the rest, so Tab enters the grid once rather than forty times. The keys
@@ -260,7 +262,7 @@ export function MediaCard({
       )}
 
       {dialog === "edit" && (
-        <EditImageDialog item={item} onClose={() => setDialog(null)} />
+        <EditImageDialog item={item} onClose={() => setDialog(null)} canTheme={canTheme} />
       )}
 
       {dialog === "replace" && (

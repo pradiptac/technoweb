@@ -3972,3 +3972,27 @@ export * from "./wordpress-import";
 export * from "./site-import";
 export * from "./backups";
 export * from "./preview";
+/**
+ * A palette read from the company's logo (0.173.0, `docs/theming.md`).
+ *
+ * The API reads the file and offers up to three readings of it; nothing is
+ * stored until the Themes screen is saved. `topbar` is `""` where the logo
+ * gives no second colour — blank means the generator derives the bar, which
+ * is better than pinning Primary into it.
+ */
+export type LogoReading = {
+  key: string;
+  label: string;
+  primary: string;
+  secondary: string;
+  accent: string;
+  topbar: string;
+  /** Secondary or Accent was turned out of Primary rather than found in the logo. */
+  derived: boolean;
+};
+
+export type LogoPalette = {
+  readings: LogoReading[];
+  colours: { hex: string; share: number }[];
+  from: { path: string; url: string };
+};

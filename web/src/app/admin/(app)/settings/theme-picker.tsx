@@ -9,6 +9,8 @@ import { customFontsFor } from "@/lib/custom-fonts";
 import { CustomFontsPanel } from "./custom-fonts-panel";
 import { differs, nearestStep } from "@/lib/palette";
 import { ColourField } from "./settings-fields";
+import { LogoPalette } from "./logo-palette";
+import { useSearchParams } from "next/navigation";
 import { DEFAULT_PRESET, PRESETS, generate, isHex, presetById, type Preset } from "@/lib/presets";
 import { expand, paletteFor, themeTokensCss, themeVars, topBarFor, type PaletteInputs, type Theme } from "@/lib/themes";
 import { DENSITIES, LOOK_PRESETS, RADII, SURFACES, TYPE_SCALES, type Density, type LookPreset, type Radius, type Surface, type TypeScale } from "@/lib/look";
@@ -64,6 +66,13 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
   const [density, setDensity] = useState<Density>(DENSITIES.includes(stored.theme_density as Density) ? stored.theme_density as Density : "comfortable");
   const [surface, setSurface] = useState<Surface>(SURFACES.includes(stored.theme_surface as Surface) ? stored.theme_surface as Surface : "flat");
   const [typeScale, setTypeScale] = useState<TypeScale>(TYPE_SCALES.includes(stored.theme_type_scale as TypeScale) ? stored.theme_type_scale as TypeScale : "standard");
+
+  /*
+   * `?palette=<media path>` is how the media library hands a picture over
+   * (0.173.0): the colours are not carried between screens, the screen that
+   * owns them reads them.
+   */
+  const fromLibrary = useSearchParams().get("palette") ?? undefined;
 
   const preset = presetById(chosen);
 
@@ -218,6 +227,16 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
       </label>
 
       <div hidden={chosen !== "custom"} className="mt-3 rounded-lg border border-line bg-surface p-4">
+        <LogoPalette
+          initialPath={fromLibrary}
+          onPick={(reading) => {
+            setChosen("custom");
+            setInputs((i) => ({ ...i, primary: reading.primary, secondary: reading.secondary, accent: reading.accent }));
+            // Blank means "let the generator derive the bar", which is what
+            // the reading says for a one-colour logo.
+            setTopbar(reading.topbar);
+          }}
+        />
         <p className="mb-2 text-11-5 font-semibold uppercase tracking-[.1em] text-muted">Main colours</p>
         <div className="grid gap-x-4 sm:grid-cols-3">
           <ColourField id="theme_primary" label="Primary" hint="Buttons, links, the brand." value={inputs.primary} adjusted={nearestStep(brandRamp(theme), inputs.primary)} onChange={(v) => set("primary", v)} />
