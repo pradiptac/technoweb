@@ -80,6 +80,18 @@ try {
   const html = await fetch(`${BASE}${rotateUrl}`).then((r) => r.text());
   ok(/<h1[^>]*>[\s\S]*?We keep networks running[\s\S]*?<\/h1>/.test(html), "the server HTML carries the whole heading in the h1");
 
+  /*
+   * Warm every page before anything is timed. A builder page is rendered on
+   * its first request, and against a cold server that first render plus the
+   * chunk compile puts hydration past the island's own 3s mark — at which
+   * point the CSS failsafe has already revealed the heading and the island
+   * correctly declines to hide it again and type it. That is the designed
+   * behaviour, and measured cold it reads as "the effect never ran": armed at
+   * 3.4s and nothing typed, against armed at 0.7s and all fifty letters typed
+   * on the same build one request later.
+   */
+  await Promise.all([typeUrl, decodeUrl].map((u) => fetch(`${BASE}${u}`).then((r) => r.text())));
+
   // Rotate.
   {
     const c = await ctx(); const page = await c.newPage(); watch(page);
@@ -127,7 +139,12 @@ try {
     await page.goto(`${BASE}${typeUrl}`, { waitUntil: "load", timeout: 240000 });
     await page.waitForSelector('[data-kinetic="type"][data-kinetic-armed]', { timeout: 30000 });
     const hiddenSome = await page.waitForFunction(() => document.querySelector('[data-kinetic="type"][data-kinetic-run]') && document.querySelectorAll('[data-k-char]:not([data-on])').length > 0, null, { timeout: 5000 }).then(() => true, () => false);
-    ok(hiddenSome, "type: letters are still to come mid-flight");
+    // A failure here is almost always a cold render: say what the island did.
+    const why = async (effect) => await page.evaluate((e) => {
+      const el = document.querySelector(`[data-kinetic="${e}"]`);
+      return ` — armed ${el?.hasAttribute("data-kinetic-armed")}, run ${el?.hasAttribute("data-kinetic-run")}, done ${el?.hasAttribute("data-kinetic-done")}, at ${Math.round(performance.now())}ms`;
+    }, effect);
+    ok(hiddenSome, `type: letters are still to come mid-flight${hiddenSome ? "" : await why("type")}`);
     await stableBox(page, 1500, "type");
     const done = await page.waitForFunction(() => document.querySelector('[data-kinetic="type"]')?.hasAttribute("data-kinetic-done"), null, { timeout: 6000 }).then(() => true, () => false);
     const left = await page.locator("[data-k-char]:not([data-on])").count();
@@ -140,7 +157,12 @@ try {
     const c = await ctx(); const page = await c.newPage(); watch(page);
     await page.goto(`${BASE}${decodeUrl}`, { waitUntil: "load", timeout: 240000 });
     const scrambling = await page.waitForFunction(() => document.querySelectorAll("[data-k-char][data-s]").length > 0, null, { timeout: 8000 }).then(() => true, () => false);
-    ok(scrambling, "decode: letters are caught scrambling");
+    // A failure here is almost always a cold render: say what the island did.
+    const why = async (effect) => await page.evaluate((e) => {
+      const el = document.querySelector(`[data-kinetic="${e}"]`);
+      return ` — armed ${el?.hasAttribute("data-kinetic-armed")}, run ${el?.hasAttribute("data-kinetic-run")}, done ${el?.hasAttribute("data-kinetic-done")}, at ${Math.round(performance.now())}ms`;
+    }, effect);
+    ok(scrambling, `decode: letters are caught scrambling${scrambling ? "" : await why("decode")}`);
     await stableBox(page, 1000, "decode");
     const done = await page.waitForFunction(() => document.querySelector('[data-kinetic="decode"]')?.hasAttribute("data-kinetic-done") && !document.querySelector("[data-k-char][data-s]"), null, { timeout: 6000 }).then(() => true, () => false);
     ok(done, "decode: settles and is done");
