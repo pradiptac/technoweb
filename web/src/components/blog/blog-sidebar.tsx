@@ -71,7 +71,7 @@ export function BlogSidebar({
 
       {taxonomy && taxonomy.categories.length > 0 && (
         <Panel heading="Categories">
-          <ul className="grid gap-2.5">
+          <ul className="grid gap-1.5">
             {taxonomy.categories.map((category) => {
               const active = category.slug === activeCategory;
 
@@ -81,7 +81,7 @@ export function BlogSidebar({
                     href={`/blog/category/${category.slug}`}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "flex items-baseline justify-between gap-2 text-13-5 transition-colors",
+                      "flex min-h-6 items-center justify-between gap-2 text-13-5 transition-colors",
                       active ? "font-semibold text-brand-ink" : "text-brand-ink hover:text-brand-700",
                     )}
                   >
@@ -104,12 +104,12 @@ export function BlogSidebar({
 
       {taxonomy && taxonomy.archive.length > 0 && (
         <Panel heading="Archive">
-          <ul className="grid gap-2.5">
+          <ul className="grid gap-1.5">
             {taxonomy.archive.map((month) => (
               <li key={`${month.year}-${month.month}`}>
                 <Link
                   href={`/blog?year=${month.year}&month=${month.month}`}
-                  className="flex items-baseline justify-between gap-2 text-13-5 text-brand-ink transition-colors hover:text-brand-700"
+                  className="flex min-h-6 items-center justify-between gap-2 text-13-5 text-brand-ink transition-colors hover:text-brand-700"
                 >
                   <span>{month.label}</span>
                   <span aria-hidden className="shrink-0 tabular-nums text-faint">({month.total})</span>

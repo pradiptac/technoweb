@@ -61,7 +61,8 @@ export function CategoryChips({
           <li key={category.id}>
             <Link
               href={`/blog/category/${category.slug}`}
-              className="rounded-full transition-opacity hover:opacity-80"
+              // 24px tall: the pill alone is 20px, under the tap-target floor (audit, 0.171.0).
+              className="inline-flex min-h-6 items-center rounded-full transition-opacity hover:opacity-80"
             >
               <span
                 className={cn(
