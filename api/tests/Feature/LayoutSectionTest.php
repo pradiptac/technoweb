@@ -352,7 +352,7 @@ class LayoutSectionTest extends TestCase
 
         $this->assertContains('layout', collect($res->json('data.section_types'))->pluck('value')->all());
         $this->assertSame(
-            ['heading', 'text', 'button', 'image', 'spacer', 'divider', 'icon_box', 'accordion', 'list', 'video', 'box', 'tabs', 'panels', 'inner_row', 'form', 'slider', 'gallery'],
+            ['heading', 'text', 'button', 'image', 'spacer', 'divider', 'icon_box', 'accordion', 'list', 'video', 'lottie', 'model', 'box', 'tabs', 'panels', 'inner_row', 'form', 'slider', 'gallery'],
             collect($res->json('data.layout.widgets'))->pluck('value')->all(),
         );
         $res->assertJsonPath('data.layout.limits.rows', 8)
@@ -381,7 +381,7 @@ class LayoutSectionTest extends TestCase
     {
         foreach (LayoutRules::widgets() as $type => $spec) {
             foreach ([...$spec['fields'], ...($spec['list']['fields'] ?? [])] as $key => $field) {
-                $this->assertContains($field['kind'], ['text', 'html', 'choice', 'bool', 'link', 'path', 'icon', 'youtube', 'video', 'ref'], "{$type}.{$key}");
+                $this->assertContains($field['kind'], ['text', 'html', 'choice', 'bool', 'link', 'path', 'icon', 'youtube', 'video', 'lottie', 'model', 'ref'], "{$type}.{$key}");
             }
         }
     }
@@ -804,5 +804,67 @@ class LayoutSectionTest extends TestCase
 
         $this->actingAs($this->user(), 'sanctum')->patchJson("/api/v1/admin/pages/{$page->id}", ['blocks' => $page->blocks])->assertOk();
         $this->assertEquals($page->blocks, Page::query()->findOrFail($page->id)->blocks);
+    }
+
+    // ------------------------------------------------- Lottie and 3D widgets (0.172.0)
+
+    private function motionMedia(): void
+    {
+        $this->media('media/spark.json', 'application/lottie+json');
+        Media::query()->where('path', 'media/spark.json')->update(['width' => 300, 'height' => 150]);
+        $this->media('media/chair.glb', 'model/gltf-binary');
+        $this->media('media/poster.jpg', 'image/jpeg', 'A chair');
+    }
+
+    public function test_the_lottie_and_model_widgets_save_and_present(): void
+    {
+        $this->motionMedia();
+        $block = self::section([self::row([self::column([
+            self::widget('lottie', ['file_path' => 'media/spark.json', 'alt' => 'A spark', 'loop' => 'yes']),
+            self::widget('model', ['file_path' => 'media/chair.glb', 'alt' => 'A chair', 'poster_path' => 'media/poster.jpg', 'rotate' => 'no']),
+            self::widget('lottie', ['file_path' => 'media/spark.json', 'loop' => 'no']),
+        ])])]);
+
+        $stored = $this->create([$block])->assertCreated()->json('data.blocks.0.data.rows.0.columns.0.widgets');
+        $this->assertSame('yes', $stored[0]['loop']);
+        $this->assertArrayNotHasKey('loop', $stored[2], 'the default is not stored');
+        $this->assertSame('no', $stored[1]['rotate']);
+
+        $widgets = $this->getJson('/api/v1/pages/laid-out')->assertOk()->json('data.sections.0.data.rows.0.columns.0.widgets');
+        $this->assertSame(asset('storage/media/spark.json'), $widgets[0]['file']);
+        $this->assertSame([2, 'json'], [$widgets[0]['ratio'], $widgets[0]['format']]);
+        $this->assertArrayNotHasKey('file_path', $widgets[0]);
+        $this->assertSame(asset('storage/media/chair.glb'), $widgets[1]['file']);
+        $this->assertSame(asset('storage/media/poster.jpg'), $widgets[1]['poster']);
+        $this->assertSame('A chair', $widgets[1]['poster_alt']);
+    }
+
+    public function test_the_motion_widgets_refuse_the_wrong_file_and_a_gone_one_is_dropped(): void
+    {
+        $this->motionMedia();
+        $bad = self::section([self::row([self::column([
+            self::widget('lottie', ['file_path' => 'media/chair.glb']),
+            self::widget('model', ['file_path' => 'media/spark.json', 'alt' => 'x']),
+            self::widget('model', ['file_path' => 'media/chair.glb']),
+            self::widget('lottie', []),
+        ])])]);
+
+        $errors = $this->create([$bad])->assertStatus(422)->json('errors');
+        $w = 'blocks.0.data.rows.0.columns.0.widgets';
+        $this->assertSame('Choose an animation from the media library.', $errors["{$w}.0.file_path"][0]);
+        $this->assertSame('Choose a 3D model (.glb) from the media library.', $errors["{$w}.1.file_path"][0]);
+        $this->assertArrayHasKey("{$w}.2.alt", $errors);
+        $this->assertArrayHasKey("{$w}.3.file_path", $errors);
+
+        $good = self::section([self::row([self::column([
+            self::widget('lottie', ['file_path' => 'media/spark.json']),
+            self::widget('divider'),
+        ])])]);
+        $this->create([$good])->assertCreated();
+        Media::query()->where('path', 'media/spark.json')->forceDelete();
+        MediaMeta::forget();
+
+        $widgets = $this->getJson('/api/v1/pages/laid-out')->json('data.sections.0.data.rows.0.columns.0.widgets');
+        $this->assertSame(['divider'], array_column($widgets, 'type'));
     }
 }

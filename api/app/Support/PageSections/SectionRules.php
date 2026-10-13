@@ -373,6 +373,27 @@ final class SectionRules
                 'video_path' => ['nullable', "required_if:{$at}.source,mp4", 'string', 'max:255'],
                 'caption' => ['nullable', 'string', 'max:300'],
             ],
+            // Lottie and 3D (0.172.0): a library file, a few choices. `alt` is
+            // optional for an animation (blank = decorative) and required for a
+            // model, which model-viewer needs described.
+            PageSectionType::Lottie => [
+                'heading' => $heading,
+                'lede' => ['nullable', 'string', 'max:300'],
+                'file_path' => ['required', 'string', 'max:255'],
+                'alt' => ['nullable', 'string', 'max:200'],
+                'loop' => ['nullable', 'boolean'],
+                'size' => ['nullable', Rule::in(['s', 'm', 'l'])],
+                'align' => ['nullable', Rule::in(['center', 'start'])],
+            ],
+            PageSectionType::Model => [
+                'heading' => $heading,
+                'lede' => ['nullable', 'string', 'max:300'],
+                'file_path' => ['required', 'string', 'max:255'],
+                'alt' => ['required', 'string', 'max:200'],
+                'poster_path' => ['nullable', 'string', 'max:255'],
+                'rotate' => ['nullable', 'boolean'],
+                'height' => ['nullable', Rule::in(['s', 'm', 'l'])],
+            ],
             PageSectionType::Divider => [
                 'size' => ['nullable', Rule::in(['small', 'medium', 'large'])],
                 'rule' => ['nullable', 'boolean'],
@@ -636,7 +657,7 @@ final class SectionRules
      * (it chooses what is listed, and is drawn nowhere), a link that is
      * reduced to an id, and the rich-text bodies, which keep their editor.
      */
-    private const NOT_INLINE = ['youtube', 'category', 'department', 'body', 'columns.*.body', 'html', 'kinetic_words'];
+    private const NOT_INLINE = ['youtube', 'category', 'department', 'body', 'columns.*.body', 'html', 'kinetic_words', 'alt'];
 
     /**
      * The plain-text fields an editor may change on the page itself, in the
@@ -705,7 +726,7 @@ final class SectionRules
      */
     private static function layoutInlineFields(): array
     {
-        $words = fn (array $fields) => array_filter($fields, fn ($f) => $f['kind'] === 'text' && ! $f['multiline'] && ($f['max'] ?? 0) > 0);
+        $words = fn (array $fields) => array_filter($fields, fn ($f, $k) => $k !== 'alt' && $f['kind'] === 'text' && ! $f['multiline'] && ($f['max'] ?? 0) > 0, ARRAY_FILTER_USE_BOTH);
         $out = [];
         $top = 'rows.*.columns.*.widgets.*';
 
@@ -775,6 +796,13 @@ final class SectionRules
      * @var array<string, array<string, string>>
      */
     private const TYPE_MESSAGES = [
+        'lottie' => [
+            'file_path.required' => 'Choose an animation from the media library.',
+        ],
+        'model' => [
+            'file_path.required' => 'Choose a 3D model (.glb) from the media library.',
+            'alt.required' => 'Describe the model in a few words, for people who cannot see it.',
+        ],
         'downloads' => [
             'items.required_unless' => 'Add at least one file, or list the files from the downloads centre.',
             'items.*.title.required_unless' => 'Give the file a title.',
@@ -988,7 +1016,7 @@ final class SectionRules
     /** @param  array<string, mixed>  $data */
     private static function checkData(Validator $validator, PageSectionType $type, array $data, string $at): void
     {
-        $media = function (string $key, ?string $mimePrefix = null, string $message = 'Choose a file from the media library.') use ($validator, $data, $at) {
+        $media = function (string $key, ?string $mimePrefix = null, string $message = 'Choose a file from the media library.', ?string $wrongKind = null) use ($validator, $data, $at) {
             $path = $data[$key] ?? null;
             if (! is_string($path) || $path === '') {
                 return;
@@ -997,7 +1025,7 @@ final class SectionRules
             if (! $row) {
                 $validator->errors()->add("{$at}.{$key}", $message);
             } elseif ($mimePrefix && ! str_starts_with((string) $row->mime, $mimePrefix)) {
-                $validator->errors()->add("{$at}.{$key}", $mimePrefix === 'video/' ? 'That file is not a video.' : 'That file is not a picture.');
+                $validator->errors()->add("{$at}.{$key}", $wrongKind ?? ($mimePrefix === 'video/' ? 'That file is not a video.' : 'That file is not a picture.'));
             }
         };
 
@@ -1101,6 +1129,15 @@ final class SectionRules
                     $youtube('youtube');
                 }
                 break;
+            case PageSectionType::Lottie:
+                $animation = 'Choose an animation from the media library.';
+                $media('file_path', 'application/lottie', $animation, $animation);
+                break;
+            case PageSectionType::Model:
+                $model = 'Choose a 3D model (.glb) from the media library.';
+                $media('file_path', 'model/', $model, $model);
+                $media('poster_path', 'image/');
+                break;
             case PageSectionType::ContentBlock:
                 $reference('block_id', ContentBlock::class, 'content block');
                 break;
@@ -1203,9 +1240,17 @@ final class SectionRules
                     $data[$int] = (int) $data[$int];
                 }
             }
-            foreach (['rule', 'call', 'group'] as $bool) {
+            foreach (['rule', 'call', 'group', 'loop', 'rotate'] as $bool) {
                 if (isset($data[$bool])) {
                     $data[$bool] = filter_var($data[$bool], FILTER_VALIDATE_BOOLEAN);
+                }
+            }
+            // Lottie and 3D: a default is never stored.
+            if ($type === PageSectionType::Lottie || $type === PageSectionType::Model) {
+                foreach (['loop' => false, 'rotate' => true, 'size' => 'm', 'height' => 'm', 'align' => 'center'] as $key => $default) {
+                    if (array_key_exists($key, $data) && $data[$key] === $default) {
+                        unset($data[$key]);
+                    }
                 }
             }
             // A hero's heading effect: following the site is never stored.

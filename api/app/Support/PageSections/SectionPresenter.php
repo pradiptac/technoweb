@@ -269,8 +269,63 @@ final class SectionPresenter
             PageSectionType::SupportNetwork => self::supportNetwork($data),
             PageSectionType::Countdown => self::countdown($data),
             PageSectionType::Layout => LayoutPresenter::present($data),
+            PageSectionType::Lottie => self::lottie($data),
+            PageSectionType::Model => self::model($data),
             default => $data,
         };
+    }
+
+    /**
+     * An animation from the library (0.172.0): `file_path` becomes `file`, with
+     * its `format` (`json` or `lottie`) and `ratio` (width over height, from the
+     * media row, so the box is reserved before the file loads). Gone when the
+     * file has left the library or is no longer an animation. Shared with the
+     * layout section's widget of the same name.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    public static function lottie(array $data): ?array
+    {
+        $row = self::motionFile($data, 'application/lottie');
+        if ($row === null) {
+            return null;
+        }
+        unset($data['file_path']);
+
+        return [
+            ...$data,
+            'file' => self::url($row->path),
+            'format' => str_ends_with(strtolower($row->path), '.lottie') ? 'lottie' : 'json',
+            'ratio' => $row->width && $row->height ? $row->width / $row->height : 1,
+        ];
+    }
+
+    /**
+     * A 3D model from the library: `file_path` becomes `file`, the cover
+     * picture `poster`/`poster_alt`. Gone when the file has gone.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    public static function model(array $data): ?array
+    {
+        $row = self::motionFile($data, 'model/');
+        if ($row === null) {
+            return null;
+        }
+        unset($data['file_path']);
+
+        return [...self::picture($data, 'poster'), 'file' => self::url($row->path)];
+    }
+
+    /** @param  array<string, mixed>  $data */
+    private static function motionFile(array $data, string $mimePrefix): ?Media
+    {
+        $path = $data['file_path'] ?? null;
+        $row = is_string($path) && $path !== '' ? Media::query()->where('path', $path)->first() : null;
+
+        return $row && str_starts_with((string) $row->mime, $mimePrefix) ? $row : null;
     }
 
     private static function url(?string $path): ?string

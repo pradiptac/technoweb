@@ -156,6 +156,10 @@ final class LayoutPresenter
                 ];
             case 'video':
                 return self::video($widget, $present);
+            case 'lottie':
+                return SectionPresenter::lottie($widget);
+            case 'model':
+                return SectionPresenter::model($widget);
             case 'form':
             case 'slider':
             case 'gallery':

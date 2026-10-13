@@ -871,4 +871,104 @@ class PageBuilderTest extends TestCase
         $this->actingAs($engineer, 'sanctum')->getJson('/api/v1/admin/pages/builder')->assertForbidden();
         $this->actingAs($engineer, 'sanctum')->postJson('/api/v1/admin/pages/preview', ['blocks' => []])->assertForbidden();
     }
+
+    // ---------------------------------------------------- Lottie and 3D (0.172.0)
+
+    private function motionMedia(): void
+    {
+        $this->media('media/spark.json', 'application/lottie+json');
+        Media::query()->where('path', 'media/spark.json')->update(['width' => 400, 'height' => 200]);
+        $this->media('media/chair.glb', 'model/gltf-binary');
+        $this->media('media/poster.jpg', 'image/jpeg', 'A chair');
+    }
+
+    public function test_the_two_new_types_come_last_and_are_listed(): void
+    {
+        $values = collect(PageSectionType::options())->pluck('value');
+
+        $this->assertSame(['hero', 'rich_text'], $values->take(2)->all());
+        $this->assertSame(['lottie', 'model'], $values->take(-2)->values()->all());
+        $this->assertSame(['Animation', '3D model'], [PageSectionType::Lottie->label(), PageSectionType::Model->label()]);
+    }
+
+    public function test_lottie_and_model_sections_save_with_defaults_unstored_and_present_their_files(): void
+    {
+        $this->motionMedia();
+
+        $this->create([
+            self::section('lottie', ['heading' => 'Watch', 'file_path' => 'media/spark.json', 'alt' => 'A spark', 'loop' => '1', 'size' => 'm', 'align' => 'center']),
+            self::section('model', ['file_path' => 'media/chair.glb', 'alt' => 'A chair', 'poster_path' => 'media/poster.jpg', 'rotate' => true, 'height' => 'l']),
+            self::section('model', ['file_path' => 'media/chair.glb', 'alt' => 'Still', 'rotate' => '0', 'height' => 'm']),
+        ])->assertCreated();
+
+        $stored = Page::query()->where('slug', 'built-page')->first()->blocks;
+        $this->assertTrue($stored[0]['data']['loop']);
+        $this->assertArrayNotHasKey('size', $stored[0]['data']);
+        $this->assertArrayNotHasKey('align', $stored[0]['data']);
+        $this->assertArrayNotHasKey('rotate', $stored[1]['data']);
+        $this->assertSame('l', $stored[1]['data']['height']);
+        $this->assertFalse($stored[2]['data']['rotate']);
+        $this->assertArrayNotHasKey('height', $stored[2]['data']);
+
+        $sections = $this->getJson('/api/v1/pages/built-page')->assertOk()->json('data.sections');
+        $this->assertSame(asset('storage/media/spark.json'), $sections[0]['data']['file']);
+        $this->assertSame('json', $sections[0]['data']['format']);
+        $this->assertSame(2, $sections[0]['data']['ratio']);
+        $this->assertArrayNotHasKey('file_path', $sections[0]['data']);
+        $this->assertSame(asset('storage/media/chair.glb'), $sections[1]['data']['file']);
+        $this->assertSame(asset('storage/media/poster.jpg'), $sections[1]['data']['poster']);
+        $this->assertSame('A chair', $sections[1]['data']['poster_alt']);
+        $this->assertArrayNotHasKey('poster_path', $sections[1]['data']);
+    }
+
+    public function test_a_packed_animation_is_a_lottie_format(): void
+    {
+        $this->media('media/pack.lottie', 'application/lottie+zip');
+
+        $this->create([self::section('lottie', ['file_path' => 'media/pack.lottie'])])->assertCreated();
+
+        $data = $this->getJson('/api/v1/pages/built-page')->json('data.sections.0.data');
+        $this->assertSame('lottie', $data['format']);
+        $this->assertSame(1, $data['ratio'], 'no size on the row is a square');
+    }
+
+    public function test_lottie_and_model_refuse_the_wrong_file_with_their_own_sentences(): void
+    {
+        $this->motionMedia();
+        $animation = 'Choose an animation from the media library.';
+        $model = 'Choose a 3D model (.glb) from the media library.';
+
+        $this->create([self::section('lottie', [])], ['title' => 'a'])
+            ->assertStatus(422)->assertJsonPath('errors', fn ($e) => $e['blocks.0.data.file_path'][0] === $animation);
+        $this->create([self::section('lottie', ['file_path' => 'media/poster.jpg'])], ['title' => 'b'])
+            ->assertStatus(422)->assertJsonPath('errors', fn ($e) => $e['blocks.0.data.file_path'][0] === $animation);
+        $this->create([self::section('lottie', ['file_path' => 'media/gone.json'])], ['title' => 'c'])
+            ->assertStatus(422)->assertJsonPath('errors', fn ($e) => $e['blocks.0.data.file_path'][0] === $animation);
+        $this->create([self::section('lottie', ['file_path' => 'media/spark.json', 'size' => 'xl'])], ['title' => 'd'])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.size');
+
+        $this->create([self::section('model', ['alt' => 'x'])], ['title' => 'e'])
+            ->assertStatus(422)->assertJsonPath('errors', fn ($e) => $e['blocks.0.data.file_path'][0] === $model);
+        $this->create([self::section('model', ['file_path' => 'media/spark.json', 'alt' => 'x'])], ['title' => 'f'])
+            ->assertStatus(422)->assertJsonPath('errors', fn ($e) => $e['blocks.0.data.file_path'][0] === $model);
+        $this->create([self::section('model', ['file_path' => 'media/chair.glb'])], ['title' => 'g'])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.alt');
+        $this->create([self::section('model', ['file_path' => 'media/chair.glb', 'alt' => 'x', 'poster_path' => 'media/spark.json'])], ['title' => 'h'])
+            ->assertStatus(422)->assertJsonValidationErrors('blocks.0.data.poster_path');
+    }
+
+    public function test_a_section_whose_file_has_left_the_library_is_dropped_from_the_public_read(): void
+    {
+        $this->motionMedia();
+        $this->create([
+            self::section('lottie', ['file_path' => 'media/spark.json']),
+            self::section('model', ['file_path' => 'media/chair.glb', 'alt' => 'A chair']),
+            self::section('divider', []),
+        ])->assertCreated();
+
+        Media::query()->whereIn('path', ['media/spark.json', 'media/chair.glb'])->forceDelete();
+        MediaMeta::forget();
+
+        $this->assertSame(['divider'], array_column($this->getJson('/api/v1/pages/built-page')->json('data.sections'), 'type'));
+    }
 }

@@ -213,6 +213,25 @@ final class LayoutRules
                     'caption' => self::text('Caption (optional)', 200),
                 ],
             ],
+            'lottie' => [
+                'label' => 'Animation',
+                'blurb' => 'A Lottie animation from the media library, played when it comes into view. Still under reduced motion.',
+                'fields' => [
+                    'file_path' => ['kind' => 'lottie', 'label' => 'Animation file', 'max' => 255, 'required' => true],
+                    'alt' => self::text('What it shows (blank if it is only decoration)', 200),
+                    'loop' => self::choice('Repeat', 'no', ['no' => 'Play once', 'yes' => 'Keep repeating']),
+                ],
+            ],
+            'model' => [
+                'label' => '3D model',
+                'blurb' => 'A 3D model (.glb) from the media library that visitors can turn with a finger or the mouse.',
+                'fields' => [
+                    'file_path' => ['kind' => 'model', 'label' => '3D model file (.glb)', 'max' => 255, 'required' => true],
+                    'alt' => self::text('What it shows', 200, true),
+                    'poster_path' => ['kind' => 'path', 'label' => 'Cover picture (optional)', 'max' => 255, 'required' => false],
+                    'rotate' => self::choice('Turns by itself', 'yes', ['yes' => 'Yes', 'no' => 'No']),
+                ],
+            ],
             'box' => [
                 'label' => 'Box',
                 'blurb' => 'A framed area holding other widgets: a card, a raised card or a tinted panel.',
@@ -407,7 +426,7 @@ final class LayoutRules
         return match ($field['kind']) {
             'text', 'html' => [$presence, 'string', 'max:'.$field['max']],
             'link' => [$presence, 'string', 'max:'.$field['max'], BlockRules::LINK],
-            'path', 'video', 'youtube' => [$presence, 'string', 'max:'.$field['max']],
+            'path', 'video', 'lottie', 'model', 'youtube' => [$presence, 'string', 'max:'.$field['max']],
             'ref' => [$presence, 'integer'],
             'icon' => ['nullable', 'string', 'regex:'.SectionRules::ICON_PATTERN],
             'choice' => ['nullable', Rule::in(array_map('strval', array_keys($field['choices'])))],
@@ -614,6 +633,8 @@ final class LayoutRules
             "{$w}.title.required" => 'Give the box a title.',
             "{$w}.youtube.required" => 'Paste the YouTube link.',
             "{$w}.video_path.required" => 'Choose a video from the media library.',
+            "{$w}.file_path.required" => 'Choose the animation or model from the media library.',
+            "{$w}.alt.required" => 'Describe the model in a few words, for people who cannot see it.',
             "{$w}.form_id.required" => 'Choose the form.',
             "{$w}.form_id.integer" => 'Choose the form.',
             "{$w}.slider_id.required" => 'Choose the slider.',
@@ -692,9 +713,12 @@ final class LayoutRules
                     if ($found->has($path) && str_starts_with((string) $found->get($path), $prefix)) {
                         continue;
                     }
-                    $validator->errors()->add($key, $prefix === 'video/'
-                        ? ($found->has($path) ? 'That file is not a video.' : 'Choose a video from the media library.')
-                        : 'Choose a picture from the media library.');
+                    $validator->errors()->add($key, match ($prefix) {
+                        'video/' => $found->has($path) ? 'That file is not a video.' : 'Choose a video from the media library.',
+                        'application/lottie' => 'Choose an animation from the media library.',
+                        'model/' => 'Choose a 3D model (.glb) from the media library.',
+                        default => 'Choose a picture from the media library.',
+                    });
                 }
             }
         }
@@ -779,6 +803,12 @@ final class LayoutRules
                     case 'video':
                         if (is_string($value)) {
                             $st['pictures'][$value][] = [$at2, 'video/'];
+                        }
+                        break;
+                    case 'lottie':
+                    case 'model':
+                        if (is_string($value)) {
+                            $st['pictures'][$value][] = [$at2, $field['kind'] === 'lottie' ? 'application/lottie' : 'model/'];
                         }
                         break;
                     case 'youtube':

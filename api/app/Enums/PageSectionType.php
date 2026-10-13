@@ -137,6 +137,14 @@ enum PageSectionType: string
     case RecordDownloads = 'record_downloads';
     case RecordReviews = 'record_reviews';
     case RecordComments = 'record_comments';
+    /*
+     * Lottie and 3D (0.172.0): an animation and a model from the media
+     * library, drawn by two client islands that load their libraries only when
+     * the section nears the screen. Appended last because PageBuilderTest
+     * pins the first two cases.
+     */
+    case Lottie = 'lottie';
+    case Model = 'model';
 
     public function label(): string
     {
@@ -192,6 +200,8 @@ enum PageSectionType: string
             self::RecordDownloads => 'Record downloads',
             self::RecordReviews => 'Record reviews',
             self::RecordComments => 'Record comments',
+            self::Lottie => 'Animation',
+            self::Model => '3D model',
         };
     }
 
@@ -255,6 +265,8 @@ enum PageSectionType: string
             self::RecordDownloads => 'The datasheets, drivers and firmware attached to the record.',
             self::RecordReviews => 'The customers’ reviews and the form to leave one.',
             self::RecordComments => 'The comments under the article, and the form to add one.',
+            self::Lottie => 'A Lottie animation from the media library, played when it comes into view. Still under reduced motion.',
+            self::Model => 'A 3D model (.glb) from the media library that visitors can turn with a finger or the mouse.',
         };
     }
 
