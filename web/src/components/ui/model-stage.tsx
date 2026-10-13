@@ -3,6 +3,7 @@
 import { createElement, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { motionFileUrl } from "@/lib/motion-file";
 import { useMotionOk } from "@/lib/hooks/use-carousel";
 
 /**
@@ -52,7 +53,7 @@ export function ModelStage({ file, alt, poster, posterAlt, rotate, className }: 
         <Image src={poster} alt={posterAlt ?? ""} fill sizes="(min-width: 1024px) 60vw, 100vw" className="object-contain" />
       )}
       {loaded && createElement("model-viewer", {
-        src: file,
+        src: motionFileUrl(file),
         alt,
         poster: poster ?? undefined,
         "camera-controls": "",

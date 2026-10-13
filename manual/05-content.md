@@ -194,6 +194,8 @@ The section types are:
 | Video | A YouTube video (loaded only when pressed) or a video from the media library |
 | Divider | Space between sections, with or without a line |
 | In-page menu | A strip of links to the sections of this page, which stays at the top of the screen as the visitor scrolls |
+| Animation | A Lottie animation from the media library (or a pasted link), played when it comes into view — once, or looping with a pause button; still for visitors who ask for less motion |
+| 3D model | A 3D model (.glb) visitors can turn with a finger or the mouse, slowly turning by itself unless you switch that off; a poster picture shows until it loads |
 
 To build a page:
 

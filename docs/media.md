@@ -450,3 +450,33 @@ Every public response builds a media URL through `App\Support\MediaUrl`,
 which versions the address of a file edited in place (`?v=<revision>`) and
 sends browser-fetched files to the media CDN when one is switched on. The
 full account is `docs/cdn.md`.
+
+## Animations and 3D models (0.172.0)
+
+The library takes `.json` and `.lottie` (Lottie animations) and `.glb`
+(binary glTF models). `finfo` cannot tell these apart, so they skip the
+upload's `mimes:` rule and go through `App\Support\Media\MotionFiles::check()`
+instead, which reads the content:
+
+- **Lottie JSON**: an object with `v`, `fr`, `ip`, `op`, numeric `w`/`h` and a
+  `layers` array; every picture it names must be embedded (`e: 1` or a
+  `data:` URI) — one fetched from another site is refused. Stored as
+  `application/lottie+json` with `w`/`h` as the row's width and height.
+- **`.lottie`**: a zip with a `manifest.json`, at most 200 entries; its first
+  animation passes the JSON check, pictures may live in its `images/`.
+  `application/lottie+zip`.
+- **`.glb`**: `glTF` magic, version 2, a declared length within the file, a
+  parsable JSON chunk, no external `uri`, and none of Draco, meshopt or Basis
+  compression. `model/gltf-binary`.
+- **Caps**: 5 MB for an animation, 25 MB for a model, each also under php.ini's
+  ceiling (`meta.library.max_lottie_kb`, `max_model_kb`).
+
+**`POST /admin/media/import-url`** copies a file at a public address into the
+library: `SafeHttp` (public hosts, redirects checked hop by hop, never the
+local-only switches), the URL's own extension, then `storeFromPath()` — every
+check above, the SVG sanitiser and the image limits apply. The console's
+"Or paste a link" on an animation or model field is the caller.
+
+The website never fetches these from the asset origin directly — see
+`docs/page-builder.md` "Animation and 3D model" for the `/motion-file/` route
+and why.

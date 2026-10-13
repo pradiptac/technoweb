@@ -1589,6 +1589,26 @@ otherwise unlogged. `GET /admin/pages/builder` adds `custom_code: {page_mode}`
 — whether the signed-in account may choose page mode. The public read sends the
 section as `{label, html, height?, mode?}`, the `html` raw.
 
+**`lottie` — "Animation" and `model` — "3D model" (0.172.0).** `lottie` stores
+`{heading?, lede?, file_path, alt?, loop?, size?, align?}`: `file_path` a
+library file whose mime starts `application/lottie` (a `.json` or `.lottie`
+the library has checked), `alt` ≤ 200 (blank is decorative), `loop` boolean,
+`size` `s`/`m`/`l` (default `m`), `align` `center`/`start`. `model` stores
+`{heading?, lede?, file_path, alt, poster_path?, rotate?, height?}`:
+`file_path` a `model/gltf-binary` library file, `alt` required ≤ 200,
+`poster_path` a library picture, `rotate` boolean (default true), `height`
+`s`/`m`/`l`. Defaults are not stored; a wrong file is a 422 on
+`blocks.N.data.file_path` ("Choose an animation from the media library." /
+"Choose a 3D model (.glb) from the media library."). The public read gives
+`file` (a URL) in place of `file_path`, plus `format` (`json`/`lottie`) and
+`ratio` (width ÷ height, else 1) on an animation and `poster`/`poster_alt` on a
+model, and drops the section when the file has gone or is no longer that kind.
+The layout section takes the same two as widgets: `lottie` (`file_path`,
+`alt`, `loop` as `yes`/`no`) and `model` (`file_path`, `alt` required,
+`poster_path`, `rotate` as `yes`/`no`), presented the same way.
+`media.library` (on `GET /admin/media`'s `meta`) lists `json`, `lottie` and
+`glb` and adds `max_lottie_kb` and `max_model_kb`.
+
 **`layout` — "Custom layout" (0.147.0)** stores `{kicker?, heading?, lede?,
 rows}`: 1–8 rows `{id, split?, gap?, valign?, stack_from?, reverse_stacked?,
 columns}`, each of 1–4 columns `{surface?, pad?, align?, valign?, widgets}`, each
@@ -3647,8 +3667,9 @@ submission and is not in the file. The file is `form-{slug}-{Y-m-d}.csv`.
 | `GET` | `/admin/media-folders` | `{id, name, media_count}` |
 | `POST` | `/admin/media-folders` | `name`, unique |
 | `DELETE` | `/admin/media-folders/{id}` | **Keeps the files** — they become unfiled |
-| `GET` | `/admin/media` | Paginated. `?q=` on filename, **alt text, description and tags**, `?folder=` (an id, or `unfiled`), `?kind=image\|file`, `?sort=`, `?direction=`, `?trashed=1`, `?per_page=` (default **10**, max 100) |
+| `GET` | `/admin/media` | Paginated. `?q=` on filename, **alt text, description and tags**, `?folder=` (an id, or `unfiled`), `?kind=image\|file\|lottie\|model` (the last two 0.172.0), `?sort=`, `?direction=`, `?trashed=1`, `?per_page=` (default **10**, max 100) |
 | `POST` | `/admin/media` | multipart `file` + optional `alt_text`, `folder_id` |
+| `POST` | `/admin/media/import-url` | 0.172.0, throttled 10/min. `url` (http(s), ≤ 2048), `folder_id?`. Downloads the file once through `SafeHttp` (public hosts only, redirects checked hop by hop) and stores it exactly as an upload. **201** with the media resource; **422 on `url`** with one sentence when the address is refused, unreachable, too large, of a type the library does not take, or fails the content check. Declared above `media/{id}` |
 | `PATCH` | `/admin/media/{id}` | `filename`, `alt_text`, `description`, `tags[]`, `folder_id`, `focal_x` + `focal_y` (0–100, **together or not at all**; both null is the centre) |
 | `POST` | `/admin/media/move` | `ids[]`, `folder_id` (null means Unfiled) |
 | `POST` | `/admin/media/copy` | `ids[]`, optional `folder_id`. Duplicates the bytes |

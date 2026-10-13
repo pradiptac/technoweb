@@ -1976,3 +1976,46 @@ to delete.
 nothing, an empty body, the forty cap, the size cut. `PageBuilderTest` also
 pins the four 0.109.0 types and `sections-from-body` (cleaned, role-gated,
 writes nothing, saveable as returned).
+
+## Animation and 3D model (0.172.0)
+
+Two section types and two layout widgets: `lottie` ("Animation") and
+`model` ("3D model"). The rules, and the one that was found by running it:
+
+- **Every file is a library file.** A pasted LottieFiles or Sketchfab link is
+  copied into the library once, on Add, through `POST /admin/media/import-url`
+  (`SafeHttp`, the upload's own checks), so no visitor's browser ever asks
+  that site for anything. `App\Support\Media\MotionFiles` is the check:
+  a Lottie must embed its pictures, a `.glb` must be glTF 2 with no external
+  URI and no Draco, meshopt or KTX2 compression (each needs WebAssembly or a
+  CDN to open). See `docs/media.md`.
+- **The players fetch through `/motion-file/…`, never the asset origin.** The
+  spec assumed `connect-src` was enough. It is not: `lottie-web` and
+  `<model-viewer>` read the file with a script `fetch`, and a browser refuses
+  that across origins without CORS headers, which `php artisan serve` never
+  sends — the probe's first run loaded nothing. `lib/motion-file.ts` rewrites
+  a library URL onto the website's own `/motion-file/[...path]` route, which
+  fetches only a path of the library's exact shape (`media/YYYY/MM/` + forty
+  characters + `.json`/`.lottie`/`.glb`) and caches it for a year (an edit
+  moves the address by `?v=`) — the `/font/[name]` pattern. A media CDN is
+  bypassed for these three types until it sends CORS headers.
+- **Both libraries load with dynamic `import()`**, only when the section nears
+  the screen: `lottie-web`'s light build (SVG, no `eval`) plus `fflate` for a
+  `.lottie`, and `@google/model-viewer` (Apache-2.0, with `three`). Nothing
+  reaches a page without the section.
+- **The box is reserved before the file loads**: a Lottie's ratio is the
+  animation's own width over height (stored on the media row, presented as
+  `ratio`), a model takes a fixed height choice.
+- **Motion rules**: a Lottie plays at half visible and the tab shown, pauses
+  off screen, shows its first frame still under reduced motion, and a looping
+  one carries "Pause the animation". A model turns by itself only when
+  `rotate` is on and motion is allowed; it can always be dragged.
+- `SectionPresenter::lottie()`/`model()` are shared with the layout widgets
+  (`LayoutPresenter`); a section or widget whose file has left the library, or
+  is no longer that kind, is dropped. Widgets send `loop`/`rotate` as
+  `yes`/`no` choices, sections as booleans; the website reads both.
+
+`scripts/probes/motion-media.mjs` uploads a generated Lottie and `.glb`,
+refuses a Lottie with an external picture, and checks play, Pause, the
+viewer, reduced motion, no foreign request, nothing logged and 320px.
+`MotionFilesTest`, `MediaImportUrlTest`, `PageBuilderTest`, `LayoutSectionTest`.

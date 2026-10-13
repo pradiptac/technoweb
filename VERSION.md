@@ -21,6 +21,18 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.172.0 — 2026-10-13
+
+**Animations and 3D models.** Release A3 of the 2.0 roadmap.
+
+- **Two new page-builder sections**, also available as widgets in a custom layout:
+  - **Animation:** a Lottie animation that plays when it comes into view, once or looping (a looping one has a pause button).
+  - **3D model:** a .glb model visitors can turn with a finger or the mouse; it turns slowly by itself unless you switch that off, with an optional poster picture until it loads.
+- **The media library takes the files:** Lottie (.json, .lottie) up to 5 MB and glTF binary (.glb) up to 25 MB, each checked on upload — an animation must have its pictures built in, and a model must not be compressed in a way that needs code from another site.
+- **Paste a link.** On an animation or model field, paste a LottieFiles or Sketchfab link and press Add: the file is copied into your library once, so visitors never load anything from that site.
+- **Motion rules:** visitors who ask for less motion see the animation's first frame and a model that stays still (they can still turn it).
+- Nothing is loaded on a page without one of these sections, and no request leaves your own site.
+
 ## 0.171.0 — 2026-10-13
 
 **Headings that move, and small touches that answer.** Release A4 of the 2.0 roadmap.

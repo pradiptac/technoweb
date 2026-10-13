@@ -14,6 +14,8 @@ pick an existing file or upload a new one.
 | Images | PNG, JPG, GIF, WebP, SVG |
 | Video | MP4, WebM |
 | Documents | PDF, Word (DOC, DOCX), Excel (XLS, XLSX), CSV, TXT, ZIP |
+| Animations | Lottie (.json or .lottie), up to 5 MB |
+| 3D models | glTF binary (.glb), up to 25 MB |
 
 The size limits are shown on the screen under **Size limits**. By default an
 image or document may be up to 5 MB, a video up to 20 MB, and an image no
@@ -24,6 +26,14 @@ than the server allows has no effect.
 
 **SVG drawings** are cleaned when uploaded: anything that could run as a
 script is removed. A file that cannot be read as a proper SVG is refused.
+
+**Animations and 3D models** are checked too. A Lottie animation must have
+its pictures built in (in LottieFiles, export with images embedded); one that
+loads pictures from another website is refused. A 3D model must be a plain
+glTF binary (.glb) with its textures inside it and without Draco or other
+compression — export it uncompressed. On an animation or model field you can
+also **paste a link** to the file instead of uploading it: the file is copied
+into the library once, so your visitors never load it from that other site.
 
 ## Uploading
 

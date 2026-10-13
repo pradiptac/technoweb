@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { motionFileUrl } from "@/lib/motion-file";
 import { useMotionOk } from "@/lib/hooks/use-carousel";
 
 /**
@@ -41,7 +42,7 @@ type LottieModule = {
 };
 
 async function readAnimation(file: string, format: "json" | "lottie"): Promise<unknown> {
-  const res = await fetch(file);
+  const res = await fetch(motionFileUrl(file));
   if (!res.ok) throw new Error(String(res.status));
   if (format === "json") return res.json();
 
