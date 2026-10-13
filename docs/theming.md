@@ -285,6 +285,27 @@ cannot be written by hand, and `php://input` is not JSON there. The upload
 goes through `MediaUploader`, so the library's limits and the SVG sanitiser
 apply as they would in the console.
 
+**And it boots Laravel before it reads the logo's bytes**, which is where
+driving a real install earned its keep. `Wizard.php` is framework-free until
+`laravel()` — that is the line requiring `vendor/autoload.php` — so an `App\`
+class named above it is a fatal rather than a refusal. The SVG content check
+sat above it, and an SVG is what most logos are: uploading one answered
+`Class "App\Support\SvgSanitiser" not found` with a 500, while a PNG worked
+(`getimagesize` is PHP's own). The boot is first now, and everything above it
+is a check PHP can make alone — the file arriving, the host's upload error,
+the extension, the size — so a file this server was never going to take is
+still refused without paying to boot the framework.
+
+No audit reaches the wizard: on a checkout it answers 404 by design, since
+there is no `config/` beside `api/`. So the pin is a source read —
+`LogoBrandTest::test_the_wizard_boots_laravel_before_it_reads_the_logo` asserts
+the boot precedes every class in that method the autoloader is needed for, and
+fails by name when the order is put back. The whole screen was driven once
+against a throwaway install (a copy of `api/` under `/d/tmp` with its own
+`config/` and `storage/`, a scratch database, the wizard taken from unlock to
+brand): the chosen reading wrote `theme: custom`, the three brand colours and
+the bar, and left Background and Text as the preset had them.
+
 **The media library hands a picture over as a link**,
 `/admin/themes?palette=<path>`, and only for an administrator: colours do not
 travel between screens, the screen that owns them reads them. A path rather

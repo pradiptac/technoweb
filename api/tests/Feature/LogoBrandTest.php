@@ -95,4 +95,54 @@ class LogoBrandTest extends TestCase
             @unlink($path);
         }
     }
+
+    /**
+     * The wizard boots Laravel before it reads the logo's bytes.
+     *
+     * `Wizard.php` is framework-free until `laravel()`, which is where
+     * `vendor/autoload.php` is required — so an `App\` class named before
+     * that line is a fatal, not a refusal. The SVG check was above it, and
+     * since an SVG is what most logos are, uploading one through the wizard
+     * answered `Class "App\Support\SvgSanitiser" not found` with a 500. No
+     * audit reaches the wizard; it was found by driving a real install.
+     *
+     * Read from the source rather than driven, because the wizard answers
+     * 404 on a checkout by design (no `config/` beside `api/`) and its input
+     * is `$_FILES`. The rule it pins is the one that broke: the boot comes
+     * first.
+     */
+    public function test_the_wizard_boots_laravel_before_it_reads_the_logo(): void
+    {
+        $source = file_get_contents(base_path('install/Wizard.php'));
+        $this->assertIsString($source);
+
+        $start = strpos($source, 'private function logo()');
+        $this->assertNotFalse($start, 'Wizard::logo() has been renamed.');
+
+        // To the end of the method: the next method's declaration.
+        $end = strpos($source, "
+    private function", $start + 10);
+        $body = substr($source, $start, $end === false ? null : $end - $start);
+
+        // Comments out first, or this test reads the note above the boot line
+        // -- which names the class -- as the code naming it. It did.
+        $body = (string) preg_replace('#^\s*//.*$#m', '', $body);
+
+        $boot = strpos($body, '$this->laravel();');
+        $this->assertNotFalse($boot, 'Wizard::logo() no longer boots Laravel.');
+
+        // Every class the step needs the autoloader for.
+        foreach (['SvgSanitiser', 'MediaUploader', 'Setting::', 'Storage::', 'BrandPalette', 'LogoColours'] as $class) {
+            $at = strpos($body, $class);
+            if ($at === false) {
+                continue;
+            }
+
+            $this->assertGreaterThan(
+                $boot,
+                $at,
+                "Wizard::logo() names {$class} before \$this->laravel(), so the autoloader has not run and the step is a 500 rather than a refusal.",
+            );
+        }
+    }
 }

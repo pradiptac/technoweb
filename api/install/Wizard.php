@@ -639,6 +639,15 @@ final class Wizard
 
         $temp = (string) ($file['tmp_name'] ?? '');
 
+        // Booted before the bytes are read, because the SVG check below is an
+        // `App\` class and this wizard is framework-free until here: the
+        // autoloader lives inside `laravel()`. Every check above it is PHP's
+        // own, so a file this host never accepted is still refused without
+        // paying to boot. Found by driving a real install: an SVG logo --
+        // which is what most logos are -- answered
+        // `Class "App\Support\SvgSanitiser" not found`.
+        $this->laravel();
+
         // The extension is what a person typed; the bytes are what it is.
         if ($extension === 'svg') {
             if (SvgSanitiser::clean((string) @file_get_contents($temp)) === null) {
@@ -647,8 +656,6 @@ final class Wizard
         } elseif (@getimagesize($temp) === false) {
             throw new Refusal('That file is not a picture.', 422, ['logo' => 'That file is not a picture.']);
         }
-
-        $this->laravel();
 
         // No staff id: nobody is signed in during setup.
         $medium = MediaUploader::storeFromPath($temp, $name, null);
