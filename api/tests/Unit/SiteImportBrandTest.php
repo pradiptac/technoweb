@@ -77,6 +77,18 @@ class SiteImportBrandTest extends TestCase
         $this->assertNull($nofile['fonts']['body']['custom'], 'a family with neither a vendored face nor a file is only named');
     }
 
+    public function test_a_google_font_is_offered_by_name_and_preferred_to_the_sites_own_file(): void
+    {
+        $faces = [['family' => 'Poppins', 'weight' => 400, 'url' => 'https://acme.test/fonts/poppins.woff2']];
+        $brand = Brand::read('body { font-family: Poppins, sans-serif }', $faces);
+
+        $this->assertSame(['family' => 'Poppins', 'id' => 'g-poppins', 'custom' => null], $brand['fonts']['body']);
+
+        // A vendored face still wins, and an unknown family is still only named.
+        $this->assertSame('inter', Brand::read('body { font-family: Inter }')['fonts']['body']['id']);
+        $this->assertNull(Brand::read('body { font-family: Gotham }')['fonts']['body']['id']);
+    }
+
     public function test_a_headline_only_face_is_not_offered_for_the_body(): void
     {
         $brand = Brand::read("body { font-family: 'Playfair Display', serif } h1 { font-family: 'Playfair Display' }");

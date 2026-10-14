@@ -5,6 +5,7 @@ namespace App\Support\SiteImport\Steps;
 use App\Http\Controllers\Api\V1\Admin\SettingController;
 use App\Models\Setting;
 use App\Support\CustomFonts;
+use App\Support\Fonts\GoogleFonts;
 use App\Support\Import\MediaDownload;
 use App\Support\SiteImport\Brand;
 use App\Support\SiteImport\Context;
@@ -83,6 +84,18 @@ class BrandStep extends Step
             foreach (['display' => 'theme_font_display', 'body' => 'theme_font_body'] as $role => $key) {
                 $face = $brand['fonts'][$role] ?? null;
                 $id = is_array($face) ? ($face['id'] ?? $this->install($ctx, $face, $slots)) : null;
+
+                // A Google font (0.179.0) is copied here before the settings
+                // save, which refuses a `g-` id that is not installed. A
+                // refusal costs this role its font and nothing else.
+                if (is_string($id) && str_starts_with($id, 'g-')) {
+                    try {
+                        GoogleFonts::install(substr($id, 2));
+                    } catch (ValidationException $e) {
+                        $ctx->report->notice("The site's {$role} font could not be copied from Google: ".collect($e->errors())->flatten()->first());
+                        $id = null;
+                    }
+                }
 
                 if (is_string($id) && $id !== '') {
                     $settings[$key] = $id;

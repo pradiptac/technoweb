@@ -3,6 +3,7 @@
 namespace App\Support\SiteImport;
 
 use App\Models\SiteImport;
+use App\Support\Fonts\GoogleFontCatalogue;
 use App\Support\Newsletter\EmailExtractor;
 use App\Support\WordPress\Harvest;
 
@@ -485,6 +486,13 @@ final class Brand
 
         if ($known !== null && $known[$role]) {
             return ['family' => $family, 'id' => $known['id'], 'custom' => null];
+        }
+
+        // A Google font (0.179.0): copied here on commit, which beats putting
+        // the site's own file in a custom slot — the slots stay free, and
+        // Google's copy carries every weight and script.
+        if ($known === null && ($google = GoogleFontCatalogue::find(GoogleFontCatalogue::slug($family))) !== null) {
+            return ['family' => $family, 'id' => 'g-'.$google['slug'], 'custom' => null];
         }
 
         $mine = array_values(array_filter($faces, fn (array $f) => strcasecmp($f['family'], $family) === 0));

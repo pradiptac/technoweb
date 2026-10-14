@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\Role as RoleEnum;
 use App\Models\BlogPost;
+use App\Models\GoogleFont;
 use App\Models\Media;
 use App\Models\MenuItem;
 use App\Models\Page;
@@ -47,6 +48,9 @@ class SiteImportKindsTest extends TestCase
         ."h1,h2{font-family:'Fraunces',serif}\n"
         ."a{color:#c2410c}.btn{background:#c2410c;color:#fff}\n"
         ."@font-face{font-family:'Gotham';src:url('../fonts/gotham.woff2') format('woff2');font-weight:400}\n";
+
+    /** The stylesheet the faked site serves; a test may change it. */
+    private string $css = self::CSS;
 
     /** @var array<string, string> path => html */
     private array $pages = [];
@@ -160,7 +164,7 @@ class SiteImportKindsTest extends TestCase
             return match (true) {
                 $path === '/robots.txt' => Http::response("User-agent: *\nDisallow:\n", 200, ['Content-Type' => 'text/plain']),
                 $path === '/sitemap.xml' => Http::response('Not found', 404),
-                $path === '/css/site.css' => Http::response(self::CSS, 200, ['Content-Type' => 'text/css']),
+                $path === '/css/site.css' => Http::response($this->css, 200, ['Content-Type' => 'text/css']),
                 $path === '/fonts/gotham.woff2' => Http::response('wOF2'.str_repeat("\0", 200), 200, ['Content-Type' => 'font/woff2']),
                 str_starts_with($path, '/img/') => Http::response(self::PNG, 200, ['Content-Type' => 'image/png']),
                 isset($this->pages[$path]) => Http::response($this->pages[$path], 200, ['Content-Type' => 'text/html; charset=utf-8']),
@@ -528,6 +532,28 @@ class SiteImportKindsTest extends TestCase
         $this->assertSame('Gotham', CustomFonts::slot(1)['name']);
         $this->assertNotNull(CustomFonts::slot(1)['regular']);
         $this->assertGreaterThan(0, collect($import->fresh()->counts)->keyBy('key')['brand']['update']);
+    }
+
+    public function test_an_accepted_google_font_is_installed_and_chosen(): void
+    {
+        $this->css = "body{font-family:'Poppins',sans-serif}h1,h2{font-family:'Fraunces',serif}.btn{background:#c2410c;color:#fff}a{color:#c2410c}";
+        $this->app->instance(PublicHost::RESOLVER, fn (string $host): array => in_array($host, ['acme.test', 'fonts.googleapis.com', 'fonts.gstatic.com'], true) ? ['93.184.216.34'] : []);
+        // Registered before the site's own stubs, so these hosts are answered first.
+        Http::fake([
+            'fonts.googleapis.com/*' => Http::response("@font-face{font-family:'Poppins';font-weight:400;src:url(https://fonts.gstatic.com/s/poppins/v1/a.woff2) format('woff2');unicode-range:U+0000-00FF}", 200),
+            'fonts.gstatic.com/*' => Http::response('wOF2 fake', 200),
+        ]);
+        $this->site();
+
+        $import = $this->decide($this->start(), ['brand' => ['accept' => true]]);
+        $this->assertSame('g-poppins', $this->review($import)['analysis']['decisions']['brand']['fonts']['body']['id']);
+
+        $this->commit($import);
+
+        $this->assertSame('g-poppins', Setting::get('theme_font_body'));
+        $this->assertSame('fraunces', Setting::get('theme_font_display'));
+        $this->assertTrue(GoogleFont::where('slug', 'poppins')->exists());
+        $this->assertNull(CustomFonts::slot(1)['regular'], 'a Google font never takes a custom slot');
     }
 
     public function test_a_custom_slot_that_already_holds_a_font_is_never_replaced(): void
