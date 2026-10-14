@@ -11,6 +11,7 @@ use App\Support\IndianStates;
 use App\Support\Money;
 use App\Support\Store\Fulfilment;
 use App\Support\Store\ShippingQuote;
+use App\Support\Store\Tax;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -274,7 +275,10 @@ final class Shipments
                 'sku' => filled($item->sku) ? (string) $item->sku : 'ITEM-'.$item->id,
                 'units' => (int) $item->quantity,
                 'selling_price' => self::rupees((int) $item->unit_price_paise),
-                'tax' => intdiv(Money::GST_BASIS_POINTS, 100),
+                // The rate this order was charged at, not today's: a
+                // parcel booked after a rate change still carries the tax
+                // on the invoice that travels with it.
+                'tax' => intdiv(Money::rateOf((int) $order->taxable_paise, (int) $order->gst_paise) ?? Tax::rate(), 100),
             ])->all(),
             // "COD" or "Prepaid", exactly as the docs spell them.
             'payment_method' => $order->paid_at === null ? 'COD' : 'Prepaid',

@@ -557,6 +557,19 @@ const MOCK_VIDEOS = {
   ],
   3: [{ kind: 'youtube', youtube_id: 'aqz-KE-bpKQ', title: 'Activating your licence', poster_url: null, poster_alt: null }],
 };
+/*
+  Tax and invoicing (0.176.0), as an install ships: 18%, prices inclusive,
+  and the invoice switched off with nothing filled in.
+*/
+const mockInvoicingSettings = {
+  store_gst_percent: '18', store_price_basis: 'inclusive',
+  invoice_enabled: '0', invoice_legal_name: '', invoice_gstin: '', invoice_state: '',
+  invoice_address: '', invoice_email: '', invoice_phone: '', invoice_prefix: 'INV',
+  invoice_hsn_default: '', invoice_terms: '',
+  invoice_declaration: 'We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.',
+  invoice_signatory: '', invoice_signature_path: '',
+};
+
 const mockVideoSettings = {
   store_videos_shop_enabled: '1', store_videos_product_enabled: '1', store_videos_product_others: '1', store_videos_home_enabled: '0',
   store_videos_heading: 'Shop the videos', store_videos_lede: '', store_videos_autoplay: '0', store_videos_shape: 'portrait',
@@ -855,7 +868,13 @@ const summarise = (token, lines) => {
     shipping_deliverable: quote.deliverable,
     shipping_states: quote.mode === 'zones' && quote.ships ? INDIAN_STATES.map(([, name]) => name).sort() : null,
     total_paise: total,
-    taxable_paise: taxable, gst_paise: total - taxable, gst_rate: '18%',
+    taxable_paise: taxable, gst_paise: total - taxable,
+    // How the checkout draws the tax (0.176.0). The mock is a single-rate,
+    // tax-inclusive shop, which is the default an install ships with, so
+    // `gst_added_paise` is zero and the checkout prints the note rather
+    // than a row. A second rate here would need per-line figures, which
+    // the real API has and this does not.
+    gst_rate: '18%', gst_basis: 'inclusive', gst_added_paise: 0,
     has_shippable: items.some((i) => i.shipped),
     problems: items.map((i) => i.problem).filter(Boolean),
     contact: { email: null, phone: null, ...(cartContacts.get(token) ?? {}), reminders: false },
@@ -5152,6 +5171,62 @@ createServer(async (req, res) => {
     }
 
     // The promo band's own door: its eight rows and the two tiles' seven each, in the settings row shape.
+    /*
+      Tax and invoicing (0.176.0): the fifteen rows in the settings row
+      shape, with their options, and the `meta` the screen draws itself
+      from. Switched off and unconfigured, because that is what an install
+      ships as and is the state the screen has most to say about.
+    */
+    if (p === '/admin/store/invoicing') {
+      if (req.method === 'PATCH') {
+        for (const { key } of (await readJsonBody(req)).settings ?? []) {
+          if (!(key in mockInvoicingSettings)) {
+            return json(res, 422, { message: 'The given data was invalid.', errors: { 'settings.0.key': ['The selected setting is invalid.'] } });
+          }
+        }
+        for (const { key, value } of (await readJsonBody(req)).settings ?? []) mockInvoicingSettings[key] = value ?? '';
+      }
+
+      const rates = ['0', '0.25', '3', '5', '12', '18', '28'].map((r) => ({ value: r, label: `${r}%` }));
+      const bases = [
+        { value: 'inclusive', label: 'Prices include GST', blurb: 'The price on a product is what a customer pays, and the tax is taken out of it.' },
+        { value: 'exclusive', label: 'GST is added at the checkout', blurb: 'The price on a product is before tax, and the tax is a row of its own in the basket.' },
+      ];
+      const states = INDIAN_STATES.map(([value, label]) => ({ value, label }));
+      const options = { store_gst_percent: rates, store_price_basis: bases.map(({ value, label }) => ({ value, label })), invoice_state: states };
+
+      const rows = Object.entries(mockInvoicingSettings).map(([key, value]) => ({
+        key, value: value === '' ? null : value,
+        type: key === 'invoice_enabled' ? 'boolean' : /address|terms|declaration/.test(key) ? 'text' : 'string',
+        is_secret: false, is_set: value !== '', url: null, options: options[key] ?? null,
+      }));
+
+      const missing = [];
+      if (!mockInvoicingSettings.invoice_legal_name) missing.push('Enter the registered business name the invoice is issued in.');
+      if (!mockInvoicingSettings.invoice_gstin) missing.push('Enter your GSTIN.');
+      if (!mockInvoicingSettings.invoice_state) missing.push('Choose the state you are registered in — it decides whether a sale is CGST and SGST or IGST.');
+      if (!mockInvoicingSettings.invoice_address) missing.push('Enter the address the invoice is issued from.');
+
+      const meta = {
+        ready: mockInvoicingSettings.invoice_enabled === '1' && missing.length === 0,
+        missing, zoho_active: false, rates, bases, states,
+        rate: mockInvoicingSettings.store_gst_percent || '18',
+        products_with_own_rate: 0, products_without_hsn: 0, issued: 0,
+        financial_year: '2026-27',
+      };
+
+      if (req.method === 'PATCH') return json(res, 200, { message: 'Tax and invoicing saved.', data: rows, meta });
+      return json(res, 200, { data: rows, meta });
+    }
+
+    /* An order's own GST invoice: made, or refused in one sentence. */
+    if (/^\/admin\/store\/orders\/[^/]+\/invoice\/generate$/.test(p) && req.method === 'POST') {
+      return json(res, 422, {
+        message: 'GST invoices are switched off.',
+        errors: { invoice: ['GST invoices are switched off.'] },
+      });
+    }
+
     if (p === '/admin/store/promo') {
       const row = (key, value, type = 'string') => ({ key, value, type, is_secret: false, is_set: value !== null && value !== '', url: null, options: null });
       const rows = [
@@ -6536,6 +6611,7 @@ createServer(async (req, res) => {
       gstin: body?.gstin ?? null,
       company_name: body?.company_name ?? null,
       has_invoice: false,
+      invoice_number: null, invoice_date: null, invoice_source: null,
       courier: null, tracking_number: null, tracking_url: null,
       placed_at: new Date().toISOString(), paid_at: null,
       items: summary.items.map((i) => ({

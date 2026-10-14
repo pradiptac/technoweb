@@ -21,6 +21,48 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.176.0 — 2026-10-14
+
+**The shop makes its own GST invoice**, and the tax behind it is yours to
+set. Store → **Tax and invoicing**.
+
+- **A GST rate for the shop**, and a different one on any product that needs
+  it. It was 18% in the code and nowhere else, so a shop selling only
+  garments at 5% or only air conditioners at 28% could not be run here at
+  all. Choose from the real slabs; a product's own rate beats the shop's.
+- **Prices that include GST, or have it added at the checkout.** Inclusive
+  is what the shop has always done and stays the default, so nothing moves
+  unless you change it. Exclusive shows the tax as a row of its own in the
+  basket.
+- **A tax invoice, made the moment an order is paid** — the seller's
+  details, the buyer's, the place of supply, every line with its HSN code,
+  CGST and SGST or IGST depending on the states, the amount in words. A PDF
+  on the order, and a **print preview** in the console.
+- **Customers can finally download it.** The order page has claimed an
+  invoice existed since the shop opened and there was no way to open one.
+  There is now, on the guest's order page and in the portal.
+- **An invoice you upload by hand always wins**, and nothing generated
+  replaces it. While Zoho Books is connected it goes on making the
+  invoices and nothing is generated here — two systems numbering one series
+  is two series.
+- Invoice numbers are their own series by financial year — `INV/2026-27/00001`,
+  starting again each April — and nothing to do with order numbers.
+
+**Console text runs the full width of its screen.** The paragraph under a
+heading was capped at 92 characters, which on a wide settings screen wrapped
+at about half the width of the grid of fields beneath it and read as ragged.
+The public site lost the same cap in September; the console has now lost it
+too.
+
+Under it, the tax moved from one figure on the order to one per line, which
+is what a rate per product requires; the order's totals are now the sum of
+the lines, so they add up by construction. Nothing already sold changed: an
+order keeps the tax it was charged, and an invoice for one placed before
+this prints the rate it was charged at. `docs/store.md`, "Tax, and the
+shop's own GST invoice".
+
+---
+
 ## 0.175.0 — 2026-10-14
 
 **Two more site themes: Aurora and Atelier.** Fourteen to choose from in

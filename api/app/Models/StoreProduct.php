@@ -42,7 +42,10 @@ class StoreProduct extends Model implements Answerable, Faqable
     use HasAnswerBlocks, HasCustomFields, HasRevisions, HasSeo, Sluggable;
 
     protected $fillable = [
-        'store_category_id', 'brand_id', 'name', 'slug', 'sku', 'gtin', 'mpn', 'type',
+        'store_category_id', 'brand_id', 'name', 'slug', 'sku', 'gtin', 'mpn',
+        // The invoice's two: the HS code for this product's lines, and its
+        // own GST rate. Both blank means the store-wide answer.
+        'hsn', 'gst_percent', 'type',
         'short_description', 'description', 'images', 'videos', 'specifications', 'features',
         'warranty', 'applications',
         'activation_procedure', 'activation_pdf_path',

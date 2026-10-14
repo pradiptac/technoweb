@@ -7,7 +7,7 @@ import {
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
   IconClock, IconHeadset, IconMegaphone, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
   IconWrench, IconNewspaper, IconBriefcase, IconShield, IconPlug, IconChat, IconBackup, IconCloud, IconMeeting,
-  IconProjector, IconSearch, IconTruck,
+  IconProjector, IconSearch, IconTruck, IconContract,
 } from "@/components/icons";
 // A chrome glyph, which lives in `icons-ui` and is not re-exported by the map.
 import { IconDownload, IconMapPin } from "@/components/icons-ui";
@@ -207,6 +207,11 @@ export const NAV: NavItem[] = [
       { role: "store_manager", href: "/admin/store/videos", label: "Product videos", icon: IconCamera },
       // How delivery is charged: a flat figure, or zones and weight slabs (docs/store.md "Delivery charges and shipping zones").
       { role: "store_manager", href: "/admin/store/shipping", label: "Shipping", icon: IconTruck },
+      // The GST rate, whether prices include it, and the seller's half of a
+      // tax invoice (0.176.0, docs/store.md "The GST invoice"). A store
+      // manager's, the promo band's shape and reason: settings as a whole
+      // stay the administrator's, and the rate a shop charges does not.
+      { role: "store_manager", href: "/admin/store/invoicing", label: "Tax and invoicing", icon: IconContract },
       { role: "store_manager", href: "/admin/store/stock", label: "Stock", icon: IconBox },
       { role: "store_manager", href: "/admin/store/reports", label: "Reports", icon: IconSearchChart },
       { role: "admin", href: "/admin/store/settings", label: "Settings", icon: IconSliders },
@@ -785,6 +790,14 @@ const PALETTE_SECTIONS: { label: string; href: string; group: string; keywords: 
     href: "/admin/store/videos",
     group: "Store · Product videos",
     keywords: "video videos youtube shorts reel clip autoplay watch shop the videos",
+  },
+  // Typed as "gst", "tax" and "invoice" far more often than as the screen's
+  // own name, which is what these keywords are for.
+  {
+    label: "GST rate and tax invoices",
+    href: "/admin/store/invoicing",
+    group: "Store \u00b7 Tax and invoicing",
+    keywords: "gst tax rate invoice invoicing hsn sac cgst sgst igst gstin inclusive exclusive bill",
   },
   {
     label: "Speed suggestions",

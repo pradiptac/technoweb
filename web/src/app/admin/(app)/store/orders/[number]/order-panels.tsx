@@ -10,7 +10,7 @@ import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import {
   addNoteAction, createZohoInvoiceAction, fulfilOrderAction, moveOrderAction, recordPaymentAction, recordRefundAction, saveInvoiceAction,
   saveShippingAction, sendZohoPaymentAction, shipmentAction, shipmentRatesAction,
-  type OrderActionState,
+  type OrderActionState, generateInvoiceAction,
 } from "../actions";
 import { CourierRates } from "@/components/admin/courier-rates";
 import { paiseToRupeeInput } from "@/lib/money";
@@ -322,11 +322,15 @@ export function InvoicePanel({ order }: { order: AdminOrder }) {
       <p className="measure mb-3 text-13 text-muted">
         {order.zoho
           ? "Made in Zoho Books by itself (see above), or prepared outside this system and attached here. An invoice attached here by hand is left alone by Zoho Books."
-          : "Prepared outside this system and attached here — nothing is generated automatically."}
+          : order.invoice_source === "generated"
+            ? "Made by this shop when the order was paid. Uploading one here replaces it, and nothing generated will overwrite yours."
+            : "Made by this shop when an order is paid, or prepared outside it and attached here. An invoice attached by hand always wins."}
         {order.gst_required
           ? ` This customer asked for one: ${order.company_name ?? "—"} (${order.gstin ?? "—"}).`
           : " This customer did not ask for one."}
       </p>
+
+      <InvoiceActions order={order} />
 
       {state.error && <Alert tone="err" title="Not saved">{state.error}</Alert>}
       {state.ok && !state.error && <Alert tone="ok" title={state.ok} />}
@@ -358,6 +362,61 @@ export function InvoicePanel({ order }: { order: AdminOrder }) {
         {pending ? "Saving…" : "Save invoice"}
       </Button>
     </Form>
+  );
+}
+
+/**
+ * Making the shop's own invoice, and reading it (0.176.0).
+ *
+ * Two controls and a sentence, above the uploader because they are the
+ * ordinary path and the upload is the exception. **The refusal is the API's
+ * own words** — `order.invoice.refusal` — so the sentence under a disabled
+ * button is the sentence the endpoint would answer with, and the two cannot
+ * come to disagree about why an order cannot be invoiced.
+ *
+ * The print view is a plain `<a>` and not a `Link`: it is a route handler
+ * that renders a whole document, and a prefetch would render one on every
+ * hover.
+ */
+function InvoiceActions({ order }: { order: AdminOrder }) {
+  const [state, formAction, pending] = useActionState(generateInvoiceAction, {});
+  const invoice = order.invoice;
+
+  // Absent while Zoho Books owns the invoices, where the panel above says so.
+  if (!invoice) return null;
+
+  return (
+    <div className="mb-4 rounded-lg border border-line bg-surface px-4 py-3">
+      {state.error && <Alert tone="err" title="Not made">{state.error}</Alert>}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <form action={formAction}>
+          <input type="hidden" name="order_number" value={order.order_number} />
+          <Button type="submit" size="sm" variant="secondary" pending={pending} disabled={!invoice.can_generate}>
+            {pending ? "Making…" : order.invoice_source === "generated" ? "Make it again" : "Make the invoice"}
+          </Button>
+        </form>
+
+        <a
+          href={`/api/admin/store/orders/${encodeURIComponent(order.order_number)}/invoice/print`}
+          target="_blank"
+          rel="noreferrer"
+          className="text-13 font-semibold text-brand-ink underline"
+        >
+          Print preview
+        </a>
+      </div>
+
+      {invoice.refusal && (
+        <p className="measure mt-2 text-12-5 text-muted">{invoice.refusal}</p>
+      )}
+      {!invoice.refusal && order.invoice_source === "generated" && (
+        <p className="measure mt-2 text-12-5 text-muted">
+          Making it again keeps the number — once issued it is in somebody&rsquo;s books — and re-renders the document
+          under it, which is what you want after correcting the registered address.
+        </p>
+      )}
+    </div>
   );
 }
 

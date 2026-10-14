@@ -90,7 +90,7 @@ const ADMIN_ROUTES = [
   "/admin/support-centres", "/admin/support-centres/new",
   "/admin/landing-pages", "/admin/landing-pages/opportunities",
   "/admin/locations", "/admin/locations/new",
-  "/admin/users", "/admin/settings", "/admin/info-bar", "/admin/store/promo", "/admin/store/videos", "/admin/store/tags", "/admin/store/shipping", "/admin/themes", "/admin/site/chrome", "/theme-preview/classic", "/theme-preview/classic/specimen", "/admin/profile",
+  "/admin/users", "/admin/settings", "/admin/info-bar", "/admin/store/promo", "/admin/store/videos", "/admin/store/tags", "/admin/store/shipping", "/admin/store/invoicing", "/admin/themes", "/admin/site/chrome", "/theme-preview/classic", "/theme-preview/classic/specimen", "/admin/profile",
   // The wording of every system email. A new console module is not covered
   // until it is named here — the menu builder carried 183px of horizontal
   // scroll at 320px for exactly that reason.

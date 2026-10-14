@@ -225,6 +225,73 @@ export async function saveStoreVideos(settings: { key: string; value: string }[]
   await apiFetch<void>("/admin/store/videos", { method: "PATCH", body: { settings }, token: await token() });
 }
 
+/* ------------------------------------------ tax and invoicing (0.176.0) */
+
+export type ProductTaxMeta = {
+  rates: { value: string; label: string }[];
+  rate: string;
+  basis: string;
+};
+
+/**
+ * The rates a product may be sold at, and what the shop does, for the
+ * product form (0.176.0).
+ *
+ * Read off the products index's `meta` — `getAnswerBlockKinds`' shape and
+ * for its reason: the list belongs to the API and nothing in TypeScript
+ * names a rate. A failure falls back to the shop's own default rather than
+ * taking the form down, so a product can still be saved while the figure
+ * under the price field is the ordinary one.
+ */
+export async function getProductTaxMeta(): Promise<ProductTaxMeta> {
+  try {
+    const res = await apiFetch<{ meta?: Partial<ProductTaxMeta> }>(
+      "/admin/store/products?per_page=1", { token: await token() },
+    );
+
+    return {
+      rates: Array.isArray(res.meta?.rates) ? res.meta.rates : (res.meta as { gst_rates?: ProductTaxMeta["rates"] })?.gst_rates ?? [],
+      rate: typeof (res.meta as { gst_rate?: string })?.gst_rate === "string" ? (res.meta as { gst_rate: string }).gst_rate : "18",
+      basis: typeof (res.meta as { price_basis?: string })?.price_basis === "string" ? (res.meta as { price_basis: string }).price_basis : "inclusive",
+    };
+  } catch {
+    return { rates: [], rate: "18", basis: "inclusive" };
+  }
+}
+
+/** What Store -> Tax and invoicing draws itself from. */
+export type InvoicingMeta = {
+  ready: boolean;
+  missing: string[];
+  zoho_active: boolean;
+  rates: { value: string; label: string }[];
+  bases: { value: string; label: string; blurb: string }[];
+  states: { value: string; label: string }[];
+  rate: string;
+  products_with_own_rate: number;
+  products_without_hsn: number;
+  issued: number;
+  financial_year: string;
+};
+
+export async function getInvoicing(): Promise<{ rows: SettingRow[]; meta: InvoicingMeta }> {
+  const res = await apiFetch<{ data: SettingRow[]; meta: InvoicingMeta }>(
+    "/admin/store/invoicing", { token: await token() },
+  );
+  return { rows: res.data, meta: res.meta };
+}
+
+export async function saveInvoicing(settings: { key: string; value: string }[]): Promise<void> {
+  await apiFetch<void>("/admin/store/invoicing", { method: "PATCH", body: { settings }, token: await token() });
+}
+
+/** Make this order's GST invoice, or make it again under the same number. */
+export async function generateOrderInvoice(orderNumber: string): Promise<void> {
+  await apiFetch<void>(`/admin/store/orders/${encodeURIComponent(orderNumber)}/invoice/generate`, {
+    method: "POST", token: await token(),
+  });
+}
+
 /* -------------------------------------------- delivery charges (0.142.0) */
 
 /** One weight slab: up to this many grams costs this much. */

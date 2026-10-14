@@ -177,6 +177,11 @@ class Checkout
                     'quantity' => $item->quantity,
                     'unit_price_paise' => $unit,
                     'line_total_paise' => $unit * $item->quantity,
+                    // The rate this product is sold at, read from the row
+                    // just locked. Frozen onto the line below, with the two
+                    // figures it produces, once the discount and the
+                    // delivery have been apportioned across every line.
+                    'gst_basis_points' => Tax::rateFor($product),
                     'returnable' => (bool) $product->returnable,
                 ];
 
@@ -242,9 +247,26 @@ class Checkout
              * a COD order over it. Coupons never touched it; `free_above` is
              * judged on the goods after the discount.
              */
-            $quote = self::quoteDelivery($cart, $quoteLines, $goods, $details);
+            $quote = self::quoteDelivery($cart, $quoteLines, $goods, $details, $lines, $discount);
 
-            $total = $goods + $quote->addPaise();
+            /*
+             * The tax, line by line, and the total that comes out of it.
+             *
+             * `Tax::breakdown()` apportions the discount and the delivery
+             * across the lines in paise, taxes each line at its own product's
+             * rate, and sums. On an **inclusive** shop the sum is the goods
+             * plus the delivery — the same number this used to add up by
+             * hand. On an **exclusive** one it is that plus the tax, which is
+             * why the total is taken from the breakdown rather than computed
+             * here: one expression, both bases, no branch.
+             *
+             * It happens *before* the cash-on-delivery ceiling, because the
+             * ceiling is a limit on the cash a courier counts and on an
+             * exclusive shop the tax is part of that.
+             */
+            $tax = Tax::breakdown($lines, $discount, $quote->addPaise());
+
+            $total = $tax->totalPaise();
 
             self::guardCodCeiling($method, $total);
 
@@ -276,8 +298,9 @@ class Checkout
                 // Copied, not joined: a coupon renamed or deleted afterwards
                 // must not change what this order says was applied.
                 'coupon_code' => $coupon?->code,
-                'taxable_paise' => Money::taxable($total),
-                'gst_paise' => Money::gst($total),
+                // The sums of the lines, never a division of the total.
+                'taxable_paise' => $tax->taxablePaise,
+                'gst_paise' => $tax->gstPaise,
                 'total_paise' => $total,
                 'customer_name' => $details['name'],
                 'customer_email' => $details['email'],
@@ -299,8 +322,11 @@ class Checkout
                 'placed_at' => now(),
             ]);
 
-            foreach ($lines as $line) {
-                $order->items()->create($line);
+            foreach ($lines as $i => $line) {
+                $order->items()->create($line + [
+                    'taxable_paise' => $tax->lines[$i]['taxable_paise'],
+                    'gst_paise' => $tax->lines[$i]['gst_paise'],
+                ]);
             }
 
             $order->history()->create([
@@ -484,7 +510,7 @@ class Checkout
      * @throws ValidationException
      * @throws DestinationChanged
      */
-    private static function quoteDelivery(Cart $cart, array $quoteLines, int $goods, array $details): ShippingQuote
+    private static function quoteDelivery(Cart $cart, array $quoteLines, int $goods, array $details, array $lines = [], int $discount = 0): ShippingQuote
     {
         $ships = collect($quoteLines)->contains('shipped', true);
 
@@ -513,7 +539,11 @@ class Checkout
         if ($cart->ship_state !== $code) {
             throw new DestinationChanged($code, 'Delivery to '.IndianStates::name($code).' is '
                 .($quote->chargePaise === 0 ? 'free' : Money::format($quote->chargePaise))
-                .', so your total is now '.Money::format($goods + $quote->addPaise())
+                // The total as it will actually be charged — on an
+                // exclusive shop that is the goods, the delivery *and* the
+                // tax, and quoting a figure the customer is not about to pay
+                // is worse than not quoting one.
+                .', so your total is now '.Money::format(Tax::breakdown($lines, $discount, $quote->addPaise())->totalPaise())
                 .'. Please check it and place your order again.');
         }
 

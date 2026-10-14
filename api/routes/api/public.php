@@ -219,6 +219,10 @@ Route::post('checkout', [CheckoutController::class, 'store'])
     ->middleware('throttle:10,1')->name('checkout.store');
 Route::get('orders/{orderNumber}', [CheckoutController::class, 'show'])
     ->middleware('throttle:60,1')->name('orders.show');
+// The invoice, for whoever holds the link. Declared after `show` and under
+// a path it cannot shadow.
+Route::get('orders/{orderNumber}/invoice', [CheckoutController::class, 'invoice'])
+    ->middleware('throttle:30,1')->name('orders.invoice');
 /*
  * A return (0.132.0, docs/store.md "Returns"), asked for by whoever holds
  * the order's link: the token rides in the body, and a wrong one is the 404

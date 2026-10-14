@@ -4,7 +4,7 @@ import { PreviewLinkPanel } from "@/components/admin/preview-link-panel";
 import { RevisionPanel } from "@/components/admin/revision-panel";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getAnswerBlockKinds, getBrandOptions, getServiceOptions, getStoreCategories, getStoreProduct, getPageBuilderOptionsIfAllowed, getStoreTagNames } from "@/lib/admin";
+import { getAnswerBlockKinds, getBrandOptions, getServiceOptions, getStoreCategories, getStoreProduct, getPageBuilderOptionsIfAllowed, getProductTaxMeta, getStoreTagNames } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { StoreProductForm } from "../store-product-form";
@@ -74,6 +74,7 @@ export default async function EditStoreProductPage({
         categories={categories}
         services={services}
         saved={saved === "1"} kinds={kinds}
+        tax={await getProductTaxMeta()}
       />
     </>
   );

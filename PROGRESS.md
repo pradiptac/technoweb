@@ -7,12 +7,14 @@ conventions and `API.md` for the endpoint reference; this file is just
 
 **In progress:** nothing — the last slice is committed and verified.
 
-**Latest (0.175.0, 2026-10-14):** two more site themes, Aurora and Atelier —
-fourteen to choose from. The first two built from a direction rather than from
-a reference site, and the two extremes the rest sit between: Aurora has no
-hard edge anywhere, Atelier has nothing but edges.
+**Latest (0.176.0, 2026-10-14):** the shop makes its own GST invoice, and the
+tax behind it is configurable at last — a rate for the shop and a rate per
+product, prices that include the tax or have it added, and a tax invoice
+issued the moment an order is paid. It reverses a recorded scope decision at
+the client's request; `docs/store.md` says what that decision was protecting
+against and which two thirds of it were answered first.
 
-The releases between 0.99.0 and 0.174.0 are recorded in `VERSION.md` and
+The releases between 0.99.0 and 0.175.0 are recorded in `VERSION.md` and
 `FEATURES.md` rather than here; the phase checklists below predate them.
 
 **Branch:** work lands on `phase-3-admin-cms`. `main` is still at the end of

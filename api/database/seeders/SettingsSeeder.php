@@ -449,6 +449,77 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'shiprocket', 'key' => 'shiprocket_error', 'value' => null, 'type' => 'string'],
 
             /*
+             * The GST invoice this shop makes itself (0.176.0,
+             * `docs/store.md` "The GST invoice").
+             *
+             * **Off by default**, like Zoho Books and for the stronger
+             * reason: a half-configured invoice is a tax document with the
+             * seller's GSTIN missing, and that is worse than no invoice at
+             * all. `Invoices::ready()` is the switch *and* everything an
+             * invoice cannot be issued without.
+             *
+             * Private. It holds the company's registered name, its GSTIN and
+             * the signatory — none of which the storefront renders, and the
+             * customer's copy reaches them through the authorised download
+             * rather than through `/settings`.
+             *
+             * What is **not** here, because it already exists and one fact
+             * belongs in one row: the logo is `logo_path`, the bank details
+             * are `bank_account_details` in `payments`, and the place of
+             * supply is the order's own billing state.
+             */
+            /*
+             * The shop's GST rate, store-wide.
+             *
+             * One of the real slabs and nothing else (`Money::RATES`): a free
+             * text box invites 17.5, which is not a rate anybody may charge.
+             * It applies to what is priced *now* — every order keeps the
+             * taxable value and the tax it was charged, and the invoice reads
+             * those, so changing this row cannot rewrite what was sold.
+             *
+             * Still one rate for the whole catalogue. A shop selling at two
+             * rates needs a rate per product, which is not built.
+             */
+            ['group' => 'invoicing', 'key' => 'store_gst_percent', 'value' => '18', 'type' => 'string'],
+
+            /*
+             * Whether a price in the catalogue already contains the tax.
+             *
+             * `inclusive` is the default and is what every price already
+             * typed into this shop means, so an install that has not touched
+             * this row behaves exactly as it did. `exclusive` makes the
+             * listed price the value before tax and adds the tax at the
+             * checkout, where it becomes a row of its own in the summary
+             * rather than a note under the total.
+             *
+             * What it does *not* move: the coupon's minimum order, the
+             * free-delivery threshold and the shop's own figures all stay in
+             * the basis the shop prices in — "free delivery above ₹5,000" on
+             * an exclusive shop means ₹5,000 of goods before tax, which is
+             * what somebody typing it means. The one exception is the
+             * cash-on-delivery ceiling, which is money a courier counts and
+             * is therefore judged on the total *after* tax.
+             */
+            ['group' => 'invoicing', 'key' => 'store_price_basis', 'value' => 'inclusive', 'type' => 'string'],
+
+            ['group' => 'invoicing', 'key' => 'invoice_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'invoicing', 'key' => 'invoice_legal_name', 'value' => null, 'type' => 'string'],
+            ['group' => 'invoicing', 'key' => 'invoice_gstin', 'value' => null, 'type' => 'string'],
+            // The seller's own state, and the single thing that decides
+            // whether a line is CGST+SGST or IGST.
+            ['group' => 'invoicing', 'key' => 'invoice_state', 'value' => null, 'type' => 'string'],
+            ['group' => 'invoicing', 'key' => 'invoice_address', 'value' => null, 'type' => 'text'],
+            ['group' => 'invoicing', 'key' => 'invoice_email', 'value' => null, 'type' => 'string'],
+            ['group' => 'invoicing', 'key' => 'invoice_phone', 'value' => null, 'type' => 'string'],
+            // Its own series, never the order number. `INV/2026-27/00001`.
+            ['group' => 'invoicing', 'key' => 'invoice_prefix', 'value' => 'INV', 'type' => 'string'],
+            ['group' => 'invoicing', 'key' => 'invoice_hsn_default', 'value' => null, 'type' => 'string'],
+            ['group' => 'invoicing', 'key' => 'invoice_terms', 'value' => null, 'type' => 'text'],
+            ['group' => 'invoicing', 'key' => 'invoice_declaration', 'value' => 'We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.', 'type' => 'text'],
+            ['group' => 'invoicing', 'key' => 'invoice_signatory', 'value' => null, 'type' => 'string'],
+            ['group' => 'invoicing', 'key' => 'invoice_signature_path', 'value' => null, 'type' => 'string'],
+
+            /*
              * Comments, site-wide.
              *
              * **Default off.** Switched on this puts a public form on every

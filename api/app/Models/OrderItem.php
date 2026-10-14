@@ -25,6 +25,9 @@ class OrderItem extends Model
         'order_id', 'store_product_id', 'store_product_variation_id',
         'name', 'variation_name', 'sku', 'options', 'type',
         'quantity', 'unit_price_paise', 'line_total_paise', 'returnable',
+        // The rate this line was charged at and what came out of it, frozen
+        // beside the price. Null on every order placed before 0.176.0.
+        'gst_basis_points', 'taxable_paise', 'gst_paise',
     ];
 
     protected function casts(): array
@@ -35,6 +38,9 @@ class OrderItem extends Model
             'quantity' => 'integer',
             'unit_price_paise' => 'integer',
             'line_total_paise' => 'integer',
+            'gst_basis_points' => 'integer',
+            'taxable_paise' => 'integer',
+            'gst_paise' => 'integer',
             'returnable' => 'boolean',
         ];
     }

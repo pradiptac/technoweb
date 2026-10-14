@@ -39,6 +39,10 @@ Route::middleware(['customer', 'portal'])->group(function () {
      */
     Route::get('my/orders', [CustomerOrderController::class, 'index'])->name('my.orders.index');
     Route::get('my/orders/{orderNumber}', [CustomerOrderController::class, 'show'])->name('my.orders.show');
+    // Their own invoice (0.176.0). Scoped to the signed-in customer like
+    // every other route here; another customer's order is a 404.
+    Route::get('my/orders/{orderNumber}/invoice', [CustomerOrderController::class, 'invoice'])
+        ->middleware('throttle:30,1')->name('my.orders.invoice');
     // A return of one of their own orders (docs/store.md "Returns").
     Route::post('my/orders/{orderNumber}/returns', [OrderReturnController::class, 'storeMine'])
         ->middleware('throttle:10,1')->name('my.orders.returns.store');

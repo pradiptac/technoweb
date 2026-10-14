@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\OrderStatus;
 use App\Enums\WebhookEvent;
 use App\Support\References;
+use App\Support\Store\Invoice\Invoices;
 use App\Support\Store\Zoho\ZohoInvoices;
 use App\Support\Webhooks\WebhookPayload;
 use App\Support\Webhooks\Webhooks;
@@ -34,7 +35,7 @@ class Order extends Model
         'customer_name', 'customer_email', 'customer_phone', 'customer_note',
         'billing_address', 'shipping_address',
         'gst_required', 'gstin', 'company_name',
-        'invoice_number', 'invoice_date', 'invoice_path',
+        'invoice_number', 'invoice_date', 'invoice_path', 'invoice_source',
         'courier', 'tracking_number', 'tracking_url', 'shipping_notes',
         'access_token', 'placed_at', 'paid_at', 'dispatched_at', 'completed_at', 'cancelled_at',
     ];
@@ -124,6 +125,13 @@ class Order extends Model
             // changes, and guarded inside — it can never fail this save.
             if ($order->wasChanged('status') || $order->wasChanged('paid_at')) {
                 ZohoInvoices::consider($order);
+
+                // And the shop's own GST invoice (0.176.0), on the same two
+                // changes and guarded the same way. Only one of the two ever
+                // acts: `Invoices::ready()` stands down while Zoho Books is
+                // set up, because two systems numbering one series is two
+                // series.
+                Invoices::consider($order);
             }
         });
     }

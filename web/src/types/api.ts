@@ -1769,6 +1769,13 @@ export type AdminStoreProduct = AdminCustomFields & import("./page-sections").Ad
    */
   gtin?: string | null;
   mpn?: string | null;
+  /**
+   * The invoice's two (0.176.0). `hsn` is the HS or SAC code printed
+   * against this product's lines; `gst_percent` is its own rate, and null
+   * means the shop's — which is not the same claim as zero per cent.
+   */
+  hsn?: string | null;
+  gst_percent?: string | null;
   condition?: "new" | "refurbished" | "used";
   /** Google's own taxonomy. Blank inherits the store category's. */
   google_product_category?: string | null;
@@ -2041,7 +2048,19 @@ export type CartSummary = {
   taxable_paise: number;
   /** Extracted from the total, never added to it. */
   gst_paise: number;
-  gst_rate: string;
+  /**
+   * Null when the basket holds two rates (0.176.0): "18%" over a basket of
+   * 18% and 5% goods is simply false.
+   */
+  gst_rate: string | null;
+  /** `inclusive` or `exclusive` — how the shop prices. */
+  gst_basis: string;
+  /**
+   * What the shop adds on top of its listed prices, and zero on an
+   * inclusive shop. A checkout draws this as a row of its own and the
+   * "includes GST" note only when it is zero.
+   */
+  gst_added_paise: number;
   /** Whether anything in here needs an address and a courier. */
   has_shippable: boolean;
   /** Sentences to show the shopper: out of stock, price gone, and so on. */
@@ -2397,6 +2416,14 @@ export type AdminOrder = {
   invoice_number?: string | null;
   invoice_date?: string | null;
   has_invoice: boolean;
+  /** Which of the three made it: uploaded, zoho or generated (0.176.0). */
+  invoice_source?: "uploaded" | "zoho" | "generated" | null;
+  /**
+   * The shop's own GST invoice. Absent while Zoho Books owns the invoices.
+   * `refusal` is the API's own sentence, so the console draws exactly what
+   * the endpoint would answer with rather than keeping its own rules.
+   */
+  invoice?: { can_generate: boolean; refusal: string | null; print_path: string } | null;
   courier?: string | null;
   tracking_number?: string | null;
   tracking_url?: string | null;

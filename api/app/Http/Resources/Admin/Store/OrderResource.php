@@ -7,6 +7,7 @@ use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Models\OrderReturn;
 use App\Support\Store\DigitalFulfilment;
+use App\Support\Store\Invoice\Invoices;
 use App\Support\Store\Shipping\CourierSettings;
 use App\Support\Store\Shipping\Shipments;
 use App\Support\Store\Zoho\ZohoInvoices;
@@ -149,6 +150,24 @@ class OrderResource extends JsonResource
             'invoice_number' => $this->invoice_number,
             'invoice_date' => $this->invoice_date?->toDateString(),
             'has_invoice' => filled($this->invoice_path),
+            /*
+             * Which of the three made it (0.176.0) — `uploaded`, `zoho` or
+             * `generated` — and null on an order that predates the column,
+             * which the console reads as uploaded: the safe side, because
+             * nothing may overwrite a file a person attached.
+             */
+            'invoice_source' => $this->invoice_source,
+            /*
+             * The shop's own GST invoice. `refusal` is the one sentence the
+             * endpoint would answer with, so the console draws exactly that
+             * under a disabled button rather than keeping its own copy of
+             * the rules — the two cannot then disagree about why.
+             */
+            'invoice' => $this->whenLoaded('items', fn () => [
+                'can_generate' => Invoices::refusalFor($this->resource) === null,
+                'refusal' => Invoices::refusalFor($this->resource),
+                'print_path' => "/admin/store/orders/{$this->order_number}/invoice",
+            ]),
             /*
              * Where this order's invoice in Zoho Books has got to (0.134.0),
              * or null when nothing has been asked — the integration is off,

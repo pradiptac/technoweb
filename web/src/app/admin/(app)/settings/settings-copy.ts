@@ -522,6 +522,63 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   store_tags_enabled: { label: "Show the tag row on the shop", hint: "The coloured pills under the search bar on the shop front and the category pages." },
   store_tags_limit: { label: "Tags shown", hint: "How many tags the row offers, 4 to 30. Ordered by the list below, then by how many products carry them." },
   store_tags_auto: { label: "Tag new products automatically", hint: "A product with no tags gets some on its first save, from its brand, category and key specifications. Once only: tags you remove never come back." },
+  // Tax and invoicing (0.176.0) — Store -> Tax and invoicing, not a
+  // settings tab. The group is in STANDALONE_GROUPS for that reason.
+  store_gst_percent: {
+    label: "GST rate",
+    hint: "The rate for everything in the shop. A product can name its own on its Pricing tab, which beats this one. It applies to what is sold from now on \u2014 every order keeps the tax it was charged.",
+  },
+  store_price_basis: {
+    label: "Your prices",
+    hint: "Whether the price you type on a product already contains the GST, or has it added at the checkout.",
+  },
+  invoice_enabled: { label: "Make a GST invoice for every paid order" },
+  invoice_legal_name: {
+    label: "Registered business name",
+    hint: "The name on your GST registration, which is often not the trading name. Blank uses the company name from Settings.",
+    placeholder: "Acme Networks Private Limited",
+  },
+  invoice_gstin: {
+    label: "Your GSTIN",
+    hint: "Fifteen characters \u2014 two state digits, your PAN, and three more. Checked for shape only; it is never sent anywhere.",
+    placeholder: "19AABCU9603R1ZM",
+  },
+  invoice_state: {
+    label: "State you are registered in",
+    hint: "This decides the tax on every sale: the same state as the customer is CGST and SGST, a different one is IGST.",
+  },
+  invoice_address: {
+    label: "Address on the invoice",
+    hint: "Your place of business, as it should be printed. Blank uses the address from Settings.",
+  },
+  invoice_email: { label: "Email on the invoice", hint: "Blank uses the one from Settings." },
+  invoice_phone: { label: "Phone on the invoice", hint: "Blank uses the one from Settings." },
+  invoice_prefix: {
+    label: "Invoice number prefix",
+    hint: "The start of every invoice number: INV gives INV/2026-27/00001. Its own series, counted per financial year, and nothing to do with order numbers.",
+    placeholder: "INV",
+  },
+  invoice_hsn_default: {
+    label: "Default HSN or SAC code",
+    hint: "Used on a line whose product has no code of its own. Four to eight digits. A tax invoice should carry one on every line.",
+    placeholder: "8517",
+  },
+  invoice_terms: {
+    label: "Terms",
+    hint: "Printed at the foot of every invoice \u2014 payment terms, a jurisdiction line, anything standing.",
+  },
+  invoice_declaration: {
+    label: "Declaration",
+    hint: "The customary line under the totals. Leave it as it is unless your accountant words it differently.",
+  },
+  invoice_signatory: {
+    label: "Authorised signatory",
+    hint: "The name printed under the signature. Blank prints \u201cAuthorised signatory\u201d.",
+  },
+  invoice_signature_path: {
+    label: "Signature image",
+    hint: "A scan of the signature, on a plain background. Optional \u2014 without one the space is left blank to sign by hand.",
+  },
   store_promo_enabled: { label: "Show the promo banner" },
   store_promo_kicker: { label: "Kicker", hint: "The short line above the heading — a category, an offer, a season.", placeholder: "Business laptops, in stock" },
   store_promo_heading: { label: "Heading", placeholder: "Save Up To 60%" },
@@ -1500,7 +1557,7 @@ export const SYSTEM_SCREEN = "/admin/settings";
  * than "whatever no screen names", because a group somebody forgot would
  * then be silently standalone with nowhere to be edited.
  */
-export const STANDALONE_GROUPS = new Set(["announcement", "themes", "store_promo", "store_tiles", "store_videos", "store_tags"]);
+export const STANDALONE_GROUPS = new Set(["announcement", "themes", "store_promo", "store_tiles", "store_videos", "store_tags", "invoicing"]);
 
 export function screenAt(path: string): SettingsScreen {
   const screen = SCREENS.find((s) => s.path === path);

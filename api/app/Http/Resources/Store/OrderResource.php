@@ -67,13 +67,22 @@ class OrderResource extends JsonResource
             'company_name' => $this->company_name,
 
             /*
-             * The invoice is prepared by hand and uploaded. Until it is, the
-             * field is simply absent rather than an empty link — a download
-             * that 404s is worse than one that is not offered yet.
+             * The invoice: uploaded by hand, made in the shop's Zoho Books,
+             * or generated here since 0.176.0. Until there is one the
+             * fields are simply absent rather than an empty link — a
+             * download that 404s is worse than one not offered yet.
+             *
+             * **`has_invoice` means "there is one you can download"**, not
+             * "a file exists". It carries the paid check the download route
+             * applies, because the two have to agree: this flag is the only
+             * thing the order page draws the link from, and a link that
+             * 404s on press is the same defect as no link at all — which is
+             * what this key was from the day the store shipped until that
+             * route existed.
              */
             'invoice_number' => $this->invoice_number,
             'invoice_date' => $this->invoice_date?->toDateString(),
-            'has_invoice' => filled($this->invoice_path),
+            'has_invoice' => filled($this->invoice_path) && $this->paid_at !== null,
 
             'courier' => $this->courier,
             'tracking_number' => $this->tracking_number,

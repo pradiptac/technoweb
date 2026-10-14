@@ -13,6 +13,7 @@ use App\Http\Requests\SeoRules;
 use App\Support\PageSections\SectionRules;
 use App\Support\Store\ProductVideos;
 use App\Support\Store\Tags;
+use App\Support\Store\Tax;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -98,6 +99,20 @@ class ProductRequest extends FormRequest
              */
             'gtin' => ['sometimes', 'nullable', 'string', 'regex:/^\d{8}$|^\d{12,14}$/'],
             'mpn' => ['sometimes', 'nullable', 'string', 'max:70'],
+            /*
+             * The invoice's two (0.176.0).
+             *
+             * `hsn` is the Harmonised System code — four, six or eight
+             * digits for goods, six for a service's SAC — and a tax
+             * invoice is not compliant without one on each line. `gst_percent`
+             * is this product's own rate; blank means the shop's.
+             *
+             * Both on the product and not the variation: each classifies
+             * what the thing *is*, and two sizes of one switch are one
+             * classification.
+             */
+            'hsn' => ['sometimes', 'nullable', 'string', 'regex:/^[0-9]{4,8}$/'],
+            'gst_percent' => ['sometimes', 'nullable', 'string', Rule::in(Tax::RATES)],
             'condition' => ['sometimes', Rule::enum(ProductCondition::class)],
             'google_product_category' => ['sometimes', 'nullable', 'string', 'max:255'],
             'weight_grams' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:10000000'],
@@ -242,6 +257,8 @@ class ProductRequest extends FormRequest
             'slug.unique' => 'Another store product already uses that slug.',
             'images.*.not_regex' => 'Store the image path, not a full URL.',
             'gtin.regex' => 'A GTIN is the barcode number — 8, 12, 13 or 14 digits and nothing else.',
+            'hsn.regex' => 'An HSN code is four to eight digits; a service\'s SAC is six. Leave it blank to use the shop\'s default.',
+            'gst_percent.in' => 'Choose one of the GST rates, or leave it blank to use the shop\'s own.',
             'variations.*.gtin.regex' => 'A GTIN is the barcode number — 8, 12, 13 or 14 digits and nothing else.',
             'variations.*.name.required' => 'Every variation needs a name — what the buyer picks from.',
             'variations.max' => 'A product can carry up to 50 variations.',

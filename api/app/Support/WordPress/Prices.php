@@ -3,6 +3,7 @@
 namespace App\Support\WordPress;
 
 use App\Support\Money;
+use App\Support\Store\Tax;
 
 /**
  * WooCommerce's prices as paise.
@@ -35,7 +36,7 @@ final class Prices
         }
 
         return $ctx->decision('tax_basis') === 'add_gst'
-            ? intdiv($paise * (10000 + Money::GST_BASIS_POINTS) + 5000, 10000)
+            ? intdiv($paise * (10000 + Tax::rate()) + 5000, 10000)
             : $paise;
     }
 

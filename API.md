@@ -2862,6 +2862,9 @@ the selectors on the product page would shuffle between two loads.
 | `POST` | `/admin/store/orders/{number}/status` | Checked against the enum |
 | `PATCH` | `/admin/store/orders/{number}/shipping` | Courier, number, link, notes |
 | `POST`/`GET` | `/admin/store/orders/{number}/invoice` | Upload and stream the manual invoice |
+| `POST` | `/admin/store/orders/{number}/invoice/generate` | Make the shop's own GST invoice, or make it again under the same number (0.176.0). Throttled 20/min. **422** with one sentence — the same sentence `invoice.refusal` carries — when invoicing is off or unfinished, Zoho Books owns the invoices, the order has an uploaded one, or it is not paid |
+| `GET` | `/admin/store/orders/{number}/invoice/print` | The invoice as a page, for printing. `no-store`. Renders for an order with **no** invoice too, which is how the document is checked before the feature is switched on |
+| `GET`/`PATCH` | `/admin/store/invoicing` | Tax and invoicing: fifteen named keys in the settings row shape, with `meta` (below) |
 | `POST` | `/admin/store/orders/{number}/notes` | Staff-only |
 | `POST` | `/admin/store/orders/{number}/fulfil` | Issue outstanding activation codes |
 | `GET`/`POST` | `/admin/store/products/{id}/codes` | The code inventory. The listing never contains a code |
@@ -2901,8 +2904,107 @@ order can change its number.
 
 **What is sent** (`docs/store.md`). A `paid` row: `POST /customerpayments` with the invoice's customer, the amount, the day it was paid, `payment_mode` (`cash`, `banktransfer`, `creditcard` or `others`), the account chosen for the order's way of paying, and the invoice with `amount_applied` — never more than Zoho says is still owed; an invoice with nothing owed is `skipped`. A `refunded` row: `POST /creditnotes` (the invoice's lines and discount for a whole refund, a return's received items when they add up to the amount, otherwise one line for the amount), then `POST /creditnotes/{id}/invoices` for whatever is still owed on the invoice and `POST /creditnotes/{id}/refunds` from the same account for the rest. Each carries the reference `{order number}-P{payment id}` or `{order number}-R{payment id}`, and an existing one with that reference is adopted rather than repeated. A payment waits for its order's invoice; rows already on the order follow it when it is made. Retried at 5, 30, 120 and 720 minutes by `technoware:sync-zoho-invoices`.
 
-**The invoice is uploaded, not generated**, to the private disk, streamed by an
-authorised route. `invoice_path` never appears in a response.
+**The invoice is uploaded, made in Zoho Books, or generated here** (0.176.0),
+to the private disk, streamed by an authorised route. `invoice_path` never
+appears in a response; `invoice_source` (`uploaded` / `zoho` / `generated`,
+null on an order that predates the column) is what tells the three apart.
+
+**An uploaded invoice always wins.** Nothing generated replaces one, whoever
+asks — and nothing is generated at all while Zoho Books is ready, because two
+systems numbering one series is two series.
+
+**`invoice` on the admin order** is `{can_generate, refusal, print_path}`, and
+is **absent while Zoho Books owns the invoices**. `refusal` is the one
+sentence the generate endpoint would answer with, so the console draws exactly
+that under a disabled button rather than keeping its own copy of the rules.
+
+**The invoice number is its own series by financial year** — `INV/2026-27/00001`,
+April to March, nothing to do with the order number, and the prefix is
+`invoice_prefix`. One invoice per order is the conditional
+`whereNull('invoice_number')` update; no number issued twice is a row lock on
+the read of the highest, which the index on `orders.invoice_number` makes a
+range lock. **Re-issuing keeps the number** — once issued it is in somebody's
+books — and re-renders the document under it.
+
+**Issued when the order is paid**, from the `updated` hook Zoho rides, guarded
+the same way: a failure anywhere inside leaves the payment recorded and writes
+one `warning` line. `GstInvoiceTest` makes the renderer throw to prove it.
+
+### Tax: a rate per product, and whether prices include it (0.176.0)
+
+`App\Support\Store\Tax` is the one implementation, and `Basket` and
+`Checkout` make the same call on the same lines.
+
+- **`store_gst_percent`** is the shop's rate, one of `0`, `0.25`, `3`, `5`,
+  `12`, `18`, `28`. **`store_products.gst_percent`** is a product's own and
+  beats it; blank means the shop's, which is not the same claim as zero.
+- **`store_price_basis`** is `inclusive` (the default, and what every price
+  already typed into a shop means) or `exclusive`.
+- **The order's `taxable_paise` and `gst_paise` are the sum of the lines**,
+  and every line placed since 0.176.0 carries `gst_basis_points`,
+  `taxable_paise` and `gst_paise` of its own. This reverses the schema's
+  original "GST is stored at the order, not per line": that was right while
+  one rate applied, because the only way to a per-line figure was dividing a
+  rounded total. With a rate per product the arithmetic runs the other way
+  and the figures add up by construction.
+- **The discount is apportioned** across the lines pro-rata, in paise, by
+  the largest-remainder rule. **Delivery is a line of its own**, at the
+  highest rate among the goods — the composite-supply rule, and it keeps
+  every printed line equal to the catalogue's price.
+- **`total_paise` is what is charged** in both bases. On an exclusive shop
+  the tax is added to it, which is why `Tax::breakdown()` runs **before** the
+  cash-on-delivery ceiling: that ceiling is a limit on cash a courier counts.
+  Every other threshold — a coupon's minimum, free delivery — stays in the
+  shop's own basis.
+- **Changing either setting cannot rewrite an order already placed.** Each
+  order keeps the tax it was charged, and `Money::rateOf()` derives the rate
+  it was charged at from its own two columns.
+
+**The basket** gains `gst_basis`, `gst_added_paise` (what the shop puts on
+top of its listed prices — **zero on an inclusive shop**, where a checkout
+prints the note rather than a row) and `gst_rate`, which is **null when the
+basket holds two rates**: "18%" over a basket of 18% and 5% goods is false.
+
+**`GET`/`PATCH /admin/store/invoicing`** (`role:store_manager`) is the promo
+screen's narrow door onto the settings table: `store_gst_percent`,
+`store_price_basis`, `invoice_enabled`, `invoice_legal_name`,
+`invoice_gstin`, `invoice_state`, `invoice_address`, `invoice_email`,
+`invoice_phone`, `invoice_prefix`, `invoice_hsn_default`, `invoice_terms`,
+`invoice_declaration`, `invoice_signatory`, `invoice_signature_path` — and
+**any other key is a 422 naming it** rather than being ignored. The GSTIN is
+held to its fifteen-character shape (and **never checked against a
+government API**, which the brief rules out), the state is stored as its
+code however it was typed, and `meta` carries `ready`, `missing` (what is
+still wanted, as sentences), `zoho_active`, `rates`, `bases`, `states`,
+`rate`, `products_with_own_rate`, `products_without_hsn`, `issued` and
+`financial_year`. Settings as a whole stay `role:admin`; `PATCH
+/admin/settings` still accepts all fifteen for an administrator.
+
+**`store_products` takes `hsn`** (four to eight digits — the HS code printed
+against that product's lines, blank falling back to `invoice_hsn_default`)
+**and `gst_percent`**. Both are on the product rather than the variation:
+each classifies what the thing *is*, and two sizes of one switch are one
+classification. `GET /admin/store/products` carries `meta.gst_rates`,
+`meta.gst_rate` and `meta.price_basis`.
+
+### The customer's invoice
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/orders/{number}/invoice?token=` | The guest's. Throttled 30/min. A wrong token is the same 404 a wrong number is |
+| `GET` | `/my/orders/{number}/invoice` | Portal. Scoped by `customer_id`; another customer's is a 404 |
+
+Both stream from the private disk through `CheckoutController::streamInvoice()`
+— shared so the two doors cannot drift on what they check — as
+`attachment`, `private, no-store`, and **only for a paid order**: an invoice
+is a record of money received, and handing one to somebody who has not paid
+is handing them a document their accountant may act on.
+
+**`has_invoice` on the customer's order now means "there is one you can
+download"**, carrying that paid check. It is the only thing the order page
+draws the link from, and it had **no route behind it at all** from the day
+the store shipped until these two existed — a flag telling a buyer their
+invoice exists, on a page with no way to open it.
 
 **A used coupon cannot be deleted.** Its usage rows explain why an order's total
 is what it is. Switching it off is the alternative, and the refusal says so.

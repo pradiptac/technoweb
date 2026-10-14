@@ -54,7 +54,7 @@ const GROUPS: TabGroup[] = [
   // Sections in place of the written body (0.130.0) — the choice and the builder.
   SECTIONS_TAB,
   { id: "selling", label: "Selling",
-    fields: ["price_paise", "compare_at_paise", "track_stock", "stock", "returnable", "variations"] },
+    fields: ["price_paise", "compare_at_paise", "gst_percent", "hsn", "track_stock", "stock", "returnable", "variations"] },
   // Every field here, or its 422 is charged to the Content tab in silence.
   { id: "shopping", label: "Shopping",
     fields: ["gtin", "mpn", "condition", "google_product_category", "weight_grams", "feed_include"] },
@@ -80,7 +80,7 @@ const GROUPS: TabGroup[] = [
 ];
 
 export function StoreProductForm({
-  product, categories, brands, services, saved, kinds, fieldGroups, builder, tagNames = [],
+  product, categories, brands, services, saved, kinds, fieldGroups, builder, tax, tagNames = [],
 }: {
   /** Every tag the shop already has, offered as you type in the Tags field. */
   tagNames?: string[];
@@ -92,6 +92,13 @@ export function StoreProductForm({
   saved?: boolean;
   /** `meta.answer_block_kinds` from this entity's admin index. */
   kinds: AnswerBlockKindOption[];
+  /**
+   * `meta.gst_rates`, `meta.gst_rate` and `meta.price_basis` from the index
+   * (0.176.0). The rates are the API's list — nothing here names one — and
+   * the other two are what the shop does, so the price field can say
+   * whether the figure being typed includes the tax or not.
+   */
+  tax?: { rates: { value: string; label: string }[]; rate: string; basis: string };
   /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
   fieldGroups?: CustomFieldGroupDefinition[];
   /**
@@ -102,6 +109,8 @@ export function StoreProductForm({
   builder: PageBuilderOptions | null;
 }) {
   const editing = Boolean(product);
+  const rate = tax?.rate ?? "18";
+  const basis = tax?.basis ?? "inclusive";
   const [state, formAction, pending] = useActionState(
     editing ? updateStoreProductAction : createStoreProductAction, initial,
   );
@@ -302,7 +311,9 @@ export function StoreProductForm({
         <div className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
           <div className="min-w-0">
             <Field label="Price" htmlFor="price" error={err("price_paise")}
-              hint="In rupees, and it includes 18% GST — the figure here is what the customer pays.">
+              hint={basis === "exclusive"
+                ? `In rupees, before GST — ${rate}% is added at the checkout, so this is not what the customer pays.`
+                : `In rupees, and it includes ${rate}% GST — the figure here is what the customer pays.`}>
               <Input
                 id="price" name="price" inputMode="decimal" required
                 value={price}
@@ -316,6 +327,27 @@ export function StoreProductForm({
               <Input id="compare_at" name="compare_at" inputMode="decimal"
                 defaultValue={paiseToRupeeInput(product?.compare_at_paise)} />
             </Field>
+
+            {/*
+              Tax (0.176.0). Both are about this product rather than about
+              the shop, which is why they sit under the price rather than on
+              Settings: the rate decides what is charged and the HSN code is
+              printed against every line on the invoice.
+            */}
+            <div className="grid gap-x-4 sm:grid-cols-2">
+              <Field label="GST rate" htmlFor="gst_percent" error={err("gst_percent")} variant="float-static"
+                hint={`Leave it as the shop's unless this product is taxed differently.`}>
+                <Select id="gst_percent" name="gst_percent" defaultValue={product?.gst_percent ?? ""}>
+                  <option value="">The shop&rsquo;s rate ({rate}%)</option>
+                  {(tax?.rates ?? []).map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                </Select>
+              </Field>
+
+              <Field label="HSN or SAC code" htmlFor="hsn" error={err("hsn")}
+                hint="Printed against this product on every tax invoice. Four to eight digits; blank uses the shop's default.">
+                <Input id="hsn" name="hsn" inputMode="numeric" defaultValue={product?.hsn ?? ""} className="font-mono text-14" />
+              </Field>
+            </div>
 
             <VariationField
               defaultValue={product?.variations ?? []}

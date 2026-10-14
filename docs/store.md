@@ -1985,6 +1985,214 @@ default, and the generic settings select starts on its first option — so the
 tab showed "Andaman and Nicobar Islands" and a save from any tab would have
 stored it. The panel draws that select itself, with a blank first option.
 
+## Tax, and the shop's own GST invoice (0.176.0)
+
+Three things that are one thing, because they are one piece of arithmetic:
+a rate per product over a store-wide default, a choice about whether a
+listed price contains the tax, and a tax invoice generated here.
+
+**This reverses a recorded decision**, and the reversal is worth stating
+with its reasoning rather than quietly replacing it. `CLAUDE.md`'s scope
+limits said the invoice is uploaded, or made in the customer's own Zoho
+Books, "never generated here, a decision about GST compliance rather than
+about scope." The client asked for it on 2026-10-14. What that decision was
+protecting against, in three parts, two of which still bite:
+
+| The hazard | Where it stands |
+|---|---|
+| The CGST/SGST against IGST split | **Safe.** Arithmetic over `gst_paise`, which every order has always stored. No new figure, nothing that can drift. |
+| A single hard-coded rate | **Fixed, and bounded.** `store_gst_percent` plus a rate per product. A shop still cannot sell one *product* at two rates, and nothing here pretends it can. |
+| HSN codes | **Was the real gap.** A tax invoice is not one without them. `store_products.hsn` and `invoice_hsn_default`; a line with neither prints a dash rather than a guess. |
+
+### The arithmetic moved, and the old comment was right at the time
+
+The original schema stored one tax figure on the order and said why:
+
+> GST is stored at the order, not per line. Apportioning tax across lines
+> means rounding each one, and rounded lines do not add up to the rounding
+> of the total — so the invoice would disagree with the amount charged.
+
+That is correct **while there is one rate**, because the only way to get a
+per-line figure is then to divide a rounded total. With a rate per product
+the arithmetic runs the other way round: each line's tax is computed from
+that line's own money at that line's own rate, and the order's
+`taxable_paise` and `gst_paise` are the **sum** of the lines. They add up by
+construction, and nothing is apportioned after rounding.
+
+`App\Support\Store\Tax` is the one implementation, and `Basket` and
+`Checkout` make the same call on the same lines — which is what makes the
+figure on the screen the figure that is charged.
+
+**The discount is apportioned across the lines**, pro-rata, in paise, by the
+largest-remainder rule, so the parts sum exactly to the discount before any
+tax is taken. `(int) round($amount * $w / $total)` per share is the obvious
+spelling and is wrong: three equal shares of 100 paise come back as
+33+33+33, and the shop is a paisa short on every such order for ever.
+
+**Delivery is a line of its own**, at the highest rate among the goods. The
+first cut apportioned it across the lines the way the discount is, which is
+arithmetically fine and prints badly: every line on the invoice then shows a
+value a few rupees above the price in the catalogue, and a reader comparing
+the two concludes the invoice is wrong. GST taxes a composite supply at the
+rate of the principal supply, and where a parcel holds two rates the higher
+is the answer that cannot under-collect.
+
+### Inclusive or exclusive
+
+`store_price_basis` is `inclusive` (the default, and what every price
+already typed into the shop means) or `exclusive`.
+
+    inclusive   taxable = gross × 10000 ÷ (10000 + rate);  tax = gross − taxable
+    exclusive   taxable = net;  tax = net × rate ÷ 10000;  gross = net + tax
+
+`total_paise` stays **what is charged** in both. What moves with the basis:
+
+- The checkout draws the tax as a **row** on an exclusive shop and as a
+  **note under the total** on an inclusive one, and the API says which
+  through `gst_basis` rather than the template inferring it from the
+  numbers. Drawn the wrong way round, one is a column that does not add up
+  and the other is a total nobody can arrive at.
+- **Thresholds stay in the shop's own basis.** A coupon's minimum order and
+  the free-delivery figure are read against the goods as listed — "free
+  delivery above ₹5,000" on an exclusive shop means ₹5,000 before tax, which
+  is what a merchant typing it means.
+- **The cash-on-delivery ceiling is the exception.** It is a limit on cash a
+  courier counts, so it is judged on the total *after* tax, which is why
+  `Tax::breakdown()` runs before `guardCodCeiling()` in `Checkout`.
+
+`gst_rate` on the basket is **null when the basket holds two rates**: "18%"
+over a basket of 18% and 5% goods is simply false.
+
+### `Money` stayed pure, and that is not tidiness
+
+The first cut had `Money::rate()` reading the setting, which broke
+`MoneyTest` with "a facade root has not been set" — a unit test with no
+application behind it. The fix was not to make the test a feature test: it
+was to put the settings read in `Tax` and leave `Money` as integer
+arithmetic with no container. That is the property that lets the rounding be
+*proved* rather than exercised, and `Money::GST_BASIS_POINTS` is the
+fallback for a call that passes no rate.
+
+`Money::rateOf($taxable, $gst)` derives the rate an order was charged at
+from its own two columns, snapped to the nearest quarter of a per cent
+(every real slab is one). Derived rather than stored, so an invoice for an
+order placed under the old constant prints 18% with no backfill, and a
+stored `gst_rate` column is not a third figure free to disagree with the two
+that settle it.
+
+### The invoice
+
+`App\Support\Store\Invoice\GstInvoice` is the document model — seller,
+buyer, place of supply, lines with HSN, the split, the rate-wise summary,
+the totals and the amount in words — and it holds no markup, writes no file
+and decides nothing twice. One Blade template renders it as the console's
+print view and, through dompdf, as the stored PDF, so the page and the
+attachment cannot say different things.
+
+**Every figure comes off the order; none is recomputed.** The columns were
+written at checkout under the rates in force that day, so an invoice issued
+a year later says what was charged, and changing the shop's rate cannot
+reach backwards. The only thing derived is the split:
+
+    intra-state   cgst = ⌊gst ÷ 2⌋,  sgst = gst − cgst
+    inter-state   igst = gst
+
+Floor-and-difference, the shape `Money` already uses: halving twice and
+rounding each half gives two halves that do not add back, and the one thing
+an invoice may not do is fail to add up.
+
+**The place of supply is the delivery address, then the billing one.** An
+address with no state on it is treated as a **local** sale — the
+conservative reading, since CGST and SGST are what a shop charges in its own
+state and a blank state is almost always a local address typed carelessly.
+
+**Delivery's tax is the difference**, not a stored figure: the order's
+totals less the sum of the lines'. Exact whatever the lines did, and it
+comes out as zero for an order placed before this existed, which is the
+truth — the delivery's tax was never separated then.
+
+**An order with no per-line figures still prints.** `GstInvoice` reads the
+one rate from the order's two columns and apportions its taxable value and
+tax across the lines, so the printed lines sum exactly to the printed total.
+That *is* an apportionment, and it is the honest one: the alternative is an
+invoice for a real order that cannot be printed at all.
+
+**There is no round-off line.** The total on an invoice must be the amount
+taken, and rounding it to the rupee would make the document disagree with
+the payment beside it.
+
+### Issuing
+
+`invoice_enabled`, off by default, and `Invoices::ready()` is the switch
+**and** everything the switch needs — the registered name, a well-formed
+GSTIN, the state and the address. An invoice missing the seller's GSTIN is
+not a document with a gap in it; it is a tax document that is not one.
+
+Issued when an order is **paid**, from the `updated` hook Zoho Books already
+rides, guarded the same way. Three things it will not do:
+
+- **Never over an uploaded invoice.** Somebody who attached a PDF has made a
+  decision. `orders.invoice_source` (`uploaded` / `zoho` / `generated`) is
+  what tells the three apart; null on an older order reads as uploaded,
+  which is the safe side.
+- **Never while Zoho Books is ready.** Two systems numbering one series is
+  two series, and the one that files the return is the accounting system's.
+- **Never fails the order.** `consider()` is guarded like `Notifier`: a paid
+  order must still be paid when the PDF library throws. `GstInvoiceTest`
+  makes the renderer throw outright to prove it — the first cut of that test
+  set an over-long prefix, which `InvoiceSettings::prefix()` quietly falls
+  back from, so it threw nothing and passed while proving nothing.
+
+**The number is its own series by financial year** — `INV/2026-27/00001`,
+April to March, nothing to do with the order number. Two problems, solved
+separately: *one invoice per order* is the conditional
+`whereNull('invoice_number')` update with the row count checked; *no number
+twice* is `lockForUpdate` on the read of the highest, which the new index on
+`orders.invoice_number` makes a range lock rather than a table scan.
+
+Re-issuing from the console **keeps the number** — once issued it is in
+somebody's books — and re-renders the document under it, which is what
+somebody wants after correcting the registered address.
+
+### The customer can download it, at last
+
+`has_invoice` has been on the customer's order resource since the store
+shipped and **there was no route behind it**: a flag telling a buyer their
+invoice exists, on a page with no way to open it. Two doors now, sharing
+`CheckoutController::streamInvoice()` so they cannot drift on what they
+check — the guest's with the order's token, the portal's scoped by
+`customer_id` — and both only for a **paid** order, because an invoice is a
+record of money received.
+
+`has_invoice` now carries that paid check too. It is the only thing the
+order page draws the link from, and a link that 404s on press is the same
+defect as no link at all.
+
+### The console
+
+Store → **Tax and invoicing**, `role:store_manager`: the promo banner's
+narrow door onto the settings table, fifteen named keys, anything else
+refused **by name** rather than ignored. Settings as a whole stay
+`role:admin`; the rate a shop charges is not an administrator's decision.
+The group is in `STANDALONE_GROUPS`, so it is not also a tab on System →
+Settings.
+
+A product's own rate and HS code are on its **Selling** tab, under the
+price, because both are about the product rather than about the shop.
+
+### Not built, and say so when it is asked for
+
+- **Two rates inside one product.** A rate per *line* of one product needs a
+  line-level choice at checkout, and nothing asks for one.
+- **A separate rate for delivery.** It takes the goods' highest, which is
+  the composite-supply rule and needs no setting.
+- **E-invoicing (IRN, the government portal) and e-way bills.** Required
+  above turnover thresholds this shop does not assume. They are an API
+  integration with the NIC portal, not a template change.
+- **A credit note for a refund.** `ManualRefund` records the money; Zoho
+  Books issues the credit note when it is connected. Generated credit notes
+  here would need their own series and their own screen.
+
 ## Product videos row (0.140.0)
 
 "Shop the videos": the videos already on shop products (`store_products.videos`,

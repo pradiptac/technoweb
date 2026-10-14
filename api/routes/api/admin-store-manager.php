@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Admin\Store\CategoryController as AdminStoreCate
 use App\Http\Controllers\Api\V1\Admin\Store\CodeController as AdminStoreCodeController;
 use App\Http\Controllers\Api\V1\Admin\Store\CouponController as AdminStoreCouponController;
 use App\Http\Controllers\Api\V1\Admin\Store\DashboardController as AdminStoreDashboardController;
+use App\Http\Controllers\Api\V1\Admin\Store\InvoicingController as AdminStoreInvoicingController;
 use App\Http\Controllers\Api\V1\Admin\Store\OrderController as AdminStoreOrderController;
 use App\Http\Controllers\Api\V1\Admin\Store\ProductController as AdminStoreProductController;
 use App\Http\Controllers\Api\V1\Admin\Store\ProductImportController as AdminStoreProductImportController;
@@ -34,6 +35,17 @@ Route::middleware('role:store_manager')->group(function () {
     // and no other key — see PromoController. Above `store/{anything}` too.
     Route::get('store/promo', [AdminStorePromoController::class, 'index'])->name('store.promo');
     Route::patch('store/promo', [AdminStorePromoController::class, 'update'])->name('store.promo.update');
+
+    /*
+     * Tax and invoicing (0.176.0, docs/store.md "The GST invoice"): the
+     * shop's GST rate, whether its prices include the tax, and the seller's
+     * half of a tax invoice. The promo screen's narrow door onto the
+     * settings table — fifteen named keys and no others — because the rate
+     * a shop charges is a store manager's decision while the settings
+     * screen as a whole stays `role:admin`.
+     */
+    Route::get('store/invoicing', [AdminStoreInvoicingController::class, 'index'])->name('store.invoicing');
+    Route::patch('store/invoicing', [AdminStoreInvoicingController::class, 'update'])->name('store.invoicing.update');
 
     // "Shop the videos": the eleven `store_videos_*` rows and no other key
     // (0.140.0) — see VideoSettingsController. Above `store/{anything}` too.
@@ -156,6 +168,18 @@ Route::middleware('role:store_manager')->group(function () {
     Route::patch('store/orders/{order}/shipping', [AdminStoreOrderController::class, 'shipping'])->name('store.orders.shipping');
     Route::post('store/orders/{order}/invoice', [AdminStoreOrderController::class, 'invoice'])->name('store.orders.invoice');
     Route::get('store/orders/{order}/invoice', [AdminStoreOrderController::class, 'downloadInvoice'])->name('store.orders.invoice.download');
+    /*
+     * The shop's own GST invoice (0.176.0, docs/store.md "The GST
+     * invoice"). Both sit under the `invoice/` prefix, which neither of
+     * the two routes above matches, so no declaration-order trap applies.
+     *
+     * The print view is a page rather than JSON, and it is the one route
+     * here that answers for an order with no invoice yet: it is how
+     * somebody sees the document before switching the feature on.
+     */
+    Route::post('store/orders/{order}/invoice/generate', [AdminStoreOrderController::class, 'generateInvoice'])
+        ->middleware('throttle:20,1')->name('store.orders.invoice.generate');
+    Route::get('store/orders/{order}/invoice/print', [AdminStoreOrderController::class, 'printInvoice'])->name('store.orders.invoice.print');
     Route::post('store/orders/{order}/notes', [AdminStoreOrderController::class, 'note'])->name('store.orders.notes');
     /*
      * The one route in the console that can make an order paid, and

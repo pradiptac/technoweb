@@ -2007,7 +2007,9 @@ A separate catalogue with prices; baskets, checkout, payment, stock, coupons, di
 - Nothing in the console can mark an order paid.
 - An order's stamps are set on arrival and never cleared.
 - The dispatch notice is sent on the status change, not on the tracking form.
-- The invoice is uploaded, or made in Zoho Books (0.134.0) — never generated here.
+- The invoice is uploaded, made in Zoho Books (0.134.0), **or generated here (0.176.0)** — which reverses the original decision, at the client's request; `orders.invoice_source` is what tells the three apart and an uploaded one always wins.
+- Tax is per line at the product's own rate (0.176.0, `docs/store.md` "Tax, and the shop's own GST invoice"): `store_gst_percent` with `store_products.gst_percent` beating it, `store_price_basis` inclusive or exclusive, `App\Support\Store\Tax` the one implementation that `Basket` and `Checkout` both call. The order's `taxable_paise`/`gst_paise` are the **sum of the lines**, which is what dissolves the old "rounded lines do not add up to the rounding of the total" objection — the direction reversed. The discount is apportioned by largest remainder; delivery is a line of its own at the goods' highest rate; the COD ceiling is judged after tax and every other threshold before it. `Money` stays pure arithmetic and `Tax` reads the settings — the split that keeps `MoneyTest` a unit test.
+- `Invoices::ready()` is the switch and everything it needs; it never overwrites an uploaded invoice, never runs while Zoho Books is ready, and never fails the order. The number is its own financial-year series claimed under a row lock; re-issuing keeps it. `GstInvoice` recomputes nothing — only the CGST/SGST-vs-IGST split, by arithmetic over `gst_paise` — and an order with no per-line figures is apportioned rather than refused.
 - An internal note has no key on the customer's resource at all.
 - A digital code is assigned once, and the constraint that guarantees it is not the obvious one.
 - Codes are encrypted at rest, with a SHA-256 fingerprint beside them.
@@ -2041,9 +2043,9 @@ A separate catalogue with prices; baskets, checkout, payment, stock, coupons, di
 - The store products screen shows the feed's production address with a copy button and a plain `<a download>` at the path (never a `Link` — it prefetches, and this handler builds the whole feed).
 - `/google-shopping-feed.xml` is the feed at a second address; shipping declares `store_shipping_service` and a transit window (`store_transit_days_min/max`, never backwards); `PolicyRedirectSeeder` answers `/refund-policy`, `/terms-and-conditions` and the rest as 301 rows.
 - The store's catalogue is not the site's catalogue, and that is the whole shape of the module.
-- Money is paise, as integers, everywhere — and GST is extracted, never added.
+- Money is paise, as integers, everywhere — and GST is extracted or added, by `store_price_basis` (0.176.0; it was extracted only, and the shop still ships that way).
 - A cart line is a pointer and an order line is a snapshot.
-- GST is stored once at the order, never per line.
+- GST is stored **per line** since 0.176.0, and the order's two figures are the sums — the reverse of what this line said, because a rate per product makes the arithmetic run the other way; see the tax line above.
 - `GET /cart` is a read that writes, so it is throttled and pruned.
 - The basket is a token in an httpOnly cookie, because guest checkout is a requirement.
 - A guest who pays gets an account, and it is `active`.
@@ -3246,10 +3248,16 @@ uploaded invoice; the marketing catalogue at `/products` stays a **catalogue**
 with "Request Information" CTAs and no price. Still excluded, and not to be
 built: quotations, renewals, subscriptions, domain or hosting control panels,
 and a CRM beyond the lead pipeline (`docs/feature-ideas-2026-09-20.md`, "Not
-suggested, and why"). The invoice is uploaded, or made in the client's own Zoho
-Books (0.134.0) — never generated here, a decision
-about GST compliance rather than about scope, and one the feature-ideas
-document reopens.
+suggested, and why"). The invoice is uploaded, made in the client's own Zoho
+Books (0.134.0), or **generated here since 0.176.0**. That last reverses what
+this paragraph said for months — "never generated here, a decision about GST
+compliance rather than about scope" — at the client's request on 2026-10-14.
+The compliance worry was real and two thirds of it was answered first: the
+rate became a setting and a per-product column, and HSN codes were added,
+because a single hard-coded 18% and no HS code are the two things that make a
+generated invoice non-compliant. What is still **not** built, and should be
+said when it is asked for: two rates inside one product, e-invoicing (IRN),
+e-way bills, and a generated credit note.
 
 **Amended 2026-09-26: engineer visit requests.** The client asked for customers
 to request a site visit and for staff to confirm the time (`docs/visits.md`).

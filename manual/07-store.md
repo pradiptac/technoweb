@@ -764,6 +764,105 @@ charges. Set your shipping rules **in Merchant Center itself** (Shipping and
 returns → Shipping), using the same zones and rates. With a flat charge the
 feed carries it as before.
 
+## Tax and invoicing
+
+**Store → Tax and invoicing.** What GST the shop charges, whether your
+prices include it, and the details that go on an invoice.
+
+### The GST rate
+
+Pick the rate the shop charges. If one product is taxed differently, set
+its own rate on that product's **Selling** tab — a product's rate always
+beats the shop's.
+
+Changing the rate applies to what you sell from now on. Orders already
+placed keep the tax they were charged, and their invoices keep saying what
+they said, so nothing you have sold moves.
+
+> If you sell at more than one rate, set the shop to the rate most of your
+> catalogue uses and give the exceptions their own. The shop cannot charge
+> two rates for one product — if you need that, say so and we will look at
+> it.
+
+### Do your prices include GST?
+
+Two choices, and it changes what a customer sees:
+
+| | What you type on a product | What the basket shows |
+|---|---|---|
+| **Prices include GST** | ₹1,000 | Total ₹1,000, with a note: *includes ₹152 GST* |
+| **GST is added at the checkout** | ₹1,000 | Subtotal ₹1,000, GST ₹180, **Total ₹1,180** |
+
+Leave it on **include** unless your accountant asks otherwise — it is what
+the shop has always done, and switching it changes every price on the site
+at once.
+
+One thing it does not change: "free delivery above ₹5,000" and a discount
+code's minimum order are still read against your prices as you typed them.
+The cash-on-delivery limit is the exception — that is cash the courier
+counts, so it is checked against the total including tax.
+
+### Making GST invoices
+
+Fill in the rest of the screen and switch **Make a GST invoice for every
+paid order** on. From then on, the moment an order is paid the shop makes
+its invoice: your details, the customer's, every line with its HSN code,
+CGST and SGST or IGST depending on where it is going, and the amount in
+words. The customer can download it from their order page, and you can
+download or print it from the order in the console.
+
+What you need before it will issue anything — the screen lists whatever is
+still missing:
+
+- **Registered business name.** The name on your GST registration, which is
+  often not your trading name.
+- **Your GSTIN.** Fifteen characters. Checked for shape only; it is never
+  sent anywhere.
+- **The state you are registered in.** This decides the tax on every sale.
+  Same state as the customer, it is CGST and SGST; a different state, IGST.
+  Get it wrong and every invoice is wrong.
+- **The address** the invoice is issued from.
+
+Optional, and worth doing: a **default HSN code** for lines whose product
+has none, your **terms**, the **declaration** (leave it as it is unless
+your accountant words it differently), and a scan of your **signature**.
+
+> **HSN codes.** A tax invoice should carry one against every line. Set
+> them on each product's Selling tab; the default here covers anything you
+> have missed. The screen tells you how many products still have none.
+
+### Invoice numbers
+
+Invoice numbers are their own series, counted per financial year and
+starting again each April: `INV/2026-27/00001`. They have nothing to do
+with order numbers. Change the prefix if your accountant wants a different
+one — new invoices only; anything already issued keeps its number.
+
+### Things that will not happen
+
+- **An invoice you upload by hand is never replaced.** If you attach a PDF
+  to an order yourself, that is the invoice, and nothing generated
+  overwrites it.
+- **Nothing is generated while Zoho Books is connected.** Zoho makes the
+  invoices and numbers them, and two systems numbering one series would
+  give you two series.
+- **An order that is not paid gets no invoice**, and the customer cannot
+  download one.
+
+### Checking before you switch it on
+
+Open any paid order and press **Print preview** next to the invoice. It
+renders the real document for that order whether or not invoicing is
+switched on, which is the way to check your address, your GSTIN and the
+wording before any customer sees one.
+
+### Making one again
+
+If you notice something wrong — a misspelled address, the wrong state — fix
+it here, then open the order and press **Make it again**. The invoice
+number stays the same, because once a number is issued it is in somebody's
+books; only the document is re-made.
+
 ## Feeds for Google and Meta
 
 **Store → Products** shows your feed addresses, each with a copy button:

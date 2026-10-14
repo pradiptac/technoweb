@@ -15,11 +15,13 @@ use App\Http\Resources\Admin\Store\ProductResource;
 use App\Models\StoreProduct;
 use App\Models\StoreTag;
 use App\Support\CustomFields\CustomFields;
+use App\Support\Money;
 use App\Support\PageSections\RecordSections;
 use App\Support\Store\ProductVideos;
 use App\Support\Store\SpecIndex;
 use App\Support\Store\StockLedger;
 use App\Support\Store\Tags;
+use App\Support\Store\Tax;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -94,6 +96,15 @@ class ProductController extends Controller
             // Sent by the API, never listed in TypeScript — the rule
             // `schema_type_options` and `meta.locations` already follow.
             'conditions' => ProductCondition::options(),
+            /*
+             * Tax (0.176.0): the rates a product may be sold at, the shop's
+             * own, and how it prices. The form draws its select from this
+             * and states the shop's answer under the price field, so
+             * neither is a figure written into TypeScript.
+             */
+            'gst_rates' => array_map(static fn (string $r) => ['value' => $r, 'label' => $r.'%'], Tax::RATES),
+            'gst_rate' => Money::ratePercent(Tax::rate()),
+            'price_basis' => Tax::basis(),
             'statuses' => array_map(
                 fn (PublishStatus $s) => ['value' => $s->value, 'label' => $s->label()],
                 PublishStatus::cases(),

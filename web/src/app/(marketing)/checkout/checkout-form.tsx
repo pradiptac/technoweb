@@ -505,15 +505,36 @@ export function CheckoutForm({
             </div>
           )}
 
+          {/*
+            GST: a row above the total on a shop that adds it, a note under
+            the total on one whose prices contain it (0.176.0).
+
+            The API says which through `gst_basis` rather than the template
+            inferring it from the numbers. Drawn the wrong way round, one of
+            them is a column that does not add up and the other is a total
+            nobody can arrive at.
+
+            `gst_rate` is null when the basket holds two rates, because
+            "18%" over a basket of 18% and 5% goods is simply false.
+          */}
+          {cart.gst_added_paise > 0 && (
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">GST{cart.gst_rate ? ` at ${cart.gst_rate}` : ""}</dt>
+              <dd className="tabular-nums">{formatPaise(cart.gst_added_paise)}</dd>
+            </div>
+          )}
+
           <div className="flex justify-between gap-4 border-t border-line pt-2 text-17 font-semibold">
             <dt>Total</dt>
             <dd className="tabular-nums">{formatPaise(cart.total_paise)}</dd>
           </div>
 
-          <div className="flex justify-between gap-4 text-12-5 text-muted">
-            <dt>Includes GST at {cart.gst_rate}</dt>
-            <dd className="tabular-nums">{formatPaise(cart.gst_paise)}</dd>
-          </div>
+          {cart.gst_added_paise === 0 && (
+            <div className="flex justify-between gap-4 text-12-5 text-muted">
+              <dt>Includes GST{cart.gst_rate ? ` at ${cart.gst_rate}` : ""}</dt>
+              <dd className="tabular-nums">{formatPaise(cart.gst_paise)}</dd>
+            </div>
+          )}
         </dl>
 
         {/*

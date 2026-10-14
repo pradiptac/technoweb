@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\ProductType;
 use App\Enums\PublishStatus;
 use App\Models\Cart;
+use App\Models\Setting;
 use App\Models\StoreProduct;
 use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -352,7 +353,22 @@ class CartTest extends TestCase
         $this->assertSame(2, $response->json('data.item_count'));
     }
 
-    /** The GST split holds for a basket of several lines at odd prices. */
+    /**
+     * The GST split holds for a basket of several lines at odd prices.
+     *
+     * The invariant is `taxable + gst == total`, and it is the only one that
+     * matters: an invoice that does not add up to the amount charged is the
+     * failure this arithmetic exists to prevent.
+     *
+     * It deliberately does **not** assert `Money::taxable($total)`. Since
+     * 0.176.0 the tax is worked out per line at that line's own rate and the
+     * order's figures are the sums, so on this basket the two differ by one
+     * paisa -- 910847 extracted from the total against 910848 summed from
+     * the lines. Neither is wrong; they answer different questions, and the
+     * summed one is the one that can be printed line by line on an invoice.
+     * Pinning the old expression here would pin the single-rate model the
+     * shop no longer has.
+     */
     public function test_the_split_holds_across_a_mixed_basket(): void
     {
         $a = $this->product(['price_paise' => 299900, 'stock' => 9]);
@@ -364,7 +380,67 @@ class CartTest extends TestCase
         $expected = 299900 * 3 + 87550 * 2;
 
         $this->assertSame($expected, $data['total_paise']);
-        $this->assertSame(Money::taxable($expected), $data['taxable_paise']);
         $this->assertSame($expected, $data['taxable_paise'] + $data['gst_paise']);
+        // Within a paisa per line of the whole-basket extraction, which is
+        // the bound the per-line rounding can reach.
+        $this->assertLessThanOrEqual(2, abs(Money::taxable($expected) - $data['taxable_paise']));
+    }
+
+    /** A product's own rate beats the store's, and the basket says so. */
+    public function test_a_product_carries_its_own_gst_rate(): void
+    {
+        $a = $this->product(['price_paise' => 100000, 'stock' => 9, 'gst_percent' => '5']);
+
+        [, $data] = $this->add($a, ['quantity' => 1]);
+
+        $this->assertSame(100000, $data['total_paise']);
+        // 5% extracted from the price, not 18%.
+        $this->assertSame(Money::taxable(100000, 500), $data['taxable_paise']);
+        $this->assertSame('5%', $data['gst_rate']);
+    }
+
+    /**
+     * Two rates in one basket is not a rate, so the shop states none.
+     *
+     * A checkout printing "18%" over a basket holding 18% and 5% goods is
+     * saying something false. The two figures still add up, and a checkout
+     * that wants the split has the lines.
+     */
+    public function test_a_basket_of_two_rates_reports_no_single_rate(): void
+    {
+        $a = $this->product(['price_paise' => 100000, 'stock' => 9, 'gst_percent' => '5']);
+        $b = $this->product(['price_paise' => 100000, 'stock' => 9, 'gst_percent' => '18']);
+
+        [$token] = $this->add($a, ['quantity' => 1]);
+        [, $data] = $this->add($b, ['quantity' => 1], $token);
+
+        $this->assertNull($data['gst_rate']);
+        $this->assertSame(200000, $data['taxable_paise'] + $data['gst_paise']);
+        $this->assertSame(Money::gst(100000, 500) + Money::gst(100000, 1800), $data['gst_paise']);
+    }
+
+    /**
+     * On a tax-exclusive shop the tax is added to the listed price.
+     *
+     * The listed price becomes the taxable value and the total grows by the
+     * tax, where on an inclusive shop the total *is* the listed price and
+     * the tax comes out of it. `gst_added_paise` is what the checkout draws
+     * as a row of its own; it is zero on an inclusive shop, where a row
+     * would make the column not add up.
+     */
+    public function test_an_exclusive_shop_adds_the_tax_to_the_total(): void
+    {
+        Setting::updateOrCreate(['key' => 'store_price_basis'], ['group' => 'invoicing', 'value' => 'exclusive', 'type' => 'string']);
+        Setting::flushCache();
+
+        $a = $this->product(['price_paise' => 100000, 'stock' => 9]);
+
+        [, $data] = $this->add($a, ['quantity' => 1]);
+
+        $this->assertSame(118000, $data['total_paise']);
+        $this->assertSame(100000, $data['taxable_paise']);
+        $this->assertSame(18000, $data['gst_paise']);
+        $this->assertSame(18000, $data['gst_added_paise']);
+        $this->assertSame('exclusive', $data['gst_basis']);
     }
 }

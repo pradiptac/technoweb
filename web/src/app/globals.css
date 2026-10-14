@@ -795,11 +795,23 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
    * different. Same shape as `.section-y` above, and the same reason: this is a
    * number to change now rather than a find-and-replace across six files.
    *
-   * 92 characters is the ceiling, not a preference. These are one to three
-   * lines, scanned once above a full-width table, so they take the wide end of
-   * what is readable — but a line long enough that the eye cannot find the
-   * start of the next one is a line nobody finishes. For reference, dropping
-   * the cap on /admin/seo at 1920px gives 185 characters per line.
+   * **There is no cap any more, anywhere** — the client, twice. The public
+   * site lost its on 2026-09-16 ("why are you not using full container width
+   * for text?"); the console lost its on 2026-10-14, asked of the Shiprocket
+   * settings screen, where the intro wrapped at roughly half the width of the
+   * two-column grid of fields directly beneath it and read as ragged rather
+   * than as typeset. The argument for 92ch was real and is recorded here
+   * rather than deleted: an uncapped 13px paragraph on /admin/seo at 1920px
+   * runs to about 185 characters, which is past the width at which the eye
+   * reliably finds the start of the next line. What that argument missed is
+   * that a console intro almost never has the room to reach it — nearly every
+   * one of them sits in a panel, a tab or a grid column that bounds it long
+   * before 185 characters, so the cap was doing nothing on most screens and
+   * on the few where it bit it only disagreed with the controls below it.
+   *
+   * The class stays, with no declaration of its own. It is still the name for
+   * this role, it is still where a cap would go if one is ever wanted again,
+   * and leaving the ~100 call sites alone keeps that one number in one place.
    *
    * Used on the public site too, on `PageHero`'s lede — which is the same role
    * wearing different clothes. The first cut kept this to the console on the
@@ -817,19 +829,7 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
    * In `@layer components` so a `max-w-*` utility on the same element still
    * wins — a screen with a genuine reason to differ can say so.
    */
-  .measure { max-width: 92ch; }
-  /*
-   * And on the public site, no cap at all — the client's decision
-   * (2026-09-16): "why are you not using full container width for text?",
-   * seen on the Gallery page's body and subtitle and on several others.
-   * Every paragraph in a page's flow — the hero lede, `Prose`, the CMS
-   * page body, a section's intro — runs to its container. The console
-   * keeps 92ch: it is a different screen, and nobody asked for it to
-   * change. The deliberately narrow ones (a centred CTA band, a footer
-   * column, a menu summary, a caption on a photograph) are layout widths,
-   * not measures, and stay.
-   */
-  .public-site .measure { max-width: none; }
+  .measure { max-width: none; }
 
   /* The reviews widget's "Powered by Elfsight" line, hidden at the client's
      request (`components/home/reviews.tsx` says whose call that is). Two

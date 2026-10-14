@@ -8,6 +8,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import {
   analyseStoreImport, createStoreCategory, createStoreProduct, deleteStoreCategory, deleteStoreProduct, runStoreImport,
+  saveInvoicing,
   saveStorePromo, saveStoreVideos, updateStoreCategory, updateStoreProduct,
 } from "@/lib/admin";
 import { customFieldsFromFormData, jsonListFromFormData, sectionsFromFormData, seoFromFormData, str } from "@/lib/admin-form";
@@ -321,6 +322,48 @@ export async function savePromoAction(_prev: PromoFormState, formData: FormData)
   // The band reads the public settings map, which is cached under this tag;
   // updateTag so the editor sees the change on the next visit to /store.
   updateTag("settings");
+
+  return { ok: true };
+}
+
+export type InvoicingFormState = { error?: string; ok?: boolean };
+
+/**
+ * Store -> Tax and invoicing (0.176.0). The product videos' save, key for
+ * key: every control posts `setting__<key>` and the API refuses anything
+ * outside its fifteen by name.
+ *
+ * It purges `settings` because the rate and the price basis are read by the
+ * shop on every page, and `store-products` because a product card's price
+ * line says whether GST is included.
+ */
+export async function saveInvoicingAction(_prev: InvoicingFormState, formData: FormData): Promise<InvoicingFormState> {
+  const settings = [...formData.entries()]
+    .filter(([name]) => name.startsWith("setting__"))
+    .map(([name, value]) => ({
+      key: name.replace("setting__", ""),
+      value: typeof value === "string" ? value.trim() : "",
+    }));
+
+  if (settings.length === 0) return { error: "Nothing to save." };
+
+  try {
+    await saveInvoicing(settings);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 401) redirect("/admin/login");
+      if (error.status === 403) return { error: "Only a store manager or an administrator can change tax and invoicing." };
+      if (error.status === 422) {
+        const first = Object.values(error.errors ?? {}).flat()[0];
+        return { error: typeof first === "string" ? first : "Some values were rejected. Check the fields and try again." };
+      }
+    }
+    return { error: "We could not save tax and invoicing. Try again shortly." };
+  }
+
+  revalidatePath("/admin/store/invoicing");
+  updateTag("settings");
+  updateTag("store-products");
 
   return { ok: true };
 }

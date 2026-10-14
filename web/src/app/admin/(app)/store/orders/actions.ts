@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { rupeesToPaise } from "@/lib/money";
 import { ApiError } from "@/lib/api";
-import {
+import { generateOrderInvoice,
   addStoreOrderNote, createZohoInvoice, fulfilStoreOrder, moveStoreOrder, saveStoreOrderInvoice, saveStoreOrderShipping,
   recordStoreOrderPayment,
   recordStoreOrderRefund,
@@ -190,6 +190,37 @@ export async function recordRefundAction(
   refresh(orderNumber);
 
   return { ok: "Refund recorded." };
+}
+
+/**
+ * Make an order's GST invoice, or make it again under the same number.
+ *
+ * The refusal is the API's own sentence rather than one written here: it is
+ * the same sentence the order screen draws under the disabled button, and
+ * two copies of the rules is two answers to "why not".
+ */
+export async function generateInvoiceAction(_prev: OrderActionState, formData: FormData): Promise<OrderActionState> {
+  const orderNumber = String(formData.get("order_number") ?? "");
+
+  if (!orderNumber) return { error: "Nothing to invoice." };
+
+  try {
+    await generateOrderInvoice(orderNumber);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 401) redirect("/admin/login");
+      if (error.status === 403) return { error: "Only a store manager or an administrator can make an invoice." };
+      if (error.status === 422) {
+        const first = Object.values(error.errors ?? {}).flat()[0];
+        return { error: typeof first === "string" ? first : "That order cannot be invoiced yet." };
+      }
+    }
+    return { error: "We could not make the invoice. Try again shortly." };
+  }
+
+  revalidatePath(`/admin/store/orders/${orderNumber}`);
+
+  return { ok: "Invoice made. The customer can download it from their order." };
 }
 
 export async function saveInvoiceAction(

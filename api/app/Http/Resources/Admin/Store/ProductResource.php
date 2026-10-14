@@ -49,6 +49,11 @@ class ProductResource extends JsonResource
              */
             'gtin' => $this->gtin,
             'mpn' => $this->mpn,
+            // The invoice's two (0.176.0). `gst_percent` is null when the
+            // product takes the shop's own rate, which is not the same
+            // claim as zero per cent.
+            'hsn' => $this->hsn,
+            'gst_percent' => $this->gst_percent,
             'condition' => $this->condition?->value,
             'google_product_category' => $this->google_product_category,
             'weight_grams' => $this->weight_grams,

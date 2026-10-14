@@ -19,11 +19,18 @@ use App\Support\Money;
  * was chosen and how many, and every figure below is derived from the product
  * as it is right now.
  *
- * GST is *extracted* rather than added, because displayed prices include it —
- * see `Money`. It is computed once on the payable total rather than per line
- * and summed: rounding each line and adding the results gives a GST figure that
- * does not match the GST of the total, and the invoice has to balance against
- * what was actually charged.
+ * GST is worked out by `Tax::breakdown()` — one rate per product, the
+ * store-wide rate where a product names none, and either extracted from the
+ * listed price or added to it depending on `store_price_basis`. It is the
+ * same call the checkout makes on the same lines, which is what makes the
+ * figure on the screen the figure that is charged.
+ *
+ * This paragraph used to say GST was computed once on the total rather than
+ * per line and summed, "because rounding each line and adding the results
+ * gives a GST figure that does not match the GST of the total". That was
+ * true of apportionment and is not true of this: nothing here divides a
+ * rounded total, each line's tax comes from that line's own money, and the
+ * order's two figures are the sums. `Tax` has the whole argument.
  */
 class Basket
 {
@@ -47,7 +54,9 @@ class Basket
      *     total_paise: int,
      *     taxable_paise: int,
      *     gst_paise: int,
-     *     gst_rate: string,
+     *     gst_basis: string,
+     *     gst_added_paise: int,
+     *     gst_rate: ?string,
      *     has_shippable: bool,
      *     problems: array<int, string>,
      *     contact: array{email: ?string, phone: ?string, reminders: bool},
@@ -58,6 +67,7 @@ class Basket
         $cart->loadMissing(['items.product', 'items.variation']);
 
         $items = [];
+        $taxLines = [];
         $subtotal = 0;
         $count = 0;
         $problems = [];
@@ -79,6 +89,10 @@ class Basket
             ];
             $subtotal += $line['line_total_paise'];
             $count += $line['quantity'];
+            $taxLines[] = [
+                'line_total_paise' => $line['line_total_paise'],
+                'gst_basis_points' => Tax::rateFor($item->product),
+            ];
 
             if ($line['problem'] !== null) {
                 $problems[] = $line['problem'];
@@ -137,7 +151,13 @@ class Basket
          * not a figure to put in an email.
          */
         $quote = ShippingQuote::for($quoteLines, $cart->ship_state, $subtotal - $discount);
-        $total = $subtotal - $discount + $quote->addPaise();
+
+        // The same call the checkout makes, on the same lines. On an
+        // inclusive shop the total is the goods less the discount plus the
+        // delivery, exactly as it was; on an exclusive one it is that plus
+        // the tax, which is why it is taken from the breakdown.
+        $tax = Tax::breakdown($taxLines, $discount, $quote->addPaise());
+        $total = $tax->totalPaise();
 
         return [
             /*
@@ -175,11 +195,29 @@ class Basket
                 ? array_column(IndianStates::options(), 'label')
                 : null,
             'total_paise' => $total,
-            'taxable_paise' => Money::taxable($total),
-            'gst_paise' => Money::gst($total),
-            // Sent as a string so the shop states the rate it is actually
-            // applying rather than hard-coding "18%" in a template.
-            'gst_rate' => number_format(Money::GST_BASIS_POINTS / 100, 0).'%',
+            'taxable_paise' => $tax->taxablePaise,
+            'gst_paise' => $tax->gstPaise,
+            /*
+             * How the checkout draws the tax.
+             *
+             * `gst_basis` is `inclusive` or `exclusive`; `gst_added_paise` is
+             * what the shop puts *on top* of its listed prices, which is zero
+             * on an inclusive shop. A checkout that prints the tax as a row
+             * on an inclusive shop has a column that does not add up, and one
+             * that prints it as a footnote on an exclusive shop has a total
+             * nobody can arrive at — so the API says which, rather than the
+             * template guessing from the numbers.
+             *
+             * `gst_rate` is a string, and null when a basket holds two rates:
+             * "18%" over a basket of 18% and 5% goods is simply false, and
+             * the per-line figures are there for a checkout that wants to
+             * show the split.
+             */
+            'gst_basis' => $tax->basis,
+            'gst_added_paise' => $tax->addedPaise(),
+            'gst_rate' => count($rates = $tax->rates()) === 1
+                ? Money::ratePercent($rates[0]).'%'
+                : null,
             'has_shippable' => $shippable,
             'problems' => $problems,
             /*

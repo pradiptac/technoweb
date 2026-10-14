@@ -13,6 +13,7 @@ use App\Support\Store\Checkout;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -154,6 +155,50 @@ class CheckoutController extends Controller
         abort_unless(hash_equals($order->access_token, $token), 404);
 
         return new OrderResource($order->load(['items', 'payments', 'returns.items.orderItem', 'returns.photos']));
+    }
+
+    /**
+     * The invoice, to whoever holds the order's link (0.176.0).
+     *
+     * `has_invoice` has been on the customer's order since the store
+     * shipped and there was **no route behind it** — a flag telling a buyer
+     * their invoice exists, on a page with no way to open it. This is that
+     * route. It is the same token the page itself is read with, compared
+     * the same way, and a wrong one is the same 404 a wrong number is.
+     *
+     * Streamed from the private disk, never a URL: the document carries a
+     * name, an address and a GSTIN, and a public path for one is a file
+     * anybody who guesses a filename can read. `private, no-store`, because
+     * a shared or proxy cache holding somebody's invoice is a copy nobody
+     * authorised.
+     */
+    public function invoice(Request $request, string $orderNumber)
+    {
+        $order = Order::where('order_number', $orderNumber)->firstOrFail();
+
+        abort_unless(hash_equals($order->access_token, (string) $request->query('token', '')), 404);
+
+        return self::streamInvoice($order);
+    }
+
+    /**
+     * The one place an invoice is handed to a customer, shared with the
+     * portal so the two doors cannot differ on what they check.
+     *
+     * **Only for a paid order.** An invoice is a record of money received;
+     * handing one to somebody who has not paid is handing them a document
+     * their own accountant may act on.
+     */
+    public static function streamInvoice(Order $order)
+    {
+        abort_unless($order->paid_at !== null, 404);
+        abort_unless(filled($order->invoice_path) && Storage::disk('local')->exists($order->invoice_path), 404);
+
+        return Storage::disk('local')->download(
+            $order->invoice_path,
+            'invoice-'.str_replace(['/', '\\', ' '], '-', $order->invoice_number ?: $order->order_number).'.pdf',
+            ['Cache-Control' => 'private, no-store'],
+        );
     }
 
     /** @return array<string, string|null> */

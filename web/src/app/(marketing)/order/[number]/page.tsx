@@ -264,12 +264,34 @@ export default async function OrderPage({
                 </div>
               )}
 
-              {order.gst_required && (
+              {/*
+                The invoice, at last downloadable (0.176.0).
+
+                `has_invoice` has said one exists since the store shipped and
+                there was no route behind it, so this paragraph told people
+                to wait for an email that may never have been sent. It is a
+                plain `<a download>` rather than a `Link`: the address is a
+                route handler that streams a file, and a prefetch would
+                fetch somebody's invoice on hover.
+              */}
+              {order.has_invoice ? (
                 <p className="measure mt-4 text-12-5 text-muted">
-                  The GST invoice for {order.company_name} ({order.gstin}) is prepared by hand and
-                  emailed to you — it is not generated automatically.
+                  <a
+                    className="font-semibold text-brand-ink underline"
+                    href={`/api/order/${encodeURIComponent(order.order_number)}/invoice`}
+                    download
+                  >
+                    Download the GST invoice
+                  </a>
+                  {order.invoice_number ? ` (${order.invoice_number})` : null}
+                  {order.gst_required ? ` — made out to ${order.company_name} (${order.gstin}).` : "."}
                 </p>
-              )}
+              ) : order.gst_required ? (
+                <p className="measure mt-4 text-12-5 text-muted">
+                  The GST invoice for {order.company_name} ({order.gstin}) will be here once the order is
+                  paid, and a link to it is in your email.
+                </p>
+              ) : null}
 
               <p className="measure mt-4 text-12-5 text-muted">
                 Keep this page&rsquo;s link. It is how you come back to this order, and it is in your

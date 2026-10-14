@@ -129,6 +129,26 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
                 <dd className="tabular-nums">{formatPaise(order.gst_paise)}</dd>
               </div>
             </dl>
+
+            {/*
+              The invoice (0.176.0). A plain `<a download>` and not a
+              `Link`: the address is a route handler that streams a file,
+              and a prefetch would fetch it on hover. `has_invoice` already
+              carries the paid check the route applies, so a link drawn here
+              is one that works.
+            */}
+            {order.has_invoice && (
+              <p className="mt-4 border-t border-line pt-3 text-13">
+                <a
+                  className="font-semibold text-brand-ink underline"
+                  href={`/api/portal/orders/${encodeURIComponent(order.order_number)}/invoice`}
+                  download
+                >
+                  Download the GST invoice
+                </a>
+                {order.invoice_number ? <span className="text-muted"> ({order.invoice_number})</span> : null}
+              </p>
+            )}
           </Card>
 
           {order.tracking_number && (
