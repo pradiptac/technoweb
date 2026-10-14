@@ -11,6 +11,7 @@ use App\Support\Store\ActivationProcedure;
 use App\Support\Store\ProductFeed;
 use App\Support\Store\ProductVideos;
 use App\Support\Store\Tags;
+use App\Support\Store\Tax;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -33,6 +34,7 @@ class ProductResource extends JsonResource
     public function toArray(Request $request): array
     {
         $detail = $request->routeIs('*.show', '*.store', '*.update');
+        $rate = Tax::rateFor($this->resource);
 
         return [
             'id' => $this->id,
@@ -102,8 +104,12 @@ class ProductResource extends JsonResource
             'brand_id' => $this->brand_id,
             'brand_name' => $this->whenLoaded('brand', fn () => $this->brand?->name),
 
+            // Stored with GST. The `entry_` pair is the same price as the
+            // console's price field takes it (`store_price_entry`, 0.178.0).
             'price_paise' => $this->price_paise,
             'compare_at_paise' => $this->compare_at_paise,
+            'entry_price_paise' => Tax::entered((int) $this->price_paise, $rate),
+            'entry_compare_at_paise' => $this->compare_at_paise === null ? null : Tax::entered((int) $this->compare_at_paise, $rate),
             'track_stock' => (bool) $this->track_stock,
             /*
              * The raw column, because the form edits it — and for a product
@@ -166,6 +172,7 @@ class ProductResource extends JsonResource
                 'mpn' => $v->mpn,
                 'options' => (object) ($v->options ?? []),
                 'price_paise' => $v->price_paise,
+                'entry_price_paise' => $v->price_paise === null ? null : Tax::entered((int) $v->price_paise, $rate),
                 'stock' => (int) $v->stock,
                 'allow_oversell' => (bool) $v->allow_oversell,
                 'weight_grams' => $v->weight_grams,

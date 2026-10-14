@@ -25,7 +25,7 @@ import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import { BodyReplacedNote, RecordSectionsPanel, SECTIONS_TAB, SectionsUnavailable, useRecordSections } from "../../pages/builder/record-sections";
 import { CustomFieldsPanel, customFieldError, withFieldsTab } from "@/components/admin/custom-fields-panel";
-import { paiseToRupeeInput } from "@/lib/money";
+import { formatPaise, paiseToRupeeInput, rupeesToPaise } from "@/lib/money";
 import {
   createStoreProductAction, deleteStoreProductAction, updateStoreProductAction, type StoreFormState,
 } from "../actions";
@@ -98,7 +98,7 @@ export function StoreProductForm({
    * the other two are what the shop does, so the price field can say
    * whether the figure being typed includes the tax or not.
    */
-  tax?: { rates: { value: string; label: string }[]; rate: string; basis: string };
+  tax?: { rates: { value: string; label: string }[]; rate: string; basis: string; entry?: string };
   /** `meta.custom_field_groups` from the index, for a new record; an edit reads the record's own. */
   fieldGroups?: CustomFieldGroupDefinition[];
   /**
@@ -110,7 +110,9 @@ export function StoreProductForm({
 }) {
   const editing = Boolean(product);
   const rate = tax?.rate ?? "18";
-  const basis = tax?.basis ?? "inclusive";
+  // How the price field is typed (0.178.0). The stored price always has
+  // GST in it; the API converts what is typed here on save.
+  const entry = tax?.entry === "exclusive" ? "exclusive" : "inclusive";
   const [state, formAction, pending] = useActionState(
     editing ? updateStoreProductAction : createStoreProductAction, initial,
   );
@@ -120,7 +122,22 @@ export function StoreProductForm({
     "blank means ₹11,800", and it has to say the price being typed rather than
     the price that was stored when the page loaded.
   */
-  const [price, setPrice] = useState(paiseToRupeeInput(product?.price_paise));
+  const [price, setPrice] = useState(paiseToRupeeInput(product?.entry_price_paise ?? product?.price_paise));
+  // The rate the counterpart line under the price is worked out at: the
+  // product's own as it is chosen, else the shop's. The select stays
+  // uncontrolled — this only listens.
+  const [gstPick, setGstPick] = useState(product?.gst_percent ?? "");
+  const counterpart = (input: string): string | null => {
+    const paise = rupeesToPaise(input);
+    const bp = Math.round(parseFloat(gstPick || rate) * 100);
+
+    if (paise === null || !Number.isFinite(bp)) return null;
+
+    // The API's own arithmetic (`Tax::addTo`, `Money::taxable`), to the paisa.
+    return entry === "exclusive"
+      ? `The customer pays ${formatPaise(paise + Math.floor((paise * bp + 5000) / 10000), { withPaise: true })}.`
+      : `That is ${formatPaise(Math.floor((paise * 10000 + Math.floor((10000 + bp) / 2)) / (10000 + bp)), { withPaise: true })} before GST.`;
+  };
   const [trackStock, setTrackStock] = useState(product?.track_stock ?? true);
   /*
    * Once there is a variation, the product's own Stock field is dead — stock is
@@ -310,10 +327,13 @@ export function StoreProductForm({
 
         <div className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
           <div className="min-w-0">
-            <Field label="Price" htmlFor="price" error={err("price_paise")}
-              hint={basis === "exclusive"
-                ? `In rupees, before GST — ${rate}% is added at the checkout, so this is not what the customer pays.`
-                : `In rupees, and it includes ${rate}% GST — the figure here is what the customer pays.`}>
+            <Field label={entry === "exclusive" ? "Price (before GST)" : "Price (with GST)"} htmlFor="price" error={err("price_paise")}
+              hint={[
+                entry === "exclusive"
+                  ? "In rupees, before GST. This product's rate is added when you save."
+                  : "In rupees, with GST in it: what the customer pays.",
+                counterpart(price),
+              ].filter(Boolean).join(" ")}>
               <Input
                 id="price" name="price" inputMode="decimal" required
                 value={price}
@@ -322,10 +342,10 @@ export function StoreProductForm({
               />
             </Field>
 
-            <Field label="Compare-at price" htmlFor="compare_at" error={err("compare_at_paise")}
+            <Field label={entry === "exclusive" ? "Compare-at price (before GST)" : "Compare-at price (with GST)"} htmlFor="compare_at" error={err("compare_at_paise")}
               hint="Struck through beside the price. Leave blank unless it was genuinely sold at this — the shop hides it when it is not higher.">
               <Input id="compare_at" name="compare_at" inputMode="decimal"
-                defaultValue={paiseToRupeeInput(product?.compare_at_paise)} />
+                defaultValue={paiseToRupeeInput(product?.entry_compare_at_paise ?? product?.compare_at_paise)} />
             </Field>
 
             {/*
@@ -337,7 +357,8 @@ export function StoreProductForm({
             <div className="grid gap-x-4 sm:grid-cols-2">
               <Field label="GST rate" htmlFor="gst_percent" error={err("gst_percent")} variant="float-static"
                 hint={`Leave it as the shop's unless this product is taxed differently.`}>
-                <Select id="gst_percent" name="gst_percent" defaultValue={product?.gst_percent ?? ""}>
+                <Select id="gst_percent" name="gst_percent" defaultValue={product?.gst_percent ?? ""}
+                  onChange={(e) => setGstPick(e.target.value)}>
                   <option value="">The shop&rsquo;s rate ({rate}%)</option>
                   {(tax?.rates ?? []).map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </Select>
@@ -352,7 +373,8 @@ export function StoreProductForm({
             <VariationField
               defaultValue={product?.variations ?? []}
               error={rowErr("variations")}
-              productPricePaise={product?.price_paise}
+              productPricePaise={rupeesToPaise(price) ?? product?.entry_price_paise ?? product?.price_paise}
+              entry={entry}
               onSummaryChange={setVariations}
             />
 

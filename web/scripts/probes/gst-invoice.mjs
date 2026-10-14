@@ -154,7 +154,7 @@ try {
   check(!notReady, "it reports itself ready", notReady ? "still listing what is missing" : "");
 
   const basisNote = await page
-    .getByText(/the checkout adds the GST as a row of its own/i)
+    .getByText(/adds the GST at the checkout/i)
     .isVisible()
     .catch(() => false);
   check(basisNote, "the basis note follows the choice");

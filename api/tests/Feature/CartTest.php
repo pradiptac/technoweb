@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\ProductType;
 use App\Enums\PublishStatus;
 use App\Models\Cart;
+use App\Models\Coupon;
 use App\Models\Setting;
 use App\Models\StoreProduct;
 use App\Support\Money;
@@ -420,27 +421,43 @@ class CartTest extends TestCase
     }
 
     /**
-     * On a tax-exclusive shop the tax is added to the listed price.
+     * Showing prices before GST changes what is shown and nothing that is
+     * paid (0.178.0).
      *
-     * The listed price becomes the taxable value and the total grows by the
-     * tax, where on an inclusive shop the total *is* the listed price and
-     * the tax comes out of it. `gst_added_paise` is what the checkout draws
-     * as a row of its own; it is zero on an inclusive shop, where a row
-     * would make the column not add up.
+     * A stored price includes GST. With the website set to show prices
+     * before it, the basket's `shown_*` figures are the values before tax
+     * and the GST is a row of its own — and the column adds up to the same
+     * total the shop charges when it shows prices with GST: subtotal −
+     * discount + delivery + GST = total, with a coupon on it. In 0.176.0
+     * this setting added 18% to every basket.
      */
-    public function test_an_exclusive_shop_adds_the_tax_to_the_total(): void
+    public function test_showing_prices_before_gst_moves_no_money(): void
     {
+        $a = $this->product(['price_paise' => 118000, 'stock' => 9]);
+        $b = $this->product(['price_paise' => 52500, 'stock' => 9, 'gst_percent' => '5']);
+        Coupon::create(['code' => 'TENOFF', 'type' => 'fixed', 'value' => 10000, 'is_active' => true]);
+
+        [$token] = $this->add($a, ['quantity' => 1]);
+        $this->add($b, ['quantity' => 1], $token);
+        $this->withHeaders(['X-Cart-Token' => $token])->postJson('/api/v1/cart/coupon', ['code' => 'TENOFF'])->assertOk();
+        $with = $this->withHeaders(['X-Cart-Token' => $token])->getJson('/api/v1/cart')->json('data');
+
         Setting::updateOrCreate(['key' => 'store_price_basis'], ['group' => 'invoicing', 'value' => 'exclusive', 'type' => 'string']);
         Setting::flushCache();
+        $before = $this->withHeaders(['X-Cart-Token' => $token])->getJson('/api/v1/cart')->json('data');
 
-        $a = $this->product(['price_paise' => 100000, 'stock' => 9]);
+        $this->assertSame($with['total_paise'], $before['total_paise']);
+        $this->assertSame(170500 - 10000, $before['total_paise']);
+        $this->assertSame(0, $with['gst_added_paise']);
+        $this->assertSame($with['subtotal_paise'], $with['shown_subtotal_paise']);
 
-        [, $data] = $this->add($a, ['quantity' => 1]);
-
-        $this->assertSame(118000, $data['total_paise']);
-        $this->assertSame(100000, $data['taxable_paise']);
-        $this->assertSame(18000, $data['gst_paise']);
-        $this->assertSame(18000, $data['gst_added_paise']);
-        $this->assertSame('exclusive', $data['gst_basis']);
+        $this->assertSame('exclusive', $before['gst_basis']);
+        $this->assertSame($before['gst_paise'], $before['gst_added_paise']);
+        $this->assertSame(100000 + 50000, $before['shown_subtotal_paise']);
+        $this->assertSame(100000, $before['items'][0]['shown_unit_price_paise']);
+        $this->assertSame(
+            $before['total_paise'],
+            $before['shown_subtotal_paise'] - $before['shown_discount_paise'] + (int) $before['shown_shipping_paise'] + $before['gst_added_paise'],
+        );
     }
 }

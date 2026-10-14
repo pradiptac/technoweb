@@ -20,8 +20,9 @@ use App\Support\Money;
  * as it is right now.
  *
  * GST is worked out by `Tax::breakdown()` — one rate per product, the
- * store-wide rate where a product names none, and either extracted from the
- * listed price or added to it depending on `store_price_basis`. It is the
+ * store-wide rate where a product names none, always extracted from the
+ * price, which is stored with GST (0.178.0). `store_price_basis` decides only
+ * how the figures are shown — the `shown_*` keys. It is the
  * same call the checkout makes on the same lines, which is what makes the
  * figure on the screen the figure that is charged.
  *
@@ -52,6 +53,9 @@ class Basket
      *     shipping_deliverable: bool,
      *     shipping_states: ?array<int, string>,
      *     total_paise: int,
+     *     shown_subtotal_paise: int,
+     *     shown_discount_paise: int,
+     *     shown_shipping_paise: ?int,
      *     taxable_paise: int,
      *     gst_paise: int,
      *     gst_basis: string,
@@ -69,6 +73,7 @@ class Basket
         $items = [];
         $taxLines = [];
         $subtotal = 0;
+        $shownSubtotal = 0;
         $count = 0;
         $problems = [];
         $shippable = false;
@@ -81,6 +86,13 @@ class Basket
                 continue;
             }
 
+            $rate = Tax::rateFor($item->product);
+            $exclusive = Tax::basis() === Tax::BASIS_EXCLUSIVE;
+            // As the website shows prices (0.178.0); the money is the line's.
+            $line['shown_unit_price_paise'] = $exclusive ? Money::taxable($line['unit_price_paise'], $rate) : $line['unit_price_paise'];
+            $line['shown_line_total_paise'] = $exclusive ? Money::taxable($line['line_total_paise'], $rate) : $line['line_total_paise'];
+            $shownSubtotal += $line['shown_line_total_paise'];
+
             $items[] = $line;
             $quoteLines[] = [
                 'shipped' => $line['shipped'],
@@ -91,7 +103,7 @@ class Basket
             $count += $line['quantity'];
             $taxLines[] = [
                 'line_total_paise' => $line['line_total_paise'],
-                'gst_basis_points' => Tax::rateFor($item->product),
+                'gst_basis_points' => $rate,
             ];
 
             if ($line['problem'] !== null) {
@@ -152,12 +164,31 @@ class Basket
          */
         $quote = ShippingQuote::for($quoteLines, $cart->ship_state, $subtotal - $discount);
 
-        // The same call the checkout makes, on the same lines. On an
-        // inclusive shop the total is the goods less the discount plus the
-        // delivery, exactly as it was; on an exclusive one it is that plus
-        // the tax, which is why it is taken from the breakdown.
+        // The same call the checkout makes, on the same lines. The total is
+        // the goods less the discount plus the delivery, whichever way the
+        // website shows prices — stored prices include GST (0.178.0).
         $tax = Tax::breakdown($taxLines, $discount, $quote->addPaise());
         $total = $tax->totalPaise();
+
+        /*
+         * The summary as the website shows prices. Shown with GST, these are
+         * the figures above. Shown before GST, each is the value before tax,
+         * taken from the breakdown so the column adds up to the total
+         * exactly: subtotal − discount + delivery + GST = total, because the
+         * taxable values and the tax together are what is paid. A discount
+         * shown at its with-GST amount beside before-GST lines would not.
+         */
+        $exclusive = Tax::basis() === Tax::BASIS_EXCLUSIVE;
+        $shownShipping = $quote->ships && ! $quote->known ? null : $quote->addPaise();
+        $shown = $exclusive ? [
+            'subtotal_paise' => $shownSubtotal,
+            'discount_paise' => $shownSubtotal - array_sum(array_column($tax->lines, 'taxable_paise')),
+            'shipping_paise' => $shownShipping === null ? null : ($tax->delivery['taxable_paise'] ?? 0),
+        ] : [
+            'subtotal_paise' => $subtotal,
+            'discount_paise' => $discount,
+            'shipping_paise' => $shownShipping,
+        ];
 
         return [
             /*
@@ -195,6 +226,9 @@ class Basket
                 ? array_column(IndianStates::options(), 'label')
                 : null,
             'total_paise' => $total,
+            'shown_subtotal_paise' => $shown['subtotal_paise'],
+            'shown_discount_paise' => $shown['discount_paise'],
+            'shown_shipping_paise' => $shown['shipping_paise'],
             'taxable_paise' => $tax->taxablePaise,
             'gst_paise' => $tax->gstPaise,
             /*

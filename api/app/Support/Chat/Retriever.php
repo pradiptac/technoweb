@@ -18,6 +18,7 @@ use App\Models\Tender;
 use App\Support\Events\EventText;
 use App\Support\HtmlSanitiser;
 use App\Support\MediaUrl;
+use App\Support\Store\Tax;
 use App\Support\Tenders\TenderText;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -239,8 +240,12 @@ class Retriever
      * the question being asked. FAQs and the knowledge base are the deliberate
      * exceptions — their body **is** the answer.
      *
+     * @template TModel of \Illuminate\Database\Eloquent\Model
+     *
+     * @param  Builder<TModel>  $query
      * @param  array<int, string>  $terms
      * @param  array<int, string>  $columns
+     * @return Builder<TModel>
      */
     private static function match(Builder $query, array $terms, array $columns): Builder
     {
@@ -421,9 +426,11 @@ class Retriever
                  * get wrong the day this application moves to a CDN.
                  */
                 'image' => filled($p->images[0] ?? null) ? MediaUrl::for($p->images[0]) : null,
-                'price_paise' => (int) $p->price_paise,
+                // As the website shows prices (0.178.0), so the card and the
+                // product page agree.
+                'price_paise' => Tax::shown((int) $p->price_paise, Tax::rateFor($p)),
                 'compare_at_paise' => $p->compare_at_paise !== null && $p->compare_at_paise > $p->price_paise
-                    ? (int) $p->compare_at_paise
+                    ? Tax::shown((int) $p->compare_at_paise, Tax::rateFor($p))
                     : null,
                 'in_stock' => $p->inStock(),
                 'returnable' => (bool) $p->returnable,
@@ -435,7 +442,8 @@ class Retriever
                 'brand' => $p->brand?->name,
                 'category' => $p->category?->name,
                 'sku' => $p->sku,
-                'price_inr' => $p->price_paise !== null ? number_format($p->price_paise / 100, 2, '.', '') : null,
+                'price_inr' => $p->price_paise !== null ? number_format(Tax::shown((int) $p->price_paise, Tax::rateFor($p)) / 100, 2, '.', '') : null,
+                'price_includes_gst' => Tax::basis() === Tax::BASIS_INCLUSIVE ? 'yes' : 'no',
                 'in_stock' => $p->inStock() ? 'yes' : 'no',
                 'returnable' => $p->returnable ? 'yes' : 'no',
                 'type' => $p->type?->value,
@@ -560,10 +568,6 @@ class Retriever
 
         $out = [];
         foreach ($rows as $e) {
-            if (! $e instanceof Entry) {
-                continue;
-            }
-
             $out[] = [
                 'type' => 'entry',
                 'label' => (string) $e->contentType->name,
@@ -596,10 +600,6 @@ class Retriever
 
         $out = [];
         foreach ($rows as $e) {
-            if (! $e instanceof Event) {
-                continue;
-            }
-
             $out[] = [
                 'type' => 'event',
                 'label' => 'Event',
@@ -634,10 +634,6 @@ class Retriever
 
         $out = [];
         foreach ($rows as $t) {
-            if (! $t instanceof Tender) {
-                continue;
-            }
-
             $out[] = [
                 'type' => 'tender',
                 'label' => 'Tender',

@@ -542,6 +542,7 @@ class CatalogueImport
             $variation = $line['variation'];
             $product = $variation->product()->firstOrFail();
             $before = $product->variations()->pluck('stock', 'id')->all();
+            $values = self::stored($values, $variation->price_paise ?? $product->price_paise, null, Tax::rateFor($product));
 
             $variation->update(array_intersect_key($values, array_flip([
                 'price_paise', 'stock', 'gtin', 'mpn', 'weight_grams', 'allow_oversell',
@@ -557,6 +558,7 @@ class CatalogueImport
             $product = $line['product'];
             $stockBefore = (int) $product->stock;
             $variationsBefore = $product->variations()->pluck('stock', 'id')->all();
+            $values = self::stored($values, $product->price_paise, $product->compare_at_paise, Tax::rateFor($product));
 
             // Everything a product line may set except the two the import
             // uses to find it: a SKU is the key here, and a slug changed by a
@@ -569,6 +571,8 @@ class CatalogueImport
             return;
         }
 
+        $values = self::stored($values, null, null, Tax::rate());
+
         $product = StoreProduct::create([
             'type' => ProductType::Physical,
             'status' => PublishStatus::Draft,
@@ -578,6 +582,27 @@ class CatalogueImport
 
         StockLedger::adjusted($product, 0, [], true, $source);
         self::tag($product, $values['tags'] ?? null);
+    }
+
+    /**
+     * A line's prices as stored (0.178.0). The file is in the console's
+     * basis — `store_price_entry`, the basis the export writes — and a stored
+     * price always includes GST. A cell holding exactly what the export
+     * wrote keeps the stored price, so a round trip moves nothing by a paisa
+     * (`Tax::keep()`).
+     *
+     * @param  array<string, mixed>  $values
+     * @return array<string, mixed>
+     */
+    private static function stored(array $values, ?int $price, ?int $compareAt, int $rate): array
+    {
+        foreach (['price_paise' => $price, 'compare_at_paise' => $compareAt] as $key => $was) {
+            if (isset($values[$key])) {
+                $values[$key] = Tax::keep((int) $values[$key], $was, $rate, false);
+            }
+        }
+
+        return $values;
     }
 
     /**

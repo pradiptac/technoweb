@@ -2938,8 +2938,11 @@ one `warning` line. `GstInvoiceTest` makes the renderer throw to prove it.
 - **`store_gst_percent`** is the shop's rate, one of `0`, `0.25`, `3`, `5`,
   `12`, `18`, `28`. **`store_products.gst_percent`** is a product's own and
   beats it; blank means the shop's, which is not the same claim as zero.
-- **`store_price_basis`** is `inclusive` (the default, and what every price
-  already typed into a shop means) or `exclusive`.
+- **A stored price always includes GST** (0.178.0). **`store_price_basis`**
+  is only how the website **shows** prices (`inclusive` with GST, `exclusive`
+  before it) and **`store_price_entry`** only how the console **takes** them
+  (`exclusive`: typed before GST, converted on save at the product's rate).
+  Neither moves money.
 - **The order's `taxable_paise` and `gst_paise` are the sum of the lines**,
   and every line placed since 0.176.0 carries `gst_basis_points`,
   `taxable_paise` and `gst_paise` of its own. This reverses the schema's
@@ -2951,23 +2954,37 @@ one `warning` line. `GstInvoiceTest` makes the renderer throw to prove it.
   the largest-remainder rule. **Delivery is a line of its own**, at the
   highest rate among the goods — the composite-supply rule, and it keeps
   every printed line equal to the catalogue's price.
-- **`total_paise` is what is charged** in both bases. On an exclusive shop
-  the tax is added to it, which is why `Tax::breakdown()` runs **before** the
-  cash-on-delivery ceiling: that ceiling is a limit on cash a courier counts.
-  Every other threshold — a coupon's minimum, free delivery — stays in the
-  shop's own basis.
+- **`total_paise` is what is charged**, and it is the same whichever way the
+  website shows prices. Every threshold — a coupon's minimum, free delivery,
+  the cash-on-delivery ceiling — is judged on what is paid.
 - **Changing either setting cannot rewrite an order already placed.** Each
   order keeps the tax it was charged, and `Money::rateOf()` derives the rate
   it was charged at from its own two columns.
 
-**The basket** gains `gst_basis`, `gst_added_paise` (what the shop puts on
-top of its listed prices — **zero on an inclusive shop**, where a checkout
-prints the note rather than a row) and `gst_rate`, which is **null when the
-basket holds two rates**: "18%" over a basket of 18% and 5% goods is false.
+**The basket** gains `gst_basis` (how prices are shown), `gst_added_paise`
+(the GST printed as a row — all of it when prices are shown before GST,
+**zero when shown with GST**, where a checkout prints the note) and
+`gst_rate`, which is **null when the basket holds two rates**: "18%" over a
+basket of 18% and 5% goods is false. Since 0.178.0 it also carries
+`shown_subtotal_paise`, `shown_discount_paise`, `shown_shipping_paise` and,
+on each item, `shown_unit_price_paise`/`shown_line_total_paise` — equal to
+the real figures when prices are shown with GST, the values before tax when
+shown before it, built so subtotal − discount + delivery + `gst_added_paise`
+= `total_paise`.
+
+**Public product reads** (`/store/products`, a variation, the wishlist, the
+`cards` section, the chat's product card) send `price_paise` and
+`compare_at_paise` **as shown**, plus `price_includes_gst` and, on a
+product, `gst_rate` ("18%"). **The admin product** keeps `price_paise` as
+stored (with GST) and adds `entry_price_paise`, `entry_compare_at_paise`
+and each variation's `entry_price_paise`; `POST`/`PATCH` take prices in the
+entry basis, and a figure sent back exactly as given (rate unchanged) keeps
+the stored price. `meta.price_entry` on `GET /admin/store/products`. The
+catalogue CSV export and import use the entry basis.
 
 **`GET`/`PATCH /admin/store/invoicing`** (`role:store_manager`) is the promo
 screen's narrow door onto the settings table: `store_gst_percent`,
-`store_price_basis`, `invoice_enabled`, `invoice_legal_name`,
+`store_price_basis`, `store_price_entry`, `invoice_enabled`, `invoice_legal_name`,
 `invoice_gstin`, `invoice_state`, `invoice_address`, `invoice_email`,
 `invoice_phone`, `invoice_prefix`, `invoice_hsn_default`, `invoice_terms`,
 `invoice_declaration`, `invoice_signatory`, `invoice_signature_path` — and
@@ -2975,10 +2992,11 @@ screen's narrow door onto the settings table: `store_gst_percent`,
 held to its fifteen-character shape (and **never checked against a
 government API**, which the brief rules out), the state is stored as its
 code however it was typed, and `meta` carries `ready`, `missing` (what is
-still wanted, as sentences), `zoho_active`, `rates`, `bases`, `states`,
+still wanted, as sentences), `zoho_active`, `rates`, `bases` (display),
+`entries` (entry), `states`,
 `rate`, `products_with_own_rate`, `products_without_hsn`, `issued` and
 `financial_year`. Settings as a whole stay `role:admin`; `PATCH
-/admin/settings` still accepts all fifteen for an administrator.
+/admin/settings` still accepts all sixteen for an administrator.
 
 **`store_products` takes `hsn`** (four to eight digits — the HS code printed
 against that product's lines, blank falling back to `invoice_hsn_default`)

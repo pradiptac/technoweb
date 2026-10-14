@@ -7,7 +7,14 @@ conventions and `API.md` for the endpoint reference; this file is just
 
 **In progress:** nothing — the last slice is committed and verified.
 
-**Latest (0.177.0, 2026-10-14):** **Ask ALTIS** — a question typed in the
+**Latest (0.178.0, 2026-10-14):** a stored shop price always includes GST,
+and two settings — how the console takes a price and how the website shows
+it — move no money, so a shop can switch between "prices include GST" and
+"GST added" with fifty products and nobody's total changes. `docs/store.md`
+says why a base price was rejected (a paisa off on one typed price in seven).
+The crop window before an upload now fits a laptop screen.
+
+Before it (0.177.0): **Ask ALTIS** — a question typed in the
 console, answered out of this install's own figures: "how many tickets are
 open", "what is waiting to be dispatched", "how much has the shop taken this
 month". The model's whole part is picking which of a fixed, role-scoped list

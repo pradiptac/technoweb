@@ -105,6 +105,8 @@ class ProductController extends Controller
             'gst_rates' => array_map(static fn (string $r) => ['value' => $r, 'label' => $r.'%'], Tax::RATES),
             'gst_rate' => Money::ratePercent(Tax::rate()),
             'price_basis' => Tax::basis(),
+            // How the price field is typed (0.178.0): with GST, or before it.
+            'price_entry' => Tax::entry(),
             'statuses' => array_map(
                 fn (PublishStatus $s) => ['value' => $s->value, 'label' => $s->label()],
                 PublishStatus::cases(),
@@ -130,10 +132,11 @@ class ProductController extends Controller
             $attributes = RecordSections::store($attributes);
             $variations = $this->pull($attributes, self::RELATIONS);
             $attributes = ProductVideos::normaliseAttributes($attributes);
+            [$rate] = $this->storePrices($attributes, null);
 
             $product = StoreProduct::create($attributes);
 
-            $this->saveVariations($product, $variations['variations'] ?? null);
+            $this->saveVariations($product, $variations['variations'] ?? null, $rate, false);
             // The variation rows removed above go by a mass delete, which
             // fires no model event, so the spec index is asked for directly.
             // Deferred to the commit and deduplicated — see `SpecIndex`.
@@ -188,10 +191,11 @@ class ProductController extends Controller
              */
             $stockBefore = (int) $storeProduct->stock;
             $variationsBefore = $storeProduct->variations()->pluck('stock', 'id')->all();
+            [$rate, $rateChanged] = $this->storePrices($attributes, $storeProduct);
 
             $storeProduct->update($attributes);
 
-            $this->saveVariations($storeProduct, $variations['variations'] ?? null);
+            $this->saveVariations($storeProduct, $variations['variations'] ?? null, $rate, $rateChanged);
             SpecIndex::queue((int) $storeProduct->id);
             $this->syncServices($storeProduct, $variations);
             $this->saveAnswerContent($storeProduct, $variations);
@@ -298,7 +302,34 @@ class ProductController extends Controller
      * array clears them, which has to be possible or the last variation could
      * never be removed.
      */
-    private function saveVariations(StoreProduct $product, ?array $variations): void
+    /**
+     * The prices as typed, as stored (0.178.0).
+     *
+     * `store_price_entry` may say they were typed before GST, and a stored
+     * price always includes it, so each is converted at the product's rate —
+     * the one this request sets, else the one it already has. A figure the
+     * form sends back exactly as it was given is kept as stored
+     * (`Tax::keep()`), or saving an untouched form could move a price by a
+     * paisa. The variations use the same rate, which is why it is returned.
+     *
+     * @return array{int, bool} the rate, and whether this save changes it
+     */
+    private function storePrices(array &$attributes, ?StoreProduct $existing): array
+    {
+        $rate = Tax::rateForPercent(array_key_exists('gst_percent', $attributes) ? $attributes['gst_percent'] : $existing?->gst_percent);
+        $changed = $existing !== null && Tax::rateFor($existing) !== $rate;
+
+        foreach (['price_paise', 'compare_at_paise'] as $key) {
+            if (isset($attributes[$key])) {
+                $was = $existing?->{$key};
+                $attributes[$key] = Tax::keep((int) $attributes[$key], $was === null ? null : (int) $was, $rate, $changed);
+            }
+        }
+
+        return [$rate, $changed];
+    }
+
+    private function saveVariations(StoreProduct $product, ?array $variations, int $rate, bool $rateChanged): void
     {
         if ($variations === null) {
             return;
@@ -326,6 +357,12 @@ class ProductController extends Controller
             $existing = filled($row['id'] ?? null)
                 ? $product->variations()->whereKey($row['id'])->first()
                 : null;
+
+            // Typed in the console's basis, stored with GST — `storePrices()`.
+            if ($attributes['price_paise'] !== null) {
+                $was = $existing?->price_paise;
+                $attributes['price_paise'] = Tax::keep((int) $attributes['price_paise'], $was === null ? null : (int) $was, $rate, $rateChanged);
+            }
 
             if ($existing !== null) {
                 /*

@@ -12,9 +12,11 @@ use App\Http\Resources\SeoResource;
 use App\Models\StoreProduct;
 use App\Support\MediaMeta;
 use App\Support\MediaUrl;
+use App\Support\Money;
 use App\Support\Store\Fulfilment;
 use App\Support\Store\ProductVideos;
 use App\Support\Store\ReviewSummary;
+use App\Support\Store\Tax;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -103,11 +105,22 @@ class ProductResource extends JsonResource
              */
             'videos' => $this->when($detail, fn () => ProductVideos::forPublic($this->videos)),
 
-            'price_paise' => $this->price_paise,
+            /*
+             * The price as the website shows it (0.178.0): stored with GST,
+             * and shown either that way or before GST by
+             * `store_price_basis`. What is charged, declared to Google and
+             * sent to Zoho is read from the model, never from here.
+             * `price_includes_gst` is what lets a card print "+ GST".
+             */
+            'price_paise' => Tax::shown((int) $this->price_paise, Tax::rateFor($this->resource)),
             'compare_at_paise' => $this->when(
                 $this->compare_at_paise > $this->price_paise,
-                $this->compare_at_paise,
+                fn () => Tax::shown((int) $this->compare_at_paise, Tax::rateFor($this->resource)),
             ),
+            'price_includes_gst' => Tax::basis() === Tax::BASIS_INCLUSIVE,
+            // This product's rate as a person reads it, "18%": the product
+            // page said "Includes 18% GST" whatever the rate was.
+            'gst_rate' => Money::ratePercent(Tax::rateFor($this->resource)).'%',
             /*
              * The shop tags that are switched on for the shop front (0.141.0),
              * `{name, slug}` each, in the Tags screen's order. A hidden tag is

@@ -230,8 +230,10 @@ first rupee.
 - **Physical, digital and service products**, with variations (a 24-port and a
   48-port are two prices and two stock levels), compare-at pricing and
   featured placement.
-- **Prices in paise, GST extracted, never added** — the price shown is the
-  price paid, and the invoice always adds back up to the money taken.
+- **Prices in paise, always stored with GST** — typed in the console with
+  GST or before it, shown on the website with GST or before it with a GST
+  row at the checkout; neither setting changes what anybody pays, and the
+  invoice always adds back up to the money taken (0.178.0).
 - **Guest checkout** with an httpOnly basket cookie; a paying guest gets a
   portal account automatically.
 - **PIN-code-first address entry** that fills city and state from India Post's

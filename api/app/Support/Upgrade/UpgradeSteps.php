@@ -23,6 +23,7 @@ final class UpgradeSteps
         Steps\MoveAiToOpenRouter::class,
         Steps\RetireDownloadsPage::class,
         Steps\SeedStarterTemplates::class,
+        Steps\PricesIncludeGst::class,
     ];
 
     /** @return list<UpgradeStep> */

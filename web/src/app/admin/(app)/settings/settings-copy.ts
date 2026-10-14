@@ -528,9 +528,15 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "GST rate",
     hint: "The rate for everything in the shop. A product can name its own on its Pricing tab, which beats this one. It applies to what is sold from now on \u2014 every order keeps the tax it was charged.",
   },
+  // 0.178.0: a stored price always includes GST, so neither of these two
+  // changes what a customer pays.
   store_price_basis: {
-    label: "Your prices",
-    hint: "Whether the price you type on a product already contains the GST, or has it added at the checkout.",
+    label: "Prices on the website",
+    hint: "Shown with GST, or before GST with the GST added as a row at the checkout. The total is the same either way.",
+  },
+  store_price_entry: {
+    label: "Prices in the console",
+    hint: "Whether you type a product's price with GST in it, or before GST. Before GST, each product's rate is added when you save.",
   },
   invoice_enabled: { label: "Make a GST invoice for every paid order" },
   invoice_legal_name: {

@@ -245,12 +245,12 @@ function BasketPreview({ cart }: { cart: BasketView }) {
                   <span className="block truncate text-12 text-muted">{item.variation_name}</span>
                 )}
                 <span className="text-12 text-muted">
-                  {item.quantity} &times; {formatPaise(item.unit_price_paise)}
+                  {item.quantity} &times; {formatPaise(item.shown_unit_price_paise ?? item.unit_price_paise)}
                 </span>
               </span>
 
               <span className="flex shrink-0 items-center gap-1.5">
-                <span className="tabular-nums text-muted">{formatPaise(item.line_total_paise)}</span>
+                <span className="tabular-nums text-muted">{formatPaise(item.shown_line_total_paise ?? item.line_total_paise)}</span>
                 <RemoveLineButton id={item.id} name={item.name} />
               </span>
             </li>
@@ -264,7 +264,8 @@ function BasketPreview({ cart }: { cart: BasketView }) {
         )}
 
         <div className="mt-3 flex items-center justify-between border-t border-line pt-2.5 font-semibold text-ink">
-          <span>Total</span>
+          {/* Lines shown before GST (0.178.0) sit over a total with it in. */}
+          <span>Total{cart.gst_added_paise > 0 ? " with GST" : ""}</span>
           <span className="tabular-nums">{formatPaise(cart.total_paise)}</span>
         </div>
 

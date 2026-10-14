@@ -73,6 +73,7 @@ export function CompactProductCard({ product, priority = false }: { product: Sto
       <div data-tile-body className="flex min-w-0 flex-1 flex-col p-2.5">
         <div data-tile-meta data-tile-price className="flex flex-wrap items-baseline gap-1.5">
           <b className="text-14 font-semibold tabular-nums">{formatPaise(product.price_paise)}</b>
+          {product.price_includes_gst === false && <span className="text-12 text-muted">+ GST</span>}
           {discounted && (
             <span className="text-11-5 tabular-nums text-faint line-through">
               {formatPaise(product.compare_at_paise!)}

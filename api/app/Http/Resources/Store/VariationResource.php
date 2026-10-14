@@ -5,6 +5,7 @@ namespace App\Http\Resources\Store;
 use App\Models\StoreProductVariation;
 use App\Support\MediaMeta;
 use App\Support\MediaUrl;
+use App\Support\Store\Tax;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -31,7 +32,8 @@ class VariationResource extends JsonResource
             // Ordered pairs -- [["RAM", "16 GB"], ...] -- so the storefront can
             // group them into one selector per option name.
             'options' => $this->options,
-            'price_paise' => $this->pricePaise(),
+            // As the website shows it — see the product resource (0.178.0).
+            'price_paise' => ($price = $this->pricePaise()) === null ? null : Tax::shown((int) $price, Tax::rateFor($this->product)),
             'in_stock' => $this->inStock(),
             'availability' => $this->product->availability($this->resource),
             'image_url' => $this->image_path ? MediaUrl::for($this->image_path) : null,

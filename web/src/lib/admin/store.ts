@@ -231,6 +231,8 @@ export type ProductTaxMeta = {
   rates: { value: string; label: string }[];
   rate: string;
   basis: string;
+  /** How the price field is typed (0.178.0): with GST, or before it. */
+  entry: string;
 };
 
 /**
@@ -253,9 +255,10 @@ export async function getProductTaxMeta(): Promise<ProductTaxMeta> {
       rates: Array.isArray(res.meta?.rates) ? res.meta.rates : (res.meta as { gst_rates?: ProductTaxMeta["rates"] })?.gst_rates ?? [],
       rate: typeof (res.meta as { gst_rate?: string })?.gst_rate === "string" ? (res.meta as { gst_rate: string }).gst_rate : "18",
       basis: typeof (res.meta as { price_basis?: string })?.price_basis === "string" ? (res.meta as { price_basis: string }).price_basis : "inclusive",
+      entry: (res.meta as { price_entry?: string })?.price_entry === "exclusive" ? "exclusive" : "inclusive",
     };
   } catch {
-    return { rates: [], rate: "18", basis: "inclusive" };
+    return { rates: [], rate: "18", basis: "inclusive", entry: "inclusive" };
   }
 }
 

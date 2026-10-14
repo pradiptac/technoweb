@@ -33,7 +33,15 @@ export function cropRatios(width: number, height: number, spec?: ImageSpec): Cro
 type Box = { x: number; y: number; w: number; h: number };
 type Handle = "nw" | "ne" | "sw" | "se";
 
+/*
+ * The stage is 320px tall when the dialog has room, and shorter when it does
+ * not. A fixed 320 put the size line and the keyboard hint under the button
+ * bar: the dialog is capped at 38rem (and the window less 4rem), and the
+ * title, ratios, zoom and both lines of text need the rest. So the stage is
+ * measured into what is left — see `fitHeight()`.
+ */
 const STAGE_H = 320;
+const STAGE_MIN_H = 160;
 const PAD = 16;
 const MAX_ZOOM = 8;
 const MIN_FRAME = 24;
@@ -72,16 +80,40 @@ export function CropStage({
   const [frame, setFrame] = useState<Box | null>(null);
 
   // The scale at which the whole picture fits the stage: zoom 1.
-  const fit = stageW ? Math.min((stageW - PAD * 2) / width, (STAGE_H - PAD * 2) / height) : 0;
+  const [stageH, setStageH] = useState(STAGE_H);
+  const fit = stageW ? Math.min((stageW - PAD * 2) / width, (stageH - PAD * 2) / height) : 0;
 
   useLayoutEffect(() => {
     const el = stageRef.current;
     if (!el) return;
-    const measure = () => setStageW(el.clientWidth);
+    /*
+     * Everything in the dialog but the stage — its header and buttons, and
+     * the rest of the scrolling body — measured as it is, so a long file
+     * name or a hint wrapping on a phone is counted; the stage takes what is
+     * left of the dialog's own max-height, between 160 and 320.
+     */
+    const fitHeight = () => {
+      const dialog = el.closest("dialog");
+      const body = el.parentElement?.closest<HTMLElement>(".overflow-y-auto");
+      if (!dialog || !body) return;
+      const cap = parseFloat(getComputedStyle(dialog).maxHeight);
+      if (!Number.isFinite(cap)) return;
+      const around = dialog.offsetHeight - body.clientHeight;
+      const rest = body.scrollHeight - el.offsetHeight;
+      setStageH(Math.round(Math.min(STAGE_H, Math.max(STAGE_MIN_H, cap - around - rest - 2))));
+    };
+    const measure = () => {
+      setStageW(el.clientWidth);
+      fitHeight();
+    };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
-    return () => ro.disconnect();
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
   }, []);
 
   /** The largest frame of `r` inside `within`, centred on (cx, cy) where it fits. */
@@ -102,9 +134,9 @@ export function CropStage({
     const x = Math.max(PAD, image.x);
     const y = Math.max(PAD, image.y);
     const r = Math.min(stageW - PAD, image.x + image.w);
-    const b = Math.min(STAGE_H - PAD, image.y + image.h);
+    const b = Math.min(stageH - PAD, image.y + image.h);
     return { x, y, w: Math.max(MIN_FRAME, r - x), h: Math.max(MIN_FRAME, b - y) };
-  }, [stageW]);
+  }, [stageW, stageH]);
 
   /** Keep the picture covering the frame. */
   const cover = useCallback((image: Box, f: Box): Box => ({
@@ -115,15 +147,15 @@ export function CropStage({
 
   // Lay out once the stage has a width, and again when it changes size —
   // adjusted during render, so the first paint is already laid out.
-  const [laidFor, setLaidFor] = useState(0);
-  if (fit && laidFor !== stageW) {
-    setLaidFor(stageW);
+  const [laidFor, setLaidFor] = useState("");
+  if (fit && laidFor !== `${stageW}x${stageH}`) {
+    setLaidFor(`${stageW}x${stageH}`);
     const w = width * fit;
     const h = height * fit;
-    const image = { x: (stageW - w) / 2, y: (STAGE_H - h) / 2, w, h };
+    const image = { x: (stageW - w) / 2, y: (stageH - h) / 2, w, h };
     setZoom(1);
     setImg(image);
-    setFrame(frameFor(ratio, bounds(image), stageW / 2, STAGE_H / 2));
+    setFrame(frameFor(ratio, bounds(image), stageW / 2, stageH / 2));
   }
 
   // Report the crop in the image's own pixels.
@@ -300,7 +332,7 @@ export function CropStage({
         onPointerCancel={onPointerUp}
         onKeyDown={onKeyDown}
         className="relative w-full cursor-grab touch-none overflow-hidden rounded border border-line-strong bg-surface-2 select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 active:cursor-grabbing"
-        style={{ height: STAGE_H }}
+        style={{ height: stageH }}
       >
         {img && (
           // eslint-disable-next-line @next/next/no-img-element

@@ -181,6 +181,7 @@ export function StoreProductCard({
 
         <div data-tile-meta data-tile-price className="flex flex-wrap items-baseline gap-2 pt-1">
           <span className="text-17 font-semibold tabular-nums sm:text-[20px]">{formatPaise(product.price_paise)}</span>
+          {product.price_includes_gst === false && <span className="text-12 text-muted">+ GST</span>}
           {discounted && (
             <>
               <span className="text-13 tabular-nums text-faint line-through">

@@ -254,15 +254,10 @@ class Checkout
              *
              * `Tax::breakdown()` apportions the discount and the delivery
              * across the lines in paise, taxes each line at its own product's
-             * rate, and sums. On an **inclusive** shop the sum is the goods
-             * plus the delivery — the same number this used to add up by
-             * hand. On an **exclusive** one it is that plus the tax, which is
-             * why the total is taken from the breakdown rather than computed
-             * here: one expression, both bases, no branch.
-             *
-             * It happens *before* the cash-on-delivery ceiling, because the
-             * ceiling is a limit on the cash a courier counts and on an
-             * exclusive shop the tax is part of that.
+             * rate, and sums. Stored prices include GST (0.178.0), so the sum
+             * is the goods less the discount plus the delivery whichever way
+             * the website shows prices — taken from the breakdown so the
+             * order's figures and its total are one calculation.
              */
             $tax = Tax::breakdown($lines, $discount, $quote->addPaise());
 

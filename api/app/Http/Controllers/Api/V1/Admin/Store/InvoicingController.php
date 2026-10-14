@@ -27,10 +27,10 @@ use Illuminate\Validation\ValidationException;
  * business, though, and routing those through an administrator is the queue
  * `customer_approval_required` was moved off.
  *
- * So this reads and writes **fifteen named keys and no others**, refusing
+ * So this reads and writes **sixteen named keys and no others**, refusing
  * anything else by name rather than ignoring it — an ignored key is a save
  * that reports success and did nothing. `PATCH /admin/settings` still
- * accepts all fifteen for an administrator; nothing was taken away there.
+ * accepts all sixteen for an administrator; nothing was taken away there.
  *
  * The checks are per key rather than by suffix, unlike the promo screen's:
  * there is no family here, each of these is its own rule, and a GSTIN
@@ -43,6 +43,7 @@ class InvoicingController extends Controller
     public const KEYS = [
         'store_gst_percent',
         'store_price_basis',
+        'store_price_entry',
         'invoice_enabled',
         'invoice_legal_name',
         'invoice_gstin',
@@ -119,7 +120,7 @@ class InvoicingController extends Controller
 
         // Blank clears a row, and only the two that cannot be blank say so.
         if (blank($value)) {
-            if (in_array($key, ['store_gst_percent', 'store_price_basis'], true)) {
+            if (in_array($key, ['store_gst_percent', 'store_price_basis', 'store_price_entry'], true)) {
                 $fail('Choose one of the options.');
             }
 
@@ -133,7 +134,11 @@ class InvoicingController extends Controller
 
             'store_price_basis' => in_array($value, Tax::BASES, true)
                 ? null
-                : $fail('Choose whether your prices include GST or have it added.'),
+                : $fail('Choose whether the website shows prices with GST or before it.'),
+
+            'store_price_entry' => in_array($value, Tax::BASES, true)
+                ? null
+                : $fail('Choose whether you type prices with GST or before it.'),
 
             'invoice_enabled' => in_array($value, ['0', '1'], true)
                 ? null
@@ -215,9 +220,18 @@ class InvoicingController extends Controller
                 'value' => $r,
                 'label' => $r.'%',
             ], Tax::RATES),
+            /*
+             * The two price settings (0.178.0). Neither moves money: a stored
+             * price always includes GST, so the blurbs say what each changes
+             * and the screen says that switching costs nobody anything.
+             */
             'bases' => [
-                ['value' => Tax::BASIS_INCLUSIVE, 'label' => 'Prices include GST', 'blurb' => 'The price on a product is what a customer pays, and the tax is taken out of it.'],
-                ['value' => Tax::BASIS_EXCLUSIVE, 'label' => 'GST is added at the checkout', 'blurb' => 'The price on a product is before tax, and the tax is a row of its own in the basket.'],
+                ['value' => Tax::BASIS_INCLUSIVE, 'label' => 'Show prices with GST', 'blurb' => 'The website shows what a customer pays, and the basket notes the GST inside it.'],
+                ['value' => Tax::BASIS_EXCLUSIVE, 'label' => 'Show prices before GST', 'blurb' => 'The website shows prices before GST, and the basket adds it as a row of its own. The total is the same.'],
+            ],
+            'entries' => [
+                ['value' => Tax::BASIS_INCLUSIVE, 'label' => 'I type prices with GST', 'blurb' => 'The price you type on a product is what a customer pays.'],
+                ['value' => Tax::BASIS_EXCLUSIVE, 'label' => 'I type prices before GST', 'blurb' => 'The price you type is before GST. Each product\'s rate is added when you save, and the form shows what the customer will pay.'],
             ],
             'states' => IndianStates::options(),
             'rate' => Money::ratePercent(Tax::rate()).'%',
@@ -253,8 +267,12 @@ class InvoicingController extends Controller
                 'options' => match ($s->key) {
                     'store_gst_percent' => array_map(static fn (string $r) => ['value' => $r, 'label' => $r.'%'], Tax::RATES),
                     'store_price_basis' => [
-                        ['value' => Tax::BASIS_INCLUSIVE, 'label' => 'Prices include GST'],
-                        ['value' => Tax::BASIS_EXCLUSIVE, 'label' => 'GST is added at the checkout'],
+                        ['value' => Tax::BASIS_INCLUSIVE, 'label' => 'Show prices with GST'],
+                        ['value' => Tax::BASIS_EXCLUSIVE, 'label' => 'Show prices before GST, adding it at the checkout'],
+                    ],
+                    'store_price_entry' => [
+                        ['value' => Tax::BASIS_INCLUSIVE, 'label' => 'I type prices with GST'],
+                        ['value' => Tax::BASIS_EXCLUSIVE, 'label' => 'I type prices before GST'],
                     ],
                     'invoice_state' => IndianStates::options(),
                     default => null,

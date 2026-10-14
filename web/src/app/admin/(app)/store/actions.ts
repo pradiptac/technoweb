@@ -363,7 +363,10 @@ export async function saveInvoicingAction(_prev: InvoicingFormState, formData: F
 
   revalidatePath("/admin/store/invoicing");
   updateTag("settings");
+  // Every shop read carries this tag, and every price on it is shown the way
+  // `store_price_basis` says (0.178.0) — so is a builder page's shop cards.
   updateTag("store-products");
+  updateTag("pages");
 
   return { ok: true };
 }

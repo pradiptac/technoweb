@@ -53,9 +53,11 @@ type Row = {
  * to type "Ram" and produce two selectors for one thing.
  */
 export function VariationField({
-  defaultValue, error, productPricePaise, onSummaryChange,
+  defaultValue, error, productPricePaise, onSummaryChange, entry = "inclusive",
 }: {
   defaultValue: AdminProductVariation[];
+  /** How prices are typed (0.178.0): with GST, or before it. */
+  entry?: string;
   error?: string;
   productPricePaise?: number | null;
   /**
@@ -82,7 +84,7 @@ export function VariationField({
       gtin: v.gtin ?? "",
       mpn: v.mpn ?? "",
       options: Object.entries(v.options ?? {}) as [string, string][],
-      price: paiseToRupeeInput(v.price_paise),
+      price: paiseToRupeeInput(v.entry_price_paise ?? v.price_paise),
       stock: String(v.stock ?? 0),
       weight: v.weight_grams ? String(v.weight_grams) : "",
       allow_oversell: v.allow_oversell ?? false,
@@ -165,6 +167,7 @@ export function VariationField({
         One row per thing somebody can actually buy — 24-port and 48-port, not
         every combination of every option. Leave this empty for a product that
         comes one way. A row with no price is sold at the product&rsquo;s price.
+        Prices here are typed {entry === "exclusive" ? "before GST, at the product's rate" : "with GST"}, like the product&rsquo;s.
       </p>
 
       <input type="hidden" name="variations" value={JSON.stringify(payload)} />

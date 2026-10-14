@@ -515,6 +515,7 @@ const storeProducts = [
     images: [], image_alts: [], image_focuses: [],
     price_paise: 4720000, compare_at_paise: 5310000,
     in_stock: true, availability: 'in_stock', handling_days: 2, returnable: true, is_featured: true,
+    price_includes_gst: true, gst_rate: '18%',
     created_at: '2026-01-15T00:00:00Z',
     category: storeCategories[0], brand: { id: 1, name: 'Cisco', slug: 'cisco', logo: null },
     variations: [
@@ -526,7 +527,7 @@ const storeProducts = [
     short_description: 'Eight Gigabit ports, no configuration, metal case.',
     description: null, specifications: {}, features: [],
     images: [], image_alts: [], image_focuses: [],
-    price_paise: 129900, in_stock: false, returnable: true,
+    price_paise: 129900, in_stock: false, returnable: true, price_includes_gst: true, gst_rate: '18%',
     created_at: '2026-01-15T00:00:00Z',
     category: storeCategories[0], brand: null, variations: [] },
   { id: 3, name: 'Endpoint Security 1 Year', slug: 'endpoint-security-1-year', sku: 'EPS-1Y',
@@ -534,7 +535,7 @@ const storeProducts = [
     short_description: 'One year of endpoint protection, delivered as an activation code.',
     description: null, specifications: {}, features: [],
     images: [], image_alts: [], image_focuses: [],
-    price_paise: 236000, in_stock: true, returnable: false,
+    price_paise: 236000, in_stock: true, returnable: false, price_includes_gst: true, gst_rate: '18%',
     // Deliberately recent, computed rather than a fixed date, so the "New"
     // ribbon (isNewProduct, 30-day window) has something to render against
     // under `npm run mock` however long the fixture has existed.
@@ -582,7 +583,7 @@ const MOCK_VIDEOS = {
   and the invoice switched off with nothing filled in.
 */
 const mockInvoicingSettings = {
-  store_gst_percent: '18', store_price_basis: 'inclusive',
+  store_gst_percent: '18', store_price_basis: 'inclusive', store_price_entry: 'inclusive',
   invoice_enabled: '0', invoice_legal_name: '', invoice_gstin: '', invoice_state: '',
   invoice_address: '', invoice_email: '', invoice_phone: '', invoice_prefix: 'INV',
   invoice_hsn_default: '', invoice_terms: '',
@@ -854,6 +855,8 @@ const summarise = (token, lines) => {
       slug: product?.slug ?? '', sku: variation?.sku ?? product?.sku ?? null,
       type: product?.type ?? 'physical', image_url: null,
       quantity: l.quantity, unit_price_paise: unit, line_total_paise: unit * l.quantity,
+      // As the website shows prices (0.178.0); the mock shows them with GST.
+      shown_unit_price_paise: unit, shown_line_total_paise: unit * l.quantity,
       returnable: product?.returnable ?? true,
       shipped: (product?.type ?? 'physical') === 'physical',
       problem: product?.in_stock === false ? `"${product.name}" is out of stock.` : null,
@@ -888,6 +891,8 @@ const summarise = (token, lines) => {
     shipping_deliverable: quote.deliverable,
     shipping_states: quote.mode === 'zones' && quote.ships ? INDIAN_STATES.map(([, name]) => name).sort() : null,
     total_paise: total,
+    shown_subtotal_paise: subtotal, shown_discount_paise: 0,
+    shown_shipping_paise: quote.ships && !quote.known ? null : (quote.ships && quote.deliverable ? quote.charge : 0),
     taxable_paise: taxable, gst_paise: total - taxable,
     // How the checkout draws the tax (0.176.0). The mock is a single-rate,
     // tax-inclusive shop, which is the default an install ships with, so
@@ -3177,7 +3182,9 @@ const ADMIN_CMS = [
       track_stock: true, stock: r.in_stock ? 12 : 0, stock_on_hand: r.in_stock ? 12 : 0, allow_oversell: false,
       condition: 'new', feed_include: true, feed_problem: null, gtin: null, mpn: null, google_product_category: null, weight_grams: null,
       image_urls: [], activation_procedure: null, activation_pdf_path: null, activation_pdf_name: null,
-      variations: (r.variations || []).map((v) => ({ ...v, stock: 4, allow_oversell: false, is_active: true, image_path: null })),
+      // Stored with GST; the mock's console types with GST, so entry = stored.
+      entry_price_paise: r.price_paise, entry_compare_at_paise: r.compare_at_paise ?? null,
+      variations: (r.variations || []).map((v) => ({ ...v, entry_price_paise: v.price_paise, stock: 4, allow_oversell: false, is_active: true, image_path: null })),
       /* Product AEO (contract \u00a73): the first product carries all three,
          the rest none, so both the filled and the blank state render. */
       warranty: r.id === 1 ? 'Limited lifetime hardware warranty' : null,
@@ -4898,6 +4905,7 @@ createServer(async (req, res) => {
           page.meta.statuses = [{ value: 'draft', label: 'Draft' }, { value: 'published', label: 'Published' }, { value: 'archived', label: 'Archived' }];
           page.meta.conditions = [{ value: 'new', label: 'New' }, { value: 'refurbished', label: 'Refurbished' }, { value: 'used', label: 'Used' }];
           page.meta.tags = mockTags.map((t) => t.name);
+          page.meta.price_entry = mockInvoicingSettings.store_price_entry;
         }
         return json(res, 200, page);
       }
@@ -5192,7 +5200,7 @@ createServer(async (req, res) => {
 
     // The promo band's own door: its eight rows and the two tiles' seven each, in the settings row shape.
     /*
-      Tax and invoicing (0.176.0): the fifteen rows in the settings row
+      Tax and invoicing (0.176.0): the sixteen rows in the settings row
       shape, with their options, and the `meta` the screen draws itself
       from. Switched off and unconfigured, because that is what an install
       ships as and is the state the screen has most to say about.
@@ -5209,11 +5217,16 @@ createServer(async (req, res) => {
 
       const rates = ['0', '0.25', '3', '5', '12', '18', '28'].map((r) => ({ value: r, label: `${r}%` }));
       const bases = [
-        { value: 'inclusive', label: 'Prices include GST', blurb: 'The price on a product is what a customer pays, and the tax is taken out of it.' },
-        { value: 'exclusive', label: 'GST is added at the checkout', blurb: 'The price on a product is before tax, and the tax is a row of its own in the basket.' },
+        { value: 'inclusive', label: 'Show prices with GST', blurb: 'The website shows what a customer pays, and the basket notes the GST inside it.' },
+        { value: 'exclusive', label: 'Show prices before GST', blurb: 'The website shows prices before GST, and the basket adds it as a row of its own. The total is the same.' },
+      ];
+      // 0.178.0: how the console takes a price. Neither setting moves money.
+      const entries = [
+        { value: 'inclusive', label: 'I type prices with GST', blurb: 'The price you type on a product is what a customer pays.' },
+        { value: 'exclusive', label: 'I type prices before GST', blurb: "The price you type is before GST. Each product's rate is added when you save, and the form shows what the customer will pay." },
       ];
       const states = INDIAN_STATES.map(([value, label]) => ({ value, label }));
-      const options = { store_gst_percent: rates, store_price_basis: bases.map(({ value, label }) => ({ value, label })), invoice_state: states };
+      const options = { store_gst_percent: rates, store_price_basis: bases.map(({ value, label }) => ({ value, label })), store_price_entry: entries.map(({ value, label }) => ({ value, label })), invoice_state: states };
 
       const rows = Object.entries(mockInvoicingSettings).map(([key, value]) => ({
         key, value: value === '' ? null : value,
@@ -5229,7 +5242,7 @@ createServer(async (req, res) => {
 
       const meta = {
         ready: mockInvoicingSettings.invoice_enabled === '1' && missing.length === 0,
-        missing, zoho_active: false, rates, bases, states,
+        missing, zoho_active: false, rates, bases, entries, states,
         rate: mockInvoicingSettings.store_gst_percent || '18',
         products_with_own_rate: 0, products_without_hsn: 0, issued: 0,
         financial_year: '2026-27',

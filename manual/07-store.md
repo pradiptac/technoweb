@@ -42,8 +42,9 @@ An administrator does this once.
 5. Save.
 
 All money in the console is entered and shown in rupees, except the few
-settings that say *in paise* (100 paise = ₹1). Prices **include GST**; the GST
-share is worked out from the price, never added on top.
+settings that say *in paise* (100 paise = ₹1). The shop keeps prices **with
+GST in them**; you can type them before GST if you prefer (see *Tax and
+invoicing* below).
 
 ## Ways to pay
 
@@ -766,8 +767,9 @@ feed carries it as before.
 
 ## Tax and invoicing
 
-**Store → Tax and invoicing.** What GST the shop charges, whether your
-prices include it, and the details that go on an invoice.
+**Store → Tax and invoicing.** What GST the shop charges, how you type
+prices and how the website shows them, and the details that go on an
+invoice.
 
 ### The GST rate
 
@@ -784,23 +786,37 @@ they said, so nothing you have sold moves.
 > two rates for one product — if you need that, say so and we will look at
 > it.
 
-### Do your prices include GST?
+### Typing prices and showing them
 
-Two choices, and it changes what a customer sees:
+The shop keeps every price **with GST in it** — what the customer pays.
+Two settings decide only how you type a price and how the website shows
+it, so **switching either one never changes what anybody pays**. You can
+change your mind at any time, with any number of products.
 
-| | What you type on a product | What the basket shows |
+**Prices in the console** — how you type a product's price:
+
+| | You type | The shop keeps (at 18%) |
 |---|---|---|
-| **Prices include GST** | ₹1,000 | Total ₹1,000, with a note: *includes ₹152 GST* |
-| **GST is added at the checkout** | ₹1,000 | Subtotal ₹1,000, GST ₹180, **Total ₹1,180** |
+| **I type prices with GST** | ₹1,180 | ₹1,180 |
+| **I type prices before GST** | ₹1,000 | ₹1,180 |
 
-Leave it on **include** unless your accountant asks otherwise — it is what
-the shop has always done, and switching it changes every price on the site
-at once.
+Typing before GST, the product's own rate is added when you save, and the
+price field shows what the customer will pay as you type. A product with
+its own rate uses that rate.
 
-One thing it does not change: "free delivery above ₹5,000" and a discount
-code's minimum order are still read against your prices as you typed them.
-The cash-on-delivery limit is the exception — that is cash the courier
-counts, so it is checked against the total including tax.
+**Prices on the website** — what customers see:
+
+| | Product page | Basket |
+|---|---|---|
+| **Show prices with GST** | ₹1,180 | Total ₹1,180, with a note: *includes ₹180 GST* |
+| **Show prices before GST** | ₹1,000 + GST | Subtotal ₹1,000, GST ₹180, **Total ₹1,180** |
+
+The total is the same either way. "Free delivery above ₹5,000", a discount
+code's minimum order and the cash-on-delivery limit are all checked against
+what the customer pays.
+
+The spreadsheet from **Store → Products → Export** uses the same basis as
+the console, so you can export, change prices and import them back.
 
 ### Making GST invoices
 

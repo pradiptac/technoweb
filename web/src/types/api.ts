@@ -1736,8 +1736,12 @@ export type AdminStoreProduct = AdminCustomFields & import("./page-sections").Ad
   category_name?: string | null;
   brand_id?: number | null;
   brand_name?: string | null;
+  /** Stored with GST (0.178.0). */
   price_paise: number;
   compare_at_paise?: number | null;
+  /** The same two as the console's price field takes them (`store_price_entry`). */
+  entry_price_paise?: number | null;
+  entry_compare_at_paise?: number | null;
   track_stock: boolean;
   /** The raw column. For a product with variations it is a leftover nothing reads. */
   stock: number;
@@ -1837,6 +1841,8 @@ export type AdminProductVariation = {
   /** Ordered pairs, kept in the order the selectors are meant to appear. */
   options?: Record<string, string>;
   price_paise?: number | null;
+  /** As the console's price field takes it (0.178.0). */
+  entry_price_paise?: number | null;
   stock: number;
   /** Per row, because that is where the stock is. */
   allow_oversell: boolean;
@@ -1900,9 +1906,16 @@ export type StoreProduct = PublicCustomFields & AnswerContent & import("./page-s
   videos?: import("./store-merch").ProductVideo[];
   /** Detail only (0.131.0): the downloads centre's files attached to this product. */
   downloads?: import("./downloads").Download[];
+  /**
+   * As the website shows prices (0.178.0): with GST, or before it when
+   * `price_includes_gst` is false — then the card says "+ GST".
+   */
   price_paise: number;
   /** Only present when it is genuinely higher than the real price. */
   compare_at_paise?: number;
+  price_includes_gst?: boolean;
+  /** This product's GST rate, "18%" — its own or the shop's (0.178.0). */
+  gst_rate?: string;
   in_stock: boolean;
   /**
    * The three-valued answer beside the boolean: `backorder` is a shelf that is
@@ -2045,6 +2058,14 @@ export type CartSummary = {
   shipping_states?: string[] | null;
   /** Includes delivery once it is known. */
   total_paise: number;
+  /**
+   * The summary as the website shows prices (0.178.0). With GST they equal
+   * the figures above; before GST each is the value before tax, and
+   * subtotal − discount + delivery + `gst_added_paise` = `total_paise`.
+   */
+  shown_subtotal_paise?: number;
+  shown_discount_paise?: number;
+  shown_shipping_paise?: number | null;
   taxable_paise: number;
   /** Extracted from the total, never added to it. */
   gst_paise: number;
@@ -2053,7 +2074,7 @@ export type CartSummary = {
    * 18% and 5% goods is simply false.
    */
   gst_rate: string | null;
-  /** `inclusive` or `exclusive` — how the shop prices. */
+  /** `inclusive` or `exclusive` — how the website shows prices. Moves no money. */
   gst_basis: string;
   /**
    * What the shop adds on top of its listed prices, and zero on an
@@ -2540,6 +2561,9 @@ export type CartLine = {
   quantity: number;
   unit_price_paise: number;
   line_total_paise: number;
+  /** As the website shows prices (0.178.0). */
+  shown_unit_price_paise?: number;
+  shown_line_total_paise?: number;
   /** A term of the sale, carried on the line so the cart can say it. */
   returnable: boolean;
   shipped: boolean;

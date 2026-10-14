@@ -21,6 +21,38 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.178.0 — 2026-10-14
+
+**Switching between "prices include GST" and "GST added" no longer changes
+what anybody pays.** In 0.176.0 that setting decided what every stored price
+*meant*, so switching it re-read the whole shop — ₹1,180 became ₹1,392.40.
+
+- **The shop keeps every price with GST in it**, whatever the settings say.
+- **Two settings, neither of which moves money**, on Store → Tax and
+  invoicing:
+  - **Prices in the console**: type them with GST, or before GST. Before
+    GST, each product's rate is added on save.
+  - **Prices on the website**: show them with GST, or before GST with the
+    GST as a row at the checkout. Product pages and cards then say "+ GST",
+    and the basket's column adds up to the same total.
+- **The product form labels its price field** "with GST" or "before GST" and
+  shows the other figure as you type.
+- **Saving an untouched form never moves a price by a paisa**, even where
+  the before-GST figure would not convert back exactly.
+- **The catalogue spreadsheet** is written and read the way the console
+  types prices.
+- **An upgrade step** converts a shop that was set to "GST added" in 0.176.0
+  once, so its customers pay what they paid before.
+- **The product page said "Includes 18% GST" whatever the rate.** It now
+  names the product's own rate.
+- **The basket page printed "Includes GST at" with no rate** for a basket of
+  two rates. It now leaves the rate out.
+- **The crop window before an upload** fits the screen: the size line and
+  the keyboard hint no longer sit under the buttons on a laptop.
+
+Why the price with GST rather than a base price: a base kept in paise comes
+back a paisa off for about one typed price in seven (₹999 → ₹999.01).
+
 ## 0.177.0 — 2026-10-14
 
 **Ask ALTIS**: a question typed in the console, answered out of this

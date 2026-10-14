@@ -7,17 +7,34 @@ use App\Models\StoreProduct;
 use App\Support\Money;
 
 /**
- * GST for the shop: one rate per product, one basis for the whole store, and
- * one place that works out what each line owes (0.176.0).
+ * GST for the shop: one rate per product, and one place that works out what
+ * each line owes (0.176.0).
  *
- * Three settings decide everything here, and they are read nowhere else:
+ * **A stored price always includes GST (0.178.0).** `price_paise` is what
+ * the customer pays, whatever the settings say. In 0.176.0 the basis setting
+ * decided what the stored number *meant*, so switching it re-read every
+ * price in the shop — ₹1,180 became ₹1,392.40 overnight. Now two settings
+ * decide only how a price is typed and how it is shown, and neither can
+ * change what anybody pays.
+ *
+ * Why the price with GST and not the base price: a figure before GST, kept
+ * in paise, does not survive the trip back. ₹999 typed including GST at 18%
+ * is a base of 846.61, which comes back as 998.99 or 999.01 for about one
+ * typed price in seven — the gaps between the reachable inclusive figures
+ * are 1.18 paise wide. The other direction is exact: a price typed before
+ * GST, stored including it and read back out, is always the figure typed
+ * (the error is at most 0.5 ÷ 1.18 of a paisa). The Google feed and Zoho
+ * Books also read the stored price as including GST, and always did.
+ *
+ * Four settings, read nowhere else:
  *
  *   - **`store_gst_percent`** — the shop's rate, one of `Tax::RATES`.
- *   - **`store_price_basis`** — whether a product's price *includes* the tax
- *     (the default, and what this shop did from the day it opened) or has it
- *     *added* at the checkout.
  *   - **`store_products.gst_percent`** — that product's own rate, blank
  *     meaning the store-wide one.
+ *   - **`store_price_basis`** — how the **website shows** a price: with
+ *     GST, or before it with GST added at the checkout. Presentation only.
+ *   - **`store_price_entry`** — how the **console takes** a price: typed
+ *     with GST, or before it and converted on save at the product's rate.
  *
  * **Everything is computed per line and the order's figures are the sum.**
  * The original schema stored one tax figure on the order and said why:
@@ -44,20 +61,20 @@ use App\Support\Money;
  * supply at the rate of the principal supply, and where a parcel holds two
  * rates the higher is the answer that cannot under-collect.
  *
- * The two bases, stated as arithmetic:
+ * The arithmetic, which since 0.178.0 has one form because the money in it
+ * always includes the tax:
  *
- *     inclusive   taxable = gross × 10000 ÷ (10000 + rate);  tax = gross − taxable
- *     exclusive   taxable = net;  tax = net × rate ÷ 10000;  gross = net + tax
+ *     taxable = gross × 10000 ÷ (10000 + rate);  tax = gross − taxable
  *
- * In both, `taxable + tax` is the money that changes hands for that line —
- * which is the one property an invoice may not get wrong.
+ * `taxable + tax` is the money that changes hands for that line — which is
+ * the one property an invoice may not get wrong.
  */
 final class Tax
 {
-    /** The price on the product already contains the tax. The shop's own default. */
+    /** Shown, or typed, with the tax in it. The default for both settings. */
     public const BASIS_INCLUSIVE = 'inclusive';
 
-    /** The price on the product is before tax, which is added at the checkout. */
+    /** Shown, or typed, before the tax. */
     public const BASIS_EXCLUSIVE = 'exclusive';
 
     public const BASES = [self::BASIS_INCLUSIVE, self::BASIS_EXCLUSIVE];
@@ -91,25 +108,30 @@ final class Tax
     }
 
     /**
-     * Which basis the shop prices in.
+     * How the website shows prices: `store_price_basis`.
      *
-     * Anything unrecognised — a hand-edited row, an install that has not run
-     * the seeder — is `inclusive`, because that is what every price already
-     * in the catalogue was typed as. Falling the other way would silently
-     * add 18% to the whole shop.
+     * Anything unrecognised is `inclusive`. Since 0.178.0 the answer moves
+     * no money — a wrong value shows the right total under the wrong
+     * headings — but it is the shop's own default and the safer one to show.
      */
     public static function basis(): string
     {
-        $value = Setting::get('store_price_basis');
+        return self::read('store_price_basis');
+    }
+
+    /** How the console takes prices: `store_price_entry`. */
+    public static function entry(): string
+    {
+        return self::read('store_price_entry');
+    }
+
+    private static function read(string $key): string
+    {
+        $value = Setting::get($key);
 
         return is_string($value) && in_array($value, self::BASES, true)
             ? $value
             : self::BASIS_INCLUSIVE;
-    }
-
-    public static function exclusive(): bool
-    {
-        return self::basis() === self::BASIS_EXCLUSIVE;
     }
 
     /**
@@ -120,8 +142,12 @@ final class Tax
      */
     public static function rateFor(?StoreProduct $product): int
     {
-        $own = $product?->gst_percent;
+        return self::rateForPercent($product?->gst_percent);
+    }
 
+    /** `rateFor()` for a `gst_percent` value that is not on a saved product yet. */
+    public static function rateForPercent(mixed $own): int
+    {
         if (is_string($own) && in_array($own, self::RATES, true)) {
             return Money::basisPointsOf($own);
         }
@@ -129,13 +155,57 @@ final class Tax
         return self::rate();
     }
 
+    /** A price before tax, with the tax added: what the customer pays. */
+    public static function addTo(int $net, int $rate): int
+    {
+        return $net + intdiv($net * $rate + 5000, 10000);
+    }
+
+    /** A price typed in the console, as it is stored: with GST. */
+    public static function stored(int $entered, int $rate): int
+    {
+        return self::entry() === self::BASIS_EXCLUSIVE ? self::addTo($entered, $rate) : $entered;
+    }
+
+    /** A stored price as the console's price field shows it. */
+    public static function entered(int $stored, int $rate): int
+    {
+        return self::entry() === self::BASIS_EXCLUSIVE ? Money::taxable($stored, $rate) : $stored;
+    }
+
+    /** A stored price as the website shows it. */
+    public static function shown(int $stored, int $rate): int
+    {
+        return self::basis() === self::BASIS_EXCLUSIVE ? Money::taxable($stored, $rate) : $stored;
+    }
+
+    /**
+     * What to store for a price the console sent back.
+     *
+     * A price with GST does not always survive the trip to "before GST" and
+     * back: ₹999.00 at 18% is shown as ₹846.61, and ₹846.61 plus 18% is
+     * ₹999.01. So opening a product under exclusive entry and pressing Save
+     * without touching it would move its price by a paisa. When the figure
+     * sent is exactly the one the form was given, and the rate under it has
+     * not changed, the stored price is kept as it was.
+     */
+    public static function keep(int $submitted, ?int $stored, int $rate, bool $rateChanged): int
+    {
+        if ($stored !== null && ! $rateChanged && self::entered($stored, $rate) === $submitted) {
+            return $stored;
+        }
+
+        return self::stored($submitted, $rate);
+    }
+
     /**
      * The whole of an order's tax, line by line.
      *
      * `$lines` is a list of `['line_total_paise' => int, 'gst_basis_points'
-     * => int]` in the shop's own basis — what the catalogue says those goods
-     * cost, before the order-level discount and before delivery. The two
-     * amounts after it are in the same basis.
+     * => int]` — what those goods cost with GST, as stored, before the
+     * order-level discount and before delivery. The two amounts after it
+     * include GST too. `basis` on the result is only how the website shows
+     * the figures; it moves no money.
      *
      * The returned breakdown's `lines` come back in the order they were
      * given, so a caller can zip them onto the rows it is about to write.
@@ -145,7 +215,6 @@ final class Tax
         $weights = array_map(static fn (array $l) => max(0, (int) $l['line_total_paise']), $lines);
         $discounts = self::apportion($discountPaise, $weights);
 
-        $exclusive = self::exclusive();
         $out = [];
         $taxable = 0;
         $tax = 0;
@@ -159,7 +228,7 @@ final class Tax
             // not a thing an invoice can print.
             $net = max(0, $weights[$i] - $discounts[$i]);
 
-            [$lineTaxable, $lineTax] = self::split($net, $rate, $exclusive);
+            [$lineTaxable, $lineTax] = self::split($net, $rate);
 
             $out[] = [
                 'gst_basis_points' => $rate,
@@ -176,7 +245,7 @@ final class Tax
         $delivery = null;
 
         if ($deliveryPaise > 0) {
-            [$deliveryTaxable, $deliveryTax] = self::split($deliveryPaise, $top ?? self::rate(), $exclusive);
+            [$deliveryTaxable, $deliveryTax] = self::split($deliveryPaise, $top ?? self::rate());
 
             $delivery = [
                 'gst_basis_points' => $top ?? self::rate(),
@@ -190,7 +259,7 @@ final class Tax
         }
 
         return new TaxBreakdown(
-            basis: $exclusive ? self::BASIS_EXCLUSIVE : self::BASIS_INCLUSIVE,
+            basis: self::basis(),
             lines: $out,
             delivery: $delivery,
             taxablePaise: $taxable,
@@ -199,17 +268,12 @@ final class Tax
     }
 
     /**
-     * An amount at a rate, as `[taxable, tax]`, in whichever basis the shop
-     * prices in. The one place the two bases differ.
+     * An amount with GST in it, as `[taxable, tax]`.
      *
      * @return array{int, int}
      */
-    private static function split(int $amount, int $rate, bool $exclusive): array
+    private static function split(int $amount, int $rate): array
     {
-        if ($exclusive) {
-            return [$amount, intdiv($amount * $rate + 5000, 10000)];
-        }
-
         $taxable = Money::taxable($amount, $rate);
 
         return [$taxable, $amount - $taxable];

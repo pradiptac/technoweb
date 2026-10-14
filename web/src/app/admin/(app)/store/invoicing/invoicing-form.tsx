@@ -8,6 +8,7 @@ import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { FormActions } from "@/components/admin/form-actions";
 import { SettingSwitch } from "@/components/admin/setting-switch";
 import { CoverField } from "@/components/admin/cover-field";
+import { formatPaise } from "@/lib/money";
 import { LABELS } from "../../settings/settings-copy";
 import { saveInvoicingAction, type InvoicingFormState } from "../actions";
 import type { InvoicingMeta, SettingRow } from "@/lib/admin";
@@ -19,7 +20,7 @@ const initial: InvoicingFormState = {};
  *
  * Every control posts under `setting__<key>`, the contract the settings
  * screens established, so one action reads them all and the API refuses any
- * key outside its fifteen by name. **Nothing here lists a rate, a basis or a
+ * key outside its sixteen by name. **Nothing here lists a rate, a basis or a
  * state** — all three arrive as `options` on their row, so the console and
  * the validation cannot drift.
  *
@@ -27,6 +28,12 @@ const initial: InvoicingFormState = {};
  * is the API's own list of what is still wanted, and turning the feature on
  * above it would read as "done" over a form that is not.
  */
+/** ₹1,000 with the shop's rate on it, the way the API adds it. */
+function example(rate: string): string {
+  const bp = Math.round(parseFloat(rate) * 100);
+  return formatPaise(100000 + Math.floor((100000 * bp + 5000) / 10000), { withPaise: true });
+}
+
 export function InvoicingForm({ rows, meta }: { rows: SettingRow[]; meta: InvoicingMeta }) {
   const [state, formAction, pending] = useActionState(saveInvoicingAction, initial);
 
@@ -36,6 +43,7 @@ export function InvoicingForm({ rows, meta }: { rows: SettingRow[]; meta: Invoic
 
   const [enabled, setEnabled] = useState(value("invoice_enabled") === "1");
   const [basis, setBasis] = useState(value("store_price_basis") || "inclusive");
+  const [entry, setEntry] = useState(value("store_price_entry") || "inclusive");
 
   const text = (key: string, props: { wide?: boolean } = {}) => (
     <Field
@@ -94,13 +102,25 @@ export function InvoicingForm({ rows, meta }: { rows: SettingRow[]; meta: Invoic
 
       <div className="mb-3 grid gap-x-5 sm:grid-cols-2">
         {choice("store_gst_percent")}
+        <span className="hidden sm:block" aria-hidden />
+        {choice("store_price_entry", setEntry)}
         {choice("store_price_basis", setBasis)}
       </div>
 
+      {/*
+        0.178.0: the shop keeps every price with GST in it, so these two
+        only change how a price is typed and how it is shown. Switching
+        either never changes what anybody pays, and the sentence says so
+        with the worked example at the shop's own rate.
+      */}
       <p className="measure mb-8 text-13 text-muted" role="status">
+        At {meta.rate}: {entry === "exclusive"
+          ? <>you type ₹1,000 and the shop keeps {example(meta.rate)}, what the customer pays.</>
+          : <>you type {example(meta.rate)}, what the customer pays.</>}{" "}
         {basis === "exclusive"
-          ? <>A product priced at ₹1,000 shows ₹1,000, and the checkout adds the GST as a row of its own.</>
-          : <>A product priced at ₹1,000 is ₹1,000 to pay, with the GST taken out of it.</>}
+          ? <>The website shows ₹1,000 and adds the GST at the checkout.</>
+          : <>The website shows {example(meta.rate)}.</>}{" "}
+        Switching either setting never changes what a customer pays.
         {meta.products_with_own_rate > 0 && (
           <>
             {" "}<strong className="font-semibold text-ink-2">{meta.products_with_own_rate}</strong>

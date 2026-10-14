@@ -205,7 +205,11 @@ export function StoreBuyGrid({ product, settings, children }: { product: StorePr
                   asks for it and it is also the difference between a price
                   somebody trusts and one they have to work out.
                 */}
-                <p className="mt-1.5 text-13 text-muted">Includes 18% GST. This is the price you pay.</p>
+                <p className="mt-1.5 text-13 text-muted">
+                  {product.price_includes_gst === false
+                    ? `Plus ${product.gst_rate ?? ""} GST, added at the checkout.`.replace("  ", " ")
+                    : `Includes ${product.gst_rate ?? ""} GST. This is the price you pay.`.replace("  ", " ")}
+                </p>
               </div>
 
               {product.short_description && (

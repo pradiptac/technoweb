@@ -483,24 +483,22 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'invoicing', 'key' => 'store_gst_percent', 'value' => '18', 'type' => 'string'],
 
             /*
-             * Whether a price in the catalogue already contains the tax.
+             * How prices are shown and how they are typed (0.178.0). Neither
+             * moves money: a stored price always includes GST, so switching
+             * either one never changes what a customer pays.
              *
-             * `inclusive` is the default and is what every price already
-             * typed into this shop means, so an install that has not touched
-             * this row behaves exactly as it did. `exclusive` makes the
-             * listed price the value before tax and adds the tax at the
-             * checkout, where it becomes a row of its own in the summary
-             * rather than a note under the total.
+             * `store_price_basis` is the website: `inclusive` shows prices
+             * with GST, `exclusive` shows them before GST and prints the tax
+             * as a row at the checkout. `store_price_entry` is the console:
+             * `exclusive` means a price is typed before GST and converted on
+             * save at that product's rate. Both default to `inclusive`, which
+             * is what every price already typed into this shop means.
              *
-             * What it does *not* move: the coupon's minimum order, the
-             * free-delivery threshold and the shop's own figures all stay in
-             * the basis the shop prices in — "free delivery above ₹5,000" on
-             * an exclusive shop means ₹5,000 of goods before tax, which is
-             * what somebody typing it means. The one exception is the
-             * cash-on-delivery ceiling, which is money a courier counts and
-             * is therefore judged on the total *after* tax.
+             * Coupon minimums, the free-delivery threshold and the cash-on-
+             * delivery ceiling are all judged on what is paid.
              */
             ['group' => 'invoicing', 'key' => 'store_price_basis', 'value' => 'inclusive', 'type' => 'string'],
+            ['group' => 'invoicing', 'key' => 'store_price_entry', 'value' => 'inclusive', 'type' => 'string'],
 
             ['group' => 'invoicing', 'key' => 'invoice_enabled', 'value' => '0', 'type' => 'boolean'],
             ['group' => 'invoicing', 'key' => 'invoice_legal_name', 'value' => null, 'type' => 'string'],

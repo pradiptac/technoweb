@@ -2037,28 +2037,62 @@ the two concludes the invoice is wrong. GST taxes a composite supply at the
 rate of the principal supply, and where a parcel holds two rates the higher
 is the answer that cannot under-collect.
 
-### Inclusive or exclusive
+### A stored price includes GST; two settings say how it is typed and shown
 
-`store_price_basis` is `inclusive` (the default, and what every price
-already typed into the shop means) or `exclusive`.
+**Since 0.178.0 `price_paise` is always what the customer pays.** In 0.176.0
+`store_price_basis` decided what the stored number *meant*, so switching it
+re-read every price in the shop: ₹1,180 typed under "includes GST" became
+₹1,392.40 overnight, and a shop with fifty products could not change its mind
+without retyping them. Now two settings move no money:
 
-    inclusive   taxable = gross × 10000 ÷ (10000 + rate);  tax = gross − taxable
-    exclusive   taxable = net;  tax = net × rate ÷ 10000;  gross = net + tax
+- **`store_price_basis`** — how the **website shows** prices: `inclusive`
+  with GST, `exclusive` before it with the GST a row at the checkout. Public
+  resources send the shown figure as `price_paise` plus `price_includes_gst`
+  and `gst_rate`; the basket sends `shown_*` figures beside the real ones.
+  The feed, the schema, the basket's money, the checkout and Zoho read the
+  **model**, so they always charge and declare the price with GST.
+- **`store_price_entry`** — how the **console takes** prices: `exclusive`
+  means typed before GST and converted on save at the product's rate (its own
+  `gst_percent` from the request, else the stored one, else the shop's; a
+  variation uses its parent's). The product form labels the field and shows
+  the other figure live, worked out with the API's own arithmetic. The admin
+  resource adds `entry_price_paise`/`entry_compare_at_paise`; the catalogue
+  CSV is written and read in the entry basis.
 
-`total_paise` stays **what is charged** in both. What moves with the basis:
+**Why the price with GST and not a base price.** A figure before GST kept in
+paise does not survive the trip back: ₹999 with GST at 18% is a base of
+₹846.61, and ₹846.61 plus 18% is ₹999.01. The inclusive figures reachable from
+whole paise of base are 1.18 paise apart, so about one typed price in seven
+would come back a paisa off. The other direction is exact — a price typed
+before GST, stored with it and read back out is always the figure typed (the
+error is at most 0.5 ÷ 1.18 of a paisa). The client chose this on
+2026-10-14. It also means a GST rate change keeps what the customer pays and
+changes the tax inside it.
 
-- The checkout draws the tax as a **row** on an exclusive shop and as a
-  **note under the total** on an inclusive one, and the API says which
-  through `gst_basis` rather than the template inferring it from the
-  numbers. Drawn the wrong way round, one is a column that does not add up
-  and the other is a total nobody can arrive at.
-- **Thresholds stay in the shop's own basis.** A coupon's minimum order and
-  the free-delivery figure are read against the goods as listed — "free
-  delivery above ₹5,000" on an exclusive shop means ₹5,000 before tax, which
-  is what a merchant typing it means.
-- **The cash-on-delivery ceiling is the exception.** It is a limit on cash a
-  courier counts, so it is judged on the total *after* tax, which is why
-  `Tax::breakdown()` runs before `guardCodCeiling()` in `Checkout`.
+**`Tax::keep()` is the one guard that matters.** A stored price with GST does
+not always survive the trip to "before GST" and back, so under exclusive
+entry an untouched form would move some prices by a paisa on every save.
+When the figure sent equals `Tax::entered(stored)` and the rate has not
+changed, the stored price is kept. `PriceEntryTest` finds such a price by
+brute force and saves it untouched.
+
+The arithmetic has one form now, because the money in it always includes the
+tax:
+
+    taxable = gross × 10000 ÷ (10000 + rate);  tax = gross − taxable
+
+- The checkout draws the tax as a **row** when the website shows prices
+  before GST and as a **note under the total** when it shows them with GST.
+  Under the row, every figure is before tax and taken from the breakdown —
+  lines, subtotal, the discount (subtotal less the taxable after it) and
+  delivery — so subtotal − discount + delivery + GST = total exactly. A
+  discount printed at its with-GST amount beside before-GST lines would not.
+- **Every threshold is judged on what is paid**: a coupon's minimum, free
+  delivery and the cash-on-delivery ceiling.
+- **`PricesIncludeGst`** (upgrade step) converts a 0.176 shop that was set to
+  `exclusive` — its prices, compare-at prices, variation prices and wishlist
+  saved prices — once, at each product's rate, and sets
+  `store_price_entry=exclusive`. Any other shop is untouched.
 
 `gst_rate` on the basket is **null when the basket holds two rates**: "18%"
 over a basket of 18% and 5% goods is simply false.

@@ -11,10 +11,9 @@ namespace App\Support\Store;
  * wrong key out of an array finds out at the checkout.
  *
  * `taxablePaise + gstPaise` is the money the goods and the delivery come to
- * after the discount — **in both bases**. What differs is where that sits
- * relative to the catalogue's prices: on an inclusive shop it is the prices
- * themselves, and on an exclusive one it is the prices plus the tax. So the
- * order's total is that sum either way, and `Checkout` does not branch.
+ * after the discount, and since 0.178.0 it is the same figure whichever way
+ * the website shows prices — stored prices always include GST. `basis` is
+ * only that choice of presentation, so `Checkout` does not branch on it.
  */
 final readonly class TaxBreakdown
 {
@@ -37,8 +36,8 @@ final readonly class TaxBreakdown
     }
 
     /**
-     * The tax the shop adds on top of its listed prices — zero on an
-     * inclusive shop, because there the prices already carry it.
+     * The tax a checkout prints as a row of its own: all of it when the
+     * website shows prices before GST, zero when it shows them with GST.
      *
      * This is the figure a checkout prints on its own line. On an inclusive
      * shop the tax is shown as a note under the total ("includes ₹18,000

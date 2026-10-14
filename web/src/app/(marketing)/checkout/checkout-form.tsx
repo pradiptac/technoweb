@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { brandConfettiColors, confettiBurst } from "@/components/velora/confetti";
 import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { formatPaise } from "@/lib/money";
+import { shownDelivery } from "@/lib/cart-shown";
 import { cn } from "@/lib/utils";
 import { placeOrderAction, saveCartContactAction, saveCartDestinationAction, type CheckoutState } from "./actions";
 import type { CartSummary, Customer } from "@/types/api";
@@ -469,7 +470,7 @@ export function CheckoutForm({
                   <span className="block text-12 font-medium text-warn">Non-returnable</span>
                 )}
               </span>
-              <span className="tabular-nums">{formatPaise(line.line_total_paise)}</span>
+              <span className="tabular-nums">{formatPaise(line.shown_line_total_paise ?? line.line_total_paise)}</span>
             </li>
           ))}
         </ul>
@@ -477,13 +478,13 @@ export function CheckoutForm({
         <dl className="grid gap-1.5 py-3 text-14">
           <div className="flex justify-between gap-4">
             <dt className="text-muted">Subtotal</dt>
-            <dd className="tabular-nums">{formatPaise(cart.subtotal_paise)}</dd>
+            <dd className="tabular-nums">{formatPaise(cart.shown_subtotal_paise ?? cart.subtotal_paise)}</dd>
           </div>
 
           {cart.discount_paise > 0 && (
             <div className="flex justify-between gap-4">
               <dt className="text-muted">Discount</dt>
-              <dd className="tabular-nums text-ok">−{formatPaise(cart.discount_paise)}</dd>
+              <dd className="tabular-nums text-ok">−{formatPaise(cart.shown_discount_paise ?? cart.discount_paise)}</dd>
             </div>
           )}
 
@@ -500,14 +501,15 @@ export function CheckoutForm({
                 "text-right tabular-nums",
                 cart.shipping_deliverable === false ? "text-err" : cart.shipping_paise == null ? "text-muted" : cart.shipping_paise === 0 ? "text-ok" : "",
               )}>
-                {cart.shipping_label}
+                {shownDelivery(cart)}
               </dd>
             </div>
           )}
 
           {/*
-            GST: a row above the total on a shop that adds it, a note under
-            the total on one whose prices contain it (0.176.0).
+            GST: a row above the total when the website shows prices before
+            GST, a note under the total when it shows them with GST (0.178.0;
+            the figures above are the `shown_*` ones, so the column adds up).
 
             The API says which through `gst_basis` rather than the template
             inferring it from the numbers. Drawn the wrong way round, one of

@@ -38,6 +38,7 @@ use App\Support\Events\EventText;
 use App\Support\MediaMeta;
 use App\Support\MediaUrl;
 use App\Support\Money;
+use App\Support\Store\Tax;
 use App\Support\Store\VideoShelf;
 use App\Support\Tenders\TenderText;
 use Carbon\CarbonImmutable;
@@ -615,7 +616,7 @@ final class SectionPresenter
             'store_products' => StoreProduct::published()->with('brand')
                 ->when($category, fn ($q) => $q->whereHas('category', fn ($c) => $c->where('slug', $category)))
                 ->orderByDesc('is_featured')->orderBy('sort_order')->orderBy('id')->limit($limit)->get()
-                ->map(fn (StoreProduct $p) => self::tile($p->name, $p->short_description, "/store/products/{$p->slug}", $p->images[0] ?? null, null, $p->brand?->name, Money::format((int) $p->price_paise))),
+                ->map(fn (StoreProduct $p) => self::tile($p->name, $p->short_description, "/store/products/{$p->slug}", $p->images[0] ?? null, null, $p->brand?->name, Money::format(Tax::shown((int) $p->price_paise, Tax::rateFor($p))).(Tax::basis() === Tax::BASIS_INCLUSIVE ? '' : ' + GST'))),
             // Upcoming only, soonest first: the kicker is the date and the
             // meta the place, both the API's own labels. A page with nothing
             // coming up loses the section, like any empty list.
