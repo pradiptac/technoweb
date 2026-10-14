@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Admin\ClientErrorController as AdminClientErrorC
 use App\Http\Controllers\Api\V1\Admin\CustomFontController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\EmailTemplateController;
+use App\Http\Controllers\Api\V1\Admin\GoogleFontController;
 use App\Http\Controllers\Api\V1\Admin\InboundMailController;
 use App\Http\Controllers\Api\V1\Admin\IntegrationsController;
 use App\Http\Controllers\Api\V1\Admin\MailController;
@@ -164,6 +165,16 @@ Route::middleware('role:admin')->group(function () {
         ->whereIn('slot', ['1', '2'])->middleware('throttle:20,1')->name('settings.fonts.store');
     Route::delete('settings/fonts/{slot}', [CustomFontController::class, 'destroy'])
         ->whereIn('slot', ['1', '2'])->name('settings.fonts.destroy');
+    // Google fonts copied to this server (0.179.0): chosen from a committed
+    // catalogue, downloaded once, served from our own origin. Literal paths
+    // sit above `{slug}` so they are not read as one.
+    Route::get('settings/google-fonts', [GoogleFontController::class, 'index'])->name('settings.google-fonts.index');
+    Route::get('settings/google-fonts/catalogue', [GoogleFontController::class, 'catalogue'])->name('settings.google-fonts.catalogue');
+    Route::get('settings/google-fonts/preview/{slug}', [GoogleFontController::class, 'preview'])
+        ->where('slug', '[a-z0-9-]{1,62}')->middleware('throttle:120,1')->name('settings.google-fonts.preview');
+    Route::post('settings/google-fonts', [GoogleFontController::class, 'store'])->middleware('throttle:10,1')->name('settings.google-fonts.store');
+    Route::delete('settings/google-fonts/{slug}', [GoogleFontController::class, 'destroy'])
+        ->where('slug', '[a-z0-9-]{1,62}')->name('settings.google-fonts.destroy');
     // The media CDN (0.124.0): one library file fetched through the saved
     // address and compared with this server's copy.
     Route::post('settings/media-cdn/test', [MediaCdnController::class, 'test'])

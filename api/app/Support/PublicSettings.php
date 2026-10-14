@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Enums\MessageChannel;
 use App\Enums\PaymentGateway;
+use App\Models\GoogleFont;
 use App\Models\Location;
 use App\Models\Media;
 use App\Models\Page;
@@ -195,6 +196,17 @@ class PublicSettings
         // "Continue with Google": the switch and a whole client. The client
         // itself is private (`google_login`).
         $values['google_login_live'] = GoogleSignIn::live() ? '1' : '0';
+
+        // Google fonts copied to this server (0.179.0): every installed one,
+        // so the console's live preview can draw a font chosen before Save.
+        // Paths only — the website builds its own URLs from them and checks
+        // their shape.
+        $google = GoogleFont::query()->orderBy('slug')->get(['slug', 'family', 'category', 'faces']);
+        if ($google->isNotEmpty()) {
+            $values['google_fonts'] = json_encode($google->map(fn (GoogleFont $f) => [
+                'id' => $f->id(), 'slug' => $f->slug, 'family' => $f->family, 'category' => $f->category, 'faces' => $f->faces,
+            ])->all(), JSON_THROW_ON_ERROR);
+        }
 
         $values['messaging_whatsapp_live'] = MessageChannel::WhatsApp->ready() ? '1' : '0';
         $values['messaging_rcs_live'] = MessageChannel::Rcs->ready() ? '1' : '0';

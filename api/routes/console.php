@@ -268,6 +268,7 @@ Schedule::command('technoware:send-broadcasts')
 // Delivery rows are a log of what was attempted, not a record anybody edits;
 // ninety days answers "did that customer get the dispatch notice".
 Schedule::command('technoware:prune-message-deliveries')->dailyAt('03:58');
+Schedule::command('technoware:prune-font-previews')->dailyAt('03:55');
 
 /*
  * Engineer visits (2026-09-26, docs/visits.md): the day-before reminder,

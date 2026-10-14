@@ -11,6 +11,7 @@ use App\Enums\PaymentGateway;
 use App\Http\Controllers\Controller;
 use App\Models\ContentBlock;
 use App\Models\Coupon;
+use App\Models\GoogleFont;
 use App\Models\Media;
 use App\Models\Page;
 use App\Models\Setting;
@@ -765,11 +766,19 @@ class SettingController extends Controller
                 ]);
             }
 
-            if (in_array($key, $fonts, true) && filled($value)
-                && ! preg_match('/^[a-z][a-z0-9-]{1,31}$/', (string) $value)) {
-                throw ValidationException::withMessages([
-                    "settings.{$i}.value" => 'Choose a font from the list.',
-                ]);
+            if (in_array($key, $fonts, true) && filled($value)) {
+                $value = (string) $value;
+
+                // A Google font (0.179.0) must be installed here first: unlike
+                // a vendored id the website has no face to fall back to for a
+                // font it was never sent.
+                if (str_starts_with($value, 'g-')) {
+                    if (! GoogleFont::where('slug', substr($value, 2))->exists()) {
+                        throw ValidationException::withMessages(["settings.{$i}.value" => 'Install that font first.']);
+                    }
+                } elseif (! preg_match('/^[a-z][a-z0-9-]{1,31}$/', $value)) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a font from the list.']);
+                }
             }
         }
     }
