@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Field, Input, Select } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { IconTile } from "@/components/ui/icon-tile";
 import { FONT_CHOICES } from "@/lib/font-choices";
 import { customFontsFor } from "@/lib/custom-fonts";
 import { CustomFontsPanel } from "./custom-fonts-panel";
+import { GoogleFontsDialog } from "./google-fonts-dialog";
 import { differs, nearestStep } from "@/lib/palette";
 import { ColourField } from "./settings-fields";
 import { LogoPalette } from "./logo-palette";
@@ -40,6 +42,8 @@ import type { SettingRow } from "@/lib/admin";
  * site will actually use differs from the one typed. "We adjusted your
  * yellow" shown, rather than a yellow that silently became brown.
  */
+type InstalledGoogleFont = { id: string; slug: string; family: string; category: string; faces: number; bytes: number };
+
 export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }) {
   const stored = Object.fromEntries(rows.map((r) => [r.key, r.value ?? ""]));
   // The fonts the company uploaded itself, read from the same rows on every
@@ -58,6 +62,61 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
     fontDisplay: stored.theme_font_display || seed.fontDisplay,
     fontBody: stored.theme_font_body || seed.fontBody,
   });
+  // Google fonts copied to this server (0.179.0), as the API lists them. Read
+  // once on mount; an install or a removal updates it here without a reload.
+  const [google, setGoogle] = useState<InstalledGoogleFont[]>([]);
+  const [browsing, setBrowsing] = useState<"fontDisplay" | "fontBody" | null>(null);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    fetch("/api/admin/google-fonts?mode=installed", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body: { data?: InstalledGoogleFont[] } | null) => { if (live && body?.data) setGoogle(body.data); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, []);
+
+  // A saved Google font is a choice the select must have an option for before
+  // the list arrives, or the controlled value would show nothing.
+  const googleOptions = [...google];
+  for (const id of [inputs.fontDisplay, inputs.fontBody]) {
+    if (id.startsWith("g-") && !googleOptions.some((g) => g.id === id)) {
+      googleOptions.push({ id, slug: id.slice(2), family: id.slice(2).replace(/-/g, " "), category: "", faces: 0, bytes: 0 });
+    }
+  }
+
+  const pickedGoogle = (role: "fontDisplay" | "fontBody", font: { id: string; family: string; slug: string }) => {
+    setGoogle((list) => (list.some((g) => g.id === font.id) ? list : [...list, { id: font.id, slug: font.slug, family: font.family, category: "", faces: 0, bytes: 0 }]));
+    // The sample the dialog loaded doubles as this session's preview face, so
+    // the list and the live preview show the font before Save declares the
+    // real one (the root layout does that on the next load).
+    const css = `:root{--font-g-${font.slug}:"tw-prev-${font.slug}",ui-sans-serif,system-ui,sans-serif}`;
+    if (!document.getElementById(`gf-session-${font.slug}`)) {
+      const el = document.createElement("style");
+      el.id = `gf-session-${font.slug}`;
+      el.textContent = css;
+      document.head.appendChild(el);
+    }
+    set(role, font.id);
+  };
+
+  const removeGoogle = async (font: InstalledGoogleFont) => {
+    setRemoving(font.slug);
+    setGoogleError(null);
+    const res = await fetch(`/api/admin/google-fonts?slug=${font.slug}`, { method: "DELETE" }).catch(() => null);
+    setRemoving(null);
+
+    if (res?.ok) {
+      setGoogle((list) => list.filter((g) => g.slug !== font.slug));
+      return;
+    }
+
+    const body = (await res?.json().catch(() => null)) as { message?: string } | null;
+    setGoogleError(body?.message ?? "That could not be removed. Try again shortly.");
+  };
+
   // Blank is a value here: the theme's own dark band. Kept apart from
   // `inputs` because it is not one of the five the generator reads.
   const [topbar, setTopbar] = useState(isHex(stored.theme_topbar) ? stored.theme_topbar : "");
@@ -262,6 +321,9 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
             {ownFonts.map((f) => (
               <option key={f.id} value={f.id} style={{ fontFamily: `var(${f.variable})` }}>{f.name} (your font)</option>
             ))}
+            {googleOptions.map((g) => (
+              <option key={g.id} value={g.id} style={{ fontFamily: `var(--font-${g.id})` }}>{g.family} (Google)</option>
+            ))}
           </Select>
         </Field>
         <Field label="Body font" htmlFor="setting__theme_font_body" variant="float-static"
@@ -274,9 +336,60 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
             {ownFonts.map((f) => (
               <option key={f.id} value={f.id} style={{ fontFamily: `var(${f.variable})` }}>{f.name} (your font)</option>
             ))}
+            {googleOptions.map((g) => (
+              <option key={g.id} value={g.id} style={{ fontFamily: `var(--font-${g.id})` }}>{g.family} (Google)</option>
+            ))}
           </Select>
         </Field>
       </div>
+
+      {/*
+        Google Fonts (0.179.0): copied to this site once, then served from it.
+        Buttons are `type="button"` and nothing here is named — this sits
+        inside the settings <form>, and a named control would be posted.
+      */}
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <Button type="button" variant="secondary" size="sm" onClick={() => setBrowsing("fontDisplay")}>
+          Browse Google Fonts for headlines…
+        </Button>
+        <Button type="button" variant="secondary" size="sm" onClick={() => setBrowsing("fontBody")}>
+          …for body text
+        </Button>
+      </div>
+
+      {google.length > 0 && (
+        <div className="mb-3 rounded-lg border border-line-strong bg-card p-3">
+          <p className="mb-2 text-13 font-semibold">Google fonts on this site</p>
+          <ul className="grid gap-1.5">
+            {google.map((g) => {
+              const inUse = inputs.fontDisplay === g.id || inputs.fontBody === g.id;
+
+              return (
+                <li key={g.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-13">
+                  <span className="min-w-0 flex-1 truncate">{g.family}</span>
+                  {g.bytes > 0 && <span className="text-12 text-muted">{Math.max(1, Math.round(g.bytes / 1024))} KB</span>}
+                  <Button
+                    type="button" variant="ghost" size="sm"
+                    pending={removing === g.slug}
+                    disabled={inUse || removing !== null}
+                    title={inUse ? "Chosen above — choose another font first" : undefined}
+                    onClick={() => void removeGoogle(g)}
+                  >
+                    Remove
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+          {googleError && <p role="status" className="mt-2 text-12-5 text-err">{googleError}</p>}
+        </div>
+      )}
+
+      <GoogleFontsDialog
+        open={browsing !== null}
+        onClose={() => setBrowsing(null)}
+        onPick={(font) => { if (browsing) pickedGoogle(browsing, font); }}
+      />
 
       {/* A company's own typefaces: uploaded here, chosen in the two lists above. */}
       <CustomFontsPanel fonts={ownFonts} />
