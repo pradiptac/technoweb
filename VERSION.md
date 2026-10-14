@@ -21,6 +21,28 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.175.0 — 2026-10-14
+
+**Two more site themes: Aurora and Atelier.** Fourteen to choose from in
+Site → Themes.
+
+- **Aurora** is soft light. A wide colour wash sits behind the heading on
+  every page, pictures sit in frames whose edges catch the light, corners
+  are round and buttons are pills, and a card is lifted by a shadow rather
+  than boxed in by a line. The wash is drawn in **your own colours** — change
+  the palette and the wash changes with it — and the dark scheme washes over
+  the dark page.
+- **Atelier** is a studio's printed page. Warm paper, a serif for the
+  headings set at its ordinary weight, hairline rules where other themes
+  draw boxes, and a front page whose photograph runs off the edge beside the
+  words. The paper takes its warmth from your brand colour, so it is your
+  paper rather than a fixed cream.
+- **Two new ways for the logo strips to move**, so no two themes animate
+  theirs alike: logos that breathe gently, and logos that land stamped one
+  after another.
+- Neither theme ships a stock photograph: both draw your own slider, and
+  fall back to the network panel where no slider is set.
+
 ## 0.174.0 — 2026-10-14
 
 **Tenders.** A notice board for the work you invite bids on.

@@ -96,9 +96,9 @@ const MIN_PER_COPY = 18;
  */
 export type StripMode =
   | "marquee" | "drift" | "bob" | "spotlight" | "parallax" | "lens" | "cascade" | "ring"
-  | "rise" | "wipe" | "pulse" | "flicker" | "deal";
+  | "rise" | "wipe" | "pulse" | "flicker" | "deal" | "swell" | "press";
 
-const GRID_MODES: ReadonlySet<StripMode> = new Set(["rise", "wipe", "pulse", "flicker", "deal"]);
+const GRID_MODES: ReadonlySet<StripMode> = new Set(["rise", "wipe", "pulse", "flicker", "deal", "swell", "press"]);
 
 /** Slot sizes. `md` is the vendor strip; `lg` the client wall, where the logo is the point. */
 const SLOT = {

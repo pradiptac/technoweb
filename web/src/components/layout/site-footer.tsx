@@ -63,7 +63,7 @@ import { arrange, resolveFooter, FIXED_FOOTER, type FooterPartId, type ResolvedF
 export type FooterLayout =
   | "columns" | "masthead" | "console" | "card" | "prompt"
   | "statement" | "split" | "centred" | "cream"
-  | "glow" | "contact" | "plate";
+  | "glow" | "contact" | "plate" | "wash" | "rule";
 
 const LAYOUT_BY_THEME: Record<string, FooterLayout> = {
   classic: "columns",
@@ -78,6 +78,8 @@ const LAYOUT_BY_THEME: Record<string, FooterLayout> = {
   sentinel: "glow",
   vantage: "contact",
   keystone: "plate",
+  aurora: "wash",
+  atelier: "rule",
 };
 
 export function footerLayoutFor(themeId: string): FooterLayout {
@@ -155,6 +157,8 @@ export function SiteFooter({
     case "glow": return <Glow {...p} />;
     case "contact": return <Contact {...p} />;
     case "plate": return <Plate {...p} />;
+    case "wash": return <Wash {...p} />;
+    case "rule": return <Rule {...p} />;
     default: return <Columns {...p} />;
   }
 }
@@ -627,6 +631,65 @@ function Contact({ settings, nav, legal, signup, tagline, chrome }: Parts) {
  * The social row is drawn on the right only — `Brand` is told not to — and that column is as wide as its widest
  * piece (`max-content`), so the pill stays one line; a `1fr` share wrapped it to two inside a 40px-high pill.
  */
+/**
+ * Aurora's: the page's own ground, opened by a wide brand wash rather than
+ * a rule, the columns airy and the brand block centred under them.
+ *
+ * The one footer that does **not** invert to the dark band. Aurora's whole
+ * identity is a light page, and a near-black slab under it would be the one
+ * hard edge in a theme that has none — so this uses the page's inverting
+ * tokens (`onDark` false) and the wash is a `background-image` at low
+ * opacity, which the contrast audit reads through to `--color-page`
+ * underneath.
+ */
+function Wash({ settings, nav, legal, signup, tagline, chrome }: Parts) {
+  return (
+    <footer data-footer="wash" className="relative overflow-hidden border-t border-line bg-page pt-14 text-sm text-muted">
+      {/* The wash: brand to accent across the top, fading out before the columns. */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[260px] bg-linear-to-br from-brand-50 via-transparent to-accent-50 opacity-70" />
+      <Container className="relative">
+        {signup && <SignupBand onDark={false} className="mb-12 rounded-2xl border border-line-strong bg-card p-7" />}
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 pb-12 sm:grid-cols-[repeat(var(--footer-cols),minmax(0,1fr))] sm:gap-10"
+          style={{ "--footer-cols": Math.max(nav.length, 1) } as CSSProperties}>
+          {nav.map((col) => <FooterColumn key={col.heading} col={col} onDark={false} headingClass="normal-case tracking-normal text-14 font-semibold text-ink" />)}
+        </div>
+        <div className="border-t border-line pt-10">
+          <Brand chrome={chrome} settings={settings} tagline={tagline} onDark={false} centred />
+        </div>
+        <BottomRow chrome={chrome} settings={settings} legal={legal} onDark={false} className="mt-9 border-t border-line justify-center" />
+      </Container>
+    </footer>
+  );
+}
+
+/**
+ * Atelier's: hairline rules and nothing else — no panel, no fill, no band.
+ *
+ * Every other light footer here sits on a surface or a card; this one is
+ * the paper the rest of the theme is printed on, divided by rules the
+ * weight of the ones in its body copy. The columns are headed in the
+ * display serif at its ordinary weight, because that is the theme's voice,
+ * and the brand block sits first rather than last — a masthead at the foot
+ * of the page.
+ */
+function Rule({ settings, nav, legal, signup, tagline, chrome }: Parts) {
+  return (
+    <footer data-footer="rule" className="border-t border-line-strong bg-page pt-14 text-sm text-muted">
+      <Container>
+        <div className="grid gap-10 border-b border-line pb-11 lg:grid-cols-[1.1fr_2fr] lg:gap-16">
+          <Brand chrome={chrome} settings={settings} tagline={tagline} onDark={false} />
+          <div className="grid grid-cols-2 gap-x-8 gap-y-9 sm:grid-cols-[repeat(var(--footer-cols),minmax(0,1fr))]"
+            style={{ "--footer-cols": Math.max(nav.length, 1) } as CSSProperties}>
+            {nav.map((col) => <FooterColumn key={col.heading} col={col} onDark={false} headingClass="font-display normal-case tracking-normal text-15 font-normal text-ink" />)}
+          </div>
+        </div>
+        {signup && <SignupBand onDark={false} className="border-b border-line py-10" />}
+        <BottomRow chrome={chrome} settings={settings} legal={legal} onDark={false} />
+      </Container>
+    </footer>
+  );
+}
+
 function Plate({ settings, nav, legal, signup, tagline, chrome }: Parts) {
   return (
     <footer data-footer="plate" className="bg-dark pt-14 text-sm text-dark-muted">

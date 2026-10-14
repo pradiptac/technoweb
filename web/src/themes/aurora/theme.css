@@ -1,0 +1,171 @@
+/*
+ * Aurora — soft light.
+ *
+ * Every rule here is scoped under `[data-theme="aurora"]` on `.public-site`,
+ * which is what keeps a theme from reaching the console or another theme's
+ * page. The file is the whole of what makes the shared sections Aurora's:
+ * `home.tsx` writes out the hero and nothing else.
+ *
+ * Three rules this theme is built on, and each is a rule of the project:
+ *
+ *   1. **No colour literal.** The wash is the palette's own 50 tints, so a
+ *      generated theme washes in its own colours and the dark scheme washes
+ *      over the dark ground.
+ *   2. **Nothing changes a computed `color` or `background-color` the audit
+ *      reads as the ground.** The wash is a `background-image` on a wrapper
+ *      with no text of its own; the glass frames are `box-shadow` and a
+ *      translucent border over an opaque card. So the contrast check grades
+ *      the same ink on the same ground it always did.
+ *   3. **Nothing widens the document.** Every soft edge is a shadow or an
+ *      inset ring, never an outer glow with a geometric size, and the one
+ *      element with a blur sits inside a host that clips.
+ */
+
+[data-theme="aurora"] {
+  /* The header's own height, which the wash reaches up behind. */
+  --aurora-header: 72px;
+}
+
+/* --------------------------------------------------------------- the wash */
+
+/*
+ * The hero's ground, and the inner pages'. Two soft blooms rather than one
+ * linear gradient: a single sweep reads as a banner, and the point is a
+ * light that has no edge. `--aurora-a`/`--aurora-b` let a section tilt the
+ * pair without restating the geometry.
+ */
+.public-site[data-theme="aurora"] .aurora-wash {
+  --aurora-a: var(--color-brand-50);
+  --aurora-b: var(--color-accent-50);
+  /*
+    The wash runs up *behind* the header and the hero pads itself back down
+    by the same amount, so the two surfaces the translucent bar sits between
+    are the same surface. Without it the bar's own `bg-page/80` met the wash
+    at a crisp tonal step across the full width — the one hard edge in a
+    theme whose whole argument is that it has none, and visible in the first
+    screenshot taken of it.
+  */
+  margin-top: calc(var(--aurora-header) * -1);
+  padding-top: var(--aurora-header);
+  background-image:
+    radial-gradient(110% 80% at 12% 0%, var(--aurora-a) 0%, transparent 62%),
+    radial-gradient(90% 70% at 92% 8%, var(--aurora-b) 0%, transparent 58%);
+}
+
+/*
+ * The seam under the hero. A border would be the hard edge; this is the
+ * page's own ground rising through the bottom of the wash, so the hero ends
+ * without a line anywhere.
+ */
+.public-site[data-theme="aurora"] .aurora-wash::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 120px;
+  background-image: linear-gradient(to bottom, transparent, var(--color-page));
+  pointer-events: none;
+}
+
+/* -------------------------------------------------------------- the frame */
+
+/*
+ * The glass frame around the product and the banner: an opaque card under a
+ * translucent rim, lifted by a wide soft shadow in the brand's own colour.
+ * The rim is `box-shadow: inset`, not a border, so the frame's box does not
+ * change size and nothing reflows when a theme is switched.
+ */
+.public-site[data-theme="aurora"] .aurora-frame {
+  background-color: var(--color-card);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-brand-600) 14%, transparent),
+    0 1px 2px color-mix(in srgb, var(--color-ink) 6%, transparent),
+    0 24px 60px -24px color-mix(in srgb, var(--color-brand-600) 28%, transparent);
+}
+
+/* The closing card's rim, the same idea at the foot of the page. */
+.public-site[data-theme="aurora"] .aurora-close {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-brand-600) 10%, transparent),
+    0 24px 70px -30px color-mix(in srgb, var(--color-accent-600) 26%, transparent);
+}
+
+/* ---------------------------------------------------------------- the card */
+
+/*
+ * Every card in the theme: no border, a hairline ring and a soft lift.
+ *
+ * `--color-card` is left alone, which is what keeps the card-ground rule
+ * satisfied — the public site paints a card→surface-2 gradient over
+ * `bg-card`, and this only changes what is *around* that ground.
+ */
+.public-site[data-theme="aurora"] [data-card],
+.public-site[data-theme="aurora"] [data-tile] {
+  border-color: transparent;
+  border-radius: 20px;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 7%, transparent),
+    0 1px 2px color-mix(in srgb, var(--color-ink) 4%, transparent),
+    0 14px 34px -20px color-mix(in srgb, var(--color-ink) 18%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .public-site[data-theme="aurora"] [data-tile]:hover {
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--color-brand-600) 22%, transparent),
+      0 1px 2px color-mix(in srgb, var(--color-ink) 4%, transparent),
+      0 20px 44px -22px color-mix(in srgb, var(--color-brand-600) 26%, transparent);
+  }
+}
+
+/* --------------------------------------------------------------- the tiles */
+
+/*
+ * The idiom: a tile is airier than the base, its icon is drawn large and
+ * tinted, and its title sits beside the icon on one line — the rule that a
+ * tile's icon and heading share a line, in every theme (the client,
+ * 2026-09-19).
+ */
+.public-site[data-theme="aurora"] [data-collection] [data-tile-body] { padding: 1.5rem; }
+
+.public-site[data-theme="aurora"] [data-collection] [data-tile-icon] {
+  border-radius: 16px;
+  border-color: transparent;
+  background-color: color-mix(in srgb, var(--tile-hue, var(--color-brand-600)) 10%, var(--color-card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tile-hue, var(--color-brand-600)) 20%, transparent);
+}
+
+.public-site[data-theme="aurora"] [data-collection] [data-tile-title] {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* The closing link on a tile, shown by the idioms that end on one. */
+.public-site[data-theme="aurora"] [data-collection] [data-tile-cta] {
+  display: inline-flex;
+  color: var(--color-brand-ink);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------- the buttons */
+
+/* Pills, everywhere — the one geometry decision the theme makes out loud. */
+.public-site[data-theme="aurora"] .btn { border-radius: 999px; }
+
+/*
+ * The header's call carries the same lift as a frame, so the one filled
+ * thing on a wash does not read as a flat rectangle dropped on it.
+ */
+.public-site[data-theme="aurora"] .aurora-cta {
+  box-shadow: 0 10px 24px -12px color-mix(in srgb, var(--color-brand-600) 60%, transparent);
+}
+
+/* ----------------------------------------------------------------- headings */
+
+/* Display type a touch lighter and tighter than the house face sets it. */
+.public-site[data-theme="aurora"] .display-1,
+.public-site[data-theme="aurora"] .display-2,
+.public-site[data-theme="aurora"] .display-3 {
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}

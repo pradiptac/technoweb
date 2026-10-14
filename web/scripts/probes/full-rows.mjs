@@ -17,7 +17,7 @@
 import { chromium } from "playwright";
 import { BASE, signInAsStaff } from "../shared.mjs";
 
-const THEMES = (process.env.THEMES ?? "classic,editorial,datacenter,launch,terminal,enterprise,summit,horizon,canvas,sentinel,vantage,keystone").split(",");
+const THEMES = (process.env.THEMES ?? "classic,editorial,datacenter,launch,terminal,enterprise,summit,horizon,canvas,sentinel,vantage,keystone,aurora,atelier").split(",");
 const WIDTHS = [1920, 1440, 1024, 390];
 const b = await chromium.launch();
 const page = await b.newPage({ viewport: { width: 1440, height: 900 } });

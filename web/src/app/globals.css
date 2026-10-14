@@ -3525,6 +3525,41 @@ summary:focus-visible {
     to { clip-path: inset(0 0 0 0); opacity: 1; }
   }
 
+  /*
+   * swell: the logos breathe — each eases up a little and settles, the row
+   * running left to right, `--n` marks to a cycle. Aurora's, and the softest
+   * thing a strip does here: `scale` alone, so nothing moves a box and no
+   * computed colour changes for the contrast audit to read. **It rests at
+   * full opacity**: a strip that sits permanently dimmed is a dimmer logo
+   * row than every other theme draws, and the probe's grid check — a grid
+   * has finished its entrance, so the item is visible — is right to fail it.
+   */
+  [data-strip-mode="swell"][data-aos-animate] .strip-grid > li {
+    animation: strip-swell calc(var(--n, 8) * 520ms) ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 520ms);
+  }
+  @keyframes strip-swell {
+    0%, 16%, 100% { scale: 1; }
+    8% { scale: 1.07; }
+  }
+
+  /*
+   * press: each logo lands stamped — down from a touch oversized onto the
+   * line, one after another. Atelier's, after a letterpress: the overshoot
+   * is in the easing rather than in a bounce keyframe, so it reads as weight
+   * rather than as a wobble.
+   */
+  html[data-aos-ready] [data-strip-mode="press"]:not([data-aos-animate]) .strip-grid > li { opacity: 0; }
+  [data-strip-mode="press"][data-aos-animate] .strip-grid > li {
+    animation: strip-press 420ms cubic-bezier(.2, .9, .3, 1.25) both;
+    animation-delay: calc(var(--i, 0) * 90ms);
+  }
+  @keyframes strip-press {
+    from { opacity: 0; scale: 1.14; }
+    60% { opacity: 1; }
+    to { opacity: 1; scale: 1; }
+  }
+
   /* pulse: once in view, a brand ring passes from logo to logo, `--n` items to a cycle. */
   [data-strip-mode="pulse"] .strip-grid > li { border-radius: var(--radius); }
   [data-strip-mode="pulse"][data-aos-animate] .strip-grid > li {
