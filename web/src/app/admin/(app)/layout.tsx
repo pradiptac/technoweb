@@ -24,6 +24,7 @@ import { Tour } from "@/components/ui/tour";
 import { TableView } from "./table-view";
 import { brandName } from "@/lib/brand";
 import { TopBar } from "@/components/app-shell/top-bar";
+import { CopilotDrawer } from "@/components/admin/copilot-drawer";
 import { HelpDrawer } from "@/components/admin/help-drawer";
 import { IconAccessCard, IconBook, IconExternal } from "@/components/icons";
 import { IconSparkle } from "@/components/icons-ui";
@@ -166,6 +167,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Suspense fallback={null}>
             <HelpDrawer />
           </Suspense>
+          {/* Ask ALTIS (0.177.0): a question about this install, answered out
+              of its own figures. It reads no search params, so no Suspense. */}
+          <CopilotDrawer />
           <SchemeToggle area="console" className="sm:mr-1.5" />
 
           {/* "View site" is always a new tab (the client, 2026-09-28):
@@ -181,6 +185,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               { label: "Your account", href: "/admin/profile", icon: <IconAccessCard /> },
               { label: "View site", href: "/", external: true, icon: <IconExternal /> },
               { label: "Help for this screen", href: "#help", event: "tw:help", phoneOnly: true, icon: <IconBook /> },
+              { label: "Ask ALTIS", href: "#copilot", event: "tw:copilot", phoneOnly: true, icon: <IconSparkle /> },
             ]}
             signOut={logoutAction}
           />

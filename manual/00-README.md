@@ -38,6 +38,8 @@ update. `config/` and `storage/` are yours: an update never touches them.
 | Offering datasheets, drivers and firmware | [26 — Downloads](26-downloads.md) |
 | Bringing in a site that is not WordPress | [27 — Importing a website](27-importing-a-website.md) |
 | Showing your service centres on a map | [28 — The support network](28-support-network.md) |
+| Posting the work you invite bids on | [29 — Tenders](29-tenders.md) |
+| Asking the console a question | [30 — Ask ALTIS](30-ask-altis.md) |
 
 ## The two addresses
 

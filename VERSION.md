@@ -21,6 +21,32 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.177.0 — 2026-10-14
+
+**Ask ALTIS**: a question typed in the console, answered out of this
+install's own figures. The **✦** beside the **?** in the top bar — the help
+drawer says how a screen works, this one says what is happening now.
+
+- **"How many tickets are open?"** comes back with the figure, a sentence,
+  and a link to the queue filtered the way it was counted. About twenty
+  questions, covering the support queue, leads, orders, stock, what the shop
+  has taken, content still in draft, customers waiting for approval and
+  whether email is going out.
+- **What a person is shown depends on their account.** A support engineer is
+  offered questions about tickets, a store manager questions about orders and
+  stock; a question a role cannot ask does not exist for it, so there is no
+  wording that gets the figure out of it.
+- **It needs no AI key.** The words are matched first and that is enough
+  almost always, so the feature works, costs nothing and answers in
+  milliseconds on an install with nothing configured.
+- **With the AI assistant on, all the model does is pick which question was
+  asked.** It is shown the list of question labels and answers with one
+  number; it never sees a figure, a record or a word of anybody's data,
+  cannot compose a query, and nothing it returns is executed or rendered.
+  Every figure and every sentence is built from an existing scope — the same
+  expression the screen the answer links to uses, so the two cannot drift.
+  The question it answered is printed above the figure, which is what makes a
+  misclassification something a person sees.
 ## 0.176.0 — 2026-10-14
 
 **The shop makes its own GST invoice**, and the tax behind it is yours to

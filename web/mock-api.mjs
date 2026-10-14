@@ -543,6 +543,26 @@ const storeProducts = [
 ];
 
 /*
+ * Ask ALTIS's fixed question list (0.177.0). Every figure and every sentence
+ * in the real one is built in PHP from this install's own rows; here they are
+ * constants, because the mock proves the shape of the wire and not the
+ * arithmetic. `words` is the vocabulary the asking is scored against.
+ */
+const MOCK_COPILOT = [
+  { key: 'tickets_open', label: 'How many tickets are open?', words: 'ticket open outstanding queue support', figure: 7, sentence: '7 tickets are open.', href: '/admin/tickets?open=1' },
+  { key: 'tickets_overdue', label: 'Which tickets are overdue?', words: 'ticket overdue late sla breached past due', figure: 2, sentence: '2 tickets are past their due time.', href: '/admin/tickets?overdue=1' },
+  { key: 'tickets_unassigned', label: 'How many tickets have nobody on them?', words: 'ticket unassigned nobody assigned owner', figure: 3, sentence: '3 tickets have nobody assigned.', href: '/admin/tickets?unassigned=1' },
+  { key: 'leads_new', label: 'How many new leads are waiting?', words: 'lead new enquiry enquiries waiting prospect', figure: 4, sentence: '4 leads are new.', href: '/admin/leads?status=new' },
+  { key: 'orders_awaiting_dispatch', label: 'How many orders are waiting to be sent?', words: 'order dispatch send ship shipping waiting parcel', figure: 5, sentence: '5 orders are waiting to be dispatched.', href: '/admin/store/orders?status=confirmed' },
+  { key: 'orders_unpaid', label: 'How many orders are unpaid?', words: 'order unpaid payment owed outstanding money', figure: 1, sentence: '1 order is unpaid.', href: '/admin/store/orders?unpaid=1' },
+  { key: 'store_out_of_stock', label: 'What is out of stock?', words: 'stock out shelf empty product inventory', figure: 2, sentence: '2 products are out of stock.', href: '/admin/store/products?out_of_stock=1' },
+  { key: 'store_revenue_month', label: 'How much has the shop taken this month?', words: 'revenue taken sales money shop month turnover', figure: '₹2,45,000', sentence: 'The shop has taken ₹2,45,000 this month, across 12 paid orders.', href: '/admin/store/reports' },
+  { key: 'content_drafts', label: 'What is still in draft?', words: 'draft unpublished content page post waiting', figure: 6, sentence: '6 records are still drafts.', href: '/admin/pages?status=draft' },
+  { key: 'customers_pending', label: 'How many customers are waiting for approval?', words: 'customer pending approval waiting account register', figure: 2, sentence: '2 customers are waiting for approval.', href: '/admin/customers?status=pending' },
+  { key: 'mail_queue', label: 'Is email going out?', words: 'mail email queue sending delivery stuck scheduler', figure: 0, sentence: 'Nothing is waiting in the mail queue.', href: null },
+];
+
+/*
  * "Shop the videos" (0.140.0). Two products carry a video — the first a YouTube
  * id with an uploaded-poster-less facade, the third another — and
  * `storeVideoRows()` is the mock's `VideoShelf`: one tile per product, its
@@ -6141,6 +6161,51 @@ createServer(async (req, res) => {
         ['legal', 'Have the privacy and terms pages reviewed', '/admin/pages', false],
       ].map(([key, label, href, done]) => ({ key, label, hint: '', href, done }));
       return json(res, 200, { data: { steps, done: steps.filter((s) => s.done).length, total: steps.length } });
+    }
+    /*
+     * Ask ALTIS (0.177.0). The console's drawer reads its suggestions from
+     * here and nothing of its own, so the mock has to answer both calls or
+     * the drawer renders empty against it.
+     *
+     * The matching is the words' first pass only — the real one has a model
+     * behind it, and this file is a contract rather than a second
+     * implementation.
+     */
+    if (p === '/admin/copilot/questions') {
+      return json(res, 200, { data: MOCK_COPILOT.map(({ key, label }) => ({ key, label })), meta: { ai: false } });
+    }
+    if (p === '/admin/copilot/ask' && req.method === 'POST') {
+      const asked = String((await readJsonBody(req))?.question || '').toLowerCase();
+      if (!asked.trim()) return json(res, 422, { message: 'A question is required.', errors: { question: ['A question is required.'] } });
+      // The same noise list and the same crude singularisation as `Copilot`:
+      // the mock has to agree with the real one about which question an
+      // asking is, or the console looks right against it and wrong in life.
+      const NOISE = ['how', 'many', 'much', 'what', 'which', 'who', 'is', 'are', 'the', 'a', 'an',
+        'do', 'does', 'did', 'we', 'i', 'my', 'me', 'have', 'has', 'there', 'any',
+        'of', 'to', 'in', 'on', 'for', 'and', 'or', 'show', 'tell', 'give', 'list',
+        'please', 'now', 'currently', 'right'];
+      const read = (text) => [...new Set(text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)
+        .map((w) => (w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w)))].filter((w) => !NOISE.includes(w));
+      const words = read(asked);
+      let best = null;
+      let score = 0;
+      for (const q of MOCK_COPILOT) {
+        const vocabulary = read(`${q.words} ${q.label}`);
+        const hits = words.filter((w) => vocabulary.includes(w)).length;
+        const s2 = words.length ? hits / words.length : 0;
+        if (s2 > score) { best = q; score = s2; }
+      }
+      if (!best || score === 0) {
+        return json(res, 200, { data: {
+          matched: false, key: null, question: null, source: 'none', figure: null,
+          sentence: 'That is not something I can answer. Here is what I can tell you:',
+          href: null, suggestions: MOCK_COPILOT.slice(0, 6).map(({ key, label }) => ({ key, label })),
+        } });
+      }
+      return json(res, 200, { data: {
+        matched: true, key: best.key, question: best.label, source: 'words',
+        figure: best.figure, sentence: best.sentence, href: best.href, suggestions: [],
+      } });
     }
     if (p === '/admin/system/status') {
       return json(res, 200, { data: {

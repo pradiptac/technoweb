@@ -21,6 +21,7 @@ export const TOURS: Record<string, TourDef> = {
       { target: '[data-tour="customise"]', title: "Make it yours", body: "Hide panels you don't use and put the rest in your own order." },
       { target: '[aria-keyshortcuts="Control+K Meta+K"]', title: "Find anything", body: "Press Ctrl K (⌘ K on a Mac) to jump to any screen, setting or record." },
       { target: '[data-tour="help"]', title: "Help on every screen", body: "Press ? for this screen's part of the manual, and to take a tour again." },
+      { target: '[data-tour="copilot"]', title: "Ask a question", body: "Type \"how many tickets are open\" and get the figure, with a link to the list behind it." },
     ],
   },
   tickets: {

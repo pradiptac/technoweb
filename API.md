@@ -5701,6 +5701,50 @@ that has none, so the shape does not change with the data.
 
 ---
 
+## Admin — the console copilot
+
+Ask ALTIS (0.177.0, `docs/copilot.md`): a question typed in the console,
+answered out of this install's own figures. **Staff-wide, not role-gated** —
+the `/admin/search` rule, since every role has questions of its own — and the
+controller narrows the list to the ones this account may ask before anything
+else happens.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/copilot/questions` | What **this account** may ask: `{data: [{key, label}], meta: {ai}}`, in the drawer's suggestion order. `meta.ai` is whether a phrasing the words miss can still be matched — the SEO assistant switched on, with a key, under its daily cap. It is drawn as a note and never as a refusal: the copilot answers either way |
+| `POST` | `/admin/copilot/ask` | `question` (required, max 300). Throttled 30/min. **200 always** with the answer below; a blank or over-long question is the ordinary 422 on `question` |
+
+**The answer** is `{matched, key, question, source, figure, sentence, href,
+suggestions}`:
+
+- `matched` true: `key` and `question` name the question that was answered —
+  **the label is sent back so the console can print what it answered above the
+  figure**, which is what makes a misclassification visible rather than silent.
+  `figure` is the number (or a formatted amount, e.g. `"₹2,45,000"`),
+  `sentence` repeats it in words, `href` is the console path to the list that
+  produced it, and `suggestions` is `[]`.
+- `matched` false: `key`, `question`, `figure` and `href` are null, `sentence`
+  says so, and `suggestions` is the list of what this account **can** ask —
+  the answer to "I cannot answer that" is the list, not an apology.
+- `source` is `words`, `model` or `none`, so the console can be honest about
+  which answered.
+- **`href` is null whenever `figure` is 0**, and the sentence is a written-out
+  zero sentence rather than the plural one with a 0 in it. "Open the list" on
+  a list with nothing in it is not an answer to "is anything waiting".
+
+**The model's entire output is an index.** It is shown the labels of the
+questions this account may ask and answers `{"index": n}` or `{"index": null}`;
+it never sees a figure, a record or a word of anybody's data, cannot compose a
+query, and nothing it returns is executed, interpolated or rendered. Every
+figure and every sentence is built in PHP from an **existing scope** — the same
+expression the screen the answer links to uses, so the two cannot drift.
+
+**The rules go first and usually win**, so neither route needs a key: the words
+are matched first (noise dropped, crudely singularised, scored against the
+asking's own length), the model is the fallback below `SURE` (0.45), and a weak
+word match is the last resort. A refusal, an outage, an unreadable reply and an
+index out of range are all free and all fall through — a run is counted against
+the SEO assistant's daily cap only when it is used.
 ## Admin — staff (`role:admin`)
 
 | Method | Path | Notes |

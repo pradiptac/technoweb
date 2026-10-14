@@ -554,6 +554,13 @@ Built in, measured, and never allowed to guess.
   with delete only. Each row is handled on its own with the rules of its edit
   screen, a row that cannot move stays put with the reason shown, and a bulk
   delete is written to the activity log.
+- **Ask ALTIS**: type a question in the console — "how many tickets are
+  open", "what is waiting to be dispatched", "how much has the shop taken
+  this month" — and get the figure, a sentence and a link to the screen that
+  shows it. About twenty questions, scoped to what the account can open, read
+  from the same code as the list each one links to. It works with no AI key;
+  with one, an unusual wording is understood too, and all the model ever does
+  is pick which question was asked.
 - **Client-side error reporting** grouped by fingerprint, re-opening itself
   if a fix does not hold.
 - **Your own fonts**: upload the company's typeface and set headlines and

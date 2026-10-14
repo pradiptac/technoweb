@@ -167,6 +167,7 @@ Contents:
   - The console and portal shell — `docs/console-portal.md`
   - The support network — `docs/support-network.md`
   - Help, tours, Simple view and empty states — `docs/help-and-tours.md`
+  - Ask ALTIS, the console copilot — `docs/copilot.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
 ### Next.js: rendering, caching and data
@@ -3121,6 +3122,15 @@ The "simple to use" layer (0.168.0): the console's "?" drawer built from the man
 - Simple view hides `TabDef.advanced` tabs (set by `buildFormTabs` only: `seo`, `aeo`, a `custom_fields` group) by CSS on `html[data-console-simple]`, stamped before paint — never the open tab or one with an error; panels stay mounted.
 - An empty console list takes `EmptyListAction`: "Clear filters" when the page's own filter params are set, "Add the first …" when it has a `new` route.
 
+### Ask ALTIS, the console copilot — `docs/copilot.md`
+
+A question typed in the console, answered out of this install's own figures (0.177.0). The help drawer says how a screen works; this one says what is happening now.
+
+- **The model's whole output is an index.** It is shown the labels of the questions this account may ask and answers with one number; it never sees a figure, a record or a word of anybody's data, cannot compose a query, and nothing it returns is executed, interpolated or rendered. PHP builds every figure and every sentence. A query-writing copilot answers more and can be trusted with none of it — there is no review step between the model and the number somebody acts on, and the printed question above the figure is what makes a misclassification visible.
+- **The rules go first and usually win** (`Copilot::match()`): words (noise list dropped, crudely singularised, scored against the *asking's* length — against the question's own twenty phrasings every score is near zero), then the model at or below `SURE` (0.45), then a weak word match as a last resort; no overlap at all says so rather than answering a question nobody asked. `source` is `words`/`model`/`none`. It works with no OpenRouter key, and shares the SEO assistant's switch, key, model, daily cap and counter — a run counted only when it is used.
+- **Every question is an existing scope** (`Questions`, twenty of them): `Ticket::open()`, `Lead::overdue()`, `OrderReturn::waiting()`, `StoreProduct::outOfStock()`, `QueueHealth::read()` — the same expression the screen it links to uses, so the two cannot drift. `href` is null and the sentence is written out when the figure is zero: "Open the list" on an empty list is not an answer to "is anything waiting".
+- **Staff-wide routes, narrowed by the controller** (`/admin/copilot/questions`, `/admin/copilot/ask`, throttled) — the `/admin/search` rule: `Questions::for($roles)` runs before the words are matched and before the model is shown anything, so a support engineer never learns a revenue question exists.
+- The drawer is `Modal size="side"` beside the help one, `IconSparkle` from `sm`, the account menu below it, `tw:copilot` from anywhere; **every word in it is the API's** and nothing a model wrote is rendered. Its route handler is `no-store` both ways and its `POST` checks `Origin` although it writes nothing — it can reach a model, and a cross-site page spending somebody's cap is what the check costs one line to prevent.
 ## Conventions
 
 - Never hard-code a hex. If a colour is not in `globals.css`, it does not ship.
