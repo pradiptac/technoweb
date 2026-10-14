@@ -10,6 +10,7 @@ import { SchemeSync } from "@/components/ui/scheme-sync";
 import { SITE } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
 import { customFontPreloads, customFontsCss, customFontsFor, usesCustomFonts } from "@/lib/custom-fonts";
+import { googleFontsCss, googleFontsFor } from "@/lib/google-fonts";
 import { brandName } from "@/lib/brand";
 import { pwaFor } from "@/lib/pwa";
 import "./globals.css";
@@ -159,6 +160,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           change with a palette. Absent entirely on a site with no font of
           its own, so that site's head is what it was.
         */}
+        {/*
+          Google fonts copied to this server (0.179.0, `lib/google-fonts.ts`):
+          the rules and `--font-g-<slug>` variables for every installed one.
+          Absent while none is installed.
+        */}
+        {googleFontsFor(settings).length > 0 && (
+          <style id="google-fonts" dangerouslySetInnerHTML={{ __html: googleFontsCss(googleFontsFor(settings)) }} />
+        )}
         {usesCustomFonts(settings) && (
           <>
             {customFontPreloads(settings).map((href) => (

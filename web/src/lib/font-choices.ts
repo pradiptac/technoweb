@@ -1,4 +1,5 @@
 import { customFontVariable } from "./custom-fonts.ts";
+import { googleFontVariable } from "./google-fonts.ts";
 
 /**
  * The faces an editor may choose, by id — nineteen, all vendored.
@@ -69,6 +70,12 @@ export function fontFor(id: string | null | undefined, role: "display" | "body")
   // can answer without knowing what has been uploaded.
   const custom = customFontVariable(id);
   if (custom) return { variable: custom, label: id === "custom-1" ? "Your font 1" : "Your font 2" };
+
+  // A Google font copied to this server (0.179.0, `lib/google-fonts.ts`): the
+  // root layout declares `--font-g-<slug>` for every installed one, and the
+  // API refuses to save an id that is not installed.
+  const google = googleFontVariable(id);
+  if (google) return { variable: google, label: id!.slice(2).replace(/-/g, " ") };
 
   const choice = FONT_CHOICES.find((f) => f.id === id && f[role]);
   const fallback = FONT_CHOICES.find((f) => f.id === (role === "display" ? DEFAULT_DISPLAY_FONT : DEFAULT_BODY_FONT))!;
