@@ -85,3 +85,30 @@ export function slugsIn(html: string, kind: ShortcodeKind): string[] {
       .map((s) => (s as { slug: string }).slug),
   )];
 }
+
+/**
+ * `[icon name="ms:router"]` inside a paragraph, as an inline svg (0.179.0,
+ * docs/editor.md "Icons in text").
+ *
+ * **The one shortcode expanded by substitution.** The rule above — a shortcode
+ * becomes a component, never markup — exists because the sanitiser has
+ * already run, so anything written in afterwards is trusted. An icon has to
+ * sit *inside* a sentence, where the segment splitter cannot reach without
+ * parsing HTML. So the substitution is allowed on one condition, held by the
+ * pattern: the only thing written into the markup is a name made of
+ * `[a-z0-9_]`, at most 37 characters. No quote, bracket, ampersand or space
+ * can come out of that, so it cannot leave the attribute it is written
+ * into, and whatever else a malformed shortcode contains stays literal text.
+ * `shortcodes.check.mjs` pins both halves.
+ *
+ * Quotes may arrive entity-encoded from the editor. Only Google icons are
+ * offered here: a site icon is a component with no file to point at.
+ */
+const INLINE_ICON = /\[icon\s+name=(?:"|'|&quot;)ms:([a-z0-9_]{1,37})(?:"|'|&quot;)\s*\]/g;
+
+export function expandInlineIcons(html: string): string {
+  return html.includes("[icon")
+    ? html.replace(INLINE_ICON, (_match, name: string) =>
+      `<svg class="prose-icon" viewBox="0 -960 960 960" fill="currentColor" aria-hidden="true"><use href="/icons/material/${name}.svg#i"/></svg>`)
+    : html;
+}

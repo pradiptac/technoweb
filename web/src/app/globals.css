@@ -5501,3 +5501,11 @@ html[data-console-motion="subtle"] [data-console] :is(.btn, [data-press]):active
   @keyframes saved-in { from { opacity: 0; scale: .9; } }
   @keyframes badge-bump { 50% { scale: 1.25; } }
 }
+
+/* A Google icon written into a sentence (0.179.0): the size of the text, in its colour. */
+.prose-icon {
+  display: inline-block;
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.2em;
+}
