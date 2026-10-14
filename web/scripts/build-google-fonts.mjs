@@ -23,7 +23,7 @@ const rows = familyMetadataList
   // are hundreds of files each, which no install can copy in one request.
   .filter((f) => f.weights.length && f.slug.length <= 62 && !f.slug.startsWith("noto-"))
   .sort((a, b) => a.popularity - b.popularity)
-  .map(({ popularity, ...f }) => f);
+  .map((f) => ({ family: f.family, slug: f.slug, category: f.category, weights: f.weights, subsets: f.subsets }));
 
 writeFileSync(new URL("../../api/resources/google-fonts.json", import.meta.url), JSON.stringify(rows));
 console.log(`Wrote ${rows.length} families.`);
