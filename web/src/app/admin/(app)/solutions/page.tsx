@@ -7,7 +7,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
-import { iconMap, IconNetwork, type IconName } from "@/components/icons";
+import { IconByKey, IconNetwork } from "@/components/icons";
 import { getSolutions, type SolutionQueryParams } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -37,9 +37,8 @@ function FilterField({ label, htmlFor, children }: { label: string; htmlFor: str
 
 /** The stored icon is a name; only names in iconMap render on the site. */
 function RowIcon({ name }: { name: string | null }) {
-  const Icon = name && name in iconMap ? iconMap[name as IconName] : IconNetwork;
   return (
-    <IconTile size="sm"><Icon /></IconTile>
+    <IconTile size="sm"><IconByKey name={name} Fallback={IconNetwork} /></IconTile>
   );
 }
 

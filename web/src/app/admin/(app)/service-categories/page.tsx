@@ -8,7 +8,7 @@ import { Input, Select, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
-import { iconMap, IconLayers, type IconName } from "@/components/icons";
+import { IconByKey, IconLayers } from "@/components/icons";
 import { getServiceCategoryList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -21,9 +21,8 @@ export const metadata = buildMetadata({
 });
 
 function RowIcon({ name }: { name: string | null | undefined }) {
-  const Icon = name && name in iconMap ? iconMap[name as IconName] : IconLayers;
   return (
-    <IconTile size="sm"><Icon /></IconTile>
+    <IconTile size="sm"><IconByKey name={name} Fallback={IconLayers} /></IconTile>
   );
 }
 

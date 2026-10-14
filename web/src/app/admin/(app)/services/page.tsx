@@ -9,7 +9,7 @@ import { Input, Select, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
-import { iconMap, IconGlobe, type IconName } from "@/components/icons";
+import { IconByKey, IconGlobe } from "@/components/icons";
 import { getServiceCategoryOptions, getServices } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -22,9 +22,8 @@ export const metadata = buildMetadata({ title: "Services", path: "/admin/service
 const statusTone = { published: "resolved", draft: "progress", archived: "closed" } as const;
 
 function RowIcon({ name }: { name: string | null }) {
-  const Icon = name && name in iconMap ? iconMap[name as IconName] : IconGlobe;
   return (
-    <IconTile size="sm"><Icon /></IconTile>
+    <IconTile size="sm"><IconByKey name={name} Fallback={IconGlobe} /></IconTile>
   );
 }
 

@@ -12,7 +12,7 @@ import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { HomeSection as Bg, homeSeeds } from "@/components/ui/section-bg";
 import { SliderFor } from "@/components/ui/slider-for";
-import { IconArrowRight, IdentityIcon, iconMap } from "@/components/icons";
+import { IconArrowRight, IdentityIcon, isIdentityIcon } from "@/components/icons";
 import { statFigures } from "@/components/ui/stat";
 import { statLookFor } from "@/lib/stat-look";
 import { IconTile } from "@/components/ui/icon-tile";
@@ -104,7 +104,7 @@ export function Home({
             <dl className={cn("stat-figures grid divide-dark-line font-mono sm:divide-x", stripColumns(stats.length))} {...statFigures(look, true)}>
               {stats.map((s, i) => (
                 <div key={s.label} className={cn("flex items-baseline gap-3 py-3 sm:py-4 sm:px-6", i === 0 && "sm:pl-0")}>
-                  {s.icon && s.icon in iconMap
+                  {s.icon && isIdentityIcon(s.icon)
                     ? <IdentityIcon name={s.icon} className="size-4 shrink-0 self-center" />
                     : <i aria-hidden className="size-1.5 shrink-0 self-center rounded-full bg-brand-300" />}
                   <dd className="whitespace-nowrap font-mono"><StatValue value={s.value} /></dd>

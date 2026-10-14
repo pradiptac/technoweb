@@ -1,7 +1,7 @@
 import "server-only";
 import { createElement, type ReactNode } from "react";
 import { publicApi } from "@/lib/api";
-import { IdentityIcon, iconMap, type IconName } from "@/components/icons";
+import { IconByKey, IdentityIcon, iconMap, isIdentityIcon } from "@/components/icons";
 import { IconTile } from "@/components/ui/icon-tile";
 import type { NavNode } from "@/types/api";
 import { navKey } from "@/lib/nav-key";
@@ -23,8 +23,7 @@ import { groupServices } from "@/lib/service-groups";
  * server-side; an unknown one yields null, and null renders no icon rather
  * than throwing — the rule the mega panel has always followed.
  */
-const isIcon = (value: string | null | undefined): value is IconName =>
-  Boolean(value) && (value as string) in iconMap;
+const isIcon = (value: string | null | undefined): value is string => isIdentityIcon(value);
 
 /** The identity tile the mega panel draws, at its default size. */
 const tileFor = (name: string | null): ReactNode =>
@@ -45,7 +44,7 @@ const colourGlyphFor = (name: string | null | undefined): ReactNode =>
 
 /** A bare glyph, for the flat bars — sized by the slot it sits in. */
 const glyphFor = (name: string | null | undefined): ReactNode =>
-  isIcon(name) ? createElement(iconMap[name], { className: "size-4" }) : null;
+  isIcon(name) ? createElement(IconByKey, { name, Fallback: iconMap.network, className: "size-4" }) : null;
 
 /**
  * The mega-menu contents, read from the CMS rather than hard-coded, so adding

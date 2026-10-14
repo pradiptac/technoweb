@@ -7,7 +7,7 @@ import { Input, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { EmptyListAction } from "@/components/admin/empty-list-action";
 import { Pagination } from "@/components/ui/pagination";
-import { iconMap, IconSwitch, type IconName } from "@/components/icons";
+import { IconByKey, IconSwitch } from "@/components/icons";
 import { getProductCategoryList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -20,9 +20,8 @@ export const metadata = buildMetadata({
 });
 
 function RowIcon({ name }: { name: string | null | undefined }) {
-  const Icon = name && name in iconMap ? iconMap[name as IconName] : IconSwitch;
   return (
-    <IconTile size="sm"><Icon /></IconTile>
+    <IconTile size="sm"><IconByKey name={name} Fallback={IconSwitch} /></IconTile>
   );
 }
 

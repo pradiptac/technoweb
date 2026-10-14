@@ -7,6 +7,7 @@ import {
   Workflow,
   type LucideIcon,
 } from "lucide-react";
+import type { ComponentType, CSSProperties } from "react";
 import { hueFor } from "@/lib/hues";
 import { base, type P } from "./icon-base";
 import { reiconMap } from "./reicon-icons";
@@ -830,8 +831,55 @@ export function IdentityIcon({
   fallback?: IconName;
   className?: string;
 }) {
+  // A Google icon (0.179.0): `ms:<name>`, drawn from our own file, in the
+  // hue its own key gives it — so it is coloured the way an `iconMap` icon is.
+  const google = name ? MATERIAL.exec(name) : null;
+  if (google) return <MaterialIcon name={google[1]} className={className} style={{ color: hueFor(name!) }} />;
+
   const key = (name && name in iconMap ? name : fallback) as IconName;
   const Icon = iconMap[key];
 
   return <Icon className={className} style={{ color: hueFor(key) }} />;
+}
+
+const MATERIAL = /^ms:([a-z0-9_]{1,37})$/;
+
+/** Whether `key` is a well-formed Google icon key, `ms:router`. */
+export function isMaterialKey(key: string | null | undefined): boolean {
+  return Boolean(key && MATERIAL.test(key));
+}
+
+/** Whether `key` is something `IdentityIcon` can draw: an `iconMap` name or a Google icon. */
+export function isIdentityIcon(key: string | null | undefined): boolean {
+  return Boolean(key && (key in iconMap || MATERIAL.test(key)));
+}
+
+/**
+ * A Google icon (Material Symbols Rounded, Apache-2.0), drawn from our own
+ * `/icons/material/<name>.svg` — never from Google (0.179.0, docs/icons.md).
+ * The path carries no fill, so it takes `currentColor` from this element. A
+ * name that is not in the set is a 404 for that file and draws nothing, the
+ * way an `iconMap` key this build does not have does.
+ */
+export function MaterialIcon({ name, className, style }: { name: string; className?: string; style?: CSSProperties }) {
+  return (
+    <svg viewBox="0 -960 960 960" width="24" height="24" fill="currentColor" aria-hidden="true" className={className} style={style}>
+      <use href={`/icons/material/${name}.svg#i`} />
+    </svg>
+  );
+}
+
+/**
+ * The plain (uncoloured) icon for a stored key — an `iconMap` name or a Google
+ * icon — for a screen that draws an icon inside its own tile. A component
+ * rather than a function that returns one: a component made during render is
+ * a new type on every render.
+ */
+export function IconByKey({ name, Fallback, className }: { name: string | null | undefined; Fallback: ComponentType<{ className?: string }>; className?: string }) {
+  const google = name ? MATERIAL.exec(name) : null;
+  if (google) return <MaterialIcon name={google[1]} className={className} />;
+
+  const Icon = name && name in iconMap ? iconMap[name as IconName] : Fallback;
+
+  return <Icon className={className} />;
 }

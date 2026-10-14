@@ -9,7 +9,7 @@ import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { HomeSection as Bg, homeSeeds } from "@/components/ui/section-bg";
 import { SliderFor } from "@/components/ui/slider-for";
-import { IconArrowRight, IdentityIcon, iconMap } from "@/components/icons";
+import { IconArrowRight, IdentityIcon, isIdentityIcon } from "@/components/icons";
 import { statFigures } from "@/components/ui/stat";
 import { statLookFor } from "@/lib/stat-look";
 import { heroStats } from "@/content/site";
@@ -106,7 +106,7 @@ export function Home({
               {stats.map((s, i) => (
                 <div key={s.label} className={cn("py-6 sm:px-6", i === 0 && "sm:pl-0")}>
                   <dt className="flex items-center gap-2 text-11-5 uppercase tracking-[.14em] text-muted">
-                    {s.icon && s.icon in iconMap && <IdentityIcon name={s.icon} className="size-4" />}
+                    {s.icon && isIdentityIcon(s.icon) && <IdentityIcon name={s.icon} className="size-4" />}
                     {s.label}
                   </dt>
                   <dd className="mt-1 font-display text-[calc(var(--stat-size)*1.5)] leading-none tracking-[-.02em] text-(--stat-ink)">{s.value}</dd>
