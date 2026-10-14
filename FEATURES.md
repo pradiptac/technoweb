@@ -567,6 +567,9 @@ Built in, measured, and never allowed to guess.
   if a fix does not hold.
 - **Your own fonts**: upload the company's typeface and set headlines and
   text in it, beside nineteen built in.
+- **Google Fonts and Google icons** (0.179.0): any of about 1,700 Google
+  fonts, copied to your own site so visitors never contact Google; about
+  3,900 Google icons in every icon picker and inside page text.
 - **Settings that read at a glance**: everything that is simply on or off is
   a small sliding switch, with a line under it saying what that state means —
   on the settings screens and, since 0.152.0, on every record form too

@@ -177,6 +177,22 @@ You can also do this from a picture that is not your logo: open it in
 **Content → Media**, press **Edit**, and use *Make the site's colours from
 this*. That is for administrators, since the colours are a site setting.
 
+### Google Fonts
+
+Below the two font lists, **Browse Google Fonts for headlines…** and **…for
+body text** open Google's whole library (about 1,700 fonts). Search by name,
+narrow by style, and see each one as a sample line. Press **Install and use**
+and the font is copied to your own site once and chosen in the list; then
+press **Save**.
+
+- Visitors get the font from your own site, never from Google, so no cookie
+  banner or privacy note is needed for it.
+- Very large fonts (Japanese and Chinese ones especially) are refused: they
+  come in hundreds of pieces. Noto fonts are not offered.
+- **Google fonts on this site** lists the ones copied, with their size. Remove
+  one you no longer use; the one chosen in either list cannot be removed until
+  you choose another.
+
 ### Your own fonts
 
 If your company has its own typeface, open **Your own fonts** under the two

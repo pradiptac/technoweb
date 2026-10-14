@@ -28,8 +28,8 @@ menu are separate decisions: switch it off to keep a record on the site but out 
 the navigation. New records have it on by default.
 
 **Icons.** Solutions, services, industries and categories carry an icon,
-chosen from a picker of the site's own icon set. Icons are coloured
-automatically.
+chosen from a picker: the site's own icon set, or **Google icons** (about
+3,900, searched by name). Icons are coloured automatically.
 
 **FAQs and answer blocks.** Most catalogue records take their own questions
 and answers and "answer blocks" (short, direct answers that search engines

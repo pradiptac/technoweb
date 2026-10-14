@@ -314,3 +314,45 @@ is a second lookup rule to keep in step.
 
 `ColourTest`, `LogoColoursTest`, `BrandPaletteTest`, `PaletteFromLogoTest`,
 `LogoBrandTest`.
+
+## Google fonts (0.179.0)
+
+Any Google font can be chosen for headlines or body text, and **a visitor's
+browser never contacts Google**: the API copies the font to this server once
+and the website serves it from its own origin. No consent question, no CSP
+change, nothing breaks while Google is unreachable.
+
+- **The list is committed.** `web/scripts/build-google-fonts.mjs` writes
+  `api/resources/google-fonts.json` from Google's public family metadata (no
+  key); re-run it by hand to refresh. The API searches it
+  (`GoogleFontCatalogue`) so an editor's typing never calls Google and the
+  file never reaches a bundle. **Noto is left out** (the client, 2026-10-14):
+  its CJK families are hundreds of files each.
+- **Install** (`GoogleFonts::install`, `POST /admin/settings/google-fonts`):
+  the CSS2 API asked for 400/600/700 (those the family has; none of them, the
+  nearest to 400 alone) with a Chrome user agent — Google sends WOFF2 only to
+  one, and `SafeHttp::get()` would put its own agent first, so the request is
+  built from `SafeHttp::request()`. Every file URL must be on
+  `fonts.gstatic.com`, start `wOF2` and be under 2 MB. **A family over 60
+  pieces is refused before anything downloads** (`MAX_FACES`): each piece is a
+  download inside one request, and a timed-out request leaves files with no
+  row. A failure deletes what was written; two installs at once resolve to the
+  one row (`UniqueConstraintViolationException`).
+- **The id is `g-<slug>`.** The settings save refuses one that is not
+  installed — unlike a vendored id the website has no face to fall back to.
+  Removing a font in use is refused, naming the role.
+- **Publishing.** `/settings` carries `google_fonts`: every installed font
+  (not only those in use, so the console's live preview can draw one chosen
+  before Save), paths only. `lib/google-fonts.ts` turns it into `@font-face`
+  rules under our family name (`tw-g-<slug>`), each with Google's
+  `unicode-range`, and a `--font-g-<slug>` variable; a path is used only when
+  it has the exact shape the API writes and belongs to its slug, and a range
+  only when it is made of range characters. Files are served by
+  `/font/g/<slug>/<n>.woff2`. `scripts/google-fonts.check.mjs` pins it.
+- **Previews** in the console's font browser go through
+  `/api/admin/google-fonts/preview/<slug>`, which the API answers from a
+  cached Latin face on the private disk (`font-previews/`, pruned after 7 days
+  by `technoware:prune-font-previews`), so the console never contacts Google
+  either.
+- **The site import** offers a Google font by name when the old site's family
+  is in the list and not vendored, and copies it on commit.

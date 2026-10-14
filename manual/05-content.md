@@ -117,6 +117,10 @@ lists, links, tables, colours, alignment, pictures, video and a code view.
   14).
 - **Video** can be embedded from YouTube or Vimeo only. Other sites are
   removed when you save.
+- **Icon** inserts one of Google's icons into the text, the size and colour
+  of the words around it. Search for it by name ("phone", "shield", "router").
+  It shows on the page as the icon; in the editor it reads
+  `[icon name="ms:…"]`.
 - **Layout** inserts one of eight picture-and-text arrangements, with a
   placeholder picture and sample words for you to replace. On a phone the
   two columns stack.

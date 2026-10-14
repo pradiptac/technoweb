@@ -21,6 +21,26 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.179.0 — 2026-10-15
+
+**Google Fonts and Google icons** — copied to this site, so a visitor's
+browser never contacts Google.
+
+- **Any Google font** for headlines or body text: Settings → Colour palette →
+  **Browse Google Fonts…**, search, see a sample, **Install and use**. The
+  font is copied to this server once and served from it — no consent
+  question, nothing breaks when Google is unreachable. Noto is not offered,
+  and a font in over 60 pieces (Japanese, Chinese) is refused before
+  anything downloads.
+- **Google icons** (Material Symbols, Rounded): a **Google icons** tab in
+  every icon picker — solutions, services, industries, categories, menus,
+  page sections — about 3,900 of them, drawn in each icon's own colour like
+  the site's own set.
+- **Icons in text**: an **Icon** button in the page and blog editor puts a
+  Google icon inside a sentence, the size and colour of the words.
+- **The site import** offers the old site's Google font by name and copies it
+  when the brand is accepted.
+
 ## 0.178.0 — 2026-10-14
 
 **Switching between "prices include GST" and "GST added" no longer changes

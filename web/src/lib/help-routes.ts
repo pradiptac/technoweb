@@ -64,7 +64,7 @@ export const HELP_ROUTES: { prefix: string; sections: string[] }[] = [
   { prefix: "/admin/store/coupons", sections: ["07-store#discount-codes"] },
   { prefix: "/admin/store/returns", sections: ["07-store#returns"] },
   { prefix: "/admin/store/reviews", sections: ["07-store#reviews"] },
-  { prefix: "/admin/store/invoicing", sections: ["07-store#tax-and-invoicing", "07-store#typing-prices-and-showing-them", "07-store#orders"] },
+  { prefix: "/admin/store/invoicing", sections: ["07-store#tax-and-invoicing", "07-store#orders"] },
   { prefix: "/admin/store/promo", sections: ["07-store#promo-banners"] },
   { prefix: "/admin/store/videos", sections: ["07-store#product-videos"] },
   { prefix: "/admin/store/tags", sections: ["07-store#tags"] },

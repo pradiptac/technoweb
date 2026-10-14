@@ -7,7 +7,13 @@ conventions and `API.md` for the endpoint reference; this file is just
 
 **In progress:** nothing — the last slice is committed and verified.
 
-**Latest (0.178.0, 2026-10-14):** a stored shop price always includes GST,
+**Latest (0.179.0, 2026-10-15):** Google Fonts and Google icons, both copied
+to this site so a visitor never contacts Google: any Google font (Noto left
+out, families over 60 pieces refused) for headings and body, Material Symbols
+Rounded in every icon picker and inside page text. `docs/theming.md`,
+`docs/icons.md` and `docs/editor.md` carry the rules.
+
+Before it (0.178.0, 2026-10-14): a stored shop price always includes GST,
 and two settings — how the console takes a price and how the website shows
 it — move no money, so a shop can switch between "prices include GST" and
 "GST added" with fifty products and nobody's total changes. `docs/store.md`

@@ -4928,6 +4928,31 @@ with a 422 on its row. `theme_font_display` and `theme_font_body` accept
 `custom-1` and `custom-2` like any other font id. The website serves a font
 file from its own origin at `/font/<name>` (Next, not this API).
 
+**Google fonts** (0.179.0, `role:admin`, `docs/theming.md`). Copied to this
+server once and served from the website's origin; a visitor never contacts
+Google.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/settings/google-fonts` | The installed fonts: `[{id, slug, family, category, faces, bytes, in_use}]`, `id` being `g-<slug>` |
+| `GET` | `/admin/settings/google-fonts/catalogue` | `?q=` (≤ 60), `?category=` (`sans-serif`, `serif`, `display`, `handwriting`, `monospace`), `?page=`. 40 a page, prefix matches first: `{data: [{family, slug, category, weights, subsets, installed}], meta: {total, categories}}`. The committed list; Noto is not in it |
+| `POST` | `/admin/settings/google-fonts` | `{slug}`. Downloads 400/600/700 (those the family has; none of them, the nearest to 400) from Google. **201** `{data: {id, slug, family, faces, bytes}}`, **200** when already installed (nothing downloaded). **422 on `slug`**, one sentence: not in the list; over 60 pieces ("That font comes in N pieces and is too big to copy here…", refused before any download); Google's status; a file off `fonts.gstatic.com`, not WOFF2 or over 2 MB. Nothing is left behind on a refusal. Throttled 10/min |
+| `DELETE` | `/admin/settings/google-fonts/{slug}` | **204**, the files deleted. **422 on `slug`** while `theme_font_display` or `theme_font_body` holds it ("The body font uses this. Choose another first.") |
+| `GET` | `/admin/settings/google-fonts/preview/{slug}` | The family's regular Latin face as `font/woff2`, cached on the private disk for a week. Throttled 120/min |
+
+`theme_font_display` and `theme_font_body` accept `g-<slug>`; **saving one
+that is not installed is a 422** ("Install that font first."). The public
+`/settings` map carries **`google_fonts`**, a JSON string of every installed
+font — `[{id, slug, family, category, faces: [{weight, range, path}]}]`,
+paths only — absent while none is installed.
+
+**Icon keys** (0.179.0, `docs/icons.md`). Every field that stores an icon —
+solutions, services, industries, product and service categories, content
+types, menu items, builder sections, layout widgets, content blocks — takes
+either a site icon name (`shield`) or a Google icon, `ms:` and a Material
+Symbols name of `[a-z0-9_]` at most 37 characters (`ms:router`). Only the
+shape is checked: `^(?:ms:[a-z0-9_]{1,37}|[a-z0-9-]{1,40})$`.
+
 **The `appearance` group is nine keys and all of them are public**, because
 the site cannot paint itself without them. `theme` is a preset id
 (`technoware`, `ocean`, `forest`, `sunset`, `midnight`, `corporate`, `rose`,
