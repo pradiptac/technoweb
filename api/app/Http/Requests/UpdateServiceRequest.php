@@ -8,6 +8,7 @@ use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
 use App\Http\Requests\Concerns\ValidatesRecordSections;
 use App\Models\Service;
+use App\Support\IconKey;
 use App\Support\PageSections\SectionRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -45,7 +46,7 @@ class UpdateServiceRequest extends FormRequest
                 Rule::unique('services', 'slug')->ignore($this->route('service'))],
             'summary' => ['sometimes', 'nullable', 'string', 'max:500'],
             'body' => ['sometimes', 'nullable', 'string'],
-            'icon' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'icon' => ['sometimes', 'nullable', 'string', 'max:40', IconKey::RULE],
             // The tab it is drawn under; null is "Other services".
             'service_category_id' => ['sometimes', 'nullable', 'integer', Rule::exists('service_categories', 'id')],
             // A picture the media library holds, the rule an entry's image

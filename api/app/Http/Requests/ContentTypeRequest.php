@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\ContentType;
+use App\Support\IconKey;
 use App\Support\ReservedSlugs;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -46,7 +47,7 @@ class ContentTypeRequest extends FormRequest
                 Rule::unique('pages', 'slug')],
             // An `iconMap` key; checked for shape only — the map lives in the
             // frontend, which draws nothing for a key it does not know.
-            'icon' => ['sometimes', 'nullable', 'string', 'max:60', 'regex:/^[a-z0-9-]+$/'],
+            'icon' => ['sometimes', 'nullable', 'string', 'max:60', IconKey::RULE],
             'description' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'has_body' => ['sometimes', 'boolean'],
             'has_image' => ['sometimes', 'boolean'],

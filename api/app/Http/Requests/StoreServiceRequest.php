@@ -8,6 +8,7 @@ use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
 use App\Http\Requests\Concerns\ValidatesRecordSections;
 use App\Models\Service;
+use App\Support\IconKey;
 use App\Support\PageSections\SectionRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -44,7 +45,7 @@ class StoreServiceRequest extends FormRequest
             'slug' => ['nullable', 'string', 'max:255', 'alpha_dash', Rule::unique('services', 'slug')],
             'summary' => ['nullable', 'string', 'max:500'],
             'body' => ['nullable', 'string'],
-            'icon' => ['nullable', 'string', 'max:40'],
+            'icon' => ['nullable', 'string', 'max:40', IconKey::RULE],
             // The tab it is drawn under; null is "Other services".
             'service_category_id' => ['nullable', 'integer', Rule::exists('service_categories', 'id')],
             // A picture the media library holds, the rule an entry's image

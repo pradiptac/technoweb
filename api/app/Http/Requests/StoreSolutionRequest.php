@@ -7,6 +7,7 @@ use App\Http\Requests\Concerns\AcceptsCustomFields;
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
 use App\Http\Requests\Concerns\ValidatesRecordSections;
+use App\Support\IconKey;
 use App\Support\PageSections\SectionRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -40,7 +41,7 @@ class StoreSolutionRequest extends FormRequest
             // Plain prose, deliberately not rich text — it renders as a lede.
             'problem_statement' => ['nullable', 'string', 'max:2000'],
             'overview' => ['nullable', 'string'],
-            'icon' => ['nullable', 'string', 'max:40'],
+            'icon' => ['nullable', 'string', 'max:40', IconKey::RULE],
             'hero_image_path' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::enum(PublishStatus::class)],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:65535'],

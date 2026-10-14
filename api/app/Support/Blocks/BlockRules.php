@@ -4,6 +4,7 @@ namespace App\Support\Blocks;
 
 use App\Enums\ContentBlockType;
 use App\Models\Media;
+use App\Support\IconKey;
 use App\Support\LinkPattern;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -29,7 +30,7 @@ final class BlockRules
     public const LINK = LinkPattern::RULE;
 
     /** An `iconMap` key's shape; the frontend draws nothing for one it does not know. */
-    private const ICON = 'regex:/^[a-z0-9-]{1,40}$/';
+    private const ICON = IconKey::RULE;
 
     private const HEX = 'regex:/^#[0-9a-fA-F]{6}$/';
 

@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
+use App\Support\IconKey;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -42,7 +43,7 @@ class StoreProductCategoryRequest extends FormRequest
             'slug' => ['nullable', 'string', 'max:255', 'alpha_dash', Rule::unique('product_categories', 'slug')],
             // Plain text: it renders as the hero lede, never through Prose.
             'description' => ['nullable', 'string', 'max:2000'],
-            'icon' => ['nullable', 'string', 'max:40'],
+            'icon' => ['nullable', 'string', 'max:40', IconKey::RULE],
             'image_path' => ['nullable', 'string', 'max:255'],
             'parent_id' => ['nullable', 'integer', Rule::exists('product_categories', 'id')],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:65535'],

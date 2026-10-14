@@ -6,6 +6,7 @@ use App\Http\Requests\Concerns\AcceptsCustomFields;
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
 use App\Http\Requests\Concerns\ValidatesRecordSections;
+use App\Support\IconKey;
 use App\Support\PageSections\SectionRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -43,7 +44,7 @@ class StoreIndustryRequest extends FormRequest
             'slug' => ['nullable', 'string', 'max:255', 'alpha_dash', Rule::unique('industries', 'slug')],
             'summary' => ['nullable', 'string', 'max:500'],
             'body' => ['nullable', 'string'],
-            'icon' => ['nullable', 'string', 'max:40'],
+            'icon' => ['nullable', 'string', 'max:40', IconKey::RULE],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:65535'],
             // Whether the mega menu may show it. Not the same question as
             // whether it is published: a live record can be deliberately kept

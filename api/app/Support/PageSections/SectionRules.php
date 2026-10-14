@@ -16,6 +16,7 @@ use App\Models\Slider;
 use App\Models\StoreCategory;
 use App\Support\Blocks\BlockRules;
 use App\Support\Countries;
+use App\Support\IconKey;
 use App\Support\Store\VideoShelf;
 use App\Support\ThemeOptions;
 use App\Support\YouTube;
@@ -190,7 +191,7 @@ final class SectionRules
     }
 
     /** An icon's id, as the frontend's identity icons are keyed; `PageDraft` reads it too. */
-    public const ICON_PATTERN = '/^[a-z0-9-]{1,40}$/';
+    public const ICON_PATTERN = IconKey::PATTERN;
 
     private const ICON = 'regex:'.self::ICON_PATTERN;
 

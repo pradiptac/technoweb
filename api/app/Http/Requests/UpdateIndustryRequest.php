@@ -6,6 +6,7 @@ use App\Http\Requests\Concerns\AcceptsCustomFields;
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
 use App\Http\Requests\Concerns\ValidatesRecordSections;
+use App\Support\IconKey;
 use App\Support\PageSections\SectionRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -44,7 +45,7 @@ class UpdateIndustryRequest extends FormRequest
                 Rule::unique('industries', 'slug')->ignore($this->route('industry'))],
             'summary' => ['sometimes', 'nullable', 'string', 'max:500'],
             'body' => ['sometimes', 'nullable', 'string'],
-            'icon' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'icon' => ['sometimes', 'nullable', 'string', 'max:40', IconKey::RULE],
             'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:65535'],
             'show_in_menu' => ['sometimes', 'boolean'],
 
