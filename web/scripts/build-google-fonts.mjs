@@ -19,7 +19,9 @@ const rows = familyMetadataList
     subsets: (f.subsets ?? []).filter((s) => s !== "menu"),
     popularity: f.popularity ?? 99999,
   }))
-  .filter((f) => f.weights.length && f.slug.length <= 62)
+  // No Noto (the client does not need it, 2026-10-14): its CJK families alone
+  // are hundreds of files each, which no install can copy in one request.
+  .filter((f) => f.weights.length && f.slug.length <= 62 && !f.slug.startsWith("noto-"))
   .sort((a, b) => a.popularity - b.popularity)
   .map(({ popularity, ...f }) => f);
 

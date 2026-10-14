@@ -40,7 +40,7 @@ class GoogleFontsTest extends TestCase
     {
         $out = '';
         foreach ($weights as $i => $w) {
-            $out .= "/* latin */\n@font-face {\n  font-family: 'Noto Sans Devanagari';\n  font-style: normal;\n  font-weight: {$w};\n  font-display: swap;\n  src: url(https://fonts.gstatic.com/s/notosansdevanagari/v1/f{$i}.woff2) format('woff2');\n  unicode-range: U+0000-00FF, U+0131;\n}\n";
+            $out .= "/* latin */\n@font-face {\n  font-family: 'Poppins';\n  font-style: normal;\n  font-weight: {$w};\n  font-display: swap;\n  src: url(https://fonts.gstatic.com/s/poppins/v1/f{$i}.woff2) format('woff2');\n  unicode-range: U+0000-00FF, U+0131;\n}\n";
         }
 
         return $out;
@@ -59,18 +59,18 @@ class GoogleFontsTest extends TestCase
         $this->fakeGoogle([400, 600, 700]);
 
         $this->actingAs($this->admin(), 'sanctum')
-            ->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'noto-sans-devanagari'])
+            ->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'poppins'])
             ->assertCreated()
-            ->assertJsonPath('data.id', 'g-noto-sans-devanagari')
+            ->assertJsonPath('data.id', 'g-poppins')
             ->assertJsonPath('data.faces', 3);
 
         $font = GoogleFont::firstOrFail();
         $this->assertSame([400, 600, 700], array_column($font->faces, 'weight'));
         Storage::disk('public')->assertExists($font->faces[0]['path']);
-        $this->assertMatchesRegularExpression('#^fonts/google/noto-sans-devanagari/\d+\.woff2$#', $font->faces[0]['path']);
+        $this->assertMatchesRegularExpression('#^fonts/google/poppins/\d+\.woff2$#', $font->faces[0]['path']);
 
         $published = json_decode($this->getJson('/api/v1/settings')->json('data.google_fonts'), true);
-        $this->assertSame('g-noto-sans-devanagari', $published[0]['id']);
+        $this->assertSame('g-poppins', $published[0]['id']);
         $this->assertSame('U+0000-00FF, U+0131', $published[0]['faces'][0]['range']);
     }
 
@@ -86,7 +86,7 @@ class GoogleFontsTest extends TestCase
         Http::fake(['fonts.googleapis.com/*' => Http::response(str_replace('fonts.gstatic.com', 'evil.example', $this->css([400])), 200)]);
 
         $this->actingAs($this->admin(), 'sanctum')
-            ->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'noto-sans-devanagari'])
+            ->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'poppins'])
             ->assertUnprocessable()->assertJsonValidationErrors('slug');
 
         $this->assertSame(0, GoogleFont::count());
@@ -98,7 +98,7 @@ class GoogleFontsTest extends TestCase
         $this->fakeGoogle([400, 700], '<html>quota</html>');
 
         $this->actingAs($this->admin(), 'sanctum')
-            ->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'noto-sans-devanagari'])
+            ->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'poppins'])
             ->assertUnprocessable();
 
         $this->assertSame([], Storage::disk('public')->allFiles('fonts/google'));
@@ -109,7 +109,7 @@ class GoogleFontsTest extends TestCase
         Http::fake(['fonts.googleapis.com/*' => Http::response('Too many', 429)]);
 
         $this->actingAs($this->admin(), 'sanctum')
-            ->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'noto-sans-devanagari'])
+            ->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'poppins'])
             ->assertUnprocessable()
             ->assertJsonPath('errors.slug.0', 'Google refused the request (429). Try again shortly.');
     }
@@ -127,13 +127,56 @@ class GoogleFontsTest extends TestCase
         Http::assertSent(fn ($r) => str_contains($r->url(), 'fonts.googleapis.com') && preg_match('/wght@\d+&/', urldecode($r->url())));
     }
 
+    public function test_a_family_in_too_many_pieces_is_refused_before_any_download(): void
+    {
+        // Large families (Japanese, Chinese) come as hundreds of unicode-range
+        // slices; copying them in one request overruns the time limit.
+        Http::fake([
+            'fonts.googleapis.com/*' => Http::response($this->css(range(0, 60)), 200),
+            'fonts.gstatic.com/*' => Http::response(self::WOFF2, 200),
+        ]);
+
+        $this->actingAs($this->admin(), 'sanctum')
+            ->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'poppins'])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.slug.0', 'That font comes in 61 pieces and is too big to copy here. Choose a lighter one.');
+
+        Http::assertNotSent(fn ($r) => str_contains($r->url(), 'fonts.gstatic.com'));
+        $this->assertSame(0, GoogleFont::count());
+    }
+
+    public function test_two_installs_at_once_leave_one_row_and_no_error(): void
+    {
+        $css = $this->css([400]);
+        $made = false;
+        Http::fake([
+            'fonts.googleapis.com/*' => Http::response($css, 200),
+            // The other request finishes while this one is still downloading.
+            'fonts.gstatic.com/*' => function () use (&$made) {
+                if (! $made) {
+                    $made = true;
+                    GoogleFont::create(['slug' => 'poppins', 'family' => 'Poppins', 'category' => 'sans-serif', 'faces' => [['weight' => 400, 'range' => 'U+0000', 'path' => 'fonts/google/poppins/0.woff2']], 'bytes' => 1]);
+                }
+
+                return Http::response(self::WOFF2, 200);
+            },
+        ]);
+
+        $this->actingAs($this->admin(), 'sanctum')
+            ->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'poppins'])
+            ->assertOk()
+            ->assertJsonPath('data.id', 'g-poppins');
+
+        $this->assertSame(1, GoogleFont::count());
+    }
+
     public function test_installing_twice_downloads_nothing_new(): void
     {
         $this->fakeGoogle([400]);
         $admin = $this->admin();
-        $this->actingAs($admin, 'sanctum')->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'noto-sans-devanagari'])->assertCreated();
+        $this->actingAs($admin, 'sanctum')->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'poppins'])->assertCreated();
         Http::fake();
-        $this->actingAs($admin, 'sanctum')->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'noto-sans-devanagari'])->assertOk();
+        $this->actingAs($admin, 'sanctum')->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'poppins'])->assertOk();
         Http::assertNothingSent();
     }
 
@@ -141,16 +184,16 @@ class GoogleFontsTest extends TestCase
     {
         $this->fakeGoogle([400]);
         $admin = $this->admin();
-        $this->actingAs($admin, 'sanctum')->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'noto-sans-devanagari']);
-        Setting::updateOrCreate(['key' => 'theme_font_body'], ['group' => 'appearance', 'value' => 'g-noto-sans-devanagari', 'type' => 'string']);
+        $this->actingAs($admin, 'sanctum')->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'poppins']);
+        Setting::updateOrCreate(['key' => 'theme_font_body'], ['group' => 'appearance', 'value' => 'g-poppins', 'type' => 'string']);
         Setting::flushCache();
 
-        $this->actingAs($admin, 'sanctum')->deleteJson('/api/v1/admin/settings/google-fonts/noto-sans-devanagari')
+        $this->actingAs($admin, 'sanctum')->deleteJson('/api/v1/admin/settings/google-fonts/poppins')
             ->assertUnprocessable()->assertJsonPath('errors.slug.0', 'The body font uses this. Choose another first.');
 
         Setting::where('key', 'theme_font_body')->update(['value' => 'inter']);
         Setting::flushCache();
-        $this->actingAs($admin, 'sanctum')->deleteJson('/api/v1/admin/settings/google-fonts/noto-sans-devanagari')->assertNoContent();
+        $this->actingAs($admin, 'sanctum')->deleteJson('/api/v1/admin/settings/google-fonts/poppins')->assertNoContent();
         $this->assertSame([], Storage::disk('public')->allFiles('fonts/google'));
     }
 
@@ -165,10 +208,10 @@ class GoogleFontsTest extends TestCase
     {
         $this->fakeGoogle([400]);
         $admin = $this->admin();
-        $this->actingAs($admin, 'sanctum')->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'noto-sans-devanagari']);
+        $this->actingAs($admin, 'sanctum')->postJson('/api/v1/admin/settings/google-fonts', ['slug' => 'poppins']);
 
-        $row = collect($this->actingAs($admin, 'sanctum')->getJson('/api/v1/admin/settings/google-fonts/catalogue?q=noto+sans+deva')->json('data'))
-            ->firstWhere('slug', 'noto-sans-devanagari');
+        $row = collect($this->actingAs($admin, 'sanctum')->getJson('/api/v1/admin/settings/google-fonts/catalogue?q=poppi')->json('data'))
+            ->firstWhere('slug', 'poppins');
         $this->assertTrue($row['installed']);
     }
 

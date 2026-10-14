@@ -6,6 +6,7 @@ use App\Models\GoogleFont;
 use App\Models\Setting;
 use App\Support\Net\SafeHttp;
 use App\Support\Net\UnsafeUrl;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -25,6 +26,15 @@ final class GoogleFonts
 
     public const MAX_BYTES = 2 * 1024 * 1024;
 
+    /**
+     * The most files one install copies. Google splits a big family into
+     * many unicode-range pieces (a Japanese face is 372 for three weights),
+     * and every piece is a download inside one web request, so a family past
+     * this is refused before anything is fetched rather than timing out with
+     * files left on disk.
+     */
+    public const MAX_FACES = 60;
+
     private const AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
 
     public const PREVIEWS = 'font-previews';
@@ -38,6 +48,18 @@ final class GoogleFonts
 
         $entry = GoogleFontCatalogue::find($slug) ?? self::refuse('Choose a font from the list.');
         $faces = self::fetchFaces($entry['family'], self::weightsFor($entry['weights']));
+
+        if (count($faces) > self::MAX_FACES) {
+            self::refuse('That font comes in '.count($faces).' pieces and is too big to copy here. Choose a lighter one.');
+        }
+
+        // Up to sixty downloads: lengthen a web request's limit, and never set
+        // one where there is none (the command line, a worker).
+        $limit = (int) ini_get('max_execution_time');
+        if ($limit > 0 && $limit < 180) {
+            set_time_limit(180);
+        }
+
         $dir = "fonts/google/{$slug}";
         $stored = [];
         $bytes = 0;
@@ -54,10 +76,17 @@ final class GoogleFonts
             throw $e;
         }
 
-        return [GoogleFont::create([
-            'slug' => $slug, 'family' => $entry['family'], 'category' => $entry['category'],
-            'faces' => $stored, 'bytes' => $bytes,
-        ]), true];
+        try {
+            return [GoogleFont::create([
+                'slug' => $slug, 'family' => $entry['family'], 'category' => $entry['category'],
+                'faces' => $stored, 'bytes' => $bytes,
+            ]), true];
+        } catch (UniqueConstraintViolationException) {
+            // The same font was installed by another request while this one
+            // downloaded. It wrote the same files to the same paths, so they
+            // are left alone and its row is the answer.
+            return [GoogleFont::where('slug', $slug)->firstOrFail(), false];
+        }
     }
 
     public static function remove(GoogleFont $font): void
