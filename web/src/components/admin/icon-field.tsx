@@ -4,9 +4,13 @@ import { useState } from "react";
 import { iconMap, type IconName } from "@/components/icons";
 import { IconClose, IconGrid } from "@/components/icons-ui";
 import { Modal } from "@/components/ui/modal";
+import { MaterialIcon } from "@/components/material-icon";
+import { MaterialIconGrid } from "./material-icon-grid";
 import { cn } from "@/lib/utils";
 
 const NAMES = Object.keys(iconMap) as IconName[];
+/** A stored Google icon key — see `IconKey` in the API. */
+const GOOGLE = /^ms:([a-z0-9_]{1,37})$/;
 
 /**
  * Icon picker for solutions, services, industries, the homepage statistics —
@@ -47,8 +51,10 @@ export function IconField({
   label?: string;
 }) {
   const [own, setOwn] = useState<string>(
-    defaultValue && NAMES.includes(defaultValue as IconName) ? defaultValue : "",
+    defaultValue && (NAMES.includes(defaultValue as IconName) || GOOGLE.test(defaultValue)) ? defaultValue : "",
   );
+  // Two sets (0.179.0): the site's own icons, and Google's, searched on the server.
+  const [tab, setTab] = useState<"site" | "google">("site");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -61,6 +67,8 @@ export function IconField({
   const q = query.trim().toLowerCase();
   const shown = q ? NAMES.filter((n) => n.includes(q)) : NAMES;
   const Current = selected && selected in iconMap ? iconMap[selected as IconName] : null;
+  const google = GOOGLE.exec(selected);
+  const hasIcon = Boolean(Current || google);
   const labelId = id ? `${id}-icon-label` : undefined;
 
   return (
@@ -84,17 +92,17 @@ export function IconField({
             aria-hidden
             className={cn(
               "grid size-7 shrink-0 place-items-center rounded border [&_svg]:size-[17px]",
-              Current ? "border-brand-ink/30 text-brand-ink" : "border-dashed border-line-strong text-faint",
+              hasIcon ? "border-brand-ink/30 text-brand-ink" : "border-dashed border-line-strong text-faint",
             )}
           >
-            {Current && <Current />}
+            {Current ? <Current /> : google ? <MaterialIcon name={google[1]} /> : null}
           </span>
-          <span id={labelId ? `${labelId}-value` : undefined} className={cn("truncate text-13-5", !Current && "text-faint")}>
-            {Current ? selected : "No icon — choose one"}
+          <span id={labelId ? `${labelId}-value` : undefined} className={cn("truncate text-13-5", !hasIcon && "text-faint")}>
+            {google ? `${google[1].replace(/_/g, " ")} (Google)` : Current ? selected : "No icon — choose one"}
           </span>
         </button>
 
-        {Current && (
+        {hasIcon && (
           <button
             type="button"
             onClick={() => select("")}
@@ -124,6 +132,31 @@ export function IconField({
         title="Choose an icon"
         size="lg"
       >
+        <div role="tablist" aria-label="Icon set" className="mb-3 flex gap-1.5">
+          {([["site", "Site icons"], ["google", "Google icons"]] as const).map(([id, text]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={tab === id}
+              onClick={() => setTab(id)}
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-13 font-semibold transition-colors duration-(--duration-base)",
+                tab === id ? "border-brand-600 bg-brand-50 text-brand-ink" : "border-line text-muted hover:border-brand-300",
+              )}
+            >
+              {text}
+            </button>
+          ))}
+        </div>
+
+        {/* The Google set is searched on the server and mounted only when chosen, so nothing is fetched until then. */}
+        {tab === "google" && (
+          <MaterialIconGrid onPick={(n) => { select(`ms:${n}`); setOpen(false); setQuery(""); setTab("site"); }} />
+        )}
+
+        {tab === "site" && (
+          <>
         {/* Sticky so the filter stays in reach while the grid scrolls under it. */}
         <div className="sticky top-0 z-1 -mx-1 bg-card px-1 pb-3">
           <input
@@ -165,6 +198,8 @@ export function IconField({
               );
             })}
           </ul>
+        )}
+          </>
         )}
       </Modal>
     </div>
